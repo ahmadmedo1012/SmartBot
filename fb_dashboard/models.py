@@ -136,3 +136,16 @@ class AnalyticsEvent(Base):
     event_type = Column(String(50), nullable=False, index=True)  # reply_sent, comment_received, dm_sent, webhook_received
     metadata_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class BotAlert(Base):
+    """Bot health alerts — low reply rate, errors, token issues."""
+    __tablename__ = "bot_alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    alert_type = Column(String(50), nullable=False)  # low_volume, error_rate, token_expiring, no_comments
+    severity = Column(String(20), default="info")  # info, warning, critical
+    message = Column(Text, default="")
+    resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)

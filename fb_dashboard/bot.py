@@ -395,6 +395,21 @@ class BotEngine:
         self.cooldown = CooldownManager(cooldown_sec=60)
         self.pipeline = ReplyPipeline(fb, self.dedup, self.cooldown)
         self._cycle = 0
+        self._post_reply_count: dict[str, int] = {}
+        self._last_rate_reset: float = time.time()
+
+    async def _check_rate_limit(self, post_id: str) -> bool:
+        """Returns True if under rate limit for this post (max 5 replies/post/min)."""
+        now = time.time()
+        if now - self._last_rate_reset > 60:
+            self._post_reply_count.clear()
+            self._last_rate_reset = now
+        self._post_reply_count.setdefault(post_id, 0)
+        return self._post_reply_count[post_id] < 5
+
+    def _mark_replied(self, post_id: str):
+        self._post_reply_count.setdefault(post_id, 0)
+        self._post_reply_count[post_id] += 1
 
     async def cycle(self):
         """Run one full auto-reply cycle: fetch posts → comments → process."""
@@ -422,10 +437,13 @@ class BotEngine:
                 welcomed_modified = False
                 for post in posts:
                     pid = post["id"]
+                    if not await self._check_rate_limit(pid):
+                        continue  # skip post if rate limited
                     comments = await self.fb.get_post_comments(pid)
                     for c in comments:
                         if await self.pipeline.process(session, c, pid, matcher):
                             total_replied += 1
+                            self._mark_replied(pid)
                         # Check if this was a welcome comment (needs tracking)
                         ctx = self.pipeline._extract(c, pid)
                         if ctx and ctx.from_id and ctx.from_id not in welcomed_senders:

@@ -20,7 +20,7 @@ from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent
+from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert
 from fb_client import FBClient
 from bot import BotEngine
 
@@ -1333,6 +1333,70 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depe
             "keywords": rule.keywords[:3] if rule and rule.keywords else [],
         })
     return top
+
+
+# ── Bot Health / Alerts ──────────────────────────────────────────────────────
+
+@app.get("/api/health/alerts")
+async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
+    """Get bot health alerts."""
+    stmt = select(BotAlert)
+    if not resolved:
+        stmt = stmt.where(BotAlert.resolved == False)
+    rows = await db.execute(stmt.order_by(desc(BotAlert.created_at)).limit(20))
+    return [{
+        "id": a.id, "alert_type": a.alert_type, "severity": a.severity,
+        "message": a.message, "resolved": a.resolved,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    } for a in rows.scalars().all()]
+
+
+@app.post("/api/health/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    alert = await db.get(BotAlert, alert_id)
+    if not alert:
+        raise HTTPException(404, "Alert not found")
+    alert.resolved = True
+    alert.resolved_at = datetime.utcnow()
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/health/bot-check")
+async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
+    """Run bot health checks and return status."""
+    issues = []
+
+    # 1. Check recent reply volume
+    hour_ago = datetime.utcnow() - timedelta(hours=1)
+    recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
+    if recent == 0:
+        issues.append({"type": "no_replies", "severity": "warning", "message": "لا توجد ردود في آخر ساعة"})
+
+    # 2. Check token connectivity
+    try:
+        fan_count = await fb.get_page_fan_count()
+    except Exception:
+        fan_count = None
+        issues.append({"type": "fb_token", "severity": "critical", "message": "فشل الاتصال بفيسبوك — تحقق من التوكن"})
+
+    # 3. Check rules
+    rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+    if rule_count == 0:
+        issues.append({"type": "no_rules", "severity": "critical", "message": "لا توجد قواعد رد — البوت لن يعمل"})
+
+    # 4. Check bot running
+    running = _bot_task is not None and not _bot_task.done()
+
+    return {
+        "status": "ok" if not issues else "warning",
+        "running": running,
+        "fan_count": fan_count,
+        "replies_last_hour": recent,
+        "rule_count": rule_count,
+        "issues": issues,
+        "alerts_count": 0,
+    }
 
 
 # ── Analytics Events (internal) ──────────────────────────────────────────────

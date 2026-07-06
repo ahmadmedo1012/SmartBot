@@ -256,7 +256,7 @@ export function Dashboard({ role }) {
             <CardContent className="p-0">
               {(recent?.items || []).length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="data-table">
+                  <table className="data-table data-table-card-view">
                     <thead>
                       <tr>
                         <th scope="col">المعلق</th>
@@ -268,10 +268,10 @@ export function Dashboard({ role }) {
                     <tbody>
                       {(recent?.items || []).map(r => (
                         <tr key={r.id}>
-                          <td className="font-medium text-xs">{r.commenter_name}</td>
-                          <td className="text-muted-foreground max-w-[100px] sm:max-w-[180px] truncate text-xs">{r.comment_text}</td>
-                          <td className="text-muted-foreground max-w-[100px] sm:max-w-[180px] truncate text-[11px] font-mono">{r.reply_text}</td>
-                          <td className="text-muted-foreground text-[10px] font-mono whitespace-nowrap">
+                          <td className="font-medium text-xs" data-label="المعلق">{r.commenter_name}</td>
+                          <td className="text-muted-foreground max-w-[100px] sm:max-w-[180px] truncate text-xs" data-label="النص">{r.comment_text}</td>
+                          <td className="text-muted-foreground max-w-[100px] sm:max-w-[180px] truncate text-[11px] font-mono" data-label="الرد">{r.reply_text}</td>
+                          <td className="text-muted-foreground text-[10px] font-mono whitespace-nowrap" data-label="التاريخ">
                             {r.created_at ? format(new Date(r.created_at), "MM/dd HH:mm", { locale: arSA }) : "-"}
                           </td>
                         </tr>

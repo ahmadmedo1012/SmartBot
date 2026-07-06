@@ -1,0 +1,83 @@
+- generic [ref=e31]:
+  - generic [ref=e32]:
+    - generic [ref=e35]:
+      - generic [ref=e37]:
+        - img "SmartBot" [ref=e39]
+        - generic [ref=e40]: SMARTBOT
+      - navigation [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: التشغيل
+          - generic [ref=e45]:
+            - button "الرئيسية" [ref=e46]:
+              - img [ref=e47]
+              - generic [ref=e52]: الرئيسية
+            - button "التحليلات" [ref=e53]:
+              - img [ref=e54]
+              - generic [ref=e56]: التحليلات
+            - button "القواعد" [ref=e57]:
+              - img [ref=e58]
+              - generic [ref=e61]: القواعد
+            - button "الردود" [ref=e62]:
+              - img [ref=e63]
+              - generic [ref=e67]: الردود
+            - button "المنشورات" [ref=e68]:
+              - img [ref=e69]
+              - generic [ref=e72]: المنشورات
+            - button "الرسائل" [ref=e73]:
+              - img [ref=e74]
+              - generic [ref=e76]: الرسائل
+            - button "الإعلانات" [ref=e77]:
+              - img [ref=e78]
+              - generic [ref=e81]: الإعلانات
+            - button "فيسبوك" [ref=e82]:
+              - img [ref=e83]
+              - generic [ref=e85]: فيسبوك
+        - generic [ref=e86]:
+          - generic [ref=e87]: النظام
+          - generic [ref=e88]:
+            - button "المستخدمين" [ref=e89]:
+              - img [ref=e90]
+              - generic [ref=e95]: المستخدمين
+            - button "الإعدادات" [ref=e96]:
+              - img [ref=e97]
+              - generic [ref=e100]: الإعدادات
+        - button "تسجيل الخروج" [ref=e102]:
+          - img [ref=e103]
+          - generic [ref=e106]: تسجيل الخروج
+      - generic [ref=e108]:
+        - button "A admin مدير" [ref=e654]:
+          - generic [ref=e112]: A
+          - generic [ref=e113]:
+            - generic [ref=e114]: admin
+            - generic [ref=e115]: مدير
+          - img [ref=e116]
+        - generic [ref=e118]:
+          - button [ref=e119]:
+            - img
+          - button "Toggle Sidebar" [active] [ref=e120]:
+            - img
+            - generic [ref=e121]: Toggle Sidebar
+    - generic [ref=e122]:
+      - banner [ref=e123]:
+        - generic [ref=e124]:
+          - button [ref=e125]:
+            - img
+          - heading "لوحة التحكم" [level=1] [ref=e559]
+        - generic [ref=e127]:
+          - button [ref=e128]:
+            - img
+          - generic [ref=e130]: A
+      - main [ref=e131]:
+        - generic [ref=e561]:
+          - generic [ref=e562]:
+            - generic [ref=e563]:
+              - heading "لوحة التحكم" [level=1] [ref=e564]
+              - paragraph [ref=e565]: نظرة عامة على أداء البوت
+            - generic [ref=e570]: البوت نشط الآن
+          - generic [ref=e649]:
+            - img [ref=e650]
+            - paragraph [ref=e652]: Internal Server Error
+            - button "إعادة المحاولة" [ref=e653]:
+              - img
+              - text: إعادة المحاولة
+  - region "Notifications alt+T"

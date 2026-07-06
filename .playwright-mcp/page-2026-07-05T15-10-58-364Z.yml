@@ -1,0 +1,335 @@
+- generic [ref=e31]:
+  - generic [ref=e32]:
+    - generic [ref=e35]:
+      - generic [ref=e37]:
+        - img "SmartBot" [ref=e39]
+        - generic [ref=e40]: SMARTBOT
+      - navigation [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: التشغيل
+          - generic [ref=e45]:
+            - button "الرئيسية" [ref=e46]:
+              - img [ref=e47]
+              - generic [ref=e52]: الرئيسية
+            - button "التحليلات" [ref=e53]:
+              - img [ref=e54]
+              - generic [ref=e56]: التحليلات
+            - button "القواعد" [ref=e57]:
+              - img [ref=e58]
+              - generic [ref=e61]: القواعد
+            - button "الردود" [ref=e62]:
+              - img [ref=e63]
+              - generic [ref=e67]: الردود
+            - button "المنشورات" [ref=e68]:
+              - img [ref=e69]
+              - generic [ref=e72]: المنشورات
+            - button "الرسائل" [ref=e73]:
+              - img [ref=e74]
+              - generic [ref=e76]: الرسائل
+            - button "الإعلانات" [ref=e77]:
+              - img [ref=e78]
+              - generic [ref=e81]: الإعلانات
+            - button "فيسبوك" [ref=e82]:
+              - img [ref=e83]
+              - generic [ref=e85]: فيسبوك
+        - generic [ref=e86]:
+          - generic [ref=e87]: النظام
+          - generic [ref=e88]:
+            - button "المستخدمين" [ref=e89]:
+              - img [ref=e90]
+              - generic [ref=e95]: المستخدمين
+            - button "الإعدادات" [active] [ref=e96]:
+              - img [ref=e97]
+              - generic [ref=e100]: الإعدادات
+        - button "تسجيل الخروج" [ref=e102]:
+          - img [ref=e103]
+          - generic [ref=e106]: تسجيل الخروج
+      - generic [ref=e108]:
+        - button "A admin مدير" [ref=e110]:
+          - generic [ref=e112]: A
+          - generic [ref=e113]:
+            - generic [ref=e114]: admin
+            - generic [ref=e115]: مدير
+          - img [ref=e116]
+        - generic [ref=e118]:
+          - button [ref=e119]:
+            - img
+          - button "Toggle Sidebar" [ref=e120]:
+            - img
+            - generic [ref=e121]: Toggle Sidebar
+    - generic [ref=e122]:
+      - banner [ref=e123]:
+        - generic [ref=e124]:
+          - button [ref=e125]:
+            - img
+          - heading "الإعدادات" [level=1] [ref=e230]
+        - generic [ref=e127]:
+          - button [ref=e128]:
+            - img
+          - generic [ref=e130]: A
+      - main [ref=e131]:
+        - generic [ref=e232]:
+          - generic [ref=e233]:
+            - heading "الإعدادات" [level=1] [ref=e234]
+            - paragraph [ref=e235]: إعدادات البوت، API، المظهر وإحصائيات النظام
+          - generic [ref=e236]:
+            - tablist [ref=e237]:
+              - tab "إعدادات البوت" [selected] [ref=e238]:
+                - img [ref=e239]
+                - text: إعدادات البوت
+              - tab "إعدادات API" [ref=e242]:
+                - img [ref=e243]
+                - text: إعدادات API
+              - tab "المظهر" [ref=e246]:
+                - img [ref=e247]
+                - text: المظهر
+              - tab "النظام" [ref=e249]:
+                - img [ref=e250]
+                - text: النظام
+            - generic [ref=e254]:
+              - generic [ref=e255]:
+                - generic [ref=e256]:
+                  - generic [ref=e258]:
+                    - img [ref=e260]
+                    - generic [ref=e263]: حالة البوت
+                  - generic [ref=e264]:
+                    - generic [ref=e265]:
+                      - generic [ref=e266]: متوقف
+                      - generic [ref=e268]:
+                        - img [ref=e269]
+                        - text: "الفحص كل: 10 ثانية"
+                    - generic [ref=e272]:
+                      - generic [ref=e273]:
+                        - text: الفاصل الزمني (ثواني)
+                        - spinbutton [ref=e274]: "10"
+                      - button "تحديث" [ref=e275]:
+                        - img
+                        - text: تحديث
+                    - button "إعادة تشغيل البوت" [ref=e277]:
+                      - img
+                      - text: إعادة تشغيل البوت
+                - generic [ref=e278]:
+                  - generic [ref=e280]:
+                    - img [ref=e282]
+                    - generic [ref=e284]: اتصال فيسبوك
+                  - generic [ref=e285]:
+                    - generic [ref=e286]:
+                      - text: "معرف الصفحة:"
+                      - code [ref=e287]: مُعد في الإعدادات
+                    - generic [ref=e288]:
+                      - generic [ref=e289]: "الحالة:"
+                      - generic [ref=e290]: غير متصل
+              - generic [ref=e292]:
+                - generic [ref=e294]:
+                  - img [ref=e296]
+                  - generic [ref=e298]: سجل البوت
+                - generic [ref=e300]:
+                  - generic [ref=e301]:
+                    - generic [ref=e302]:
+                      - generic [ref=e303]: ERROR
+                      - generic [ref=e304]: 19:36:11
+                      - generic [ref=e305]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e306]:
+                      - generic [ref=e307]: ERROR
+                      - generic [ref=e308]: 19:35:58
+                      - generic [ref=e309]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e310]:
+                      - generic [ref=e311]: ERROR
+                      - generic [ref=e312]: 19:35:44
+                      - generic [ref=e313]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e314]:
+                      - generic [ref=e315]: ERROR
+                      - generic [ref=e316]: 19:35:31
+                      - generic [ref=e317]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e318]:
+                      - generic [ref=e319]: ERROR
+                      - generic [ref=e320]: 19:35:17
+                      - generic [ref=e321]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e322]:
+                      - generic [ref=e323]: ERROR
+                      - generic [ref=e324]: 19:35:04
+                      - generic [ref=e325]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e326]:
+                      - generic [ref=e327]: ERROR
+                      - generic [ref=e328]: 19:34:51
+                      - generic [ref=e329]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e330]:
+                      - generic [ref=e331]: ERROR
+                      - generic [ref=e332]: 19:34:35
+                      - generic [ref=e333]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e334]:
+                      - generic [ref=e335]: ERROR
+                      - generic [ref=e336]: 19:34:22
+                      - generic [ref=e337]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e338]:
+                      - generic [ref=e339]: ERROR
+                      - generic [ref=e340]: 19:34:08
+                      - generic [ref=e341]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e342]:
+                      - generic [ref=e343]: ERROR
+                      - generic [ref=e344]: 19:33:54
+                      - generic [ref=e345]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e346]:
+                      - generic [ref=e347]: ERROR
+                      - generic [ref=e348]: 19:33:41
+                      - generic [ref=e349]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e350]:
+                      - generic [ref=e351]: ERROR
+                      - generic [ref=e352]: 19:33:28
+                      - generic [ref=e353]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e354]:
+                      - generic [ref=e355]: ERROR
+                      - generic [ref=e356]: 19:33:15
+                      - generic [ref=e357]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e358]:
+                      - generic [ref=e359]: ERROR
+                      - generic [ref=e360]: 19:33:01
+                      - generic [ref=e361]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e362]:
+                      - generic [ref=e363]: ERROR
+                      - generic [ref=e364]: 19:32:48
+                      - generic [ref=e365]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e366]:
+                      - generic [ref=e367]: ERROR
+                      - generic [ref=e368]: 19:32:34
+                      - generic [ref=e369]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e370]:
+                      - generic [ref=e371]: ERROR
+                      - generic [ref=e372]: 19:32:21
+                      - generic [ref=e373]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e374]:
+                      - generic [ref=e375]: ERROR
+                      - generic [ref=e376]: 19:32:07
+                      - generic [ref=e377]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e378]:
+                      - generic [ref=e379]: ERROR
+                      - generic [ref=e380]: 19:31:53
+                      - generic [ref=e381]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e382]:
+                      - generic [ref=e383]: ERROR
+                      - generic [ref=e384]: 19:31:40
+                      - generic [ref=e385]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e386]:
+                      - generic [ref=e387]: ERROR
+                      - generic [ref=e388]: 19:31:26
+                      - generic [ref=e389]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e390]:
+                      - generic [ref=e391]: ERROR
+                      - generic [ref=e392]: 19:31:13
+                      - generic [ref=e393]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e394]:
+                      - generic [ref=e395]: ERROR
+                      - generic [ref=e396]: 19:31:00
+                      - generic [ref=e397]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e398]:
+                      - generic [ref=e399]: ERROR
+                      - generic [ref=e400]: 19:30:46
+                      - generic [ref=e401]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e402]:
+                      - generic [ref=e403]: ERROR
+                      - generic [ref=e404]: 19:30:33
+                      - generic [ref=e405]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e406]:
+                      - generic [ref=e407]: ERROR
+                      - generic [ref=e408]: 19:30:20
+                      - generic [ref=e409]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e410]:
+                      - generic [ref=e411]: ERROR
+                      - generic [ref=e412]: 19:30:06
+                      - generic [ref=e413]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e414]:
+                      - generic [ref=e415]: ERROR
+                      - generic [ref=e416]: 19:29:54
+                      - generic [ref=e417]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e418]:
+                      - generic [ref=e419]: ERROR
+                      - generic [ref=e420]: 19:29:40
+                      - generic [ref=e421]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e422]:
+                      - generic [ref=e423]: ERROR
+                      - generic [ref=e424]: 19:29:27
+                      - generic [ref=e425]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e426]:
+                      - generic [ref=e427]: ERROR
+                      - generic [ref=e428]: 19:29:14
+                      - generic [ref=e429]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e430]:
+                      - generic [ref=e431]: ERROR
+                      - generic [ref=e432]: 19:29:00
+                      - generic [ref=e433]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e434]:
+                      - generic [ref=e435]: ERROR
+                      - generic [ref=e436]: 19:28:47
+                      - generic [ref=e437]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e438]:
+                      - generic [ref=e439]: ERROR
+                      - generic [ref=e440]: 19:28:34
+                      - generic [ref=e441]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e442]:
+                      - generic [ref=e443]: ERROR
+                      - generic [ref=e444]: 19:28:21
+                      - generic [ref=e445]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e446]:
+                      - generic [ref=e447]: ERROR
+                      - generic [ref=e448]: 19:28:07
+                      - generic [ref=e449]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e450]:
+                      - generic [ref=e451]: ERROR
+                      - generic [ref=e452]: 19:27:54
+                      - generic [ref=e453]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e454]:
+                      - generic [ref=e455]: ERROR
+                      - generic [ref=e456]: 19:27:40
+                      - generic [ref=e457]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e458]:
+                      - generic [ref=e459]: ERROR
+                      - generic [ref=e460]: 19:27:27
+                      - generic [ref=e461]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e462]:
+                      - generic [ref=e463]: ERROR
+                      - generic [ref=e464]: 19:27:13
+                      - generic [ref=e465]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e466]:
+                      - generic [ref=e467]: ERROR
+                      - generic [ref=e468]: 19:27:00
+                      - generic [ref=e469]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e470]:
+                      - generic [ref=e471]: ERROR
+                      - generic [ref=e472]: 19:26:46
+                      - generic [ref=e473]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e474]:
+                      - generic [ref=e475]: ERROR
+                      - generic [ref=e476]: 19:26:33
+                      - generic [ref=e477]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e478]:
+                      - generic [ref=e479]: ERROR
+                      - generic [ref=e480]: 19:26:20
+                      - generic [ref=e481]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e482]:
+                      - generic [ref=e483]: ERROR
+                      - generic [ref=e484]: 19:26:06
+                      - generic [ref=e485]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e486]:
+                      - generic [ref=e487]: ERROR
+                      - generic [ref=e488]: 19:25:53
+                      - generic [ref=e489]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e490]:
+                      - generic [ref=e491]: ERROR
+                      - generic [ref=e492]: 19:25:39
+                      - generic [ref=e493]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e494]:
+                      - generic [ref=e495]: ERROR
+                      - generic [ref=e496]: 19:25:26
+                      - generic [ref=e497]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                    - generic [ref=e498]:
+                      - generic [ref=e499]: ERROR
+                      - generic [ref=e500]: 19:25:13
+                      - generic [ref=e501]: "(sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.DataError'>: invalid input for query argument $1: '122102046435383420_1411726634343618' ('str' object cannot be interpreted as an integer) [SQL: SELECT replies.id AS replies_id, replies.fb_comment_id AS replies_fb_comment_id, replies.fb_post_id AS replies_fb_post_id, replies.commenter_name AS replies_commenter_name, replies.comment_text AS replies_comment_text, replies.reply_text AS replies_reply_text, replies.rule_id AS replies_rule_id, replies.created_at AS replies_created_at FROM replies WHERE replies.id = $1::INTEGER] [parameters: ('122102046435383420_1411726634343618',)] (Background on this error at: https://sqlalche.me/e/20/dbapi)"
+                  - generic [ref=e502]:
+                    - button "تنظيف السجلات القديمة" [ref=e503]:
+                      - img
+                      - text: تنظيف السجلات القديمة
+                    - button "مسح السجلات" [ref=e504]:
+                      - img
+                      - text: مسح السجلات
+  - region "Notifications alt+T"

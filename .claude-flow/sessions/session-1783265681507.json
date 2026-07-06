@@ -1,0 +1,15 @@
+{
+  "id": "session-1783265681507",
+  "startedAt": "2026-07-05T15:34:41.507Z",
+  "cwd": "/home/ahmed/Downloads/FacebookPage",
+  "context": {},
+  "metrics": {
+    "edits": 0,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "restoredAt": "2026-07-05T16:48:29.241Z",
+  "endedAt": "2026-07-05T17:00:17.032Z",
+  "duration": 5135525
+}

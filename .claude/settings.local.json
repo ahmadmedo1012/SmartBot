@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Write",
+      "Edit",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://smartbot-6lxo.onrender.com/)",
+      "Bash(curl -s https://smartbot-6lxo.onrender.com/)"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "disableAutoMode": "disable",
+  "mcpServers": {
+    "just_facebook_mcp": {
+      "command": "/home/ahmed/.local/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/tmp/just_facebook_mcp",
+        "--python",
+        "cpython-3.13.14",
+        "python",
+        "-m",
+        "just_facebook_mcp.server"
+      ],
+      "env": {
+        "FACEBOOK_ACCESS_TOKEN": "EAHRuS9a3zO0BRyZBRtthFeu7bfawERvEGbsU6pgCSp0uGlLEmPsP3nseSdR6PIIKRNFS4wIyyknZCCg27LG72FeruhtPUXU8W76sJ21eT3sNs8ZCOz4fjAE7AGapMiPe2uL0HGtApqV1aZBZCyHRLSo8qAUZAIoGNINhRkdplho80AhbEBPD0543ZBq7nNPK7QOGd7QCGxb",
+        "FACEBOOK_PAGE_ID": "1235690416285843"
+      }
+    }
+  }
+}

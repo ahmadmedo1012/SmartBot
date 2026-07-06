@@ -1,0 +1,32 @@
+#3 [GET] https://smartbot-6lxo.onrender.com/static/assets/index-DV_JtrFg.js
+
+  General
+    status:    [200] 
+    duration:  508ms
+    type:      script
+    mimeType:  text/javascript
+
+  Request headers
+    origin: https://smartbot-6lxo.onrender.com
+    sec-ch-ua-platform: "Linux"
+    referer: https://smartbot-6lxo.onrender.com/
+    user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36
+    sec-ch-ua: "Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"
+    sec-ch-ua-mobile: ?0
+
+  Response headers
+    content-encoding: br
+    cf-cache-status: DYNAMIC
+    etag: "8e53f7e6b1bace98c7748dfd2ed5d36e"
+    cf-ray: a15f72d06d3fe237-MRS
+    accept-ranges: bytes
+    alt-svc: h3=":443"; ma=86400
+    rndr-id: 34eda46a-a6c7-4a5f
+    x-render-origin-server: uvicorn
+    date: Sat, 04 Jul 2026 16:18:54 GMT
+    content-type: text/javascript; charset=utf-8
+    last-modified: Sat, 04 Jul 2026 15:52:49 GMT
+    server: cloudflare
+    vary: Accept-Encoding
+
+Call browser_network_request with part="response-body" to read the response body.

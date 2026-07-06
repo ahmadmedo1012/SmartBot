@@ -1,0 +1,92 @@
+- generic:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - banner:
+            - generic:
+              - button:
+                - img
+              - heading [level=1]: لوحة التحكم
+            - generic:
+              - button:
+                - img
+              - generic:
+                - generic: A
+          - main:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading [level=1]: لوحة التحكم
+                    - paragraph: نظرة عامة على أداء البوت
+                  - generic:
+                    - generic: البوت نشط الآن
+                - generic:
+                  - img
+                  - paragraph: Internal Server Error
+                  - button:
+                    - img
+                    - text: إعادة المحاولة
+      - region "Notifications alt+T"
+  - dialog "Sidebar" [ref=e748]:
+    - generic [ref=e749]:
+      - heading "Sidebar" [level=2] [ref=e750]
+      - paragraph [ref=e751]: Displays the mobile sidebar.
+    - generic [ref=e752]:
+      - generic [ref=e754]:
+        - img "SmartBot" [ref=e756]
+        - generic [ref=e757]: SMARTBOT
+      - navigation [ref=e759]:
+        - generic [ref=e760]:
+          - generic [ref=e761]: التشغيل
+          - generic [ref=e762]:
+            - button "الرئيسية" [active] [ref=e763]:
+              - img [ref=e764]
+              - generic [ref=e769]: الرئيسية
+            - button "التحليلات" [ref=e770]:
+              - img [ref=e771]
+              - generic [ref=e773]: التحليلات
+            - button "القواعد" [ref=e774]:
+              - img [ref=e775]
+              - generic [ref=e778]: القواعد
+            - button "الردود" [ref=e779]:
+              - img [ref=e780]
+              - generic [ref=e784]: الردود
+            - button "المنشورات" [ref=e785]:
+              - img [ref=e786]
+              - generic [ref=e789]: المنشورات
+            - button "الرسائل" [ref=e790]:
+              - img [ref=e791]
+              - generic [ref=e793]: الرسائل
+            - button "الإعلانات" [ref=e794]:
+              - img [ref=e795]
+              - generic [ref=e798]: الإعلانات
+            - button "فيسبوك" [ref=e799]:
+              - img [ref=e800]
+              - generic [ref=e802]: فيسبوك
+        - generic [ref=e803]:
+          - generic [ref=e804]: النظام
+          - generic [ref=e805]:
+            - button "المستخدمين" [ref=e806]:
+              - img [ref=e807]
+              - generic [ref=e812]: المستخدمين
+            - button "الإعدادات" [ref=e813]:
+              - img [ref=e814]
+              - generic [ref=e817]: الإعدادات
+        - button "تسجيل الخروج" [ref=e819]:
+          - img [ref=e820]
+          - generic [ref=e823]: تسجيل الخروج
+      - generic [ref=e825]:
+        - button "A admin مدير" [ref=e827]:
+          - generic [ref=e829]: A
+          - generic [ref=e830]:
+            - generic [ref=e831]: admin
+            - generic [ref=e832]: مدير
+          - img [ref=e833]
+        - generic [ref=e835]:
+          - button [ref=e836]:
+            - img
+          - button "Toggle Sidebar" [ref=e837]:
+            - img
+            - generic [ref=e838]: Toggle Sidebar

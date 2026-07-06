@@ -1,0 +1,10 @@
+[    2010ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://smartbot-6lxo.onrender.com/api/me:0
+[    2122ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://smartbot-6lxo.onrender.com/:0
+[   18174ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   19913ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   23521ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   28335ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   94773ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   96546ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[   99237ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0
+[  104012ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://smartbot-6lxo.onrender.com/api/rules:0

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: smartbot
+    runtime: python
+    repo: https://github.com/ahmadmedo1012/SmartBot
+    branch: main
+    buildCommand: pip install -r requirements.txt && cd fb_dashboard/frontend && npm install && npm run build
+    startCommand: cd fb_dashboard && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.3
+      - key: DATABASE_URL
+        fromDatabase:
+          type: postgres
+          name: smartbot-db
+          property: connectionString
+      - key: FACEBOOK_ACCESS_TOKEN
+        sync: false
+      - key: FACEBOOK_PAGE_ID
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: START_BOT
+        value: "false"

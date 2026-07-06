@@ -212,7 +212,7 @@ class FBClient:
         return await self._post(f"{self.page_id}/messages", {
             "recipient": json.dumps({"id": user_id}),
             "message": json.dumps({"text": message}),
-            "messaging_type": "MESSAGE_TAG", "tag": "CUSTOMER_FEEDBACK",
+            "messaging_type": "RESPONSE",
         })
 
     async def close(self):

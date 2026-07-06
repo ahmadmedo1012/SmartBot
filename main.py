@@ -1,14 +1,14 @@
 """
 Root-level main.py — Render imports this as 'main:app'.
-Delegates to fb_dashboard/main.py via importlib to avoid name collision.
+Changes CWD and sys.path to fb_dashboard/ then re-exports app
+from the inner main module (via _app shim to avoid circular import).
 """
-import os, sys, importlib
+import os, sys
 from pathlib import Path
 
-_dash = Path(__file__).resolve().parent / "fb_dashboard"
-sys.path.insert(0, str(_dash))
-os.chdir(str(_dash))
+_dash = str(Path(__file__).resolve().parent / "fb_dashboard")
+os.chdir(_dash)
+sys.path[:0] = [_dash]
 
-# Use importlib so 'import main' in fb_dashboard/*.py resolves inside fb_dashboard/
-mod = importlib.import_module("main")
-app = mod.app
+# _app.py (inside fb_dashboard/) imports ./main properly
+from _app import app

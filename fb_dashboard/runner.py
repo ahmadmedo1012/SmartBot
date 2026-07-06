@@ -857,34 +857,80 @@ async def debug_fb_reply(
     """Debug endpoint that shows raw Facebook API response."""
     import httpx
     async with httpx.AsyncClient(timeout=15) as client:
-        # Method 1: conversation message
-        d = {"access_token": settings.FACEBOOK_ACCESS_TOKEN, "message": message}
+        page_id = settings.FACEBOOK_PAGE_ID
+        tok = settings.FACEBOOK_ACCESS_TOKEN
+
+        # ── Get the conversation to find real user ID ──
+        conv = await client.get(
+            f"https://graph.facebook.com/v22.0/{conversation_id}",
+            params={"access_token": tok, "fields": "senders{id,name},messages.limit(1){from{id,name}}"},
+        )
+        conv_data = conv.json() if conv.status_code == 200 else {}
+        senders = (conv_data.get("senders", {}) or {}).get("data", [])
+        user_id = None
+        for s in senders:
+            sid = str(s.get("id", ""))
+            if sid != str(page_id):
+                user_id = sid
+                break
+
+        # ── Method 1: direct conv message ──
+        d = {"access_token": tok, "message": message}
         r1 = await client.post(f"https://graph.facebook.com/v22.0/{conversation_id}/messages", data=d)
         m1 = {"status": r1.status_code, "body": r1.text[:500]}
 
-        # Method 2: page message with recipient
-        r2 = await client.post(f"https://graph.facebook.com/v22.0/{settings.FACEBOOK_PAGE_ID}/messages", data={
-            "access_token": settings.FACEBOOK_ACCESS_TOKEN,
-            "recipient": json.dumps({"id": conversation_id.replace("t_", "")}),
+        # ── Method 2: RESPONSE type (correct for replying to existing thread) ──
+        r2 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
+            "access_token": tok,
+            "recipient": json.dumps({"id": user_id or conversation_id.replace("t_", "")}),
             "message": json.dumps({"text": message}),
-            "messaging_type": "MESSAGE_TAG",
-            "tag": "CUSTOMER_FEEDBACK",
+            "messaging_type": "RESPONSE",
         })
         m2 = {"status": r2.status_code, "body": r2.text[:500]}
 
-        # Method 3: check token permissions
-        r3 = await client.get(f"https://graph.facebook.com/v22.0/{settings.FACEBOOK_PAGE_ID}", params={
-            "access_token": settings.FACEBOOK_ACCESS_TOKEN,
-            "fields": "access_token",
+        # ── Method 3: UPDATE type ──
+        r3 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
+            "access_token": tok,
+            "recipient": json.dumps({"id": user_id or conversation_id.replace("t_", "")}),
+            "message": json.dumps({"text": message}),
+            "messaging_type": "UPDATE",
         })
         m3 = {"status": r3.status_code, "body": r3.text[:500]}
 
+        # ── Method 4: explicit conversation sender ID ──
+        r4 = None
+        msg_senders = (conv_data.get("messages", {}) or {}).get("data", [])
+        if msg_senders:
+            from_id = str((msg_senders[0].get("from", {}) or {}).get("id", ""))
+            if from_id and from_id != str(page_id):
+                r4 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
+                    "access_token": tok,
+                    "recipient": json.dumps({"id": from_id}),
+                    "message": json.dumps({"text": message}),
+                    "messaging_type": "RESPONSE",
+                })
+                r4 = {"status": r4.status_code, "body": r4.text[:500]}
+        else:
+            r4 = {"status": "skip", "body": "no messages found"}
+
+        # ── Method 5: token permissions check ──
+        r5 = await client.get(f"https://graph.facebook.com/v22.0/{page_id}", params={
+            "access_token": tok,
+            "fields": "access_token,id,name",
+        })
+
         return {
-            "conv_message": m1,
-            "page_message": m2,
-            "page_info": m3,
-            "token_prefix": settings.FACEBOOK_ACCESS_TOKEN[:10] + "...",
-            "page_id": settings.FACEBOOK_PAGE_ID,
+            "found_user_id": user_id,
+            "conv_data": {"status": conv.status_code, "data": conv_data},
+            "methods": {
+                "1_direct_conv": m1,
+                "2_response_with_uid": m2,
+                "3_update": m3,
+                "4_msg_sender_id": r4,
+            },
+            "token_prefix": tok[:15] + "...",
+            "page_id": page_id,
+            "page_info": {"status": r5.status_code, "body": r5.text[:500]},
         }
 
 

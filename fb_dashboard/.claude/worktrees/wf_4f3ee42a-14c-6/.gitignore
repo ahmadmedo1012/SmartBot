@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+*.db
+.env
+.previous-css-hash
+frontend/test-results/
+.claude-flow/
+frontend/src/.claude-flow/
+test.db

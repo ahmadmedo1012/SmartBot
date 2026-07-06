@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: fb-dashboard
+    runtime: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    # redeploy: 2026-07-05-02
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+        comment: "PostgreSQL from Neon — paste: postgresql://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require"
+      - key: FACEBOOK_ACCESS_TOKEN
+        sync: false
+        comment: "Facebook Page Access Token from Meta Developer"
+      - key: FACEBOOK_PAGE_ID
+        sync: false
+        comment: "Your Facebook Page ID number"
+      - key: START_BOT
+        value: "true"

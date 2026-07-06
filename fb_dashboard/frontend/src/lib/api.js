@@ -1,0 +1,293 @@
+const BASE = ""; // relative to same domain in prod
+
+async function api(path, opts = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: opts.body instanceof FormData ? {} : { "Content-Type": "application/json", ...opts.headers },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text.slice(0, 200));
+  }
+  return res.json();
+}
+
+export function fetchStats() {
+  return api("/api/stats");
+}
+
+export function fetchRules() {
+  return api("/api/rules");
+}
+
+export function createRule(name, keywords, reply_template, description, bot_type = "reply", dm_template = "") {
+  const fd = new FormData();
+  fd.append("name", name);
+  fd.append("keywords", keywords);
+  fd.append("reply_template", reply_template);
+  fd.append("description", description || "");
+  fd.append("bot_type", bot_type);
+  if (dm_template) fd.append("dm_template", dm_template);
+  return api("/api/rules", { method: "POST", body: fd });
+}
+
+export function updateRule(id, name, keywords, reply_template, description, bot_type = "reply", dm_template = "") {
+  const fd = new FormData();
+  fd.append("name", name);
+  fd.append("keywords", keywords);
+  fd.append("reply_template", reply_template);
+  fd.append("description", description || "");
+  fd.append("bot_type", bot_type);
+  if (dm_template) fd.append("dm_template", dm_template);
+  return api(`/api/rules/${id}`, { method: "PUT", body: fd });
+}
+
+export function deleteRule(id) {
+  return api(`/api/rules/${id}`, { method: "DELETE" });
+}
+
+export function toggleRule(id) {
+  return api(`/api/rules/${id}/toggle`, { method: "POST" });
+}
+
+export function fetchReplies(page = 1, perPage = 20, search = "", ruleId = "") {
+  const params = new URLSearchParams({ page, per_page: perPage });
+  if (search) params.set("search", search);
+  if (ruleId) params.set("rule_id", ruleId);
+  return api(`/api/replies?${params}`);
+}
+
+export function fetchHourlyStats() {
+  return api("/api/stats/hourly");
+}
+
+export function fetchPosts(page = 1, perPage = 10) {
+  const params = new URLSearchParams({ page, per_page: perPage });
+  return api(`/api/posts?${params}`);
+}
+
+export function publishPost(message) {
+  const fd = new FormData();
+  fd.append("message", message);
+  return api("/api/publish", { method: "POST", body: fd });
+}
+
+export function fetchBotStatus() {
+  return api("/api/bot/status");
+}
+
+export function restartBot() {
+  return api("/api/bot/restart", { method: "POST" });
+}
+
+export function fetchLogs(limit = 50) {
+  return api(`/api/logs?limit=${limit}`);
+}
+
+export function fetchFacebookSettings() {
+  return api("/api/facebook/settings");
+}
+
+export function updateFacebookSettings(data) {
+  return api("/api/facebook/settings", { method: "PUT", body: JSON.stringify(data) });
+}
+
+export function fetchPostDetail(postId) {
+  return api(`/api/posts/${postId}`);
+}
+
+export function deletePost(postId) {
+  return api(`/api/posts/${postId}`, { method: "DELETE" });
+}
+
+export function fetchConversations() {
+  return api("/api/messages");
+}
+
+export function fetchConversationMessages(conversationId) {
+  return api(`/api/messages/${conversationId}`);
+}
+
+export function replyToComment(commentId, message) {
+  const fd = new FormData();
+  fd.append("message", message);
+  return api(`/api/replies/${commentId}/reply`, { method: "POST", body: fd });
+}
+
+export function replyToConversation(conversationId, message) {
+  const fd = new FormData();
+  fd.append("message", message);
+  return api(`/api/messages/${conversationId}/reply`, { method: "POST", body: fd });
+}
+
+// ---- Settings ----
+export function fetchEnv() {
+  return api("/api/env");
+}
+export function fetchSystemStats() {
+  return api("/api/system/stats");
+}
+export function clearLogs(days = 30) {
+  return api("/api/logs/clear", { method: "POST", body: JSON.stringify({ days }) });
+}
+
+// ---- AI ----
+export function fetchAiStatus() {
+  return api("/api/ai/status");
+}
+export function suggestAiReplies(commentText, commenterName = "", pageContext = "") {
+  const fd = new FormData();
+  fd.append("comment_text", commentText);
+  if (commenterName) fd.append("commenter_name", commenterName);
+  if (pageContext) fd.append("page_context", pageContext);
+  return api("/api/ai/suggest", { method: "POST", body: fd });
+}
+export function analyzeComment(commentText) {
+  const fd = new FormData();
+  fd.append("comment_text", commentText);
+  return api("/api/ai/analyze", { method: "POST", body: fd });
+}
+
+// ---- Inbox ----
+export function fetchInboxConversations(status = "all", tag = "", search = "", page = 1, perPage = 25) {
+  const params = new URLSearchParams({ status, page, per_page: perPage });
+  if (tag) params.set("tag", tag);
+  if (search) params.set("search", search);
+  return api(`/api/inbox/conversations?${params}`);
+}
+export function fetchInboxMessages(conversationId) {
+  return api(`/api/inbox/conversations/${conversationId}`);
+}
+export function replyToInbox(conversationId, message) {
+  const fd = new FormData();
+  fd.append("message", message);
+  return api(`/api/inbox/conversations/${conversationId}/reply`, { method: "POST", body: fd });
+}
+
+// ---- Inbox Tags ----
+export function fetchInboxTags() {
+  return api("/api/inbox/tags");
+}
+export function createInboxTag(name, color) {
+  const fd = new FormData(); fd.append("name", name); fd.append("color", color);
+  return api("/api/inbox/tags", { method: "POST", body: fd });
+}
+export function deleteInboxTag(tagId) {
+  return api(`/api/inbox/tags/${tagId}`, { method: "DELETE" });
+}
+export function assignTagToConversation(convId, tagId) {
+  const fd = new FormData(); fd.append("tag_id", tagId);
+  return api(`/api/inbox/conversations/${convId}/tags`, { method: "POST", body: fd });
+}
+export function removeTagFromConversation(convId, tagId) {
+  return api(`/api/inbox/conversations/${convId}/tags/${tagId}`, { method: "DELETE" });
+}
+
+// ---- Reply Templates ----
+export function fetchTemplates(category = "") {
+  const params = category ? `?category=${category}` : "";
+  return api(`/api/templates${params}`);
+}
+export function createTemplate(name, text, category = "general", shortcut = "") {
+  const fd = new FormData(); fd.append("name", name); fd.append("text", text);
+  fd.append("category", category); fd.append("shortcut", shortcut);
+  return api("/api/templates", { method: "POST", body: fd });
+}
+export function updateTemplate(id, name, text, category = "general", shortcut = "") {
+  const fd = new FormData(); fd.append("name", name); fd.append("text", text);
+  fd.append("category", category); fd.append("shortcut", shortcut);
+  return api(`/api/templates/${id}`, { method: "PUT", body: fd });
+}
+export function deleteTemplate(id) {
+  return api(`/api/templates/${id}`, { method: "DELETE" });
+}
+
+// ---- Scheduled Posts ----
+export function fetchScheduledPosts(status = "") {
+  const params = status ? `?status=${status}` : "";
+  return api(`/api/scheduled-posts${params}`);
+}
+export function createScheduledPost(message, imageUrl = "", scheduledAt = "") {
+  const fd = new FormData(); fd.append("message", message);
+  if (imageUrl) fd.append("image_url", imageUrl);
+  if (scheduledAt) fd.append("scheduled_at", scheduledAt);
+  return api("/api/scheduled-posts", { method: "POST", body: fd });
+}
+export function publishScheduledPost(postId) {
+  return api(`/api/scheduled-posts/${postId}/publish`, { method: "POST" });
+}
+export function deleteScheduledPost(postId) {
+  return api(`/api/scheduled-posts/${postId}`, { method: "DELETE" });
+}
+
+// ---- Analytics ----
+export function fetchAnalyticsOverview(days = 30) {
+  return api(`/api/analytics/overview?days=${days}`);
+}
+export function exportAnalytics(format = "csv", days = 30) {
+  return api(`/api/analytics/export?format=${format}&days=${days}`);
+}
+
+// ---- Widgets ----
+export function fetchRecentActivity(limit = 10) {
+  return api(`/api/widgets/recent-activity?limit=${limit}`);
+}
+
+// ---- Webhook ----
+export function fetchWebhookCheck() {
+  return api("/api/webhook/check");
+}
+export function fetchWebhookEvents(limit = 20) {
+  return api(`/api/webhook/events?limit=${limit}`);
+}
+export function triggerWebhookTest() {
+  return api("/api/webhook/test", { method: "POST" });
+}
+
+export function fetchAdAccounts() {
+  return api("/api/ads/accounts");
+}
+
+export function fetchCampaigns(accountId) {
+  return api(`/api/ads/campaigns/${accountId}`);
+}
+
+// ---- Auth ----
+export function login(username, password) {
+  const fd = new FormData();
+  fd.append("username", username);
+  fd.append("password", password);
+  return api("/api/login", { method: "POST", body: fd });
+}
+
+export function logout() {
+  return api("/api/logout", { method: "POST" });
+}
+
+export function fetchMe() {
+  return api("/api/me");
+}
+
+// ---- Users ----
+export function fetchUsers() {
+  return api("/api/users");
+}
+
+export function createUser(username, password, role) {
+  const fd = new FormData();
+  fd.append("username", username);
+  fd.append("password", password);
+  fd.append("role", role);
+  return api("/api/users", { method: "POST", body: fd });
+}
+
+export function updateUser(id, role, password = "") {
+  const fd = new FormData();
+  fd.append("role", role);
+  if (password) fd.append("password", password);
+  return api(`/api/users/${id}`, { method: "PUT", body: fd });
+}
+
+export function deleteUser(id) {
+  return api(`/api/users/${id}`, { method: "DELETE" });
+}

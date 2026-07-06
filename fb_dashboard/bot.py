@@ -323,17 +323,23 @@ class ReplyPipeline:
             log.error(f"✗ Reply to {ctx.cid[:12]} failed after 3 attempts")
             return False
 
-        # 7b. Send DM via Messenger (optional — requires user to have messaged page first)
+        # 7b. Send DM via private reply (works for ANY commenter — no prior Messenger needed)
         dm_sent = False
         if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
             dm_text = TemplateRenderer.render(dm_template, ctx)
-            # Try DM first (works for users with Messenger conversation)
-            dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
+            # Try private_reply first (most permissive — requires read_page_mailboxes)
+            dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
             if dm_result:
                 dm_sent = True
-                log.info(f"✉️ DM sent to {ctx.from_first} via Messenger")
-            # Comment reply with @[user_id] mention is the primary notification
-            # DM is a bonus for users who have interacted with page via Messenger
+                log.info(f"✉️ Private reply sent to {ctx.from_first}")
+            else:
+                # Fallback: Messenger DM (requires pages_messaging)
+                dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
+                if dm_result:
+                    dm_sent = True
+                    log.info(f"✉️ DM sent to {ctx.from_first} via Messenger")
+                else:
+                    log.warning(f"✉️ Both private_reply and DM failed for {ctx.from_first}")
 
         # 8. Log to DB
         session.add(Reply(

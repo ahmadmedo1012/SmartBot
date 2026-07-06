@@ -833,12 +833,20 @@ async def inbox_reply(
     conversation_id: str, message: str = Form(...),
     _=Depends(require_role("editor")),
 ):
-    """Send a reply in a conversation."""
+    """Send a reply in a conversation. Tries Messenger first, falls back to private_reply."""
+    # Try Messenger conversation reply
     result = await fb.send_conversation_message(conversation_id, message)
-    if not result:
-        raise HTTPException(400, "فشل إرسال الرد")
-    _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
-    return {"ok": True}
+    if result:
+        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
+        return {"ok": True}
+
+    # Fallback: try private_reply (works for ANY comment, no prior conversation needed)
+    result = await fb.send_private_reply(conversation_id, message)
+    if result:
+        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
+        return {"ok": True}
+
+    raise HTTPException(400, "فشل إرسال الرد — تأكد من صلاحيات التوكن (pages_manage_engagement, pages_messaging)")
 
 
 @app.get("/api/inbox/tags")

@@ -136,7 +136,7 @@ export function Messages({ role }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100svh-5rem)] -mx-6 -mt-6 overflow-hidden">
+    <div className="flex flex-col h-[calc(100svh-3.5rem)] -mx-3 sm:-mx-6 -mt-3 sm:-mt-6 overflow-hidden">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
         <div>
@@ -415,6 +415,7 @@ export function Messages({ role }) {
           )}
         </div>
       </div>
+      <div className="mobile-nav-spacer" />
     </div>
   )
 }

@@ -28,6 +28,7 @@ const navItems = [
   { key: "scheduled", label: "جدولة", icon: CalendarClock },
   { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
   { key: "ai-assistant", label: "AI الذكي", icon: Brain },
+  { key: "reports", label: "التقارير", icon: BarChart3 },
   { key: "ads", label: "الإعلانات", icon: TrendingUp, adminOnly: true },
   { key: "users", label: "المستخدمين", icon: Users, adminOnly: true },
   { key: "settings", label: "الإعدادات", icon: Settings },

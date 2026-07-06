@@ -283,10 +283,11 @@ class ReplyPipeline:
             return False
 
         # 1. Skip own page comments
-        if ctx.from_id and ctx.from_id != 'None' and ctx.from_id == str(self.fb.page_id):
+        page_id_str = str(self.fb.page_id)
+        if ctx.from_id and ctx.from_id not in ('None', '0') and ctx.from_id == page_id_str:
             return False
 
-        # 2. Dedup check
+        # 2. Dedup check (memory + DB)
         if self.dedup.is_duplicate(ctx.cid):
             return False
 

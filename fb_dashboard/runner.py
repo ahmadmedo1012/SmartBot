@@ -1268,14 +1268,71 @@ async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
 
 
 @app.get("/api/widgets/ai-insights")
-async def widget_ai_insights(_=Depends(get_current_user)):
-    """Dashboard widget: AI status & quick stats."""
+async def widget_ai_insights(db=Depends(get_db), _=Depends(get_current_user)):
+    """Dashboard widget: AI status & quick stats with template count."""
     ai = get_ai()
+    rows = await db.execute(select(func.count(ReplyTemplate.id)))
+    template_count = rows.scalar() or 0
     return {
         "ai_available": ai.available,
         "ai_provider": ai.provider_name,
-        "template_count": 0,  # populated at query time if needed
+        "template_count": template_count,
     }
+
+
+@app.get("/api/widgets/response-time")
+async def widget_response_time(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
+    """Average response time (mock — FB doesn't return timing, so we use reply count by hour as proxy)."""
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    row = await db.execute(
+        select(func.count(Reply.id).label("cnt"))
+        .where(Reply.created_at >= cutoff)
+    )
+    total = row.scalar() or 0
+    return {
+        "total_replies": total,
+        "period_days": days,
+        "avg_per_day": round(total / max(days, 1), 1),
+    }
+
+
+@app.get("/api/widgets/sentiment-trend")
+async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
+    """Sentiment distribution over time."""
+    from sqlalchemy import cast as sql_cast, Date
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    rows = await db.execute(
+        select(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date).label("d"), func.count(AISuggestion.id))
+        .where(AISuggestion.created_at >= cutoff)
+        .group_by(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date))
+        .order_by(sql_cast(AISuggestion.created_at, Date))
+    )
+    trend = {}
+    for row in rows:
+        d = str(row.d)
+        if d not in trend: trend[d] = {}
+        trend[d][row.sentiment or "محايد"] = row.count
+    return {"trend": trend}
+
+
+@app.get("/api/widgets/top-keywords")
+async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
+    """Most triggered rules (keywords proxy)."""
+    rows = await db.execute(
+        select(Reply.rule_id, func.count(Reply.id).label("cnt"))
+        .group_by(Reply.rule_id).order_by(desc("cnt")).limit(limit)
+    )
+    top = []
+    for row in rows:
+        if row.rule_id is None: continue
+        rule = await db.get(Rule, row.rule_id)
+        top.append({
+            "rule_id": row.rule_id,
+            "rule_name": rule.name if rule else f"#{row.rule_id}",
+            "count": row.cnt,
+            "keywords": rule.keywords[:3] if rule and rule.keywords else [],
+        })
+    return top
 
 
 # ── Analytics Events (internal) ──────────────────────────────────────────────
@@ -1364,10 +1421,19 @@ async def webhook_receive(request: Request):
 
 
 async def _process_webhook_comment(comment: dict, post_id: str):
-    """Process a single comment from webhook payload immediately."""
+    """Process a single webhook comment immediately (not a full cycle)."""
     try:
         engine = BotEngine(fb)
-        await engine.cycle()
+        async with AsyncSessionLocal() as session:
+            rules = await engine._load_rules(session)
+            if not rules:
+                return
+            dm_map = await engine._load_dm_map()
+            matcher = RuleMatcher(rules, dm_map)
+            replied_ids = await engine._load_replied_ids(session)
+            engine.dedup.load_from_db(replied_ids)
+            await engine.pipeline.process(session, comment, post_id, matcher)
+            _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
 

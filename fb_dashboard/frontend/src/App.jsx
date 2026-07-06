@@ -17,6 +17,7 @@ import { Users } from "@/pages/users"
 import { ScheduledPosts } from "@/pages/scheduled"
 import { QuickReplies } from "@/pages/quick-replies"
 import { AiAssistant } from "@/pages/ai-assistant"
+import { Reports } from "@/pages/reports"
 
 const queryClient = new QueryClient()
 
@@ -34,6 +35,7 @@ const pages = {
   replies: Replies,
   posts: Posts,
   messages: Messages,
+  reports: Reports,
   ads: Ads,
   settings: Settings,
   users: Users,

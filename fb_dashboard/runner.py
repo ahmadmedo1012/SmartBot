@@ -846,7 +846,46 @@ async def inbox_reply(
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
         return {"ok": True}
 
-    raise HTTPException(400, "فشل إرسال الرد — تأكد من صلاحيات التوكن (pages_manage_engagement, pages_messaging)")
+    raise HTTPException(400, "لم يتم الرد — راجع سجل الخادم لتفاصيل خطأ فيسبوك")
+
+
+@app.post("/api/debug/fb-reply")
+async def debug_fb_reply(
+    conversation_id: str = Form(...), message: str = Form("اهلا"),
+    _=Depends(require_role("admin")),
+):
+    """Debug endpoint that shows raw Facebook API response."""
+    import httpx
+    async with httpx.AsyncClient(timeout=15) as client:
+        # Method 1: conversation message
+        d = {"access_token": settings.FACEBOOK_ACCESS_TOKEN, "message": message}
+        r1 = await client.post(f"https://graph.facebook.com/v22.0/{conversation_id}/messages", data=d)
+        m1 = {"status": r1.status_code, "body": r1.text[:500]}
+
+        # Method 2: page message with recipient
+        r2 = await client.post(f"https://graph.facebook.com/v22.0/{settings.FACEBOOK_PAGE_ID}/messages", data={
+            "access_token": settings.FACEBOOK_ACCESS_TOKEN,
+            "recipient": json.dumps({"id": conversation_id.replace("t_", "")}),
+            "message": json.dumps({"text": message}),
+            "messaging_type": "MESSAGE_TAG",
+            "tag": "CUSTOMER_FEEDBACK",
+        })
+        m2 = {"status": r2.status_code, "body": r2.text[:500]}
+
+        # Method 3: check token permissions
+        r3 = await client.get(f"https://graph.facebook.com/v22.0/{settings.FACEBOOK_PAGE_ID}", params={
+            "access_token": settings.FACEBOOK_ACCESS_TOKEN,
+            "fields": "access_token",
+        })
+        m3 = {"status": r3.status_code, "body": r3.text[:500]}
+
+        return {
+            "conv_message": m1,
+            "page_message": m2,
+            "page_info": m3,
+            "token_prefix": settings.FACEBOOK_ACCESS_TOKEN[:10] + "...",
+            "page_id": settings.FACEBOOK_PAGE_ID,
+        }
 
 
 @app.get("/api/inbox/tags")

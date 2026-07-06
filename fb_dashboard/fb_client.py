@@ -175,35 +175,29 @@ class FBClient:
     async def send_conversation_message(self, conversation_id: str, message: str) -> dict | None:
         """Send a message reply in a conversation.
 
-        First extracts the recipient user ID from the conversation, then sends
-        via POST /{page_id}/messages (Messenger API).
-        Requires pages_messaging permission.
+        Uses Messenger API: POST /{page_id}/messages with recipient.
+        Extracts the non-page sender ID from conversation data.
         """
-        # Extract user ID from conversation (strip t_ prefix, find non-page sender)
-        user_id = None
-        parts = conversation_id.replace("t_", "").split("_")
-        # If it's t_{page_id}_{user_id} or {user_id}_{page_id}
+        # Fetch conversation to get sender(s), exclude the page itself
+        conv = await self._get(f"{conversation_id}", {
+            "fields": "senders{id,name}",
+        })
+        if not conv:
+            log.error(f"Cannot fetch conversation {conversation_id}")
+            return None
+
         page_id_str = str(self.page_id)
-        for p in parts:
-            if p != page_id_str and p.isdigit():
-                user_id = p
+        user_id = None
+        senders = (conv.get("senders", {}) or {}).get("data", [])
+        for s in senders:
+            sid = str(s.get("id", ""))
+            if sid != page_id_str:
+                user_id = sid
+                log.info(f"Found sender {s.get('name','?')} (id={user_id}) in conv {conversation_id[:20]}")
                 break
 
         if not user_id:
-            # Fallback: try fetching conversation to find sender
-            conv = await self._get(f"{conversation_id}", {
-                "fields": "senders{id}",
-            })
-            if conv:
-                senders = (conv.get("senders", {}) or {}).get("data", [])
-                for s in senders:
-                    sid = str(s.get("id", ""))
-                    if sid != page_id_str:
-                        user_id = sid
-                        break
-
-        if not user_id:
-            log.error(f"Cannot determine user ID from conversation {conversation_id}")
+            log.error(f"No non-page sender found in conversation {conversation_id}. Senders: {senders}")
             return None
 
         return await self.send_dm(user_id, message)

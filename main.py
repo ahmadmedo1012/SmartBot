@@ -1,14 +1,11 @@
 """
-Root-level main.py — Render imports this as 'main:app'.
-Changes CWD and sys.path to fb_dashboard/ then re-exports app
-from the inner main module (via _app shim to avoid circular import).
+Root main.py — Render starts here (uvicorn main:app).
+Delegates to fb_dashboard/runner.py.
 """
 import os, sys
-from pathlib import Path
 
-_dash = str(Path(__file__).resolve().parent / "fb_dashboard")
+_dash = os.path.join(os.path.dirname(__file__), "fb_dashboard")
 os.chdir(_dash)
-sys.path[:0] = [_dash]
+sys.path.insert(0, _dash)
 
-# _app.py (inside fb_dashboard/) imports ./main properly
-from _app import app
+from runner import app

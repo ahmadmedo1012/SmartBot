@@ -354,6 +354,17 @@ class ReplyPipeline:
         try:
             await session.commit()
             log.info(f"✓ Replied to {ctx.from_first}: \"{ctx.text[:40]}\"")
+            # Notify WebSocket clients
+            try:
+                from ws_manager import ws_manager
+                await ws_manager.broadcast("new_reply", {
+                    "commenter": ctx.from_name,
+                    "comment": ctx.text[:50],
+                    "reply": reply[:50],
+                    "rule_id": rule_id,
+                })
+            except Exception:
+                pass
             return True
         except IntegrityError:
             await session.rollback()

@@ -11,7 +11,7 @@ from typing import Any
 
 import bcrypt
 import jwt
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response
+from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -23,6 +23,7 @@ from models import Base, Rule, Reply, BotLog, BotState, User
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert
 from fb_client import FBClient
 from bot import BotEngine
+from ws_manager import ws_manager
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -1397,6 +1398,39 @@ async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
         "issues": issues,
         "alerts_count": 0,
     }
+
+
+# ── WebSocket Real-Time Updates ─────────────────────────────────────────────
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    """WebSocket endpoint for real-time dashboard data.
+    Sends events: stats_update, new_reply, bot_status, alert."""
+    await ws_manager.connect(ws)
+    try:
+        while True:
+            data = await ws.receive_text()
+            if data == "ping":
+                await ws.send_text(json.dumps({"event": "pong"}))
+            elif data == "stats":
+                try:
+                    async with AsyncSessionLocal() as db:
+                        total = await db.scalar(select(func.count(Reply.id))) or 0
+                        today_date = datetime.utcnow().date()
+                        today = await db.scalar(
+                            select(func.count(Reply.id))
+                            .where(cast(Reply.created_at, Date) == today_date)
+                        ) or 0
+                        await ws.send_text(json.dumps({
+                            "event": "stats_update",
+                            "data": {"total_replies": total, "today_replies": today}
+                        }, default=str))
+                except Exception:
+                    pass
+    except WebSocketDisconnect:
+        ws_manager.disconnect(ws)
+    except Exception:
+        ws_manager.disconnect(ws)
 
 
 # ── Analytics Events (internal) ──────────────────────────────────────────────

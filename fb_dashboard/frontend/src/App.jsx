@@ -56,6 +56,33 @@ function AppInner() {
       .finally(() => setAuthLoading(false))
   }, [])
 
+  // WebSocket real-time updates
+  useEffect(() => {
+    if (!auth) return
+    let ws = null
+    let timer = null
+    let mounted = true
+
+    function connect() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:"
+      ws = new WebSocket(`${proto}//${location.host}/ws`)
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data)
+          if (msg.event === "new_reply") {
+            queryClient.invalidateQueries({ queryKey: ["stats"] })
+            queryClient.invalidateQueries({ queryKey: ["replies"] })
+            queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
+          }
+        } catch {}
+      }
+      ws.onclose = () => { if (mounted) timer = setTimeout(connect, 5000) }
+      ws.onerror = () => ws?.close()
+    }
+    connect()
+    return () => { mounted = false; if (ws) ws.close(); clearTimeout(timer) }
+  }, [auth])
+
   const handleLogin = useCallback((res) => {
     setAuth({ username: res.username, role: res.role })
     setPage("dashboard")

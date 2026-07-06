@@ -1,0 +1,24 @@
+{
+  "name": "SmartBot",
+  "short_name": "SmartBot",
+  "description": "لوحة تحكم احترافية للردود التلقائية على فيسبوك",
+  "start_url": "/static/index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#dc2644",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

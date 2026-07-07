@@ -2144,36 +2144,27 @@ async def generate_report(request: Request, db=Depends(get_db), _=Depends(requir
     filename = Path(filepath).name
     return {"file": filename, "path": filepath}
 
-
-@app.get("/api/reports/download/{filename}")
-async def download_report(filename: str, _=Depends(get_current_user)):
-    filepath = REPORT_DIR / filename
-    if not filepath.exists() or not filepath.is_file():
-        raise HTTPException(404, "Report not found")
-    return FileResponse(str(filepath), media_type="application/pdf", filename=filename)
-
-
-
-MOBILE_APP_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
-
 # ---- Mobile App ----
-MOBILE_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
+def _serve_mobile(file_path=""):
+    """Serve file from mobile static directory."""
+    base = os.path.join(os.path.dirname(__file__), "static_app")
+    if not file_path:
+        file_path = os.path.join(base, "index.html")
+    else:
+        file_path = os.path.normpath(os.path.join(base, file_path))
+        if not file_path.startswith(os.path.normpath(base)):
+            raise HTTPException(403)
+    if os.path.isfile(file_path):
+        ext = os.path.splitext(file_path)[1]
+        mime_map = {".js":"application/javascript", ".css":"text/css", ".html":"text/html",
+                    ".json":"application/json", ".png":"image/png", ".svg":"image/svg+xml"}
+        return HTMLResponse(open(file_path, 'rb').read(), media_type=mime_map.get(ext, "text/plain"))
+    fallback = os.path.join(base, "index.html")
+    if os.path.isfile(fallback):
+        return HTMLResponse(open(fallback, encoding="utf-8").read())
+    return HTMLResponse("Mobile app not built", status_code=404)
 
 @app.get("/app", response_class=HTMLResponse)
-def app_root():
-    idx = os.path.join(MOBILE_STATIC, "index.html")
-    if os.path.isfile(idx):
-        return HTMLResponse(open(idx, encoding="utf-8").read())
-    return HTMLResponse("<h1>Mobile app not built</h1>")
-
-@app.get("/app/{rfile:path}", response_class=HTMLResponse)
-def app_file(rfile: str):
-    fp = os.path.normpath(os.path.join(MOBILE_STATIC, rfile))
-    if not fp.startswith(os.path.normpath(MOBILE_STATIC)):
-        raise HTTPException(403)
-    if os.path.isfile(fp):
-        ext = os.path.splitext(fp)[1]
-        mime = {".js":"application/javascript",".css":"text/css",".html":"text/html",".json":"application/json",".png":"image/png",".svg":"image/svg+xml"}.get(ext,"text/plain")
-        return HTMLResponse(open(fp,"rb").read(), media_type=mime)
-    return HTMLResponse(open(os.path.join(MOBILE_STATIC,"index.html"), encoding="utf-8").read())
-
+def mobile_root(): return _serve_mobile()
+@app.get("/app/{path:path}", response_class=HTMLResponse)
+def mobile_path(path: str): return _serve_mobile(path)

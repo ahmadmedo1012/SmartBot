@@ -413,6 +413,14 @@ export function fetchPeriodComparison(days) {
   return api(`/api/analytics/period-comparison?days=${days}`);
 }
 
+// ── Reports API ──
+export function generateReport(data = {}) {
+  return api("/api/reports/generate", { method: "POST", body: JSON.stringify(data) });
+}
+export function downloadReport(filename) {
+  return `/api/reports/download/${filename}`;
+}
+
 // ── Content Calendar API ──
 export function fetchCalendarPosts(year, month) {
   return api(`/api/calendar?year=${year}&month=${month}`);
@@ -436,6 +444,20 @@ export function fetchMonthSummary(year, month) {
   return api(`/api/calendar/month-summary?year=${year}&month=${month}`);
 }
 
+// ── Publisher API (Multi-Platform) ──
+export function fetchPublisherStatus() {
+  return api("/api/publisher/status");
+}
+export function configurePublisher(platform, credentials) {
+  return api("/api/publisher/configure", { method: "POST", body: JSON.stringify({ platform, credentials }) });
+}
+export function publishToPlatform(data) {
+  return api("/api/publisher/publish", { method: "POST", body: JSON.stringify(data) });
+}
+export function fetchPlatformSettings(platform) {
+  return api(`/api/publisher/settings/${platform}`);
+}
+
 // ── Team API ──
 export function fetchTeamMembers() {
   return api("/api/team/members");
@@ -448,4 +470,18 @@ export function fetchTeamPerformance() {
 }
 export function fetchRoleSummary() {
   return api("/api/team/role-summary");
+}
+
+// ── Commerce / Shopify API ──
+export function fetchCommerceStatus() {
+  return api("/api/commerce/status");
+}
+export function configureShopify(domain, token) {
+  return api("/api/commerce/shopify/configure", { method: "POST", body: JSON.stringify({ store_domain: domain, access_token: token }) });
+}
+export function fetchShopifyProducts(limit = 10) {
+  return api(`/api/commerce/shopify/products?limit=${limit}`);
+}
+export function fetchShopifyOrders(limit = 10, status = "any") {
+  return api(`/api/commerce/shopify/orders?limit=${limit}&status=${status}`);
 }

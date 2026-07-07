@@ -25,6 +25,7 @@ import { Subscribers } from "@/pages/subscribers"
 import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
 import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
+import { Publisher } from "@/pages/publisher"
 
 const queryClient = new QueryClient()
 
@@ -56,6 +57,7 @@ const pages = {
   "analytics-dashboard": AnalyticsDashboard,
   "content-calendar": ContentCalendar,
   team: Team,
+  publisher: Publisher,
 }
 
 function AppInner() {

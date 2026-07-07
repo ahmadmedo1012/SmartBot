@@ -12,7 +12,7 @@ from typing import Any
 import bcrypt
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
@@ -30,9 +30,12 @@ from broadcast_engine import BroadcastEngine
 from subscriber_engine import SubscriberEngine, TagEngine
 from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient
 from analytics_engine import AnalyticsEngine
+from report_engine import ReportEngine, REPORT_DIR
 from inbox_engine import InboxEngine
 from content_calendar import ContentCalendarEngine, CalendarScheduler
 from team_engine import TeamEngine
+from commerce_engine import CommerceEngine
+from publisher_engine import PublisherEngine
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -63,9 +66,12 @@ broadcast_engine = BroadcastEngine(fb)
 subscriber_engine = SubscriberEngine()
 tag_engine = TagEngine()
 analytics_engine = AnalyticsEngine()
+report_engine = ReportEngine(analytics_engine)
 inbox_engine = InboxEngine(fb)
 content_calendar_engine = ContentCalendarEngine(fb)
 team_engine = TeamEngine()
+commerce_engine = CommerceEngine()
+_publisher = PublisherEngine()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
@@ -1257,10 +1263,14 @@ async def analytics_scheduler_check(db=Depends(get_db), _=Depends(get_current_us
     )
     published = 0
     for post in due.scalars().all():
-        result = await fb.post_to_page(post.message)
+        if post.platform == "facebook":
+            result = await fb.post_to_page(post.message)
+        else:
+            _publisher.load_credentials(db)
+            result = await _publisher.publish_to_platform(post.platform, post.message, post.image_url)
         if result:
             post.status = "published"
-            post.fb_post_id = result.get("id", "")
+            post.fb_post_id = result.get("post_id", "")
             post.published_at = now
             published += 1
     await db.commit()
@@ -2011,6 +2021,77 @@ async def calendar_month_summary(year: int = Query(...), month: int = Query(...)
     return await content_calendar_engine.get_month_summary(year, month, db)
 
 
+# ── Publisher (Multi-Platform) ──────────────────────────────────────────────────
+
+@app.get("/api/publisher/status")
+async def publisher_status(_=Depends(get_current_user)):
+    _publisher.load_credentials(None)
+    return _publisher.get_status()
+
+
+@app.get("/api/publisher/settings/{platform}")
+async def publisher_settings(platform: str, _=Depends(get_current_user)):
+    return {
+        "platform": platform,
+        "fields": _publisher.get_platform_settings_template(platform),
+    }
+
+
+@app.post("/api/publisher/configure")
+async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
+                               _=Depends(require_role("admin"))):
+    platform = data.get("platform", "")
+    creds = data.get("credentials", {})
+    if not platform or not creds:
+        raise HTTPException(400, "platform and credentials required")
+    ok = await _publisher.save_credentials(db, platform, creds)
+    return {"ok": ok, "platform": platform}
+
+
+@app.post("/api/publisher/publish")
+async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
+                             current_user = Depends(require_role("editor"))):
+    platform = data.get("platform", "facebook")
+    message = data.get("message", "")
+    image_url = data.get("image_url", "")
+    scheduled_at = data.get("scheduled_at", "")
+
+    if not message.strip():
+        raise HTTPException(400, "Message required")
+
+    if scheduled_at:
+        try:
+            sched = datetime.fromisoformat(scheduled_at)
+        except ValueError:
+            raise HTTPException(400, "Invalid date format — use ISO 8601")
+        _publisher.load_credentials(db)
+        post = ScheduledPost(
+            message=message, image_url=image_url, platform=platform,
+            scheduled_at=sched, status="scheduled",
+            created_by=current_user.username or "",
+        )
+        db.add(post)
+        await db.commit()
+        _track_event("post_scheduled", {"platform": platform})
+        return {"id": post.id, "status": "scheduled", "scheduled_at": scheduled_at}
+
+    # Publish immediately
+    if platform == "facebook":
+        result = await fb.post_to_page(message)
+        if not result:
+            raise HTTPException(400, "فشل النشر على فيسبوك")
+        fb_post_id = result.get("id", "")
+        _track_event("post_published", {"platform": "facebook"})
+        return {"platform": "facebook", "post_id": fb_post_id, "status": "published"}
+    else:
+        _publisher.load_credentials(db)
+        result = await _publisher.publish_to_platform(platform, message, image_url)
+        if not result:
+            raise HTTPException(400, f"فشل النشر على {_publisher.get_platform_display_name(platform)}")
+        _track_event("post_published", {"platform": platform})
+        return {**result, "status": "published"}
+
+
 # ── Team ───────────────────────────────────────────────────────────────────────
 
 @app.get("/api/team/members")
@@ -2031,6 +2112,61 @@ async def team_performance(db=Depends(get_db), _=Depends(require_role("admin")))
 @app.get("/api/team/role-summary")
 async def team_role_summary(db=Depends(get_db), _=Depends(get_current_user)):
     return await team_engine.get_user_role_summary(db)
+
+
+# ── Commerce / Shopify ────────────────────────────────────────────────────
+
+@app.get("/api/commerce/status")
+async def commerce_status(_=Depends(get_current_user)):
+    return commerce_engine.get_status()
+
+
+@app.post("/api/commerce/shopify/configure")
+async def shopify_configure(request: Request, _=Depends(require_role("admin"))):
+    body = await request.json()
+    domain = body.get("store_domain", "")
+    token = body.get("access_token", "")
+    if not domain or not token:
+        raise HTTPException(400, "store_domain and access_token required")
+    commerce_engine.shopify.store_domain = domain
+    commerce_engine.shopify.access_token = token
+    commerce_engine.shopify._base_url = f"https://{domain}"
+    # ponytail: in-memory only, add DB/env persistence when multi-instance
+    return {"ok": True, "store": domain}
+
+
+@app.get("/api/commerce/shopify/products")
+async def shopify_products(limit: int = Query(10), _=Depends(get_current_user)):
+    return {"products": await commerce_engine.shopify.get_products(limit)}
+
+
+@app.get("/api/commerce/shopify/orders")
+async def shopify_orders(limit: int = Query(10), status: str = Query("any"), _=Depends(get_current_user)):
+    return {"orders": await commerce_engine.shopify.get_orders(limit, status)}
+
+
+# ── Report Engine ────────────────────────────────────────────────────
+
+@app.post("/api/reports/generate")
+async def generate_report(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    filepath = await report_engine.generate_monthly_report(
+        days=body.get("days", 30),
+        session=db,
+        brand_name=body.get("brand_name", ""),
+        logo_url=body.get("logo_url", ""),
+        primary_color=body.get("primary_color", "#FF5D3A"),
+    )
+    filename = Path(filepath).name
+    return {"file": filename, "path": filepath}
+
+
+@app.get("/api/reports/download/{filename}")
+async def download_report(filename: str, _=Depends(get_current_user)):
+    filepath = REPORT_DIR / filename
+    if not filepath.exists() or not filepath.is_file():
+        raise HTTPException(404, "Report not found")
+    return FileResponse(str(filepath), media_type="application/pdf", filename=filename)
 
 
 if __name__ == "__main__":

@@ -114,12 +114,13 @@ class ConversationLabel(Base):
 
 
 class ScheduledPost(Base):
-    """Scheduled Facebook posts."""
+    """Scheduled posts for any platform."""
     __tablename__ = "scheduled_posts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     message = Column(Text, nullable=False)
     image_url = Column(String(500), default="")
+    platform = Column(String(20), default="facebook")  # facebook, x, linkedin, instagram
     scheduled_at = Column(DateTime, nullable=True)
     status = Column(String(20), default="draft")  # draft, scheduled, published, failed
     fb_post_id = Column(String(100), default="")

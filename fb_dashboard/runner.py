@@ -2169,12 +2169,37 @@ async def download_report(filename: str, _=Depends(get_current_user)):
     return FileResponse(str(filepath), media_type="application/pdf", filename=filename)
 
 
+
+# ---- Mobile App ----
+MOBILE_APP_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
+
+@app.get("/app", response_class=HTMLResponse)
+@app.get("/app/{path:path}", response_class=HTMLResponse)
+async def mobile_app(path: str = ""):
+    """Serve mobile web app."""
+    import os
+    base = MOBILE_APP_STATIC
+    fname = path or "index.html"
+    fp = os.path.normpath(os.path.join(base, fname))
+    if not fp.startswith(os.path.normpath(base)):
+        return HTMLResponse("Invalid path", 403)
+    if os.path.isfile(fp):
+        ext = os.path.splitext(fp)[1]
+        mime = {".js": "application/javascript", ".css": "text/css", ".html": "text/html",
+                ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml",
+                ".ico": "image/x-icon"}.get(ext, "text/plain")
+        return HTMLResponse(open(fp, "rb").read(), media_type=mime)
+    idx = os.path.join(base, "index.html")
+    if os.path.isfile(idx):
+        return HTMLResponse(open(idx, encoding="utf-8").read())
+    return HTMLResponse("<h1>Mobile app not built</h1>")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
 
 
-# ---- Mobile App ----
+ ----
 MOBILE_APP_DIR = Path(__file__).resolve().parent / "static_app"
 
 @app.get("/app", response_class=HTMLResponse)

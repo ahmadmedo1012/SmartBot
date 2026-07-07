@@ -22,6 +22,23 @@ function exportCSV(data, filename) {
   URL.revokeObjectURL(url)
 }
 
+async function downloadPDF(type, days = 30) {
+  try {
+    const res = await fetch("/api/reports/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, days, branding: { company_name: "SmartBot" } }),
+    })
+    if (!res.ok) return alert("فشل إنشاء التقرير")
+    const blob = await res.blob()
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `${type}-report-${new Date().toISOString().slice(0, 10)}.pdf`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  } catch { alert("فشل الاتصال بخادم التقارير") }
+}
+
 export function Reports({ role }) {
   useEffect(() => { document.title = "التقارير | SmartBot" }, [])
   const [days, setDays] = useState("7")
@@ -77,7 +94,10 @@ export function Reports({ role }) {
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => exportCSV(allReplies, `reports-${format(new Date(), "yyyy-MM-dd")}.csv`)} disabled={!allReplies.length}>
-            <Download className="ml-1 h-4 w-4" />تصدير
+            <Download className="ml-1 h-4 w-4" />تصدير CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => downloadPDF("monthly", parseInt(days))}>
+            <Download className="ml-1 h-4 w-4" />PDF تقرير
           </Button>
         </div>
       </div>

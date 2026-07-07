@@ -2120,17 +2120,29 @@ async def commerce_status(_=Depends(get_current_user)):
 
 
 @app.post("/api/commerce/shopify/configure")
-async def shopify_configure(request: Request, _=Depends(require_role("admin"))):
+async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(require_role("admin"))):
+    from commerce_engine import ShopifyIntegration
     body = await request.json()
-    domain = body.get("store_domain", "")
-    token = body.get("access_token", "")
-    if not domain or not token:
-        raise HTTPException(400, "store_domain and access_token required")
-    commerce_engine.shopify.store_domain = domain
-    commerce_engine.shopify.access_token = token
-    commerce_engine.shopify._base_url = f"https://{domain}"
-    # ponytail: in-memory only, add DB/env persistence when multi-instance
-    return {"ok": True, "store": domain}
+    for key, value in body.items():
+        existing = await db.execute(select(BotState).where(BotState.key == f"shopify_{key}"))
+        row = existing.scalar_one_or_none()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(BotState(key=f"shopify_{key}", value=str(value)))
+    await db.commit()
+    commerce_engine.shopify = ShopifyIntegration(
+        store_domain=body.get("store_domain", ""),
+        access_token=body.get("access_token", ""),
+    )
+    return {"ok": True, "store": body.get("store_domain", "")}
+
+
+@app.post("/api/commerce/shopify/webhook/{topic:path}")
+async def shopify_webhook(topic: str, request: Request):
+    body = await request.json()
+    ctx = await commerce_engine.shopify.handle_webhook(topic, body)
+    return ctx
 
 
 @app.get("/api/commerce/shopify/products")

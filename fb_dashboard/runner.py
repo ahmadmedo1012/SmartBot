@@ -2156,41 +2156,18 @@ async def download_report(filename: str, _=Depends(get_current_user)):
 
 MOBILE_APP_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
 
+# ---- Mobile App ----
+MOBILE_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
+
 @app.get("/app", response_class=HTMLResponse)
-@app.get("/app/{path:path}", response_class=HTMLResponse)
-async def mobile_app(path: str = ""):
-    """Serve mobile web app."""
-    import os
-    base = MOBILE_APP_STATIC
-    fname = path or "index.html"
-    fp = os.path.normpath(os.path.join(base, fname))
-    if not fp.startswith(os.path.normpath(base)):
-        return HTMLResponse("Invalid path", 403)
-    if os.path.isfile(fp):
-        ext = os.path.splitext(fp)[1]
-        mime = {".js": "application/javascript", ".css": "text/css", ".html": "text/html",
-                ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml",
-                ".ico": "image/x-icon"}.get(ext, "text/plain")
-        return HTMLResponse(open(fp, "rb").read(), media_type=mime)
-    idx = os.path.join(base, "index.html")
+def app_root():
+    idx = os.path.join(MOBILE_STATIC, "index.html")
     if os.path.isfile(idx):
         return HTMLResponse(open(idx, encoding="utf-8").read())
     return HTMLResponse("<h1>Mobile app not built</h1>")
 
-MOBILE_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
-
-def _mobile_index():
-    idx = os.path.join(MOBILE_STATIC, "index.html")
-    if os.path.isfile(idx):
-        return open(idx, encoding="utf-8").read()
-    return "<h1>Mobile app not built</h1>"
-
-@app.get("/app", response_class=HTMLResponse)
-async def app_root():
-    return HTMLResponse(_mobile_index())
-
 @app.get("/app/{rfile:path}", response_class=HTMLResponse)
-async def app_file(rfile: str):
+def app_file(rfile: str):
     fp = os.path.normpath(os.path.join(MOBILE_STATIC, rfile))
     if not fp.startswith(os.path.normpath(MOBILE_STATIC)):
         raise HTTPException(403)
@@ -2198,29 +2175,5 @@ async def app_file(rfile: str):
         ext = os.path.splitext(fp)[1]
         mime = {".js":"application/javascript",".css":"text/css",".html":"text/html",".json":"application/json",".png":"image/png",".svg":"image/svg+xml"}.get(ext,"text/plain")
         return HTMLResponse(open(fp,"rb").read(), media_type=mime)
-    return HTMLResponse(_mobile_index())
+    return HTMLResponse(open(os.path.join(MOBILE_STATIC,"index.html"), encoding="utf-8").read())
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
-
-MOBILE_APP_DIR = Path(__file__).resolve().parent / "static_app"
-
-@app.get("/app", response_class=HTMLResponse)
-@app.get("/app/{path:path}", response_class=HTMLResponse)
-async def mobile_app(path: str = ""):
-    """Serve mobile web app from static_app folder."""
-    target = path or "index.html"
-    fp = MOBILE_APP_DIR / target
-    try:
-        fp = fp.resolve().absolute()
-        if not str(fp).startswith(str(MOBILE_APP_DIR.resolve().absolute())):
-            return HTMLResponse("<h1>Invalid path</h1>", 403)
-    except:
-        return HTMLResponse("<h1>Invalid path</h1>", 403)
-    if fp.exists() and fp.is_file():
-        ct = {"js": "application/javascript", "css": "text/css", 
-              "html": "text/html", "json": "application/json",
-              "png": "image/png", "svg": "image/svg+xml"}.get(fp.suffix.lstrip("."), "text/plain")
-        return HTMLResponse(fp.read_bytes(), media_type=ct)
-    return HTMLResponse((MOBILE_APP_DIR / "index.html").read_text(encoding="utf-8"))

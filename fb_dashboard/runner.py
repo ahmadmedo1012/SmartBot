@@ -2173,20 +2173,30 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
 
-# ---- Mobile App Route ----
-import os
-MOBILE_DIR = Path(__file__).resolve().parent.parent / "mobile" / "dist"
-@app.get("/mobile/{rest_of_path:path}")
-async def mobile_app(rest_of_path: str):
-    mobile_index = MOBILE_DIR / "index.html"
-    if mobile_index.exists():
-        return HTMLResponse(mobile_index.read_text(encoding="utf-8"))
-    from fastapi.responses import JSONResponse
-    return JSONResponse({"status": "not_built", "mobile": "run cd mobile && npx expo export --platform web"})
+# ---- Mobile App ----
+MOBILE_DIR = Path(__file__).resolve().parent / "static_app"
 
-@app.get("/mobile")
-async def mobile_root():
-    mobile_index = MOBILE_DIR / "index.html"
-    if mobile_index.exists():
-        return HTMLResponse(mobile_index.read_text(encoding="utf-8"))
-    return JSONResponse({"status": "not_built"})
+@app.get("/mobile", response_class=HTMLResponse)
+@app.api_route("/mobile/{rest_path:path}", methods=["GET"], response_class=HTMLResponse)
+async def serve_mobile(rest_path: str = ""):
+    """Serve the Expo mobile web app."""
+    target = rest_path or "index.html"
+    file_path = MOBILE_DIR / target
+    try:
+        file_path = file_path.resolve()
+        if not str(file_path).startswith(str(MOBILE_DIR.resolve())):
+            return HTMLResponse("<h1>Invalid path</h1>", status_code=403)
+    except Exception:
+        return HTMLResponse("<h1>Invalid path</h1>", status_code=403)
+
+    if file_path.exists() and file_path.is_file():
+        ext = file_path.suffix
+        ct = {"": "text/html", ".js": "application/javascript", ".css": "text/css",
+              ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml"}.get(ext, "text/plain")
+        return HTMLResponse(file_path.read_bytes(), media_type=ct)
+
+    # Fallback: serve index.html for SPA routing
+    index = MOBILE_DIR / "index.html"
+    if index.exists():
+        return HTMLResponse(index.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Mobile app not built.</h1><p>Run: cd mobile && npx expo export --platform web</p>")

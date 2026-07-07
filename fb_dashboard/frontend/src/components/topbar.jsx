@@ -17,7 +17,7 @@ import {
   TrendingUp, ChevronDown, Menu,
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
-  Gift,
+  Gift, GitBranch, Timer, Radio, Calendar,
 } from "lucide-react"
 
 const navItems = [

@@ -6,8 +6,8 @@ async function login(page) {
   await page.goto(BASE);
   await page.locator('input').nth(0).fill('admin');
   await page.locator('input').nth(1).fill('admin');
-  await page.getByRole('button', { name: 'AUTHENTICATE' }).click();
-  await page.waitForSelector('h1:has-text("DARASHBOARD")', { timeout: 10000 });
+  await page.getByRole('button', { name: 'تسجيل الدخول' }).click();
+  await page.waitForSelector('h1:has-text("لوحة التحكم")', { timeout: 10000 });
 }
 
 test.describe('SmartBot Full Checklist', () => {
@@ -98,7 +98,7 @@ test.describe('SmartBot Full Checklist', () => {
       await page.waitForTimeout(500);
       await page.reload();
       await page.waitForTimeout(1000);
-      await expect(page.locator('h1')).toContainText('DARASHBOARD');
+      await expect(page.locator('h1')).toContainText('لوحة التحكم');
     }
   });
 
@@ -120,7 +120,7 @@ test.describe('SmartBot Full Checklist', () => {
 
   test('Full flow: login + all pages accessible', async ({ page }) => {
     await login(page);
-    await expect(page.locator('h1')).toContainText('DARASHBOARD');
+    await expect(page.locator('h1')).toContainText('لوحة التحكم');
     const pages = ['القواعد', 'الردود', 'المنشورات', 'الإعدادات', 'المستخدمين'];
     for (const p of pages) {
       const navButton = page.getByText(p).first();

@@ -37,7 +37,8 @@ class TestFetchAllConversations:
         session.execute.return_value = []
         result = await engine.fetch_all_conversations(session)
 
-        assert len(result) == 2
+        # 2 Messenger + 3 platform status items
+        assert len(result) == 5
         first = result[0]
         assert first["id"] == "msg_conv_1"
         assert first["platform"] == "messenger"
@@ -47,6 +48,12 @@ class TestFetchAllConversations:
         assert first["unread_count"] == 1
         assert first["updated_time"] == "2026-07-06T12:00:00+0000"
         assert first["tags"] == []
+
+        # Platform status items appended at end
+        for i, prefix in enumerate(("ig_", "wa_", "tg_")):
+            item = result[2 + i]
+            assert item["status"] == "needs_config"
+            assert item["id"].startswith(prefix)
 
     @pytest.mark.asyncio
     async def test_handles_no_senders(self, engine):
@@ -58,24 +65,26 @@ class TestFetchAllConversations:
         session = AsyncMock()
         session.execute.return_value = []
         result = await engine.fetch_all_conversations(session)
-        assert len(result) == 1
+        assert len(result) == 4  # 1 Messenger + 3 platform status
         assert result[0]["senders"] == []
 
     @pytest.mark.asyncio
-    async def test_empty_fetch_returns_empty(self, engine):
-        """When FB returns None, return empty list."""
+    async def test_empty_fetch_returns_platform_status_only(self, engine):
+        """When FB returns None, return only platform status items."""
         engine.fb.get_conversations = AsyncMock(return_value=None)
         session = AsyncMock()
         result = await engine.fetch_all_conversations(session)
-        assert result == []
+        assert len(result) == 3
+        assert all(r["status"] == "needs_config" for r in result)
 
     @pytest.mark.asyncio
-    async def test_empty_fetch_list_returns_empty(self, engine):
-        """When FB returns empty list, return empty list."""
+    async def test_empty_fetch_list_returns_platform_status_only(self, engine):
+        """When FB returns empty list, return only platform status items."""
         engine.fb.get_conversations = AsyncMock(return_value=[])
         session = AsyncMock()
         result = await engine.fetch_all_conversations(session)
-        assert result == []
+        assert len(result) == 3
+        assert all(r["status"] == "needs_config" for r in result)
 
 
 # ── message routing by prefix ─────────────────────────────────────────
@@ -100,20 +109,24 @@ class TestMessageRouting:
         engine.fb.send_conversation_message.assert_called_once_with("conv_1", "رد")
 
     @pytest.mark.asyncio
-    async def test_send_reply_non_messenger_fails(self, engine):
-        """Non-Messenger prefix returns False (not yet implemented)."""
+    async def test_send_reply_non_messenger_returns_config_status(self, engine):
+        """Non-Messenger prefix returns needs_config dict."""
         session = AsyncMock()
-        ok = await engine.send_reply("ig_conv_1", "رد", session)
-        assert ok is False
+        result = await engine.send_reply("ig_conv_1", "رد", session)
+        assert isinstance(result, dict)
+        assert result["status"] == "needs_config"
+        assert result["platform"] == "instagram"
         engine.fb.send_conversation_message.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_non_messenger_messages_empty(self, engine):
-        """get_messages for IG/WA/TG returns empty (not yet implemented)."""
+    async def test_non_messenger_messages_return_config(self, engine):
+        """get_messages for IG/WA/TG returns needs_config messages."""
         session = AsyncMock()
         for prefix in ("ig_", "wa_", "tg_"):
             result = await engine.get_messages(f"{prefix}conv_1", session)
-            assert result == []
+            assert len(result) == 1
+            assert result[0]["status"] == "needs_config"
+            assert result[0]["platform"] in ("instagram", "whatsapp", "telegram")
 
 
 # ── _parse_id ─────────────────────────────────────────────────────────

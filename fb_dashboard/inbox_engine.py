@@ -16,6 +16,85 @@ from database import AsyncSessionLocal
 log = logging.getLogger("fb-inbox")
 
 
+# ── Platform status markers ──────────────────────────────────────────────
+# Returned as conversation items / message placeholders when a platform
+# hasn't been fully configured via the Graph API / Business settings.
+_PLATFORM_STATUS = {
+    "ig_": {
+        "id": "ig_needs_config",
+        "platform": "instagram",
+        "status": "needs_config",
+        "sender_platform": "instagram",
+        "subject": "إنستغرام — يحتاج إلى ربط",
+        "message": "ربط حساب إنستغرام من الإعدادات",
+        "config_guide": "أنشئ تطبيق فيسبوك واربط حساب إنستغرام عبر Graph API",
+        "senders": [],
+        "message_count": 0,
+        "unread_count": 0,
+        "updated_time": "",
+        "tags": [],
+        "platform_metadata": {},
+    },
+    "wa_": {
+        "id": "wa_needs_config",
+        "platform": "whatsapp",
+        "status": "needs_config",
+        "sender_platform": "whatsapp",
+        "subject": "واتساب — يحتاج إلى ربط",
+        "message": "ربط واتساب من الإعدادات",
+        "config_guide": "افتح واتساب → الأدوات → ربط الحساب",
+        "senders": [],
+        "message_count": 0,
+        "unread_count": 0,
+        "updated_time": "",
+        "tags": [],
+        "platform_metadata": {},
+    },
+    "tg_": {
+        "id": "tg_needs_config",
+        "platform": "telegram",
+        "status": "needs_config",
+        "sender_platform": "telegram",
+        "subject": "تيليجرام — الاتصال متاح",
+        "message": "الاتصال متاح عبر Telegram Bot API — ربط من الإعدادات",
+        "config_guide": "أنشئ بوت عبر @BotFather وأضف التوكن في الإعدادات",
+        "senders": [],
+        "message_count": 0,
+        "unread_count": 0,
+        "updated_time": "",
+        "tags": [],
+        "platform_metadata": {},
+    },
+}
+
+_NEEDS_CONFIG_PLATFORMS = {  # prefixes whose real API integration is not yet implemented
+    "ig_": "instagram",
+    "wa_": "whatsapp",
+    "tg_": "telegram",
+}
+
+
+def _needs_config_item(prefix: str) -> dict:
+    """Build a conversation-like item indicating a platform needs config."""
+    base = dict(_PLATFORM_STATUS[prefix])
+    base["id"] = f"{prefix}needs_config"
+    return base
+
+
+def _needs_config_msg(prefix: str) -> dict:
+    """Build a message-like item indicating a platform needs config."""
+    info = _PLATFORM_STATUS[prefix]
+    return {
+        "id": f"{prefix}needs_config",
+        "message": info["message"],
+        "config_guide": info.get("config_guide", ""),
+        "platform": info["sender_platform"],
+        "status": "needs_config",
+        "from": {"id": "", "name": "النظام"},
+        "created_time": "",
+    }
+
+
 class InboxEngine:
     """Unified inbox that normalizes conversations across platforms."""
 
@@ -32,7 +111,9 @@ class InboxEngine:
         result = []
         messenger = await self._fetch_messenger(session)
         result.extend(messenger)
-        # ponytail: IG/WA/TG return empty — add real fetch when platform integrations land
+        # Append platform status markers for unconfigured platforms
+        for prefix in ("ig_", "wa_", "tg_"):
+            result.append(_needs_config_item(prefix))
         return result
 
     async def _fetch_messenger(self, session) -> list[dict]:
@@ -89,25 +170,36 @@ class InboxEngine:
                 "platform": "messenger",
             } for m in (raw or [])]
 
-        # ponytail: non-Messenger platforms return empty until integrated
-        log.info(f"get_messages: {platform} not yet implemented (id={conversation_id})")
+        if prefix in _NEEDS_CONFIG_PLATFORMS:
+            log.info(f"get_messages: {platform} needs config (id={conversation_id})")
+            return [_needs_config_msg(prefix)]
+
+        log.info(f"get_messages: unknown platform {platform} (id={conversation_id})")
         return []
 
     # ── Send reply ─────────────────────────────────────────────────────
 
-    async def send_reply(self, conversation_id: str, message: str, session) -> bool:
-        """Route reply to correct platform."""
+    async def send_reply(self, conversation_id: str, message: str, session) -> dict | bool:
+        """Route reply to correct platform. Returns result dict or False."""
         prefix, real_id = self._parse_id(conversation_id)
         platform = self._PLATFORM_PREFIX.get(prefix, "messenger")
 
+        if prefix in _NEEDS_CONFIG_PLATFORMS:
+            info = _PLATFORM_STATUS[prefix]
+            log.info(f"send_reply: {platform} needs config (id={conversation_id})")
+            return {
+                "status": "needs_config",
+                "platform": info["sender_platform"],
+                "message": info["message"],
+                "config_guide": info.get("config_guide", ""),
+            }
+
         if prefix != "msg_":
-            log.info(f"send_reply: {platform} replies not yet implemented (id={conversation_id})")
+            log.info(f"send_reply: unknown platform {platform} (id={conversation_id})")
             return False
 
         result = await self.fb.send_conversation_message(real_id, message)
         if result:
-            # Log the reply for stats
-            # ponytail: minimal logging; expand with sender name when context is available
             try:
                 s = Reply(
                     fb_comment_id=f"inbox_{conversation_id}_{datetime.now(timezone.utc).timestamp()}",

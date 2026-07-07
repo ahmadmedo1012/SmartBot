@@ -77,35 +77,35 @@
 
 :root {
   color-scheme: light;
-  --background: 40 20% 97%; --foreground: 40 10% 8%;
-  --card: 0 0% 100%; --card-foreground: 40 10% 8%;
-  --popover: 0 0% 100%; --popover-foreground: 40 10% 8%;
+  --background: 40 15% 95%; --foreground: 220 30% 6%;
+  --card: 0 0% 100%; --card-foreground: 220 30% 6%;
+  --popover: 0 0% 100%; --popover-foreground: 220 30% 6%;
   --primary: 348 88% 42%; --primary-foreground: 0 0% 100%;
-  --secondary: 40 10% 90%; --secondary-foreground: 40 10% 8%;
-  --muted: 40 10% 92%; --muted-foreground: 40 8% 40%;
+  --secondary: 220 20% 20%; --secondary-foreground: 0 0% 100%;
+  --muted: 220 15% 88%; --muted-foreground: 220 15% 35%;
   --accent: 38 92% 38%; --accent-foreground: 0 0% 100%;
   --destructive: 0 88% 50%; --destructive-foreground: 0 0% 100%;
   --success: 152 72% 26%; --success-foreground: 0 0% 100%;
   --warning: 38 94% 50%; --warning-foreground: 0 0% 100%;
   --info: 211 92% 50%; --info-foreground: 0 0% 100%;
-  --border: 40 10% 80%; --input: 40 10% 80%; --ring: 38 92% 50%;
+  --border: 220 15% 75%; --input: 220 15% 75%; --ring: 348 88% 42%;
 }
 
 .dark {
   color-scheme: dark;
-  --background: 225 25% 5%; --foreground: 40 10% 95%;
-  --card: 225 20% 12%; --card-foreground: 40 10% 95%;
-  --popover: 225 20% 14%; --popover-foreground: 40 10% 95%;
+  --background: 225 25% 4%; --foreground: 210 20% 92%;
+  --card: 225 25% 10%; --card-foreground: 210 20% 92%;
+  --popover: 225 25% 12%; --popover-foreground: 210 20% 92%;
   --primary: 348 95% 65%; --primary-foreground: 0 0% 100%;
-  --secondary: 225 15% 12%; --secondary-foreground: 40 10% 95%;
-  --muted: 225 14% 10%; --muted-foreground: 40 8% 65%;
+  --secondary: 220 30% 25%; --secondary-foreground: 0 0% 100%;
+  --muted: 225 20% 9%; --muted-foreground: 220 15% 55%;
   --accent: 38 94% 60%; --accent-foreground: 0 0% 100%;
   --destructive: 0 88% 65%; --destructive-foreground: 0 0% 100%;
   --success: 152 82% 48%; --success-foreground: 0 0% 100%;
   --warning: 38 94% 56%; --warning-foreground: 0 0% 100%;
   --info: 211 92% 60%; --info-foreground: 0 0% 100%;
-  --border: 225 14% 20%; --input: 225 14% 28%; --ring: 38 94% 50%;
-  --sidebar: 225 20% 8%;
+  --border: 225 20% 18%; --input: 225 15% 22%; --ring: 348 95% 65%;
+  --sidebar: 225 25% 7%;
 }
 
 /* ── Glassmorphism Premium Cards ── */

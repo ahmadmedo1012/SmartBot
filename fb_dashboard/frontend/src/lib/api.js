@@ -449,3 +449,20 @@ export function fetchTeamPerformance() {
 export function fetchRoleSummary() {
   return api("/api/team/role-summary");
 }
+
+// ── Offers ──
+export function fetchOffers(activeOnly = false) {
+  return api(`/api/offers?active_only=${activeOnly}`);
+}
+export function createOffer(title, code = "", description = "", discountValue = 0, expiresAt = "") {
+  const fd = new FormData(); fd.append("title", title); fd.append("code", code);
+  fd.append("description", description); fd.append("discount_value", discountValue);
+  if (expiresAt) fd.append("expires_at", expiresAt);
+  return api("/api/offers", { method: "POST", body: fd });
+}
+export function toggleOffer(id) {
+  return api(`/api/offers/${id}/toggle`, { method: "POST" });
+}
+export function deleteOffer(id) {
+  return api(`/api/offers/${id}`, { method: "DELETE" });
+}

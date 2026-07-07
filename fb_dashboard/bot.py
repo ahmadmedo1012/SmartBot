@@ -71,15 +71,20 @@ class IntentClassifier:
     _NEGATIVE = {"غش", "نصب", "خايس", "فظيع", "سيء", "رديء", "weak",
         "terrible", "scam", "زبالة", "مقرف", "disgusting", "worst",
         "horrible", "broken", "احتيال", "محتال", "fake", "fraud",
-        "خسارة", "فاشل", "فشل", "failure", "cheat", "cheated"}
+        "خسارة", "فاشل", "فشل", "failure", "cheat", "cheated",
+        "مظلوم", "حرامية", "نصابين", "نصابة", "مخيس", "مو زين", "زفت",
+        "خربان", "تعبان"}
     _POSITIVE = {"جميل", "رائع", "حلو", "nice", "great", "awesome",
         "ممتاز", "excellent", "amazing", "fantastic", "مبدع", "ابداع",
-        "love", "loved", "best", "wonderful"}
+        "love", "loved", "best", "wonderful",
+        "زين", "باهي", "فخم", "جيد", "قدها", "تمام", "ممتازة"}
     _QUESTION = {"كم", "سعر", "price", "how", "what", "أين", "وين",
         "متى", "كيف", "question", "query", "سؤال", "استفسار", "help",
-        "مساعدة", "when", "where", "why"}
+        "مساعدة", "when", "where", "why",
+        "شحال", "شنو", "شكون", "قداش", "قداه"}
     _CONTACT = {"رقم", "واتساب", "whatsapp", "تواصل", "message",
-        "contact", "dm", "رسالة", "ارسل", "call", "phone", "telegram"}
+        "contact", "dm", "رسالة", "ارسل", "call", "phone", "telegram",
+        "خابر", "كلم", "خاص", "راسل", "ماسنجر", "ع الخاص"}
 
     @classmethod
     def classify(cls, text: str) -> str:

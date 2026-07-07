@@ -20,7 +20,7 @@ from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert
+from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer
 from fb_client import FBClient
 from bot import BotEngine, RuleMatcher
 from ws_manager import ws_manager
@@ -2031,6 +2031,50 @@ async def team_performance(db=Depends(get_db), _=Depends(require_role("admin")))
 @app.get("/api/team/role-summary")
 async def team_role_summary(db=Depends(get_db), _=Depends(get_current_user)):
     return await team_engine.get_user_role_summary(db)
+
+
+# ── Offers / Coupons ──
+
+
+@app.get("/api/offers")
+async def list_offers(active_only: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
+    stmt = select(Offer)
+    if active_only: stmt = stmt.where(Offer.is_active == True)
+    rows = await db.execute(stmt.order_by(Offer.created_at.desc()))
+    return [{"id": o.id, "title": o.title, "code": o.code, "description": o.description,
+             "discount_type": o.discount_type, "discount_value": o.discount_value,
+             "max_uses": o.max_uses, "used_count": o.used_count, "is_active": o.is_active,
+             "expires_at": o.expires_at.isoformat() if o.expires_at else None} for o in rows.scalars().all()]
+
+
+@app.post("/api/offers")
+async def create_offer(title: str = Form(...), code: str = Form(""), description: str = Form(""),
+                        discount_value: int = Form(0), expires_at: str = Form(""),
+                        db=Depends(get_db), _=Depends(require_role("admin"))):
+    exp = datetime.fromisoformat(expires_at) if expires_at else None
+    offer = Offer(title=title, code=code, description=description, discount_value=discount_value, expires_at=exp)
+    db.add(offer)
+    await db.commit()
+    await db.refresh(offer)
+    return {"id": offer.id}
+
+
+@app.post("/api/offers/{offer_id}/toggle")
+async def toggle_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    offer = await db.get(Offer, offer_id)
+    if not offer: raise HTTPException(404, "غير موجود")
+    offer.is_active = not offer.is_active
+    await db.commit()
+    return {"ok": True, "is_active": offer.is_active}
+
+
+@app.delete("/api/offers/{offer_id}")
+async def delete_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    offer = await db.get(Offer, offer_id)
+    if not offer: raise HTTPException(404, "غير موجود")
+    await db.delete(offer)
+    await db.commit()
+    return {"ok": True}
 
 
 if __name__ == "__main__":

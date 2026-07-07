@@ -6,5 +6,5 @@ __pycache__/
 .replied_comments.json
 *.png
 *.ico
-fb_dashboard/static/
+# fb_dashboard/static/
 test-results/

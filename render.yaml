@@ -4,7 +4,7 @@ services:
     runtime: python
     repo: https://github.com/ahmadmedo1012/SmartBot
     branch: main
-    buildCommand: pip install -r requirements.txt && cd fb_dashboard/frontend && npm install && npm run build
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION

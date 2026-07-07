@@ -106,23 +106,36 @@ class IntentClassifier:
 # ---------------------------------------------------------------------------
 
 class TextNormalizer:
-    """Arabic text normalization for robust matching."""
+    """Arabic + Libyan text normalization for robust matching."""
 
-    # Mapping of common character variants to their normalized form
     ALEF_MAP = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا"})
     TAH_MAP = str.maketrans({"ة": "ه"})
     YEH_MAP = str.maketrans({"ى": "ي", "ئ": "ي"})
     WAW_MAP = str.maketrans({"ؤ": "و"})
+    LIBYAN_QAF = str.maketrans({"گ": "ق", "ڨ": "ق", "ڧ": "ق"})
+    LIBYAN_KAF = str.maketrans({"ک": "ك", "ڪ": "ك"})
+    LIBYAN_JEEM = str.maketrans({"چ": "ج"})
     DIACRITICS = "ًٌٍَُِّْ"
+    LIBYAN_PREFIXES = ("باش ", "نحنا ", "انتو ", "هما ", "عندك ", "عندكم ",
+                       "شنو ", "شحال ", "قداش ", "قداه ", "شكون ", "علاش ",
+                       "واش ", "هذاك ", "هذيك ", "هذولا ")
 
     @classmethod
     def normalize(cls, text: str) -> str:
-        """Normalize Arabic text for consistent keyword matching."""
         t = text.lower().strip()
         t = t.translate(cls.ALEF_MAP).translate(cls.TAH_MAP)
         t = t.translate(cls.YEH_MAP).translate(cls.WAW_MAP)
+        t = t.translate(cls.LIBYAN_QAF).translate(cls.LIBYAN_KAF).translate(cls.LIBYAN_JEEM)
         for ch in cls.DIACRITICS:
             t = t.replace(ch, "")
+        return t
+
+    @classmethod
+    def normalize_for_matching(cls, text: str) -> str:
+        t = cls.normalize(text)
+        for prefix in cls.LIBYAN_PREFIXES:
+            if t.startswith(prefix):
+                t = t[len(prefix):]
         return t
 
 
@@ -197,7 +210,7 @@ class RuleMatcher:
                 k_lower = k.lower().strip()
                 if k_lower in _STOP_WORDS:
                     continue
-                normalized.append((k_lower, TextNormalizer.normalize(k_lower)))
+                normalized.append((k_lower, TextNormalizer.normalize_for_matching(k_lower)))
             r["_normalized_kw"] = normalized
             remaining.append(r)
         self._reply_rules = remaining
@@ -207,7 +220,7 @@ class RuleMatcher:
         if not text:
             return None, None, None
         text_lower = text.lower().strip()
-        text_norm = TextNormalizer.normalize(text_lower)
+        text_norm = TextNormalizer.normalize_for_matching(text_lower)
 
         for rule in self._reply_rules:
             nkw = rule.get("_normalized_kw", [])

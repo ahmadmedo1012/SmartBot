@@ -67,7 +67,7 @@ _PLATFORM_STATUS = {
     },
 }
 
-_NEEDS_CONFIG_PLATFORMS = {  # prefixes whose real API integration is not yet implemented
+_NEEDS_CONFIG_PLATFORMS = {  # prefixes whose real API integration needs user config
     "ig_": "instagram",
     "wa_": "whatsapp",
     "tg_": "telegram",

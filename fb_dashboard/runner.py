@@ -2172,3 +2172,21 @@ async def download_report(filename: str, _=Depends(get_current_user)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
+
+# ---- Mobile App Route ----
+import os
+MOBILE_DIR = Path(__file__).resolve().parent.parent / "mobile" / "dist"
+@app.get("/mobile/{rest_of_path:path}")
+async def mobile_app(rest_of_path: str):
+    mobile_index = MOBILE_DIR / "index.html"
+    if mobile_index.exists():
+        return HTMLResponse(mobile_index.read_text(encoding="utf-8"))
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"status": "not_built", "mobile": "run cd mobile && npx expo export --platform web"})
+
+@app.get("/mobile")
+async def mobile_root():
+    mobile_index = MOBILE_DIR / "index.html"
+    if mobile_index.exists():
+        return HTMLResponse(mobile_index.read_text(encoding="utf-8"))
+    return JSONResponse({"status": "not_built"})

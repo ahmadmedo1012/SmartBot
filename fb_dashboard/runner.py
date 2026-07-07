@@ -2173,30 +2173,25 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
 
+
 # ---- Mobile App ----
-MOBILE_DIR = Path(__file__).resolve().parent / "static_app"
+MOBILE_APP_DIR = Path(__file__).resolve().parent / "static_app"
 
-@app.get("/mobile", response_class=HTMLResponse)
-@app.api_route("/mobile/{rest_path:path}", methods=["GET"], response_class=HTMLResponse)
-async def serve_mobile(rest_path: str = ""):
-    """Serve the Expo mobile web app."""
-    target = rest_path or "index.html"
-    file_path = MOBILE_DIR / target
+@app.get("/app", response_class=HTMLResponse)
+@app.get("/app/{path:path}", response_class=HTMLResponse)
+async def mobile_app(path: str = ""):
+    """Serve mobile web app from static_app folder."""
+    target = path or "index.html"
+    fp = MOBILE_APP_DIR / target
     try:
-        file_path = file_path.resolve()
-        if not str(file_path).startswith(str(MOBILE_DIR.resolve())):
-            return HTMLResponse("<h1>Invalid path</h1>", status_code=403)
-    except Exception:
-        return HTMLResponse("<h1>Invalid path</h1>", status_code=403)
-
-    if file_path.exists() and file_path.is_file():
-        ext = file_path.suffix
-        ct = {"": "text/html", ".js": "application/javascript", ".css": "text/css",
-              ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml"}.get(ext, "text/plain")
-        return HTMLResponse(file_path.read_bytes(), media_type=ct)
-
-    # Fallback: serve index.html for SPA routing
-    index = MOBILE_DIR / "index.html"
-    if index.exists():
-        return HTMLResponse(index.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>Mobile app not built.</h1><p>Run: cd mobile && npx expo export --platform web</p>")
+        fp = fp.resolve().absolute()
+        if not str(fp).startswith(str(MOBILE_APP_DIR.resolve().absolute())):
+            return HTMLResponse("<h1>Invalid path</h1>", 403)
+    except:
+        return HTMLResponse("<h1>Invalid path</h1>", 403)
+    if fp.exists() and fp.is_file():
+        ct = {"js": "application/javascript", "css": "text/css", 
+              "html": "text/html", "json": "application/json",
+              "png": "image/png", "svg": "image/svg+xml"}.get(fp.suffix.lstrip("."), "text/plain")
+        return HTMLResponse(fp.read_bytes(), media_type=ct)
+    return HTMLResponse((MOBILE_APP_DIR / "index.html").read_text(encoding="utf-8"))

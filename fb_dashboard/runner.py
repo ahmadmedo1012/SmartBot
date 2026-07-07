@@ -161,7 +161,18 @@ if STATIC_DIR.exists():
 # Mobile app
 _app_mobile_dir = os.path.join(os.path.dirname(__file__), "static_app")
 if os.path.isdir(_app_mobile_dir):
-    app.mount("/app", StaticFiles(directory=_app_mobile_dir, html=True), name="mobile")
+    # Mount mobile app with HEAD support
+try:
+    _mobile_app = StaticFiles(directory=_app_mobile_dir, html=True)
+    app.mount("/app", _mobile_app, name="mobile")
+except Exception:
+    pass
+# Explicit HEAD handler workaround for StaticFiles 405
+@app.api_route("/app", methods=["HEAD"])
+@app.api_route("/app/{path:path}", methods=["HEAD"])
+async def mobile_head(path: str = ""):
+    """HEAD handler for mobile app — works around StaticFiles 405."""
+    return HTMLResponse()
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 

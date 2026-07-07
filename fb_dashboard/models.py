@@ -152,6 +152,40 @@ class BotAlert(Base):
     resolved_at = Column(DateTime, nullable=True)
 
 
+# ── Offers / Coupons ──────────────────────────────────────────────────────────
+
+
+class Offer(Base):
+    """Special offers and coupons for customer engagement."""
+    __tablename__ = "offers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(200), nullable=False)
+    code = Column(String(50), default="")
+    description = Column(Text, default="")
+    discount_type = Column(String(20), default="percentage")  # percentage, fixed_amount, free_shipping
+    discount_value = Column(Integer, default=0)
+    min_purchase = Column(Integer, default=0)
+    max_uses = Column(Integer, default=0)
+    used_count = Column(Integer, default=0)
+    auto_reply_rule_id = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True)
+    starts_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class OfferClaim(Base):
+    """Track who claimed each offer."""
+    __tablename__ = "offer_claims"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    offer_id = Column(Integer, nullable=False, index=True)
+    fb_user_id = Column(String(100), nullable=False)
+    user_name = Column(String(200), default="")
+    claimed_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 # ── Subscriber Management ──────────────────────────────────────────────────────
 
 

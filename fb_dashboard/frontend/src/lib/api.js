@@ -520,3 +520,21 @@ export function fetchReportSchedules() {
 export function deleteReportSchedule(id) {
   return api(`/api/reports/schedules/${id}`, { method: "DELETE" });
 }
+
+// ── Offers / Coupons ──
+export function fetchOffers(activeOnly = false) {
+  return api(`/api/offers?active_only=${activeOnly}`);
+}
+export function createOffer(title, code = "", description = "", discountType = "percentage", discountValue = 0, expiresAt = "") {
+  const fd = new FormData(); fd.append("title", title); fd.append("code", code);
+  fd.append("description", description); fd.append("discount_type", discountType);
+  fd.append("discount_value", discountValue);
+  if (expiresAt) fd.append("expires_at", expiresAt);
+  return api("/api/offers", { method: "POST", body: fd });
+}
+export function toggleOffer(id) {
+  return api(`/api/offers/${id}/toggle`, { method: "POST" });
+}
+export function deleteOffer(id) {
+  return api(`/api/offers/${id}`, { method: "DELETE" });
+}

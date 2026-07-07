@@ -2164,7 +2164,5 @@ def _serve_mobile(file_path=""):
         return HTMLResponse(open(fallback, encoding="utf-8").read())
     return HTMLResponse("Mobile app not built", status_code=404)
 
-@app.get("/app", response_class=HTMLResponse)
 def mobile_root(): return _serve_mobile()
-@app.get("/app/{path:path}", response_class=HTMLResponse)
 def mobile_path(path: str): return _serve_mobile(path)

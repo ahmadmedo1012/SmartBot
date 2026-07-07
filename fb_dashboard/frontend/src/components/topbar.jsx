@@ -17,6 +17,7 @@ import {
   TrendingUp, ChevronDown, Menu,
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
+  GitBranch, Timer, Radio, BarChart4, Calendar,
 } from "lucide-react"
 
 const navItems = [
@@ -28,6 +29,13 @@ const navItems = [
   { key: "scheduled", label: "جدولة", icon: CalendarClock },
   { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
   { key: "ai-assistant", label: "AI الذكي", icon: Brain },
+  { key: "flows", label: "البوت البصري", icon: GitBranch },
+  { key: "sequences", label: "التسلسلات", icon: Timer },
+  { key: "broadcast", label: "البث الجماعي", icon: Radio },
+  { key: "subscribers", label: "المشتركين", icon: Users },
+  { key: "analytics-dashboard", label: "التحليلات", icon: BarChart4 },
+  { key: "content-calendar", label: "التقويم", icon: Calendar },
+  { key: "team", label: "فريق العمل", icon: Users, adminOnly: true },
   { key: "reports", label: "التقارير", icon: BarChart3 },
   { key: "ads", label: "الإعلانات", icon: TrendingUp, adminOnly: true },
   { key: "users", label: "المستخدمين", icon: Users, adminOnly: true },
@@ -40,6 +48,8 @@ const mobileNav = [
   { key: "messages", label: "الرسائل", icon: MessagesSquare },
   { key: "rules", label: "القواعد", icon: Bot },
   { key: "ai-assistant", label: "AI", icon: Sparkles },
+  { key: "flows", label: "البوت", icon: GitBranch },
+  { key: "analytics-dashboard", label: "التحليلات", icon: BarChart4 },
   { key: "settings", label: "الإعدادات", icon: Settings2 },
 ]
 

@@ -1,0 +1,264 @@
+"""Omnichannel Inbox Engine — Unified conversation management across platforms.
+Handles Messenger, Instagram, WhatsApp, Telegram conversations in one inbox.
+"""
+import json
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+
+from models import ConversationTag, ConversationLabel, Reply, ConversationNote
+from fb_client import FBClient
+from database import AsyncSessionLocal
+
+log = logging.getLogger("fb-inbox")
+
+
+class InboxEngine:
+    """Unified inbox that normalizes conversations across platforms."""
+
+    # Map platform prefix → display name
+    _PLATFORM_PREFIX = {"msg_": "messenger", "ig_": "instagram", "wa_": "whatsapp", "tg_": "telegram"}
+
+    def __init__(self, fb: FBClient):
+        self.fb = fb
+
+    # ── Fetch conversations ────────────────────────────────────────────
+
+    async def fetch_all_conversations(self, session) -> list[dict]:
+        """Aggregate conversations from ALL platforms into unified format."""
+        result = []
+        messenger = await self._fetch_messenger(session)
+        result.extend(messenger)
+        # ponytail: IG/WA/TG return empty — add real fetch when platform integrations land
+        return result
+
+    async def _fetch_messenger(self, session) -> list[dict]:
+        """Fetch Messenger conversations and normalize."""
+        raw = await self.fb.get_conversations(50)
+        if not raw:
+            return []
+        items = []
+        ids = [c["id"] for c in raw]
+        # Batch-load tags for all conversations
+        tag_map = {}
+        if ids:
+            lbls = await session.execute(
+                select(ConversationLabel, ConversationTag)
+                .join(ConversationTag, ConversationLabel.tag_id == ConversationTag.id)
+                .where(ConversationLabel.conversation_id.in_(ids))
+            )
+            for lbl, tag in lbls:
+                tag_map.setdefault(lbl.conversation_id, []).append(
+                    {"id": tag.id, "name": tag.name, "color": tag.color}
+                )
+
+        for c in raw:
+            cid = c["id"]
+            senders = c.get("senders", {}).get("data", []) if isinstance(c.get("senders"), dict) else []
+            items.append({
+                "id": f"msg_{cid}",
+                "platform": "messenger",
+                "subject": c.get("subject", ""),
+                "senders": [{"id": s.get("id", ""), "name": s.get("name", "")} for s in senders],
+                "message_count": c.get("message_count", 0),
+                "unread_count": c.get("unread_count", 0),
+                "last_message": "",
+                "updated_time": c.get("updated_time", ""),
+                "tags": tag_map.get(cid, []),
+                "platform_metadata": c,
+            })
+        return items
+
+    # ── Get messages for a conversation ─────────────────────────────────
+
+    async def get_messages(self, conversation_id: str, session) -> list[dict]:
+        """Get messages for ANY platform conversation."""
+        prefix, real_id = self._parse_id(conversation_id)
+        platform = self._PLATFORM_PREFIX.get(prefix, "messenger")
+
+        if prefix == "msg_":
+            raw = await self.fb.get_conversation_messages(real_id)
+            return [{
+                "id": m["id"],
+                "message": m.get("message", ""),
+                "from": {"id": m.get("from", {}).get("id", ""), "name": m.get("from", {}).get("name", "")},
+                "created_time": m.get("created_time", ""),
+                "platform": "messenger",
+            } for m in (raw or [])]
+
+        # ponytail: non-Messenger platforms return empty until integrated
+        log.info(f"get_messages: {platform} not yet implemented (id={conversation_id})")
+        return []
+
+    # ── Send reply ─────────────────────────────────────────────────────
+
+    async def send_reply(self, conversation_id: str, message: str, session) -> bool:
+        """Route reply to correct platform."""
+        prefix, real_id = self._parse_id(conversation_id)
+        platform = self._PLATFORM_PREFIX.get(prefix, "messenger")
+
+        if prefix != "msg_":
+            log.info(f"send_reply: {platform} replies not yet implemented (id={conversation_id})")
+            return False
+
+        result = await self.fb.send_conversation_message(real_id, message)
+        if result:
+            # Log the reply for stats
+            # ponytail: minimal logging; expand with sender name when context is available
+            try:
+                s = Reply(
+                    fb_comment_id=f"inbox_{conversation_id}_{datetime.now(timezone.utc).timestamp()}",
+                    fb_post_id=real_id,
+                    commenter_name="",
+                    comment_text="",
+                    reply_text=message[:500],
+                )
+                session.add(s)
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                log.exception("Failed to log reply in inbox_engine")
+        return bool(result)
+
+    # ── Search ──────────────────────────────────────────────────────────
+
+    async def search_conversations(self, query: str, conversations: list[dict]) -> list[dict]:
+        """Client-side search across already-fetched conversations."""
+        if not query:
+            return conversations
+        q = query.lower().strip()
+        res = []
+        for c in conversations:
+            subj = c.get("subject", "").lower()
+            if q in subj:
+                res.append(c)
+                continue
+            for s in c.get("senders", []):
+                if q in (s.get("name", "") or "").lower():
+                    res.append(c)
+                    break
+        return res
+
+    # ── Stats ───────────────────────────────────────────────────────────
+
+    async def get_conversation_stats(self, session) -> dict:
+        """Return aggregate conversation statistics."""
+        raw = await self.fb.get_conversations(50)
+        total = len(raw or [])
+        unread = sum(1 for c in (raw or []) if c.get("unread_count", 0) > 0)
+
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        messages_today = await session.scalar(
+            select(func.count(Reply.id)).where(Reply.created_at >= today_start)
+        )
+
+        return {
+            "total_conversations": total,
+            "unread_count": unread,
+            "platform_breakdown": {"messenger": total, "instagram": 0, "whatsapp": 0, "telegram": 0},
+            "messages_today": messages_today or 0,
+        }
+
+    # ── Notes ─────────────────────────────────────────────────────────
+
+    async def get_notes(self, conversation_id: str, session) -> list[dict]:
+        """Get all notes for a conversation."""
+        rows = await session.execute(
+            select(ConversationNote)
+            .where(ConversationNote.conversation_id == conversation_id)
+            .order_by(ConversationNote.created_at.desc())
+        )
+        return [{
+            "id": r.id,
+            "content": r.content,
+            "created_by": r.created_by,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        } for r in rows.scalars()]
+
+    async def add_note(self, conversation_id: str, content: str, created_by: str, session) -> dict | None:
+        """Add a note to a conversation."""
+        note = ConversationNote(
+            conversation_id=conversation_id,
+            content=content,
+            created_by=created_by,
+        )
+        session.add(note)
+        await session.commit()
+        return {
+            "id": note.id,
+            "content": note.content,
+            "created_by": note.created_by,
+            "created_at": note.created_at.isoformat() if note.created_at else "",
+        }
+
+    async def delete_note(self, note_id: int, session) -> bool:
+        """Delete a note by ID."""
+        row = await session.get(ConversationNote, note_id)
+        if not row:
+            return False
+        await session.delete(row)
+        await session.commit()
+        return True
+
+    # ── Auto-assign tags ───────────────────────────────────────────────
+
+    async def auto_assign_tag(self, conversation: dict, session) -> int | None:
+        """Check conversation subject/sender against keyword rules → assign tag."""
+        subject = (conversation.get("subject", "") or "").lower()
+        sender_text = " ".join(
+            s.get("name", "") for s in (conversation.get("senders") or [])
+        ).lower()
+        text = f"{subject} {sender_text}"
+
+        rules = [
+            ({"order", "طلب"}, "طلبات"),
+            ({"support", "دعم", "مساعدة"}, "دعم"),
+            ({"complaint", "شكوى"}, "شكاوى"),
+        ]
+
+        tag_name = None
+        for keywords, name in rules:
+            if keywords & set(text.split()):
+                tag_name = name
+                break
+
+        if not tag_name:
+            return None
+
+        # Find or create the tag
+        tag = await session.scalar(
+            select(ConversationTag).where(ConversationTag.name == tag_name)
+        )
+        if not tag:
+            tag = ConversationTag(name=tag_name)
+            session.add(tag)
+            await session.flush()
+
+        # Build conversation_id with prefix
+        conv_cid = f"msg_{conversation.get('id', '').replace('msg_', '')}"
+
+        # Check if already labeled
+        exists = await session.scalar(
+            select(ConversationLabel).where(
+                ConversationLabel.conversation_id == conv_cid,
+                ConversationLabel.tag_id == tag.id,
+            )
+        )
+        if not exists:
+            session.add(ConversationLabel(conversation_id=conv_cid, tag_id=tag.id))
+            await session.commit()
+
+        return tag.id
+
+    # ── Helpers ────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _parse_id(conversation_id: str) -> tuple[str, str]:
+        """Split prefixed ID into (prefix, real_id)."""
+        for prefix in ("msg_", "ig_", "wa_", "tg_"):
+            if conversation_id.startswith(prefix):
+                return prefix, conversation_id[len(prefix):]
+        return "msg_", conversation_id  # bare ID → assume Messenger

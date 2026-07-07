@@ -158,21 +158,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-# Mobile app
-_app_mobile_dir = os.path.join(os.path.dirname(__file__), "static_app")
-if os.path.isdir(_app_mobile_dir):
-    # Mount mobile app with HEAD support
-try:
-    _mobile_app = StaticFiles(directory=_app_mobile_dir, html=True)
-    app.mount("/app", _mobile_app, name="mobile")
-except Exception:
-    pass
-# Explicit HEAD handler workaround for StaticFiles 405
-@app.api_route("/app", methods=["HEAD"])
-@app.api_route("/app/{path:path}", methods=["HEAD"])
-async def mobile_head(path: str = ""):
-    """HEAD handler for mobile app — works around StaticFiles 405."""
-    return HTMLResponse()
+# Mobile app - serve from mobile/dist/
+_app_mobile_dir = Path(__file__).resolve().parent.parent / "mobile" / "dist"
+if _app_mobile_dir.is_dir():
+    try:
+        _mobile_app = StaticFiles(directory=str(_app_mobile_dir), html=True)
+        app.mount("/app", _mobile_app, name="mobile")
+    except Exception:
+        pass
+    # HEAD handler for StaticFiles 405
+    @app.api_route("/app", methods=["HEAD"])
+    @app.api_route("/app/{path:path}", methods=["HEAD"])
+    async def mobile_head(path: str = ""):
+        return HTMLResponse()
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 

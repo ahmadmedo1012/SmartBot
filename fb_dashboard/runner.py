@@ -171,7 +171,6 @@ async def _run_bot_loop():
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
 
 
-# ---- Auth ----
 
 @app.post("/api/login")
 async def login(username: str = Form(...), password: str = Form(...), db=Depends(get_db)):
@@ -197,7 +196,6 @@ async def get_me(current_user: User = Depends(get_current_user)):
     return {"username": current_user.username, "role": current_user.role}
 
 
-# ---- Users CRUD (admin only) ----
 
 @app.get("/api/users")
 async def list_users(db=Depends(get_db), _=Depends(require_role("admin"))):
@@ -245,7 +243,6 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
     return {"ok": True}
 
 
-# ---- API: Facebook Settings ----
 
 @app.get("/api/facebook/settings")
 async def get_facebook_settings(_=Depends(require_role("admin"))):
@@ -265,7 +262,6 @@ async def update_facebook_settings(_=Depends(require_role("admin"))):
     raise HTTPException(400, "تعديل إعدادات فيسبوك يتم من خلال Render Dashboard → Environment Variables")
 
 
-# ---- Health ----
 
 @app.get("/healthz")
 async def healthz():
@@ -326,7 +322,6 @@ async def debug():
     }
 
 
-# ---- Pages ----
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
@@ -339,7 +334,6 @@ async def dashboard_page(request: Request):
     return HTMLResponse("<h1>SmartBot Dashboard</h1><p>Loading...</p>")
 
 
-# ---- API: Stats ----
 
 @app.get("/api/stats")
 async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
@@ -382,7 +376,6 @@ async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
     }
 
 
-# ---- API: Rules ----
 # Protected by get_current_user — roles enforced in frontend hiding (DELETE/POST require editor+)
 
 @app.get("/api/rules")
@@ -456,7 +449,6 @@ async def toggle_rule(rule_id: int, db=Depends(get_db), _=Depends(require_role("
     return {"enabled": rule.enabled}
 
 
-# ---- API: Replies ----
 
 @app.get("/api/replies")
 async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id: int = Query(None), db=Depends(get_db), _=Depends(get_current_user)):
@@ -492,7 +484,6 @@ async def get_hourly_stats(db=Depends(get_db), _=Depends(get_current_user)):
     return [{"hour": int(r.hour), "count": r.count} for r in rows]
 
 
-# ---- API: Posts ----
 
 @app.get("/api/posts")
 async def list_posts(page: int = Query(1), per_page: int = Query(10), _=Depends(get_current_user)):
@@ -540,7 +531,6 @@ async def publish_post(message: str = Form(...), _=Depends(require_role("editor"
     return result or {"error": "Failed to post"}
 
 
-# ---- API: Comments / Replies ----
 
 @app.post("/api/replies/{comment_id}/reply")
 async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends(get_db),
@@ -553,7 +543,6 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     return {"ok": True}
 
 
-# ---- API: Messages ----
 
 @app.get("/api/messages")
 async def list_conversations(_=Depends(get_current_user)):
@@ -586,7 +575,6 @@ async def reply_to_conversation(conversation_id: str, message: str = Form(...),
     return {"ok": True}
 
 
-# ---- API: Ads ----
 
 @app.get("/api/ads/accounts")
 async def list_ad_accounts(_=Depends(require_role("admin"))):
@@ -610,7 +598,6 @@ async def list_ads(account_id: str, _=Depends(require_role("editor"))):
     return await fb.get_ads(account_id)
 
 
-# ---- API: Bot Control ----
 
 @app.get("/api/bot/status")
 async def bot_status(_=Depends(get_current_user)):
@@ -646,7 +633,6 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
     return {"ok": True, "interval": interval}
 
 
-# ---- API: Logs ----
 
 @app.get("/api/logs")
 async def get_logs(limit: int = Query(50), db=Depends(get_db), _=Depends(get_current_user)):
@@ -681,7 +667,6 @@ async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), _=Depen
     } for r in rows.scalars().all()]
 
 
-# ---- API: Webhook Check & Force Cycle ----
 
 @app.get("/api/webhook/check")
 async def check_webhook(_=Depends(get_current_user)):
@@ -1484,7 +1469,6 @@ def _track_event(event_type: str, metadata: dict | None = None):
     return
 
 
-# ---- Webhook (Facebook real-time comments) ----
 # Set your webhook URL in Facebook App Dashboard -> Webhooks -> Page -> feed
 # Set your webhook URL in Facebook App Dashboard → Webhooks → Page → feed
 # Verify token must match FB_WEBHOOK_VERIFY_TOKEN env var
@@ -2193,7 +2177,6 @@ async def mobile_app(path: str = ""):
         return HTMLResponse(open(idx, encoding="utf-8").read())
     return HTMLResponse("<h1>Mobile app not built</h1>")
 
-# ---- Mobile App ----
 MOBILE_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
 
 def _mobile_index():
@@ -2221,7 +2204,6 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
 
- ----
 MOBILE_APP_DIR = Path(__file__).resolve().parent / "static_app"
 
 @app.get("/app", response_class=HTMLResponse)

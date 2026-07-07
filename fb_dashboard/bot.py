@@ -312,8 +312,24 @@ class ReplyPipeline:
         intent = IntentClassifier.classify(ctx.text)
         log.debug(f"Intent[{ctx.cid[:12]}]: {intent}")
 
+        # 5b. Attach active offer if price/contact inquiry
+        offer_text = ""
+        if intent in ("question", "contact"):
+            try:
+                from models import Offer
+                async with AsyncSessionLocal() as o_session:
+                    stmt = select(Offer).where(Offer.is_active == True).limit(1)
+                    row = await o_session.execute(stmt)
+                    offer = row.scalar_one_or_none()
+                    if offer and offer.code:
+                        offer_text = f"\n🎁 عرض: {offer.title} | كود الخصم: {offer.code}"
+            except Exception:
+                pass
+
         # 6. Render reply
         reply = TemplateRenderer.render(template, ctx)
+        if offer_text:
+            reply += offer_text
         log.info(f"→ Replying to {ctx.from_first}: \"{ctx.text[:50]}\" matched \"{intent}\"")
 
         # 7. Send reply with retries

@@ -31,6 +31,7 @@ from subscriber_engine import SubscriberEngine, TagEngine
 from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient
 from analytics_engine import AnalyticsEngine
 from report_engine import ReportEngine, REPORT_DIR
+from pdf_reports_engine import PdfReportsEngine, BrandingConfig
 from inbox_engine import InboxEngine
 from content_calendar import ContentCalendarEngine, CalendarScheduler
 from team_engine import TeamEngine
@@ -67,6 +68,7 @@ subscriber_engine = SubscriberEngine()
 tag_engine = TagEngine()
 analytics_engine = AnalyticsEngine()
 report_engine = ReportEngine(analytics_engine)
+pdf_engine = PdfReportsEngine()
 inbox_engine = InboxEngine(fb)
 content_calendar_engine = ContentCalendarEngine(fb)
 team_engine = TeamEngine()
@@ -2155,18 +2157,36 @@ async def shopify_orders(limit: int = Query(10), status: str = Query("any"), _=D
     return {"orders": await commerce_engine.shopify.get_orders(limit, status)}
 
 
-# ── Report Engine ────────────────────────────────────────────────────
+# ── PDF Reports Engine ──────────────────────────────────────────────
+
+@app.get("/api/reports/status")
+async def pdf_reports_status(_=Depends(get_current_user)):
+    """Check PDF generation engine availability."""
+    return {"available": pdf_engine.is_available(), "engine": pdf_engine.engine_name}
+
 
 @app.post("/api/reports/generate")
-async def generate_report(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def generate_pdf_report(request: Request, _=Depends(require_role("editor"))):
+    """Generate a PDF report.  Returns PDF bytes directly."""
     body = await request.json()
-    filepath = await report_engine.generate_monthly_report(
-        days=body.get("days", 30),
-        session=db,
-        brand_name=body.get("brand_name", ""),
-        logo_url=body.get("logo_url", ""),
-        primary_color=body.get("primary_color", "#FF5D3A"),
+    rtype = body.get("type", "monthly")
+    days = body.get("days", 30)
+    b = body.get("branding", {})
+    branding = BrandingConfig(
+        logo_url=b.get("logo_url", ""),
+        company_name=b.get("company_name", "SmartBot"),
+        primary_color=b.get("primary_color", "#dc2626"),
     )
-    filename = Path(filepath).name
-    return {"file": filename, "path": filepath}
+    if rtype == "monthly":
+        pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding)
+    elif rtype == "subscriber":
+        pdf_bytes = await pdf_engine.subscriber_report(days=days, branding=branding)
+    elif rtype == "campaign":
+        campaign_type = body.get("campaign_type", "broadcast")
+        campaign_id = body.get("campaign_id", "0")
+        pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding)
+    else:
+        raise HTTPException(400, f"Unknown report type: {rtype}")
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{datetime.utcnow().strftime('%Y%m%d')}.pdf"})
 

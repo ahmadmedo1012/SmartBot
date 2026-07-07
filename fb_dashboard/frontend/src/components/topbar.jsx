@@ -17,7 +17,7 @@ import {
   TrendingUp, ChevronDown, Menu,
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
-  GitBranch, Timer, Radio, BarChart4, Calendar, Globe,
+  GitBranch, Timer, Radio, BarChart4, Calendar, Globe, ShoppingCart,
 } from "lucide-react"
 
 const navItems = [
@@ -37,6 +37,7 @@ const navItems = [
   { key: "content-calendar", label: "التقويم", icon: Calendar },
   { key: "team", label: "فريق العمل", icon: Users, adminOnly: true },
   { key: "publisher", label: "نشر متعدد", icon: Globe },
+  { key: "ecommerce", label: "المتجر", icon: ShoppingCart },
   { key: "reports", label: "التقارير", icon: BarChart3 },
   { key: "ads", label: "الإعلانات", icon: TrendingUp, adminOnly: true },
   { key: "users", label: "المستخدمين", icon: Users, adminOnly: true },

@@ -2170,7 +2170,6 @@ async def download_report(filename: str, _=Depends(get_current_user)):
 
 
 
-# ---- Mobile App ----
 MOBILE_APP_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
 
 @app.get("/app", response_class=HTMLResponse)
@@ -2194,11 +2193,34 @@ async def mobile_app(path: str = ""):
         return HTMLResponse(open(idx, encoding="utf-8").read())
     return HTMLResponse("<h1>Mobile app not built</h1>")
 
+# ---- Mobile App ----
+MOBILE_STATIC = os.path.join(os.path.dirname(__file__), "static_app")
+
+def _mobile_index():
+    idx = os.path.join(MOBILE_STATIC, "index.html")
+    if os.path.isfile(idx):
+        return open(idx, encoding="utf-8").read()
+    return "<h1>Mobile app not built</h1>"
+
+@app.get("/app", response_class=HTMLResponse)
+async def app_root():
+    return HTMLResponse(_mobile_index())
+
+@app.get("/app/{rfile:path}", response_class=HTMLResponse)
+async def app_file(rfile: str):
+    fp = os.path.normpath(os.path.join(MOBILE_STATIC, rfile))
+    if not fp.startswith(os.path.normpath(MOBILE_STATIC)):
+        raise HTTPException(403)
+    if os.path.isfile(fp):
+        ext = os.path.splitext(fp)[1]
+        mime = {".js":"application/javascript",".css":"text/css",".html":"text/html",".json":"application/json",".png":"image/png",".svg":"image/svg+xml"}.get(ext,"text/plain")
+        return HTMLResponse(open(fp,"rb").read(), media_type=mime)
+    return HTMLResponse(_mobile_index())
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("runner:app", host="0.0.0.0", port=8000, reload=True)
 
-# ---- Mobile App ----
  ----
 MOBILE_APP_DIR = Path(__file__).resolve().parent / "static_app"
 

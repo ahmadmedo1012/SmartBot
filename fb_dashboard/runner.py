@@ -158,6 +158,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# Mobile app
+_app_mobile_dir = os.path.join(os.path.dirname(__file__), "static_app")
+if os.path.isdir(_app_mobile_dir):
+    app.mount("/app", StaticFiles(directory=_app_mobile_dir, html=True), name="mobile")
+
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
@@ -2144,25 +2149,3 @@ async def generate_report(request: Request, db=Depends(get_db), _=Depends(requir
     filename = Path(filepath).name
     return {"file": filename, "path": filepath}
 
-# ---- Mobile App ----
-def _serve_mobile(file_path=""):
-    """Serve file from mobile static directory."""
-    base = os.path.join(os.path.dirname(__file__), "static_app")
-    if not file_path:
-        file_path = os.path.join(base, "index.html")
-    else:
-        file_path = os.path.normpath(os.path.join(base, file_path))
-        if not file_path.startswith(os.path.normpath(base)):
-            raise HTTPException(403)
-    if os.path.isfile(file_path):
-        ext = os.path.splitext(file_path)[1]
-        mime_map = {".js":"application/javascript", ".css":"text/css", ".html":"text/html",
-                    ".json":"application/json", ".png":"image/png", ".svg":"image/svg+xml"}
-        return HTMLResponse(open(file_path, 'rb').read(), media_type=mime_map.get(ext, "text/plain"))
-    fallback = os.path.join(base, "index.html")
-    if os.path.isfile(fallback):
-        return HTMLResponse(open(fallback, encoding="utf-8").read())
-    return HTMLResponse("Mobile app not built", status_code=404)
-
-def mobile_root(): return _serve_mobile()
-def mobile_path(path: str): return _serve_mobile(path)

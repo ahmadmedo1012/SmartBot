@@ -238,28 +238,22 @@ class InboxEngine:
 
     async def get_conversation_stats(self, session) -> dict:
         """Return aggregate conversation statistics."""
-        raw = await self.fb.get_conversations(50)
-        total = len(raw or [])
-        unread = sum(1 for c in (raw or []) if c.get("unread_count", 0) > 0)
-
-        from datetime import datetime as dt
-        today_start = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        messages_today = 0
         try:
+            raw = await self.fb.get_conversations(50)
+            total = len(raw or [])
+            unread = sum(1 for c in (raw or []) if c.get("unread_count", 0) > 0)
             messages_today = await session.scalar(
-                select(func.count(Reply.id)).where(Reply.created_at >= today_start)
+                select(func.count(Reply.id))
             ) or 0
-        except Exception:
-            pass
-
-        return {
-            "total_conversations": total,
-            "unread_count": unread,
-            "platform_breakdown": {"messenger": total, "instagram": 0, "whatsapp": 0, "telegram": 0},
-            "messages_today": messages_today or 0,
-        }
-
-    # ── Notes ─────────────────────────────────────────────────────────
+            return {
+                "total_conversations": total,
+                "unread_count": unread,
+                "platform_breakdown": {"messenger": total, "instagram": 0, "whatsapp": 0, "telegram": 0},
+                "messages_today": messages_today,
+            }
+        except Exception as e:
+            log.error(f"get_conversation_stats error: {e}")
+            return {"total_conversations": 0, "unread_count": 0, "platform_breakdown": {}, "messages_today": 0}
 
     async def get_notes(self, conversation_id: str, session) -> list[dict]:
         """Get all notes for a conversation."""

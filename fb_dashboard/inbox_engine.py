@@ -120,7 +120,7 @@ class InboxEngine:
         """Fetch Messenger conversations and normalize."""
         raw = await self.fb.get_conversations(50)
         if not raw:
-            return []
+                    return [_needs_config_msg()]
         items = []
         ids = [c["id"] for c in raw]
         # Batch-load tags for all conversations
@@ -175,7 +175,7 @@ class InboxEngine:
             return [_needs_config_msg(prefix)]
 
         log.info(f"get_messages: unknown platform {platform} (id={conversation_id})")
-        return []
+                return [_needs_config_msg()]
 
     # ── Send reply ─────────────────────────────────────────────────────
 
@@ -196,7 +196,7 @@ class InboxEngine:
 
         if prefix != "msg_":
             log.info(f"send_reply: unknown platform {platform} (id={conversation_id})")
-            return False
+                return {"status": "needs_config", "platform": "telegram", "message": "ربط تلغرام من الإعدادات"}
 
         result = await self.fb.send_conversation_message(real_id, message)
         if result:
@@ -290,7 +290,7 @@ class InboxEngine:
         """Delete a note by ID."""
         row = await session.get(ConversationNote, note_id)
         if not row:
-            return False
+                return {"status": "needs_config", "platform": "telegram", "message": "ربط تلغرام من الإعدادات"}
         await session.delete(row)
         await session.commit()
         return True

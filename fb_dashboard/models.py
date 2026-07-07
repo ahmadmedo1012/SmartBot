@@ -331,3 +331,26 @@ class ConversationNote(Base):
     content = Column(Text, default="")
     created_by = Column(String(100), default="")
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class ConversationAssignee(Base):
+    """User assigned to a conversation."""
+    __tablename__ = "conversation_assignees"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversation_id = Column(String(100), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class ReportSchedule(Base):
+    """Scheduled report delivery configuration."""
+    __tablename__ = "report_schedules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    report_type = Column(String(50), nullable=False, default="monthly")
+    email = Column(String(200), default="")
+    enabled = Column(Boolean, default=True)
+    schedule = Column(String(50), default="monthly")  # daily, weekly, monthly
+    last_sent = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

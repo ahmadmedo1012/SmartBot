@@ -4,6 +4,8 @@ import {
   fetchInboxConversations, fetchInboxMessages, replyToInbox,
   fetchInboxTags, assignTagToConversation, removeTagFromConversation,
   createInboxTag, deleteInboxTag, fetchTemplates,
+  fetchUsers, assignConversation, unassignConversation, fetchConversationAssignee,
+  fetchConversationNotes, createConversationNote, deleteConversationNote,
 } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -90,6 +92,28 @@ export function Messages({ role }) {
     queryFn: () => fetchTemplates(),
   })
 
+  const { data: users = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: fetchUsers,
+  })
+
+  const { data: assignee } = useQuery({
+    queryKey: ["inbox-assignee", selectedId],
+    queryFn: () => fetchConversationAssignee(selectedId),
+    enabled: !!selectedId,
+    refetchInterval: 15000,
+  })
+
+  const { data: notes = [], refetch: refetchNotes } = useQuery({
+    queryKey: ["inbox-notes", selectedId],
+    queryFn: () => fetchConversationNotes(selectedId),
+    enabled: !!selectedId,
+    refetchInterval: 15000,
+  })
+
+  const [showNotes, setShowNotes] = useState(false)
+  const [noteText, setNoteText] = useState("")
+
   // Scroll to bottom on new messages
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -126,6 +150,28 @@ export function Messages({ role }) {
   const deleteTagMut = useMutation({
     mutationFn: (id) => deleteInboxTag(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["inbox-tags"] }); toast.success("تم حذف الوسم") },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const assignUserMut = useMutation({
+    mutationFn: ({ convId, userId }) => assignConversation(convId, userId),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["inbox-assignee", selectedId] }); toast.success("تم تعيين المستخدم") },
+    onError: (e) => toast.error(e.message),
+  })
+  const unassignUserMut = useMutation({
+    mutationFn: ({ convId, userId }) => unassignConversation(convId, userId),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["inbox-assignee", selectedId] }); toast.success("تم إلغاء التعيين") },
+    onError: (e) => toast.error(e.message),
+  })
+
+  const createNoteMut = useMutation({
+    mutationFn: () => createConversationNote(selectedId, noteText),
+    onSuccess: () => { setNoteText(""); refetchNotes(); toast.success("تم إضافة الملاحظة") },
+    onError: (e) => toast.error(e.message),
+  })
+  const deleteNoteMut = useMutation({
+    mutationFn: (noteId) => deleteConversationNote(noteId),
+    onSuccess: () => { refetchNotes(); toast.success("تم حذف الملاحظة") },
     onError: (e) => toast.error(e.message),
   })
 
@@ -299,6 +345,32 @@ export function Messages({ role }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Assignee */}
+                  {canEdit && users.length > 0 && (
+                    <div className="relative group">
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <User className={`size-4 ${assignee?.user_id ? "text-primary" : "text-muted-foreground"}`} />
+                      </Button>
+                      <div className="absolute left-0 top-full mt-1 bg-card border rounded-lg shadow-lg p-2 z-50 hidden group-hover:block min-w-[160px]">
+                        {assignee?.user_id && (
+                          <div className="flex items-center justify-between px-2 py-1.5 mb-1 rounded bg-muted/50 text-xs">
+                            <span>{assignee.username}</span>
+                            <X className="size-3 cursor-pointer" onClick={() => unassignUserMut.mutate({ convId: selectedId, userId: assignee.user_id })} />
+                          </div>
+                        )}
+                        {users.filter(u => u.id !== assignee?.user_id).map(u => (
+                          <button key={u.id} onClick={() => assignUserMut.mutate({ convId: selectedId, userId: u.id })}
+                            className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted text-right">
+                            {u.username}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Notes */}
+                  <Button variant="ghost" size="icon" className="size-8" onClick={() => setShowNotes(!showNotes)}>
+                    <StickyNote className={`size-4 ${showNotes ? "text-primary" : "text-muted-foreground"}`} />
+                  </Button>
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1 max-w-[150px]">
                     {(selectedConv?.tags || []).map(t => (
@@ -330,41 +402,91 @@ export function Messages({ role }) {
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                {msgLoading ? (
-                  <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full max-w-[60%]" />)}</div>
-                ) : messages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-muted-foreground">لا توجد رسائل</p>
+              <div className="flex flex-1 overflow-hidden">
+                {/* Messages */}
+                <div className={`flex-1 flex flex-col overflow-hidden ${showNotes ? "hidden lg:flex" : "flex"}`}>
+                  <div className="flex-1 overflow-y-auto p-5 space-y-3">
+                    {msgLoading ? (
+                      <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full max-w-[60%]" />)}</div>
+                    ) : messages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-sm text-muted-foreground">لا توجد رسائل</p>
+                      </div>
+                    ) : (
+                      [...messages].reverse().map((m, idx) => {
+                        const isPage = m.from?.id?.includes("page") || m.from?.id === selectedConv?.senders?.[0]?.id === false
+                        return (
+                          <div key={m.id || idx} className={`flex ${isPage ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[75%] min-w-[120px] ${isPage ? "order-1" : "order-1"}`}>
+                              <div className={`p-3 rounded-2xl text-sm ${
+                                isPage
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-muted text-foreground rounded-bl-md"
+                              }`}>
+                                <p>{m.message || <span className="italic opacity-60">(وسائط)</span>}</p>
+                              </div>
+                              <div className={`flex items-center gap-1.5 mt-1 ${isPage ? "justify-end" : "justify-start"}`}>
+                                <span className={`text-[10px] ${isPage ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                                  {m.from?.name || ""}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {m.created_time ? format(new Date(m.created_time), "HH:mm") : ""}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                    <div ref={messagesEndRef} />
                   </div>
-                ) : (
-                  [...messages].reverse().map((m, idx) => {
-                    const isPage = m.from?.id?.includes("page") || m.from?.id === selectedConv?.senders?.[0]?.id === false
-                    return (
-                      <div key={m.id || idx} className={`flex ${isPage ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[75%] min-w-[120px] ${isPage ? "order-1" : "order-1"}`}>
-                          <div className={`p-3 rounded-2xl text-sm ${
-                            isPage
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-muted text-foreground rounded-bl-md"
-                          }`}>
-                            <p>{m.message || <span className="italic opacity-60">(وسائط)</span>}</p>
-                          </div>
-                          <div className={`flex items-center gap-1.5 mt-1 ${isPage ? "justify-end" : "justify-start"}`}>
-                            <span className={`text-[10px] ${isPage ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                              {m.from?.name || ""}
+                </div>
+
+                {/* ── Notes Panel ── */}
+                {showNotes && (
+                  <div className="w-full lg:w-[280px] border-r flex flex-col overflow-hidden">
+                    <div className="p-3 border-b shrink-0 flex items-center justify-between">
+                      <span className="text-sm font-medium">ملاحظات داخلية</span>
+                      <Button variant="ghost" size="icon" className="size-7" onClick={() => setShowNotes(false)}>
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                      {notes.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-8">لا توجد ملاحظات</p>
+                      ) : (
+                        notes.map(n => (
+                          <div key={n.id} className="p-2.5 rounded-lg bg-muted/40 border text-xs space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-muted-foreground">{n.created_by}</span>
+                              {canEdit && (
+                                <X className="size-3 cursor-pointer text-muted-foreground hover:text-destructive" onClick={() => deleteNoteMut.mutate(n.id)} />
+                              )}
+                            </div>
+                            <p className="text-foreground whitespace-pre-wrap">{n.content}</p>
+                            <span className="block text-[10px] text-muted-foreground">
+                              {n.created_at ? format(new Date(n.created_at), "yyyy/MM/dd HH:mm") : ""}
                             </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {m.created_time ? format(new Date(m.created_time), "HH:mm") : ""}
-                            </span>
                           </div>
+                        ))
+                      )}
+                    </div>
+                    {canEdit && (
+                      <div className="p-3 border-t shrink-0">
+                        <div className="flex gap-2">
+                          <textarea
+                            value={noteText}
+                            onChange={e => setNoteText(e.target.value)}
+                            placeholder="أضف ملاحظة..."
+                            rows={2}
+                            className="flex-1 min-h-0 text-xs rounded-lg border bg-transparent px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                          />
+                          <Button size="sm" className="h-full" onClick={() => createNoteMut.mutate()} disabled={!noteText.trim()}>إضافة</Button>
                         </div>
                       </div>
-                    )
-                  })
+                    )}
+                  </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* Reply area */}

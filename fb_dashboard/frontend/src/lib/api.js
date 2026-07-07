@@ -485,3 +485,38 @@ export function fetchShopifyProducts(limit = 10) {
 export function fetchShopifyOrders(limit = 10, status = "any") {
   return api(`/api/commerce/shopify/orders?limit=${limit}&status=${status}`);
 }
+
+// ── Inbox Assignment & Notes ──
+export function assignConversation(convId, userId) {
+  const fd = new FormData(); fd.append("user_id", userId);
+  return api(`/api/inbox/conversations/${convId}/assign`, { method: "POST", body: fd });
+}
+export function unassignConversation(convId, userId) {
+  const fd = new FormData(); fd.append("user_id", userId);
+  return api(`/api/inbox/conversations/${convId}/unassign`, { method: "POST", body: fd });
+}
+export function fetchConversationAssignee(convId) {
+  return api(`/api/inbox/conversations/${convId}/assignee`);
+}
+export function fetchConversationNotes(convId) {
+  return api(`/api/inbox/conversations/${convId}/notes`);
+}
+export function createConversationNote(convId, content) {
+  const fd = new FormData(); fd.append("content", content);
+  return api(`/api/inbox/conversations/${convId}/notes`, { method: "POST", body: fd });
+}
+export function deleteConversationNote(noteId) {
+  return api(`/api/inbox/notes/${noteId}`, { method: "DELETE" });
+}
+
+// ── Report Schedules ──
+export function createReportSchedule(reportType, email, schedule) {
+  const fd = new FormData(); fd.append("report_type", reportType); fd.append("email", email); fd.append("schedule", schedule);
+  return api("/api/reports/schedule", { method: "POST", body: fd });
+}
+export function fetchReportSchedules() {
+  return api("/api/reports/schedules");
+}
+export function deleteReportSchedule(id) {
+  return api(`/api/reports/schedules/${id}`, { method: "DELETE" });
+}

@@ -19,7 +19,7 @@ from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, User
+from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert
 from fb_client import FBClient
 from bot import BotEngine, RuleMatcher
@@ -28,7 +28,7 @@ from flow_engine import FlowEngine
 from sequence_engine import SequenceEngine, SequenceScheduler
 from broadcast_engine import BroadcastEngine
 from subscriber_engine import SubscriberEngine, TagEngine
-from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient
+from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule
 from analytics_engine import AnalyticsEngine
 from report_engine import ReportEngine, REPORT_DIR
 from pdf_reports_engine import PdfReportsEngine, BrandingConfig
@@ -1026,6 +1026,62 @@ async def inbox_remove_tag(conv_id: str, tag_id: int,
     )
     await db.commit()
     return {"ok": True}
+
+
+@app.post("/api/inbox/conversations/{conv_id}/assign")
+async def inbox_assign_user(conv_id: str, user_id: int = Form(...),
+                             db=Depends(get_db), current_user=Depends(require_role("editor"))):
+    """Assign a user to a conversation."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "المستخدم غير موجود")
+    await inbox_engine.assign_user(conv_id, user_id, db)
+    _track_event("conversation_assigned", {"conv_id": conv_id, "user_id": user_id})
+    return {"ok": True}
+
+
+@app.post("/api/inbox/conversations/{conv_id}/unassign")
+async def inbox_unassign_user(conv_id: str, user_id: int = Form(...),
+                               db=Depends(get_db), _=Depends(require_role("editor"))):
+    """Remove user assignment from a conversation."""
+    ok = await inbox_engine.unassign_user(conv_id, user_id, db)
+    if not ok:
+        raise HTTPException(404, "التعيين غير موجود")
+    return {"ok": True}
+
+
+@app.get("/api/inbox/conversations/{conv_id}/assignee")
+async def inbox_get_assignee(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
+    """Get the assigned user for a conversation."""
+    result = await inbox_engine.get_assignee(conv_id, db)
+    return result or {"user_id": None, "username": "", "assigned_at": None}
+
+
+@app.get("/api/inbox/conversations/{conv_id}/notes")
+async def inbox_list_notes(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
+    """Get all notes for a conversation."""
+    return await inbox_engine.get_notes(conv_id, db)
+
+
+@app.post("/api/inbox/conversations/{conv_id}/notes")
+async def inbox_create_note(conv_id: str, content: str = Form(...),
+                             db=Depends(get_db), current_user=Depends(require_role("editor"))):
+    """Add a note to a conversation."""
+    note = await inbox_engine.add_note(conv_id, content, current_user.username, db)
+    return note
+
+
+@app.delete("/api/inbox/notes/{note_id}")
+async def inbox_delete_note(note_id: int, db=Depends(get_db),
+                             current_user=Depends(require_role("editor"))):
+    """Delete a note."""
+    note = await db.get(ConversationNote, note_id)
+    if not note:
+        raise HTTPException(404, "الملاحظة غير موجودة")
+    if current_user.role != "admin" and note.created_by != current_user.username:
+        raise HTTPException(403, "ليس لديك صلاحية حذف هذه الملاحظة")
+    ok = await inbox_engine.delete_note(note_id, db)
+    return {"ok": ok}
 
 
 # ── Reply Templates (Quick Replies) ──────────────────────────────────────────
@@ -2189,4 +2245,41 @@ async def generate_pdf_report(request: Request, _=Depends(require_role("editor")
         raise HTTPException(400, f"Unknown report type: {rtype}")
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{datetime.utcnow().strftime('%Y%m%d')}.pdf"})
+
+
+@app.post("/api/reports/schedule")
+async def reports_create_schedule(
+    report_type: str = Form("monthly"), email: str = Form(""),
+    schedule: str = Form("monthly"), db=Depends(get_db),
+    _=Depends(require_role("admin")),
+):
+    """Create a report schedule."""
+    rs = ReportSchedule(report_type=report_type, email=email, schedule=schedule, enabled=True)
+    db.add(rs)
+    await db.commit()
+    await db.refresh(rs)
+    return {"id": rs.id, "report_type": rs.report_type, "schedule": rs.schedule, "email": rs.email}
+
+
+@app.get("/api/reports/schedules")
+async def reports_list_schedules(db=Depends(get_db), _=Depends(get_current_user)):
+    """List all report schedules."""
+    rows = await db.execute(select(ReportSchedule).order_by(ReportSchedule.created_at.desc()))
+    return [{
+        "id": r.id, "report_type": r.report_type, "email": r.email,
+        "enabled": r.enabled, "schedule": r.schedule,
+        "last_sent": r.last_sent.isoformat() if r.last_sent else None,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    } for r in rows.scalars().all()]
+
+
+@app.delete("/api/reports/schedules/{schedule_id}")
+async def reports_delete_schedule(schedule_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    """Delete a report schedule."""
+    rs = await db.get(ReportSchedule, schedule_id)
+    if not rs:
+        raise HTTPException(404, "الجدول غير موجود")
+    await db.delete(rs)
+    await db.commit()
+    return {"ok": True}
 

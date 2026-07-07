@@ -6,10 +6,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.orm import selectinload
 
-from models import ConversationTag, ConversationLabel, Reply, ConversationNote
+from models import ConversationTag, ConversationLabel, Reply, ConversationNote, ConversationAssignee
 from fb_client import FBClient
 from database import AsyncSessionLocal
 
@@ -293,6 +293,44 @@ class InboxEngine:
         await session.delete(row)
         await session.commit()
         return True
+
+    async def assign_user(self, conversation_id: str, user_id: int, session) -> bool:
+        """Assign a user to a conversation."""
+        existing = await session.execute(
+            select(ConversationAssignee).where(
+                and_(ConversationAssignee.conversation_id == conversation_id, ConversationAssignee.user_id == user_id))
+        )
+        if existing.scalar_one_or_none():
+            return True
+        asgn = ConversationAssignee(conversation_id=conversation_id, user_id=user_id)
+        session.add(asgn)
+        await session.commit()
+        return True
+
+    async def unassign_user(self, conversation_id: str, user_id: int, session) -> bool:
+        """Remove a user assignment from a conversation."""
+        row = await session.execute(
+            select(ConversationAssignee).where(
+                and_(ConversationAssignee.conversation_id == conversation_id, ConversationAssignee.user_id == user_id))
+        )
+        r = row.scalar_one_or_none()
+        if not r:
+            return False
+        await session.delete(r)
+        await session.commit()
+        return True
+
+    async def get_assignee(self, conversation_id: str, session) -> dict | None:
+        """Get the assigned user for a conversation."""
+        row = await session.execute(
+            select(ConversationAssignee).where(ConversationAssignee.conversation_id == conversation_id)
+        )
+        r = row.scalar_one_or_none()
+        if not r:
+            return None
+        from models import User
+        user = await session.get(User, r.user_id)
+        return {"user_id": r.user_id, "username": user.username if user else "", "assigned_at": r.assigned_at.isoformat() if r.assigned_at else ""}
 
     # ── Auto-assign tags ───────────────────────────────────────────────
 

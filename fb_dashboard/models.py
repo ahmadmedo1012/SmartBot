@@ -1,6 +1,6 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
@@ -149,3 +149,184 @@ class BotAlert(Base):
     resolved = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
+
+
+# ── Subscriber Management ──────────────────────────────────────────────────────
+
+
+class Subscriber(Base):
+    """Social platform subscriber/follower."""
+    __tablename__ = "subscribers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fb_user_id = Column(String(100), unique=True, nullable=False)
+    name = Column(String(200), default="")
+    first_name = Column(String(100), default="")
+    username = Column(String(100), default="")
+    locale = Column(String(20), default="")
+    gender = Column(String(10), default="")
+    platform = Column(String(20), default="messenger")  # messenger/instagram/whatsapp
+    page_id = Column(String(100), default="")
+    status = Column(String(20), default="active")  # active/inactive/blocked
+    first_seen_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_interaction_at = Column(DateTime, nullable=True)
+    last_comment_text = Column(Text, default="")
+    reply_count = Column(Integer, default=0)
+    custom_data = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    tags = relationship("Tag", secondary="subscriber_tags", lazy="selectin", back_populates=None)
+
+
+class Tag(Base):
+    """Label/category for subscriber segmentation."""
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), unique=True, nullable=False)
+    color = Column(String(7), default="#6366f1")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    subscribers = relationship("Subscriber", secondary="subscriber_tags", lazy="selectin", back_populates=None)
+
+
+class SubscriberTag(Base):
+    """M:N join between subscribers and tags."""
+    __tablename__ = "subscriber_tags"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
+    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("subscriber_id", "tag_id", name="uq_subscriber_tag"),)
+
+
+# ── Flows (Visual Automation) ──────────────────────────────────────────────────
+
+
+class Flow(Base):
+    """Visual bot flow — nodes and edges."""
+    __tablename__ = "flows"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    nodes = Column(JSON, default=list)
+    edges = Column(JSON, default=list)
+    status = Column(String(20), default="draft")  # draft/active/paused/archived
+    version = Column(Integer, default=1)
+    created_by = Column(String(100), default="")
+    total_replies = Column(Integer, default=0)
+    last_triggered_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class FlowExecution(Base):
+    """Runtime record of a flow running for a subscriber."""
+    __tablename__ = "flow_executions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    flow_id = Column(Integer, ForeignKey("flows.id"), nullable=False, index=True)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id"), nullable=True, index=True)
+    trigger_type = Column(String(50), default="")
+    trigger_data = Column(JSON, default={})
+    current_node_id = Column(String(100), default="")
+    status = Column(String(20), default="active")  # active/completed/failed/expired
+    started_at = Column(DateTime, default=datetime.datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    error_log = Column(JSON, default={})
+
+
+# ── Sequences (Drip Campaigns) ─────────────────────────────────────────────────
+
+
+class Sequence(Base):
+    """Drip campaign — timed message series."""
+    __tablename__ = "sequences"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    status = Column(String(20), default="draft")  # draft/active/paused/archived
+    created_by = Column(String(100), default="")
+    total_subscribers = Column(Integer, default=0)
+    total_sent = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class SequenceStep(Base):
+    """Individual step within a sequence."""
+    __tablename__ = "sequence_steps"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False, index=True)
+    step_order = Column(Integer, default=0)
+    delay_days = Column(Integer, default=0)
+    delay_hours = Column(Integer, default=0)
+    message_template = Column(Text, default="")
+    message_type = Column(String(20), default="text")  # text/image/carrier
+    action_on_complete = Column(JSON, default={})
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class SequenceSubscription(Base):
+    """A subscriber's enrollment in a sequence."""
+    __tablename__ = "sequence_subscriptions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False)
+    sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False)
+    current_step = Column(Integer, default=0)
+    status = Column(String(20), default="active")  # active/completed/unsubscribed
+    entered_at = Column(DateTime, default=datetime.datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (UniqueConstraint("subscriber_id", "sequence_id", name="uq_seq_sub"),)
+
+
+# ── Broadcasts (One-to-Many) ───────────────────────────────────────────────────
+
+
+class Broadcast(Base):
+    """One-time broadcast message to a subscriber segment."""
+    __tablename__ = "broadcasts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), nullable=False)
+    message_template = Column(Text, default="")
+    platform_filter = Column(JSON, default={})
+    segment_filters = Column(JSON, default={})
+    status = Column(String(20), default="draft")  # draft/sending/sent/cancelled/partial
+    total_recipients = Column(Integer, default=0)
+    sent_count = Column(Integer, default=0)
+    failed_count = Column(Integer, default=0)
+    opened_count = Column(Integer, default=0)
+    created_by = Column(String(100), default="")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    sent_at = Column(DateTime, nullable=True)
+
+
+class BroadcastRecipient(Base):
+    """Per-subscriber delivery record for a broadcast."""
+    __tablename__ = "broadcast_recipients"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    broadcast_id = Column(Integer, ForeignKey("broadcasts.id", ondelete="CASCADE"), nullable=False, index=True)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
+    status = Column(String(20), default="pending")  # pending/sent/failed/opened
+    error_message = Column(Text, default="")
+    sent_at = Column(DateTime, nullable=True)
+
+
+class ConversationNote(Base):
+    """Internal notes attached to a conversation (any platform)."""
+    __tablename__ = "conversation_notes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversation_id = Column(String(100), nullable=False, index=True)
+    content = Column(Text, default="")
+    created_by = Column(String(100), default="")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

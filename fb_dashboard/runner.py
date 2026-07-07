@@ -22,8 +22,17 @@ from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert
 from fb_client import FBClient
-from bot import BotEngine
+from bot import BotEngine, RuleMatcher
 from ws_manager import ws_manager
+from flow_engine import FlowEngine
+from sequence_engine import SequenceEngine, SequenceScheduler
+from broadcast_engine import BroadcastEngine
+from subscriber_engine import SubscriberEngine, TagEngine
+from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient
+from analytics_engine import AnalyticsEngine
+from inbox_engine import InboxEngine
+from content_calendar import ContentCalendarEngine, CalendarScheduler
+from team_engine import TeamEngine
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -48,6 +57,15 @@ PARENT_DIR = BASE_DIR.parent
 _post_cursors: dict[int, str] = {}  # ponytail: page->after cursor; single-session only, resets on restart
 fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
 _bot_task: asyncio.Task | None = None
+flow_engine = FlowEngine(fb)
+sequence_engine = SequenceEngine(fb)
+broadcast_engine = BroadcastEngine(fb)
+subscriber_engine = SubscriberEngine()
+tag_engine = TagEngine()
+analytics_engine = AnalyticsEngine()
+inbox_engine = InboxEngine(fb)
+content_calendar_engine = ContentCalendarEngine(fb)
+team_engine = TeamEngine()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
@@ -112,6 +130,14 @@ async def lifespan(app: FastAPI):
             global _bot_task
             _bot_task = asyncio.create_task(_run_bot_loop())
             log.info("Bot started in background")
+
+            # Start sequence scheduler
+        _seq_scheduler = SequenceScheduler(sequence_engine)
+        asyncio.create_task(_seq_scheduler.start())
+
+        # Start content calendar scheduler
+        _calendar_scheduler = CalendarScheduler(content_calendar_engine)
+        asyncio.create_task(_calendar_scheduler.start())
     except Exception as e:
         log.error(f"Startup error (app continues): {e}")
 
@@ -1534,6 +1560,477 @@ async def _process_webhook_comment(comment: dict, post_id: str):
             _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# :: SMART ARMY FEATURES ::
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── FLOWS API ─────────────────────────────────────────────────────────────────
+
+@app.get("/api/flows")
+async def list_flows(db=Depends(get_db), _=Depends(get_current_user)):
+    rows = await db.execute(select(Flow).order_by(Flow.created_at.desc()))
+    return [{
+        "id": f.id, "name": f.name, "description": f.description,
+        "status": f.status, "version": f.version, "total_replies": f.total_replies,
+        "created_at": f.created_at.isoformat() if f.created_at else None,
+        "updated_at": f.updated_at.isoformat() if f.updated_at else None,
+    } for f in rows.scalars().all()]
+
+
+@app.post("/api/flows")
+async def create_flow(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    flow = Flow(
+        name=body["name"],
+        description=body.get("description", ""),
+        nodes=body.get("nodes", []),
+        edges=body.get("edges", []),
+    )
+    db.add(flow)
+    await db.commit()
+    await db.refresh(flow)
+    return {"id": flow.id}
+
+
+@app.get("/api/flows/{flow_id}")
+async def get_flow(flow_id: int, db=Depends(get_db), _=Depends(get_current_user)):
+    flow = await db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(404, "Flow not found")
+    return {
+        "id": flow.id, "name": flow.name, "description": flow.description,
+        "nodes": flow.nodes, "edges": flow.edges,
+        "status": flow.status, "version": flow.version,
+        "total_replies": flow.total_replies,
+        "created_by": flow.created_by,
+        "last_triggered_at": flow.last_triggered_at.isoformat() if flow.last_triggered_at else None,
+        "created_at": flow.created_at.isoformat() if flow.created_at else None,
+        "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+    }
+
+
+@app.put("/api/flows/{flow_id}")
+async def update_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    flow = await db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(404, "Flow not found")
+    body = await request.json()
+    for key in ("name", "description", "nodes", "edges", "status"):
+        if key in body:
+            setattr(flow, key, body[key])
+    await db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/flows/{flow_id}")
+async def delete_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    flow = await db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(404, "Flow not found")
+    await db.execute(FlowExecution.__table__.delete().where(FlowExecution.flow_id == flow_id))
+    await db.delete(flow)
+    await db.commit()
+    return {"ok": True}
+
+
+ST_CYCLE = {"draft": "active", "active": "paused", "paused": "active"}
+
+@app.post("/api/flows/{flow_id}/toggle")
+async def toggle_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    flow = await db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(404, "Flow not found")
+    flow.status = ST_CYCLE.get(flow.status, "active")
+    await db.commit()
+    return {"status": flow.status}
+
+
+@app.post("/api/flows/{flow_id}/test")
+async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    flow = await db.get(Flow, flow_id)
+    if not flow:
+        raise HTTPException(404, "Flow not found")
+    from flow_engine import FlowContext
+    ctx = FlowContext(
+        from_id=body.get("from_id", "test_123"),
+        from_name=body.get("from_name", "Test"),
+        text=body.get("text", ""),
+        trigger_type="manual",
+    )
+    result = await flow_engine.execute(flow_id, ctx, db)
+    return result
+
+
+# ── SUBSCRIBERS API ───────────────────────────────────────────────────────────
+
+@app.get("/api/subscribers")
+async def list_subscribers(
+    search: str = Query(""), platform: str = Query(""), tag: str = Query(""),
+    page: int = Query(1), per_page: int = Query(20),
+    db=Depends(get_db), _=Depends(get_current_user),
+):
+    return await subscriber_engine.search(
+        query=search, platform=platform, tag=tag,
+        page=page, per_page=per_page, session=db,
+    )
+
+
+@app.get("/api/subscribers/{sub_id}")
+async def get_subscriber(sub_id: int, db=Depends(get_db), _=Depends(get_current_user)):
+    detail = await subscriber_engine.get_detail(sub_id, db)
+    if not detail:
+        raise HTTPException(404, "Subscriber not found")
+    return detail
+
+
+@app.post("/api/subscribers/{sub_id}/tags")
+async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    ok = await subscriber_engine.add_tag(sub_id, body["tag_id"], db)
+    return {"ok": ok}
+
+
+@app.delete("/api/subscribers/{sub_id}/tags/{tag_id}")
+async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await subscriber_engine.remove_tag(sub_id, tag_id, db)
+    if not ok:
+        raise HTTPException(404, "Tag not assigned to subscriber")
+    return {"ok": True}
+
+
+# ── TAGS API ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/tags")
+async def list_tags(db=Depends(get_db), _=Depends(get_current_user)):
+    return await tag_engine.list_tags(db)
+
+
+@app.post("/api/tags")
+async def create_tag(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    try:
+        result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db)
+        return result
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/tags/{tag_id}")
+async def delete_tag(tag_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    ok = await tag_engine.delete_tag(tag_id, db)
+    if not ok:
+        raise HTTPException(404, "Tag not found")
+    return {"ok": True}
+
+
+# ── SEQUENCES API ─────────────────────────────────────────────────────────────
+
+@app.get("/api/sequences")
+async def list_sequences(db=Depends(get_db), _=Depends(get_current_user)):
+    return await sequence_engine.list_sequences(db)
+
+
+@app.post("/api/sequences")
+async def create_sequence(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    seq_id = await sequence_engine.create_sequence(
+        name=body["name"],
+        description=body.get("description", ""),
+        created_by=body.get("created_by", ""),
+        session=db,
+    )
+    await db.commit()
+    await db.refresh(await db.get(Sequence, seq_id))
+    return {"id": seq_id}
+
+
+@app.get("/api/sequences/{seq_id}")
+async def get_sequence(seq_id: int, db=Depends(get_db), _=Depends(get_current_user)):
+    seq = await sequence_engine.get_sequence(seq_id, db)
+    if not seq:
+        raise HTTPException(404, "Sequence not found")
+    return seq
+
+
+@app.put("/api/sequences/{seq_id}")
+async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    ok = await sequence_engine.update_sequence(seq_id, body, db)
+    if not ok:
+        raise HTTPException(404, "Sequence not found")
+    await db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/sequences/{seq_id}")
+async def delete_sequence(seq_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await sequence_engine.delete_sequence(seq_id, db)
+    if not ok:
+        raise HTTPException(404, "Sequence not found")
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/sequences/{seq_id}/steps")
+async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    step_id = await sequence_engine.add_step(seq_id, body, db)
+    await db.commit()
+    return {"id": step_id}
+
+
+@app.put("/api/sequences/steps/{step_id}")
+async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    ok = await sequence_engine.update_step(step_id, body, db)
+    if not ok:
+        raise HTTPException(404, "Step not found")
+    await db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/sequences/steps/{step_id}")
+async def delete_sequence_step(step_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await sequence_engine.delete_step(step_id, db)
+    if not ok:
+        raise HTTPException(404, "Step not found")
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/sequences/{seq_id}/subscribe/{sub_id}")
+async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await sequence_engine.subscribe(sub_id, seq_id, db)
+    await db.commit()
+    return {"ok": ok}
+
+
+@app.post("/api/sequences/{seq_id}/unsubscribe/{sub_id}")
+async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await sequence_engine.unsubscribe(sub_id, seq_id, db)
+    await db.commit()
+    return {"ok": ok}
+
+
+# ── BROADCASTS API ────────────────────────────────────────────────────────────
+
+@app.get("/api/broadcasts")
+async def list_broadcasts(db=Depends(get_db), _=Depends(get_current_user)):
+    return await broadcast_engine.list_broadcasts(db)
+
+
+@app.post("/api/broadcasts")
+async def create_broadcast(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    bcast_id = await broadcast_engine.create_broadcast(
+        name=body["name"],
+        message_template=body.get("message_template", ""),
+        platform_filter=body.get("platform_filter", {}),
+        segment_filters=body.get("segment_filters", {}),
+        created_by="",
+        session=db,
+    )
+    return {"id": bcast_id}
+
+
+@app.get("/api/broadcasts/{bcast_id}")
+async def get_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(get_current_user)):
+    bcast = await broadcast_engine.get_broadcast(bcast_id, db)
+    if not bcast:
+        raise HTTPException(404, "Broadcast not found")
+    return bcast
+
+
+@app.put("/api/broadcasts/{bcast_id}")
+async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    ok = await broadcast_engine.update_broadcast(bcast_id, body, db)
+    if not ok:
+        raise HTTPException(404, "Broadcast not found")
+    return {"ok": True}
+
+
+@app.post("/api/broadcasts/{bcast_id}/send")
+async def send_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    bcast = await db.get(Broadcast, bcast_id)
+    if not bcast:
+        raise HTTPException(404, "Broadcast not found")
+    if bcast.status != "draft":
+        raise HTTPException(400, "Only draft broadcasts can be sent")
+    bc_id = bcast_id
+    async def _send():
+        async with AsyncSessionLocal() as s:
+            await broadcast_engine.send_broadcast(bc_id, s)
+    asyncio.create_task(_send())
+    return {"ok": True, "message": "Broadcast sending started"}
+
+
+@app.post("/api/broadcasts/{bcast_id}/cancel")
+async def cancel_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    ok = await broadcast_engine.cancel_broadcast(bcast_id, db)
+    if not ok:
+        raise HTTPException(400, "Broadcast not found or not cancellable")
+    return {"ok": True}
+
+
+@app.post("/api/broadcasts/estimate")
+async def estimate_broadcast_audience(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    result = await broadcast_engine.estimate_audience(
+        segment_filters=body.get("segment_filters", {}),
+        platform_filter=body.get("platform_filter", {}),
+        session=db,
+    )
+    return {"count": result["count"]}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# :: PHASE 2 — NEW ENGINES ::
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Analytics ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/analytics/dashboard")
+async def analytics_dashboard(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_dashboard_overview(days, db)
+
+
+@app.get("/api/analytics/daily-trend")
+async def analytics_daily_trend(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_daily_trend(days, db)
+
+
+@app.get("/api/analytics/hourly-heatmap")
+async def analytics_hourly_heatmap(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_hourly_heatmap(days, db)
+
+
+@app.get("/api/analytics/top-rules")
+async def analytics_top_rules(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_top_rules(days, limit, db)
+
+
+@app.get("/api/analytics/sentiment-trend")
+async def analytics_sentiment_trend(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_sentiment_trend(days, db)
+
+
+@app.get("/api/analytics/peak-hour")
+async def analytics_peak_hour(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    peak = await analytics_engine.get_peak_hour(days, db)
+    return {"peak_hour": peak}
+
+
+@app.get("/api/analytics/top-commenters")
+async def analytics_top_commenters(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_top_commenters(days, limit, db)
+
+
+@app.get("/api/analytics/period-comparison")
+async def analytics_period_comparison(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+    return await analytics_engine.get_period_comparison(days, db)
+
+
+# ── Inbox ──────────────────────────────────────────────────────────────────────
+
+@app.get("/api/inbox/stats")
+async def inbox_stats(db=Depends(get_db), _=Depends(get_current_user)):
+    return await inbox_engine.get_conversation_stats(db)
+
+
+@app.get("/api/inbox/all")
+async def inbox_all(search: str = Query(""), db=Depends(get_db), _=Depends(get_current_user)):
+    conversations = await inbox_engine.fetch_all_conversations(db)
+    if search:
+        conversations = await inbox_engine.search_conversations(search, conversations)
+    return {"items": conversations}
+
+
+# ── Content Calendar ───────────────────────────────────────────────────────────
+
+@app.get("/api/calendar")
+async def calendar_list(year: int = Query(datetime.utcnow().year), month: int = Query(datetime.utcnow().month),
+                        db=Depends(get_db), _=Depends(get_current_user)):
+    return await content_calendar_engine.get_calendar_posts(year, month, db)
+
+
+@app.get("/api/calendar/day")
+async def calendar_day(year: int = Query(...), month: int = Query(...), day: int = Query(...),
+                       db=Depends(get_db), _=Depends(get_current_user)):
+    return await content_calendar_engine.get_calendar_posts_by_date(year, month, day, db)
+
+
+@app.post("/api/calendar")
+async def calendar_create(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    body = await request.json()
+    try:
+        post_id = await content_calendar_engine.create_post(
+            message=body["message"],
+            image_url=body.get("image_url", ""),
+            scheduled_at=body.get("scheduled_at", ""),
+            platform=body.get("platform", "facebook"),
+            created_by="editor",
+            session=db,
+        )
+        return {"id": post_id}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/calendar/{post_id}")
+async def calendar_update(post_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+    data = await request.json()
+    ok = await content_calendar_engine.update_post(post_id, data, db)
+    if not ok:
+        raise HTTPException(404, "Post not found")
+    return {"ok": True}
+
+
+@app.delete("/api/calendar/{post_id}")
+async def calendar_delete(post_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await content_calendar_engine.delete_post(post_id, db)
+    if not ok:
+        raise HTTPException(404, "Post not found")
+    return {"ok": True}
+
+
+@app.post("/api/calendar/{post_id}/publish")
+async def calendar_publish(post_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
+    ok = await content_calendar_engine.publish_post(post_id, db)
+    if not ok:
+        raise HTTPException(404, "Post not found or publish failed")
+    return {"ok": True}
+
+
+@app.get("/api/calendar/month-summary")
+async def calendar_month_summary(year: int = Query(...), month: int = Query(...),
+                                 db=Depends(get_db), _=Depends(get_current_user)):
+    return await content_calendar_engine.get_month_summary(year, month, db)
+
+
+# ── Team ───────────────────────────────────────────────────────────────────────
+
+@app.get("/api/team/members")
+async def team_members(db=Depends(get_db), _=Depends(require_role("admin"))):
+    return await team_engine.get_team_members(db)
+
+
+@app.get("/api/team/activity")
+async def team_activity(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
+    return await team_engine.get_team_activity(days, db)
+
+
+@app.get("/api/team/performance")
+async def team_performance(db=Depends(get_db), _=Depends(require_role("admin"))):
+    return await team_engine.get_team_performance(db)
+
+
+@app.get("/api/team/role-summary")
+async def team_role_summary(db=Depends(get_db), _=Depends(get_current_user)):
+    return await team_engine.get_user_role_summary(db)
 
 
 if __name__ == "__main__":

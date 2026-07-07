@@ -18,6 +18,13 @@ import { ScheduledPosts } from "@/pages/scheduled"
 import { QuickReplies } from "@/pages/quick-replies"
 import { AiAssistant } from "@/pages/ai-assistant"
 import { Reports } from "@/pages/reports"
+import { Flows } from "@/pages/flows"
+import { Sequences } from "@/pages/sequences"
+import { Broadcast } from "@/pages/broadcast"
+import { Subscribers } from "@/pages/subscribers"
+import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
+import { ContentCalendar } from "@/pages/content-calendar"
+import { Team } from "@/pages/team"
 
 const queryClient = new QueryClient()
 
@@ -42,6 +49,13 @@ const pages = {
   scheduled: ScheduledPosts,
   "quick-replies": QuickReplies,
   "ai-assistant": AiAssistant,
+  flows: Flows,
+  sequences: Sequences,
+  broadcast: Broadcast,
+  subscribers: Subscribers,
+  "analytics-dashboard": AnalyticsDashboard,
+  "content-calendar": ContentCalendar,
+  team: Team,
 }
 
 function AppInner() {

@@ -291,3 +291,161 @@ export function updateUser(id, role, password = "") {
 export function deleteUser(id) {
   return api(`/api/users/${id}`, { method: "DELETE" });
 }
+
+// ── Flows API ──
+export function fetchFlows() {
+  return api("/api/flows");
+}
+export function createFlow(data) {
+  return api("/api/flows", { method: "POST", body: JSON.stringify(data) });
+}
+export function updateFlow(id, data) {
+  return api(`/api/flows/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+export function deleteFlow(id) {
+  return api(`/api/flows/${id}`, { method: "DELETE" });
+}
+export function toggleFlow(id) {
+  return api(`/api/flows/${id}/toggle`, { method: "POST" });
+}
+export function fetchFlow(id) {
+  return api(`/api/flows/${id}`);
+}
+
+// ── Sequences API ──
+export function fetchSequences() {
+  return api("/api/sequences");
+}
+export function createSequence(data) {
+  return api("/api/sequences", { method: "POST", body: JSON.stringify(data) });
+}
+export function updateSequence(id, data) {
+  return api(`/api/sequences/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+export function deleteSequence(id) {
+  return api(`/api/sequences/${id}`, { method: "DELETE" });
+}
+export function fetchSequence(id) {
+  return api(`/api/sequences/${id}`);
+}
+export function addSequenceStep(seqId, data) {
+  return api(`/api/sequences/${seqId}/steps`, { method: "POST", body: JSON.stringify(data) });
+}
+export function updateSequenceStep(stepId, data) {
+  return api(`/api/sequences/steps/${stepId}`, { method: "PUT", body: JSON.stringify(data) });
+}
+export function deleteSequenceStep(stepId) {
+  return api(`/api/sequences/steps/${stepId}`, { method: "DELETE" });
+}
+
+// ── Broadcasts API ──
+export function fetchBroadcasts() {
+  return api("/api/broadcasts");
+}
+export function createBroadcast(data) {
+  return api("/api/broadcasts", { method: "POST", body: JSON.stringify(data) });
+}
+export function sendBroadcast(id) {
+  return api(`/api/broadcasts/${id}/send`, { method: "POST" });
+}
+export function cancelBroadcast(id) {
+  return api(`/api/broadcasts/${id}/cancel`, { method: "POST" });
+}
+export function deleteBroadcast(id) {
+  return api(`/api/broadcasts/${id}`, { method: "DELETE" });
+}
+export function estimateAudience(filters) {
+  return api("/api/broadcasts/estimate", { method: "POST", body: JSON.stringify(filters) });
+}
+
+// ── Subscribers API ──
+export function fetchSubscribers(params = {}) {
+  const q = new URLSearchParams();
+  if (params.search) q.set("search", params.search);
+  if (params.platform) q.set("platform", params.platform);
+  if (params.tag) q.set("tag", params.tag);
+  if (params.page) q.set("page", params.page);
+  if (params.per_page) q.set("per_page", params.per_page);
+  const qs = q.toString();
+  return api(`/api/subscribers${qs ? `?${qs}` : ""}`);
+}
+export function fetchSubscriber(id) {
+  return api(`/api/subscribers/${id}`);
+}
+export function tagSubscriber(subId, tagId) {
+  return api(`/api/subscribers/${subId}/tags`, { method: "POST", body: JSON.stringify({ tag_id: tagId }) });
+}
+export function untagSubscriber(subId, tagId) {
+  return api(`/api/subscribers/${subId}/tags/${tagId}`, { method: "DELETE" });
+}
+
+// ── Tags API ──
+export function fetchTags() {
+  return api("/api/tags");
+}
+export function createTag(name, color) {
+  return api("/api/tags", { method: "POST", body: JSON.stringify({ name, color }) });
+}
+export function deleteTag(id) {
+  return api(`/api/tags/${id}`, { method: "DELETE" });
+}
+
+// ── Analytics API ──
+export function fetchDailyTrend(days) {
+  return api(`/api/analytics/daily-trend?days=${days}`);
+}
+export function fetchHourlyHeatmap(days) {
+  return api(`/api/analytics/hourly-heatmap?days=${days}`);
+}
+export function fetchTopRules(days, limit = 10) {
+  return api(`/api/analytics/top-rules?days=${days}&limit=${limit}`);
+}
+export function fetchSentimentTrend(days) {
+  return api(`/api/analytics/sentiment-trend?days=${days}`);
+}
+export function fetchPeakHour(days) {
+  return api(`/api/analytics/peak-hour?days=${days}`);
+}
+export function fetchTopCommenters(days, limit = 10) {
+  return api(`/api/analytics/top-commenters?days=${days}&limit=${limit}`);
+}
+export function fetchPeriodComparison(days) {
+  return api(`/api/analytics/period-comparison?days=${days}`);
+}
+
+// ── Content Calendar API ──
+export function fetchCalendarPosts(year, month) {
+  return api(`/api/calendar?year=${year}&month=${month}`);
+}
+export function fetchDayPosts(year, month, day) {
+  return api(`/api/calendar/day?year=${year}&month=${month}&day=${day}`);
+}
+export function createCalendarPost(data) {
+  return api("/api/calendar", { method: "POST", body: JSON.stringify(data) });
+}
+export function updateCalendarPost(id, data) {
+  return api(`/api/calendar/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+export function deleteCalendarPost(id) {
+  return api(`/api/calendar/${id}`, { method: "DELETE" });
+}
+export function publishCalendarPost(id) {
+  return api(`/api/calendar/${id}/publish`, { method: "POST" });
+}
+export function fetchMonthSummary(year, month) {
+  return api(`/api/calendar/month-summary?year=${year}&month=${month}`);
+}
+
+// ── Team API ──
+export function fetchTeamMembers() {
+  return api("/api/team/members");
+}
+export function fetchTeamActivity(days = 7) {
+  return api(`/api/team/activity?days=${days}`);
+}
+export function fetchTeamPerformance() {
+  return api("/api/team/performance");
+}
+export function fetchRoleSummary() {
+  return api("/api/team/role-summary");
+}

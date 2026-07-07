@@ -242,10 +242,15 @@ class InboxEngine:
         total = len(raw or [])
         unread = sum(1 for c in (raw or []) if c.get("unread_count", 0) > 0)
 
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-        messages_today = await session.scalar(
-            select(func.count(Reply.id)).where(Reply.created_at >= today_start)
-        )
+        from datetime import datetime as dt
+        today_start = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        messages_today = 0
+        try:
+            messages_today = await session.scalar(
+                select(func.count(Reply.id)).where(Reply.created_at >= today_start)
+            ) or 0
+        except Exception:
+            pass
 
         return {
             "total_conversations": total,

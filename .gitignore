@@ -1,2 +1,9 @@
 *.pyc
 __pycache__/
+.claude/worktrees/
+.claude-flow/
+.playwright-mcp/
+.replied_comments.json
+*.png
+*.ico
+fb_dashboard/static/

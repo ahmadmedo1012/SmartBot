@@ -17,40 +17,30 @@ import {
   TrendingUp, ChevronDown, Menu,
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
-  Gift, GitBranch, Timer, Radio, Calendar,
+  Gift,
 } from "lucide-react"
 
 const navItems = [
   { key: "dashboard", label: "الرئيسية", icon: LayoutDashboard },
+  { key: "messages", label: "الرسائل", icon: MessageSquare },
   { key: "rules", label: "القواعد", icon: Bot },
   { key: "replies", label: "الردود", icon: MessageSquareReply },
-  { key: "messages", label: "الرسائل", icon: MessageSquare },
   { key: "posts", label: "المنشورات", icon: FileText },
-  { key: "scheduled", label: "جدولة", icon: CalendarClock },
-  { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
+  { key: "scheduled", label: "التقويم", icon: CalendarClock },
   { key: "ai-assistant", label: "AI الذكي", icon: Brain },
-  { key: "flows", label: "البوت البصري", icon: GitBranch },
-  { key: "sequences", label: "التسلسلات", icon: Timer },
-  { key: "broadcast", label: "البث الجماعي", icon: Radio },
-  { key: "subscribers", label: "المشتركين", icon: Users },
-  { key: "analytics-dashboard", label: "التحليلات", icon: BarChart3 },
-  { key: "content-calendar", label: "التقويم", icon: Calendar },
-  { key: "team", label: "فريق العمل", icon: Users, adminOnly: true },
-  { key: "reports", label: "التقارير", icon: BarChart3 },
   { key: "offers", label: "العروض", icon: Gift },
+  { key: "reports", label: "التقارير", icon: BarChart3 },
+  { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
   { key: "ads", label: "الإعلانات", icon: TrendingUp, adminOnly: true },
   { key: "users", label: "المستخدمين", icon: Users, adminOnly: true },
   { key: "settings", label: "الإعدادات", icon: Settings },
 ]
 
-// Mobile bottom nav — show only the most used items
 const mobileNav = [
   { key: "dashboard", label: "الرئيسية", icon: Home },
   { key: "messages", label: "الرسائل", icon: MessagesSquare },
   { key: "rules", label: "القواعد", icon: Bot },
   { key: "ai-assistant", label: "AI", icon: Sparkles },
-  { key: "flows", label: "البوت", icon: GitBranch },
-  { key: "analytics-dashboard", label: "التحليلات", icon: BarChart3 },
   { key: "settings", label: "الإعدادات", icon: Settings2 },
 ]
 

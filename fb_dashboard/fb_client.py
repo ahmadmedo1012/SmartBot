@@ -90,6 +90,27 @@ class FBClient:
     async def post_to_page(self, message: str) -> dict | None:
         return await self._post(f"{self.page_id}/feed", {"message": message})
 
+    async def post_to_page_with_image(self, message: str, image_url: str) -> dict | None:
+        """Post with attached image URL."""
+        return await self._post(f"{self.page_id}/feed", {"message": message, "attached_media[0]": f"{{'media_fbid':'{image_url.split('/')[-1]}'}}"})
+
+    async def post_photo(self, image_data: bytes, filename: str = "photo.jpg", message: str = "") -> dict | None:
+        """Post a photo to the page. Returns photo object with id."""
+        from httpx import AsyncClient
+        client = await _ensure_client()
+        files = {"source": (filename, image_data, "image/jpeg")}
+        data = {"access_token": self.token}
+        if message:
+            data["message"] = message
+        try:
+            r = await client.post(f"{API_BASE}/{self.page_id}/photos", files=files, data=data)
+            if r.status_code == 200:
+                return r.json()
+            log.error(f"Photo upload failed: {r.status_code} {r.text[:200]}")
+        except Exception as e:
+            log.error(f"Photo upload error: {e}")
+        return None
+
     async def delete_post(self, post_id: str) -> dict | None:
         return await self._post(f"{post_id}", {"method": "delete"})
 

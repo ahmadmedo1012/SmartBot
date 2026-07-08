@@ -5,30 +5,45 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import {
   Bot, Send, Sparkles, CheckCircle2, XCircle, AlertCircle,
-  Loader2, Zap,
+  Loader2, Zap, ImagePlus, X,
 } from "lucide-react"
 
 const QUICK_ACTIONS = [
   { label: "الإحصائيات", command: "عطيني الإحصائيات" },
-  { label: "نشر بوست", command: "انشر بوست ترحيبي لليوم" },
+  { label: "نشر بوست", command: "انشر بوست ترحيبي" },
+  { label: "حملة تخفيضات", command: "انشر حملة تخفيضات على منتجاتنا" },
   { label: "شغل البوت", command: "شغل البوت" },
-  { label: "قاعدة جديدة", command: "اضف قاعدة رد" },
 ]
 
-export function AgentChat({ role }) {
+export function AgentChat() {
   useEffect(() => { document.title = "الوكيل الذكي | SmartBot" }, [])
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [confirmPending, setConfirmPending] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const fileRef = useRef(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
   const addMessage = (role, text, meta = {}) => {
     setMessages(prev => [...prev, { role, text, meta, id: Date.now() + Math.random() }])
   }
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { alert("الصورة كبيرة — أقصى حجم 10MB"); return }
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = (ev) => setImagePreview(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = () => { setImageFile(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = "" }
 
   const sendMessage = async (text) => {
     if (!text.trim() || loading) return
@@ -39,6 +54,7 @@ export function AgentChat({ role }) {
     try {
       const fd = new FormData()
       fd.append("text", text)
+      if (imageFile) { fd.append("image", imageFile); fd.append("has_image", "true") }
       const res = await fetch("/api/agent/interpret", { method: "POST", body: fd })
       const data = await res.json()
 
@@ -198,6 +214,14 @@ export function AgentChat({ role }) {
 
       {/* Input */}
       <div className="border-t p-4 shrink-0">
+        {imagePreview && (
+          <div className="mb-2 relative inline-block">
+            <img src={imagePreview} alt="Preview" className="h-20 rounded-lg border object-cover" />
+            <button onClick={removeImage} className="absolute -top-2 -right-2 size-5 rounded-full bg-destructive text-white flex items-center justify-center cursor-pointer">
+              <X className="size-3" />
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 items-end">
           <div className="flex-1 relative">
             <Textarea
@@ -211,16 +235,22 @@ export function AgentChat({ role }) {
               disabled={loading}
             />
           </div>
-          <Button
-            onClick={() => confirmPending ? handleConfirm() : sendMessage(input)}
-            disabled={(!input.trim() && !confirmPending) || loading}
-            className="shrink-0 h-10 px-4 gap-2"
-          >
-            <Send className="size-4" />
-          </Button>
+          <div className="flex gap-1 shrink-0">
+            <input type="file" accept="image/*" ref={fileRef} onChange={handleImageSelect} className="hidden" />
+            <Button variant="outline" size="icon" className="h-10 w-10" onClick={() => fileRef.current?.click()} disabled={loading} title="إرفاق صورة">
+              <ImagePlus className="size-4" />
+            </Button>
+            <Button
+              onClick={() => confirmPending ? handleConfirm() : sendMessage(input)}
+              disabled={(!input.trim() && !confirmPending) || loading}
+              className="h-10 px-4 gap-2"
+            >
+              <Send className="size-4" />
+            </Button>
+          </div>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-          أنا وكيل ذكي — أنفذ أوامرك مباشرة على فيسبوك
+          أنا وكيل ذكي — أحلل وأحسّن وأبدع قبل النشر 🧠
         </p>
       </div>
       <div className="mobile-nav-spacer" />

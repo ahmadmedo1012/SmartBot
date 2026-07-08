@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -11,7 +12,7 @@ from typing import Any
 
 import bcrypt
 import jwt
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
@@ -1083,6 +1084,8 @@ async def ai_status(_=Depends(get_current_user)):
 @app.post("/api/agent/interpret")
 async def agent_interpret(
     text: str = Form(...),
+    image: UploadFile | None = File(None),
+    has_image: str = Form(""),
     db=Depends(get_db),
     current_user: User = Depends(require_role("editor")),
 ):
@@ -1092,16 +1095,37 @@ async def agent_interpret(
     reply_count = await db.scalar(select(func.count(Reply.id))) or 0
     rule_count = await db.scalar(select(func.count(Rule.id))) or 0
 
+    # Handle image upload
+    image_url = ""
+    if image and has_image == "true":
+        img_data = await image.read()
+        if len(img_data) > 10 * 1024 * 1024:
+            raise HTTPException(400, "Image too large — max 10MB")
+        # Save to static dir
+        try:
+            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            img_path = STATIC_DIR / "uploads" / img_filename
+            img_path.parent.mkdir(parents=True, exist_ok=True)
+            img_path.write_bytes(img_data)
+            image_url = f"/static/uploads/{img_filename}"
+        except Exception as e:
+            log.warning(f"Failed to save image: {e}")
+
     ctx = {
         "page_id": settings.FACEBOOK_PAGE_ID,
         "bot_running": _bot_task is not None and not _bot_task.done(),
         "rules_count": rule_count,
         "reply_count": reply_count,
         "user": current_user.username,
+        "has_image": bool(image_url),
     }
     interpretation = await agent.interpret(text, ctx)
     action = interpretation.get("action", "unknown")
     params = interpretation.get("params", {})
+
+    # Attach image if available
+    if image_url and action == "publish_post":
+        params["image_url"] = image_url
 
     # Auto-execute for non-confirm actions
     result = {"success": True, "data": {}, "message_ar": interpretation.get("response_ar", "")}

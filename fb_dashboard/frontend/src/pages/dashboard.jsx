@@ -64,7 +64,7 @@ function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loa
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       className="group"
     >
-      <Card className="glass-card overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <Card className="glass-card card-premium overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className={`flex size-12 items-center justify-center rounded-xl shrink-0 ${iconColors[color] || iconColors.primary} transition-transform duration-300 group-hover:scale-110`}>

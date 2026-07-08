@@ -532,14 +532,20 @@ button:active:not(:disabled) { transform:scale(.98) }
 }
 
 .glass-liquid {
-  background: linear-gradient(135deg, hsl(var(--card)/.45), hsl(var(--card)/.25));
-  backdrop-filter: blur(20px) saturate(1.4);
+  background: linear-gradient(135deg, hsl(var(--card)/.5), hsl(var(--card)/.25));
+  backdrop-filter: blur(24px) saturate(1.4);
   border:1px solid hsl(var(--border)/.12);
   box-shadow:0 8px 32px hsl(225 30% 0%/.06), inset 0 1px 0 hsl(255 255% 255%/.06);
 }
 .glass-liquid:hover {
-  border-color:hsl(var(--accent)/.2);
-  box-shadow:0 12px 48px hsl(225 30% 0%/.1), inset 0 1px 0 hsl(255 255% 255%/.08);
+  border-color:hsl(var(--accent)/.25);
+  box-shadow:0 12px 48px hsl(225 30% 0%/.1), 0 0 0 1px hsl(var(--accent)/.1);
+}
+.glass-sidebar {
+  background: linear-gradient(180deg, hsl(228 28% 8%/.88), hsl(228 28% 5%/.92));
+  backdrop-filter: blur(24px) saturate(1.2);
+  border-left:1px solid hsl(var(--border)/.08);
+  box-shadow:4px 0 32px hsl(225 30% 0%/.2);
 }
 .text-iridescent {
   background:linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)),hsl(190 70% 50%),hsl(var(--primary)));

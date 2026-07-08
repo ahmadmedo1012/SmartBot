@@ -6,27 +6,28 @@ import { Eye, EyeOff, Lock, User } from "lucide-react"
 function AnimatedBg() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {/* Subtle grid overlay */}
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
         style={{ backgroundImage: 'linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-      {/* Floating gradient orbs */}
+      {/* Morphing liquid glass blob — primary */}
       <motion.div
-        className="absolute -top-1/4 -right-1/4 w-[500px] h-[500px] rounded-full"
-        style={{ background: 'radial-gradient(ellipse, hsl(var(--primary) / 0.15), transparent 60%)' }}
-        animate={{ x: [0, 30, -20, 0], y: [0, -40, 20, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-32 -right-32 w-[600px] h-[600px] blob-morph"
+        style={{ background: 'radial-gradient(ellipse, hsl(var(--primary) / 0.2), transparent 70%)' }}
+        animate={{ x: [0, 40, -30, 0], y: [0, -50, 30, 0], scale: [1, 1.05, 0.95, 1] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
+      {/* Morphing liquid glass blob — accent */}
       <motion.div
-        className="absolute -bottom-1/4 -left-1/4 w-[450px] h-[450px] rounded-full"
-        style={{ background: 'radial-gradient(ellipse, hsl(var(--accent) / 0.12), transparent 60%)' }}
-        animate={{ x: [0, -30, 20, 0], y: [0, 40, -20, 0] }}
-        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -bottom-32 -left-32 w-[550px] h-[550px] blob-morph"
+        style={{ background: 'radial-gradient(ellipse, hsl(var(--accent) / 0.15), transparent 70%)' }}
+        animate={{ x: [0, -40, 30, 0], y: [0, 50, -30, 0], scale: [1, 0.95, 1.05, 1] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 3 }}
       />
+      {/* Floating iridescent orb */}
       <motion.div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full"
-        style={{ background: 'radial-gradient(ellipse, hsl(var(--primary) / 0.08), transparent 60%)' }}
-        animate={{ x: [0, 50, -30, 0], y: [0, 30, -50, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
+        style={{ background: 'radial-gradient(ellipse, hsl(190 70% 50% / 0.06), transparent 60%)' }}
+        animate={{ x: [0, 60, -40, 0], y: [0, 40, -60, 0] }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
     </div>
   )
@@ -82,7 +83,7 @@ export function Login({ onAuth }) {
         className="relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5"
       >
         <AnimatedGradientBorder>
-          <div className="relative rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl bg-card/55 backdrop-blur-2xl border border-border/30">
+          <div className="relative rounded-2xl p-6 sm:p-8 space-y-6 glass-liquid">
             {/* Logo */}
             <div className="text-center space-y-4">
               <motion.div
@@ -95,7 +96,7 @@ export function Login({ onAuth }) {
                   className="w-full h-full dark:opacity-100 opacity-60" />
               </motion.div>
               <div className="space-y-1.5">
-                <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>
+                <h1 className="text-3xl font-bold text-iridescent">SmartBot</h1>
                 <p className="text-sm text-muted-foreground">لوحة التحكم الذكية</p>
               </div>
             </div>

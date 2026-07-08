@@ -206,7 +206,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
       <motion.aside
         animate={{ width: sidebarWidth }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="hidden md:flex flex-col h-svh bg-[#0b0d15] border-l border-white/[0.04] fixed right-0 top-0 z-30 overflow-hidden"
+        className="hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden"
       >
         {/* logo */}
         <div

@@ -1,11 +1,11 @@
 {
   "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
   "outputDirectory": "fb_dashboard/static",
+  "installCommand": "pip install -r requirements-base.txt",
   "functions": {
     "api/index.py": {
       "memory": 512,
-      "maxDuration": 30,
-      "excludeFiles": "fb_dashboard/frontend/**|fb_dashboard/static_app/**|mobile/**|docs/**|**/*.md|**/*.png|**/*.jpg|**/*.jpeg|fb_dashboard/.claude/**|.claude/**|.claude-flow/**|.playwright-mcp/**|fb_dashboard/tests/**|**/__pycache__/**|**/node_modules/**"
+      "maxDuration": 30
     }
   },
   "rewrites": [

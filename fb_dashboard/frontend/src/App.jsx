@@ -27,6 +27,7 @@ import { Insights } from "@/pages/insights"
 import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
 import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
+import { Subscribers } from "@/pages/subscribers"
 
 const queryClient = new QueryClient()
 

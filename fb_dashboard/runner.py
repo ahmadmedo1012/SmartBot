@@ -132,6 +132,16 @@ async def lifespan(app: FastAPI):
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Migration: add missing columns (safe — IF NOT EXISTS equivalent via try/except)
+            for col_sql in [
+                "ALTER TABLE rules ADD COLUMN priority INTEGER DEFAULT 999",
+                "ALTER TABLE rules ADD COLUMN bot_type VARCHAR(20) DEFAULT 'reply'",
+                "ALTER TABLE rules ADD COLUMN dm_template TEXT DEFAULT ''",
+            ]:
+                try:
+                    await conn.execute(text(col_sql))
+                except Exception:
+                    pass  # column already exists
         log.info("DB tables ready")
 
         async with AsyncSessionLocal() as session:

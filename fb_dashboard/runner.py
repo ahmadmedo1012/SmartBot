@@ -428,6 +428,7 @@ async def list_rules(db=Depends(get_db), _=Depends(get_current_user)):
         "dm_template": r.dm_template or "",
         "enabled": r.enabled, "description": r.description,
         "bot_type": "reply",
+        "priority": getattr(r, "priority", 999),
         "replies_count": counts.get(r.id, 0),
     } for r in rules]
 

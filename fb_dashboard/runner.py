@@ -691,19 +691,36 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
 
 
 @app.get("/api/comments")
-async def list_comments(limit: int = Query(30), _=Depends(get_current_user)):
+async def list_comments(limit: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
     all_comments = await fb.get_recent_comments(limit)
+    # Pre‑fetch replied_at for all known fb_comment_ids
+    fb_ids = [c["id"] for c in all_comments if c.get("id")]
+    replied_map = {}
+    if fb_ids:
+        rows = await db.execute(
+            select(Reply.fb_comment_id, Reply.reply_text, Reply.created_at)
+            .where(Reply.fb_comment_id.in_(fb_ids))
+        )
+        for r in rows:
+            replied_map[r.fb_comment_id] = {
+                "replied_at": r.created_at.isoformat() if r.created_at else None,
+                "reply_text": r.reply_text,
+            }
     items = []
     for c in all_comments:
         from_data = c.get("from", {}) or {}
+        cid = c.get("id", "")
+        extra = replied_map.get(cid, {})
         items.append({
-            "id": c.get("id"),
+            "id": cid,
             "message": c.get("message", ""),
             "from_name": from_data.get("name", ""),
             "from_id": from_data.get("id", ""),
             "created_time": c.get("created_time", ""),
             "post_id": c.get("_post_id", ""),
             "post_message": c.get("_post_message", ""),
+            "replied_at": extra.get("replied_at"),
+            "reply_text": extra.get("reply_text"),
         })
     items.sort(key=lambda x: x.get("created_time", ""), reverse=True)
     items = items[:limit]
@@ -791,12 +808,23 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     result = await fb.reply_to_comment(comment_id, message)
     if not result:
         raise HTTPException(400, "Failed to send reply")
+    # Fetch original comment context from FB for accurate recording
+    commenter_name = "[يدوي]"
+    comment_text = message
+    try:
+        comment_data = await fb._get(comment_id, {"fields": "from{name},message,parent"})
+        if comment_data:
+            from_data = comment_data.get("from", {}) or {}
+            commenter_name = from_data.get("name", commenter_name)
+            comment_text = comment_data.get("message", comment_text)
+    except Exception:
+        pass  # ponytail: non-critical enrichment; keep placeholders on failure
     reply = Reply(
-        commenter_name="[يدوي]",
-        comment_text=message,
+        commenter_name=commenter_name,
+        comment_text=comment_text,
         reply_text=message,
         fb_comment_id=comment_id,
-        fb_post_id="",  # ponytail: no FB post_id available from manual reply context
+        fb_post_id="",
         rule_id=None,
     )
     db.add(reply)
@@ -804,7 +832,7 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     log.info(f"Manual reply: user={current_user.username} comment={comment_id} reply_id={reply.id}")
     await ws_manager.broadcast("new_reply")
     await ws_manager.broadcast("notification")
-    return {"ok": True}
+    return {"ok": True, "reply_id": reply.id}
 
 
 

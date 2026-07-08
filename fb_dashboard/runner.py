@@ -690,6 +690,42 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
     }
 
 
+@app.get("/api/comments")
+async def list_comments(limit: int = Query(30), _=Depends(get_current_user)):
+    all_comments = await fb.get_recent_comments(limit)
+    items = []
+    for c in all_comments:
+        from_data = c.get("from", {}) or {}
+        items.append({
+            "id": c.get("id"),
+            "message": c.get("message", ""),
+            "from_name": from_data.get("name", ""),
+            "from_id": from_data.get("id", ""),
+            "created_time": c.get("created_time", ""),
+            "post_id": c.get("_post_id", ""),
+            "post_message": c.get("_post_message", ""),
+        })
+    items.sort(key=lambda x: x.get("created_time", ""), reverse=True)
+    items = items[:limit]
+    return {"items": items}
+
+
+@app.post("/api/comments/{comment_id}/hide")
+async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
+    result = await fb.hide_comment(comment_id)
+    if not result:
+        raise HTTPException(400, "Failed to hide comment")
+    return {"ok": True}
+
+
+@app.delete("/api/comments/{comment_id}")
+async def delete_api_comment(comment_id: str, _=Depends(require_role("editor"))):
+    result = await fb.delete_comment(comment_id)
+    if not result:
+        raise HTTPException(400, "Failed to delete comment")
+    return {"ok": True}
+
+
 @app.get("/api/stats/hourly")
 async def get_hourly_stats(db=Depends(get_db), _=Depends(get_current_user)):
     cutoff = datetime.utcnow() - timedelta(days=7)
@@ -755,8 +791,19 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     result = await fb.reply_to_comment(comment_id, message)
     if not result:
         raise HTTPException(400, "Failed to send reply")
-    # Log the reply
-    log.info(f"User {current_user.username} replied to comment {comment_id}")
+    reply = Reply(
+        commenter_name="[يدوي]",
+        comment_text=message,
+        reply_text=message,
+        fb_comment_id=comment_id,
+        fb_post_id="",  # ponytail: no FB post_id available from manual reply context
+        rule_id=None,
+    )
+    db.add(reply)
+    await db.commit()
+    log.info(f"Manual reply: user={current_user.username} comment={comment_id} reply_id={reply.id}")
+    await ws_manager.broadcast("new_reply")
+    await ws_manager.broadcast("notification")
     return {"ok": True}
 
 

@@ -113,6 +113,7 @@ class FBClient:
             comments = await self.get_post_comments(p["id"], limit // max(len(posts), 1))
             for c in comments:
                 c["_post_id"] = p["id"]
+                c["_post_message"] = p.get("message", "")
             all_comments.extend(comments)
         return all_comments
 
@@ -124,6 +125,9 @@ class FBClient:
 
     async def delete_comment(self, comment_id: str) -> dict | None:
         return await self._post(f"{comment_id}", {"method": "delete"})
+
+    async def hide_comment(self, comment_id: str) -> dict | None:
+        return await self._post(f"{comment_id}", {"is_hidden": True})
 
     # ── Conversations / Inbox ─────────────────────────────────────
 

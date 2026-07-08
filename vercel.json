@@ -2,7 +2,6 @@
   "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
   "outputDirectory": "fb_dashboard/static",
   "rewrites": [
-    { "source": "/healthz", "destination": "/api/minimal.py" },
     { "source": "/(.*)", "destination": "/api/index.py" }
   ]
 }

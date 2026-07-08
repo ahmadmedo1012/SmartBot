@@ -22,7 +22,7 @@ from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim
 from fb_client import FBClient
-from bot import BotEngine, RuleMatcher
+from bot import BotEngine, IntentAwareMatcher
 from ws_manager import ws_manager
 from flow_engine import FlowEngine
 from sequence_engine import SequenceEngine, SequenceScheduler
@@ -181,13 +181,22 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 async def _run_bot_loop():
-    engine = BotEngine(fb)
+    engine = get_bot_engine()
     while True:
         try:
             await engine.cycle()
         except Exception as e:
             log.error(f"Bot loop err: {e}")
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
+
+
+_bot_engine_singleton: BotEngine | None = None
+
+def get_bot_engine() -> BotEngine:
+    global _bot_engine_singleton
+    if _bot_engine_singleton is None:
+        _bot_engine_singleton = BotEngine(fb)
+    return _bot_engine_singleton
 
 
 
@@ -1617,19 +1626,11 @@ async def webhook_receive(request: Request):
 
 
 async def _process_webhook_comment(comment: dict, post_id: str):
-    """Process a single webhook comment immediately (not a full cycle)."""
+    """Process a single webhook comment using shared singleton engine."""
     try:
-        engine = BotEngine(fb)
-        async with AsyncSessionLocal() as session:
-            rules = await engine._load_rules(session)
-            if not rules:
-                return
-            dm_map = await engine._load_dm_map()
-            matcher = RuleMatcher(rules, dm_map)
-            replied_ids = await engine._load_replied_ids(session)
-            engine.dedup.load_from_db(replied_ids)
-            await engine.pipeline.process(session, comment, post_id, matcher)
-            _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
+        engine = get_bot_engine()
+        await engine.process_single_comment(comment, post_id)
+        _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
 
@@ -2339,4 +2340,107 @@ async def delete_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role
     await db.delete(offer)
     await db.commit()
     return {"ok": True}
+
+
+# ── Diagnostics & Admin Endpoints ─────────────────────────────
+
+
+@app.get("/api/diagnostics/status")
+async def diagnostic_status(_=Depends(get_current_user)):
+    from diagnostics import get_diagnostics
+    from monitor import get_logger
+    d = get_diagnostics()
+    l = get_logger()
+    return {"system": d.get_system_info(), "cycles": d.get_cycle_stats(),
+            "errors": {"recent": d.get_recent_errors(10), "rate_pct": d.get_error_rate()},
+            "logs": l.get_stats()}
+
+
+@app.get("/api/diagnostics/cycle-stats")
+async def diagnostic_cycles(_=Depends(get_current_user)):
+    from diagnostics import get_diagnostics
+    return get_diagnostics().get_cycle_stats()
+
+
+@app.get("/api/diagnostics/recent-errors")
+async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user)):
+    from diagnostics import get_diagnostics
+    return {"errors": get_diagnostics().get_recent_errors(limit)}
+
+
+@app.get("/api/diagnostics/logs")
+async def diagnostic_logs(level: str = Query(""), limit: int = Query(50), _=Depends(get_current_user)):
+    from monitor import get_logger
+    return {"logs": get_logger().get_buffer(level or None, limit)}
+
+
+@app.get("/api/diagnostics/bot-events")
+async def diagnostic_bot_events(limit: int = Query(50), _=Depends(get_current_user)):
+    from monitor import get_logger
+    return {"events": get_logger().get_buffer(limit=limit)}
+
+
+@app.get("/api/diagnostics/permissions")
+async def diagnostic_permissions(_=Depends(get_current_user)):
+    from fb_client import FBClient
+    from config import settings
+    if not settings.FACEBOOK_ACCESS_TOKEN:
+        return {"has_token": False}
+    fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
+    debug = await fb._get("debug_token", {"input_token": settings.FACEBOOK_ACCESS_TOKEN})
+    perms = []
+    if debug and "data" in debug:
+        perms = (debug["data"].get("scopes", []) or debug["data"].get("granular_scopes", []))
+    return {"has_token": True, "permissions": perms}
+
+
+@app.post("/api/diagnostics/demo-test-comment")
+async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(require_role("admin"))):
+    from enhanced_intent import EnhancedIntentClassifier
+    from bot import TextNormalizer
+    classification = EnhancedIntentClassifier.classify(comment_text)
+    normalized = TextNormalizer.normalize_for_matching(comment_text)
+    return {"original": comment_text, "normalized": normalized, "classification": classification}
+
+
+@app.post("/api/admin/rules/{rule_id}/priority")
+async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(get_db), _=Depends(require_role("admin"))):
+    rule = await db.get(Rule, rule_id)
+    if not rule: raise HTTPException(404, "Rule not found")
+    rule.priority = max(0, min(9999, priority))
+    await db.commit()
+    return {"ok": True, "priority": rule.priority}
+
+
+@app.post("/api/admin/cooldown")
+async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin"))):
+    if seconds < 10 or seconds > 3600:
+        raise HTTPException(400, "يجب أن تكون المدة بين 10 و3600 ثانية")
+    from bot import BotEngine
+    eng = BotEngine._instance
+    if eng: eng.cooldown.adjust_window(seconds)
+    return {"ok": True, "cooldown_seconds": seconds}
+
+
+@app.get("/api/admin/template-vars")
+async def template_vars(_=Depends(get_current_user)):
+    return {"vars": {"{name}": "الاسم الأول", "{full_name}": "الاسم الكامل",
+                     "{username}": "اسم المستخدم", "{message}": "النص", "{mention}": "تاغ الإشعار"},
+            "example": "شكراً {name} على تعليقك!"}
+
+
+@app.get("/api/admin/rules-categories")
+async def rule_categories(_=Depends(get_current_user)):
+    return {"categories": [
+        {"id": "negative", "label": "شكوى", "color": "red"},
+        {"id": "complaint", "label": "شكوى صريحة", "color": "red"},
+        {"id": "price_inquiry", "label": "استفسار سعر", "color": "blue"},
+        {"id": "order", "label": "طلب شراء", "color": "green"},
+        {"id": "contact", "label": "طلب تواصل", "color": "purple"},
+        {"id": "question", "label": "سؤال", "color": "indigo"},
+        {"id": "praise", "label": "إشادة", "color": "emerald"},
+        {"id": "greeting", "label": "تحية", "color": "sky"},
+        {"id": "urgent", "label": "عاجل", "color": "orange"},
+        {"id": "neutral", "label": "محايد", "color": "gray"},
+    ]}
 

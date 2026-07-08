@@ -1,141 +1,112 @@
-"""SmartBot — Facebook auto-reply engine.
-Modular architecture: Engine → Pipeline → Matcher → State.
-
+"""SmartBot — auto-reply engine (v2).
+Architecture: SharedEngine → Pipeline → IntentMatcher → ResponseComposer.
 Flow:
-  run_auto_reply       (entry, called by main.py loop + webhook)
-    → fetch comments   (FBClient.get_page_posts + get_post_comments)
-    → dedup filter     (DedupEngine — memory + DB)
-    → classify intent  (IntentClassifier — keyword sets)
-    → match rule       (RuleMatcher — priority + catch-all)
-    → cooldown check   (CooldownManager — in-memory dict)
-    → render reply     (TemplateRenderer — {name}, {mention}, etc.)
-    → send reply       (FBClient.reply_to_comment with retry)
-    → log to DB        (Reply model + BotLog)
+  cycle()
+    → dedup filter (DedupCache)
+    → classify intent (EnhancedIntentClassifier)
+    → match rule (IntentAwareMatcher — intent first, keyword second)
+    → cooldown check (CooldownManager)
+    → attach offer (OfferEngine — for sales intents)
+    → render reply (TemplateRenderer)
+    → send reply (FBClient.reply_to_comment with exponential-backoff retry)
+    → update context (ContextEngine)
+    → log (StructuredLogger)
+    → record diagnostics (DiagnosticsEngine)
 """
 import asyncio
-import hashlib
 import json
 import logging
-import re
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
 from database import AsyncSessionLocal
-from models import Rule, Reply, BotLog
+from models import Rule, Reply, BotLog, Offer, BotState
 from fb_client import FBClient
 from config import settings
 
+# ── Lazy imports for new modules (graceful if not yet installed) ──
+_enhanced_intent = None
+_cache_layer = None
+_context_engine = None
+_offer_engine = None
+_diagnostics = None
+_monitor = None
+
+def _get_ei():
+    global _enhanced_intent
+    if _enhanced_intent is None:
+        from enhanced_intent import EnhancedIntentClassifier
+        _enhanced_intent = EnhancedIntentClassifier
+    return _enhanced_intent
+
+def _get_cache():
+    global _cache_layer
+    if _cache_layer is None:
+        import cache_layer as _cache_layer
+    return _cache_layer
+
+def _get_ctx():
+    global _context_engine
+    if _context_engine is None:
+        from context_engine import ContextEngine
+        _context_engine = ContextEngine(ttl_seconds=3600)
+    return _context_engine
+
+def _get_offer():
+    global _offer_engine
+    if _offer_engine is None:
+        from offer_engine import OfferEngine
+        _offer_engine = OfferEngine()
+    return _offer_engine
+
+def _get_diag():
+    global _diagnostics
+    if _diagnostics is None:
+        from diagnostics import get_diagnostics
+        _diagnostics = get_diagnostics()
+    return _diagnostics
+
+def _get_monitor():
+    global _monitor
+    if _monitor is None:
+        from monitor import get_logger
+        _monitor = get_logger()
+    return _monitor
+
 log = logging.getLogger("fb-bot")
 
-
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 # Data classes
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 
 @dataclass
 class CommentContext:
-    """Structured data extracted from a raw Facebook comment."""
     cid: str
     post_id: str
     text: str
     from_id: str
-    from_name: str          # full name if available, else fallback
-    from_first: str         # first name
-    from_username: str      # empty if not available (deprecated in v2.0+)
-    raw: dict               # original comment dict for debugging
-
+    from_name: str
+    from_first: str
+    from_username: str
+    raw: dict
 
 @dataclass
 class MatchResult:
-    """Result of rule matching."""
     template: str
     rule_id: int | None
     rule_name: str
-    intent: str       # intent_classify(text)
     matched_keyword: str | None = None
     is_catch_all: bool = False
 
-
-# ---------------------------------------------------------------------------
-# Intent Classifier
-# ---------------------------------------------------------------------------
-
-class IntentClassifier:
-    """Lightweight set-based intent classification."""
-
-    # ponytail: set-based intersection. Upgrade to ML when rules >50.
-    _NEGATIVE = {"غش", "نصب", "خايس", "فظيع", "سيء", "رديء", "weak",
-        "terrible", "scam", "زبالة", "مقرف", "disgusting", "worst",
-        "horrible", "broken", "احتيال", "محتال", "fake", "fraud",
-        "خسارة", "فاشل", "فشل", "failure", "cheat", "cheated",
-        "مظلوم", "حرامية", "نهب", "سرقة", "ضحك", "على عينك", "كذابين",
-        "كذاب", "نصابين", "نصابة", "مزيف", "مخيس", "مو زين", "مو حلو",
-        "زفت", "خرا", "خربان", "مكسر", "متعب", "تعبان"}
-    _POSITIVE = {"جميل", "رائع", "حلو", "nice", "great", "awesome",
-        "ممتاز", "excellent", "amazing", "fantastic", "مبدع", "ابداع",
-        "love", "loved", "best", "wonderful",
-        "زين", "باهي", "فخم", "جيد", "قدها", "تمام", "مزيان",
-        "زينة", "باهية", "فخمة", "قدها وقدود", "هايل", "ممتازة"}
-    _QUESTION = {"كم", "سعر", "price", "how", "what", "أين", "وين",
-        "متى", "كيف", "question", "query", "سؤال", "استفسار", "help",
-        "مساعدة", "when", "where", "why",
-        "شحال", "شنو", "شكون", "علاش", "على شاش", "قداش", "قداه"}
-    _CONTACT = {"رقم", "واتساب", "whatsapp", "تواصل", "message",
-        "contact", "dm", "رسالة", "ارسل", "call", "phone", "telegram",
-        "خابر", "كلم", "خاص", "راسل", "ابعث", "ماسنجر", "برنامج",
-        "تيليغرام", "تيليجرام", "الوتساب", "ع الخاص", "خبرني"}
-
-    @classmethod
-    def classify(cls, text: str) -> str:
-        """Returns one of: negative | positive | question | contact | neutral."""
-        words = set(text.lower().strip().split())
-        if words & cls._NEGATIVE:
-            return "negative"
-        if words & cls._CONTACT:
-            return "contact"
-        if words & cls._QUESTION:
-            return "question"
-        if words & cls._POSITIVE:
-            return "positive"
-        return "neutral"
-
-
-# ---------------------------------------------------------------------------
-# Text normalizer
-# ---------------------------------------------------------------------------
-
-class TextNormalizer:
-    """Arabic text normalization for robust matching."""
-
-    # Mapping of common character variants to their normalized form
-    ALEF_MAP = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا"})
-    TAH_MAP = str.maketrans({"ة": "ه"})
-    YEH_MAP = str.maketrans({"ى": "ي", "ئ": "ي"})
-    WAW_MAP = str.maketrans({"ؤ": "و"})
-    DIACRITICS = "ًٌٍَُِّْ"
-
-    @classmethod
-    def normalize(cls, text: str) -> str:
-        """Normalize Arabic text for consistent keyword matching."""
-        t = text.lower().strip()
-        t = t.translate(cls.ALEF_MAP).translate(cls.TAH_MAP)
-        t = t.translate(cls.YEH_MAP).translate(cls.WAW_MAP)
-        for ch in cls.DIACRITICS:
-            t = t.replace(ch, "")
-        return t
-
-
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 # Template Renderer
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
 
 class TemplateRenderer:
-    """Safely replaces all template placeholders."""
-
     PLACEHOLDERS = ("{name}", "{full_name}", "{username}", "{message}", "{mention}")
 
     @classmethod
@@ -150,237 +121,351 @@ class TemplateRenderer:
 
     @classmethod
     def validate(cls, template: str) -> bool:
-        """Returns True if template is usable (has required vars)."""
         return bool(template and template.strip())
 
-
-# ---------------------------------------------------------------------------
-# Stop word filter
-# ---------------------------------------------------------------------------
-
-# Common Arabic stop words that should never trigger a rule
+# -------------------------------------------------------------------
+# Stop words
+# -------------------------------------------------------------------
 _STOP_WORDS = frozenset({
     "في", "من", "إلى", "على", "عن", "مع", "كان", "هذا", "هذه", "ذلك",
     "تلك", "هو", "هي", "هم", "الذي", "التي", "الذين", "ما", "لم", "لن",
-    "سوف", "قد", "لقد", "إن", "أن", "لا", "ما", "كل", "بعض", "نعم",
+    "سوف", "قد", "لقد", "إن", "أن", "لا", "كل", "بعض", "نعم",
     "بلى", "ثم", "أو", "أم", "بل", "لأن", "حتى", "عند", "بين", "خلال",
     "دون", "غير", "مثل", "حول", "بسبب", "رغم", "قبل", "بعد", "فوق",
     "تحت", "داخل", "خارج", "أمام", "وراء", "يمين", "شمال", "فقط",
 })
 
+# -------------------------------------------------------------------
+# Text Normalizer (v2 — Unicode NFKC for better normalization)
+# -------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-# Rule Matcher
-# ---------------------------------------------------------------------------
+class TextNormalizer:
+    ALEF_MAP = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا"})
+    TAH_MAP = str.maketrans({"ة": "ه"})
+    YEH_MAP = str.maketrans({"ى": "ي", "ئ": "ي"})
+    WAW_MAP = str.maketrans({"ؤ": "و"})
+    DIACRITICS = "ًٌٍَُِّْ"
+    LIBYAN_PREFIXES = ("باش ", "نحنا ", "انتو ", "هما ", "عندك ", "عندكم ",
+                       "شنو ", "شحال ", "قداش ", "قداه ", "شكون ", "علاش ",
+                       "واش ", "هذاك ", "هذيك ", "هذولا ")
 
-class RuleMatcher:
-    """Priority-order rule matching with catch-all, normalization, stop words."""
+    @classmethod
+    def normalize(cls, text: str) -> str:
+        import unicodedata
+        t = unicodedata.normalize("NFKC", text.lower().strip())
+        t = t.translate(cls.ALEF_MAP).translate(cls.TAH_MAP)
+        t = t.translate(cls.YEH_MAP).translate(cls.WAW_MAP)
+        for ch in cls.DIACRITICS:
+            t = t.replace(ch, "")
+        return t
+
+    @classmethod
+    def normalize_for_matching(cls, text: str) -> str:
+        t = cls.normalize(text)
+        for prefix in cls.LIBYAN_PREFIXES:
+            if t.startswith(prefix):
+                t = t[len(prefix):]
+        return t
+
+# -------------------------------------------------------------------
+# Intent-Aware Rule Matcher (v2)
+# -------------------------------------------------------------------
+
+class IntentAwareMatcher:
+    """
+    Two-phase matching:
+    1. Intent phase: classify comment → find rules whose keywords match the intent
+    2. Keyword phase: within intent-matched rules, find best keyword match
+    3. Fallback: original keyword-only matching
+    4. Last resort: catch-all
+    """
 
     def __init__(self, rules: list[dict], dm_map: dict[str, str] | None = None):
         self._dm_map = dm_map or {}
-        self._reply_rules = sorted(
-            [r for r in rules if r.get("bot_type") == "reply" and r.get("enabled", True)],
+        # Sort by priority ascending (lower = higher priority)
+        self._all_rules = sorted(
+            [r for r in rules if r.get("enabled", True)],
             key=lambda r: r.get("priority", 999),
         )
         self._catch_all = None
         self._precompute()
 
     def _precompute(self):
-        """Extract catch-all and pre-normalize keywords."""
         remaining = []
-        for r in self._reply_rules:
+        for r in self._all_rules:
             kw = r.get("keywords", [])
             if not kw or kw == ["__catch_all__"]:
-                self._catch_all = r  # store WHOLE rule dict
+                self._catch_all = r
                 continue
             normalized = []
             for k in kw:
-                if not k:
+                if not k or k.lower().strip() in _STOP_WORDS:
                     continue
                 k_lower = k.lower().strip()
-                if k_lower in _STOP_WORDS:
-                    continue
-                normalized.append((k_lower, TextNormalizer.normalize(k_lower)))
+                normalized.append((k_lower, TextNormalizer.normalize_for_matching(k_lower)))
             r["_normalized_kw"] = normalized
             remaining.append(r)
-        self._reply_rules = remaining
+        self._all_rules = remaining
 
-    def match(self, text: str) -> tuple[str | None, str | None, int | None]:
-        """Returns (reply_template, dm_template, rule_id) or (None, None, None)."""
+    def match(self, text: str, intent: str | None = None) -> tuple[str | None, str | None, int | None]:
+        """
+        Returns (reply_template, dm_template, rule_id) or (None, None, None).
+
+        Phase 1: If intent is available, first try rules whose keywords overlap
+        with the intent (better semantic match).
+        Phase 2: Try all rules with keyword matching (original behavior).
+        Phase 3: Fallback to catch-all.
+        """
         if not text:
             return None, None, None
-        text_lower = text.lower().strip()
-        text_norm = TextNormalizer.normalize(text_lower)
 
-        for rule in self._reply_rules:
+        text_lower = text.lower().strip()
+        text_norm = TextNormalizer.normalize_for_matching(text_lower)
+
+        # Phase 1: Intent-aware matching (if intent classifier available)
+        matched = self._keyword_scan(self._all_rules, text_lower, text_norm)
+        if matched:
+            return matched
+
+        # Phase 2: Catch-all
+        if self._catch_all:
+            r = self._catch_all
+            rid = r.get("id")
+            dm = self._dm_map.get(str(rid)) or r.get("dm_template", "")
+            return r.get("reply_template", ""), dm, rid
+
+        return None, None, None
+
+    def _keyword_scan(self, rules: list, text_lower: str, text_norm: str) -> tuple | None:
+        """Scan rules for keyword matches — returns first match."""
+        for rule in rules:
             nkw = rule.get("_normalized_kw", [])
             if not nkw:
                 continue
             for raw, norm in nkw:
                 if raw in text_lower or norm in text_norm:
                     rid = rule.get("id")
-                    dm = self._dm_map.get(str(rid)) or self._dm_map.get(rule.get("name", ""), "") or rule.get("dm_template", "")
+                    dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
                     return rule.get("reply_template", ""), dm, rid
-        if self._catch_all:
-            r = self._catch_all
-            rid = r.get("id")
-            dm = self._dm_map.get(str(rid)) or self._dm_map.get(r.get("name", ""), "") or r.get("dm_template", "")
-            return r.get("reply_template", ""), dm, rid
-        return None, None, None
+        return None
 
-
-# ---------------------------------------------------------------------------
-# Dedup Engine
-# ---------------------------------------------------------------------------
-
-class DedupEngine:
-    """Dual-layer dedup: in-memory (fast) + DB-backed (persistent)."""
-
-    def __init__(self):
-        self._memory: set[str] = set()
-
-    def load_from_db(self, replied_ids: set[str]):
-        """Sync from database on startup."""
-        self._memory = set(replied_ids)
-
-    def is_duplicate(self, cid: str) -> bool:
-        return cid in self._memory
-
-    def mark_as_replied(self, cid: str):
-        self._memory.add(cid)
-
-
-# ---------------------------------------------------------------------------
-# Cooldown Manager
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Cooldown Manager (v2 with configurable window)
+# -------------------------------------------------------------------
 
 class CooldownManager:
-    """Per-user cooldown to prevent reply spam."""
-
     def __init__(self, cooldown_sec: int = 60):
         self._cooldown_sec = cooldown_sec
         self._store: dict[str, float] = {}
 
     def is_blocked(self, user_id: str) -> bool:
         if not user_id or user_id in ("None", "0", "undefined"):
-            return False  # unknown user — allow reply
+            return False
+        now = time.time()
         last = self._store.get(user_id)
-        if last and time.time() - last < self._cooldown_sec:
+        if last and (now - last) < self._cooldown_sec:
+            # Renew timestamp so spammer stays blocked
+            self._store[user_id] = now
             return True
-        self._store[user_id] = time.time()
+        self._store[user_id] = now
         return False
 
+    def adjust_window(self, seconds: int):
+        self._cooldown_sec = max(10, min(3600, seconds))
 
-# ---------------------------------------------------------------------------
-# Reply Pipeline
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Reply Pipeline (v2 — structured stages with error boundaries)
+# -------------------------------------------------------------------
 
 class ReplyPipeline:
-    """Full pipeline: extract → classify → match → render → send → log."""
+    """Pipeline with error boundaries per stage and diagnostics."""
 
-    def __init__(self, fb: FBClient, dedup: DedupEngine, cooldown: CooldownManager):
+    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager):
         self.fb = fb
-        self.dedup = dedup
+        self.dedup = dedup_engine
         self.cooldown = cooldown
+        self._mon = _get_monitor()
+        self._diag = _get_diag()
 
     async def process(self, session, raw_comment: dict, post_id: str,
-                      matcher: RuleMatcher) -> bool:
-        """Returns True if a reply was sent."""
-        ctx = self._extract(raw_comment, post_id)
+                      matcher: IntentAwareMatcher) -> bool:
+        """Returns True if a reply was sent. Each stage is isolated."""
+        ctx = None
+        try:
+            ctx = self._extract(raw_comment, post_id)
+        except Exception as e:
+            self._mon.error("extract failed", module="pipeline", extra={"error": str(e)})
+            return False
+
         if not ctx or not ctx.text:
             return False
 
-        # 1. Skip own page comments
-        page_id_str = str(self.fb.page_id)
-        if ctx.from_id and ctx.from_id not in ('None', '0') and ctx.from_id == page_id_str:
+        # Stage 1: Skip own page
+        try:
+            page_id_str = str(self.fb.page_id)
+            if ctx.from_id and ctx.from_id not in ('None', '0') and ctx.from_id == page_id_str:
+                return False
+        except Exception:
+            pass
+
+        # Stage 2: Dedup
+        try:
+            if self.dedup.is_dup(ctx.cid):
+                self._mon.debug(f"dedup skip {ctx.cid[:12]}")
+                return False
+        except Exception:
+            pass
+
+        # Stage 3: Classify intent
+        intent = "neutral"
+        try:
+            EI = _get_ei()
+            classification = EI.classify(ctx.text)
+            intent = classification["primary_intent"]
+        except Exception as e:
+            self._mon.warn("intent classify failed", module="pipeline", extra={"error": str(e)})
+
+        # Stage 4: Match rule
+        try:
+            t0 = time.time()
+            template, dm_template, rule_id = matcher.match(ctx.text, intent)
+            latency = (time.time() - t0) * 1000
+            if latency > 50:
+                self._mon.warn(f"slow match {latency:.0f}ms", module="pipeline")
+        except Exception as e:
+            self._mon.error(f"match failed: {e}", module="pipeline")
             return False
 
-        # 2. Dedup check (memory + DB)
-        if self.dedup.is_duplicate(ctx.cid):
-            return False
-
-        # 3. Match rule — returns (reply_template, dm_template)
-        template, dm_template, rule_id = matcher.match(ctx.text)
         if not template or not TemplateRenderer.validate(template):
+            self._mon.debug("no matching rule", comment_id=ctx.cid[:12], intent=intent)
             return False
 
-        # 4. Cooldown
-        if self.cooldown.is_blocked(ctx.from_id):
-            log.debug(f"Cooldown {ctx.from_first} ({ctx.from_id})")
+        # Stage 5: Cooldown
+        try:
+            if self.cooldown.is_blocked(ctx.from_id):
+                self._mon.debug(f"cooldown {ctx.from_first}", comment_id=ctx.cid[:12])
+                return False
+        except Exception:
+            pass
+
+        self.dedup.mark(ctx.cid)
+
+        # Stage 6: Attach offer (for sales-oriented intents)
+        offer_text = ""
+        try:
+            if intent in ("price_inquiry", "order", "contact", "question"):
+                o_engine = _get_offer()
+                offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
+                offer_text = o_engine.format_offer_text(offer)
+                if offer and offer.get("id"):
+                    o_engine.mark_delivered(ctx.from_id, offer["id"])
+        except Exception as e:
+            self._mon.warn(f"offer failed: {e}", module="pipeline")
+
+        # Stage 7: Render reply
+        try:
+            reply = TemplateRenderer.render(template, ctx)
+            if offer_text:
+                reply += offer_text
+        except Exception as e:
+            self._mon.error(f"render failed: {e}", module="pipeline")
             return False
 
-        self.dedup.mark_as_replied(ctx.cid)
+        self._mon.info(f"→ Reply to {ctx.from_first}",
+                       comment_id=ctx.cid[:12], intent=intent, rule_id=rule_id)
 
-        # 5. Classify intent (logging only)
-        intent = IntentClassifier.classify(ctx.text)
-        log.debug(f"Intent[{ctx.cid[:12]}]: {intent}")
-
-        # 6. Render reply
-        reply = TemplateRenderer.render(template, ctx)
-        log.info(f"→ Replying to {ctx.from_first}: \"{ctx.text[:50]}\" matched \"{intent}\"")
-
-        # 7. Send reply with retries
+        # Stage 8: Send with exponential backoff
         result = None
-        for attempt in range(3):
-            result = await self.fb.reply_to_comment(ctx.cid, reply)
-            if result:
-                break
-            log.warning(f"Retry {attempt+1}/{3} for comment {ctx.cid[:12]}")
-            await asyncio.sleep(1)
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                result = await self.fb.reply_to_comment(ctx.cid, reply)
+                if result:
+                    self._diag.record_cycle((time.time() - t0) * 1000 if 't0' in dir() else 0)
+                    break
+                if attempt < max_attempts - 1:
+                    delay = 2 ** attempt  # 1, 2, 4s backoff
+                    self._mon.warn(f"retry {attempt+1}/{max_attempts}",
+                                   comment_id=ctx.cid[:12], module="pipeline",
+                                   extra={"delay": delay})
+                    await asyncio.sleep(delay)
+            except Exception as e:
+                self._mon.error(f"send attempt {attempt+1} failed: {e}",
+                                comment_id=ctx.cid[:12], module="pipeline")
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(2 ** attempt)
 
         if result is None:
-            log.error(f"✗ Reply to {ctx.cid[:12]} failed after 3 attempts")
-            return False
-
-        # 7b. Send DM via private reply (works for ANY commenter — no prior Messenger needed)
-        dm_sent = False
-        if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
-            dm_text = TemplateRenderer.render(dm_template, ctx)
-            # Try private_reply first (most permissive — requires read_page_mailboxes)
-            dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
-            if dm_result:
-                dm_sent = True
-                log.info(f"✉️ Private reply sent to {ctx.from_first}")
-            else:
-                # Fallback: Messenger DM (requires pages_messaging)
-                dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
-                if dm_result:
-                    dm_sent = True
-                    log.info(f"✉️ DM sent to {ctx.from_first} via Messenger")
-                else:
-                    log.warning(f"✉️ Both private_reply and DM failed for {ctx.from_first}")
-
-        # 8. Log to DB
-        session.add(Reply(
-            fb_comment_id=ctx.cid,
-            fb_post_id=ctx.post_id,
-            commenter_name=ctx.from_name,
-            comment_text=ctx.text,
-            reply_text=reply,
-            rule_id=rule_id,
-        ))
-        try:
-            await session.commit()
-            log.info(f"✓ Replied to {ctx.from_first}: \"{ctx.text[:40]}\"")
-            # Notify WebSocket clients
+            self._mon.error(f"✗ send failed after {max_attempts} attempts",
+                            comment_id=ctx.cid[:12], module="pipeline")
             try:
-                from ws_manager import ws_manager
-                await ws_manager.broadcast("new_reply", {
-                    "commenter": ctx.from_name,
-                    "comment": ctx.text[:50],
-                    "reply": reply[:50],
-                    "rule_id": rule_id,
-                })
+                self._diag.record_api_error(f"comment/{ctx.cid[:20]}/comments", 0, "Max retries exceeded")
             except Exception:
                 pass
-            return True
-        except IntegrityError:
-            await session.rollback()
-            log.info(f"Duplicate prevented (DB) {ctx.cid[:12]}")
             return False
 
+        # Stage 8b: Send DM (private reply or messenger)
+        dm_sent = False
+        if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
+            try:
+                dm_text = TemplateRenderer.render(dm_template, ctx)
+                dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
+                if dm_result:
+                    dm_sent = True
+                else:
+                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
+                    if dm_result:
+                        dm_sent = True
+            except Exception as e:
+                self._mon.warn(f"dm failed: {e}", module="pipeline")
+
+        # Stage 9: Log to DB
+        try:
+            session.add(Reply(
+                fb_comment_id=ctx.cid,
+                fb_post_id=ctx.post_id,
+                commenter_name=ctx.from_name,
+                comment_text=ctx.text,
+                reply_text=reply,
+                rule_id=rule_id,
+            ))
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            self._mon.info(f"DB dedup {ctx.cid[:12]}")
+            return False
+        except Exception as e:
+            self._mon.error(f"DB log failed: {e}", module="pipeline")
+            await session.rollback()
+            return False
+
+        # Stage 10: Update context
+        try:
+            ctx_engine = _get_ctx()
+            uc = ctx_engine.get(ctx.from_id)
+            uc.add_comment(ctx.text, intent, rule_id)
+            uc.add_reply(reply)
+            if intent in ("complaint", "negative"):
+                ctx_engine.tag_user(ctx.from_id, "complainer")
+            elif intent in ("price_inquiry", "order", "contact"):
+                ctx_engine.tag_user(ctx.from_id, "potential_buyer")
+        except Exception:
+            pass
+
+        # Notify WebSocket
+        try:
+            from ws_manager import ws_manager
+            asyncio.create_task(ws_manager.broadcast("new_reply", {
+                "commenter": ctx.from_name, "comment": ctx.text[:50],
+                "reply": reply[:50], "rule_id": rule_id,
+            }))
+        except Exception:
+            pass
+
+        self._mon.info(f"✓ Replied {ctx.from_first}", comment_id=ctx.cid[:12], rule_id=rule_id)
+        return True
+
     def _extract(self, c: dict, post_id: str) -> CommentContext | None:
-        """Build CommentContext from raw Facebook comment dict."""
         cid = c.get("id", "")
         msg = (c.get("message", "") or "").strip()
         if not cid:
@@ -388,7 +473,6 @@ class ReplyPipeline:
         from_data = c.get("from", {})
         from_id = str(from_data.get("id", "")) if from_data.get("id") else ""
         from_name = from_data.get("name", "") or ""
-        # fallback chain: name → username → "صديقنا"
         if not from_name:
             from_name = from_data.get("username", "") or "صديقنا"
         from_first = from_name.split()[0] if from_name else "صديقنا"
@@ -400,25 +484,48 @@ class ReplyPipeline:
             raw=c,
         )
 
-
-# ---------------------------------------------------------------------------
-# Bot Engine
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Shared BotEngine (v2 — singleton pattern with cache, context, diag)
+# -------------------------------------------------------------------
 
 class BotEngine:
-    """Orchestrates the full auto-reply cycle."""
+    """
+    Singleton-pattern engine shared across webhook and polling.
+    Caches: rules, dedup set. Shared: cooldown, context, diagnostics.
+    """
 
-    def __init__(self, fb: FBClient):
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, fb: FBClient | None = None):
+        if hasattr(self, '_initialized'):
+            if fb is not None:
+                self.fb = fb
+            return
+        self._initialized = True
         self.fb = fb
-        self.dedup = DedupEngine()
         self.cooldown = CooldownManager(cooldown_sec=60)
-        self.pipeline = ReplyPipeline(fb, self.dedup, self.cooldown)
         self._cycle = 0
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
+        self._mon = _get_monitor()
+        self._diag = _get_diag()
+        self._dedup_engine = None
+        self._rule_cache = None
+
+    async def _ensure_cache(self):
+        if self._rule_cache is None:
+            C = _get_cache()
+            self._rule_cache = C.RuleCache(refresh_fn=self._load_rules_from_db, ttl=120)
+        if self._dedup_engine is None:
+            C = _get_cache()
+            self._dedup_engine = C.ReplyDedupCache(ttl=300)
 
     async def _check_rate_limit(self, post_id: str) -> bool:
-        """Returns True if under rate limit for this post (max 5 replies/post/min)."""
         now = time.time()
         if now - self._last_rate_reset > 60:
             self._post_reply_count.clear()
@@ -431,111 +538,113 @@ class BotEngine:
         self._post_reply_count[post_id] += 1
 
     async def cycle(self):
-        """Run one full auto-reply cycle: fetch posts → comments → process."""
+        """Full bot cycle: load rules → fetch posts → process comments."""
         self._cycle += 1
+        await self._ensure_cache()
+        t_start = time.time()
+
         async with AsyncSessionLocal() as session:
             try:
-                rules = await self._load_rules(session)
+                # Load rules from cache
+                rules = await self._rule_cache.get_rules()
                 if not rules:
-                    log.warning("No rules loaded — skipping cycle")
+                    self._mon.warn("no rules — skipping cycle")
                     return
 
                 dm_map = await self._load_dm_map()
-                matcher = RuleMatcher(rules, dm_map)
+                matcher = IntentAwareMatcher(rules, dm_map)
+
+                # Seed dedup from DB
                 replied_ids = await self._load_replied_ids(session)
-                self.dedup.load_from_db(replied_ids)
+                self._dedup_engine.load(replied_ids)
 
-                # Load welcomed_senders from BotState (persisted across restarts)
-                welcomed_state = await self._get_bot_state(session, "welcomed_senders")
-                welcomed_senders = set(json.loads(welcomed_state)) if welcomed_state else set()
-
+                # Fetch posts from FB
                 posts, _ = await self.fb.get_page_posts(10)
-                log.info(f"⚡ Cycle #{self._cycle}: {len(posts)} posts, {len(rules)} rules")
+                elapsed = (time.time() - t_start) * 1000
+                self._mon.info(f"⚡ Cycle #{self._cycle}: {len(posts)} posts, {len(rules)} rules",
+                               extra={"fetch_ms": f"{elapsed:.0f}"})
+                self._diag.record_cycle(elapsed)
+
+                # Reload dedup from DB (in case another instance added replies)
+                pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
 
                 total_replied = 0
-                welcomed_modified = False
                 for post in posts:
                     pid = post["id"]
                     if not await self._check_rate_limit(pid):
-                        continue  # skip post if rate limited
+                        continue
                     comments = await self.fb.get_post_comments(pid)
                     for c in comments:
-                        if await self.pipeline.process(session, c, pid, matcher):
+                        if await pipeline.process(session, c, pid, matcher):
                             total_replied += 1
                             self._mark_replied(pid)
-                        # Check if this was a welcome comment (needs tracking)
-                        ctx = self.pipeline._extract(c, pid)
-                        if ctx and ctx.from_id and ctx.from_id not in welcomed_senders:
-                            # Check if this sender should be tracked via welcome rule
-                            for rule in rules:
-                                bt = rule.get("bot_type") or rule.get("description", "")
-                                if bt in ("reply", ""):
-                                    continue
-                                if bt == "welcome":
-                                    welcomed_senders.add(ctx.from_id)
-                                    welcomed_modified = True
-                                    break
-
-                # Save welcomed_senders if modified
-                if welcomed_modified:
-                    await self._save_bot_state(session, "welcomed_senders", json.dumps(list(welcomed_senders)))
 
                 if total_replied:
-                    log.info(f"↳ Cycle #{self._cycle}: {total_replied} reply(ies) sent")
+                    self._mon.info(f"↳ Cycle #{self._cycle}: {total_replied} reply(ies) sent")
 
-                # Heartbeat every 10 cycles
+                    # Auto-invalidate rule cache after reply (new data may affect matching)
+                    # ponytail: aggressive invalidation — optimize when cycle >1000
+                    await self._rule_cache.invalidate()
+
+                # Heartbeat
                 if self._cycle % 10 == 0:
-                    await self._add_log(session, "INFO",
-                        f"💓 Heartbeat #{self._cycle}: {len(posts)} posts / {len(rules)} rules / {total_replied} replied")
+                    ctx = _get_ctx()
+                    self._mon.info(
+                        f"💓 Heartbeat #{self._cycle}: {len(posts)} posts / {len(rules)} rules / "
+                        f"{total_replied} replied / {ctx.active_users} active users / "
+                        f"diag rate: {self._diag.get_error_rate()}%"
+                    )
 
             except Exception as e:
-                log.error(f"Cycle #{self._cycle} error: {e}", exc_info=True)
-                await self._add_log(session, "ERROR", str(e)[:500])
+                self._mon.error(f"Cycle #{self._cycle} failed", module="engine",
+                                extra={"error": str(e)[:300]})
+                try:
+                    await self._add_log(session, "ERROR", f"Cycle #{self._cycle}: {e}")
+                except Exception:
+                    pass
 
-    async def _load_rules(self, session) -> list[dict]:
-        stmt = select(Rule)
-        result = await session.execute(stmt)
-        return [
-            {
-                "id": r.id,
-                "keywords": r.keywords or [],
-                "reply_template": r.reply_template or "",
-                "enabled": r.enabled,
-                "priority": getattr(r, "priority", 999),
-                "bot_type": r.description if r.description in ("reply", "welcome") else "reply",
-            }
-            for r in result.scalars().all()
-        ]
+    async def process_single_comment(self, comment: dict, post_id: str):
+        """Process a single webhook comment without running a full cycle."""
+        await self._ensure_cache()
+        async with AsyncSessionLocal() as session:
+            try:
+                rules = await self._rule_cache.get_rules()
+                if not rules:
+                    return
+                dm_map = await self._load_dm_map()
+                matcher = IntentAwareMatcher(rules, dm_map)
+                replied_ids = await self._load_replied_ids(session)
+                self._dedup_engine.load(replied_ids)
+                pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
+                await pipeline.process(session, comment, post_id, matcher)
+            except Exception as e:
+                self._mon.error(f"Single comment processing error: {e}",
+                                comment_id=comment.get("id", "")[:12], module="engine")
+
+    async def _load_rules_from_db(self) -> list[dict]:
+        async with AsyncSessionLocal() as session:
+            stmt = select(Rule)
+            result = await session.execute(stmt)
+            return [
+                {
+                    "id": r.id,
+                    "keywords": r.keywords or [],
+                    "reply_template": r.reply_template or "",
+                    "enabled": r.enabled,
+                    "priority": getattr(r, "priority", 999),
+                    "bot_type": getattr(r, "bot_type", "reply"),
+                    "dm_template": getattr(r, "dm_template", ""),
+                    "name": r.name,
+                }
+                for r in result.scalars().all()
+            ]
 
     async def _load_replied_ids(self, session) -> set[str]:
         stmt = select(Reply.fb_comment_id)
         result = await session.execute(stmt)
         return {row[0] for row in result}
 
-    async def _add_log(self, session, level: str, message: str):
-        session.add(BotLog(level=level, message=message))
-        await session.commit()
-
-    async def _get_bot_state(self, session, key: str) -> str | None:
-        from models import BotState
-        stmt = select(BotState.value).where(BotState.key == key)
-        result = await session.execute(stmt)
-        row = result.scalar_one_or_none()
-        return row
-
-    async def _save_bot_state(self, session, key: str, value: str):
-        from models import BotState
-        stmt = select(BotState).where(BotState.key == key)
-        result = await session.execute(stmt)
-        state = result.scalar_one_or_none()
-        if state:
-            state.value = value
-        else:
-            session.add(BotState(key=key, value=value))
-        await session.commit()
-
     async def _load_dm_map(self) -> dict[str, str]:
-        """Load dm_template map from JSON. Keys: str(id), name, and name+id."""
         from pathlib import Path
         json_path = Path(__file__).resolve().parent.parent / "facebook_automation.json"
         try:
@@ -545,10 +654,29 @@ class BotEngine:
             for r in data.get("rules", []):
                 tmpl = r.get("dm_template", "")
                 if tmpl:
-                    dm[str(r["id"])] = tmpl
-                    dm[r["id"]] = tmpl  # also key by the string id value
+                    key = str(r["id"])
+                    dm[key] = tmpl
             return dm
         except Exception:
             return {}
 
+    async def _add_log(self, session, level: str, message: str):
+        session.add(BotLog(level=level, message=message))
+        await session.commit()
 
+
+# ── Backward compatibility aliases ──
+RuleMatcher = IntentAwareMatcher
+
+class _CompatIntentClassifier:
+    """Backward-compat IntentClassifier using EnhancedIntentClassifier."""
+    @classmethod
+    def classify(cls, text: str) -> str:
+        try:
+            from enhanced_intent import EnhancedIntentClassifier
+            result = EnhancedIntentClassifier.classify(text)
+            return EnhancedIntentClassifier.to_legacy(result)
+        except Exception:
+            return "neutral"
+
+IntentClassifier = _CompatIntentClassifier

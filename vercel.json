@@ -4,7 +4,26 @@
   "functions": {
     "api/index.py": {
       "memory": 512,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "excludeFiles": [
+        "fb_dashboard/frontend/**",
+        "fb_dashboard/static_app/**",
+        "fb_dashboard/templates/**",
+        "mobile/**",
+        "docs/**",
+        "fb_dashboard/.claude/**",
+        "fb_dashboard/tests/**",
+        "**/*.md",
+        "**/*.png",
+        "**/*.jpg",
+        "**/*.jpeg",
+        "**/__pycache__/**",
+        "**/*.pyc",
+        ".claude/**",
+        ".claude-flow/**",
+        ".playwright-mcp/**",
+        "**/node_modules/**"
+      ]
     }
   },
   "rewrites": [

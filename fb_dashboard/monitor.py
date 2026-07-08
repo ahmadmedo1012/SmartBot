@@ -2,6 +2,7 @@
 Structured logging and diagnostics for SmartBot.
 JSON-formatted logs, health metrics, performance tracking.
 """
+import asyncio
 import json
 import logging
 import os

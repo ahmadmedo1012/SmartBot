@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
 import { format } from "date-fns"
+import { motion } from "framer-motion"
 import {
   Inbox, Search, Send, Tag, Plus, X, MessageSquare,
   ChevronRight, Mail, MailOpen, Reply,
@@ -209,17 +210,18 @@ export function Messages({ role }) {
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <div className="space-y-2 p-4">
-                {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-[72px] w-full rounded-lg" />)}
+                {[1,2,3,4,5,6].map(i => <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}><Skeleton className="h-[72px] w-full rounded-lg" /></motion.div>)}
               </div>
             ) : conversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
                 <Inbox className="h-12 w-12 text-muted-foreground/30 mb-4" />
                 <p className="text-sm text-muted-foreground">لا توجد محادثات</p>
-              </div>
+              </motion.div>
             ) : (
               <div className="space-y-0.5 px-2 py-1">
-                {conversations.map(conv => (
-                  <button key={conv.id} onClick={() => setSelectedId(conv.id)}
+                {conversations.map((conv, idx) => (
+                  <motion.div key={conv.id} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.025, duration: 0.2 }}>
+                  <button onClick={() => setSelectedId(conv.id)}
                     className={`w-full text-right p-3 rounded-lg transition-all text-sm cursor-pointer
                       ${selectedId === conv.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50 border border-transparent"}
                       ${conv.unread_count > 0 ? "bg-accent/30" : ""}`}>
@@ -256,6 +258,7 @@ export function Messages({ role }) {
                       </div>
                     </div>
                   </button>
+                  </motion.div>
                 ))}
               </div>
             )}

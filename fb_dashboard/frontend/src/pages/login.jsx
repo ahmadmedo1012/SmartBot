@@ -1,48 +1,59 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { login } from "@/lib/api"
 import { Eye, EyeOff, Lock, User } from "lucide-react"
 
-function Particles() {
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    let anim
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * 800, y: Math.random() * 600,
-      vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6,
-      r: Math.random() * 1.8 + 0.5,
-    }))
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
-    resize(); window.addEventListener("resize", resize)
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.fillStyle = "hsla(348, 80%, 60%, 0.25)"
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill()
-      })
-      anim = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => { cancelAnimationFrame(anim); window.removeEventListener("resize", resize) }
-  }, [])
-  return <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
+function AnimatedBg() {
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {/* Subtle grid overlay */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
+        style={{ backgroundImage: 'linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      {/* Floating gradient orbs */}
+      <motion.div
+        className="absolute -top-1/4 -right-1/4 w-[500px] h-[500px] rounded-full"
+        style={{ background: 'radial-gradient(ellipse, hsl(var(--primary) / 0.15), transparent 60%)' }}
+        animate={{ x: [0, 30, -20, 0], y: [0, -40, 20, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute -bottom-1/4 -left-1/4 w-[450px] h-[450px] rounded-full"
+        style={{ background: 'radial-gradient(ellipse, hsl(var(--accent) / 0.12), transparent 60%)' }}
+        animate={{ x: [0, -30, 20, 0], y: [0, 40, -20, 0] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full"
+        style={{ background: 'radial-gradient(ellipse, hsl(var(--primary) / 0.08), transparent 60%)' }}
+        animate={{ x: [0, 50, -30, 0], y: [0, 30, -50, 0] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+    </div>
+  )
+}
+
+function AnimatedGradientBorder({ children }) {
+  return (
+    <div className="relative group">
+      {/* Animated gradient border ring */}
+      <div className="absolute -inset-[1px] rounded-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-700"
+        style={{
+          background: 'linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.3), hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.4))',
+          backgroundSize: '300% 300%',
+          animation: 'shimmer 6s ease-in-out infinite',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          padding: '1px',
+        }} />
+      {children}
+    </div>
+  )
 }
 
 export function Login({ onAuth }) {
   useEffect(() => { document.title = "تسجيل الدخول | SmartBot" }, [])
-  const [isDark, setIsDark] = useState(true)
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"))
-    const observer = new MutationObserver(() => setIsDark(document.documentElement.classList.contains("dark")))
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] })
-    return () => observer.disconnect()
-  }, [])
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
@@ -60,97 +71,116 @@ export function Login({ onAuth }) {
     } finally { setLoading(false) }
   }
 
-  const bgGradient = isDark
-    ? "linear-gradient(135deg, hsl(220 25% 4%), hsl(348 70% 8%))"
-    : "linear-gradient(135deg, hsl(220 20% 92%), hsl(348 30% 90%))"
-
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ background: bgGradient }}>
-      <div className="absolute inset-0 z-0" aria-hidden="true">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full rounded-full" style={{ background: isDark ? 'radial-gradient(ellipse, hsl(348 80% 50% / 0.25), transparent 60%)' : 'radial-gradient(ellipse, hsl(348 80% 50% / 0.1), transparent 60%)' }} />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full" style={{ background: isDark ? 'radial-gradient(ellipse, hsl(211 90% 55% / 0.15), transparent 60%)' : 'radial-gradient(ellipse, hsl(211 90% 55% / 0.08), transparent 60%)' }} />
-      </div>
-      <Particles />
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden dark:login-bg login-bg-light">
+      <AnimatedBg />
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-sm mx-auto p-5"
+        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5"
       >
-        <div className={`relative rounded-2xl border p-8 space-y-6 shadow-2xl ${isDark ? 'border-white/10 bg-white/5 backdrop-blur-2xl' : 'border-border bg-card'}`}>
-          <div className="text-center space-y-3">
-            <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center p-3 ${isDark ? 'bg-white/10 border border-white/10' : 'bg-primary/10 border border-primary/20'}`}>
-              <img src="/static/favicon.svg" alt="SmartBot" className={`w-full h-full ${isDark ? '' : 'brightness-0'}`} style={isDark ? {} : { filter: 'brightness(0) saturate(100%) hue-rotate(330deg)' }} />
-            </div>
-            <div className="space-y-1">
-              <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-foreground'}`}>SmartBot</h1>
-              <p className={`text-sm ${isDark ? 'text-white/60' : 'text-muted-foreground'}`}>لوحة التحكم</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className={`text-xs font-medium pr-1 ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>اسم المستخدم</label>
-              <div className="relative">
-                <User className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isDark ? 'text-white/40' : 'text-muted-foreground/60'}`} />
-                <input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className={`w-full h-10 pr-9 pl-3 rounded-xl border text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all ${isDark ? 'border-white/10 bg-white/5 text-white placeholder:text-white/30 focus:border-primary/60' : 'border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary'}`}
-                  placeholder="اسم المستخدم"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className={`text-xs font-medium pr-1 ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>كلمة المرور</label>
-              <div className="relative">
-                <Lock className={`absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 ${isDark ? 'text-white/40' : 'text-muted-foreground/60'}`} />
-                <input
-                  id="password"
-                  type={showPw ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className={`w-full h-10 pr-9 pl-10 rounded-xl border text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all ${isDark ? 'border-white/10 bg-white/5 text-white placeholder:text-white/30 focus:border-primary/60' : 'border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary'}`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${isDark ? 'text-white/40 hover:text-white/70' : 'text-muted-foreground hover:text-foreground'}`}
-                  aria-label={showPw ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                >
-                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                className="p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-sm text-destructive text-center">
-                {error}
+        <AnimatedGradientBorder>
+          <div className="relative rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl bg-card/55 backdrop-blur-2xl border border-border/30">
+            {/* Logo */}
+            <div className="text-center space-y-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.15 }}
+                className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center p-4 bg-muted/30 border border-border/20"
+              >
+                <img src="/static/favicon.svg" alt="SmartBot"
+                  className="w-full h-full dark:opacity-100 opacity-60" />
               </motion.div>
-            )}
+              <div className="space-y-1.5">
+                <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>
+                <p className="text-sm text-muted-foreground">لوحة التحكم الذكية</p>
+              </div>
+            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground font-semibold text-sm transition-all active:scale-[0.98] shadow-lg shadow-primary/25"
-            >
-              {loading ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-[bounce_0.8s_infinite_0ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-[bounce_0.8s_infinite_150ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-[bounce_0.8s_infinite_300ms]" />
-                </span>
-              ) : "تسجيل الدخول"}
-            </button>
-          </form>
-        </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="text-xs font-medium pr-1 text-muted-foreground">اسم المستخدم</label>
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                  <input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    className="w-full h-11 pr-10 pl-3 rounded-xl text-sm outline-none transition-all bg-background/50 border border-border/40 text-foreground placeholder:text-muted-foreground/60 focus:border-accent/60 focus:bg-background/80"
+                    placeholder="اسم المستخدم"
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-xs font-medium pr-1 text-muted-foreground">كلمة المرور</label>
+                <div className="relative">
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                  <input
+                    id="password"
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full h-11 pr-10 pl-10 rounded-xl text-sm outline-none transition-all bg-background/50 border border-border/40 text-foreground placeholder:text-muted-foreground/60 focus:border-accent/60 focus:bg-background/80"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors text-muted-foreground/60 hover:text-foreground cursor-pointer"
+                    aria-label={showPw ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  role="alert"
+                  className="p-3 rounded-xl text-sm text-center bg-destructive/10 border border-destructive/30 text-destructive"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="relative w-full h-12 rounded-xl text-white font-semibold text-sm overflow-hidden shadow-lg shadow-accent/20 dark:shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] hover:brightness-110 cursor-pointer"
+              >
+                {loading ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_0ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_200ms]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_400ms]" />
+                  </span>
+                ) : "تسجيل الدخول"}
+              </motion.button>
+            </form>
+          </div>
+        </AnimatedGradientBorder>
+
+        {/* Footer */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="text-center text-[11px] mt-6 tracking-wider text-muted-foreground/40"
+        >
+          SmartBot v1.0 — منصة إدارة التفاعل الذكية
+        </motion.p>
       </motion.div>
     </div>
   )

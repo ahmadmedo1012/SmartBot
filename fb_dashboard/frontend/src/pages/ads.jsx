@@ -8,13 +8,13 @@ import { fetchAdAccounts, fetchCampaigns } from "@/lib/api"
 import { RefreshCw, TrendingUp, Target, AlertTriangle, Megaphone } from "lucide-react"
 
 const STATUS_LABELS = {
-  1: { label: "نشط", class: "bg-success/15 text-success" },
-  2: { label: "محظور", class: "bg-destructive/15 text-destructive" },
-  3: { label: "معلق", class: "bg-warning/15 text-warning" },
+  1: { label: "نشط", class: "bg-success/15 text-success border-success/20" },
+  2: { label: "محظور", class: "bg-destructive/15 text-destructive border-destructive/20" },
+  3: { label: "معلق", class: "bg-warning/15 text-warning border-warning/20" },
   4: { label: "غير نشط", class: "bg-muted text-muted-foreground" },
   7: { label: "مؤرشف", class: "bg-muted text-muted-foreground" },
   8: { label: "حذف", class: "bg-destructive/15 text-destructive" },
-  9: { label: "قيد المراجعة", class: "bg-info/15 text-info" },
+  9: { label: "قيد المراجعة", class: "bg-info/15 text-info border-info/20" },
 }
 
 const CAMPAIGN_STATUS = {
@@ -53,10 +53,10 @@ export function Ads({ role }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">الإعلانات</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">الإعلانات</h1>
           <p className="text-sm text-muted-foreground mt-1">إدارة حملات فيسبوك الإعلانية</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetchAccs()}>
@@ -87,8 +87,8 @@ export function Ads({ role }) {
                 className={`cursor-pointer transition-all hover:shadow-md ${selectedAccount === acc.id.replace("act_", "") ? "ring-2 ring-primary" : ""}`}
                 onClick={() => setSelectedAccount(acc.id.replace("act_", ""))}
               >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-5 w-5 text-primary" />
@@ -100,16 +100,16 @@ export function Ads({ role }) {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="text-xs text-muted-foreground">العملة</span>
+                      <span className="text-xs font-medium text-muted-foreground">العملة</span>
                       <p className="font-medium text-foreground">{acc.currency || "—"}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-muted-foreground">الإنفاق</span>
-                      <p className="font-medium text-foreground font-mono">{acc.amount_spent || "0"}</p>
+                      <span className="text-xs font-medium text-muted-foreground">الإنفاق</span>
+                      <p className="font-medium text-foreground font-mono tabular-nums">{acc.amount_spent || "0"}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-muted-foreground">الرصيد</span>
-                      <p className="font-medium text-foreground font-mono">{acc.balance || "0"}</p>
+                      <span className="text-xs font-medium text-muted-foreground">الرصيد</span>
+                      <p className="font-medium text-foreground font-mono tabular-nums">{acc.balance || "0"}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -122,7 +122,7 @@ export function Ads({ role }) {
       {selectedAccount && (
         <>
           <div className="border-t pt-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">الحملات الإعلانية</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">الحملات الإعلانية</h2>
             {campLoading ? (
               <div className="grid gap-3 md:grid-cols-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-32 rounded-lg" />)}</div>
             ) : campError ? (
@@ -142,7 +142,7 @@ export function Ads({ role }) {
                   const cs = CAMPAIGN_STATUS[c.status] || { label: c.status, class: "bg-muted text-muted-foreground" }
                   return (
                     <Card key={c.id}>
-                      <CardContent className="p-5">
+                      <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <Target className="h-5 w-5 text-primary" />

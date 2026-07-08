@@ -18,22 +18,29 @@ import { ScheduledPosts } from "@/pages/scheduled"
 import { QuickReplies } from "@/pages/quick-replies"
 import { AiAssistant } from "@/pages/ai-assistant"
 import { Reports } from "@/pages/reports"
+import { Offers } from "@/pages/offers"
+import { Comments } from "@/pages/comments"
 import { Flows } from "@/pages/flows"
 import { Sequences } from "@/pages/sequences"
 import { Broadcast } from "@/pages/broadcast"
-import { Subscribers } from "@/pages/subscribers"
+import { Insights } from "@/pages/insights"
 import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
 import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
-import { Publisher } from "@/pages/publisher"
-import { Ecommerce } from "@/pages/ecommerce"
+import { Subscribers } from "@/pages/subscribers"
+import { AnimatePresence, motion } from "framer-motion"
 
 const queryClient = new QueryClient()
 
 function PageLoader() {
   return (
-    <div className="min-h-[200px] flex items-center justify-center">
+    <div className="min-h-[200px] flex flex-col items-center justify-center gap-6 p-8">
       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-full max-w-md space-y-3">
+        <div className="skeleton skeleton-text" />
+        <div className="skeleton skeleton-text" style={{ width: "85%" }} />
+        <div className="skeleton skeleton-text" style={{ width: "60%" }} />
+      </div>
     </div>
   )
 }
@@ -45,6 +52,8 @@ const pages = {
   posts: Posts,
   messages: Messages,
   reports: Reports,
+  offers: Offers,
+  comments: Comments,
   ads: Ads,
   settings: Settings,
   users: Users,
@@ -58,8 +67,7 @@ const pages = {
   "analytics-dashboard": AnalyticsDashboard,
   "content-calendar": ContentCalendar,
   team: Team,
-  publisher: Publisher,
-  ecommerce: Ecommerce,
+  insights: Insights,
 }
 
 function AppInner() {
@@ -101,6 +109,11 @@ function AppInner() {
     return () => { mounted = false; if (ws) ws.close(); clearTimeout(timer) }
   }, [auth])
 
+  // Scroll to top on page change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [page])
+
   const handleLogin = useCallback((res) => {
     setAuth({ username: res.username, role: res.role })
     setPage("dashboard")
@@ -136,21 +149,28 @@ function AppInner() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
-    <div className="min-h-svh w-full" dir="rtl">
+      <div className="min-h-screen bg-noise">
         <Topbar
           currentPage={page}
           onNavigate={setPage}
           username={auth.username}
           role={role}
           onLogout={handleLogout}
-        />
-        <main className="flex-1 overflow-y-auto">
-          <div className="content-container">
-            <Suspense fallback={<PageLoader />}>
-              <Page role={role} />
-            </Suspense>
-          </div>
-        </main>
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={page}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <Suspense fallback={<PageLoader />}>
+                <Page role={role} />
+              </Suspense>
+            </motion.div>
+          </AnimatePresence>
+        </Topbar>
         <Toaster position="top-left" richColors />
       </div>
     </ThemeProvider>

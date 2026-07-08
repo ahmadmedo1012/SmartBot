@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { motion, AnimatePresence } from "framer-motion"
 import { fetchRules, createRule, updateRule, deleteRule, toggleRule } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,18 +18,18 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import {
   Plus, Pencil, Trash2, Power, Search, MessageSquare,
-  GripVertical, Copy, Hash, FileText, Tag,
-  ChevronDown, ChevronUp, AlertCircle,
+  GripVertical, Copy, FileText, Tag,
+  AlertCircle, Filter, SlidersHorizontal, LayoutList,
 } from "lucide-react"
 
 // ── Categories ──
 const CATEGORIES = {
-  complaint: { label: "شكوى", color: "text-destructive border-destructive/30 bg-destructive/10" },
-  price: { label: "سعر", color: "text-warning border-warning/30 bg-warning/10" },
-  contact: { label: "تواصل", color: "text-info border-info/30 bg-info/10" },
-  general: { label: "عام", color: "text-muted-foreground border-muted/50 bg-muted/30" },
-  positive: { label: "إيجابي", color: "text-success border-success/30 bg-success/10" },
-  order: { label: "طلب", color: "text-primary border-primary/30 bg-primary/10" },
+  complaint: { label: "شكوى", panelClass: "panel-top-accent-destructive" },
+  price: { label: "سعر", panelClass: "panel-top-accent-warning" },
+  contact: { label: "تواصل", panelClass: "panel-top-accent-info" },
+  general: { label: "عام", panelClass: "" },
+  positive: { label: "إيجابي", panelClass: "panel-top-accent-success" },
+  order: { label: "طلب", panelClass: "panel-top-accent-primary" },
 }
 
 const CATEGORY_RULES = {
@@ -58,93 +59,159 @@ function guessCategory(desc) {
   return CATEGORY_RULES[desc] || "general"
 }
 
+const categoryBadgeColors = {
+  complaint: "bg-destructive/10 text-destructive border-destructive/25",
+  price: "bg-warning/10 text-warning border-warning/25",
+  contact: "bg-info/10 text-info border-info/25",
+  general: "bg-muted/50 text-muted-foreground border-border/50",
+  positive: "bg-success/10 text-success border-success/25",
+  order: "bg-primary/10 text-primary border-primary/25",
+}
+
 // ── Inline Rule Card ──
 function RuleCard({ rule, onEdit, onToggle, onDelete, onDuplicate, index }) {
   const cat = guessCategory(rule.description)
-  const style = CATEGORIES[cat] || CATEGORIES.general
+  const info = CATEGORIES[cat] || CATEGORIES.general
+  const badgeColor = categoryBadgeColors[cat] || categoryBadgeColors.general
 
   return (
-    <Card className={cn("group border-r-4 transition-all hover:shadow-md", rule.enabled ? "border-r-primary" : "border-r-muted opacity-70")}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          {/* Drag hint */}
-          <div className="hidden sm:flex mt-1 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors cursor-grab">
-            <GripVertical className="size-4" />
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <Card className={cn(
+        "glass-card overflow-hidden transition-all duration-300 group",
+        "hover:-translate-y-0.5 hover:shadow-xl",
+        info.panelClass,
+        !rule.enabled && "opacity-60"
+      )}>
+        <CardContent className="p-0">
+          <div className="flex items-start gap-0">
+            {/* Drag hint */}
+            <div className="hidden sm:flex items-start pt-5 pr-4 text-muted-foreground/20 group-hover:text-muted-foreground/50 transition-colors cursor-grab shrink-0">
+              <GripVertical className="size-4" />
+            </div>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Header */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-sm text-foreground">{rule.name}</span>
-              <span className={cn("text-[10px] px-2 py-0.5 rounded-full border font-medium", style.color)}>
-                {CATEGORIES[cat]?.label || "عام"}
-              </span>
-              {!rule.enabled && <Badge variant="outline" className="text-[10px] px-1.5 py-0">معطل</Badge>}
-              {rule.replies_count > 0 && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 rounded-full font-mono">
-                  {rule.replies_count} رد
-                </Badge>
+            {/* Content */}
+            <div className="flex-1 min-w-0 p-4 pr-0 space-y-3">
+              {/* Header row */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-semibold text-sm text-foreground leading-none">{rule.name}</span>
+                <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border", badgeColor)}>
+                  {CATEGORIES[cat]?.label || "عام"}
+                </span>
+                {!rule.enabled && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-dashed text-muted-foreground">
+                    معطل
+                  </Badge>
+                )}
+                {rule.replies_count > 0 && (
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                    {rule.replies_count} رد
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              {rule.description && (
+                <p className="text-xs text-muted-foreground/80 leading-relaxed">{rule.description}</p>
+              )}
+
+              {/* Keywords */}
+              {rule.keywords?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {rule.keywords.slice(0, 8).map((kw, i) => (
+                    <span key={i} className="inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/30">
+                      {kw.length > 14 ? kw.slice(0, 14) + "…" : kw}
+                    </span>
+                  ))}
+                  {rule.keywords.length > 8 && (
+                    <span className="text-[10px] text-muted-foreground/60">+{rule.keywords.length - 8}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Reply preview */}
+              <div className="flex items-start gap-2.5 text-xs text-muted-foreground bg-muted/30 rounded-xl p-3 border border-border/20 shadow-inner-glow">
+                <MessageSquare className="size-3.5 mt-0.5 shrink-0 text-primary/40" />
+                <span className="line-clamp-1 leading-relaxed">{rule.reply_template}</span>
+              </div>
+
+              {/* DM hint */}
+              {rule.dm_template && (
+                <p className="text-[10px] text-info/80 flex items-center gap-1.5">
+                  <Tag className="size-3" />
+                  رسالة خاصة: {rule.dm_template.substring(0, 60)}
+                  {rule.dm_template.length > 60 ? "…" : ""}
+                </p>
               )}
             </div>
 
-            {/* Description */}
-            {rule.description && (
-              <p className="text-xs text-muted-foreground">{rule.description}</p>
-            )}
-
-            {/* Keywords */}
-            {rule.keywords?.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {rule.keywords.slice(0, 8).map((kw, i) => (
-                  <span key={i} className="inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
-                    {kw.length > 14 ? kw.slice(0, 14) + "…" : kw}
-                  </span>
-                ))}
-                {rule.keywords.length > 8 && (
-                  <span className="text-[10px] text-muted-foreground">+{rule.keywords.length - 8}</span>
+            {/* Actions column */}
+            <div className="flex flex-col gap-1 p-2 shrink-0 border-r border-border/20">
+              <button
+                className={cn(
+                  "flex items-center justify-center size-8 rounded-lg transition-all duration-200 cursor-pointer",
+                  rule.enabled
+                    ? "text-success hover:bg-success/10"
+                    : "text-muted-foreground hover:bg-muted/50"
                 )}
-              </div>
-            )}
-
-            {/* Reply preview */}
-            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg p-2">
-              <MessageSquare className="size-3 mt-0.5 shrink-0" />
-              <span className="line-clamp-1">{rule.reply_template}</span>
+                onClick={() => onToggle(rule.id)}
+                aria-label={rule.enabled ? "تعطيل القاعدة" : "تفعيل القاعدة"}
+              >
+                <Power className="size-3.5" />
+              </button>
+              <button
+                className="flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+                onClick={() => onEdit(rule)}
+                aria-label="تعديل القاعدة"
+              >
+                <Pencil className="size-3.5" />
+              </button>
+              <button
+                className="flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+                onClick={() => onDuplicate(rule)}
+                aria-label="نسخ القاعدة"
+              >
+                <Copy className="size-3.5" />
+              </button>
+              <button
+                className="flex items-center justify-center size-8 rounded-lg text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-all duration-200 cursor-pointer"
+                onClick={() => onDelete(rule)}
+                aria-label="حذف القاعدة"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
             </div>
-
-            {/* DM hint */}
-            {rule.dm_template && (
-              <p className="text-[10px] text-info flex items-center gap-1">
-                <Tag className="size-2.5" />
-                رسالة خاصة: {rule.dm_template.substring(0, 60)}
-                {rule.dm_template.length > 60 ? "…" : ""}
-              </p>
-            )}
           </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
 
-          {/* Actions */}
-          <div className="flex flex-col gap-1 shrink-0">
-            <Button variant="ghost" size="icon" className={cn("size-7", rule.enabled ? "text-success hover:text-success/80" : "text-muted-foreground")}
-              onClick={() => onToggle(rule.id)}>
-              <Power className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-foreground"
-              onClick={() => onEdit(rule)}>
-              <Pencil className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="size-7 text-muted-foreground hover:text-primary"
-              onClick={() => onDuplicate(rule)}>
-              <Copy className="size-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="size-7 text-destructive/70 hover:text-destructive"
-              onClick={() => onDelete(rule)}>
-              <Trash2 className="size-3.5" />
-            </Button>
+// ── Loading skeleton ──
+function RuleSkeleton() {
+  return (
+    <div className="glass-card rounded-xl p-4 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="flex-1 space-y-3">
+          <div className="flex gap-2">
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-4 w-12 rounded-full" />
           </div>
+          <Skeleton className="h-3 w-56 rounded-md" />
+          <div className="flex gap-1">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-5 w-14 rounded-md" />)}
+          </div>
+          <Skeleton className="h-10 w-full rounded-xl" />
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex flex-col gap-1.5">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="size-7 rounded-lg" />)}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -176,18 +243,25 @@ function RuleFormDialog({ open, onOpenChange, initial, onSubmit }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{isEdit ? "تعديل القاعدة" : "إضافة قاعدة جديدة"}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+      <DialogContent className="glass-heavy max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <LayoutList className="size-4" />
+            </div>
+            {isEdit ? "تعديل القاعدة" : "إضافة قاعدة جديدة"}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">الاسم</label>
-            <Input value={name} onChange={e => setName(e.target.value)} required placeholder="مثال: استفسار_سعر" />
+            <label className="text-sm font-medium text-foreground">الاسم</label>
+            <Input value={name} onChange={e => setName(e.target.value)} required placeholder="مثال: استفسار_سعر" className="bg-muted/30" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">نوع البوت</label>
+              <label className="text-sm font-medium text-foreground">نوع البوت</label>
               <Select value={botType} onValueChange={setBotType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-muted/30"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="reply">رد تلقائي</SelectItem>
                   <SelectItem value="welcome">رسالة ترحيب</SelectItem>
@@ -196,42 +270,49 @@ function RuleFormDialog({ open, onOpenChange, initial, onSubmit }) {
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium flex items-center gap-1">
-              <Hash className="size-3.5 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <div className="flex size-5 items-center justify-center rounded bg-muted/60">
+                <Tag className="size-3 text-muted-foreground" />
+              </div>
               الكلمات المفتاحية
             </label>
             <Input value={keywords} onChange={e => setKeywords(e.target.value)}
-              required={botType === "reply"} placeholder="سعر, كم السعر, بكم (مفصولة بفاصلة)" />
+              required={botType === "reply"} placeholder="سعر, كم السعر, بكم (مفصولة بفاصلة)" className="bg-muted/30" />
             <p className="text-xs text-muted-foreground">مفصولة بفاصلة. البوت يبحث عنها في التعليقات.</p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium flex items-center gap-1">
-              <MessageSquare className="size-3.5 text-muted-foreground" />
+            <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <div className="flex size-5 items-center justify-center rounded bg-muted/60">
+                <MessageSquare className="size-3 text-muted-foreground" />
+              </div>
               نص الرد
             </label>
             <Textarea value={reply} onChange={e => setReply(e.target.value)} required rows={3}
-              placeholder={'أهلاً {name} {mention} شكراً لتواصلك!'} />
-            <p className="text-xs text-muted-foreground">
-              المتغيرات: <code className="bg-muted px-1 rounded">{'{name}'}</code> اسم العميل —
-              <code className="bg-muted px-1 rounded">{'{mention}'}</code> منشن —
-              <code className="bg-muted px-1 rounded">{'{message}'}</code> نص التعليق
+              placeholder={'أهلاً {name} {mention} شكراً لتواصلك!'} className="bg-muted/30" />
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              المتغيرات: <code className="bg-muted/60 px-1 rounded text-[11px] font-mono">{'{name}'}</code> اسم العميل —
+              <code className="bg-muted/60 px-1 rounded text-[11px] font-mono">{'{mention}'}</code> منشن —
+              <code className="bg-muted/60 px-1 rounded text-[11px] font-mono">{'{message}'}</code> نص التعليق
             </p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium flex items-center gap-1">
-              <Tag className="size-3.5 text-muted-foreground" />
-              رسالة خاصة <Badge variant="outline" className="text-[10px] px-1.5 py-0">اختياري</Badge>
+            <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <div className="flex size-5 items-center justify-center rounded bg-muted/60">
+                <MessageSquare className="size-3 text-muted-foreground" />
+              </div>
+              رسالة خاصة
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">اختياري</Badge>
             </label>
             <Textarea value={dmTemplate} onChange={e => setDmTemplate(e.target.value)} rows={2}
-              placeholder={"أهلاً {name}! شكراً لتواصلك 💬"} />
+              placeholder={"أهلاً {name}! شكراً لتواصلك 💬"} className="bg-muted/30" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">وصف (اختياري)</label>
-            <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="شرح القاعدة" />
+            <label className="text-sm font-medium text-foreground">وصف (اختياري)</label>
+            <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="شرح القاعدة" className="bg-muted/30" />
           </div>
-          <div className="flex gap-2 justify-end pt-3 border-t">
-            <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>إلغاء</Button>
-            <Button type="submit">{isEdit ? "تحديث" : "إضافة"}</Button>
+          <div className="flex gap-2 justify-end pt-4 border-t border-border/40">
+            <Button variant="outline" type="button" onClick={() => onOpenChange(false)} className="rounded-xl cursor-pointer">إلغاء</Button>
+            <Button type="submit" className="rounded-xl cursor-pointer">{isEdit ? "تحديث" : "إضافة"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -295,30 +376,56 @@ export function Rules({ role }) {
   const totalReplies = rules.reduce((s, r) => s + (r.replies_count || 0), 0)
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6 pb-8"
+    >
+      {/* Header with stats strip */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">القواعد</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {rules.length} قاعدة · {activeCount} نشطة · {totalReplies} رد
-          </p>
+          <h1 className="text-gradient-premium text-2xl font-bold">
+            <span>القواعد</span>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">إدارة قواعد الرد التلقائي على تعليقات فيسبوك</p>
         </div>
         {canEdit && (
-          <Button onClick={() => { setEditRule(null); setAddOpen(true) }}>
-            <Plus className="ml-2 h-4 w-4" />إضافة قاعدة
+          <Button onClick={() => { setEditRule(null); setAddOpen(true) }} className="gap-2 rounded-xl shadow-premium cursor-pointer">
+            <Plus className="size-4" />إضافة قاعدة
           </Button>
         )}
       </div>
 
+      {/* Stats strip */}
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
+        <div className="glass-card rounded-xl p-3.5 text-center">
+          <p className="text-xs font-medium text-muted-foreground mb-1">إجمالي القواعد</p>
+          <p className="text-xl font-bold font-mono tabular-nums text-foreground">{rules.length}</p>
+        </div>
+        <div className="glass-card rounded-xl p-3.5 text-center">
+          <p className="text-xs font-medium text-muted-foreground mb-1">نشطة</p>
+          <p className="text-xl font-bold font-mono tabular-nums text-success">{activeCount}</p>
+        </div>
+        <div className="glass-card rounded-xl p-3.5 text-center">
+          <p className="text-xs font-medium text-muted-foreground mb-1">إجمالي الردود</p>
+          <p className="text-xl font-bold font-mono tabular-nums text-foreground">{totalReplies}</p>
+        </div>
+      </div>
+
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث في القواعد والكلمات المفتاحية..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
+      <div className="glass rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+          <Filter className="size-4" />
+          <span className="text-xs font-medium hidden sm:inline">تصفية:</span>
+        </div>
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
+          <Input placeholder="بحث في القواعد والكلمات المفتاحية..." value={search} onChange={e => setSearch(e.target.value)}
+            className="pr-9 min-h-[44px] sm:min-h-9 text-sm bg-background/50 rounded-lg" />
         </div>
         <Select value={filterEnabled} onValueChange={setFilterEnabled}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-28 h-12 sm:h-9 text-sm rounded-lg bg-background/50"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">الكل</SelectItem>
             <SelectItem value="enabled">نشط</SelectItem>
@@ -326,7 +433,7 @@ export function Rules({ role }) {
           </SelectContent>
         </Select>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="التصنيف" /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-32 h-12 sm:h-9 text-sm rounded-lg bg-background/50"><SelectValue placeholder="التصنيف" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">كل التصنيفات</SelectItem>
             {Object.entries(CATEGORIES).map(([k, v]) => (
@@ -336,38 +443,57 @@ export function Rules({ role }) {
         </Select>
       </div>
 
-      {/* Loading / Error / Empty */}
+      {/* Loading state */}
       {isLoading ? (
-        <div className="space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-28 w-full rounded-lg" />)}</div>
-      ) : error ? (
-        <div className="flex flex-col items-center py-16">
-          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <p className="text-sm text-muted-foreground mb-4">{error?.message || "فشل تحميل القواعد"}</p>
-          <Button variant="outline" onClick={refetch}>إعادة المحاولة</Button>
+        <div className="space-y-3">
+          {[1,2,3,4,5].map(i => <RuleSkeleton key={i} />)}
         </div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-2xl p-12 flex flex-col items-center text-center"
+        >
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-destructive/10 mb-4">
+            <AlertCircle className="size-7 text-destructive" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-1">فشل تحميل القواعد</p>
+          <p className="text-xs text-muted-foreground mb-5 max-w-xs">{error?.message || "حدث خطأ أثناء الاتصال بالخادم"}</p>
+          <Button variant="outline" onClick={refetch} className="rounded-xl">
+            إعادة المحاولة
+          </Button>
+        </motion.div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center py-16">
-          <FileText className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <p className="text-sm text-foreground font-medium">{search ? "لا توجد نتائج" : "لا توجد قواعد"}</p>
-          <p className="text-xs text-muted-foreground mt-1">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-2xl p-12 flex flex-col items-center text-center"
+        >
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/40 mb-4">
+            <FileText className="size-7 text-muted-foreground/40" />
+          </div>
+          <p className="text-sm font-medium text-foreground">{search ? "لا توجد نتائج" : "لا توجد قواعد"}</p>
+          <p className="text-xs text-muted-foreground mt-1.5">
             {canEdit ? "أضف قاعدة جديدة للبدء" : "القواعد ستظهر هنا"}
           </p>
-        </div>
+        </motion.div>
       ) : (
         /* Rule Cards */
-        <div className="space-y-2">
-          {filtered.map((rule, i) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              index={i}
-              onToggle={id => toggleMut.mutate(id)}
-              onEdit={setEditRule}
-              onDelete={setDeleteTarget}
-              onDuplicate={handleDuplicate}
-            />
-          ))}
-        </div>
+        <AnimatePresence mode="popLayout">
+          <div className="space-y-2.5">
+            {filtered.map((rule, i) => (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                index={i}
+                onToggle={id => toggleMut.mutate(id)}
+                onEdit={setEditRule}
+                onDelete={setDeleteTarget}
+                onDuplicate={handleDuplicate}
+              />
+            ))}
+          </div>
+        </AnimatePresence>
       )}
 
       {/* Add / Edit Dialog */}
@@ -380,20 +506,28 @@ export function Rules({ role }) {
 
       {/* Delete Confirm */}
       <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>تأكيد حذف القاعدة</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">
+        <DialogContent className="glass-heavy">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                <Trash2 className="size-4" />
+              </div>
+              تأكيد حذف القاعدة
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground leading-relaxed">
             هل أنت متأكد من حذف قاعدة <strong className="text-foreground">{deleteTarget?.name}</strong>؟
-            لا يمكن التراجع. {deleteTarget?.replies_count > 0 && `هذه القاعدة استخدمت ${deleteTarget.replies_count} مرة.`}
+            لا يمكن التراجع عن هذا الإجراء.
+            {deleteTarget?.replies_count > 0 && ` هذه القاعدة استخدمت ${deleteTarget.replies_count} مرة.`}
           </p>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>إلغاء</Button>
-            <Button variant="destructive" onClick={() => deleteMut.mutate(deleteTarget.id)} disabled={deleteMut.isPending}>
+          <div className="flex gap-2 justify-end pt-3 border-t border-border/40">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} className="rounded-xl">إلغاء</Button>
+            <Button variant="destructive" onClick={() => deleteMut.mutate(deleteTarget.id)} disabled={deleteMut.isPending} className="rounded-xl">
               {deleteMut.isPending ? "جاري..." : "حذف"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   )
 }

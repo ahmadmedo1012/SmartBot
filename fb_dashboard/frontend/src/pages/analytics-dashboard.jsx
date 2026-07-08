@@ -14,11 +14,10 @@ import {
 } from "recharts"
 import {
   Download, TrendingUp, Clock, Target, MessageSquare, Users, BarChart3,
-  Activity, AlertTriangle, RefreshCw, Zap, Smile, Frown, Meh,
+  Activity, AlertTriangle, RefreshCw, Zap, Smile,
   ArrowUp, ArrowDown,
 } from "lucide-react"
 import { format } from "date-fns"
-import { arSA } from "date-fns/locale"
 
 // ── Inline analytics API fns (add to api.js later if heavily reused) ──
 const BASE = ""
@@ -73,7 +72,7 @@ function KpiCard({ title, value, change, icon: Icon, accent, loading, error }) {
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-xl font-bold font-mono tabular-nums text-foreground">{error ? "—" : value}</span>
               {change != null && (
-                <span className={`flex items-center text-xs font-mono gap-0.5 ${
+                <span className={`flex items-center text-xs font-mono tabular-nums gap-0.5 ${
                   changePositive ? "text-success" : "text-destructive"
                 }`}>
                   {changePositive ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
@@ -114,7 +113,7 @@ function ChartCard({ title, icon: Icon, children, loading, isEmpty, emptyMsg = "
 
 const tooltipContent = ({ active, payload, label }) =>
   active && payload?.length ? (
-    <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">
+    <div className="rounded-xl border bg-card/95 backdrop-blur-sm px-3 py-2 text-xs shadow-lg glass-heavy">
       <p className="font-medium mb-1">{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ color: p.color }}>{p.name}: <strong>{p.value}</strong></p>
@@ -122,7 +121,7 @@ const tooltipContent = ({ active, payload, label }) =>
     </div>
   ) : null
 
-export function AnalyticsDashboard({ role }) {
+export function AnalyticsDashboard() {
   useEffect(() => { document.title = "تحليلات متقدمة | SmartBot" }, [])
   const [days, setDays] = useState("30")
 
@@ -159,7 +158,6 @@ export function AnalyticsDashboard({ role }) {
     queryFn: () => fetchPeriodComparison(parseInt(days)),
   })
 
-  const areChartsLoading = dtLoading || hrLoading || trLoading || stLoading
   const anyError = ovError
 
   // ── Derived ──
@@ -245,23 +243,23 @@ export function AnalyticsDashboard({ role }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold">تحليلات متقدمة</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">تحليلات متقدمة</h1>
           <p className="text-sm text-muted-foreground">مقاييس شاملة لأداء التفاعل</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-28"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="7">7 أيام</SelectItem>
               <SelectItem value="30">30 يوم</SelectItem>
               <SelectItem value="90">90 يوم</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={!dailyChart.length && !ovLoading}>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={!dailyChart.length && !ovLoading} className="min-h-[44px] sm:min-h-0">
             <Download className="ml-1 h-4 w-4" />تصدير
           </Button>
         </div>
@@ -317,7 +315,7 @@ export function AnalyticsDashboard({ role }) {
                   <YAxis allowDecimals={false} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
                   <Tooltip content={({ active, payload, label }) =>
                     active && payload?.length
-                      ? <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">{label}:00 — <strong>{payload[0].value}</strong></div>
+                      ? <div className="rounded-xl border bg-card/95 backdrop-blur-sm px-3 py-2 text-xs shadow-lg glass-heavy">{label}:00 — <strong>{payload[0].value}</strong></div>
                       : null
                   } />
                   <Bar dataKey="count" name="الردود" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={36} />
@@ -334,7 +332,7 @@ export function AnalyticsDashboard({ role }) {
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={120} axisLine={false} tickLine={false} />
                   <Tooltip content={({ active, payload, label }) =>
                     active && payload?.length
-                      ? <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">{label}: <strong>{payload[0].value}</strong></div>
+                      ? <div className="rounded-xl border bg-card/95 backdrop-blur-sm px-3 py-2 text-xs shadow-lg glass-heavy">{label}: <strong>{payload[0].value}</strong></div>
                       : null
                   } />
                   <Bar dataKey="count" name="الردود" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} maxBarSize={20} />
@@ -378,7 +376,7 @@ export function AnalyticsDashboard({ role }) {
             {/* Top Commenters */}
             <Card>
               <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <Users className="size-4 text-muted-foreground" />
                   أفضل المعلقين
                 </CardTitle>
@@ -411,7 +409,7 @@ export function AnalyticsDashboard({ role }) {
             {/* Period Comparison */}
             <Card>
               <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <BarChart3 className="size-4 text-muted-foreground" />
                   مقارنة الفترات
                 </CardTitle>
@@ -447,10 +445,10 @@ export function AnalyticsDashboard({ role }) {
           {Object.keys(periodComparison).length > 0 && periodComparison.full && (
             <Card>
               <CardHeader className="pb-2 px-4 pt-4">
-                <CardTitle className="text-sm font-semibold">جدول المقارنة الكامل</CardTitle>
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">جدول المقارنة الكامل</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <Table>
+                <div className="data-table-wrapper data-table-card-view"><Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">المقياس</TableHead>
@@ -462,10 +460,10 @@ export function AnalyticsDashboard({ role }) {
                   <TableBody>
                     {periodComparison.full.map((row, i) => (
                       <TableRow key={i}>
-                        <TableCell className="text-xs font-medium">{row.metric}</TableCell>
-                        <TableCell className="text-xs font-mono">{row.current}</TableCell>
-                        <TableCell className="text-xs font-mono">{row.previous}</TableCell>
-                        <TableCell>
+                        <TableCell data-label="المقياس" className="text-xs font-medium">{row.metric}</TableCell>
+                        <TableCell data-label="الفترة الحالية" className="text-xs font-mono tabular-nums">{row.current}</TableCell>
+                        <TableCell data-label="الفترة السابقة" className="text-xs font-mono tabular-nums">{row.previous}</TableCell>
+                        <TableCell data-label="التغيير">
                           <Badge variant={row.change >= 0 ? "default" : "destructive"} className="text-[10px] rounded-full">
                             {row.change >= 0 ? "+" : ""}{row.change}%
                           </Badge>
@@ -473,7 +471,7 @@ export function AnalyticsDashboard({ role }) {
                       </TableRow>
                     ))}
                   </TableBody>
-                </Table>
+                </Table></div>
               </CardContent>
             </Card>
           )}
@@ -504,7 +502,7 @@ function ComparisonTable({ data }) {
     <div className="space-y-2">
       {data.map((row, i) => (
         <div key={i} className="flex items-center justify-between text-sm">
-          <span className="text-xs text-muted-foreground">{row.label}</span>
+          <span className="text-xs font-medium text-muted-foreground">{row.label}</span>
           <div className="flex items-center gap-3">
             <div className="text-right">
               <span className="font-mono tabular-nums text-xs">{row.current}</span>

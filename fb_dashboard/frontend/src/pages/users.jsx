@@ -36,19 +36,19 @@ function UserDialog({ trigger, title, initial, onSubmit }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="glass-heavy">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground">اسم المستخدم</label>
+            <label className="text-xs font-medium text-muted-foreground">اسم المستخدم</label>
             <Input value={username} onChange={(e) => setUsername(e.target.value)} required disabled={!!initial} />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground">{initial ? "كلمة مرور جديدة (اترك فارغاً)" : "كلمة المرور"}</label>
+            <label className="text-xs font-medium text-muted-foreground">{initial ? "كلمة مرور جديدة (اترك فارغاً)" : "كلمة المرور"}</label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!initial} />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground">الصلاحية</label>
+            <label className="text-xs font-medium text-muted-foreground">الصلاحية</label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -97,10 +97,10 @@ export function Users({ role }) {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">المستخدمين</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">المستخدمين</h1>
           <p className="text-sm text-muted-foreground mt-1">إدارة المستخدمين والصلاحيات</p>
         </div>
         <UserDialog title="إضافة مستخدم جديد" trigger={
@@ -133,7 +133,7 @@ export function Users({ role }) {
         </div>
       ) : (
         <div className="rounded-lg border overflow-hidden">
-          <div className="data-table-wrapper"><table className="data-table">
+          <div className="data-table-wrapper data-table-card-view"><table className="data-table">
             <thead>
               <tr>
                 <th scope="col">المستخدم</th>
@@ -145,13 +145,13 @@ export function Users({ role }) {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td className="font-medium">{u.username}</td>
-                  <td>
+                  <td data-label="المستخدم" className="font-medium">{u.username}</td>
+                  <td data-label="الصلاحية">
                     <Badge className={cn("text-xs rounded-full", ROLE_COLORS[u.role])}>
                       <Shield className="h-3 w-3 ml-1" />{ROLE_LABELS[u.role]}
                     </Badge>
                   </td>
-                  <td className="text-sm text-muted-foreground">{u.created_at?.slice(0, 10) || "-"}</td>
+                  <td data-label="تاريخ الإضافة" className="text-sm text-muted-foreground">{u.created_at?.slice(0, 10) || "-"}</td>
                   <td>
                     <div className="flex gap-1">
                       {isAdmin && (
@@ -176,7 +176,7 @@ export function Users({ role }) {
       )}
 
       <Dialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null) }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>تأكيد الحذف</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">هل أنت متأكد من حذف <strong className="text-foreground">{deleteConfirm?.username}</strong>؟</p>
           <div className="flex gap-2 justify-end pt-2">

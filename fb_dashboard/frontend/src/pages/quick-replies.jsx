@@ -59,10 +59,10 @@ export function QuickReplies({ role }) {
   function openEdit(t) { setEditTarget(t); setName(t.name); setText(t.text); setCategory(t.category); setShortcut(t.shortcut || "") }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">الردود السريعة</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">الردود السريعة</h1>
           <p className="text-sm text-muted-foreground mt-1">قوالب ردود جاهزة للاستخدام السريع في المحادثات</p>
         </div>
         {canEdit && (
@@ -121,15 +121,15 @@ export function QuickReplies({ role }) {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAdd || !!editTarget} onOpenChange={o => { if (!o) { setShowAdd(false); setEditTarget(null) } }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>{editTarget ? "تعديل القالب" : "إضافة قالب جديد"}</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">الاسم</label>
+              <label className="text-xs font-medium text-muted-foreground">الاسم</label>
               <Input value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">التصنيف</label>
+              <label className="text-xs font-medium text-muted-foreground">التصنيف</label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -138,11 +138,11 @@ export function QuickReplies({ role }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">اختصار لوحة المفاتيح (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">اختصار لوحة المفاتيح (اختياري)</label>
               <Input value={shortcut} onChange={e => setShortcut(e.target.value)} placeholder="/price" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">النص</label>
+              <label className="text-xs font-medium text-muted-foreground">النص</label>
               <Textarea value={text} onChange={e => setText(e.target.value)} rows={3} />
             </div>
             <Button onClick={() => editTarget ? updateMut.mutate() : createMut.mutate()} disabled={!name.trim() || !text.trim()} className="w-full">

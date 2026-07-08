@@ -347,14 +347,14 @@ function SequenceEditor({ seqId, onBack, canEdit, queryClient }) {
         {/* Steps timeline */}
         <div className="lg:col-span-3 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <ListOrdered className="size-4" /> الخطوات
             </h3>
             <span className="text-[10px] text-muted-foreground">{rawSteps.length} خطوة</span>
           </div>
 
           {sortedSteps.length === 0 ? (
-            <div className="flex flex-col items-center py-12 border-2 border-dashed border-border rounded-xl">
+            <div className="flex flex-col items-center py-12 border-2 border-dashed border-border/40 rounded-xl bg-muted/10">
               <ListOrdered className="h-10 w-10 text-muted-foreground/20 mb-2" />
               <p className="text-xs text-muted-foreground mb-4">لا توجد خطوات بعد</p>
               {canEdit && (
@@ -399,7 +399,7 @@ function SequenceEditor({ seqId, onBack, canEdit, queryClient }) {
 
         {/* ── Stats Panel ── */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold flex items-center gap-1.5">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
             <BarChart3 className="size-4" /> الإحصائيات
           </h3>
           <Card>
@@ -508,11 +508,11 @@ export function Sequences({ role }) {
 
   // ── List View ──
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">التسلسلات</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">التسلسلات</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {sequences.length} تسلسل · {sequences.filter((s) => s.status === "active").length} نشط
           </p>
@@ -525,10 +525,10 @@ export function Sequences({ role }) {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-xs">
+      <div className="relative w-full sm:max-w-xs">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="بحث في التسلسلات..." value={search}
-          onChange={(e) => setSearch(e.target.value)} className="pr-9 h-9 text-sm" />
+          onChange={(e) => setSearch(e.target.value)} className="pr-9 min-h-[44px] sm:min-h-0 text-sm" />
       </div>
 
       {/* ── Loading ── */}
@@ -608,16 +608,16 @@ export function Sequences({ role }) {
 
       {/* ── Create Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>إنشاء تسلسل جديد</DialogTitle></DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); if (newName.trim()) createMut.mutate() }} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">اسم التسلسل</label>
+              <label className="text-xs font-medium text-muted-foreground">اسم التسلسل</label>
               <Input value={newName} onChange={(e) => setNewName(e.target.value)} required
                 placeholder="مثال: تسلسل ترحيبي" autoFocus />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">وصف (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">وصف (اختياري)</label>
               <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
                 rows={2} placeholder="شرح التسلسل..." />
             </div>
@@ -633,7 +633,7 @@ export function Sequences({ role }) {
 
       {/* ── Delete Confirm Dialog ── */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>تأكيد حذف التسلسل</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             هل أنت متأكد من حذف <strong className="text-foreground">{deleteTarget?.name}</strong>؟ لا يمكن التراجع عن هذا الإجراء.

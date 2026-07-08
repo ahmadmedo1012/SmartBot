@@ -51,9 +51,9 @@ export function Webhook() {
   })
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="content-container space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">الويب هوك</h1>
+        <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">الويب هوك</h1>
         <p className="text-sm text-muted-foreground mt-1">إعدادات واستقبال أحداث Webhook من فيسبوك</p>
       </div>
 

@@ -185,7 +185,7 @@ function NodePalette({ canEdit }) {
   if (!canEdit) return null
 
   return (
-    <div className="w-44 shrink-0 border-l bg-card/50 overflow-y-auto p-3 space-y-1 hidden md:block">
+    <div className="w-44 shrink-0 border-l glass overflow-y-auto p-3 space-y-1 hidden md:block">
       <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">العناصر</h3>
       {Object.entries(NODE_TYPES).map(([type, def]) => {
         const Icon = def.icon
@@ -662,11 +662,11 @@ export function Flows({ role }) {
 
   // ── List View ──
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
             <Layers className="size-5 text-primary" /> البوت البصري
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -681,13 +681,13 @@ export function Flows({ role }) {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-xs">
+      <div className="relative w-full sm:max-w-xs">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="بحث في البوتات..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pr-9 h-9 text-sm"
+          className="pr-9 h-9 text-sm min-h-[44px] sm:min-h-0"
         />
       </div>
 
@@ -772,11 +772,11 @@ export function Flows({ role }) {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>إنشاء بوت بصري جديد</DialogTitle></DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); if (flowName.trim()) createMut.mutate(flowName.trim()) }} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">اسم البوت</label>
+              <label className="text-xs font-medium text-muted-foreground">اسم البوت</label>
               <Input value={flowName} onChange={(e) => setFlowName(e.target.value)} required placeholder="مثال: بوت خدمة العملاء" autoFocus />
             </div>
             <div className="flex gap-2 justify-end pt-3 border-t">
@@ -791,7 +791,7 @@ export function Flows({ role }) {
 
       {/* Delete Confirm */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>تأكيد حذف البوت</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             هل أنت متأكد من حذف <strong className="text-foreground">{deleteTarget?.name}</strong>؟ لا يمكن التراجع.

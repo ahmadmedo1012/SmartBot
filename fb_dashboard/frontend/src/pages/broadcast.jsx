@@ -138,11 +138,11 @@ function Composer({ onBack, queryClient }) {
       case 0: return (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">اسم البث</label>
+            <label className="text-xs font-medium text-muted-foreground">اسم البث</label>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="مثال: عروض الأسبوع" autoFocus />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">المنصة</label>
+            <label className="text-xs font-medium text-muted-foreground">المنصة</label>
             <Select value={platform} onValueChange={setPlatform}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -155,7 +155,7 @@ function Composer({ onBack, queryClient }) {
       case 1: return (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">يحتوي على الوسوم</label>
+            <label className="text-xs font-medium text-muted-foreground">يحتوي على الوسوم</label>
             <Select value={hasTags.length === 1 ? hasTags[0] : ""} onValueChange={v => setHasTags(hasTags.includes(v) ? hasTags.filter(t => t !== v) : [...hasTags, v])}>
               <SelectTrigger><SelectValue placeholder="اختر الوسوم" /></SelectTrigger>
               <SelectContent>
@@ -172,7 +172,7 @@ function Composer({ onBack, queryClient }) {
             )}
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">لا يحتوي على الوسوم</label>
+            <label className="text-xs font-medium text-muted-foreground">لا يحتوي على الوسوم</label>
             <Select value={notTags.length === 1 ? notTags[0] : ""} onValueChange={v => setNotTags(notTags.includes(v) ? notTags.filter(t => t !== v) : [...notTags, v])}>
               <SelectTrigger><SelectValue placeholder="اختر الوسوم" /></SelectTrigger>
               <SelectContent>
@@ -189,7 +189,7 @@ function Composer({ onBack, queryClient }) {
             )}
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">آخر تفاعل</label>
+            <label className="text-xs font-medium text-muted-foreground">آخر تفاعل</label>
             <Select value={lastInteraction} onValueChange={setLastInteraction}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -198,7 +198,7 @@ function Composer({ onBack, queryClient }) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">الحد الأدنى للردود</label>
+            <label className="text-xs font-medium text-muted-foreground">الحد الأدنى للردود</label>
             <Input type="number" min={0} value={minReplies} onChange={e => setMinReplies(e.target.value)} placeholder="0" className="w-32" />
           </div>
           <div className="flex items-center gap-3 pt-2">
@@ -214,7 +214,7 @@ function Composer({ onBack, queryClient }) {
       case 2: return (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">نص الرسالة</label>
+            <label className="text-xs font-medium text-muted-foreground">نص الرسالة</label>
             <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={6}
               placeholder="أدخل نص الرسالة...&#10;&#10;المتغيرات: {name} - اسم المشترك&#10;{full_name} - الاسم الكامل&#10;{platform} - اسم المنصة" />
             <p className="text-[11px] text-muted-foreground">
@@ -224,7 +224,7 @@ function Composer({ onBack, queryClient }) {
             </p>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium flex items-center gap-1"><ImageIcon className="size-3.5 text-muted-foreground" /> رابط الصورة <Badge variant="outline" className="text-[10px] px-1 py-0">اختياري</Badge></label>
+            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><ImageIcon className="size-3.5 text-muted-foreground" /> رابط الصورة <Badge variant="outline" className="text-[10px] px-1 py-0">اختياري</Badge></label>
             <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" dir="ltr" />
           </div>
           <Card className="bg-muted/30">
@@ -269,7 +269,7 @@ function Composer({ onBack, queryClient }) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Steps indicator */}
       <div className="flex items-center gap-1 rtl:flex-row-reverse">
         {steps.map((s, i) => {
@@ -297,7 +297,7 @@ function Composer({ onBack, queryClient }) {
 
       {/* Step Content */}
       <Card>
-        <CardContent className="p-5">{renderStep()}</CardContent>
+        <CardContent className="p-6">{renderStep()}</CardContent>
       </Card>
 
       {/* Navigation */}
@@ -319,7 +319,7 @@ function Composer({ onBack, queryClient }) {
 
       {/* Confirm Dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>تأكيد الإرسال</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             سيتم إرسال الرسالة إلى <strong className="text-foreground">{estimatedCount?.toLocaleString() || "..."} مشترك</strong>.
@@ -486,11 +486,11 @@ export function Broadcast({ role }) {
   if (view === "detail" && selectedId) return <BroadcastDetail broadcastId={selectedId} onBack={() => { setView("list"); setSelectedId(null) }} />
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">البث الجماعي</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">البث الجماعي</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}
           </p>
@@ -528,8 +528,8 @@ export function Broadcast({ role }) {
         </div>
       ) : (
         /* Table */
-        <div className="rounded-lg border">
-          <Table>
+        <div className="rounded-lg border overflow-hidden">
+          <div className="data-table-wrapper data-table-card-view"><Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">الاسم</TableHead>
@@ -548,12 +548,12 @@ export function Broadcast({ role }) {
                     className="cursor-pointer hover:bg-muted/40"
                     onClick={() => { setSelectedId(b.id); setView("detail") }}
                   >
-                    <TableCell className="text-sm font-medium">{b.name}</TableCell>
-                    <TableCell><StatusBadge status={b.status} /></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-sm font-medium" data-label="الاسم">{b.name}</TableCell>
+                    <TableCell data-label="الحالة"><StatusBadge status={b.status} /></TableCell>
+                    <TableCell className="text-xs text-muted-foreground" data-label="الجمهور">
                       {b.sent_count || 0}/{b.failed_count || 0}/{total || "-"}{total ? " تم/فشل/كل" : ""}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground" data-label="التاريخ">
                       {b.sent_at ? new Date(b.sent_at).toLocaleDateString("ar-SA") : b.created_at ? new Date(b.created_at).toLocaleDateString("ar-SA") : "—"}
                     </TableCell>
                     <TableCell>
@@ -582,13 +582,13 @@ export function Broadcast({ role }) {
                 )
               })}
             </TableBody>
-          </Table>
+          </Table></div>
         </div>
       )}
 
       {/* Delete Confirm */}
       <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>تأكيد حذف البث</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             هل أنت متأكد من حذف <strong className="text-foreground">{deleteTarget?.name}</strong>؟ لا يمكن التراجع.

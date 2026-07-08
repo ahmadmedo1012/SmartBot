@@ -22,23 +22,6 @@ function exportCSV(data, filename) {
   URL.revokeObjectURL(url)
 }
 
-async function downloadPDF(type, days = 30) {
-  try {
-    const res = await fetch("/api/reports/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, days, branding: { company_name: "SmartBot" } }),
-    })
-    if (!res.ok) return alert("فشل إنشاء التقرير")
-    const blob = await res.blob()
-    const a = document.createElement("a")
-    a.href = URL.createObjectURL(blob)
-    a.download = `${type}-report-${new Date().toISOString().slice(0, 10)}.pdf`
-    a.click()
-    URL.revokeObjectURL(a.href)
-  } catch { alert("فشل الاتصال بخادم التقارير") }
-}
-
 export function Reports({ role }) {
   useEffect(() => { document.title = "التقارير | SmartBot" }, [])
   const [days, setDays] = useState("7")
@@ -78,26 +61,23 @@ export function Reports({ role }) {
   const allReplies = repliesRes?.items || []
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold">التقارير</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">التقارير</h1>
           <p className="text-sm text-muted-foreground">تحليلات متقدمة لأداء البوت والتفاعلات</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-28"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="7">7 أيام</SelectItem>
               <SelectItem value="30">30 يوم</SelectItem>
               <SelectItem value="90">90 يوم</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => exportCSV(allReplies, `reports-${format(new Date(), "yyyy-MM-dd")}.csv`)} disabled={!allReplies.length}>
-            <Download className="ml-1 h-4 w-4" />تصدير CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => downloadPDF("monthly", parseInt(days))}>
-            <Download className="ml-1 h-4 w-4" />PDF تقرير
+          <Button variant="outline" size="sm" onClick={() => exportCSV(allReplies, `reports-${format(new Date(), "yyyy-MM-dd")}.csv`)} disabled={!allReplies.length} className="min-h-[44px] sm:min-h-0">
+            <Download className="ml-1 h-4 w-4" />تصدير
           </Button>
         </div>
       </div>
@@ -136,7 +116,7 @@ export function Reports({ role }) {
                   <defs><linearGradient id="rpf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} /><stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} /></linearGradient></defs>
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? <div className="rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">{label}: <strong>{payload[0].value}</strong></div> : null} />
+                  <Tooltip content={({ active, payload, label }) => active && payload?.length ? <div className="rounded-xl border bg-card/95 backdrop-blur-sm px-3 py-2 text-xs shadow-lg glass-heavy">{label}: <strong>{payload[0].value}</strong></div> : null} />
                   <Area type="monotone" dataKey="replies" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#rpf)" />
                 </AreaChart>
               </ResponsiveContainer>

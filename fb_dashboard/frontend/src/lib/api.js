@@ -114,6 +114,17 @@ export function replyToComment(commentId, message) {
   return api(`/api/replies/${commentId}/reply`, { method: "POST", body: fd });
 }
 
+// ── Comments Hub ──
+export function fetchAllComments(limit = 20) {
+  return api(`/api/comments?limit=${limit}`);
+}
+export function hideComment(commentId) {
+  return api(`/api/comments/${commentId}/hide`, { method: "POST" });
+}
+export function deleteComment(commentId) {
+  return api(`/api/comments/${commentId}`, { method: "DELETE" });
+}
+
 export function replyToConversation(conversationId, message) {
   const fd = new FormData();
   fd.append("message", message);
@@ -413,14 +424,6 @@ export function fetchPeriodComparison(days) {
   return api(`/api/analytics/period-comparison?days=${days}`);
 }
 
-// ── Reports API ──
-export function generateReport(data = {}) {
-  return api("/api/reports/generate", { method: "POST", body: JSON.stringify(data) });
-}
-export function downloadReport(filename) {
-  return `/api/reports/download/${filename}`;
-}
-
 // ── Content Calendar API ──
 export function fetchCalendarPosts(year, month) {
   return api(`/api/calendar?year=${year}&month=${month}`);
@@ -444,20 +447,6 @@ export function fetchMonthSummary(year, month) {
   return api(`/api/calendar/month-summary?year=${year}&month=${month}`);
 }
 
-// ── Publisher API (Multi-Platform) ──
-export function fetchPublisherStatus() {
-  return api("/api/publisher/status");
-}
-export function configurePublisher(platform, credentials) {
-  return api("/api/publisher/configure", { method: "POST", body: JSON.stringify({ platform, credentials }) });
-}
-export function publishToPlatform(data) {
-  return api("/api/publisher/publish", { method: "POST", body: JSON.stringify(data) });
-}
-export function fetchPlatformSettings(platform) {
-  return api(`/api/publisher/settings/${platform}`);
-}
-
 // ── Team API ──
 export function fetchTeamMembers() {
   return api("/api/team/members");
@@ -472,63 +461,13 @@ export function fetchRoleSummary() {
   return api("/api/team/role-summary");
 }
 
-// ── Commerce / Shopify API ──
-export function fetchCommerceStatus() {
-  return api("/api/commerce/status");
-}
-export function configureShopify(domain, token) {
-  return api("/api/commerce/shopify/configure", { method: "POST", body: JSON.stringify({ store_domain: domain, access_token: token }) });
-}
-export function fetchShopifyProducts(limit = 10) {
-  return api(`/api/commerce/shopify/products?limit=${limit}`);
-}
-export function fetchShopifyOrders(limit = 10, status = "any") {
-  return api(`/api/commerce/shopify/orders?limit=${limit}&status=${status}`);
-}
-
-// ── Inbox Assignment & Notes ──
-export function assignConversation(convId, userId) {
-  const fd = new FormData(); fd.append("user_id", userId);
-  return api(`/api/inbox/conversations/${convId}/assign`, { method: "POST", body: fd });
-}
-export function unassignConversation(convId, userId) {
-  const fd = new FormData(); fd.append("user_id", userId);
-  return api(`/api/inbox/conversations/${convId}/unassign`, { method: "POST", body: fd });
-}
-export function fetchConversationAssignee(convId) {
-  return api(`/api/inbox/conversations/${convId}/assignee`);
-}
-export function fetchConversationNotes(convId) {
-  return api(`/api/inbox/conversations/${convId}/notes`);
-}
-export function createConversationNote(convId, content) {
-  const fd = new FormData(); fd.append("content", content);
-  return api(`/api/inbox/conversations/${convId}/notes`, { method: "POST", body: fd });
-}
-export function deleteConversationNote(noteId) {
-  return api(`/api/inbox/notes/${noteId}`, { method: "DELETE" });
-}
-
-// ── Report Schedules ──
-export function createReportSchedule(reportType, email, schedule) {
-  const fd = new FormData(); fd.append("report_type", reportType); fd.append("email", email); fd.append("schedule", schedule);
-  return api("/api/reports/schedule", { method: "POST", body: fd });
-}
-export function fetchReportSchedules() {
-  return api("/api/reports/schedules");
-}
-export function deleteReportSchedule(id) {
-  return api(`/api/reports/schedules/${id}`, { method: "DELETE" });
-}
-
-// ── Offers / Coupons ──
+// ── Offers ──
 export function fetchOffers(activeOnly = false) {
   return api(`/api/offers?active_only=${activeOnly}`);
 }
-export function createOffer(title, code = "", description = "", discountType = "percentage", discountValue = 0, expiresAt = "") {
+export function createOffer(title, code = "", description = "", discountValue = 0, expiresAt = "") {
   const fd = new FormData(); fd.append("title", title); fd.append("code", code);
-  fd.append("description", description); fd.append("discount_type", discountType);
-  fd.append("discount_value", discountValue);
+  fd.append("description", description); fd.append("discount_value", discountValue);
   if (expiresAt) fd.append("expires_at", expiresAt);
   return api("/api/offers", { method: "POST", body: fd });
 }
@@ -537,4 +476,9 @@ export function toggleOffer(id) {
 }
 export function deleteOffer(id) {
   return api(`/api/offers/${id}`, { method: "DELETE" });
+}
+
+// ── Facebook Insights ──
+export function fetchFacebookInsights(days = 7) {
+  return api(`/api/facebook/insights?days=${days}`);
 }

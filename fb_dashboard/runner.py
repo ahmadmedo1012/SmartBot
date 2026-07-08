@@ -42,6 +42,7 @@ from commerce_engine import CommerceEngine
 from publisher_engine import PublisherEngine
 from event_bus import event_bus
 from logs_api import logs_router
+from agent_engine import get_agent
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -1077,6 +1078,73 @@ async def ai_status(_=Depends(get_current_user)):
     """Check AI provider status."""
     ai = get_ai()
     return {"available": ai.available, "provider": ai.provider_name}
+
+
+@app.post("/api/agent/interpret")
+async def agent_interpret(
+    text: str = Form(...),
+    db=Depends(get_db),
+    current_user: User = Depends(require_role("editor")),
+):
+    """AI Agent: interpret Arabic command and execute via bot."""
+    agent = get_agent()
+    from sqlalchemy import select, func, desc
+    reply_count = await db.scalar(select(func.count(Reply.id))) or 0
+    rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+
+    ctx = {
+        "page_id": settings.FACEBOOK_PAGE_ID,
+        "bot_running": _bot_task is not None and not _bot_task.done(),
+        "rules_count": rule_count,
+        "reply_count": reply_count,
+        "user": current_user.username,
+    }
+    interpretation = await agent.interpret(text, ctx)
+    action = interpretation.get("action", "unknown")
+    params = interpretation.get("params", {})
+
+    # Auto-execute for non-confirm actions
+    result = {"success": True, "data": {}, "message_ar": interpretation.get("response_ar", "")}
+    if not interpretation.get("need_confirmation", False) and action != "unknown":
+        exec_result = await agent.execute(action, params, fb, db)
+        result = {**result, **exec_result}
+        await ws_manager.broadcast("agent_message", {
+            "role": "agent", "text": result.get("message_ar", ""), "action": action,
+        })
+
+    return {
+        "action": action,
+        "params": params,
+        "response_ar": result.get("message_ar", interpretation.get("response_ar", "")),
+        "data": result.get("data", {}),
+        "success": result.get("success", False),
+        "need_confirmation": interpretation.get("need_confirmation", False),
+    }
+
+
+@app.post("/api/agent/confirm")
+async def agent_confirm(
+    text: str = Form(...),
+    db=Depends(get_db),
+    current_user: User = Depends(require_role("editor")),
+):
+    """Confirm and execute a previously interpreted command."""
+    agent = get_agent()
+    # Re-interpret (same flow) but always execute
+    ctx = {
+        "page_id": settings.FACEBOOK_PAGE_ID,
+        "bot_running": _bot_task is not None and not _bot_task.done(),
+    }
+    interpretation = await agent.interpret(text, ctx)
+    action = interpretation.get("action", "unknown")
+    params = interpretation.get("params", {})
+    exec_result = await agent.execute(action, params, fb, db)
+    return {
+        "action": action,
+        "response_ar": exec_result.get("message_ar", "تم التنفيذ ✅"),
+        "data": exec_result.get("data", {}),
+        "success": exec_result.get("success", False),
+    }
 
 
 # ── Smart Inbox (Professional Conversations) ─────────────────────────────────

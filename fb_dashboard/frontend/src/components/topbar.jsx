@@ -39,6 +39,7 @@ const sidebarSections = [
       { key: "rules", label: "القواعد", icon: Bot },
       { key: "replies", label: "الردود", icon: MessageSquareReply },
       { key: "ai-assistant", label: "AI الذكي", icon: Brain },
+      { key: "agent-chat", label: "الوكيل الذكي", icon: Sparkles },
     ],
   },
   {

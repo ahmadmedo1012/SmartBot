@@ -31,6 +31,7 @@ import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
 import { Subscribers } from "@/pages/subscribers"
 import { LiveLogs } from "@/pages/live-logs"
+import { AgentChat } from "@/pages/agent-chat"
 import { AnimatePresence, motion } from "framer-motion"
 import { AnimatedBackground } from "@/components/AnimatedBackground"
 
@@ -73,6 +74,7 @@ const pages = {
   team: Team,
   insights: Insights,
   "live-logs": LiveLogs,
+  "agent-chat": AgentChat,
 }
 
 function ToastBridge() {

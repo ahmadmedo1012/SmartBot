@@ -1,13 +1,14 @@
 *.pyc
 __pycache__/
-.claude/worktrees/
+.claude/
 .claude-flow/
 .playwright-mcp/
 .replied_comments.json
-*.png
-*.ico
-# fb_dashboard/static/
 test-results/
 .vercel
 .env*
 .vercel_python_packages
+*.db
+*.log
+node_modules/
+mobile/

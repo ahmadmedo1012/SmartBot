@@ -76,6 +76,22 @@
 }
 
 :root {
+  color-scheme: light;
+  --background: 40 15% 96%; --foreground: 220 30% 6%;
+  --card: 0 0% 100%; --card-foreground: 220 30% 6%;
+  --popover: 0 0% 100%; --popover-foreground: 220 30% 6%;
+  --primary: 38 85% 35%; --primary-foreground: 0 0% 100%;
+  --secondary: 220 10% 88%; --secondary-foreground: 220 30% 6%;
+  --muted: 40 10% 90%; --muted-foreground: 220 15% 40%;
+  --accent: 38 85% 35%; --accent-foreground: 0 0% 100%;
+  --destructive: 0 88% 45%; --destructive-foreground: 0 0% 100%;
+  --success: 152 72% 28%; --success-foreground: 0 0% 100%;
+  --warning: 38 94% 45%; --warning-foreground: 0 0% 100%;
+  --info: 211 92% 45%; --info-foreground: 0 0% 100%;
+  --border: 220 12% 78%; --input: 220 12% 78%; --ring: 38 85% 35%;
+}
+
+.dark {
   color-scheme: dark;
   --background: 220 50% 3%; --foreground: 38 15% 90%;
   --card: 220 40% 7%; --card-foreground: 38 15% 90%;

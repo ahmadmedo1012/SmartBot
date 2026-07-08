@@ -1,13 +1,8 @@
 {
   "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
   "outputDirectory": "fb_dashboard/static",
-  "functions": {
-    "api/index.py": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
+    { "source": "/healthz", "destination": "/api/minimal.py" },
     { "source": "/(.*)", "destination": "/api/index.py" }
   ]
 }

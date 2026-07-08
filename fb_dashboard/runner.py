@@ -593,34 +593,57 @@ _insights_cache: dict = {}
 _insights_cache_time: float = 0
 
 @app.get("/api/facebook/insights")
-async def get_facebook_insights(days: int = Query(7), _=Depends(get_current_user)):
+async def get_facebook_insights(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
     import time as tm
     now = tm.time()
     global _insights_cache, _insights_cache_time
     if _insights_cache and (now - _insights_cache_time) < 3600:
         return _insights_cache
 
-    since = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
-    until = datetime.utcnow().strftime("%Y-%m-%d")
-    metrics = ["page_impressions", "page_impressions_unique", "page_engaged_users", "page_fan_adds", "page_views_total"]
-    result = {"metrics": {}, "follower_count": 0}
+    result = {"fb_metrics": {}, "follower_count": None, "totals": {}, "engagement_rate": 0, "fb_available": False, "internal": {}}
 
-    for metric in metrics:
-        data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}/insights", {"metric": metric, "period": "day", "since": since, "until": until})
-        if data:
-            values = (data.get("data") or [{}])[0].get("values", [])
-            result["metrics"][metric] = [{"date": v.get("end_time", "")[:10], "value": v.get("value", 0)} for v in values]
+    # Try FB Insights (may fail without pages_read_engagement)
+    try:
+        since = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+        until = datetime.utcnow().strftime("%Y-%m-%d")
+        for metric in ["page_impressions", "page_impressions_unique", "page_engaged_users", "page_fan_adds", "page_views_total"]:
+            data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}/insights", {"metric": metric, "period": "day", "since": since, "until": until})
+            if data:
+                values = (data.get("data") or [{}])[0].get("values", [])
+                result["fb_metrics"][metric] = [{"date": v.get("end_time", "")[:10], "value": v.get("value", 0)} for v in values]
+        if result["fb_metrics"]:
+            result["fb_available"] = True
+    except Exception as e:
+        log.warning(f"FB insights unavailable: {e}")
 
-    page_data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}", {"fields": "fan_count"})
-    if page_data:
-        result["follower_count"] = page_data.get("fan_count", 0)
+    if result["fb_available"]:
+        totals = {}
+        for m in ["page_impressions", "page_impressions_unique", "page_engaged_users", "page_fan_adds", "page_views_total"]:
+            vals = [v["value"] for v in result["fb_metrics"].get(m, []) if isinstance(v.get("value"), (int, float))]
+            totals[m] = sum(vals)
+        result["totals"] = totals
+        result["engagement_rate"] = round(totals.get("page_engaged_users", 0) / max(totals.get("page_impressions_unique", 1), 1) * 100, 2)
 
-    totals = {}
-    for m in metrics:
-        vals = [v["value"] for v in result["metrics"].get(m, []) if isinstance(v.get("value"), (int, float))]
-        totals[m] = sum(vals)
-    result["totals"] = totals
-    result["engagement_rate"] = round(totals.get("page_engaged_users", 0) / max(totals.get("page_impressions_unique", 1), 1) * 100, 2)
+    # Fan count
+    try:
+        page_data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}", {"fields": "fan_count"})
+        if page_data:
+            result["follower_count"] = page_data.get("fan_count", 0)
+        if result.get("follower_count") is None:
+            result["follower_count"] = await fb.get_page_fan_count() or 0
+    except Exception:
+        result["follower_count"] = 0
+
+    # Fallback: internal analytics
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= cutoff)) or 0
+    today_replies = await db.scalar(select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == datetime.utcnow().date())) or 0
+    rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+    daily_rows = await db.execute(
+        select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
+        .where(Reply.created_at >= cutoff).group_by(cast(Reply.created_at, Date)).order_by(cast(Reply.created_at, Date))
+    )
+    result["internal"] = {"total_replies": total_replies, "today_replies": today_replies, "total_rules": rule_count, "daily_replies": {str(row[0]): row[1] for row in daily_rows if row[0]}, "fan_count": result.get("follower_count") or 0}
 
     _insights_cache = result
     _insights_cache_time = now

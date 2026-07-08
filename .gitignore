@@ -10,3 +10,4 @@ __pycache__/
 test-results/
 .vercel
 .env*
+.vercel_python_packages

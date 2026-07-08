@@ -1,7 +1,14 @@
 {
-  "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
-  "outputDirectory": "fb_dashboard/static",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30,
+      "memory": 512
+    }
+  },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/webhook", "destination": "/api/index.py" },
+    { "source": "/healthz", "destination": "/api/index.py" },
     { "source": "/(.*)", "destination": "/api/index.py" }
   ]
 }

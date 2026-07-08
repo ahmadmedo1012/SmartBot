@@ -1,6 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/api/ping", "destination": "/api/ping.py" },
-    { "source": "/api/index", "destination": "/api/index.py" }
-  ]
+  "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
+  "outputDirectory": "fb_dashboard/static"
 }

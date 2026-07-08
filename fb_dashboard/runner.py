@@ -77,6 +77,9 @@ _publisher = PublisherEngine()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
+# ponytail: detect Vercel to skip long-running background tasks
+_IS_VERCEL = bool(os.getenv("VERCEL"))
+
 
 def make_token(username: str) -> str:
     return jwt.encode(
@@ -134,27 +137,27 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
 
-        if settings.START_BOT:
-            global _bot_task
-            _bot_task = asyncio.create_task(_run_bot_loop())
-            log.info("Bot started in background")
-
-            # Start sequence scheduler
-        _seq_scheduler = SequenceScheduler(sequence_engine)
-        asyncio.create_task(_seq_scheduler.start())
-
-        # Start content calendar scheduler
-        _calendar_scheduler = CalendarScheduler(content_calendar_engine)
-        asyncio.create_task(_calendar_scheduler.start())
+        if _IS_VERCEL:
+            log.info("VERCEL detected — background tasks skipped (bot via API only)")
+        else:
+            if settings.START_BOT:
+                global _bot_task
+                _bot_task = asyncio.create_task(_run_bot_loop())
+                log.info("Bot started in background")
+            _seq_scheduler = SequenceScheduler(sequence_engine)
+            asyncio.create_task(_seq_scheduler.start())
+            _calendar_scheduler = CalendarScheduler(content_calendar_engine)
+            asyncio.create_task(_calendar_scheduler.start())
     except Exception as e:
         log.error(f"Startup error (app continues): {e}")
 
     yield
 
-    if _bot_task:
-        _bot_task.cancel()
-    await fb.close()
-    await engine.dispose()
+    if not _IS_VERCEL:
+        if _bot_task:
+            _bot_task.cancel()
+        await fb.close()
+        await engine.dispose()
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
@@ -296,7 +299,7 @@ async def get_env(_=Depends(get_current_user)):
         "bot_interval": settings.BOT_INTERVAL_SECONDS,
         "debug": settings.DEBUG,
         "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
-        "webhook_url": (os.getenv("RENDER_EXTERNAL_URL") or "") + "/webhook",
+        "webhook_url": (os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or "") + "/webhook",
     }
 
 
@@ -687,7 +690,10 @@ async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), _=Depen
 @app.get("/api/webhook/check")
 async def check_webhook(_=Depends(get_current_user)):
     """Check if webhook is properly configured."""
-    webhook_url = os.getenv("RENDER_EXTERNAL_URL", "") + "/webhook"
+    webhook_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or ""
+    if webhook_url and not webhook_url.startswith("http"):
+        webhook_url = "https://" + webhook_url
+    webhook_url += "/webhook"
     if not webhook_url.startswith("http"):
         webhook_url = "https://smartbot-6lxo.onrender.com/webhook"
     return {

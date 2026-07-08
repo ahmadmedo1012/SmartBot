@@ -1,0 +1,15 @@
+{
+  "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build",
+  "outputDirectory": "fb_dashboard/static",
+  "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "api/index.py": {
+      "runtime": "python3.12",
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.py" }
+  ]
+}

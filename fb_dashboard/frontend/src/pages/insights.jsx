@@ -29,25 +29,25 @@ export function Insights(_props) {
   }, [data])
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="size-6 text-primary" />
             تحليلات الصفحة
           </h1>
           <p className="text-sm text-muted-foreground mt-1">إحصائيات فيسبوك المباشرة — مثل Meta Business Suite</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-28"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="7">7 أيام</SelectItem>
               <SelectItem value="28">28 يوم</SelectItem>
               <SelectItem value="90">90 يوم</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading} className="min-h-[44px] sm:min-h-0">
             <RefreshCw className={`size-4 ml-1 ${isLoading ? "animate-spin" : ""}`} />
             تحديث
           </Button>
@@ -74,7 +74,7 @@ export function Insights(_props) {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-primary"><Eye className="size-5" /></div>
                   <div>
                     <p className="text-xs text-muted-foreground">الوصول</p>
-                    <p className="text-lg font-bold font-mono">{(data.totals?.page_impressions || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold font-mono tabular-nums">{(data.totals?.page_impressions || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -85,7 +85,7 @@ export function Insights(_props) {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-info/15 text-info"><Activity className="size-5" /></div>
                   <div>
                     <p className="text-xs text-muted-foreground">التفاعل</p>
-                    <p className="text-lg font-bold font-mono">{(data.totals?.page_engaged_users || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold font-mono tabular-nums">{(data.totals?.page_engaged_users || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -96,7 +96,7 @@ export function Insights(_props) {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-success/15 text-success"><Users className="size-5" /></div>
                   <div>
                     <p className="text-xs text-muted-foreground">متابعون</p>
-                    <p className="text-lg font-bold font-mono">{(data.follower_count || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold font-mono tabular-nums">{(data.follower_count || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -107,7 +107,7 @@ export function Insights(_props) {
                   <div className="flex size-10 items-center justify-center rounded-xl bg-warning/15 text-warning"><TrendingUp className="size-5" /></div>
                   <div>
                     <p className="text-xs text-muted-foreground">معدل التفاعل</p>
-                    <p className="text-lg font-bold font-mono">{data.engagement_rate || 0}%</p>
+                    <p className="text-lg font-bold font-mono tabular-nums">{data.engagement_rate || 0}%</p>
                   </div>
                 </div>
               </CardContent>

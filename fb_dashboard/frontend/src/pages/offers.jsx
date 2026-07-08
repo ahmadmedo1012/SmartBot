@@ -49,10 +49,10 @@ export function Offers({ role }) {
   function resetForm() { setTitle(""); setCode(""); setDescription(""); setDiscountValue(10); setExpiresAt("") }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
             <Gift className="size-6 text-success" />
             العروض والكوبونات
           </h1>
@@ -78,7 +78,7 @@ export function Offers({ role }) {
           <p className="text-xs text-muted-foreground">إجمالي</p>
         </CardContent></Card>
         <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold font-mono">{offers.reduce((s, o) => s + (o.used_count || 0), 0)}</p>
+          <p className="text-2xl font-bold font-mono tabular-nums">{offers.reduce((s, o) => s + (o.used_count || 0), 0)}</p>
           <p className="text-xs text-muted-foreground">استخدامات</p>
         </CardContent></Card>
       </div>
@@ -98,10 +98,10 @@ export function Offers({ role }) {
           {/* Active Offers */}
           {activeOffers.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-muted-foreground mb-2">العروض النشطة</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">العروض النشطة</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {activeOffers.map(o => (
-                  <Card key={o.id} className="border-success/30 border-r-4 border-r-success">
+                  <Card key={o.id} className="border-success/30 border-r-2 border-r-success panel-top-accent-success">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-sm font-semibold">{o.title}</CardTitle>
@@ -136,7 +136,7 @@ export function Offers({ role }) {
           {/* Expired/Inactive */}
           {expiredOffers.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-muted-foreground mb-2 mt-4">غير نشطة</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-4">غير نشطة</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {expiredOffers.map(o => (
                   <Card key={o.id} className="opacity-60">
@@ -157,28 +157,28 @@ export function Offers({ role }) {
 
       {/* Add Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>عرض جديد</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">اسم العرض</label>
+              <label className="text-xs font-medium text-muted-foreground">اسم العرض</label>
               <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="مثال: عرض الصيف" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">كود الخصم (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">كود الخصم (اختياري)</label>
               <Input value={code} onChange={e => setCode(e.target.value)} placeholder="SUMMER30" />
               <p className="text-xs text-muted-foreground">يظهر تلقائياً في الردود على استفسارات الأسعار</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">نسبة الخصم %</label>
+              <label className="text-xs font-medium text-muted-foreground">نسبة الخصم %</label>
               <Input type="number" value={discountValue} onChange={e => setDiscountValue(parseInt(e.target.value) || 0)} min={1} max={100} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">تاريخ الانتهاء (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">تاريخ الانتهاء (اختياري)</label>
               <Input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">وصف</label>
+              <label className="text-xs font-medium text-muted-foreground">وصف</label>
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="خصم 30% على كل المنتجات" />
             </div>
             <Button onClick={() => createMut.mutate()} disabled={!title.trim() || createMut.isPending} className="w-full gap-2">

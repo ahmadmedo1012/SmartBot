@@ -35,9 +35,9 @@ const PLATFORMS = [
 ]
 
 const PLATFORM_BADGES = {
-  messenger: { label: "ماسنجر", color: "bg-blue-500" },
-  instagram: { label: "إنستغرام", color: "bg-pink-500" },
-  whatsapp: { label: "واتساب", color: "bg-green-500" },
+  messenger: { label: "ماسنجر", color: "bg-primary/90" },
+  instagram: { label: "إنستغرام", color: "bg-destructive/80" },
+  whatsapp: { label: "واتساب", color: "bg-success" },
 }
 
 const TAG_COLORS = ["#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6"]
@@ -174,11 +174,11 @@ export function Subscribers({ role }) {
 
   // ── Render ──
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* ════ Header ════ */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">المشتركين</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">المشتركين</h1>
           <p className="text-sm text-muted-foreground mt-1">
             إجمالي {total} مشترك
             {subsData?.unread_count > 0 && ` · ${subsData.unread_count} جديد`}
@@ -193,14 +193,14 @@ export function Subscribers({ role }) {
       </div>
 
       {/* ════ Search & Filters ════ */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+      <div className="flex items-center gap-3 flex-col sm:flex-row sm:items-center">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-xs">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="بحث باسم المشترك..."
             value={search}
             onChange={(e) => changeSearch(e.target.value)}
-            className="pr-9"
+            className="pr-9 min-h-[44px] sm:min-h-0"
           />
           {search && (
             <button
@@ -299,8 +299,8 @@ export function Subscribers({ role }) {
       ) : (
         /* ── Data Table ── */
         <>
-          <div className="rounded-lg border overflow-hidden">
-            <Table>
+          <Card className="overflow-hidden shadow-premium">
+            <div className="data-table-wrapper data-table-card-view"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[240px]">الاسم</TableHead>
@@ -341,7 +341,7 @@ export function Subscribers({ role }) {
                     </TableCell>
 
                     {/* Platform */}
-                    <TableCell>
+                    <TableCell data-label="المنصة">
                       {sub.platform ? (
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-white ${
@@ -357,7 +357,7 @@ export function Subscribers({ role }) {
                     </TableCell>
 
                     {/* Tags */}
-                    <TableCell>
+                    <TableCell data-label="الوسوم">
                       <div className="flex items-center gap-1">
                         {(sub.tags || []).slice(0, 4).map((t) => (
                           <span
@@ -379,7 +379,7 @@ export function Subscribers({ role }) {
                     </TableCell>
 
                     {/* Reply count */}
-                    <TableCell className="text-center">
+                    <TableCell data-label="الردود" className="text-center">
                       <span className="text-sm tabular-nums font-medium">
                         {sub.reply_count || 0}
                       </span>
@@ -403,8 +403,8 @@ export function Subscribers({ role }) {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </div>
+            </Table></div>
+          </Card>
 
           {/* ── Pagination ── */}
           {totalPages > 1 && (
@@ -468,7 +468,7 @@ export function Subscribers({ role }) {
           }
         }}
       >
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="glass-heavy max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>تفاصيل المشترك</DialogTitle>
           </DialogHeader>
@@ -484,13 +484,13 @@ export function Subscribers({ role }) {
               {/* ── Info Section ── */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     الاسم
                   </label>
                   <p className="text-sm font-medium mt-0.5">{detail.name || "—"}</p>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     المنصة
                   </label>
                   <p className="text-sm mt-0.5">
@@ -509,7 +509,7 @@ export function Subscribers({ role }) {
                   </p>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     معرف المستخدم
                   </label>
                   <p className="text-xs font-mono mt-0.5 break-all text-muted-foreground">
@@ -517,13 +517,13 @@ export function Subscribers({ role }) {
                   </p>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     عدد الردود
                   </label>
                   <p className="text-sm font-medium mt-0.5">{detail.reply_count || 0}</p>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     أول ظهور
                   </label>
                   <p className="text-sm mt-0.5">
@@ -533,7 +533,7 @@ export function Subscribers({ role }) {
                   </p>
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     آخر تفاعل
                   </label>
                   <p className="text-sm mt-0.5">
@@ -552,7 +552,7 @@ export function Subscribers({ role }) {
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   {(detail.tags || []).length === 0 ? (
-                    <span className="text-xs text-muted-foreground">لا توجد وسوم</span>
+                    <span className="text-xs font-medium text-muted-foreground">لا توجد وسوم</span>
                   ) : (
                     (detail.tags || []).map((t) => (
                       <span
@@ -723,7 +723,7 @@ export function Subscribers({ role }) {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="glass-heavy max-w-md">
           <DialogHeader>
             <DialogTitle>إدارة الوسوم</DialogTitle>
           </DialogHeader>

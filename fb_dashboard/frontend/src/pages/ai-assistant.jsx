@@ -82,12 +82,12 @@ export function AiAssistant({ role }) {
 
   if (!aiStatus?.available) {
     return (
-      <div className="space-y-6">
+      <div className="content-container space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-xl font-bold text-foreground">المساعد الذكي</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">المساعد الذكي</h1>
           <p className="text-sm text-muted-foreground mt-1">توليد ردود ذكية باستخدام الذكاء الاصطناعي</p>
         </div>
-        <Card>
+        <Card className="glass-card">
           <CardContent className="flex flex-col items-center py-16 text-center">
             <Brain className="h-16 w-16 text-muted-foreground/30 mb-5" />
             <h2 className="text-lg font-semibold text-foreground mb-2">AI غير مفعل</h2>
@@ -111,10 +111,10 @@ export function AiAssistant({ role }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
             <Brain className="size-6 text-info" />
             المساعد الذكي
           </h1>
@@ -153,17 +153,17 @@ export function AiAssistant({ role }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">نص التعليق *</label>
+                <label className="text-xs font-medium text-muted-foreground">نص التعليق *</label>
                 <Textarea value={commentText} onChange={e => setCommentText(e.target.value)}
                   rows={3} placeholder="اكتب تعليق العميل هنا..." />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">اسم العميل</label>
+                <label className="text-xs font-medium text-muted-foreground">اسم العميل</label>
                 <Input value={commenterName} onChange={e => setCommenterName(e.target.value)}
                   placeholder="أحمد" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">سياق الصفحة (اختياري)</label>
+                <label className="text-xs font-medium text-muted-foreground">سياق الصفحة (اختياري)</label>
                 <Input value={pageContext} onChange={e => setPageContext(e.target.value)}
                   placeholder="متجر ملابس، خدمة عملاء، ..." />
               </div>

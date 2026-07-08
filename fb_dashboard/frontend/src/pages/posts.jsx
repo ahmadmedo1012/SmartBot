@@ -9,13 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { Plus, Send, Clock, FileText, Search, Trash2, MessageCircle, Heart, Share2, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from "lucide-react"
+import { useEffect } from "react"
 import { format } from "date-fns"
-
-function useEffectFn() {
-  import("react").then(({ useEffect }) => {
-    useEffect(() => { document.title = "المنشورات | SmartBot" }, [])
-  })
-}
 
 function EngagementBadge({ icon: Icon, count, label }) {
   if (count == null) return null
@@ -28,7 +23,7 @@ function EngagementBadge({ icon: Icon, count, label }) {
 }
 
 export function Posts({ role }) {
-  useEffectFn()
+  useEffect(() => { document.title = "المنشورات | SmartBot" }, [])
   const canEdit = role === "admin" || role === "editor"
   const queryClient = useQueryClient()
   const [showPublish, setShowPublish] = useState(false)
@@ -65,10 +60,10 @@ export function Posts({ role }) {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">المنشورات</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">المنشورات</h1>
           <p className="text-sm text-muted-foreground mt-1">إدارة منشورات الصفحة</p>
         </div>
         {canEdit && (
@@ -76,13 +71,13 @@ export function Posts({ role }) {
             <DialogTrigger asChild>
               <Button><Plus className="ml-2 h-4 w-4" />نشر منشور</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="glass-heavy max-w-lg">
               <DialogHeader><DialogTitle>نشر منشور جديد</DialogTitle></DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); publishMut.mutate() }} className="space-y-4">
                 <Textarea placeholder="اكتب محتوى المنشور..." value={message} onChange={(e) => setMessage(e.target.value)} required rows={4} />
                 <Input placeholder="رابط الصورة (اختياري)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                 {imageUrl && (
-                  <div className="rounded-xl overflow-hidden border bg-muted/30">
+                  <div className="rounded-xl overflow-hidden border bg-muted/20 shadow-premium">
                     <img src={imageUrl} alt="معاينة" className="w-full max-h-48 object-cover" onError={(e) => { e.target.style.display = 'none' }} />
                   </div>
                 )}
@@ -96,9 +91,9 @@ export function Posts({ role }) {
         )}
       </div>
 
-      <div className="relative max-w-xs">
+      <div className="relative w-full sm:max-w-xs">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="بحث في المنشورات..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-9" />
+        <Input placeholder="بحث في المنشورات..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-9 min-h-[44px] sm:min-h-0" />
       </div>
 
       {isLoading ? (

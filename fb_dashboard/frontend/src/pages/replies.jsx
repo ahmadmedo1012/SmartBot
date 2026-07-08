@@ -161,7 +161,7 @@ function ReplyDialog({ reply, open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="glass-heavy max-w-lg">
         <DialogHeader><DialogTitle>رد على تعليق — {reply.commenter_name || "صاحب التعليق"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {/* Original comment */}
@@ -318,11 +318,11 @@ export function Replies() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">سجل الردود</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">سجل الردود</h1>
           <p className="text-sm text-muted-foreground mt-1">جميع الردود التلقائية التي أرسلها البوت</p>
         </div>
         <ExportCSV replies={filteredReplies} />
@@ -332,8 +332,8 @@ export function Replies() {
       <HourlyChart />
 
       {/* Search + filters */}
-      <div className="flex gap-4 flex-wrap items-center">
-        <div className="relative max-w-xs w-full">
+      <div className="flex gap-3 flex-col sm:flex-row sm:items-center flex-wrap">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="بحث..."
@@ -342,7 +342,7 @@ export function Replies() {
               setSearch(e.target.value)
               setPage(1)
             }}
-            className="pr-9"
+            className="pr-9 min-h-[44px] sm:min-h-0"
           />
         </div>
         <Select value={selectedRuleId} onValueChange={(v) => { setSelectedRuleId(v); setPage(1) }}>
@@ -361,39 +361,40 @@ export function Replies() {
         </p>
       </div>
 
-      {/* Date filter */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground">من:</label>
+      <div className="flex items-center gap-3 flex-col sm:flex-row">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label className="text-sm text-muted-foreground shrink-0">من:</label>
           <Input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="w-auto"
+            className="w-full sm:w-auto"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground">إلى:</label>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label className="text-sm text-muted-foreground shrink-0">إلى:</label>
           <Input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="w-auto"
+            className="w-full sm:w-auto"
           />
         </div>
-        <Button onClick={handleFilter} size="sm">
-          <Filter className="ml-1 h-4 w-4" />
-          تصفية
-        </Button>
-        <Button onClick={handleReset} variant="outline" size="sm">
-          <RotateCcw className="ml-1 h-4 w-4" />
-          إعادة تعيين
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={handleFilter} size="sm" className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0">
+            <Filter className="ml-1 h-4 w-4" />
+            تصفية
+          </Button>
+          <Button onClick={handleReset} variant="outline" size="sm" className="flex-1 sm:flex-none min-h-[44px] sm:min-h-0">
+            <RotateCcw className="ml-1 h-4 w-4" />
+            إعادة تعيين
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
       <div className="rounded-lg border overflow-hidden">
-        <div className="overflow-x-auto data-table-wrapper">
+        <div className="overflow-x-auto data-table-wrapper data-table-card-view">
         <table className="data-table">
           <thead>
             <tr>
@@ -426,10 +427,10 @@ export function Replies() {
             ) : (
               filteredReplies.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium">{r.commenter_name}</td>
-                  <td className="text-sm text-muted-foreground max-w-xs truncate">{r.comment_text}</td>
-                  <td className="text-muted-foreground max-w-xs truncate font-mono text-xs">{r.reply_text}</td>
-                  <td className="text-sm text-muted-foreground whitespace-nowrap font-mono text-xs">
+                  <td data-label="صاحب التعليق" className="font-medium">{r.commenter_name}</td>
+                  <td data-label="النص" className="text-sm text-muted-foreground max-w-xs truncate">{r.comment_text}</td>
+                  <td data-label="الرد" className="text-muted-foreground max-w-xs truncate font-mono text-xs">{r.reply_text}</td>
+                  <td data-label="التاريخ" className="text-sm text-muted-foreground whitespace-nowrap font-mono text-xs">
                     {r.created_at ? format(new Date(r.created_at), "yyyy/MM/dd HH:mm", { locale: arSA }) : "-"}
                   </td>
                   <td>

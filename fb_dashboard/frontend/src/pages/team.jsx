@@ -91,19 +91,19 @@ function InviteDialog({ trigger }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="glass-heavy">
         <DialogHeader><DialogTitle>دعوة عضو جديد</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-foreground">اسم المستخدم</label>
+            <label className="text-xs font-medium text-muted-foreground">اسم المستخدم</label>
             <Input value={username} onChange={(e) => setUsername(e.target.value)} required dir="ltr" />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground">كلمة المرور</label>
+            <label className="text-xs font-medium text-muted-foreground">كلمة المرور</label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <div>
-            <label className="text-sm font-medium text-foreground">الدور</label>
+            <label className="text-xs font-medium text-muted-foreground">الدور</label>
             <Select value={role} onValueChange={setRole}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -230,11 +230,11 @@ export function Team({ role }) {
   const totalRoles = Object.keys(ROLE_LABELS).filter((r) => (summary[r] || 0) > 0 || members.some((m) => m.role === r)).length
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">فريق العمل</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">فريق العمل</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {totalMembers} عضو · {totalRoles} أدوار
           </p>
@@ -252,15 +252,15 @@ export function Team({ role }) {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard icon={Users} label="إجمالي الأعضاء" value={summary.total ?? totalMembers} color="bg-primary" />
-          <StatCard icon={UserCog} label="مدير" value={summary.admin ?? 0} color="bg-amber-600" />
-          <StatCard icon={UserCheck} label="محرر" value={summary.editor ?? 0} color="bg-sky-600" />
+          <StatCard icon={UserCog} label="مدير" value={summary.admin ?? 0} color="bg-warning" />
+          <StatCard icon={UserCheck} label="محرر" value={summary.editor ?? 0} color="bg-info" />
           <StatCard icon={UserIcon} label="مشاهد" value={summary.viewer ?? 0} color="bg-muted-foreground" />
         </div>
       )}
 
       {/* ── Members Grid ── */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-3">الأعضاء</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">الأعضاء</h2>
         {membersLoading ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
@@ -301,7 +301,7 @@ export function Team({ role }) {
       {/* ── Activity Feed ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-foreground">النشاطات</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">النشاطات</h2>
           <div className="flex items-center gap-1 text-sm">
             <Button
               variant={activityDays === 1 ? "default" : "ghost"} size="sm"

@@ -20,9 +20,9 @@ import {
 
 const STATUS_MAP = {
   draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
-  scheduled: { label: "مجدول", color: "bg-info/15 text-info border-info/20" },
-  published: { label: "منشور", color: "bg-success/15 text-success border-success/20" },
-  failed: { label: "فشل", color: "bg-destructive/15 text-destructive border-destructive/20" },
+  scheduled: { label: "مجدول", color: "bg-info/15 text-info border-info/30" },
+  published: { label: "منشور", color: "bg-success/15 text-success border-success/30" },
+  failed: { label: "فشل", color: "bg-destructive/15 text-destructive border-destructive/30" },
 }
 
 export function ScheduledPosts({ role }) {
@@ -60,10 +60,10 @@ export function ScheduledPosts({ role }) {
   function resetForm() { setMessage(""); setImageUrl(""); setScheduledAt("") }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">المنشورات المجدولة</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">المنشورات المجدولة</h1>
           <p className="text-sm text-muted-foreground mt-1">إنشاء وجدولة ونشر منشورات فيسبوك</p>
         </div>
         {canEdit && (
@@ -71,19 +71,19 @@ export function ScheduledPosts({ role }) {
             <DialogTrigger asChild>
               <Button><Plus className="ml-2 h-4 w-4" />منشور جديد</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="glass-heavy max-w-lg">
               <DialogHeader><DialogTitle>منشور جديد</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">نص المنشور</label>
+                  <label className="text-xs font-medium text-muted-foreground">نص المنشور</label>
                   <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">رابط الصورة (اختياري)</label>
+                  <label className="text-xs font-medium text-muted-foreground">رابط الصورة (اختياري)</label>
                   <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">تاريخ النشر (اختياري)</label>
+                  <label className="text-xs font-medium text-muted-foreground">تاريخ النشر (اختياري)</label>
                   <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
                 </div>
                 <Button onClick={() => createMut.mutate()} disabled={!message.trim() || createMut.isPending} className="w-full">

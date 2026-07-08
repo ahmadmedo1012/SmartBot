@@ -22,7 +22,7 @@ from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer
 from fb_client import FBClient
-from bot import BotEngine, RuleMatcher
+from bot import BotEngine, IntentAwareMatcher
 from ws_manager import ws_manager
 from flow_engine import FlowEngine
 from sequence_engine import SequenceEngine, SequenceScheduler
@@ -156,13 +156,22 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 async def _run_bot_loop():
-    engine = BotEngine(fb)
+    engine = get_bot_engine()
     while True:
         try:
             await engine.cycle()
         except Exception as e:
             log.error(f"Bot loop err: {e}")
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
+
+
+_bot_engine_singleton: BotEngine | None = None
+
+def get_bot_engine() -> BotEngine:
+    global _bot_engine_singleton
+    if _bot_engine_singleton is None:
+        _bot_engine_singleton = BotEngine(fb)
+    return _bot_engine_singleton
 
 
 # ---- Auth ----
@@ -1648,19 +1657,11 @@ async def webhook_receive(request: Request):
 
 
 async def _process_webhook_comment(comment: dict, post_id: str):
-    """Process a single webhook comment immediately (not a full cycle)."""
+    """Process a single webhook comment using the shared bot engine."""
     try:
-        engine = BotEngine(fb)
-        async with AsyncSessionLocal() as session:
-            rules = await engine._load_rules(session)
-            if not rules:
-                return
-            dm_map = await engine._load_dm_map()
-            matcher = RuleMatcher(rules, dm_map)
-            replied_ids = await engine._load_replied_ids(session)
-            engine.dedup.load_from_db(replied_ids)
-            await engine.pipeline.process(session, comment, post_id, matcher)
-            _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
+        engine = get_bot_engine()
+        await engine.process_single_comment(comment, post_id)
+        _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
 
@@ -2178,6 +2179,219 @@ async def delete_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role
     await db.delete(offer)
     await db.commit()
     return {"ok": True}
+
+
+# ── Diagnostics & Monitoring Endpoints ──────────────────────────
+
+
+@app.get("/api/diagnostics/status")
+async def diagnostic_status(_=Depends(get_current_user)):
+    """Full system diagnostic status page."""
+    from diagnostics import get_diagnostics
+    from monitor import get_logger
+    d = get_diagnostics()
+    l = get_logger()
+    return {
+        "system": d.get_system_info(),
+        "cycles": d.get_cycle_stats(),
+        "errors": {"recent": d.get_recent_errors(10), "rate_pct": d.get_error_rate()},
+        "logs": l.get_stats(),
+    }
+
+
+@app.get("/api/diagnostics/cycle-stats")
+async def diagnostic_cycles(_=Depends(get_current_user)):
+    from diagnostics import get_diagnostics
+    return get_diagnostics().get_cycle_stats()
+
+
+@app.get("/api/diagnostics/recent-errors")
+async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user)):
+    from diagnostics import get_diagnostics
+    return {"errors": get_diagnostics().get_recent_errors(limit)}
+
+
+@app.get("/api/diagnostics/logs")
+async def diagnostic_logs(level: str = Query(""), limit: int = Query(50), _=Depends(get_current_user)):
+    from monitor import get_logger
+    return {"logs": get_logger().get_buffer(level or None, limit)}
+
+
+@app.get("/api/diagnostics/cache-status")
+async def diagnostic_cache(_=Depends(get_current_user)):
+    """Show cache layer state."""
+    status = {"rule_cache": "not active", "user_contexts": 0}
+    return status
+
+
+@app.get("/api/diagnostics/bot-events")
+async def diagnostic_bot_events(limit: int = Query(50), _=Depends(get_current_user)):
+    """Live bot event stream — last N events from log buffer."""
+    from monitor import get_logger
+    return {"events": get_logger().get_buffer(limit=limit)}
+
+
+@app.get("/api/diagnostics/permissions")
+async def diagnostic_permissions(_=Depends(get_current_user)):
+    """Check Facebook token permissions & scopes."""
+    from fb_client import FBClient
+    from config import settings
+    if not settings.FACEBOOK_ACCESS_TOKEN:
+        return {"error": "No token configured", "has_token": False}
+
+    fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
+    debug = await fb._get("debug_token", {"input_token": settings.FACEBOOK_ACCESS_TOKEN})
+    perms = []
+    token_type = "unknown"
+    expires_at = None
+    app_id = None
+
+    if debug and "data" in debug:
+        data = debug["data"]
+        perms = data.get("scopes", []) or data.get("granular_scopes", [])
+        token_type = data.get("type", "unknown")
+        if "expires_at" in data and data["expires_at"]:
+            try:
+                expires_at = datetime.fromtimestamp(data["expires_at"]).isoformat()
+            except Exception:
+                expires_at = str(data["expires_at"])
+        app_id = data.get("app_id", "")
+
+    tests = {}
+    try:
+        fan_count = await fb.get_page_fan_count()
+        tests["pages_read_engagement"] = bool(fan_count is not None)
+    except Exception:
+        tests["pages_read_engagement"] = False
+    try:
+        posts = await fb.get_page_posts(1)
+        tests["pages_show_list"] = bool(posts is not None)
+    except Exception:
+        tests["pages_show_list"] = False
+
+    return {
+        "has_token": True,
+        "token_type": token_type,
+        "permissions": perms,
+        "app_id": app_id,
+        "expires_at": expires_at,
+        "endpoint_tests": tests,
+        "page_id": settings.FACEBOOK_PAGE_ID,
+    }
+
+
+@app.post("/api/diagnostics/demo-test-comment")
+async def diagnostic_demo_comment(
+    comment_text: str = Form(...),
+    _=Depends(require_role("admin")),
+):
+    """Test how the bot would classify and handle a demo comment."""
+    from enhanced_intent import EnhancedIntentClassifier
+    from bot import TextNormalizer
+
+    classification = EnhancedIntentClassifier.classify(comment_text)
+    normalized = TextNormalizer.normalize_for_matching(comment_text)
+    legacy = EnhancedIntentClassifier.to_legacy(classification)
+
+    return {
+        "original": comment_text,
+        "normalized": normalized,
+        "classification": classification,
+        "legacy_intent": legacy,
+    }
+
+
+# ── Admin Customization (Rule Priority & Template Variables) ────
+
+
+@app.post("/api/admin/rules/{rule_id}/priority")
+async def set_rule_priority(
+    rule_id: int, priority: int = Form(...),
+    db=Depends(get_db), _=Depends(require_role("admin")),
+):
+    """Set rule priority (lower = higher priority)."""
+    rule = await db.get(Rule, rule_id)
+    if not rule:
+        raise HTTPException(404, "Rule not found")
+    rule.priority = max(0, min(9999, priority))
+    await db.commit()
+    try:
+        from bot import BotEngine
+        eng = BotEngine._instance
+        if eng and hasattr(eng, '_rule_cache') and eng._rule_cache:
+            await eng._rule_cache.invalidate()
+    except Exception:
+        pass
+    return {"ok": True, "priority": rule.priority}
+
+
+@app.post("/api/admin/rules/{rule_id}/dm-template")
+async def set_rule_dm_template(
+    rule_id: int, dm_template: str = Form(""),
+    db=Depends(get_db), _=Depends(require_role("admin")),
+):
+    """Set or clear DM template for a rule."""
+    rule = await db.get(Rule, rule_id)
+    if not rule:
+        raise HTTPException(404, "Rule not found")
+    rule.dm_template = dm_template
+    await db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/admin/template-vars")
+async def template_vars(_=Depends(get_current_user)):
+    """List available template variables."""
+    return {
+        "vars": {
+            "{name}": "الاسم الأول للمعلق",
+            "{full_name}": "الاسم الكامل للمعلق",
+            "{username}": "اسم المستخدم في فيسبوك",
+            "{message}": "نص التعليق الأصلي (أول 100 حرف)",
+            "{mention}": "@[user_id] — إشعار للمعلق",
+        },
+        "example": "شكراً {name} على تعليقك! سنتواصل معك قريباً",
+    }
+
+
+@app.get("/api/admin/rules-categories")
+async def rule_categories(_=Depends(get_current_user)):
+    """List intent categories for rule matching."""
+    return {
+        "categories": [
+            {"id": "negative", "label": "شكوى / سلبي", "color": "red"},
+            {"id": "complaint", "label": "شكوى صريحة", "color": "red"},
+            {"id": "price_inquiry", "label": "استفسار سعر", "color": "blue"},
+            {"id": "order", "label": "طلب شراء", "color": "green"},
+            {"id": "contact", "label": "طلب تواصل", "color": "purple"},
+            {"id": "question", "label": "سؤال عام", "color": "indigo"},
+            {"id": "praise", "label": "إشادة", "color": "emerald"},
+            {"id": "thanks", "label": "شكر", "color": "teal"},
+            {"id": "greeting", "label": "تحية", "color": "sky"},
+            {"id": "urgent", "label": "عاجل", "color": "orange"},
+            {"id": "neutral", "label": "محايد", "color": "gray"},
+            {"id": "collaboration", "label": "تعاون", "color": "amber"},
+        ],
+    }
+
+
+@app.post("/api/admin/cooldown")
+async def set_cooldown(
+    seconds: int = Form(...),
+    _=Depends(require_role("admin")),
+):
+    """Adjust per-user cooldown (10-3600s)."""
+    if seconds < 10 or seconds > 3600:
+        raise HTTPException(400, "يجب أن تكون المدة بين 10 و3600 ثانية")
+    settings.BOT_COOLDOWN_SECONDS = seconds
+    try:
+        from bot import BotEngine
+        eng = BotEngine._instance
+        if eng:
+            eng.cooldown.adjust_window(seconds)
+    except Exception:
+        pass
+    return {"ok": True, "cooldown_seconds": seconds}
 
 
 if __name__ == "__main__":

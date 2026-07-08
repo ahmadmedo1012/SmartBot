@@ -65,10 +65,10 @@ export function Comments({ role }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
             <MessageSquare className="size-6 text-primary" />
             مركز التعليقات
           </h1>
@@ -78,9 +78,9 @@ export function Comments({ role }) {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input placeholder="بحث في التعليقات..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
+        <Input placeholder="بحث في التعليقات..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 min-h-[44px] sm:min-h-0" />
       </div>
 
       {isLoading ? (
@@ -92,7 +92,7 @@ export function Comments({ role }) {
       ) : (
         <div className="space-y-2">
           {filtered.map((c) => (
-            <Card key={c.id} className="border-r-4 border-r-primary/40">
+            <Card key={c.id} className="border-r-2 border-r-primary/30">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ export function Comments({ role }) {
 
       {/* Reply Dialog */}
       <Dialog open={!!replyTarget} onOpenChange={o => { if (!o) { setReplyTarget(null); setReplyText(""); setAiSuggestions([]) } }}>
-        <DialogContent>
+        <DialogContent className="glass-heavy">
           <DialogHeader><DialogTitle>رد على تعليق — {replyTarget?.from_name || ""}</DialogTitle></DialogHeader>
           <div className="p-3 rounded-lg bg-muted/30 text-sm border mb-3">
             <p className="text-xs text-muted-foreground mb-1">التعليق الأصلي:</p>

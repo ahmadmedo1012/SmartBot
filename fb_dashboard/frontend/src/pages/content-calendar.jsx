@@ -66,9 +66,9 @@ function fetchMonthSummary(year, month) {
 const DAY_NAMES = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
 
 const PLATFORM_CONFIG = {
-  facebook: { label: "فيسبوك", color: "bg-[#1877F2]/15 text-[#1877F2]", icon: Globe },
-  instagram: { label: "انستغرام", color: "bg-[#E4405F]/15 text-[#E4405F]", icon: Camera },
-  whatsapp: { label: "واتساب", color: "bg-[#25D366]/15 text-[#25D366]", icon: MessageCircle },
+  facebook: { label: "فيسبوك", color: "bg-primary/15 text-primary", icon: Globe },
+  instagram: { label: "انستغرام", color: "bg-destructive/15 text-destructive", icon: Camera },
+  whatsapp: { label: "واتساب", color: "bg-success/15 text-success", icon: MessageCircle },
 }
 
 const STATUS_CONFIG = {
@@ -346,11 +346,11 @@ export function ContentCalendar({ role }) {
   const isLoadingInitial = monthLoading && monthPosts.length === 0
 
   return (
-    <div className="space-y-6">
+    <div className="content-container space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground">التقويم</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold">التقويم</h1>
           <p className="text-sm text-muted-foreground mt-1">عرض وإدارة المنشورات المجدولة</p>
         </div>
         <div className="flex items-center gap-2">
@@ -461,9 +461,9 @@ export function ContentCalendar({ role }) {
       {/* Day Detail Panel */}
       {selectedDay && (
         <Card>
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <Calendar className="size-4 text-muted-foreground" />
                 {format(selectedDay, "EEEE d MMMM yyyy", { locale: arSA })}
               </h3>
@@ -503,13 +503,13 @@ export function ContentCalendar({ role }) {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="glass-heavy max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingPost ? "تعديل المنشور" : "منشور جديد"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">نص المنشور</label>
+              <label className="text-xs font-medium text-muted-foreground">نص المنشور</label>
               <Textarea
                 value={formData.message}
                 onChange={(e) => setFormData((f) => ({ ...f, message: e.target.value }))}
@@ -519,7 +519,7 @@ export function ContentCalendar({ role }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">رابط الصورة (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">رابط الصورة (اختياري)</label>
               <Input
                 value={formData.image_url}
                 onChange={(e) => setFormData((f) => ({ ...f, image_url: e.target.value }))}
@@ -527,7 +527,7 @@ export function ContentCalendar({ role }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">تاريخ ووقت النشر (اختياري)</label>
+              <label className="text-xs font-medium text-muted-foreground">تاريخ ووقت النشر (اختياري)</label>
               <Input
                 type="datetime-local"
                 value={formData.scheduled_at}
@@ -535,7 +535,7 @@ export function ContentCalendar({ role }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">المنصة</label>
+              <label className="text-xs font-medium text-muted-foreground">المنصة</label>
               <Select
                 value={formData.platform}
                 onValueChange={(v) => setFormData((f) => ({ ...f, platform: v }))}
@@ -573,7 +573,7 @@ export function ContentCalendar({ role }) {
 
       {/* Delete Confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="glass-heavy max-w-sm">
           <DialogHeader>
             <DialogTitle>تأكيد الحذف</DialogTitle>
           </DialogHeader>

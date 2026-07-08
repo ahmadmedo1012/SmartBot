@@ -248,9 +248,9 @@ export function Settings({ role }) {
   ]
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="content-container space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground">الإعدادات</h1>
+        <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">الإعدادات</h1>
         <p className="text-sm text-muted-foreground mt-1">إعدادات البوت، API، المظهر وإحصائيات النظام</p>
       </div>
 
@@ -322,7 +322,7 @@ export function Settings({ role }) {
                               <RefreshCw className={`h-4 w-4 ml-1.5 ${restartMut.isPending ? "animate-spin" : ""}`} />
                               {restartMut.isPending ? "جاري..." : "إعادة تشغيل البوت"}
                             </Button>
-                            {role !== "admin" && <span className="text-xs text-muted-foreground">متاح للمدير فقط</span>}
+                            {role !== "admin" && <span className="text-xs font-medium text-muted-foreground">متاح للمدير فقط</span>}
                           </div>
                         </>
                       )}
@@ -407,11 +407,11 @@ export function Settings({ role }) {
                           <div ref={logsEndRef} />
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t mt-1">
-                          <Button variant="outline" size="sm" onClick={() => clearLogsMut.mutate()} disabled={clearLogsMut.isPending} className="text-xs">
+                          <Button variant="outline" size="sm" onClick={() => clearLogsMut.mutate()} disabled={clearLogsMut.isPending} className="text-xs cursor-pointer">
                             <Eraser className="h-3 w-3 ml-1" />
                             {clearLogsMut.isPending ? "جاري..." : "تنظيف السجلات القديمة"}
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setCleared(true)} className="text-xs">
+                          <Button variant="ghost" size="sm" onClick={() => setCleared(true)} className="text-xs cursor-pointer">
                             <Trash2 className="h-3 w-3 ml-1" />
                             مسح السجلات
                           </Button>
@@ -494,13 +494,13 @@ export function Settings({ role }) {
                     <div className="space-y-2">
                       <p className="text-sm text-muted-foreground">اختر نمط العرض:</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onClick={() => setTheme("light")}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${resolvedTheme === "light" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                        <button onClick={() => setTheme("light")} aria-label="الوضع الفاتح"
+                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors cursor-pointer ${resolvedTheme === "light" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
                           <Sun className={`h-8 w-8 ${resolvedTheme === "light" ? "text-primary" : "text-muted-foreground"}`} />
                           <span className={`text-sm font-medium ${resolvedTheme === "light" ? "text-primary" : ""}`}>فاتح</span>
                         </button>
-                        <button onClick={() => setTheme("dark")}
-                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${resolvedTheme === "dark" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                        <button onClick={() => setTheme("dark")} aria-label="الوضع الداكن"
+                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors cursor-pointer ${resolvedTheme === "dark" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
                           <Moon className={`h-8 w-8 ${resolvedTheme === "dark" ? "text-primary" : "text-muted-foreground"}`} />
                           <span className={`text-sm font-medium ${resolvedTheme === "dark" ? "text-primary" : ""}`}>داكن</span>
                         </button>

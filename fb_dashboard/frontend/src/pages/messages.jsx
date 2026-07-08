@@ -136,26 +136,27 @@ export function Messages({ role }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100svh-3.5rem)] -mx-3 sm:-mx-6 -mt-3 sm:-mt-6 overflow-hidden">
+    <div className="flex flex-col h-[calc(100svh-3.5rem)] sm:-mx-6 overflow-hidden">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">صندوق الوارد</h1>
+          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">صندوق الوارد</h1>
           <p className="text-sm text-muted-foreground">إدارة احترافية لرسائل ومحادثات الصفحة</p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={showTagDialog} onOpenChange={setShowTagDialog}>
             <DialogTrigger asChild>
-              {canEdit && <Button variant="outline" size="sm"><Plus className="ml-1 h-4 w-4" />وسم جديد</Button>}
+              {canEdit && <Button variant="outline" size="sm" className="min-h-[44px] sm:min-h-0 cursor-pointer"><Plus className="ml-1 h-4 w-4" />وسم جديد</Button>}
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="glass-heavy">
               <DialogHeader><DialogTitle>وسم جديد</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <Input placeholder="اسم الوسم" value={newTagName} onChange={e => setNewTagName(e.target.value)} />
                 <div className="flex gap-2 flex-wrap">
                   {TAG_COLORS.map(c => (
                     <button key={c} onClick={() => setNewTagColor(c)}
-                      className={`size-8 rounded-full border-2 transition-all ${newTagColor === c ? "border-foreground scale-110" : "border-transparent"}`}
+                      aria-label={`اختيار لون الوسم ${c}`}
+                      className={`size-8 rounded-full border-2 transition-all cursor-pointer ${newTagColor === c ? "border-foreground scale-110" : "border-transparent"}`}
                       style={{ backgroundColor: c }} />
                   ))}
                 </div>
@@ -167,7 +168,7 @@ export function Messages({ role }) {
                       {tags.map(t => (
                         <div key={t.id} className="flex items-center gap-1 px-2 py-1 rounded-md text-xs" style={{ backgroundColor: t.color + "20", color: t.color }}>
                           {t.name}
-                          <X className="size-3 cursor-pointer opacity-60 hover:opacity-100" onClick={() => deleteTagMut.mutate(t.id)} />
+                          <X className="size-3 cursor-pointer opacity-60 hover:opacity-100" aria-label={`حذف الوسم ${t.name}`} onClick={() => deleteTagMut.mutate(t.id)} />
                         </div>
                       ))}
                     </div>
@@ -176,7 +177,7 @@ export function Messages({ role }) {
               </div>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" size="sm" onClick={() => setShowTemplates(!showTemplates)}>
+          <Button variant="outline" size="sm" onClick={() => setShowTemplates(!showTemplates)} className="min-h-[44px] sm:min-h-0 cursor-pointer">
             <Bookmark className="ml-1 h-4 w-4" />
             الردود السريعة
           </Button>
@@ -195,7 +196,7 @@ export function Messages({ role }) {
             <div className="flex gap-1.5 overflow-x-auto pb-1">
               {FILTERS.map(({ value, label, icon: Icon }) => (
                 <button key={value} onClick={() => { setFilter(value); setSelectedId(null) }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer
                     ${filter === value ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/70"}`}>
                   <Icon className="size-3.5" />
                   {label}
@@ -219,7 +220,7 @@ export function Messages({ role }) {
               <div className="space-y-0.5 px-2 py-1">
                 {conversations.map(conv => (
                   <button key={conv.id} onClick={() => setSelectedId(conv.id)}
-                    className={`w-full text-right p-3 rounded-lg transition-all text-sm
+                    className={`w-full text-right p-3 rounded-lg transition-all text-sm cursor-pointer
                       ${selectedId === conv.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50 border border-transparent"}
                       ${conv.unread_count > 0 ? "bg-accent/30" : ""}`}>
                     <div className="flex items-start gap-3">
@@ -239,7 +240,7 @@ export function Messages({ role }) {
                           {conv.senders?.map(s => s.name).join("، ") || "غير معروف"}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-muted-foreground">{conv.message_count} رسالة</span>
+                          <span className="text-xs font-medium text-muted-foreground">{conv.message_count} رسالة</span>
                           {conv.unread_count > 0 && (
                             <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4">{conv.unread_count}</Badge>
                           )}
@@ -281,7 +282,7 @@ export function Messages({ role }) {
               {/* Conversation header */}
               <div className="flex items-center justify-between px-5 py-3 border-b shrink-0">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSelectedId(null)}>
+                  <Button variant="ghost" size="icon" className="lg:hidden cursor-pointer" onClick={() => setSelectedId(null)} aria-label="العودة للقائمة">
                     <ChevronRight className="size-5" />
                   </Button>
                   <Avatar className="size-9 shrink-0">
@@ -306,20 +307,20 @@ export function Messages({ role }) {
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
                         style={{ backgroundColor: t.color + "20", color: t.color }}>
                         {t.name}
-                        {canEdit && <X className="size-2.5 cursor-pointer" onClick={() => removeTagMut.mutate({ convId: selectedId, tagId: t.id })} />}
+                        {canEdit && <X className="size-2.5 cursor-pointer" aria-label={`إزالة وسم ${t.name}`} onClick={() => removeTagMut.mutate({ convId: selectedId, tagId: t.id })} />}
                       </span>
                     ))}
                   </div>
                   {/* Tag assign dropdown */}
                   {canEdit && tags.length > 0 && (
                     <div className="relative group">
-                      <Button variant="ghost" size="icon" className="size-8">
+                      <Button variant="ghost" size="icon" className="size-8 cursor-pointer" aria-label="إضافة وسم">
                         <Tag className="size-4 text-muted-foreground" />
                       </Button>
                       <div className="absolute left-0 top-full mt-1 bg-card border rounded-lg shadow-lg p-2 z-50 hidden group-hover:block min-w-[140px]">
                         {tags.filter(t => !(selectedConv?.tags || []).find(ct => ct.id === t.id)).map(t => (
                           <button key={t.id} onClick={() => assignTagMut.mutate({ convId: selectedId, tagId: t.id })}
-                            className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted text-right">
+                            className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-muted text-right cursor-pointer">
                             <span className="size-2.5 rounded-full" style={{ backgroundColor: t.color }} />
                             {t.name}
                           </button>
@@ -331,7 +332,7 @@ export function Messages({ role }) {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              <div className="flex-1 overflow-y-auto p-6 space-y-3">
                 {msgLoading ? (
                   <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full max-w-[60%]" />)}</div>
                 ) : messages.length === 0 ? (
@@ -376,7 +377,7 @@ export function Messages({ role }) {
                     <div className="flex flex-wrap gap-1.5">
                       {templates.map(t => (
                         <button key={t.id} onClick={() => insertTemplate(t.text)}
-                          className="px-2.5 py-1 rounded-full text-xs bg-card border hover:bg-accent transition-colors whitespace-nowrap">
+                          className="px-2.5 py-1 rounded-full text-xs bg-card border hover:bg-accent transition-colors whitespace-nowrap cursor-pointer">
                           {t.shortcut && <span className="text-primary font-mono ml-1">{t.shortcut}</span>}
                           {t.name}
                         </button>

@@ -586,6 +586,47 @@ async def delete_comment(comment_id: str, _=Depends(require_role("admin"))):
     return {"ok": True}
 
 
+# ── Facebook Insights & Analytics ──
+
+
+_insights_cache: dict = {}
+_insights_cache_time: float = 0
+
+@app.get("/api/facebook/insights")
+async def get_facebook_insights(days: int = Query(7), _=Depends(get_current_user)):
+    import time as tm
+    now = tm.time()
+    global _insights_cache, _insights_cache_time
+    if _insights_cache and (now - _insights_cache_time) < 3600:
+        return _insights_cache
+
+    since = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    until = datetime.utcnow().strftime("%Y-%m-%d")
+    metrics = ["page_impressions", "page_impressions_unique", "page_engaged_users", "page_fan_adds", "page_views_total"]
+    result = {"metrics": {}, "follower_count": 0}
+
+    for metric in metrics:
+        data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}/insights", {"metric": metric, "period": "day", "since": since, "until": until})
+        if data:
+            values = (data.get("data") or [{}])[0].get("values", [])
+            result["metrics"][metric] = [{"date": v.get("end_time", "")[:10], "value": v.get("value", 0)} for v in values]
+
+    page_data = await fb._get(f"{settings.FACEBOOK_PAGE_ID}", {"fields": "fan_count"})
+    if page_data:
+        result["follower_count"] = page_data.get("fan_count", 0)
+
+    totals = {}
+    for m in metrics:
+        vals = [v["value"] for v in result["metrics"].get(m, []) if isinstance(v.get("value"), (int, float))]
+        totals[m] = sum(vals)
+    result["totals"] = totals
+    result["engagement_rate"] = round(totals.get("page_engaged_users", 0) / max(totals.get("page_impressions_unique", 1), 1) * 100, 2)
+
+    _insights_cache = result
+    _insights_cache_time = now
+    return result
+
+
 # ---- API: Messages ----
 
 @app.get("/api/messages")

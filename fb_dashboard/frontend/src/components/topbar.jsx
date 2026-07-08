@@ -31,6 +31,7 @@ const navItems = [
   { key: "ai-assistant", label: "AI الذكي", icon: Brain },
   { key: "offers", label: "العروض", icon: Gift },
   { key: "reports", label: "التقارير", icon: BarChart3 },
+  { key: "insights", label: "تحليلات", icon: TrendingUp },
   { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
   { key: "ads", label: "الإعلانات", icon: TrendingUp, adminOnly: true },
   { key: "users", label: "المستخدمين", icon: Users, adminOnly: true },

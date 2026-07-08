@@ -23,7 +23,7 @@ import { Comments } from "@/pages/comments"
 import { Flows } from "@/pages/flows"
 import { Sequences } from "@/pages/sequences"
 import { Broadcast } from "@/pages/broadcast"
-import { Subscribers } from "@/pages/subscribers"
+import { Insights } from "@/pages/insights"
 import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
 import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
@@ -60,6 +60,7 @@ const pages = {
   "analytics-dashboard": AnalyticsDashboard,
   "content-calendar": ContentCalendar,
   team: Team,
+  insights: Insights,
 }
 
 function AppInner() {

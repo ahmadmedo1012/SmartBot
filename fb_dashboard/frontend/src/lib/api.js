@@ -477,3 +477,8 @@ export function toggleOffer(id) {
 export function deleteOffer(id) {
   return api(`/api/offers/${id}`, { method: "DELETE" });
 }
+
+// ── Facebook Insights ──
+export function fetchFacebookInsights(days = 7) {
+  return api(`/api/facebook/insights?days=${days}`);
+}

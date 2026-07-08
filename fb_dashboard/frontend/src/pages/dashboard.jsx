@@ -58,31 +58,22 @@ function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loa
   )
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="group"
-    >
-      <Card className="glass-card card-premium overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-        <CardContent className="p-6">
+    <motion.div initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{duration:0.5,ease:[0.16,1,0.3,1]}}>
+      <div className="card-deep rounded-xl overflow-hidden">
+        <div className="p-5">
           <div className="flex items-start gap-4">
-            <div className={`flex size-12 items-center justify-center rounded-xl shrink-0 ${iconColors[color] || iconColors.primary} transition-transform duration-300 group-hover:scale-110`}>
+            <div className={`icon-premium size-12 shrink-0 ${iconColors[color]||iconColors.primary}`}>
               <Icon className="size-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-muted-foreground truncate mb-1">{title}</p>
+              <p className="text-xs font-medium text-muted-foreground truncate mb-1.5">{title}</p>
               <div className="flex items-baseline gap-2.5 flex-wrap">
-                <span className="font-bold font-mono tabular-nums text-2xl text-foreground tracking-tight">
-                  <AnimatedCounter value={value || "0"} suffix="" />
+                <span className="font-bold font-mono tabular-nums text-2xl metric-glow tracking-tight">
+                  <AnimatedCounter value={value||"0"} suffix="" />
                 </span>
-                {change !== undefined && change !== null && (
-                  <span className={`text-xs font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${
-                    change >= 0
-                      ? "bg-success/10 text-success dark:bg-success/15"
-                      : "bg-destructive/10 text-destructive dark:bg-destructive/15"
-                  }`}>
-                    {change >= 0 ? <ArrowUp className="size-2.5" /> : <ArrowDown className="size-2.5" />}
+                {change!==undefined && change!==null && (
+                  <span className={`text-xs font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${change>=0?"bg-success/15 text-success":"bg-destructive/15 text-destructive"}`}>
+                    {change>=0?<ArrowUp className="size-2.5"/>:<ArrowDown className="size-2.5"/>}
                     {Math.abs(change)}%
                   </span>
                 )}
@@ -90,8 +81,8 @@ function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loa
               {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   )
 }

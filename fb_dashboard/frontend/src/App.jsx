@@ -29,6 +29,7 @@ import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
 import { Subscribers } from "@/pages/subscribers"
 import { AnimatePresence, motion } from "framer-motion"
+import { AnimatedBackground } from "@/components/AnimatedBackground"
 
 const queryClient = new QueryClient()
 
@@ -127,8 +128,23 @@ function AppInner() {
   if (authLoading) {
     return (
       <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="loading-screen">
+          <div className="loading-grid" />
+          <div className="relative flex flex-col items-center gap-6">
+            <div className="loading-logo">
+              <div className="loading-ring" />
+              <span className="text-2xl font-bold text-white">S</span>
+            </div>
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">SmartBot</h1>
+              <p className="text-sm text-muted-foreground mt-1">جاري تحميل لوحة التحكم...</p>
+            </div>
+            <div className="flex gap-1.5">
+              {[0,1,2].map(i => (
+                <motion.div key={i} className="w-2 h-2 rounded-full bg-accent/60" animate={{y:[0,-6,0]}} transition={{duration:.6,repeat:Infinity,delay:i*0.15,ease:"easeInOut"}} />
+              ))}
+            </div>
+          </div>
         </div>
       </ThemeProvider>
     )
@@ -150,6 +166,8 @@ function AppInner() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
       <div className="min-h-screen bg-noise">
+        <AnimatedBackground />
+        <div className="relative z-10">
         <Topbar
           currentPage={page}
           onNavigate={setPage}
@@ -172,6 +190,7 @@ function AppInner() {
           </AnimatePresence>
         </Topbar>
         <Toaster position="top-left" richColors />
+        </div>
       </div>
     </ThemeProvider>
   )

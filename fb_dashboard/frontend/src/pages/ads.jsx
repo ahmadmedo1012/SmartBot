@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -53,7 +54,12 @@ export function Ads({ role }) {
   }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">الإعلانات</h1>
@@ -164,6 +170,7 @@ export function Ads({ role }) {
           </div>
         </>
       )}
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { fetchAnalyticsOverview } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -128,34 +129,42 @@ export function AnalyticsDashboard() {
   const { data: overview, isLoading: ovLoading, error: ovError, refetch: refetchOv } = useQuery({
     queryKey: ["analytics-overview", days],
     queryFn: () => fetchAnalyticsOverview(parseInt(days)),
+    staleTime: 30000, refetchOnWindowFocus: true, retry: 2,
   })
   const { data: dailyTrend, isLoading: dtLoading } = useQuery({
     queryKey: ["daily-trend", days],
     queryFn: () => fetchDailyTrend(parseInt(days)),
+    staleTime: 30000, refetchOnWindowFocus: true,
   })
   const { data: hourly, isLoading: hrLoading } = useQuery({
     queryKey: ["hourly-heatmap", days],
     queryFn: () => fetchHourlyHeatmap(parseInt(days)),
+    staleTime: 60000, refetchOnWindowFocus: true,
   })
   const { data: topRulesData, isLoading: trLoading } = useQuery({
     queryKey: ["top-rules-analytics", days],
     queryFn: () => fetchTopRules(parseInt(days), 10),
+    staleTime: 30000, refetchOnWindowFocus: true,
   })
   const { data: sentimentTrend, isLoading: stLoading } = useQuery({
     queryKey: ["sentiment-trend", days],
     queryFn: () => fetchSentimentTrend(parseInt(days)),
+    staleTime: 60000, refetchOnWindowFocus: true,
   })
   const { data: peakHourData } = useQuery({
     queryKey: ["peak-hour", days],
     queryFn: () => fetchPeakHour(parseInt(days)),
+    staleTime: 60000, refetchOnWindowFocus: true,
   })
   const { data: topCommentersData, isLoading: tcLoading } = useQuery({
     queryKey: ["top-commenters", days],
     queryFn: () => fetchTopCommenters(parseInt(days), 10),
+    staleTime: 30000, refetchOnWindowFocus: true,
   })
   const { data: comparisonData, isLoading: cpLoading } = useQuery({
     queryKey: ["period-comparison", days],
     queryFn: () => fetchPeriodComparison(parseInt(days)),
+    staleTime: 60000, refetchOnWindowFocus: true,
   })
 
   const anyError = ovError
@@ -243,7 +252,12 @@ export function AnalyticsDashboard() {
   }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -492,7 +506,7 @@ export function AnalyticsDashboard() {
           <div className="mobile-nav-spacer" />
         </>
       )}
-    </div>
+    </motion.div>
   )
 }
 

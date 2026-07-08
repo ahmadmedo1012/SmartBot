@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import {
   fetchInboxConversations, fetchInboxMessages, replyToInbox,
   fetchInboxTags, assignTagToConversation, removeTagFromConversation,
@@ -65,11 +66,15 @@ export function Messages({ role }) {
   const replyInputRef = useRef(null)
   const messagesEndRef = useRef(null)
 
+  const convInterval = useAdaptiveInterval("normal")
+  const msgInterval = useAdaptiveInterval("critical")
+
   const { data, isLoading } = useQuery({
     queryKey: ["inbox-conversations", filter, search],
     queryFn: () => fetchInboxConversations(filter, "", search),
-    refetchInterval: 15000,
-    refetchIntervalInBackground: false,
+    staleTime: 10000, refetchOnWindowFocus: true,
+    refetchInterval: convInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
   const conversations = data?.items || []
   const total = data?.total || 0
@@ -78,7 +83,9 @@ export function Messages({ role }) {
     queryKey: ["inbox-messages", selectedId],
     queryFn: () => fetchInboxMessages(selectedId),
     enabled: !!selectedId,
-    refetchInterval: 10000,
+    staleTime: 5000, refetchOnWindowFocus: true,
+    refetchInterval: msgInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const { data: tags = [] } = useQuery({

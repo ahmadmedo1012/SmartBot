@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -151,6 +153,7 @@ export function ContentCalendar({ role }) {
   }, [days])
 
   // ── Queries ──
+  const calInterval = useAdaptiveInterval("normal")
   const {
     data: monthPosts = [],
     isLoading: monthLoading,
@@ -159,7 +162,9 @@ export function ContentCalendar({ role }) {
   } = useQuery({
     queryKey: ["calendar-posts", year, monthNum],
     queryFn: () => fetchCalendarPosts(year, monthNum),
-    refetchInterval: 30000,
+    staleTime: 15000, refetchOnWindowFocus: true,
+    refetchInterval: calInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const {
@@ -346,7 +351,12 @@ export function ContentCalendar({ role }) {
   const isLoadingInitial = monthLoading && monthPosts.length === 0
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6 animate-fade-in"
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -592,7 +602,8 @@ export function ContentCalendar({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }
 

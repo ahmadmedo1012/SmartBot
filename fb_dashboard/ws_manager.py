@@ -30,6 +30,8 @@ class ConnectionManager:
         if dead:
             self._connections -= dead
 
+    broadcast_json = broadcast  # alias for explicit structured-data calls
+
     @property
     def count(self) -> int:
         return len(self._connections)

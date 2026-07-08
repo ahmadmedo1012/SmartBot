@@ -160,7 +160,9 @@ export function Settings({ role }) {
   const { data: status, isLoading: statusLoading, isError: statusError, refetch: refetchStatus } = useQuery({
     queryKey: ["bot-status"],
     queryFn: fetchBotStatus,
-    refetchInterval: 10000, refetchIntervalInBackground: false,
+    staleTime: 5000, refetchOnWindowFocus: true,
+    refetchInterval: 10000, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const { data: logs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useQuery({
@@ -599,6 +601,7 @@ export function Settings({ role }) {
               </div>
             )}
         </Tabs>
+      <div className="mobile-nav-spacer" />
       </motion.div>
   )
 }

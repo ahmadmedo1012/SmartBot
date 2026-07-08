@@ -1,5 +1,7 @@
+import { motion } from "framer-motion"
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchPosts, publishPost, deletePost } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -33,8 +35,12 @@ export function Posts({ role }) {
   const [page, setPage] = useState(1)
   const perPage = 10
 
+  const pInterval = useAdaptiveInterval("normal")
   const { data: postsRes, isLoading, error, refetch } = useQuery({
-    queryKey: ["posts", page, perPage], queryFn: () => fetchPosts(page, perPage), refetchInterval: 30000,
+    queryKey: ["posts", page, perPage], queryFn: () => fetchPosts(page, perPage),
+    staleTime: 15000, refetchOnWindowFocus: true,
+    refetchInterval: pInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const items = useMemo(() => {
@@ -60,7 +66,7 @@ export function Posts({ role }) {
   })
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">المنشورات</h1>
@@ -150,6 +156,6 @@ export function Posts({ role }) {
         </div>
       )}
       <div className="mobile-nav-spacer" />
-    </div>
+    </motion.div>
   )
 }

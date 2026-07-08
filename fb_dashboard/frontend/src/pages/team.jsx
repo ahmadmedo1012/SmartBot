@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 function api(path, opts = {}) {
   return fetch(path, {
     ...opts,
@@ -214,15 +215,18 @@ export function Team({ role }) {
 
   const { data: members = [], isLoading: membersLoading, error: membersErr, refetch: refetchMembers } = useQuery({
     queryKey: ["team-members"], queryFn: fetchTeamMembers,
+    staleTime: 15000, refetchOnWindowFocus: true,
   })
   const { data: activities = [], isLoading: activitiesLoading } = useQuery({
     queryKey: ["team-activity", activityDays], queryFn: () => fetchTeamActivity(activityDays),
+    staleTime: 15000, refetchOnWindowFocus: true,
   })
   const { data: perf, isLoading: perfLoading } = useQuery({
     queryKey: ["team-performance"], queryFn: fetchTeamPerformance, enabled: false, // ponytail: lazy load
   })
   const { data: roleSummary, isLoading: summaryLoading } = useQuery({
     queryKey: ["role-summary"], queryFn: fetchRoleSummary,
+    staleTime: 30000, refetchOnWindowFocus: true,
   })
 
   const summary = roleSummary || {}
@@ -230,7 +234,12 @@ export function Team({ role }) {
   const totalRoles = Object.keys(ROLE_LABELS).filter((r) => (summary[r] || 0) > 0 || members.some((m) => m.role === r)).length
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -346,6 +355,7 @@ export function Team({ role }) {
           </div>
         )}
       </div>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

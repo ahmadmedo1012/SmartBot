@@ -11,6 +11,31 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any
 
+# BotLog batch buffer and async flush
+_botlog_batch: list[dict] = []
+_botlog_flushing = False
+
+async def _flush_botlog():
+    global _botlog_flushing
+    if _botlog_flushing:
+        return
+    _botlog_flushing = True
+    try:
+        from database import AsyncSessionLocal
+        from models import BotLog
+        batch = list(_botlog_batch)
+        _botlog_batch.clear()
+        if not batch:
+            return
+        async with AsyncSessionLocal() as session:
+            for item in batch:
+                session.add(BotLog(level=item["level"], message=item["message"]))
+            await session.commit()
+    except Exception:
+        pass
+    finally:
+        _botlog_flushing = False
+
 # ── Log Levels ───────────────────────────────────────────────────
 TRACE = 5
 DEBUG = 10
@@ -49,26 +74,40 @@ class StructuredLogger:
 
     def _emit(self, event: LogEvent):
         line = json.dumps(event.to_dict(), ensure_ascii=False, default=str)
-        # Map level to stdlib
         level_map = {"TRACE": DEBUG, "DEBUG": DEBUG, "INFO": INFO,
                       "WARN": WARN, "ERROR": ERROR, "FATAL": FATAL}
         self._log.log(level_map.get(event.level, INFO), "%s", line)
-        # Buffer for diagnostics
         self._buffer.append(event)
         if len(self._buffer) > self._buffer_max:
             self._buffer.pop(0)
+        # Broadcast via WebSocket (best-effort)
+        try:
+            from ws_manager import ws_manager
+            asyncio.create_task(ws_manager.broadcast("log_event", event.to_dict()))
+        except Exception:
+            pass
+        # Batch-write to BotLog every 10 events
+        try:
+            d = event.to_dict()
+            payload = {"level": d.get("level", "INFO"), "message": d.get("message", "")}
+            _botlog_batch.append(payload)
+            if len(_botlog_batch) >= 10:
+                asyncio.create_task(_flush_botlog())
+        except Exception:
+            pass
 
-    def trace(self, msg: str, **kw): self._emit(LogEvent(level="TRACE", message=msg, **kw))
-    def debug(self, msg: str, **kw): self._emit(LogEvent(level="DEBUG", message=msg, **kw))
-    def info(self, msg: str, **kw): self._emit(LogEvent(level="INFO", message=msg, **kw))
-    def warn(self, msg: str, **kw): self._emit(LogEvent(level="WARN", message=msg, **kw))
-    def error(self, msg: str, **kw): self._emit(LogEvent(level="ERROR", message=msg, **kw))
-    def fatal(self, msg: str, **kw): self._emit(LogEvent(level="FATAL", message=msg, **kw))
-
-    def get_buffer(self, level: str | None = None, limit: int = 50) -> list[dict]:
+    def get_buffer(self, level: str | None = None, module: str | None = None,
+                   since: str | None = None, limit: int = 50) -> list[dict]:
         items = self._buffer
         if level:
             items = [e for e in items if e.level == level]
+        if module:
+            items = [e for e in items if e.module == module]
+        if since:
+            try:
+                items = [e for e in items if e.timestamp >= since]
+            except Exception:
+                pass
         return [e.to_dict() for e in items[-limit:]]
 
     def get_stats(self) -> dict:

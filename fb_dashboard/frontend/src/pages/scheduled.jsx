@@ -1,5 +1,7 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import {
   fetchScheduledPosts, createScheduledPost, publishScheduledPost, deleteScheduledPost,
 } from "@/lib/api"
@@ -35,10 +37,13 @@ export function ScheduledPosts({ role }) {
   const [imageUrl, setImageUrl] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
 
+  const schedInterval = useAdaptiveInterval("normal")
   const { data: posts = [], isLoading, error, refetch } = useQuery({
     queryKey: ["scheduled-posts", filter],
     queryFn: () => fetchScheduledPosts(filter),
-    refetchInterval: 30000,
+    staleTime: 15000, refetchOnWindowFocus: true,
+    refetchInterval: schedInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const createMut = useMutation({
@@ -60,7 +65,7 @@ export function ScheduledPosts({ role }) {
   function resetForm() { setMessage(""); setImageUrl(""); setScheduledAt("") }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold">المنشورات المجدولة</h1>
@@ -164,6 +169,7 @@ export function ScheduledPosts({ role }) {
           })}
         </div>
       )}
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

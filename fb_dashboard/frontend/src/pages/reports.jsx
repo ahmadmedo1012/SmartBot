@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -61,7 +62,7 @@ export function Reports({ role }) {
   const allReplies = repliesRes?.items || []
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold">التقارير</h1>
@@ -207,6 +208,6 @@ export function Reports({ role }) {
       </div>
 
       <div className="mobile-nav-spacer" />
-    </div>
+    </motion.div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import {
   fetchBroadcasts, createBroadcast, sendBroadcast, cancelBroadcast, deleteBroadcast,
   estimateAudience, fetchTags,
@@ -460,6 +461,8 @@ export function Broadcast({ role }) {
 
   const { data: broadcasts = [], isLoading, error, refetch } = useQuery({
     queryKey: ["broadcasts"], queryFn: fetchBroadcasts,
+    staleTime: 15000, refetchOnWindowFocus: true, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const sendMut = useMutation({
@@ -486,7 +489,12 @@ export function Broadcast({ role }) {
   if (view === "detail" && selectedId) return <BroadcastDetail broadcastId={selectedId} onBack={() => { setView("list"); setSelectedId(null) }} />
 
   return (
-    <div className="content-container space-y-6">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -601,6 +609,7 @@ export function Broadcast({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

@@ -478,7 +478,24 @@ export function deleteOffer(id) {
   return api(`/api/offers/${id}`, { method: "DELETE" });
 }
 
+// ── Dashboard Bundle ──
+export function fetchDashboardBundle() {
+  return api("/api/dashboard/bundle");
+}
+
 // ── Facebook Insights ──
 export function fetchFacebookInsights(days = 7) {
   return api(`/api/facebook/insights?days=${days}`);
+}
+
+// ── Logs & Diagnostics ──
+export function fetchLogStream(level = "", module = "", since = "", limit = 100) {
+  const params = new URLSearchParams({ limit });
+  if (level) params.set("level", level);
+  if (module) params.set("module", module);
+  if (since) params.set("since", since);
+  return api(`/api/logs/stream?${params}`);
+}
+export function fetchLogStats() {
+  return api("/api/logs/stats");
 }

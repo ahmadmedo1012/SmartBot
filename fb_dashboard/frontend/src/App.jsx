@@ -1,9 +1,11 @@
-import { Suspense, useState, useEffect, useCallback } from "react"
+import { Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { Toaster } from "sonner"
+import { Toaster, toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Topbar } from "@/components/topbar"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { NotificationsProvider, useNotifications } from "@/hooks/use-notifications"
+import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { Login } from "@/pages/login"
 import { Dashboard } from "@/pages/dashboard"
@@ -28,6 +30,7 @@ import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
 import { ContentCalendar } from "@/pages/content-calendar"
 import { Team } from "@/pages/team"
 import { Subscribers } from "@/pages/subscribers"
+import { LiveLogs } from "@/pages/live-logs"
 import { AnimatePresence, motion } from "framer-motion"
 import { AnimatedBackground } from "@/components/AnimatedBackground"
 
@@ -69,6 +72,22 @@ const pages = {
   "content-calendar": ContentCalendar,
   team: Team,
   insights: Insights,
+  "live-logs": LiveLogs,
+}
+
+function ToastBridge() {
+  const { notifications } = useNotifications()
+  const prevLen = useRef(0)
+  useEffect(() => {
+    if (notifications.length === 0) { prevLen.current = 0; return }
+    if (notifications.length > prevLen.current) {
+      const n = notifications[0]
+      const fn = n.type === "error" ? toast.error : n.type === "warning" ? toast.warning : n.type === "success" || n.type === "reply" ? toast.success : toast.info
+      fn(n.title, { description: n.message, duration: 5000, important: true })
+    }
+    prevLen.current = notifications.length
+  }, [notifications])
+  return <Toaster position="top-left" richColors closeButton duration={5000} />
 }
 
 function AppInner() {
@@ -100,6 +119,11 @@ function AppInner() {
             queryClient.invalidateQueries({ queryKey: ["stats"] })
             queryClient.invalidateQueries({ queryKey: ["replies"] })
             queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
+          } else if (msg.event === "stats_update" && msg.data) {
+            queryClient.setQueryData(["stats"], (old) => old ? { ...old, ...msg.data } : msg.data)
+            queryClient.invalidateQueries({ queryKey: ["stats"] })
+          } else if (msg.event === "bot_status" && msg.data) {
+            queryClient.setQueryData(["bot-status"], msg.data)
           }
         } catch {}
       }
@@ -165,6 +189,7 @@ function AppInner() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
+      <NotificationsProvider>
       <div className="min-h-screen bg-noise">
         <AnimatedBackground />
         <div className="relative z-10">
@@ -189,9 +214,10 @@ function AppInner() {
             </motion.div>
           </AnimatePresence>
         </Topbar>
-        <Toaster position="top-left" richColors />
+        <ToastBridge />
         </div>
       </div>
+      </NotificationsProvider>
     </ThemeProvider>
   )
 }
@@ -200,7 +226,9 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AppInner />
+        <RefreshProvider queryClient={queryClient}>
+          <AppInner />
+        </RefreshProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   )

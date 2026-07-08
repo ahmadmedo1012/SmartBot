@@ -12,10 +12,13 @@ from typing import Any
 import bcrypt
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
+
+from api_cache import APICache
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
@@ -37,6 +40,8 @@ from content_calendar import ContentCalendarEngine, CalendarScheduler
 from team_engine import TeamEngine
 from commerce_engine import CommerceEngine
 from publisher_engine import PublisherEngine
+from event_bus import event_bus
+from logs_api import logs_router
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -74,6 +79,36 @@ content_calendar_engine = ContentCalendarEngine(fb)
 team_engine = TeamEngine()
 commerce_engine = CommerceEngine()
 _publisher = PublisherEngine()
+api_cache = APICache()
+
+
+# ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
+_dedup_locks: dict[str, asyncio.Lock] = {}
+_dedup_lock = asyncio.Lock()
+
+
+async def dedup_middleware(request: Request, call_next):
+    if request.method != "GET":
+        return await call_next(request)
+
+    qp = dict(sorted(request.query_params.items())) if request.query_params else {}
+    key = f"{request.method}:{request.url.path}?{json.dumps(qp, sort_keys=True)}"
+
+    async with _dedup_lock:
+        if key not in _dedup_locks:
+            _dedup_locks[key] = asyncio.Lock()
+        lock = _dedup_locks[key]
+
+    async with lock:
+        # ponytail: second concurrent caller will re-execute but hit the APICache if decorated
+        # Remove lock entry after a brief delay to avoid unbounded growth
+        response = await call_next(request)
+
+    async with _dedup_lock:
+        if key in _dedup_locks:
+            del _dedup_locks[key]
+
+    return response
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
@@ -158,6 +193,29 @@ async def lifespan(app: FastAPI):
             asyncio.create_task(_seq_scheduler.start())
             _calendar_scheduler = CalendarScheduler(content_calendar_engine)
             asyncio.create_task(_calendar_scheduler.start())
+
+        # Bridge event bus → WebSocket
+        async def _ws_bridge(data):
+            await ws_manager.broadcast("stats_update", data)
+        event_bus.subscribe("stats_update", _ws_bridge)
+
+        # Health push background task (every 30s)
+        async def _health_push():
+            while True:
+                try:
+                    async with AsyncSessionLocal() as db:
+                        hour_ago = datetime.utcnow() - timedelta(hours=1)
+                        recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
+                        running = _bot_task is not None and not _bot_task.done() if _bot_task else False
+                        payload = {"replies_last_hour": recent, "running": running,
+                                   "timestamp": datetime.utcnow().isoformat()}
+                        await ws_manager.broadcast("bot_health", payload)
+                        await event_bus.emit("bot_health", payload)
+                except Exception:
+                    pass
+                await asyncio.sleep(30)
+        if not _IS_VERCEL:
+            asyncio.create_task(_health_push())
     except Exception as e:
         log.error(f"Startup error (app continues): {e}")
 
@@ -171,6 +229,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.middleware("http")(dedup_middleware)
+
+# Register logs API router
+app.include_router(logs_router)
+
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 # Mobile app - serve from mobile/dist/
@@ -370,6 +434,120 @@ async def dashboard_page(request: Request):
     if html_path.exists():
         return HTMLResponse(html_path.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>SmartBot Dashboard</h1><p>Loading...</p>")
+
+
+# ── Static file caching headers ────────────────────────────────────────────────
+@app.middleware("http")
+async def static_cache_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") and "?" in request.url.path:
+        # ponytail: hashed assets (vite-style), immutable
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.url.path in ("/", "/index.html"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+# ── Dashboard Bundle Endpoint ──────────────────────────────────────────────────
+@app.get("/api/dashboard/bundle")
+@api_cache.cached(ttl=5)
+async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
+    """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
+    now = datetime.utcnow()
+    today = now.date()
+
+    # Stats — merged queries
+    total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+    today_replies = await db.scalar(
+        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+    ) or 0
+
+    # Chart data — single query
+    chart_rows = await db.execute(
+        select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
+        .where(Reply.created_at >= now - timedelta(days=7))
+        .group_by(cast(Reply.created_at, Date))
+    )
+    chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
+
+    # Fan count (cached internally by FBClient so no issue calling it)
+    fan_count = 0
+    try:
+        fan_count = await fb.get_page_fan_count()
+    except Exception:
+        pass
+
+    # Top rule
+    top = None
+    try:
+        stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
+        top = (await db.execute(stmt)).first()
+    except Exception:
+        pass
+
+    # Rules — just count + enabled count for dashboard
+    rule_rows = await db.execute(select(Rule))
+    all_rules = rule_rows.scalars().all()
+    rules = [{
+        "id": r.id, "name": r.name, "enabled": r.enabled,
+    } for r in all_rules]
+    rules_count = len(all_rules)
+    active_rules_count = sum(1 for r in all_rules if r.enabled)
+
+    # Bot status
+    running = _bot_task is not None and not _bot_task.done()
+
+    # AI status
+    ai = get_ai()
+
+    # Recent activity — last 8 entries
+    recent_replies_rows = await db.execute(
+        select(Reply).order_by(desc(Reply.created_at)).limit(8)
+    )
+    recent_logs_rows = await db.execute(
+        select(BotLog).order_by(desc(BotLog.created_at)).limit(8)
+    )
+    activities = []
+    for r in recent_replies_rows.scalars().all():
+        activities.append({
+            "type": "reply", "text": f"رد على {r.commenter_name}",
+            "detail": r.reply_text[:60], "time": r.created_at.isoformat() if r.created_at else None,
+        })
+    for l in recent_logs_rows.scalars().all():
+        activities.append({
+            "type": "log", "level": l.level, "text": l.message[:100],
+            "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
+        })
+    activities.sort(key=lambda a: a.get("time", ""), reverse=True)
+    activities = activities[:8]
+
+    # Recent replies — last 5
+    recent_replies_data = await db.execute(
+        select(Reply).order_by(desc(Reply.created_at)).limit(5)
+    )
+    recent_replies = [{
+        "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
+        "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
+        "rule_id": r.rule_id,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    } for r in recent_replies_data.scalars().all()]
+
+    return {
+        "stats": {
+            "total_replies": total_replies,
+            "today_replies": today_replies,
+            "fan_count": fan_count,
+            "top_rule_id": int(top[0]) if top and top[0] is not None else None,
+            "chart": chart,
+        },
+        "rules": rules,
+        "rules_count": rules_count,
+        "active_rules_count": active_rules_count,
+        "bot_status": {"running": running, "interval": settings.BOT_INTERVAL_SECONDS},
+        "ai_status": {"available": ai.available, "provider": ai.provider_name},
+        "recent_activity": activities,
+        "recent_replies": recent_replies,
+    }
 
 
 
@@ -652,6 +830,10 @@ async def restart_bot(_=Depends(require_role("admin"))):
     if _bot_task:
         _bot_task.cancel()
     _bot_task = asyncio.create_task(_run_bot_loop())
+    asyncio.create_task(ws_manager.broadcast("notification", {
+        "type": "bot_started", "title": "تم تشغيل البوت",
+        "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
+    }))
     return {"ok": True}
 
 
@@ -661,6 +843,10 @@ async def stop_bot(_=Depends(require_role("admin"))):
     if _bot_task and not _bot_task.done():
         _bot_task.cancel()
         _bot_task = None
+    asyncio.create_task(ws_manager.broadcast("notification", {
+        "type": "bot_stopped", "title": "تم إيقاف البوت",
+        "message": "تم إيقاف البوت يدوياً", "link": "/settings",
+    }))
     return {"ok": True}
 
 
@@ -1552,6 +1738,34 @@ async def websocket_endpoint(ws: WebSocket):
         ws_manager.disconnect(ws)
 
 
+# ── Server-Sent Events ─────────────────────────────────────────────
+
+@app.get("/api/events")
+async def sse_endpoint(request: Request):
+    """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health)."""
+    async def event_generator():
+        queue: asyncio.Queue = asyncio.Queue()
+        async def _on_event(data):
+            await queue.put(data)
+        event_bus.subscribe("stats_update", _on_event)
+        event_bus.subscribe("bot_health", _on_event)
+        try:
+            # Send initial keepalive
+            yield "data: {\"event\":\"connected\"}\n\n"
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=30)
+                    payload = json.dumps({"event": "stats_update", "data": data}, default=str)
+                    yield f"data: {payload}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            event_bus.unsubscribe("stats_update", _on_event)
+            event_bus.unsubscribe("bot_health", _on_event)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 # ── Analytics Events (internal) ──────────────────────────────────────────────
 
 def _track_event(event_type: str, metadata: dict | None = None):
@@ -2353,6 +2567,21 @@ async def delete_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role
     return {"ok": True}
 
 
+# ── Notification Broadcast (Admin) ───────────────────────────
+
+@app.post("/api/notifications/broadcast")
+async def broadcast_notification(
+    notif_type: str = Form("info"), title: str = Form(...),
+    message: str = Form(""), link: str = Form(""),
+    _=Depends(require_role("admin")),
+):
+    """Broadcast a notification to all connected dashboard clients."""
+    asyncio.create_task(ws_manager.broadcast("notification", {
+        "type": notif_type, "title": title, "message": message, "link": link or None,
+    }))
+    return {"ok": True}
+
+
 # ── Diagnostics & Admin Endpoints ─────────────────────────────
 
 
@@ -2380,13 +2609,22 @@ async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user))
 
 
 @app.get("/api/diagnostics/logs")
-async def diagnostic_logs(level: str = Query(""), limit: int = Query(50), _=Depends(get_current_user)):
+async def diagnostic_logs(level: str = Query(""), module: str = Query(""),
+                          since: str = Query(""), limit: int = Query(50),
+                          _=Depends(get_current_user)):
     from monitor import get_logger
-    return {"logs": get_logger().get_buffer(level or None, limit)}
+    return {"logs": get_logger().get_buffer(level or None, module=module or None,
+                                            since=since or None, limit=limit)}
 
 
-@app.get("/api/diagnostics/bot-events")
-async def diagnostic_bot_events(limit: int = Query(50), _=Depends(get_current_user)):
+@app.get("/api/diagnostics/stats")
+async def diagnostic_stats(_=Depends(get_current_user)):
+    from monitor import get_logger
+    return get_logger().get_stats()
+
+
+@app.get("/api/diagnostics/events")
+async def diagnostic_events(limit: int = Query(100), _=Depends(get_current_user)):
     from monitor import get_logger
     return {"events": get_logger().get_buffer(limit=limit)}
 

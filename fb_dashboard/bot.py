@@ -19,8 +19,9 @@ import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, Date
 from sqlalchemy.exc import IntegrityError
 
 from database import AsyncSessionLocal
@@ -459,6 +460,11 @@ class ReplyPipeline:
                 "commenter": ctx.from_name, "comment": ctx.text[:50],
                 "reply": reply[:50], "rule_id": rule_id,
             }))
+            asyncio.create_task(ws_manager.broadcast("notification", {
+                "type": "reply", "title": "رد جديد",
+                "message": f"تم الرد على {ctx.from_first}",
+                "link": "/replies",
+            }))
         except Exception:
             pass
 
@@ -586,7 +592,38 @@ class BotEngine:
                     # ponytail: aggressive invalidation — optimize when cycle >1000
                     await self._rule_cache.invalidate()
 
-                # Heartbeat
+                # Broadcast stats after every cycle (WS + SSE)
+                try:
+                    from ws_manager import ws_manager
+                    from event_bus import event_bus
+                    async with AsyncSessionLocal() as s:
+                        total = await s.scalar(select(func.count(Reply.id))) or 0
+                        today_val = await s.scalar(
+                            select(func.count(Reply.id))
+                            .where(cast(Reply.created_at, Date) == datetime.utcnow().date())
+                        ) or 0
+                        payload = {"total_replies": total, "today_replies": today_val, "cycle": self._cycle}
+                        asyncio.create_task(ws_manager.broadcast("stats_update", payload))
+                        asyncio.create_task(event_bus.emit("stats_update", payload))
+                except Exception:
+                    pass
+
+                # Cycle end telemetry
+                total_comments = sum(len(await self.fb.get_post_comments(p["id"])) for p in posts) if posts else 0
+                cycle_ms = (time.time() - t_start) * 1000
+                self._mon.info(
+                    f"Cycle #{self._cycle} done",
+                    module="engine",
+                    extra={
+                        "duration_ms": f"{cycle_ms:.0f}",
+                        "posts": len(posts),
+                        "comments": total_comments,
+                        "replied": total_replied,
+                        "rules": len(rules),
+                    },
+                )
+
+                # Heartbeat every 10 cycles
                 if self._cycle % 10 == 0:
                     ctx = _get_ctx()
                     self._mon.info(
@@ -605,21 +642,31 @@ class BotEngine:
 
     async def process_single_comment(self, comment: dict, post_id: str):
         """Process a single webhook comment without running a full cycle."""
+        cid = comment.get("id", "")[:12]
+        t0 = time.time()
         await self._ensure_cache()
+        self._mon.info("webhook comment received", comment_id=cid, module="webhook")
         async with AsyncSessionLocal() as session:
             try:
                 rules = await self._rule_cache.get_rules()
                 if not rules:
+                    self._mon.debug("webhook: no rules", comment_id=cid, module="webhook")
                     return
                 dm_map = await self._load_dm_map()
                 matcher = IntentAwareMatcher(rules, dm_map)
                 replied_ids = await self._load_replied_ids(session)
                 self._dedup_engine.load(replied_ids)
                 pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
-                await pipeline.process(session, comment, post_id, matcher)
+                ok = await pipeline.process(session, comment, post_id, matcher)
+                elapsed = (time.time() - t0) * 1000
+                self._mon.info(
+                    f"webhook {'replied' if ok else 'skipped'}",
+                    comment_id=cid, module="webhook",
+                    extra={"duration_ms": f"{elapsed:.0f}", "replied": ok},
+                )
             except Exception as e:
                 self._mon.error(f"Single comment processing error: {e}",
-                                comment_id=comment.get("id", "")[:12], module="engine")
+                                comment_id=cid, module="engine")
 
     async def _load_rules_from_db(self) -> list[dict]:
         async with AsyncSessionLocal() as session:

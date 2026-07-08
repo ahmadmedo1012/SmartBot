@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
 import { Search, Download, AlertCircle, Inbox, Filter, RotateCcw, Reply, BarChart3, Sparkles, Brain } from "lucide-react"
@@ -227,6 +228,7 @@ function ReplyDialog({ reply, open, onOpenChange }) {
 function HourlyChart() {
   const { data = [] } = useQuery({
     queryKey: ["hourly-stats"], queryFn: fetchHourlyStats,
+    staleTime: 30000, refetchOnWindowFocus: true,
     refetchInterval: 60000,
   })
 
@@ -283,6 +285,7 @@ export function Replies() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["replies", page, search, selectedRuleId],
     queryFn: () => fetchReplies(page, PER_PAGE, search, selectedRuleId === "all" ? "" : selectedRuleId),
+    staleTime: 10000, refetchOnWindowFocus: true, retry: 2,
     placeholderData: (prev) => prev,
   })
 
@@ -318,7 +321,12 @@ export function Replies() {
   }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -457,6 +465,7 @@ export function Replies() {
           onOpenChange={(o) => { if (!o) setReplyTarget(null) }}
         />
       )}
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

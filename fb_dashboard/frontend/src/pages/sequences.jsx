@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { motion } from "framer-motion"
 import {
   fetchSequences, createSequence, updateSequence, deleteSequence,
   fetchSequence, addSequenceStep, updateSequenceStep, deleteSequenceStep,
@@ -508,7 +509,12 @@ export function Sequences({ role }) {
 
   // ── List View ──
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -647,6 +653,7 @@ export function Sequences({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

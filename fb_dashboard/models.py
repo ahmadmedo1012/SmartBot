@@ -32,8 +32,8 @@ class Reply(Base):
     commenter_name = Column(String(200), default="")
     comment_text = Column(Text, default="")
     reply_text = Column(Text, default="")
-    rule_id = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    rule_id = Column(Integer, nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 
 class BotLog(Base):
@@ -42,7 +42,7 @@ class BotLog(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     level = Column(String(20), default="INFO")
     message = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 
 class BotState(Base):

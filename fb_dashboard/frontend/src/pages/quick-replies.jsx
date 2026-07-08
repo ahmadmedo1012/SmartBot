@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { fetchTemplates, createTemplate, updateTemplate, deleteTemplate } from "@/lib/api"
@@ -59,7 +60,7 @@ export function QuickReplies({ role }) {
   function openEdit(t) { setEditTarget(t); setName(t.name); setText(t.text); setCategory(t.category); setShortcut(t.shortcut || "") }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold">الردود السريعة</h1>
@@ -151,6 +152,7 @@ export function QuickReplies({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

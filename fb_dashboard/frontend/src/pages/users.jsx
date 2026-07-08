@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { fetchUsers, createUser, updateUser, deleteUser } from "@/lib/api"
@@ -97,7 +98,7 @@ export function Users({ role }) {
   })
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">المستخدمين</h1>
@@ -185,6 +186,7 @@ export function Users({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

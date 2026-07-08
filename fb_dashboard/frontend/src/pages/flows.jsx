@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { motion } from "framer-motion"
 import {
   ReactFlow, Background, Controls, MiniMap,
   useNodesState, useEdgesState, addEdge,
@@ -23,9 +24,9 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import {
-  Plus, Save, Power, Trash2, ArrowLeft, GripVertical,
+  Plus, Save, Power, Trash2, ArrowLeft,
   Sparkles, MessageSquare, GitFork, Clock, Flag,
-  Wrench, Search, AlertCircle, Layers, X,
+  Wrench, Search, AlertCircle, Layers,
 } from "lucide-react"
 
 // ── Helpers ──
@@ -662,7 +663,12 @@ export function Flows({ role }) {
 
   // ── List View ──
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="content-container space-y-6"
+    >
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -804,6 +810,7 @@ export function Flows({ role }) {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

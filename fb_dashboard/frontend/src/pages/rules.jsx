@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 import {
   Plus, Pencil, Trash2, Power, Search, MessageSquare,
   GripVertical, Copy, FileText, Tag,
-  AlertCircle, Filter, SlidersHorizontal, LayoutList,
+  AlertCircle, Filter, LayoutList,
 } from "lucide-react"
 
 // ── Categories ──
@@ -528,6 +528,7 @@ export function Rules({ role }) {
           </div>
         </DialogContent>
       </Dialog>
+      <div className="mobile-nav-spacer" />
     </motion.div>
   )
 }

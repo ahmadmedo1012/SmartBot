@@ -1,5 +1,7 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchAllComments, replyToComment, hideComment, deleteComment } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,10 +26,13 @@ export function Comments({ role }) {
   const [replyText, setReplyText] = useState("")
   const [aiSuggestions, setAiSuggestions] = useState([])
 
+  const cmInterval = useAdaptiveInterval("normal")
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["comments"],
     queryFn: () => fetchAllComments(30),
-    refetchInterval: 30000,
+    staleTime: 15000, refetchOnWindowFocus: true,
+    refetchInterval: cmInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const comments = data?.items || []
@@ -65,7 +70,7 @@ export function Comments({ role }) {
   }
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
@@ -162,6 +167,6 @@ export function Comments({ role }) {
       </Dialog>
 
       <div className="mobile-nav-spacer" />
-    </div>
+    </motion.div>
   )
 }

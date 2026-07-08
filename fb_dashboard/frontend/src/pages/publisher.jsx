@@ -1,5 +1,7 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import {
   fetchPublisherStatus, configurePublisher, publishToPlatform, fetchPlatformSettings,
 } from "@/lib/api"
@@ -10,10 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "/components/ui/dialog"
 import { toast } from "sonner"
 import {
-  Globe, Send, Settings2, CheckCircle2, XCircle, Lock, Plus, Clock, AlertCircle, Inbox,
+  Globe, Settings2, CheckCircle2, XCircle, Plus, AlertCircle,
 } from "lucide-react"
 
 const PLATFORMS = {
@@ -134,10 +136,13 @@ export function Publisher({ role }) {
   const [imageUrl, setImageUrl] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
 
+  const pubInterval = useAdaptiveInterval("normal")
   const { data: status, isLoading, error, refetch } = useQuery({
     queryKey: ["publisher-status"],
     queryFn: fetchPublisherStatus,
-    refetchInterval: 30000,
+    staleTime: 15000, refetchOnWindowFocus: true,
+    refetchInterval: pubInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const publishMut = useMutation({
@@ -164,7 +169,7 @@ export function Publisher({ role }) {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -265,6 +270,7 @@ export function Publisher({ role }) {
           <p className="text-sm text-muted-foreground">لا توجد منصات متصلة حالياً</p>
         </div>
       )}
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

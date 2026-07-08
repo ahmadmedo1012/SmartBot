@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useEffect, useRef } from "react"
 import { motion, useSpring, useTransform, useInView } from "framer-motion"
-import { fetchStats, fetchRules, fetchBotStatus, fetchRecentActivity,
-  fetchReplies, fetchAiStatus } from "@/lib/api"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
+import { fetchDashboardBundle } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -372,20 +372,24 @@ function ErrorState({ message, onRetry }) {
 export function Dashboard(_p) {
   useEffect(() => { document.title = "SmartBot — لوحة التحكم" }, [])
 
-  const { data: stats, isLoading, error, refetch } = useQuery({
-    queryKey: ["stats"], queryFn: fetchStats, refetchInterval: 10000,
+  const dashInterval = useAdaptiveInterval("critical")
+
+  const { data: bundle, isLoading, error, refetch } = useQuery({
+    queryKey: ["dashboard-bundle"],
+    queryFn: fetchDashboardBundle,
+    staleTime: 5000,
+    refetchInterval: dashInterval,
+    retry: 2,
+    placeholderData: (prev) => prev,
+    refetchOnWindowFocus: true,
   })
-  const { data: rules = [] } = useQuery({ queryKey: ["rules"], queryFn: fetchRules })
-  const { data: botStatus } = useQuery({
-    queryKey: ["bot-status"], queryFn: fetchBotStatus, refetchInterval: 10000,
-  })
-  const { data: aiStatus } = useQuery({ queryKey: ["ai-status"], queryFn: fetchAiStatus })
-  const { data: activities, isLoading: actLoading } = useQuery({
-    queryKey: ["recent-activity"], queryFn: () => fetchRecentActivity(8), refetchInterval: 15000,
-  })
-  const { data: recent } = useQuery({
-    queryKey: ["replies-recent"], queryFn: () => fetchReplies(1, 5),
-  })
+
+  const stats = bundle?.stats
+  const rules = bundle?.rules || []
+  const botStatus = bundle?.bot_status
+  const aiStatus = bundle?.ai_status
+  const activities = bundle?.recent_activity
+  const recentReplies = bundle?.recent_replies || []
 
   const chartData = useMemo(() => stats?.chart
     ? Object.entries(stats.chart).map(([d, c]) => ({
@@ -394,8 +398,7 @@ export function Dashboard(_p) {
       }))
     : [], [stats])
 
-  const activeRules = rules.filter(r => r.enabled).length
-  const recentReplies = recent?.items || []
+  const activeRules = bundle?.active_rules_count || 0
 
   // Animated entry for the grid
   const container = {
@@ -512,7 +515,7 @@ export function Dashboard(_p) {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ActivityTimeline activities={activities} loading={actLoading} />
+              <ActivityTimeline activities={activities} loading={isLoading} />
             </CardContent>
           </Card>
         </div>

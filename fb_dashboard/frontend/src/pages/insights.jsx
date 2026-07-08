@@ -1,5 +1,7 @@
+import { motion } from "framer-motion"
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchFacebookInsights } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,10 +14,13 @@ export function Insights(_props) {
   useEffect(() => { document.title = "التحليلات | SmartBot" }, [])
   const [days, setDays] = useState("7")
 
+  const insightInterval = useAdaptiveInterval("background")
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["fb-insights", days],
     queryFn: () => fetchFacebookInsights(parseInt(days)),
-    refetchInterval: 300000,
+    staleTime: 120000, refetchOnWindowFocus: true,
+    refetchInterval: insightInterval, retry: 2,
+    placeholderData: (prev) => prev,
   })
 
   const chartData = useMemo(() => {
@@ -29,7 +34,7 @@ export function Insights(_props) {
   }, [data])
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
@@ -162,6 +167,6 @@ export function Insights(_props) {
       ) : null}
 
       <div className="mobile-nav-spacer" />
-    </div>
+    </motion.div>
   )
 }

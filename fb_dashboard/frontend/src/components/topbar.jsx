@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "@/components/theme-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -19,7 +19,9 @@ import {
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
   Gift, PanelLeftClose, PanelLeft, Search,
+  Activity, Radio,
 } from "lucide-react"
+import { NotificationBell } from "@/components/notification-bell"
 
 /* ── sidebar section groups ── */
 const sidebarSections = [
@@ -53,6 +55,12 @@ const sidebarSections = [
       { key: "reports", label: "التقارير", icon: BarChart3 },
       { key: "insights", label: "تحليلات", icon: TrendingUp },
       { key: "quick-replies", label: "ردود سريعة", icon: BookmarkCheck },
+    ],
+  },
+  {
+    label: "المراقبة",
+    items: [
+      { key: "live-logs", label: "السجل المباشر", icon: Activity },
     ],
   },
   {
@@ -291,7 +299,8 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
           </div>
           <div className="lg:hidden" />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5">
+            <NotificationBell />
             <button
               onClick={toggleTheme}
               className="size-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"

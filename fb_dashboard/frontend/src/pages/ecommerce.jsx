@@ -1,3 +1,4 @@
+import { motion } from "framer-motion"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { fetchCommerceStatus, configureShopify } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -89,7 +90,7 @@ export function Ecommerce() {
   const connected = status?.configured
 
   return (
-    <div className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <ShoppingCart className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">المتجر الإلكتروني</h1>
@@ -171,6 +172,7 @@ export function Ecommerce() {
           </form>
         </CardContent>
       </Card>
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

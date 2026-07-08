@@ -1,17 +1,17 @@
+import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
-import { fetchAiStatus, fetchTemplates, fetchRules } from "@/lib/api"
+import { fetchAiStatus, fetchTemplates } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import {
   Brain, Sparkles, Send, ThumbsUp, ThumbsDown, Meh,
-  AlertCircle, Copy, Check, MessageSquare, Zap,
+  Copy, Check, MessageSquare, Zap,
 } from "lucide-react"
 
 function api(path, opts = {}) {
@@ -82,7 +82,7 @@ export function AiAssistant({ role }) {
 
   if (!aiStatus?.available) {
     return (
-      <div className="content-container space-y-6 animate-fade-in">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6 animate-fade-in">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold">المساعد الذكي</h1>
           <p className="text-sm text-muted-foreground mt-1">توليد ردود ذكية باستخدام الذكاء الاصطناعي</p>
@@ -106,12 +106,12 @@ export function AiAssistant({ role }) {
             )}
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="content-container space-y-6">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="content-container space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-gradient-premium text-2xl font-bold flex items-center gap-2">
@@ -313,6 +313,7 @@ export function AiAssistant({ role }) {
           </CardContent>
         </Card>
       )}
-    </div>
+      <div className="mobile-nav-spacer" />
+    </motion.div>
   )
 }

@@ -348,10 +348,10 @@ export function Messages({ role }) {
                     return (
                       <div key={m.id || idx} className={`flex ${isPage ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[75%] min-w-[120px] ${isPage ? "order-1" : "order-1"}`}>
-                          <div className={`p-3 rounded-2xl text-sm ${
+                          <div className={`p-3 rounded-2xl text-sm shadow-sm ${
                             isPage
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-muted text-foreground rounded-bl-md"
+                              ? "bubble-page rounded-br-md"
+                              : "bubble-user rounded-bl-md"
                           }`}>
                             <p>{m.message || <span className="italic opacity-60">(وسائط)</span>}</p>
                           </div>

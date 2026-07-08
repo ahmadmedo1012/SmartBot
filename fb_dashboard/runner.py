@@ -542,8 +542,47 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     result = await fb.reply_to_comment(comment_id, message)
     if not result:
         raise HTTPException(400, "Failed to send reply")
-    # Log the reply
     log.info(f"User {current_user.username} replied to comment {comment_id}")
+    _track_event("manual_reply", {"comment_id": comment_id})
+    return {"ok": True}
+
+
+# ── Unified Comments Hub ──
+
+
+@app.get("/api/comments")
+async def get_all_comments(limit: int = Query(20), _=Depends(get_current_user)):
+    """Get ALL comments across recent posts — unified moderation feed."""
+    posts, _ = await fb.get_page_posts(10)
+    all_comments = []
+    for p in posts:
+        pid = p["id"]
+        comments = await fb.get_post_comments(pid, limit=10)
+        for c in comments:
+            from_data = c.get("from", {})
+            all_comments.append({
+                "id": c["id"], "post_id": pid,
+                "post_message": p.get("message", "")[:100],
+                "message": c.get("message", ""),
+                "from_name": from_data.get("name", ""),
+                "from_id": from_data.get("id", ""),
+                "created_time": c.get("created_time", ""),
+            })
+    all_comments.sort(key=lambda x: x.get("created_time", ""), reverse=True)
+    return {"items": all_comments[:limit], "total": len(all_comments[:limit])}
+
+
+@app.post("/api/comments/{comment_id}/hide")
+async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
+    result = await fb._post(f"{comment_id}", {"is_hidden": True})
+    if not result: raise HTTPException(400, "فشل إخفاء التعليق")
+    return {"ok": True}
+
+
+@app.delete("/api/comments/{comment_id}")
+async def delete_comment(comment_id: str, _=Depends(require_role("admin"))):
+    result = await fb._post(f"{comment_id}", {"is_deleted": True})
+    if not result: raise HTTPException(400, "فشل حذف التعليق")
     return {"ok": True}
 
 

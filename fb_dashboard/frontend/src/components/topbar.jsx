@@ -23,6 +23,7 @@ import {
 const navItems = [
   { key: "dashboard", label: "الرئيسية", icon: LayoutDashboard },
   { key: "messages", label: "الرسائل", icon: MessageSquare },
+  { key: "comments", label: "التعليقات", icon: MessageSquareReply },
   { key: "rules", label: "القواعد", icon: Bot },
   { key: "replies", label: "الردود", icon: MessageSquareReply },
   { key: "posts", label: "المنشورات", icon: FileText },

@@ -19,6 +19,7 @@ import { QuickReplies } from "@/pages/quick-replies"
 import { AiAssistant } from "@/pages/ai-assistant"
 import { Reports } from "@/pages/reports"
 import { Offers } from "@/pages/offers"
+import { Comments } from "@/pages/comments"
 import { Flows } from "@/pages/flows"
 import { Sequences } from "@/pages/sequences"
 import { Broadcast } from "@/pages/broadcast"
@@ -45,6 +46,7 @@ const pages = {
   messages: Messages,
   reports: Reports,
   offers: Offers,
+  comments: Comments,
   ads: Ads,
   settings: Settings,
   users: Users,

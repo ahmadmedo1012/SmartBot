@@ -114,6 +114,17 @@ export function replyToComment(commentId, message) {
   return api(`/api/replies/${commentId}/reply`, { method: "POST", body: fd });
 }
 
+// ── Comments Hub ──
+export function fetchAllComments(limit = 20) {
+  return api(`/api/comments?limit=${limit}`);
+}
+export function hideComment(commentId) {
+  return api(`/api/comments/${commentId}/hide`, { method: "POST" });
+}
+export function deleteComment(commentId) {
+  return api(`/api/comments/${commentId}`, { method: "DELETE" });
+}
+
 export function replyToConversation(conversationId, message) {
   const fd = new FormData();
   fd.append("message", message);

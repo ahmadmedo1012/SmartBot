@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Noto Sans Arabic", "Readex Pro", "Cairo", system-ui, -apple-system, sans-serif;
-  --font-heading: "Noto Naskh Arabic", "Readex Pro", serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", Menlo, monospace;
+  --font-sans: "Cairo", system-ui, -apple-system, sans-serif;
+  --font-heading: "Cairo", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", Menlo, monospace;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;

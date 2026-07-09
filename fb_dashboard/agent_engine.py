@@ -2,6 +2,7 @@
 SmartBot AI Agent v2 — LLM Orchestrator with Tool Registry, Memory, Auto-Execute.
 Bot engine (keyword reply pipeline) remains untouched.
 """
+from __future__ import annotations
 import asyncio, json, logging, time
 from typing import Any
 from datetime import datetime

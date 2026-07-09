@@ -933,6 +933,19 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
     return {"ok": True, "interval": interval}
 
 
+@app.get("/api/cron/bot-cycle")
+async def cron_bot_cycle():
+    """Vercel Cron: runs bot cycle every 2 minutes. No auth needed (Vercel-internal)."""
+    try:
+        from bot import BotEngine
+        engine = BotEngine(fb)
+        await engine.cycle()
+        return {"ok": True, "cycle": "completed"}
+    except Exception as e:
+        log.error(f"Cron bot cycle error: {e}")
+        return {"ok": False, "error": str(e)[:200]}
+
+
 
 @app.get("/api/logs")
 async def get_logs(limit: int = Query(50), db=Depends(get_db), _=Depends(get_current_user)):

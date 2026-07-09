@@ -76,7 +76,7 @@ const PLATFORM_CONFIG = {
 const STATUS_CONFIG = {
   draft: { label: "مسودة", color: "text-muted-foreground bg-muted" },
   scheduled: { label: "مجدول", color: "text-amber-600 bg-amber-500/15" },
-  published: { label: "منشور", color: "text-emerald-600 bg-emerald-500/15" },
+  published: { label: "منشور", color: "text-accent bg-accent/15" },
   failed: { label: "فشل", color: "text-destructive bg-destructive/15" },
 }
 
@@ -386,7 +386,7 @@ export function ContentCalendar({ role }) {
         ) : (
           [
             { label: "الإجمالي", value: summary.total, color: "text-foreground" },
-            { label: "منشور", value: summary.published, color: "text-emerald-600" },
+            { label: "منشور", value: summary.published, color: "text-accent" },
             { label: "مجدول", value: summary.scheduled, color: "text-amber-600" },
             { label: "مسودة", value: summary.draft, color: "text-muted-foreground" },
           ].map((s) => (
@@ -657,7 +657,7 @@ function PostsList({ posts, canEdit, onPublish, onEdit, onDelete, publishPending
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-emerald-600 hover:text-emerald-700"
+                        className="size-7 text-accent hover:text-accent/80"
                         onClick={() => onPublish(post.id)}
                         disabled={publishPending}
                         title="نشر الآن"

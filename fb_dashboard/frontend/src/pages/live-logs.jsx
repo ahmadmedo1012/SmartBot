@@ -12,7 +12,7 @@ import {
 const LEVEL_CONFIG = {
   ERROR: { color: "bg-red-500/15 text-red-500 border-red-500/20", icon: AlertTriangle, dot: "bg-red-500" },
   WARN: { color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/20", icon: AlertCircle, dot: "bg-yellow-500" },
-  INFO: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20", icon: Info, dot: "bg-emerald-500" },
+  INFO: { color: "bg-accent/15 text-accent border-accent/20", icon: Info, dot: "bg-accent" },
   DEBUG: { color: "bg-blue-500/10 text-blue-400 border-blue-500/15", icon: Bug, dot: "bg-blue-400" },
   TRACE: { color: "bg-gray-500/10 text-gray-400 border-gray-500/15", icon: Terminal, dot: "bg-gray-400" },
   FATAL: { color: "bg-red-600/20 text-red-600 border-red-600/25", icon: AlertTriangle, dot: "bg-red-600" },

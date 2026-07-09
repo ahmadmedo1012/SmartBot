@@ -43,11 +43,11 @@ const ACTIVITY_ICONS = {
   edit: Edit3, remove: UserMinus, invite: UserPlus, default: Activity,
 }
 const ACTIVITY_COLORS = {
-  reply: "text-emerald-500 bg-emerald-500/10",
+  reply: "text-accent bg-accent/10",
   comment: "text-blue-500 bg-blue-500/10",
   mention: "text-violet-500 bg-violet-500/10",
   login: "text-primary bg-primary/10", edit: "text-amber-500 bg-amber-500/10",
-  remove: "text-destructive bg-destructive/10", invite: "text-emerald-500 bg-emerald-500/10",
+  remove: "text-destructive bg-destructive/10", invite: "text-accent bg-accent/10",
   default: "text-muted-foreground bg-muted",
 }
 

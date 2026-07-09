@@ -450,7 +450,7 @@ export function Rules({ role }) {
               setEditRule(null)
               setAddOpen(true)
             }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 rounded-xl shadow-premium cursor-pointer"
+            className="bg-accent hover:bg-accent/80 text-white gap-2 rounded-xl shadow-premium cursor-pointer"
           >
             <Plus className="size-4" />
             إضافة قاعدة
@@ -515,7 +515,7 @@ export function Rules({ role }) {
           {canEdit && !search && (
             <Button
               onClick={() => setAddOpen(true)}
-              className="mt-4 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl cursor-pointer"
+              className="mt-4 gap-2 bg-accent hover:bg-accent/80 text-white rounded-xl cursor-pointer"
             >
               <Plus className="size-4" />
               إضافة قاعدة

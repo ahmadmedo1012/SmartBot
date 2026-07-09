@@ -136,7 +136,6 @@ function AppInner() {
 
   if (authLoading) {
     return (
-      <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
         <div className="loading-screen">
           <div className="loading-grid" />
           <div className="relative flex flex-col items-center gap-6">
@@ -155,17 +154,14 @@ function AppInner() {
             </div>
           </div>
         </div>
-      </ThemeProvider>
     )
   }
 
   if (!auth) {
     return (
-      <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
           <Login onAuth={handleLogin} />
         </Suspense>
-      </ThemeProvider>
     )
   }
 
@@ -173,7 +169,6 @@ function AppInner() {
   const role = auth.role
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
       <NotificationsProvider>
       <div className="min-h-screen bg-noise">
         <AnimatedBackground />
@@ -203,18 +198,19 @@ function AppInner() {
         </div>
       </div>
       </NotificationsProvider>
-    </ThemeProvider>
   )
 }
 
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <RefreshProvider queryClient={queryClient}>
-          <AppInner />
-        </RefreshProvider>
-      </QueryClientProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
+        <QueryClientProvider client={queryClient}>
+          <RefreshProvider queryClient={queryClient}>
+            <AppInner />
+          </RefreshProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

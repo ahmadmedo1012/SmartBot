@@ -91,7 +91,7 @@ function SidebarNavItem({ item, active, collapsed, onClick }) {
     <button
       onClick={onClick}
       className={`group relative flex w-full items-center rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
-        collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"
+        collapsed ? "justify-center px-0 py-3.5" : "gap-3 px-3 py-2.5"
       } ${
         active
           ? "text-white bg-white/10"
@@ -288,13 +288,12 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
 
       {/* ════════════════ MAIN CONTENT COLUMN ════════════════ */}
       <div
-        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-in-out ${
-          sidebarCollapsed ? "md:mr-[64px]" : "md:mr-[240px]"
-        }`}
+        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-in-out`}
+        style={{ marginRight: sidebarWidth ? `${sidebarWidth}px` : '0' }}
       >
         {/* ── desktop minimal topbar ── */}
         <header className="hidden md:flex items-center justify-between h-14 px-4 lg:px-6 border-b border-border bg-background/60 backdrop-blur-2xl shrink-0">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/40 text-muted-foreground text-xs w-56 cursor-default">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/40 text-muted-foreground text-xs w-56 cursor-text">
             <Search className="size-3.5 shrink-0" />
             <span>بحث...</span>
           </div>
@@ -381,6 +380,8 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                 onClick={() => setMobileDrawerOpen(false)}
               />
               <motion.div
+                role="dialog"
+                aria-modal="true"
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}

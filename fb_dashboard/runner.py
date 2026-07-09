@@ -1074,6 +1074,31 @@ async def ai_generate_reply(
     return {"reply": reply or ""}
 
 
+@app.post("/api/ai/analyze-image")
+async def ai_analyze_image(data: dict = Body(...)):
+    """Analyze text/image context with AI. Used by agent chat for analysis overlay."""
+    ai = get_ai()
+    if not ai.available:
+        return {"analysis": ""}
+    text = data.get("text", "")
+    prompt = f"حلل هذا الطلب: {text}\n\nماذا يحتوي؟ قدم وصف مختصر بالعربية"
+    try:
+        if ai._provider == "openai" and ai._openai_client:
+            r = await ai._openai_client.chat.completions.create(
+                model=ai._openai_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=100, temperature=0.3,
+            )
+            return {"analysis": (r.choices[0].message.content or "").strip()[:100]}
+        elif ai._provider == "gemini" and ai._google_module:
+            model = ai._google_module.GenerativeModel(ai._model)
+            r = await model.generate_content_async(prompt)
+            return {"analysis": (r.text or "").strip()[:100]}
+    except Exception:
+        pass
+    return {"analysis": ""}
+
+
 @app.get("/api/ai/status")
 async def ai_status(_=Depends(get_current_user)):
     """Check AI provider status."""
@@ -1089,11 +1114,8 @@ async def agent_interpret(
     db=Depends(get_db),
     current_user: User = Depends(require_role("editor")),
 ):
-    """AI Agent: interpret Arabic command and execute via bot."""
+    """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
     agent = get_agent()
-    from sqlalchemy import select, func, desc
-    reply_count = await db.scalar(select(func.count(Reply.id))) or 0
-    rule_count = await db.scalar(select(func.count(Rule.id))) or 0
 
     # Handle image upload
     image_url = ""
@@ -1101,7 +1123,6 @@ async def agent_interpret(
         img_data = await image.read()
         if len(img_data) > 10 * 1024 * 1024:
             raise HTTPException(400, "Image too large — max 10MB")
-        # Save to static dir
         try:
             img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
             img_path = STATIC_DIR / "uploads" / img_filename
@@ -1111,64 +1132,41 @@ async def agent_interpret(
         except Exception as e:
             log.warning(f"Failed to save image: {e}")
 
-    ctx = {
-        "page_id": settings.FACEBOOK_PAGE_ID,
-        "bot_running": _bot_task is not None and not _bot_task.done(),
-        "rules_count": rule_count,
-        "reply_count": reply_count,
-        "user": current_user.username,
-        "has_image": bool(image_url),
-    }
-    interpretation = await agent.interpret(text, ctx)
-    action = interpretation.get("action", "unknown")
-    params = interpretation.get("params", {})
+    result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)
 
-    # Attach image if available
-    if image_url and action == "publish_post":
-        params["image_url"] = image_url
-
-    # Auto-execute for non-confirm actions
-    result = {"success": True, "data": {}, "message_ar": interpretation.get("response_ar", "")}
-    if not interpretation.get("need_confirmation", False) and action != "unknown":
-        exec_result = await agent.execute(action, params, fb, db)
-        result = {**result, **exec_result}
-        await ws_manager.broadcast("agent_message", {
-            "role": "agent", "text": result.get("message_ar", ""), "action": action,
-        })
+    # Broadcast via event_bus → SSE reaches all dashboard clients
+    asyncio.create_task(event_bus.emit("agent_message", {
+        "role": "agent", "text": result.get("response_ar", ""),
+        "action": result.get("action", "unknown"),
+        "success": result.get("success", False),
+    }))
 
     return {
-        "action": action,
-        "params": params,
-        "response_ar": result.get("message_ar", interpretation.get("response_ar", "")),
+        "action": result.get("action", "unknown"),
+        "params": result.get("params", {}),
+        "response_ar": result.get("response_ar", ""),
         "data": result.get("data", {}),
         "success": result.get("success", False),
-        "need_confirmation": interpretation.get("need_confirmation", False),
     }
 
 
-@app.post("/api/agent/confirm")
-async def agent_confirm(
-    text: str = Form(...),
-    db=Depends(get_db),
-    current_user: User = Depends(require_role("editor")),
-):
-    """Confirm and execute a previously interpreted command."""
-    agent = get_agent()
-    # Re-interpret (same flow) but always execute
-    ctx = {
-        "page_id": settings.FACEBOOK_PAGE_ID,
-        "bot_running": _bot_task is not None and not _bot_task.done(),
-    }
-    interpretation = await agent.interpret(text, ctx)
-    action = interpretation.get("action", "unknown")
-    params = interpretation.get("params", {})
-    exec_result = await agent.execute(action, params, fb, db)
-    return {
-        "action": action,
-        "response_ar": exec_result.get("message_ar", "تم التنفيذ ✅"),
-        "data": exec_result.get("data", {}),
-        "success": exec_result.get("success", False),
-    }
+# ── Agent Memory Endpoints ─────────────────────────────────────────────
+
+@app.get("/api/agent/memory")
+async def agent_get_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
+    """View current agent session history + user memory."""
+    import agent_memory as amem
+    session = await amem.get_session(db, current_user.username)
+    user = await amem.get_user_memory(db, current_user.username)
+    return {"session": session[-10:], "user_memory": user}
+
+
+@app.post("/api/agent/memory/clear")
+async def agent_clear_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
+    """Reset session history (keeps user memory/preferences)."""
+    import agent_memory as amem
+    await amem.clear_session(db, current_user.username)
+    return {"ok": True, "message": "تم مسح الذاكرة المؤقتة ✅"}
 
 
 # ── Smart Inbox (Professional Conversations) ─────────────────────────────────
@@ -1916,13 +1914,15 @@ async def sse_endpoint(request: Request):
             await queue.put(data)
         event_bus.subscribe("stats_update", _on_event)
         event_bus.subscribe("bot_health", _on_event)
+        event_bus.subscribe("agent_message", _on_event)
         try:
             # Send initial keepalive
             yield "data: {\"event\":\"connected\"}\n\n"
             while True:
                 try:
                     data = await asyncio.wait_for(queue.get(), timeout=30)
-                    payload = json.dumps({"event": "stats_update", "data": data}, default=str)
+                    evt = data.get("event", "stats_update") if isinstance(data, dict) else "stats_update"
+                    payload = json.dumps({"event": evt, "data": data}, default=str)
                     yield f"data: {payload}\n\n"
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"

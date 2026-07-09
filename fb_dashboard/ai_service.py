@@ -23,7 +23,10 @@ def _lazy_openai():
     if _openai is None:
         try:
             from openai import AsyncOpenAI
-            _openai = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
+            _openai = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY", ""),
+    base_url=os.getenv("OPENAI_BASE_URL", None),
+)
         except Exception:
             _openai = False  # sentinel
     return _openai if _openai is not False else None
@@ -88,18 +91,23 @@ class AIService:
         self._openai_client = _lazy_openai()
         self._google_module = _lazy_google()
         self._model = os.getenv("AI_MODEL", "gemini-1.5-flash")
-        self._openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self._openai_model = os.getenv("OPENAI_MODEL",
+            os.getenv("AI_MODEL", "gpt-4o-mini"))
 
     def _detect_provider(self) -> str:
-        if os.getenv("OPENAI_API_KEY"):
+        # Check actual import success, not just env var
+        oa = _lazy_openai()
+        if oa is not None and os.getenv("OPENAI_API_KEY"):
             return PROVIDER_OPENAI
-        if os.getenv("GEMINI_API_KEY"):
+        gg = _lazy_google()
+        if gg is not None and os.getenv("GEMINI_API_KEY"):
             return PROVIDER_GEMINI
         return PROVIDER_NONE
 
     @property
     def available(self) -> bool:
-        return self._provider != PROVIDER_NONE
+        return (self._provider == PROVIDER_OPENAI and self._openai_client is not None) \
+            or (self._provider == PROVIDER_GEMINI and self._google_module is not None)
 
     @property
     def provider_name(self) -> str:
@@ -221,6 +229,79 @@ class AIService:
         except Exception as e:
             log.error(f"Generate reply error: {e}")
         return None
+
+    # ------------------------------------------------------------------
+    # Vision / Image Analysis
+    # ------------------------------------------------------------------
+
+    async def analyze_image(self, image_path_or_url: str, prompt: str = "وصف هذه الصورة بالعربية") -> str:
+        """Analyze an image using AI vision. Supports file path (base64) or URL.
+        Returns Arabic description with objects, scenes, text detected."""
+        import base64
+        if not self.available or not image_path_or_url:
+            return ""
+
+        # Determine if local file or remote URL
+        is_url = image_path_or_url.startswith(("http://", "https://", "/static/"))
+        image_url = image_path_or_url
+        if not is_url:
+            try:
+                with open(image_path_or_url, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode("utf-8")
+                    image_url = f"data:image/jpeg;base64,{b64}"
+            except Exception as e:
+                log.error(f"analyze_image read error: {e}")
+                return ""
+
+        try:
+            if self._provider == PROVIDER_OPENAI and self._openai_client:
+                return await self._openai_vision(image_url, prompt)
+            elif self._provider == PROVIDER_GEMINI and self._google_module:
+                return await self._gemini_vision(image_url, prompt)
+        except Exception as e:
+            log.error(f"analyze_image error: {e}")
+        return ""
+
+    async def _openai_vision(self, image_url: str, prompt: str) -> str:
+        """Vision via OpenAI — content parts with image_url."""
+        client = self._openai_client
+        if not client:
+            return ""
+        content = [{"type": "text", "text": prompt}]
+        if image_url.startswith("data:"):
+            content.append({"type": "image_url", "image_url": {"url": image_url, "detail": "high"}})
+        else:
+            content.append({"type": "image_url", "image_url": {"url": image_url, "detail": "high"}})
+        r = await client.chat.completions.create(
+            model=self._openai_model,
+            messages=[{"role": "user", "content": content}],
+            max_tokens=500, temperature=0.3,
+        )
+        return (r.choices[0].message.content or "").strip()
+
+    async def _gemini_vision(self, image_url: str, prompt: str) -> str:
+        """Vision via Gemini."""
+        genai = self._google_module
+        if not genai:
+            return ""
+        import httpx
+        model = genai.GenerativeModel(self._model)
+        img_data = None
+        if image_url.startswith("data:"):
+            import base64
+            _, b64 = image_url.split(",", 1)
+            img_data = base64.b64decode(b64)
+        elif image_url.startswith(("http://", "https://")):
+            async with httpx.AsyncClient() as c:
+                r = await c.get(image_url)
+                if r.status_code == 200:
+                    img_data = r.content
+        import PIL.Image, io
+        img = PIL.Image.open(io.BytesIO(img_data)) if img_data else None
+        if img is None:
+            return ""
+        r = await model.generate_content_async([prompt, img])
+        return (r.text or "").strip()
 
     # ------------------------------------------------------------------
     # Helpers

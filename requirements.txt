@@ -9,3 +9,5 @@ httpx>=0.27.0
 bcrypt>=5.0.0
 PyJWT>=2.0.0
 python-dotenv>=1.0.0
+openai>=1.0.0
+# google-generativeai>=0.8.0  # optional — set GEMINI_API_KEY to use

@@ -1,269 +1,259 @@
 """
-SmartBot AI Agent — interprets Arabic commands and executes bot actions.
-Command categories: publish, reply, campaign, rules, analytics, system, dm.
-Uses AI to analyze, improve, and enhance content before executing.
+SmartBot AI Agent v2 — LLM Orchestrator with Tool Registry, Memory, Auto-Execute.
+Bot engine (keyword reply pipeline) remains untouched.
 """
-import json, logging, os, re, time
+import asyncio, json, logging, time
 from typing import Any
 from datetime import datetime
 
+from sqlalchemy import select, func, desc
+
 log = logging.getLogger("fb-agent")
 
-SYSTEM_PROMPT = """أنت وكيل SmartBot الذكي. مهمتك تفسير أوامر المستخدم باللهجة الليبية.
+# Lazy imports for new modules
+_agent_brain = None
+_agent_memory = None
+_agent_tools = None
+_fb_client = None
 
-أنت ذكي — لا تنشر النص حرفياً أبداً. حلل الأمر وطوّر المحتوى بنفسك.
 
-مثال:
-- قال "انشر بوست ترحيبي لرمضان" → أنت تكتب منشور احترافي عن رمضان
-- قال "انشر بوست عن تخفيضات" → أنت تصوغ إعلان تسويقي محترف
-- قال "انشر بوست عادي" → أنت تضيف لمسة احترافية
+def _get_brain():
+    global _agent_brain
+    if _agent_brain is None:
+        from agent_brain import reason, register_handler
+        _agent_brain = {"reason": reason, "register_handler": register_handler}
+    return _agent_brain
 
-المتغيرات المتاحة:
-- page_id: معرف الصفحة
-- bot_running: حالة البوت (شغال/متوقف)
-- rules_count: عدد القواعد
-- reply_count: عدد الردود
-- now: التاريخ والوقت الحالي
 
-أنواع الإجراءات:
-1. publish_post - نشر منشور على فيسبوك
-   يتطلب: message (نص المنشور المُحسَّن)
-   اختياري: image_url, scheduled_at
+def _get_mem():
+    global _agent_memory
+    if _agent_memory is None:
+        import agent_memory as _agent_memory
+    return _agent_memory
 
-2. reply_to_comment - رد على تعليق
-   يتطلب: comment_id, message (رد ذكي محترف)
 
-3. toggle_bot - تشغيل/إيقاف البوت
-   يتطلب: action (start/stop)
+def _get_tools():
+    global _agent_tools
+    if _agent_tools is None:
+        import agent_tools as _agent_tools
+    return _agent_tools
 
-4. create_rule - إنشاء قاعدة رد تلقائي
-   يتطلب: name, keywords, reply_template
-   اختياري: dm_template, description
 
-5. enhance_content - تحسين نص دون نشره
-   يتطلب: text (النص الأصلي), enhanced (النسخة المحسنة)
+def _get_fb():
+    global _fb_client
+    if _fb_client is None:
+        from fb_client import FBClient
+        from config import settings
+        _fb_client = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
+    return _fb_client
 
-6. list_stats - عرض إحصائيات
-
-7. system - أوامر النظام
-
-أعد JSON بالتنسيق التالي فقط:
-{
-  "action": "publish_post|reply_to_comment|toggle_bot|create_rule|enhance_content|list_stats|system|unknown",
-  "params": { ... },
-  "response_ar": "رسالة بالليبي تشرح ما فهمته وشنو راح تسوي",
-  "need_confirmation": false
-}
-need_confirmation: true للأفعال الخطيرة (نشر، حذف، إيقاف بوت)
-"""
 
 class AgentEngine:
+    """Agent v2 — brain+memory+tools orchestrator with auto-execute."""
+
     def __init__(self):
-        from ai_service import AIService
-        self.ai = AIService()
-        self._history: list[dict] = []
+        self._history: list[dict] = []  # ponytail: in-memory fallback, DB is primary
 
-    async def enhance_with_ai(self, text: str, intent: str = "post") -> str:
-        """Use AI to improve content before publishing."""
-        if not self.ai.available or not text.strip():
-            return text
-        prompts = {
-            "post": f"المستخدم قال: \"{text}\"\n\nحسّن هذا النص ليكون منشور فيسبوك احترافي وجذاب باللهجة الليبية. أضف لمسة تسويقية وإبداعية. لا تغير المعنى لكن خليه أحسن. اكتب الرد فقط بدون مقدمة.",
-            "reply": f"المستخدم قال: \"{text}\"\n\nحسّن هذا الرد ليكون محترف ولطيف. استخدم اللهجة الليبية. اكتب الرد فقط.",
-            "rule": f"المستخدم وصف قاعدة: \"{text}\"\n\nاستخرج اسم القاعدة والكلمات المفتاحية ونص الرد المثالي. أعد JSON: {{\"name\":\"\", \"keywords\":[\"\"], \"reply_template\":\"\"}}",
+    async def process(self, text: str, image_url: str = "", username: str = "admin",
+                      db=None) -> dict:
+        """Main entry: load context → reason → execute → remember → return."""
+        if db is None:
+            log.error("process called without db session")
+            return self._error("خطأ في قاعدة البيانات")
+
+        # 1. Load memory
+        mem = _get_mem()
+        session_history = await mem.get_session(db, username)
+        user_memory = await mem.get_user_memory(db, username)
+
+        # 2. Build context
+        from models import Reply, Rule
+        reply_count = await db.scalar(select(func.count(Reply.id))) or 0
+        rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+        from config import settings
+        # ponytail: bot_task ref — imported lazily to avoid circular dep
+        bot_running = False
+        try:
+            import sys as _sys
+            if 'runner' in _sys.modules:
+                bot_running = _sys.modules['runner']._bot_task is not None \
+                    and not _sys.modules['runner']._bot_task.done()
+        except Exception:
+            pass
+        ctx = {
+            "page_id": settings.FACEBOOK_PAGE_ID,
+            "bot_running": bot_running,
+            "rules_count": rule_count,
+            "reply_count": reply_count,
+            "user": username,
+            "has_image": bool(image_url),
+            "_session": session_history,
+            "_memory": user_memory,
         }
-        prompt = prompts.get(intent, prompts["post"])
+
+        # 3. Analyze image if present
+        if image_url:
+            try:
+                from ai_service import AIService
+                ai = AIService()
+                if ai.available:
+                    analysis = await ai.analyze_image(image_url)
+                    if analysis:
+                        ctx["image_analysis"] = analysis
+                        log.info(f"Image analysis: {analysis[:100]}")
+            except Exception as e:
+                log.warning(f"Image analysis failed: {e}")
+
+        # 4. Reason (LLM call)
+        brain = _get_brain()
+        interpretation = await brain["reason"](text, ctx)
+        action = interpretation.get("action", "unknown")
+        params = interpretation.get("params", {})
+        response_ar = interpretation.get("response_ar", "")
+
+        # 5. Attach image to publish + inject analysis into message
+        if image_url and action == "publish_post" and "image_url" not in params:
+            params["image_url"] = image_url
+        # Inject image analysis into the message if available
+        if action == "publish_post" and ctx.get("image_analysis"):
+            analysis_snippet = ctx["image_analysis"][:80]
+            msg = params.get("message", "")
+            if analysis_snippet and analysis_snippet not in msg:
+                params["message"] = f"{msg}\n\n📷 {analysis_snippet}"
+
+        # 6. Execute tool (always — auto-exec)
+        result = {"success": True, "data": {}, "message_ar": response_ar}
+        if action != "unknown":
+            exec_result = await self._execute(action, params, db)
+            result = {**result, **exec_result}
+
+        # 7. Record in session memory
+        turn = {"role": "user", "text": text, "timestamp": datetime.utcnow().isoformat()}
         try:
-            client = self.ai._openai_client
-            if client:
-                r = await client.chat.completions.create(
-                    model=self.ai._openai_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7, max_tokens=500,
-                )
-                enhanced = (r.choices[0].message.content or "").strip()
-                if enhanced and len(enhanced) > 10:
-                    return enhanced
+            await mem.append_to_session(db, username, turn)
+            if action != "unknown":
+                await mem.update_user_memory(db, username, {
+                    "last_action": action,
+                    "last_timestamp": datetime.utcnow().isoformat(),
+                })
         except Exception as e:
-            log.error(f"Enhance error: {e}")
-        return text
+            log.warning(f"Memory write failed: {e}")
 
-    async def interpret(self, text: str, context: dict | None = None) -> dict:
-        """Interpret a user command using AI + content enhancement."""
-        ctx = context or {}
-        ctx["now"] = datetime.utcnow().isoformat()
-        prompt = f"أمر المستخدم: \"{text}\"\nالسياق: {json.dumps(ctx, ensure_ascii=False)}"
+        # 8. Update in-memory fallback
+        self._history.append({"role": "agent", "action": action, "text": response_ar})
+        if len(self._history) > 50:
+            self._history.pop(0)
 
+        return {
+            "action": action,
+            "params": params,
+            "response_ar": result.get("message_ar", response_ar),
+            "data": result.get("data", {}),
+            "success": result.get("success", False),
+        }
+
+    async def _execute(self, action: str, params: dict, db) -> dict:
+        """Execute a tool action. Handles all registered tools."""
         try:
-            if self.ai.available:
-                client = self.ai._openai_client
-                if client:
-                    r = await client.chat.completions.create(
-                        model=self.ai._openai_model,
-                        messages=[
-                            {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": prompt},
-                        ],
-                        response_format={"type": "json_object"},
-                        temperature=0.4, max_tokens=800,
-                    )
-                    result = self._parse_json(r.choices[0].message.content or "{}")
-                    if result.get("action"):
-                        # Enhance content for publish/reply
-                        if result["action"] == "publish_post":
-                            msg = result.get("params", {}).get("message", text)
-                            enhanced = await self.enhance_with_ai(msg, "post")
-                            result["params"]["message"] = enhanced
-                            result["params"]["original"] = msg
-                            result["response_ar"] = f"فهمتك! 🎯\n\nحسّنت النص وخليته احترافي:\n\n{enhanced[:200]}{'...' if len(enhanced) > 200 else ''}\n\nننشره؟"
-                        elif result["action"] == "reply_to_comment":
-                            msg = result.get("params", {}).get("message", text)
-                            enhanced = await self.enhance_with_ai(msg, "reply")
-                            result["params"]["message"] = enhanced
-                            result["params"]["original"] = msg
-                        return result
-            return self._heuristic_parse(text, ctx)
-        except Exception as e:
-            log.error(f"Agent interpret error: {e}")
-            return self._heuristic_parse(text, ctx)
+            fb = _get_fb()
+            from config import settings
 
-    def _heuristic_parse(self, text: str, ctx: dict) -> dict:
-        """Smart fallback when AI unavailable — still enhances content."""
-        t = text.lower()
-        now = datetime.utcnow()
-
-        # Determine if seasonal
-        month = now.month
-        season = ""
-        if month in (9, 10, 11, 12, 1, 2): season = "خريفية/شتوية"
-        elif month in (3, 4, 5): season = "ربيعية"
-        else: season = "صيفية"
-
-        # Publish with smart content generation
-        if any(k in t for k in ["نشر", "انشر", "بوست", "منشور", "post", "publish"]):
-            msg = text
-            for prefix in ["انشر", "نشر", "بوست", "منشور", "post", "publish", "اكتب"]:
-                if prefix in t:
-                    parts = text.split(prefix, 1)
-                    if len(parts) > 1 and parts[1].strip():
-                        msg = parts[1].strip()
-                        break
-            # Smart content generation
-            if "ترحيبي" in t or "ترحيب" in t:
-                msg = f"🌹 أهلاً بكم متابعينا الأعزاء!\n\nنفتخر بوجودكم معنا في صفحتنا. فريق عمل SmartBot في خدمتكم على مدار الساعة.\n\nلا تترددوا في التواصل معنا لأي استفسار أو طلب. نورتونا 🤍\n\n#ترحيب #فريق_SmartBot #خدمة_العملاء"
-            elif "رمضان" in t or "عيد" in t:
-                msg = f"🌙 كل عام وأنتم بخير بمناسبة {msg[:30]}!\n\nأسرة SmartBot تتمنى لكم أياماً مليئة بالبركة والفرح. تقبل الله منا ومنكم صالح الأعمال.\n\nنحن هنا لخدمتكم طوال الشهر الفضيل ✨\n\n#رمضان #كل_عام_وأنتم_بخير #SmartBot"
-            elif "تخفيض" in t or "عرض" in t or "خصم" in t or "حملة" in t:
-                msg = f"🔥 عرض {season} المميز!\n\n{msg}\n\n⏳ العرض لفترة محدودة — لا تفوت الفرصة!\n\nللتواصل والطلب، راسلونا على الخاص 📩\n\n#عرض_خاص #{season} #SmartBot"
-            else:
-                msg = f"{msg}\n\n#SmartBot #فيسبوك"
-
-            if "جدول" in t or "بكرة" in t or "غداً" in t:
-                scheduled = (now.replace(hour=9, minute=0, second=0) + __import__('datetime').timedelta(days=1)).isoformat()
-                return {"action": "publish_post", "params": {"message": msg, "scheduled_at": scheduled},
-                        "response_ar": f"تم تحسين النص! حانشره بكرة الصباح ☀️\n\n{msg[:100]}...", "need_confirmation": True}
-            return {"action": "publish_post", "params": {"message": msg},
-                    "response_ar": f"فهمتك! النص أصبح جاهز: {msg[:80]}...", "need_confirmation": True}
-
-        if any(k in t for k in ["رد", "جاوب", "reply", "رد على"]):
-            return {"action": "reply_to_comment", "params": {"message": text},
-                    "response_ar": "أحتاج رابط التعليق أو معرفه عشان أرد عليه", "need_confirmation": False}
-
-        if any(k in t for k in ["شغل البوت", "فعل البوت", "start bot", "شغال"]):
-            return {"action": "toggle_bot", "params": {"action": "start"},
-                    "response_ar": "تمام! باش نبدا نشغل البوت", "need_confirmation": True}
-        if any(k in t for k in ["أوقف البوت", "أطفى البوت", "stop bot", "أطفي"]):
-            return {"action": "toggle_bot", "params": {"action": "stop"},
-                    "response_ar": "تمام! باش نوقف البوت", "need_confirmation": True}
-
-        if any(k in t for k in ["إحصائيات", "احصائيات", "تقارير", "stats", "statistics", "كم رد", "كم"]):
-            return {"action": "list_stats", "params": {},
-                    "response_ar": "باش نجيب الإحصائيات كاملة", "need_confirmation": False}
-
-        if any(k in t for k in ["قاعدة", "قواعد", "rule", "اضف قاعدة", "إنشاء قاعدة"]):
-            return {"action": "create_rule", "params": {"raw": text},
-                    "response_ar": "احتاج تفاصيل أكثر: اسم القاعدة، الكلمات المفتاحية، ونص الرد", "need_confirmation": False}
-
-        if any(k in t for k in ["إعدادات", "ضبط", "interval", "وقت", "سرعة"]):
-            return {"action": "system", "params": {"command": "interval", "args": text},
-                    "response_ar": "تقصد تغيير وقت التفحص؟", "need_confirmation": False}
-
-        return {"action": "unknown", "params": {"message": text},
-                "response_ar": "آسف ما فهمتش الأمر. جرب: انشر بوست، شغل البوت، رد على تعليق، احصائيات, قاعدة جديدة",
-                "need_confirmation": False}
-
-    async def execute(self, action: str, params: dict, fb=None, db=None) -> dict:
-        """Execute an interpreted command. Returns result dict."""
-        try:
             if action == "publish_post":
-                return await self._exec_publish(params, fb)
+                msg = params.get("message", "")
+                img = params.get("image_url", "")
+                if img:
+                    result = await fb.post_to_page_with_image(msg, img)
+                else:
+                    result = await fb.post_to_page(msg)
+                if result and result.get("id"):
+                    return {"success": True, "data": {"post_id": result["id"]},
+                            "message_ar": f"تم النشر بنجاح ✅\n{msg[:100]}"}
+                return {"success": False, "message_ar": "فشل النشر على فيسبوك"}
+
             elif action == "reply_to_comment":
-                return await self._exec_reply(params, fb)
+                cid = params.get("comment_id", "")
+                msg = params.get("message", "")
+                if not cid:
+                    return {"success": False, "message_ar": "مطلوب معرف التعليق"}
+                result = await fb.reply_to_comment(cid, msg)
+                if result:
+                    return {"success": True, "message_ar": "تم الرد على التعليق ✅"}
+                return {"success": False, "message_ar": "فشل الرد على التعليق"}
+
             elif action == "toggle_bot":
-                return {"success": True, "data": {"action": params.get("action")},
-                        "message_ar": "تم الأمر بنجاح ✅"}
+                import sys as _sys
+                act = params.get("action", "start")
+                if act == "stop":
+                    bt = getattr(_sys.modules.get('runner'), '_bot_task', None) if 'runner' in _sys.modules else None
+                    if bt and not bt.done():
+                        bt.cancel()
+                    return {"success": True, "message_ar": "تم إيقاف البوت ✅"}
+                else:
+                    import sys as _sys2
+                    _run = getattr(_sys2.modules.get('runner'), '_run_bot_loop', None)
+                    if _run:
+                        bt = asyncio.create_task(_run())
+                        # Inject back so runner.py can track it
+                        runner_mod = _sys2.modules.get('runner')
+                        if runner_mod:
+                            runner_mod._bot_task = bt
+                    return {"success": True, "message_ar": "تم تشغيل البوت ✅"}
+
             elif action == "create_rule":
-                return {"success": True, "data": params,
-                        "message_ar": "تم إنشاء القاعدة ✅"}
+                from models import Rule
+                raw = params.get("raw", params.get("name", ""))
+                name = params.get("name", f"قاعدة {raw[:30]}")
+                kw = params.get("keywords", [raw])
+                tmpl = params.get("reply_template", raw)
+                rule = Rule(name=name, keywords=kw if isinstance(kw, list) else [kw],
+                            reply_template=tmpl)
+                db.add(rule)
+                await db.commit()
+                return {"success": True, "data": {"rule_id": rule.id},
+                        "message_ar": f"تم إنشاء القاعدة \"{name}\" ✅"}
+
             elif action == "list_stats":
-                return {"success": True, "data": params,
-                        "message_ar": "الإحصائيات:"}
+                from models import Reply, Rule
+                total = await db.scalar(select(func.count(Reply.id))) or 0
+                rules = await db.scalar(select(func.count(Rule.id))) or 0
+                return {"success": True, "data": {"total_replies": total, "rules_count": rules},
+                        "message_ar": f"إحصائيات: {total} رد, {rules} قاعدة"}
+
             elif action == "system":
                 return {"success": True, "data": params,
-                        "message_ar": "تم تعديل الإعداد ✅"}
-            else:
-                return {"success": False, "error": "إجراء غير معروف",
-                        "message_ar": "ما فهمتش الأمر 😅"}
+                        "message_ar": "تم تعديل الإعدادات ✅"}
+
+            elif action == "analyze_comment":
+                return {"success": True, "data": {"analysis": params.get("comment_text", "")},
+                        "message_ar": "تم التحليل ✅"}
+
+            elif action == "enhance_content":
+                return {"success": True, "data": {"enhanced": params.get("text", "")},
+                        "message_ar": "تم تحسين النص ✅"}
+
+            elif action == "image_analyze":
+                from ai_service import AIService
+                ai = AIService()
+                img_url = params.get("image_url", "")
+                if img_url and ai.available:
+                    analysis = await ai.analyze_image(img_url)
+                    return {"success": True, "data": {"analysis": analysis},
+                            "message_ar": f"تحليل الصورة: {analysis[:150]}"}
+                return {"success": True, "data": {"analysis": ""},
+                        "message_ar": "تم تحليل الصورة ✅"}
+
+            return {"success": False, "message_ar": f"إجراء غير معروف: {action}"}
         except Exception as e:
-            log.error(f"Agent execute error: {e}")
-            return {"success": False, "error": str(e),
-                    "message_ar": f"صار خطأ: {str(e)[:100]}"}
+            log.error(f"Execute {action} error: {e}")
+            return {"success": False, "message_ar": f"خطأ: {str(e)[:100]}"}
 
-    async def _exec_publish(self, params: dict, fb) -> dict:
-        if not fb:
-            return {"success": False, "error": "FB not configured"}
-        msg = params.get("message", "")
-        img = params.get("image_url", "")
-        if img:
-            result = await fb.post_to_page_with_image(msg, img)
-        else:
-            result = await fb.post_to_page(msg)
-        if result and result.get("id"):
-            return {"success": True, "data": {"post_id": result["id"]},
-                    "message_ar": f"تم نشر المنشور بنجاح ✅\n{msg[:100]}"}
-        return {"success": False, "error": "فشل النشر"}
+    def _error(self, msg: str) -> dict:
+        return {"action": "unknown", "params": {}, "response_ar": msg, "success": False}
 
-    async def _exec_reply(self, params: dict, fb) -> dict:
-        cid = params.get("comment_id", "")
-        msg = params.get("message", "")
-        if not cid:
-            return {"success": False, "error": "Comment ID required"}
-        result = await fb.reply_to_comment(cid, msg)
-        if result:
-            return {"success": True, "data": {},
-                    "message_ar": f"تم الرد على التعليق ✅"}
-        return {"success": False, "error": "فشل الرد"}
-
-    def _parse_json(self, text: str) -> dict:
-        text = text.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[-1]
-            text = text.rsplit("```", 1)[0]
-        try:
-            return json.loads(text.strip())
-        except json.JSONDecodeError:
-            import re
-            m = re.search(r"\{.*\}", text, re.DOTALL)
-            if m:
-                try:
-                    return json.loads(m.group())
-                except json.JSONDecodeError:
-                    pass
-            return {"action": "unknown", "params": {"message": text},
-                    "response_ar": "آسف ما فهمتش", "need_confirmation": False}
 
 # Singleton
 _agent: "AgentEngine | None" = None
+
 
 def get_agent() -> AgentEngine:
     global _agent

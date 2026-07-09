@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
+import { Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster, toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -10,30 +10,29 @@ import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { MotionConfig } from "framer-motion"
 import { Login } from "@/pages/login"
 import { Dashboard } from "@/pages/dashboard"
-const lazyPage = (path, name) => lazy(() => import(`./pages/${path}`).then(m => ({ default: m[name] })))
-const Rules = lazyPage("rules", "Rules")
-const Replies = lazyPage("replies", "Replies")
-const Posts = lazyPage("posts", "Posts")
-const Messages = lazyPage("messages", "Messages")
-const Ads = lazyPage("ads", "Ads")
-const Settings = lazyPage("settings", "Settings")
-const Users = lazyPage("users", "Users")
-const ScheduledPosts = lazyPage("scheduled", "ScheduledPosts")
-const QuickReplies = lazyPage("quick-replies", "QuickReplies")
-const AiAssistant = lazyPage("ai-assistant", "AiAssistant")
-const Reports = lazyPage("reports", "Reports")
-const Offers = lazyPage("offers", "Offers")
-const Comments = lazyPage("comments", "Comments")
-const Flows = lazyPage("flows", "Flows")
-const Sequences = lazyPage("sequences", "Sequences")
-const Broadcast = lazyPage("broadcast", "Broadcast")
-const Insights = lazyPage("insights", "Insights")
-const AnalyticsDashboard = lazyPage("analytics-dashboard", "AnalyticsDashboard")
-const ContentCalendar = lazyPage("content-calendar", "ContentCalendar")
-const Team = lazyPage("team", "Team")
-const Subscribers = lazyPage("subscribers", "Subscribers")
-const LiveLogs = lazyPage("live-logs", "LiveLogs")
-const AgentChat = lazyPage("agent-chat", "AgentChat")
+import { Rules } from "@/pages/rules"
+import { Replies } from "@/pages/replies"
+import { Posts } from "@/pages/posts"
+import { Messages } from "@/pages/messages"
+import { Ads } from "@/pages/ads"
+import { Settings } from "@/pages/settings"
+import { Users } from "@/pages/users"
+import { ScheduledPosts } from "@/pages/scheduled"
+import { QuickReplies } from "@/pages/quick-replies"
+import { AiAssistant } from "@/pages/ai-assistant"
+import { Reports } from "@/pages/reports"
+import { Offers } from "@/pages/offers"
+import { Comments } from "@/pages/comments"
+import { Flows } from "@/pages/flows"
+import { Sequences } from "@/pages/sequences"
+import { Broadcast } from "@/pages/broadcast"
+import { Insights } from "@/pages/insights"
+import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
+import { ContentCalendar } from "@/pages/content-calendar"
+import { Team } from "@/pages/team"
+import { Subscribers } from "@/pages/subscribers"
+import { LiveLogs } from "@/pages/live-logs"
+import { AgentChat } from "@/pages/agent-chat"
 import { AnimatePresence, motion } from "framer-motion"
 import { AnimatedBackground } from "@/components/AnimatedBackground"
 

@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback, useRef } from "react"
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster, toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -10,29 +10,16 @@ import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { MotionConfig } from "framer-motion"
 import { Login } from "@/pages/login"
 import { Dashboard } from "@/pages/dashboard"
-import { Rules } from "@/pages/rules"
-import { Replies } from "@/pages/replies"
-import { Posts } from "@/pages/posts"
-import { Messages } from "@/pages/messages"
-import { Ads } from "@/pages/ads"
-import { Settings } from "@/pages/settings"
-import { Users } from "@/pages/users"
-import { ScheduledPosts } from "@/pages/scheduled"
-import { QuickReplies } from "@/pages/quick-replies"
-import { AiAssistant } from "@/pages/ai-assistant"
-import { Reports } from "@/pages/reports"
-import { Offers } from "@/pages/offers"
-import { Comments } from "@/pages/comments"
-import { Flows } from "@/pages/flows"
-import { Sequences } from "@/pages/sequences"
-import { Broadcast } from "@/pages/broadcast"
-import { Insights } from "@/pages/insights"
-import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
-import { ContentCalendar } from "@/pages/content-calendar"
-import { Team } from "@/pages/team"
-import { Subscribers } from "@/pages/subscribers"
-import { LiveLogs } from "@/pages/live-logs"
-import { AgentChat } from "@/pages/agent-chat"
+
+const PAGES_GLOB = import.meta.glob("./pages/[a-df-z]*.jsx", { eager: false })
+const EXPORT_OVERRIDES = { scheduled: "ScheduledPosts", "content-calendar": "ContentCalendar", "agent-chat": "AgentChat", "quick-replies": "QuickReplies", "ai-assistant": "AiAssistant", "analytics-dashboard": "AnalyticsDashboard", "live-logs": "LiveLogs" }
+const toPascal = (str) => str.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join("")
+const pageModules = {}
+for (const [path, loader] of Object.entries(PAGES_GLOB)) {
+  const key = path.replace("./pages/", "").replace(".jsx", "")
+  const exportName = EXPORT_OVERRIDES[key] || toPascal(key)
+  pageModules[key] = lazy(() => loader().then(m => ({ default: m[exportName] })))
+}
 import { AnimatePresence, motion } from "framer-motion"
 import { AnimatedBackground } from "@/components/AnimatedBackground"
 
@@ -51,17 +38,7 @@ function PageLoader() {
   )
 }
 
-const pages = {
-  dashboard: Dashboard, rules: Rules, replies: Replies,
-  posts: Posts, messages: Messages, reports: Reports,
-  offers: Offers, comments: Comments, ads: Ads,
-  settings: Settings, users: Users, scheduled: ScheduledPosts,
-  "quick-replies": QuickReplies, "ai-assistant": AiAssistant,
-  flows: Flows, sequences: Sequences, broadcast: Broadcast,
-  subscribers: Subscribers, "analytics-dashboard": AnalyticsDashboard,
-  "content-calendar": ContentCalendar, team: Team,
-  insights: Insights, "live-logs": LiveLogs, "agent-chat": AgentChat,
-}
+const pages = pageModules
 
 function ToastBridge() {
   const { notifications } = useNotifications()

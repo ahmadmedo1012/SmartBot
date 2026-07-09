@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { login } from "@/lib/api"
-import { Eye, EyeOff, Lock, User } from "lucide-react"
+import { Bot, Eye, EyeOff, Lock, Loader2, User } from "lucide-react"
 
 function AnimatedBg() {
   return (
@@ -60,10 +60,26 @@ export function Login({ onAuth }) {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  const validate = () => {
+    const errs = {}
+    const emailLike = username.includes("@")
+    if (emailLike && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
+      errs.username = "صيغة البريد الإلكتروني غير صحيحة"
+    }
+    if (password.length > 0 && password.length < 6) {
+      errs.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+    }
+    setFieldErrors(errs)
+    return !Object.keys(errs).length
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError(""); setLoading(true)
+    setError("")
+    if (!validate()) return
+    setLoading(true)
     try {
       const res = await login(username, password)
       onAuth(res)
@@ -71,6 +87,19 @@ export function Login({ onAuth }) {
       setError(err.message || "فشل تسجيل الدخول")
     } finally { setLoading(false) }
   }
+
+  const inputBorder = (err) =>
+    err ? "border-destructive/60" : "border-border/40 focus:border-accent/60"
+
+  // ponytail: floating label via peer/placeholder-shown; peer-focus overrides empty-state centering
+  const labelBase = [
+    "absolute pointer-events-none transition-all duration-200 z-10",
+    "right-10 top-2 text-[11px] text-foreground/60",
+    "peer-placeholder-shown:right-10 peer-placeholder-shown:top-1/2",
+    "peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm",
+    "peer-placeholder-shown:text-muted-foreground/60",
+    "peer-focus:text-accent/80 peer-focus:top-2 peer-focus:translate-y-0",
+  ].join(" ")
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden dark:login-bg login-bg-light">
@@ -90,10 +119,9 @@ export function Login({ onAuth }) {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.15 }}
-                className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center p-4 bg-muted/30 border border-border/20"
+                className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center bg-muted/30 border border-border/20"
               >
-                <img src="/static/favicon.svg" alt="SmartBot"
-                  className="w-full h-full dark:opacity-100 opacity-60" />
+                <Bot className="w-10 h-10 text-accent" strokeWidth={1.5} />
               </motion.div>
               <div className="space-y-1.5">
                 <h1 className="text-3xl font-bold text-iridescent">SmartBot</h1>
@@ -101,48 +129,61 @@ export function Login({ onAuth }) {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="username" className="text-xs font-medium pr-1 text-muted-foreground">اسم المستخدم</label>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Username / Email */}
+              <div className="space-y-1">
                 <div className="relative">
-                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 z-10" />
                   <input
                     id="username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => { setUsername(e.target.value); setFieldErrors((p) => ({...p, username: ""})) }}
                     required
-                    className="w-full h-11 pr-10 pl-3 rounded-xl text-sm outline-none transition-all bg-background/50 border border-border/40 text-foreground placeholder:text-muted-foreground/60 focus:border-accent/60 focus:bg-background/80"
-                    placeholder="اسم المستخدم"
+                    className={`peer w-full h-11 pr-10 pl-3 rounded-xl text-sm outline-none transition-all bg-background/50 border ${inputBorder(fieldErrors.username)} text-foreground placeholder:text-transparent focus:bg-background/80`}
+                    placeholder="اسم المستخدم أو البريد الإلكتروني"
                     autoComplete="username"
                   />
+                  <label htmlFor="username" className={labelBase}>
+                    اسم المستخدم
+                  </label>
                 </div>
+                {fieldErrors.username && (
+                  <p className="text-xs text-destructive pr-1">{fieldErrors.username}</p>
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="password" className="text-xs font-medium pr-1 text-muted-foreground">كلمة المرور</label>
+              {/* Password */}
+              <div className="space-y-1">
                 <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 z-10" />
                   <input
                     id="password"
                     type={showPw ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({...p, password: ""})) }}
                     required
-                    className="w-full h-11 pr-10 pl-10 rounded-xl text-sm outline-none transition-all bg-background/50 border border-border/40 text-foreground placeholder:text-muted-foreground/60 focus:border-accent/60 focus:bg-background/80"
-                    placeholder="••••••••"
+                    className={`peer w-full h-11 pr-10 pl-10 rounded-xl text-sm outline-none transition-all bg-background/50 border ${inputBorder(fieldErrors.password)} text-foreground placeholder:text-transparent focus:bg-background/80`}
+                    placeholder="كلمة المرور"
                     autoComplete="current-password"
                   />
+                  <label htmlFor="password" className={labelBase}>
+                    كلمة المرور
+                  </label>
                   <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors text-muted-foreground/60 hover:text-foreground cursor-pointer"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors text-muted-foreground/60 hover:text-foreground cursor-pointer z-10"
                     aria-label={showPw ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
                   >
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-xs text-destructive pr-1">{fieldErrors.password}</p>
+                )}
               </div>
 
+              {/* Server error */}
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -8, height: 0 }}
@@ -154,6 +195,7 @@ export function Login({ onAuth }) {
                 </motion.div>
               )}
 
+              {/* Submit */}
               <motion.button
                 type="submit"
                 disabled={loading}
@@ -162,11 +204,7 @@ export function Login({ onAuth }) {
                 className="relative w-full h-12 rounded-xl text-white font-semibold text-sm overflow-hidden shadow-lg shadow-accent/20 dark:shadow-accent/25 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] hover:brightness-110 cursor-pointer"
               >
                 {loading ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_0ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_200ms]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-[bounce-dot_0.8s_infinite_400ms]" />
-                  </span>
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                 ) : "تسجيل الدخول"}
               </motion.button>
             </form>

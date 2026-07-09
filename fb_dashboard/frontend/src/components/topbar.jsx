@@ -288,8 +288,9 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
 
       {/* ════════════════ MAIN CONTENT COLUMN ════════════════ */}
       <div
-        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-in-out`}
-        style={{ marginRight: sidebarWidth ? `${sidebarWidth}px` : '0' }}
+        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-in-out ${
+          sidebarCollapsed ? "md:mr-[64px]" : "md:mr-[240px]" // 64=collapsed, 240=expanded sidebar width; md: prefix ensures mobile-ignore
+        }`}
       >
         {/* ── desktop minimal topbar ── */}
         <header className="hidden md:flex items-center justify-between h-14 px-4 lg:px-6 border-b border-border bg-background/60 backdrop-blur-2xl shrink-0">

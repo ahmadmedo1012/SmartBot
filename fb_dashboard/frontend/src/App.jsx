@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback, useRef } from "react"
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster, toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -7,31 +7,32 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { NotificationsProvider, useNotifications } from "@/hooks/use-notifications"
 import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
-import { Login } from "@/pages/login"
-import { Dashboard } from "@/pages/dashboard"
-import { Rules } from "@/pages/rules"
-import { Replies } from "@/pages/replies"
-import { Posts } from "@/pages/posts"
-import { Messages } from "@/pages/messages"
-import { Ads } from "@/pages/ads"
-import { Settings } from "@/pages/settings"
-import { Users } from "@/pages/users"
-import { ScheduledPosts } from "@/pages/scheduled"
-import { QuickReplies } from "@/pages/quick-replies"
-import { AiAssistant } from "@/pages/ai-assistant"
-import { Reports } from "@/pages/reports"
-import { Offers } from "@/pages/offers"
-import { Comments } from "@/pages/comments"
-import { Flows } from "@/pages/flows"
-import { Sequences } from "@/pages/sequences"
-import { Broadcast } from "@/pages/broadcast"
-import { Insights } from "@/pages/insights"
-import { AnalyticsDashboard } from "@/pages/analytics-dashboard"
-import { ContentCalendar } from "@/pages/content-calendar"
-import { Team } from "@/pages/team"
-import { Subscribers } from "@/pages/subscribers"
-import { LiveLogs } from "@/pages/live-logs"
-import { AgentChat } from "@/pages/agent-chat"
+import { MotionConfig } from "framer-motion"
+const Login = lazy(() => import("@/pages/login"))
+const Dashboard = lazy(() => import("@/pages/dashboard"))
+const Rules = lazy(() => import("@/pages/rules"))
+const Replies = lazy(() => import("@/pages/replies"))
+const Posts = lazy(() => import("@/pages/posts"))
+const Messages = lazy(() => import("@/pages/messages"))
+const Ads = lazy(() => import("@/pages/ads"))
+const Settings = lazy(() => import("@/pages/settings"))
+const Users = lazy(() => import("@/pages/users"))
+const ScheduledPosts = lazy(() => import("@/pages/scheduled"))
+const QuickReplies = lazy(() => import("@/pages/quick-replies"))
+const AiAssistant = lazy(() => import("@/pages/ai-assistant"))
+const Reports = lazy(() => import("@/pages/reports"))
+const Offers = lazy(() => import("@/pages/offers"))
+const Comments = lazy(() => import("@/pages/comments"))
+const Flows = lazy(() => import("@/pages/flows"))
+const Sequences = lazy(() => import("@/pages/sequences"))
+const Broadcast = lazy(() => import("@/pages/broadcast"))
+const Insights = lazy(() => import("@/pages/insights"))
+const AnalyticsDashboard = lazy(() => import("@/pages/analytics-dashboard"))
+const ContentCalendar = lazy(() => import("@/pages/content-calendar"))
+const Team = lazy(() => import("@/pages/team"))
+const Subscribers = lazy(() => import("@/pages/subscribers"))
+const LiveLogs = lazy(() => import("@/pages/live-logs"))
+const AgentChat = lazy(() => import("@/pages/agent-chat"))
 import { AnimatePresence, motion } from "framer-motion"
 import { AnimatedBackground } from "@/components/AnimatedBackground"
 
@@ -51,30 +52,15 @@ function PageLoader() {
 }
 
 const pages = {
-  dashboard: Dashboard,
-  rules: Rules,
-  replies: Replies,
-  posts: Posts,
-  messages: Messages,
-  reports: Reports,
-  offers: Offers,
-  comments: Comments,
-  ads: Ads,
-  settings: Settings,
-  users: Users,
-  scheduled: ScheduledPosts,
-  "quick-replies": QuickReplies,
-  "ai-assistant": AiAssistant,
-  flows: Flows,
-  sequences: Sequences,
-  broadcast: Broadcast,
-  subscribers: Subscribers,
-  "analytics-dashboard": AnalyticsDashboard,
-  "content-calendar": ContentCalendar,
-  team: Team,
-  insights: Insights,
-  "live-logs": LiveLogs,
-  "agent-chat": AgentChat,
+  dashboard: Dashboard, rules: Rules, replies: Replies,
+  posts: Posts, messages: Messages, reports: Reports,
+  offers: Offers, comments: Comments, ads: Ads,
+  settings: Settings, users: Users, scheduled: ScheduledPosts,
+  "quick-replies": QuickReplies, "ai-assistant": AiAssistant,
+  flows: Flows, sequences: Sequences, broadcast: Broadcast,
+  subscribers: Subscribers, "analytics-dashboard": AnalyticsDashboard,
+  "content-calendar": ContentCalendar, team: Team,
+  insights: Insights, "live-logs": LiveLogs, "agent-chat": AgentChat,
 }
 
 function ToastBridge() {
@@ -186,7 +172,7 @@ function AppInner() {
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
               <Suspense fallback={<PageLoader />}>
                 <Page role={role} />
@@ -205,11 +191,13 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
+        <MotionConfig reducedMotion="user">
         <QueryClientProvider client={queryClient}>
           <RefreshProvider queryClient={queryClient}>
             <AppInner />
           </RefreshProvider>
         </QueryClientProvider>
+        </MotionConfig>
       </ThemeProvider>
     </ErrorBoundary>
   )

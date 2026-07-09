@@ -86,7 +86,7 @@
   --popover: 228 28% 12%; --popover-foreground: 210 40% 98%;
   --primary: 225 60% 60%; --primary-foreground: 225 70% 8%;
   --secondary: 217 33% 17%; --secondary-foreground: 210 40% 98%;
-  --muted: 228 28% 15%; --muted-foreground: 217 19% 50%;
+  --muted: 228 28% 12%; --muted-foreground: 217 19% 58%;
   --accent: 142 70% 45%; --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%; --destructive-foreground: 0 0% 100%;
   --success: 142 70% 42%; --success-foreground: 0 0% 100%;
@@ -540,8 +540,13 @@ button:active:not(:disabled) { transform:scale(.98) }
   box-shadow:0 12px 48px hsl(225 30% 0%/.1), 0 0 0 1px hsl(var(--accent)/.1);
 }
 .glass-sidebar {
-  background: linear-gradient(180deg, hsl(228 28% 8%/.88), hsl(228 28% 5%/.92));
+  background: linear-gradient(180deg, hsl(228 10% 96%/.92), hsl(228 10% 94%/.95));
   backdrop-filter: blur(24px) saturate(1.2);
+  border-left:1px solid hsl(var(--border)/.15);
+  box-shadow:4px 0 32px hsl(225 30% 0%/.04);
+}
+.dark .glass-sidebar {
+  background: linear-gradient(180deg, hsl(228 28% 8%/.88), hsl(228 28% 5%/.92));
   border-left:1px solid hsl(var(--border)/.08);
   box-shadow:4px 0 32px hsl(225 30% 0%/.2);
 }

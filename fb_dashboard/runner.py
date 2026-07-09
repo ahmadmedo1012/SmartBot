@@ -1132,7 +1132,14 @@ async def agent_interpret(
         except Exception as e:
             log.warning(f"Failed to save image: {e}")
 
-    result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)
+    try:
+        result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        log.error(f"agent.process failed: {e}\n{tb}")
+        return {"action": "error", "params": {}, "response_ar": f"خطأ: {str(e)[:200]}",
+                "data": {}, "success": False}
 
     # Broadcast via event_bus → SSE reaches all dashboard clients
     asyncio.create_task(event_bus.emit("agent_message", {

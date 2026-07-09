@@ -9,7 +9,7 @@ import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { MotionConfig } from "framer-motion"
 import { Login } from "@/pages/login"
-const Dashboard = lazy(() => import("@/pages/dashboard"))
+import { Dashboard } from "@/pages/dashboard"
 const Rules = lazy(() => import("@/pages/rules"))
 const Replies = lazy(() => import("@/pages/replies"))
 const Posts = lazy(() => import("@/pages/posts"))

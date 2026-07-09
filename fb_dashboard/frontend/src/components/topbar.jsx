@@ -360,7 +360,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Icon className={`size-5 ${active ? "fill-current" : ""}`} />
+                <Icon className={`size-5 ${active ? "text-primary stroke-[2.5]" : ""}`} />
                 <span className="text-[10px] font-medium leading-tight">{item.label}</span>
                 {active && (
                   <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-primary" />

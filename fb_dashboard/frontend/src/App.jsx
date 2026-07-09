@@ -8,7 +8,7 @@ import { NotificationsProvider, useNotifications } from "@/hooks/use-notificatio
 import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { MotionConfig } from "framer-motion"
-const Login = lazy(() => import("@/pages/login"))
+import { Login } from "@/pages/login"
 const Dashboard = lazy(() => import("@/pages/dashboard"))
 const Rules = lazy(() => import("@/pages/rules"))
 const Replies = lazy(() => import("@/pages/replies"))

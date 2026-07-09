@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { fetchBotStatus, restartBot, fetchLogs, fetchFacebookSettings, fetchEnv, fetchSystemStats, clearLogs } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   RefreshCw, Terminal, Inbox, AlertTriangle, Plug, Clock, Bot, Trash2,
   Settings2, Database, Key, Server,

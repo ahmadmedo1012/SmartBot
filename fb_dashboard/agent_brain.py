@@ -2,6 +2,7 @@
 Agent Brain — LLM Orchestrator Core.
 Reasoning engine: receives user input + context, calls LLM, returns structured action.
 """
+from __future__ import annotations
 import json, logging
 from typing import Any
 
@@ -71,12 +72,18 @@ def build_system_prompt(session_history: list[dict], user_memory: dict) -> str:
 
 async def reason(text: str, context: dict | None = None) -> dict:
     """Core reasoning: call LLM, parse structured JSON response."""
-    ai = _get_ai()
-    ctx = context or {}
+    try:
+        ai = _get_ai()
+        ctx = context or {}
+    except Exception:
+        ai = _get_ai.cache = {"available": False}
+        class _Fake: available = False
+        ai = _Fake()
+        ctx = context or {}
     prompt = f"أمر المستخدم: \"{text}\"\nالسياق: {json.dumps(ctx, ensure_ascii=False)}"
 
     # Try LLM first
-    if ai.available:
+    if getattr(ai, 'available', False):
         try:
             client = ai._openai_client
             if ai._provider == "openai" and client:

@@ -157,7 +157,11 @@ function AppInner() {
   return (
       <NotificationsProvider>
       <div className="min-h-screen bg-noise">
-        <AnimatedBackground />
+        <AnimatedBackground aria-hidden="true" />
+        <a href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:right-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-card focus:text-foreground focus:border focus:rounded-lg focus:shadow-lg focus:outline-2 focus:outline-ring">
+          تخطى إلى المحتوى الرئيسي
+        </a>
         <div className="relative z-10">
         <Topbar
           currentPage={page}

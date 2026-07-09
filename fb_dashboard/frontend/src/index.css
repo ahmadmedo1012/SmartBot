@@ -36,7 +36,7 @@
 
 @layer base {
   * { border-color: hsl(var(--border)); }
-  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth } }
   body {
     font-family: var(--font-sans); direction: rtl;
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;

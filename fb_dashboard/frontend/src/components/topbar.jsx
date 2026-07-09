@@ -94,15 +94,16 @@ function SidebarNavItem({ item, active, collapsed, onClick }) {
         collapsed ? "justify-center px-0 py-3.5" : "gap-3 px-3 py-2.5"
       } ${
         active
-          ? "text-white bg-white/10"
-          : "text-white/45 hover:text-white/75 hover:bg-white/[0.04]"
+          ? "text-foreground bg-accent/10"
+          : "text-foreground/45 hover:text-foreground/75 hover:bg-foreground/[0.04]"
       }`}
       aria-label={item.label}
+      {...(active ? { "aria-current": "page" } : {})}
     >
       {active && (
-        <span className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent)/0.5)]" />
       )}
-      <Icon className={`size-[18px] shrink-0 ${active ? "drop-shadow-[0_0_6px_rgba(52,211,153,0.4)]" : ""}`} />
+      <Icon className={`size-[18px] shrink-0 ${active ? "drop-shadow-[0_0_6px_hsl(var(--accent)/0.4)]" : ""}`} />
       {!collapsed && <span className="truncate">{item.label}</span>}
     </button>
   )
@@ -116,7 +117,7 @@ function SidebarSectionGroup({ label, items, currentPage, onNavigate, collapsed,
     <div className="mb-3 last:mb-0">
       {!collapsed && (
         <div className="px-4 mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/20">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-foreground/20">
             {label}
           </span>
         </div>
@@ -216,22 +217,23 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
         animate={{ width: sidebarWidth }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
         className="hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden"
+        aria-label="القائمة الجانبية الرئيسية"
       >
         {/* logo */}
         <div
-          className={`flex items-center shrink-0 border-b border-white/[0.04] h-12 ${
+          className={`flex items-center shrink-0 border-b border-foreground/[0.04] h-12 ${
             sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4"
           }`}
         >
-          <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
-            <Bot className="size-3.5 text-white" />
+          <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-md shadow-accent/20">
+            <Bot className="size-3.5 text-foreground" />
           </div>
           {!sidebarCollapsed && (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-sm font-bold text-white tracking-wide"
+              className="text-sm font-bold text-foreground tracking-wide"
             >
               SmartBot
             </motion.span>
@@ -254,7 +256,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
         </div>
 
         {/* user area + collapse */}
-        <div className="border-t border-white/[0.04] p-2 space-y-1">
+        <div className="border-t border-foreground/[0.04] p-2 space-y-1">
           {/* avatar with status dot */}
           <div className={`flex items-center gap-2 px-2 py-1.5 rounded-lg ${sidebarCollapsed ? "justify-center" : ""}`}>
             <div className="relative shrink-0">
@@ -263,12 +265,12 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                   {(username || "?").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 border-2 border-[#0b0d15]" />
+              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-accent border-2 border-background" />
             </div>
             {!sidebarCollapsed && (
               <div className="flex flex-col items-start min-w-0">
-                <span className="text-xs font-medium text-white truncate w-full">{username}</span>
-                <span className="text-[10px] text-white/40">{roleLabel}</span>
+                <span className="text-xs font-medium text-foreground truncate w-full">{username}</span>
+                <span className="text-[10px] text-foreground/40">{roleLabel}</span>
               </div>
             )}
           </div>
@@ -276,7 +278,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
           {/* collapse toggle */}
           <button
             onClick={() => setSidebarCollapsed((p) => !p)}
-            className="flex items-center justify-center w-full gap-2 py-2 rounded-lg text-xs text-white/35 hover:text-white/65 hover:bg-white/[0.04] transition-colors"
+            className="flex items-center justify-center w-full gap-2 py-2 rounded-lg text-xs text-foreground/35 hover:text-foreground/65 hover:bg-white/[0.04] transition-colors"
             aria-label={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
             title={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
           >
@@ -294,9 +296,9 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
       >
         {/* ── desktop minimal topbar ── */}
         <header className="hidden md:flex items-center justify-between h-14 px-4 lg:px-6 border-b border-border bg-background/60 backdrop-blur-2xl shrink-0">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/40 text-muted-foreground text-xs w-56 cursor-text">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-0 rounded-lg bg-muted/40 border border-border/40 text-muted-foreground text-xs w-56 cursor-text">
             <Search className="size-3.5 shrink-0" />
-            <span>بحث...</span>
+            <input type="search" placeholder="بحث..." className="w-full bg-transparent border-0 outline-none text-foreground text-xs placeholder:text-muted-foreground py-2" />
           </div>
           <div className="lg:hidden" />
 
@@ -323,8 +325,8 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
             <Menu className="size-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="size-7 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm">
-              <Bot className="size-3.5 text-white" />
+            <div className="size-7 rounded-md bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-sm">
+              <Bot className="size-3.5 text-foreground" />
             </div>
             <span className="text-sm font-bold">SmartBot</span>
           </div>
@@ -338,7 +340,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
         </header>
 
         {/* ── content ── */}
-        <main className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <main id="main-content" className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           {children}
         </main>
 
@@ -377,12 +379,13 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm md:hidden"
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm md:hidden" aria-hidden="true"
                 onClick={() => setMobileDrawerOpen(false)}
               />
               <motion.div
                 role="dialog"
                 aria-modal="true"
+                aria-label="قائمة التنقل"
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
@@ -393,8 +396,8 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                 {/* logo header */}
                 <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
                   <div className="flex items-center gap-2.5">
-                    <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
-                      <Bot className="size-3.5 text-white" />
+                    <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-md shadow-accent/20">
+                      <Bot className="size-3.5 text-foreground" />
                     </div>
                     <span className="text-sm font-bold">SmartBot</span>
                   </div>

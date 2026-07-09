@@ -186,9 +186,11 @@ function AppInner() {
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Suspense fallback={<PageLoader />}>
-                <Page role={role} />
-              </Suspense>
+              <ErrorBoundary key={page}>
+                <Suspense fallback={<PageLoader />}>
+                  <Page role={role} />
+                </Suspense>
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </Topbar>

@@ -312,6 +312,8 @@ button:active:not(:disabled) { transform:scale(.98) }
 .skeleton-avatar { width:2.5rem; height:2.5rem; border-radius:9999px; }
 
 /* ── Status Dot ────────────────────────────────────────── */
+/* ponytail: color-only indicators. When used, pair with aria-label or text
+   so WCAG 1.4.1 is met. */
 .status-dot {
   display:inline-block;
   width:8px;

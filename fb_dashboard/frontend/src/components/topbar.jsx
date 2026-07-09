@@ -208,15 +208,15 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
   const filteredSections = sidebarSections.filter((s) => !s.adminOnly || role === "admin")
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark")
-  const sidebarWidth = sidebarCollapsed ? 64 : 240
+  // ponytail: sidebar animation uses translateX on w-[240px] aside, content margin uses mr-[64/240]px
 
   return (
     <div className="flex h-svh overflow-hidden" dir="rtl">
       {/* ════════════════ DESKTOP SIDEBAR ════════════════ */}
       <motion.aside
-        animate={{ width: sidebarWidth }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden"
+        animate={{ x: sidebarCollapsed ? 176 : 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden w-[240px]"
         aria-label="القائمة الجانبية الرئيسية"
       >
         {/* logo */}

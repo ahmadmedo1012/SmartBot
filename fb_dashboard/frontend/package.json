@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "prebuild": "rm -f ../static/assets/*.js ../static/assets/*.css",
+    "build": "npm run prebuild && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

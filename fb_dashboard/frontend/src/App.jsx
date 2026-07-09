@@ -43,15 +43,15 @@ const pages = pageModules
 
 function ToastBridge() {
   const { notifications } = useNotifications()
-  const prevLen = useRef(0)
+  const shown = useRef(new Set())
   useEffect(() => {
-    if (notifications.length === 0) { prevLen.current = 0; return }
-    if (notifications.length > prevLen.current) {
-      const n = notifications[0]
+    for (const n of notifications) {
+      if (shown.current.has(n.id)) continue
+      shown.current.add(n.id)
       const fn = n.type === "error" ? toast.error : n.type === "warning" ? toast.warning : n.type === "success" || n.type === "reply" ? toast.success : toast.info
       fn(n.title, { description: n.message, duration: 5000, important: true })
     }
-    prevLen.current = notifications.length
+    if (shown.current.size > 100) shown.current.clear()
   }, [notifications])
   return <Toaster position="top-left" richColors closeButton duration={5000} />
 }

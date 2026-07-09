@@ -91,8 +91,29 @@ class FBClient:
         return await self._post(f"{self.page_id}/feed", {"message": message})
 
     async def post_to_page_with_image(self, message: str, image_url: str) -> dict | None:
-        """Post with attached image URL."""
-        return await self._post(f"{self.page_id}/feed", {"message": message, "attached_media[0]": f"{{'media_fbid':'{image_url.split('/')[-1]}'}}"})
+        """Post with attached image. Uploads photo first, then publishes with attachment."""
+        # Upload photo to get media_fbid
+        import httpx
+        client = await _ensure_client()
+        photo_data = {"access_token": self.token}
+        files = {"source": ("photo.jpg", httpx.get(image_url).content, "image/jpeg")} if image_url.startswith("http") else None
+        if not files:
+            return await self.post_to_page(message)
+        try:
+            r = await client.post(f"{API_BASE}/{self.page_id}/photos", data=photo_data, files=files)
+            if r.status_code != 200:
+                log.error(f"Photo upload: {r.status_code} {r.text[:200]}")
+                return await self.post_to_page(message)
+            media_id = r.json().get("id", "")
+            if not media_id:
+                return await self.post_to_page(message)
+            return await self._post(f"{self.page_id}/feed", {
+                "message": message,
+                "attached_media[0]": json.dumps({"media_fbid": media_id}),
+            })
+        except Exception as e:
+            log.error(f"post_to_page_with_image error: {e}")
+            return await self.post_to_page(message)
 
     async def post_photo(self, image_data: bytes, filename: str = "photo.jpg", message: str = "") -> dict | None:
         """Post a photo to the page. Returns photo object with id."""

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     BOT_INTERVAL_SECONDS: int = 10
-    START_BOT: bool = False
+    START_BOT: bool = True
 
     @property
     def async_database_url(self) -> str:

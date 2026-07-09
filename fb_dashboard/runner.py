@@ -184,17 +184,15 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
 
-        if _IS_VERCEL:
-            log.info("VERCEL detected — background tasks skipped (bot via API only)")
-        else:
-            if settings.START_BOT:
-                global _bot_task
-                _bot_task = asyncio.create_task(_run_bot_loop())
-                log.info("Bot started in background")
-            _seq_scheduler = SequenceScheduler(sequence_engine)
-            asyncio.create_task(_seq_scheduler.start())
-            _calendar_scheduler = CalendarScheduler(content_calendar_engine)
-            asyncio.create_task(_calendar_scheduler.start())
+        # Bot runs on all platforms (including Vercel serverless via lifecycle hooks)
+        if settings.START_BOT:
+            global _bot_task
+            _bot_task = asyncio.create_task(_run_bot_loop())
+            log.info("Bot started in background")
+        _seq_scheduler = SequenceScheduler(sequence_engine)
+        asyncio.create_task(_seq_scheduler.start())
+        _calendar_scheduler = CalendarScheduler(content_calendar_engine)
+        asyncio.create_task(_calendar_scheduler.start())
 
         # Bridge event bus → WebSocket
         async def _ws_bridge(data):
@@ -865,7 +863,7 @@ async def reply_to_conversation(conversation_id: str, message: str = Form(...),
                                 _=Depends(require_role("editor"))):
     result = await fb.send_conversation_message(conversation_id, message)
     if not result:
-        raise HTTPException(400, "Failed to send message")
+        raise HTTPException(400, "لم يتم إرسال الرسالة — تحقق من صلاحية التوكن والمراسلة")
     return {"ok": True}
 
 

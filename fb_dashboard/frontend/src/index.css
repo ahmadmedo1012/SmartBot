@@ -107,11 +107,9 @@
 }
 [class*="card"]:hover {
   box-shadow: 0 8px 32px hsl(225 30% 0% / 0.08), 0 0 0 1px hsl(var(--ring) / 0.12);
-  transform: scale(1.01);
 }
 .dark [class*="card"]:hover {
   box-shadow: 0 12px 40px hsl(225 30% 0% / 0.16), 0 0 0 1px hsl(var(--accent) / 0.15);
-  transform: scale(1.01);
 }
 [class*="panel-top-accent-primary"] { border-top: 3px solid hsl(var(--primary)) }
 [class*="panel-top-accent-accent"] { border-top: 3px solid hsl(var(--accent)) }

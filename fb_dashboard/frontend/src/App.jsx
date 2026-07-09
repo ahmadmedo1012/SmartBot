@@ -108,12 +108,8 @@ function AppInner() {
   useEffect(() => {
     if (!auth) return
     const es = new EventSource("/api/events")
-    es.addEventListener("stats_update", (e) => {
-      try {
-        const data = JSON.parse(e.data)
-        queryClient.setQueryData(["stats"], (old) => old ? { ...old, ...data } : data)
-        queryClient.invalidateQueries({ queryKey: ["stats"] })
-      } catch {}
+    es.addEventListener("stats_update", () => {
+      queryClient.invalidateQueries({ queryKey: ["stats"] })
     })
     es.addEventListener("agent_message", () => {
       queryClient.invalidateQueries({ queryKey: ["stats"] })
@@ -123,9 +119,9 @@ function AppInner() {
     return () => es.close()
   }, [auth])
 
-  // Scroll to top on page change
+  // Scroll to top on page change — target main content container
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: "smooth" })
   }, [page])
 
   const handleLogin = useCallback((res) => {

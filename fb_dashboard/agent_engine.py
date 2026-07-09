@@ -62,96 +62,97 @@ class AgentEngine:
             log.error("process called without db session")
             return self._error("خطأ في قاعدة البيانات")
 
-        # 1. Load memory
-        mem = _get_mem()
-        session_history = await mem.get_session(db, username)
-        user_memory = await mem.get_user_memory(db, username)
-
-        # 2. Build context
-        from models import Reply, Rule
-        reply_count = await db.scalar(select(func.count(Reply.id))) or 0
-        rule_count = await db.scalar(select(func.count(Rule.id))) or 0
-        from config import settings
-        # ponytail: bot_task ref — imported lazily to avoid circular dep
-        bot_running = False
+        step = "load mem"
         try:
-            import sys as _sys
-            if 'runner' in _sys.modules:
-                bot_running = _sys.modules['runner']._bot_task is not None \
-                    and not _sys.modules['runner']._bot_task.done()
-        except Exception:
-            pass
-        ctx = {
-            "page_id": settings.FACEBOOK_PAGE_ID,
-            "bot_running": bot_running,
-            "rules_count": rule_count,
-            "reply_count": reply_count,
-            "user": username,
-            "has_image": bool(image_url),
-            "_session": session_history,
-            "_memory": user_memory,
-        }
+            mem = _get_mem()
+            session_history = await mem.get_session(db, username)
+            user_memory = await mem.get_user_memory(db, username)
 
-        # 3. Analyze image if present
-        if image_url:
+            step = "build ctx"
+            from models import Reply, Rule
+            reply_count = await db.scalar(select(func.count(Reply.id))) or 0
+            rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+            from config import settings
+            bot_running = False
             try:
-                from ai_service import AIService
-                ai = AIService()
-                if ai.available:
-                    analysis = await ai.analyze_image(image_url)
-                    if analysis:
-                        ctx["image_analysis"] = analysis
-                        log.info(f"Image analysis: {analysis[:100]}")
-            except Exception as e:
-                log.warning(f"Image analysis failed: {e}")
+                import sys as _sys
+                if 'runner' in _sys.modules:
+                    bot_running = _sys.modules['runner']._bot_task is not None \
+                        and not _sys.modules['runner']._bot_task.done()
+            except Exception:
+                pass
+            ctx = {
+                "page_id": settings.FACEBOOK_PAGE_ID,
+                "bot_running": bot_running,
+                "rules_count": rule_count,
+                "reply_count": reply_count,
+                "user": username,
+                "has_image": bool(image_url),
+                "_session": session_history,
+                "_memory": user_memory,
+            }
 
-        # 4. Reason (LLM call)
-        brain = _get_brain()
-        interpretation = await brain["reason"](text, ctx)
-        action = interpretation.get("action", "unknown")
-        params = interpretation.get("params", {})
-        response_ar = interpretation.get("response_ar", "")
+            if image_url:
+                try:
+                    from ai_service import AIService
+                    ai = AIService()
+                    if ai.available:
+                        analysis = await ai.analyze_image(image_url)
+                        if analysis:
+                            ctx["image_analysis"] = analysis
+                except Exception as e:
+                    log.warning(f"Image analysis failed: {e}")
 
-        # 5. Attach image to publish + inject analysis into message
-        if image_url and action == "publish_post" and "image_url" not in params:
-            params["image_url"] = image_url
-        # Inject image analysis into the message if available
-        if action == "publish_post" and ctx.get("image_analysis"):
-            analysis_snippet = ctx["image_analysis"][:80]
-            msg = params.get("message", "")
-            if analysis_snippet and analysis_snippet not in msg:
-                params["message"] = f"{msg}\n\n📷 {analysis_snippet}"
+            step = "brain"
+            brain = _get_brain()
+            interpretation = await brain["reason"](text, ctx)
+            action = interpretation.get("action", "unknown")
+            params = interpretation.get("params", {})
+            response_ar = interpretation.get("response_ar", "")
 
-        # 6. Execute tool (always — auto-exec)
-        result = {"success": True, "data": {}, "message_ar": response_ar}
-        if action != "unknown":
-            exec_result = await self._execute(action, params, db)
-            result = {**result, **exec_result}
+            step = "attach image"
+            if image_url and action == "publish_post" and "image_url" not in params:
+                params["image_url"] = image_url
+            if action == "publish_post" and ctx.get("image_analysis"):
+                analysis_snippet = ctx["image_analysis"][:80]
+                msg = params.get("message", "")
+                if analysis_snippet and analysis_snippet not in msg:
+                    params["message"] = f"{msg}\n\n📷 {analysis_snippet}"
 
-        # 7. Record in session memory
-        turn = {"role": "user", "text": text, "timestamp": datetime.utcnow().isoformat()}
-        try:
-            await mem.append_to_session(db, username, turn)
+            step = "execute"
+            result = {"success": True, "data": {}, "message_ar": response_ar}
             if action != "unknown":
-                await mem.update_user_memory(db, username, {
-                    "last_action": action,
-                    "last_timestamp": datetime.utcnow().isoformat(),
-                })
+                exec_result = await self._execute(action, params, db)
+                result = {**result, **exec_result}
+
+            step = "memory write"
+            turn = {"role": "user", "text": text, "timestamp": datetime.utcnow().isoformat()}
+            try:
+                await mem.append_to_session(db, username, turn)
+                if action != "unknown":
+                    await mem.update_user_memory(db, username, {
+                        "last_action": action,
+                        "last_timestamp": datetime.utcnow().isoformat(),
+                    })
+            except Exception as e:
+                log.warning(f"Memory write failed: {e}")
+
+            self._history.append({"role": "agent", "action": action, "text": response_ar})
+            if len(self._history) > 50:
+                self._history.pop(0)
+
+            return {
+                "action": action,
+                "params": params,
+                "response_ar": result.get("message_ar", response_ar),
+                "data": result.get("data", {}),
+                "success": result.get("success", False),
+            }
         except Exception as e:
-            log.warning(f"Memory write failed: {e}")
-
-        # 8. Update in-memory fallback
-        self._history.append({"role": "agent", "action": action, "text": response_ar})
-        if len(self._history) > 50:
-            self._history.pop(0)
-
-        return {
-            "action": action,
-            "params": params,
-            "response_ar": result.get("message_ar", response_ar),
-            "data": result.get("data", {}),
-            "success": result.get("success", False),
-        }
+            log.error(f"process failed at step={step}: {e}")
+            import traceback
+            log.error(traceback.format_exc())
+            return {"action": "error", "params": {}, "response_ar": f"خطأ في ({step}): {str(e)[:150]}", "data": {"step": step}, "success": False}
 
     async def _execute(self, action: str, params: dict, db) -> dict:
         """Execute a tool action. Handles all registered tools."""

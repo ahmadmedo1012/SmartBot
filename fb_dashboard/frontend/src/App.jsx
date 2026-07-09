@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { Analytics } from "@vercel/analytics/react"
 import { Toaster, toast } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Topbar } from "@/components/topbar"
@@ -186,6 +187,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <RefreshProvider queryClient={queryClient}>
             <AppInner />
+            <Analytics />
           </RefreshProvider>
         </QueryClientProvider>
         </MotionConfig>

@@ -453,11 +453,10 @@ async def static_cache_middleware(request: Request, call_next):
 @api_cache.cached(ttl=5)
 async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
-    # Trigger bot cycle on dashboard load — ensures bot runs on Vercel
-    if not _IS_VERCEL:
-        global _bot_task
-        if _bot_task is None or _bot_task.done():
-            _bot_task = asyncio.create_task(_run_bot_loop())
+    # Run a single bot cycle synchronously on every dashboard load
+    # Vercel serverless keeps the function alive ~30s after response
+    # The cycle runs within this window
+    asyncio.create_task(_run_single_cycle())
     now = datetime.utcnow()
     today = now.date()
 

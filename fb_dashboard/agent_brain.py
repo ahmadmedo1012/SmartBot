@@ -146,7 +146,7 @@ def _heuristic_parse(text: str, ctx: dict) -> dict:
     if any(k in t for k in ["أوقف البوت", "stop bot", "أطفي"]):
         return {"action": "toggle_bot", "params": {"action": "stop"},
                 "response_ar": "تم إيقاف البوت ✅", "confidence": 0.9}
-    if any(k in t for k in ["احصائيات", "stats", "تقارير"]):
+    if any(k in t for k in ["احصائيات", "الإحصائيات", "stats", "تقارير"]):
         return {"action": "list_stats", "params": {},
                 "response_ar": "باش نجيب الإحصائيات كاملة", "confidence": 0.9}
     if any(k in t for k in ["قاعدة", "rule", "اضف قاعدة"]):

@@ -104,36 +104,23 @@ function AppInner() {
       .finally(() => setAuthLoading(false))
   }, [])
 
-  // WebSocket real-time updates
+  // SSE real-time updates
   useEffect(() => {
     if (!auth) return
-    let ws = null
-    let timer = null
-    let mounted = true
-
-    function connect() {
-      const proto = location.protocol === "https:" ? "wss:" : "ws:"
-      ws = new WebSocket(`${proto}//${location.host}/ws`)
-      ws.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data)
-          if (msg.event === "new_reply") {
-            queryClient.invalidateQueries({ queryKey: ["stats"] })
-            queryClient.invalidateQueries({ queryKey: ["replies"] })
-            queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
-          } else if (msg.event === "stats_update" && msg.data) {
-            queryClient.setQueryData(["stats"], (old) => old ? { ...old, ...msg.data } : msg.data)
-            queryClient.invalidateQueries({ queryKey: ["stats"] })
-          } else if (msg.event === "bot_status" && msg.data) {
-            queryClient.setQueryData(["bot-status"], msg.data)
-          }
-        } catch {}
-      }
-      ws.onclose = () => { if (mounted) timer = setTimeout(connect, 5000) }
-      ws.onerror = () => ws?.close()
-    }
-    connect()
-    return () => { mounted = false; if (ws) ws.close(); clearTimeout(timer) }
+    const es = new EventSource("/api/events")
+    es.addEventListener("stats_update", (e) => {
+      try {
+        const data = JSON.parse(e.data)
+        queryClient.setQueryData(["stats"], (old) => old ? { ...old, ...data } : data)
+        queryClient.invalidateQueries({ queryKey: ["stats"] })
+      } catch {}
+    })
+    es.addEventListener("agent_message", () => {
+      queryClient.invalidateQueries({ queryKey: ["stats"] })
+      queryClient.invalidateQueries({ queryKey: ["replies"] })
+      queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
+    })
+    return () => es.close()
   }, [auth])
 
   // Scroll to top on page change
@@ -208,7 +195,7 @@ function AppInner() {
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             >
               <Suspense fallback={<PageLoader />}>
                 <Page role={role} />

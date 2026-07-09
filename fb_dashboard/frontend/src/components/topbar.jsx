@@ -19,7 +19,7 @@ import {
   CalendarClock, BookmarkCheck, Brain,
   Home, MessagesSquare, Sparkles, BarChart3, Settings2,
   Gift, PanelLeftClose, PanelLeft, Search,
-  Activity, Radio,
+  Activity,
 } from "lucide-react"
 import { NotificationBell } from "@/components/notification-bell"
 
@@ -316,7 +316,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
         {/* ── mobile topbar ── */}
         <header className="md:hidden flex items-center justify-between h-14 px-3 shrink-0 border-b border-border bg-background/60 backdrop-blur-2xl">
           <button
-            onClick={() => setMobileDrawerOpen(true)}
+            onClick={() => setMobileDrawerOpen((p) => !p)}
             className="size-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
             aria-label="فتح القائمة"
           >
@@ -368,7 +368,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
           })}
         </nav>
 
-        {/* ── mobile drawer (bottom sheet) ── */}
+        {/* ── mobile sidebar (slides from right) ── */}
         <AnimatePresence>
           {mobileDrawerOpen && (
             <>
@@ -381,37 +381,45 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                 onClick={() => setMobileDrawerOpen(false)}
               />
               <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
                 transition={{ type: "spring", damping: 32, stiffness: 400, mass: 0.8 }}
-                className="fixed bottom-0 right-0 left-0 z-50 bg-card rounded-t-2xl border border-border md:hidden shadow-xl max-h-[85vh] overflow-y-auto"
-                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+                className="fixed right-0 top-0 bottom-0 z-50 w-[280px] bg-card border-r border-border md:hidden shadow-xl overflow-y-auto"
+                style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
               >
-                {/* grab handle */}
-                <div className="sticky top-0 bg-card z-10 pt-2 pb-1 rounded-t-2xl">
-                  <div className="flex justify-center">
-                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                {/* logo header */}
+                <div className="flex items-center justify-between h-14 px-4 border-b border-border shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
+                      <Bot className="size-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-bold">SmartBot</span>
                   </div>
+                  <button
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className="size-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+                    aria-label="إغلاق القائمة"
+                  >
+                    <PanelLeftClose className="size-5" />
+                  </button>
                 </div>
 
                 {/* user info */}
-                <div className="flex items-center gap-3 px-4 py-3 mb-1">
+                <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
                   <Avatar className="size-10 shrink-0">
                     <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                       {(username || "?").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{username}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium truncate">{username}</span>
                     <span className="text-xs text-muted-foreground">{roleLabel}</span>
                   </div>
                 </div>
 
-                <div className="border-t border-border" />
-
                 {/* sections */}
-                <div className="px-3 py-3 pb-6">
+                <div className="px-2 py-3 pb-6">
                   {filteredSections.map((section) => {
                     const filtered = section.items.filter((i) => !i.adminOnly || role === "admin")
                     if (filtered.length === 0) return null
@@ -433,7 +441,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                                   onNavigate(item.key)
                                   setMobileDrawerOpen(false)
                                 }}
-                                className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium transition-colors text-right ${
+                                className={`flex items-center gap-3 w-full min-h-[44px] px-3 py-2 rounded-xl text-sm font-medium transition-colors text-right ${
                                   active
                                     ? "bg-primary/10 text-primary"
                                     : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
@@ -453,7 +461,7 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
                   <div className="mt-4 pt-3 border-t border-border">
                     <button
                       onClick={onLogout}
-                      className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                      className="flex items-center gap-3 w-full min-h-[44px] px-3 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
                     >
                       تسجيل الخروج
                     </button>

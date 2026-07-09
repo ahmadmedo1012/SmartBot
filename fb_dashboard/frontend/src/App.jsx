@@ -10,7 +10,7 @@ import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { MotionConfig } from "framer-motion"
 import { Login } from "@/pages/login"
 import { Dashboard } from "@/pages/dashboard"
-const lazyPage = (path, name) => lazy(() => import(`@/pages/${path}`).then(m => ({ default: m[name] })))
+const lazyPage = (path, name) => lazy(() => import(`./pages/${path}`).then(m => ({ default: m[name] })))
 const Rules = lazyPage("rules", "Rules")
 const Replies = lazyPage("replies", "Replies")
 const Posts = lazyPage("posts", "Posts")

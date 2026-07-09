@@ -93,16 +93,24 @@ function AppInner() {
   // SSE real-time updates
   useEffect(() => {
     if (!auth) return
-    const es = new EventSource("/api/events")
-    es.addEventListener("stats_update", () => {
-      queryClient.invalidateQueries({ queryKey: ["stats"] })
-    })
-    es.addEventListener("agent_message", () => {
-      queryClient.invalidateQueries({ queryKey: ["stats"] })
-      queryClient.invalidateQueries({ queryKey: ["replies"] })
-      queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
-    })
-    return () => es.close()
+    let es
+    function connect() {
+      es = new EventSource("/api/events")
+      es.addEventListener("stats_update", () => {
+        queryClient.invalidateQueries({ queryKey: ["stats"] })
+      })
+      es.addEventListener("agent_message", () => {
+        queryClient.invalidateQueries({ queryKey: ["stats"] })
+        queryClient.invalidateQueries({ queryKey: ["replies"] })
+        queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
+      })
+      es.onerror = () => {
+        es.close()
+        setTimeout(connect, 3000)
+      }
+    }
+    connect()
+    return () => es?.close()
   }, [auth])
 
   // Scroll to top on page change — target main content container

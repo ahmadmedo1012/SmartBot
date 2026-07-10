@@ -897,9 +897,12 @@ async def list_ads(account_id: str, _=Depends(require_role("editor"))):
 
 @app.get("/api/bot/status")
 async def bot_status(_=Depends(get_current_user)):
+    # On Vercel, bot runs as short-lived cycles triggered by dashboard.
+    # running=true means a cycle is currently executing — not needed for normal UX.
     return {
-        "running": _bot_task is not None and not _bot_task.done(),
+        "running": _IS_VERCEL or (_bot_task is not None and not _bot_task.done()),
         "interval": settings.BOT_INTERVAL_SECONDS,
+        "mode": "vercel-on-demand" if _IS_VERCEL else "background-loop",
     }
 
 

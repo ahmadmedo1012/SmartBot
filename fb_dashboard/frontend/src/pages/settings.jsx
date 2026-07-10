@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   RefreshCw, Terminal, Inbox, AlertTriangle, Plug, Clock, Bot, Trash2,
   Settings2, Database, Key, Server,
@@ -17,6 +18,7 @@ import {
 import { format } from "date-fns"
 import { motion } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
+const [confirmClear, setConfirmClear] = useState(false)
 import { useTheme } from "@/components/theme-provider"
 
 const levelBadgeClass = {
@@ -409,7 +411,7 @@ export function Settings({ role }) {
                           <div ref={logsEndRef} />
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t mt-1">
-                          <Button variant="outline" size="sm" onClick={() => clearLogsMut.mutate()} disabled={clearLogsMut.isPending} className="text-xs cursor-pointer">
+                          <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending} className="text-xs cursor-pointer">
                             <Eraser className="h-3 w-3 ml-1" />
                             {clearLogsMut.isPending ? "جاري..." : "تنظيف السجلات القديمة"}
                           </Button>
@@ -592,7 +594,7 @@ export function Settings({ role }) {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">تنظيف السجلات التي مضى عليها أكثر من 30 يوماً.</p>
-                    <Button variant="outline" onClick={() => clearLogsMut.mutate()} disabled={clearLogsMut.isPending}>
+                    <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending}>
                       <Eraser className={`h-4 w-4 ml-1.5 ${clearLogsMut.isPending ? "animate-pulse" : ""}`} />
                       {clearLogsMut.isPending ? "جاري التنظيف..." : "تنظيف السجلات القديمة"}
                     </Button>

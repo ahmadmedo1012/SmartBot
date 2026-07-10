@@ -213,30 +213,25 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
   return (
     <div className="flex h-svh overflow-hidden" dir="rtl">
       {/* ════════════════ DESKTOP SIDEBAR ════════════════ */}
-      <motion.aside
-        animate={{ x: sidebarCollapsed ? 176 : 0 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden w-[240px]"
+      <aside
+        className={`hidden md:flex flex-col h-svh glass-sidebar fixed right-0 top-0 z-30 overflow-hidden transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          sidebarCollapsed ? "w-[56px]" : "w-[240px]"
+        }`}
         aria-label="القائمة الجانبية الرئيسية"
       >
         {/* logo */}
         <div
           className={`flex items-center shrink-0 border-b border-foreground/[0.04] h-12 ${
-            sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-4"
+            sidebarCollapsed ? "justify-center px-0" : "gap-2.5 px-4"
           }`}
         >
           <div className="size-7 shrink-0 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-md shadow-accent/20">
             <Bot className="size-3.5 text-foreground" />
           </div>
           {!sidebarCollapsed && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-sm font-bold text-foreground tracking-wide"
-            >
+            <span className="text-sm font-bold text-foreground tracking-wide whitespace-nowrap overflow-hidden">
               SmartBot
-            </motion.span>
+            </span>
           )}
         </div>
 
@@ -257,7 +252,6 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
 
         {/* user area + collapse */}
         <div className="border-t border-foreground/[0.04] p-2 space-y-1">
-          {/* avatar with status dot */}
           <div className={`flex items-center gap-2 px-2 py-1.5 rounded-lg ${sidebarCollapsed ? "justify-center" : ""}`}>
             <div className="relative shrink-0">
               <Avatar className="size-7">
@@ -268,14 +262,13 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
               <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-accent border-2 border-background" />
             </div>
             {!sidebarCollapsed && (
-              <div className="flex flex-col items-start min-w-0">
+              <div className="flex flex-col items-start min-w-0 opacity-0 animate-[fade-in_0.15s_ease-out_0.1s_forwards] overflow-hidden">
                 <span className="text-xs font-medium text-foreground truncate w-full">{username}</span>
                 <span className="text-[10px] text-foreground/40">{roleLabel}</span>
               </div>
             )}
           </div>
 
-          {/* collapse toggle */}
           <button
             onClick={() => setSidebarCollapsed((p) => !p)}
             className="flex items-center justify-center w-full gap-2 py-2 rounded-lg text-xs text-foreground/35 hover:text-foreground/65 hover:bg-white/[0.04] transition-colors"
@@ -286,12 +279,12 @@ export function Topbar({ currentPage, onNavigate, username, role, onLogout, chil
             {!sidebarCollapsed && <span>طي القائمة</span>}
           </button>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* ════════════════ MAIN CONTENT COLUMN ════════════════ */}
       <div
-        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-in-out ${
-          sidebarCollapsed ? "md:mr-[64px]" : "md:mr-[240px]" // 64=collapsed, 240=expanded sidebar width; md: prefix ensures mobile-ignore
+        className={`flex flex-1 flex-col min-w-0 transition-[margin-right] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          sidebarCollapsed ? "md:mr-[56px]" : "md:mr-[240px]"
         }`}
       >
         {/* ── desktop minimal topbar ── */}

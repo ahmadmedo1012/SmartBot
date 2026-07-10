@@ -9,8 +9,7 @@ const Textarea = React.forwardRef(({ className, error, ...props }, ref) => {
     <div className="relative">
       <textarea
         className={cn(
-          "flex min-h-[80px] w-full rounded-lg border bg-background/60 backdrop-blur-sm px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 focus-visible:border-ring/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/30 md:text-sm",
-          "ps-3 rtl:pe-3",
+          "flex min-h-[80px] w-full rounded-lg border bg-background/60 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 focus-visible:border-ring/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/30",
           error
             ? "border-destructive/60 focus-visible:ring-destructive/30 focus-visible:border-destructive"
             : "border-input",

@@ -10,8 +10,7 @@ const Input = React.forwardRef(({ className, type, error, ...props }, ref) => {
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-lg border bg-background/60 backdrop-blur-sm px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 focus-visible:border-ring/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/30 md:text-sm",
-          "ps-3 rtl:pe-3",
+          "flex h-10 w-full rounded-lg border bg-background/60 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 focus-visible:border-ring/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/30",
           error
             ? "border-destructive/60 focus-visible:ring-destructive/30 focus-visible:border-destructive"
             : "border-input",

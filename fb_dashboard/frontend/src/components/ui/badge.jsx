@@ -3,28 +3,26 @@ import { cva } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40 focus:ring-offset-1",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary/10 text-primary hover:bg-primary/15",
+          "border-transparent bg-primary/10 text-primary",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-transparent bg-secondary text-secondary-foreground",
         destructive:
-          "border-transparent bg-destructive/10 text-destructive hover:bg-destructive/15",
+          "border-transparent bg-destructive/10 text-destructive",
         outline:
-          "bg-transparent text-foreground border-border",
+          "bg-transparent text-foreground border-border/60",
         success:
-          "border-transparent bg-success/10 text-[hsl(var(--success))] hover:bg-success/15",
+          "border-transparent bg-success/10 text-[hsl(var(--success))]",
         warning:
-          "border-transparent bg-warning/10 text-[hsl(var(--warning))] hover:bg-warning/15",
+          "border-transparent bg-warning/10 text-[hsl(var(--warning))]",
         info:
-          "border-transparent bg-info/10 text-[hsl(var(--info))] hover:bg-info/15",
+          "border-transparent bg-info/10 text-[hsl(var(--info))]",
         premium:
-          "border-transparent bg-gradient-to-r from-primary/15 to-accent/15 text-foreground hover:from-primary/20 hover:to-accent/20",
-        subtle:
-          "border-transparent bg-transparent text-muted-foreground hover:text-foreground gap-1.5 px-1",
+          "border-transparent bg-gradient-to-r from-primary/15 to-accent/15 text-foreground",
       },
     },
     defaultVariants: {
@@ -34,14 +32,8 @@ const badgeVariants = cva(
 )
 
 function Badge({ className, variant, children, ...props }) {
-  const isSubtle = variant === "subtle"
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props}>
-      {isSubtle && (
-        <span
-          aria-hidden="true"
-          className="h-1.5 w-1.5 rounded-full bg-current shrink-0" />
-      )}
       {children}
     </div>
   );

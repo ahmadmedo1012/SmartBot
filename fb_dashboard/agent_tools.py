@@ -107,6 +107,28 @@ def get_tool(name: str) -> dict | None:
     return TOOL_MAP.get(name)
 
 
+def get_tool_schema(name: str) -> dict | None:
+    """Return JSON Schema for a tool's params (for jsonschema validation)."""
+    t = TOOL_MAP.get(name)
+    if not t:
+        return None
+    props = {}
+    required = []
+    for pn, pv in t["params"].items():
+        js_type = pv.get("type", "string")
+        # map agent_tools types to JSON Schema types
+        schema_type = "array" if js_type == "array" else "object" if js_type == "object" else "string"
+        entry = {"type": schema_type, "description": pv.get("description", "")}
+        if schema_type == "array" and "items" in pv:
+            entry["items"] = pv["items"]
+        if pv.get("enum"):
+            entry["enum"] = pv["enum"]
+        props[pn] = entry
+        if not pv.get("optional"):
+            required.append(pn)
+    return {"type": "object", "properties": props, "required": required} if required else {"type": "object", "properties": props}
+
+
 def get_tools_system_prompt() -> str:
     """Render tools section for the LLM system prompt."""
     lines = ["## الأدوات المتاحة:"]

@@ -6,7 +6,9 @@ from __future__ import annotations
 import json, logging
 from typing import Any
 
-from agent_tools import get_tools_system_prompt
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+from agent_tools import get_tools_system_prompt, get_tool, get_tool_schema
 from ai_service import AIService
 
 log = logging.getLogger("fb-agent-brain")
@@ -57,6 +59,29 @@ def _get_ai():
     return _ai
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+    reraise=True,
+)
+async def _retry_llm_call(client, model: str, text: str, ctx: dict) -> dict:
+    """Retry-wrapped LLM call. Only retries connection/timeout errors, not API errors."""
+    prompt = f"أمر المستخدم: \"{text}\"\nالسياق: {json.dumps(ctx, ensure_ascii=False)}"
+    r = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": build_system_prompt(
+                ctx.get("_session", []), ctx.get("_memory", {}))},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.4, max_tokens=800,
+    )
+    result = _parse_json(r.choices[0].message.content or "{}")
+    return result
+
+
 def build_system_prompt(session_history: list[dict], user_memory: dict) -> str:
     """Build the full system prompt with tools + context + memory."""
     tools_section = get_tools_system_prompt()
@@ -87,19 +112,9 @@ async def reason(text: str, context: dict | None = None) -> dict:
         try:
             client = ai._openai_client
             if ai._provider == "openai" and client:
-                r = await client.chat.completions.create(
-                    model=ai._openai_model,
-                    messages=[
-                        {"role": "system", "content": build_system_prompt(
-                            ctx.get("_session", []), ctx.get("_memory", {}))},
-                        {"role": "user", "content": prompt},
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.4, max_tokens=800,
-                )
-                result = _parse_json(r.choices[0].message.content or "{}")
-                if result.get("action"):
-                    return result
+                r = await _retry_llm_call(client, ai._openai_model, text, ctx)
+                if r.get("action"):
+                    return r
             elif ai._provider == "gemini" and ai._google_module:
                 genai = ai._google_module
                 model = genai.GenerativeModel(ai._model)
@@ -159,19 +174,41 @@ def _heuristic_parse(text: str, ctx: dict) -> dict:
             "confidence": 0.0}
 
 
+def _validate_with_schema(result: dict) -> dict:
+    """Validate result['params'] against tool's JSON schema. Returns result or fixes/zeros confidence on mismatch."""
+    action = result.get("action", "unknown")
+    params = result.get("params", {})
+    if action == "unknown":
+        return result
+    schema = get_tool_schema(action)
+    if not schema:
+        return result  # no validation for unknown/old tools
+    try:
+        import jsonschema
+        jsonschema.validate(params, schema)
+        return result
+    except Exception as e:
+        log.warning(f"jsonschema validation failed for {action}: {e}")
+        result.setdefault("warnings", []).append(f"المُدخلات غير متطابقة مع الصيغة المطلوبة")
+        result["confidence"] = min(result.get("confidence", 0.5), 0.3)
+        return result
+
+
 def _parse_json(text: str) -> dict:
     text = text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[-1]
         text = text.rsplit("```", 1)[0]
     try:
-        return json.loads(text.strip())
+        result = json.loads(text.strip())
+        return _validate_with_schema(result) if result.get("action") else result
     except json.JSONDecodeError:
         import re
         m = re.search(r"\{.*\}", text, re.DOTALL)
         if m:
             try:
-                return json.loads(m.group())
+                result = json.loads(m.group())
+                return _validate_with_schema(result) if result.get("action") else result
             except json.JSONDecodeError:
                 pass
         return {"action": "unknown", "params": {}, "response_ar": "آسف ما فهمتش", "confidence": 0.0}

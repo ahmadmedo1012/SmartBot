@@ -1135,20 +1135,48 @@ async def agent_interpret(
     """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
     agent = get_agent()
 
-    # Handle image upload
+    # Handle image upload — compress with Pillow before save
     image_url = ""
     if image and has_image == "true":
         img_data = await image.read()
         if len(img_data) > 10 * 1024 * 1024:
             raise HTTPException(400, "Image too large — max 10MB")
         try:
+            from PIL import Image as PILImage
+            import io
+            pil_img = PILImage.open(io.BytesIO(img_data))
+            # Convert RGBA/P to RGB for JPEG save compatibility
+            if pil_img.mode in ("RGBA", "P"):
+                pil_img = pil_img.convert("RGB")
+            # Resize if wider than 2048px (vision model limit)
+            max_dim = 2048
+            if pil_img.width > max_dim or pil_img.height > max_dim:
+                ratio = min(max_dim / pil_img.width, max_dim / pil_img.height)
+                new_size = (int(pil_img.width * ratio), int(pil_img.height * ratio))
+                pil_img = pil_img.resize(new_size, PILImage.LANCZOS)
+            buf = io.BytesIO()
+            pil_img.save(buf, "JPEG", quality=85, optimize=True)
+            compressed = buf.getvalue()
+            log.info(f"Image compressed: {len(img_data)}→{len(compressed)} bytes ({pil_img.width}x{pil_img.height})")
+            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            img_path = STATIC_DIR / "uploads" / img_filename
+            img_path.parent.mkdir(parents=True, exist_ok=True)
+            img_path.write_bytes(compressed)
+            image_url = f"/static/uploads/{img_filename}"
+        except ImportError:
+            # Pillow not installed — save raw
             img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
             img_path = STATIC_DIR / "uploads" / img_filename
             img_path.parent.mkdir(parents=True, exist_ok=True)
             img_path.write_bytes(img_data)
             image_url = f"/static/uploads/{img_filename}"
         except Exception as e:
-            log.warning(f"Failed to save image: {e}")
+            log.warning(f"Image compression failed, saving raw: {e}")
+            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            img_path = STATIC_DIR / "uploads" / img_filename
+            img_path.parent.mkdir(parents=True, exist_ok=True)
+            img_path.write_bytes(img_data)
+            image_url = f"/static/uploads/{img_filename}"
 
     try:
         result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)

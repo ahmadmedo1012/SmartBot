@@ -13,9 +13,15 @@ function CardGridSkeleton({ count = 6, className }) {
 
 function TableRowsSkeleton({ rows = 5 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 p-1">
       {Array.from({ length: rows }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full rounded-lg" />
+        <div key={i} className="flex items-center gap-3 h-12 rounded-lg bg-muted/20 px-4">
+          <Skeleton className="size-8 rounded-full shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-3 w-3/5 rounded" />
+            <Skeleton className="h-2.5 w-2/5 rounded" />
+          </div>
+        </div>
       ))}
     </div>
   )

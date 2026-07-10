@@ -1935,25 +1935,27 @@ async def sse_endpoint(request: Request):
     """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health)."""
     async def event_generator():
         queue: asyncio.Queue = asyncio.Queue()
-        async def _on_event(data):
-            await queue.put(data)
-        event_bus.subscribe("stats_update", _on_event)
-        event_bus.subscribe("bot_health", _on_event)
-        event_bus.subscribe("agent_message", _on_event)
+        handlers = {}
+        async def _make_handler(evt: str):
+            async def _h(data):
+                await queue.put({"event": evt, "data": data})
+            return _h
+        for evt_name in ("stats_update", "bot_health", "agent_message"):
+            h = await _make_handler(evt_name)
+            handlers[evt_name] = h
+            event_bus.subscribe(evt_name, h)
         try:
-            # Send initial keepalive
             yield "data: {\"event\":\"connected\"}\n\n"
             while True:
                 try:
-                    data = await asyncio.wait_for(queue.get(), timeout=30)
-                    evt = data.get("event", "stats_update") if isinstance(data, dict) else "stats_update"
-                    payload = json.dumps({"event": evt, "data": data}, default=str)
+                    item = await asyncio.wait_for(queue.get(), timeout=30)
+                    payload = json.dumps(item, default=str)
                     yield f"data: {payload}\n\n"
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"
         finally:
-            event_bus.unsubscribe("stats_update", _on_event)
-            event_bus.unsubscribe("bot_health", _on_event)
+            for evt_name, h in handlers.items():
+                event_bus.unsubscribe(evt_name, h)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

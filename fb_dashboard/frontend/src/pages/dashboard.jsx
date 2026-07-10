@@ -41,16 +41,14 @@ const iconColors = {
 }
 
 function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loading, change }) {
-  // Glass card with hover lift
   if (loading) return (
-    <Card className="glass-card animate-pulse overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <Skeleton className="size-12 rounded-xl shrink-0" />
+    <Card className="animate-pulse overflow-hidden">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-10 rounded-xl shrink-0" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-24" />
           </div>
         </div>
       </CardContent>
@@ -58,31 +56,31 @@ function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loa
   )
 
   return (
-    <motion.div initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{duration:0.5,ease:[0.16,1,0.3,1]}}>
-      <div className="card-deep rounded-xl overflow-hidden">
-        <div className="p-5">
-          <div className="flex items-start gap-4">
-            <div className={`icon-premium size-12 shrink-0 ${iconColors[color]||iconColors.primary}`}>
-              <Icon className="size-5" />
+    <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:0.4,ease:[0.16,1,0.3,1]}}>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconColors[color]||iconColors.primary}`}>
+              <Icon className="size-4.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-muted-foreground truncate mb-1.5">{title}</p>
-              <div className="flex items-baseline gap-2.5 flex-wrap">
-                <span className="font-bold font-mono tabular-nums text-2xl metric-glow tracking-tight">
+              <p className="text-[11px] font-medium text-muted-foreground/80 truncate mb-1">{title}</p>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="font-bold font-mono tabular-nums text-xl tracking-tight">
                   <AnimatedCounter value={value||"0"} suffix="" />
                 </span>
                 {change!==undefined && change!==null && (
-                  <span className={`text-xs font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${change>=0?"bg-success/15 text-success":"bg-destructive/15 text-destructive"}`}>
+                  <span className={`text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${change>=0?"bg-success/15 text-success":"bg-destructive/15 text-destructive"}`}>
                     {change>=0?<ArrowUp className="size-2.5"/>:<ArrowDown className="size-2.5"/>}
                     {Math.abs(change)}%
                   </span>
                 )}
               </div>
-              {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+              {subtitle && <p className="text-[11px] text-muted-foreground/60 mt-1">{subtitle}</p>}
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </motion.div>
   )
 }
@@ -114,7 +112,7 @@ function WelcomeHeader({ botStatus, aiStatus, isLoading, onRefresh }) {
 
       <div className="flex items-center gap-4">
         {/* Animated status indicators */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full border border-border/30">
           <div className="flex items-center gap-1.5">
             <motion.span
               className="size-1.5 rounded-full block"
@@ -261,7 +259,7 @@ function PremiumChart({ chartData, isLoading }) {
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))", fontFamily: "var(--font-mono)" }}
           axisLine={false}
           tickLine={false}
-          width={28}
+          width={32}
         />
         <Tooltip content={<ChartTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1, strokeDasharray: "4 4" }} />
         <Area
@@ -425,7 +423,7 @@ export function Dashboard(_p) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="content-container space-y-6 animate-fade-in" dir="rtl">
+      className="content-container space-y-5 animate-fade-in" dir="rtl">
       {/* ── Welcome header ── */}
       <WelcomeHeader botStatus={botStatus} aiStatus={aiStatus} isLoading={isLoading} onRefresh={() => refetch()} />
 
@@ -434,7 +432,7 @@ export function Dashboard(_p) {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
       >
         <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
           <MetricCard
@@ -482,7 +480,7 @@ export function Dashboard(_p) {
 
       {/* ── Main grid: chart + activity ── */}
       {!error && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Chart — 3/5 span */}
           <Card className="lg:col-span-3 overflow-hidden">
             <CardHeader className="pb-2 px-5 pt-5">

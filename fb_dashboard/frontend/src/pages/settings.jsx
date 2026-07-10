@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   RefreshCw, Terminal, Inbox, AlertTriangle, Plug, Clock, Bot, Trash2,
   Settings2, Database, Key, Server,
@@ -18,7 +17,6 @@ import {
 import { format } from "date-fns"
 import { motion } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
-const [confirmClear, setConfirmClear] = useState(false)
 import { useTheme } from "@/components/theme-provider"
 
 const levelBadgeClass = {

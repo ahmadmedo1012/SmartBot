@@ -309,7 +309,7 @@ export function Subscribers({ role }) {
       ) : (
         /* ── Data Table ── */
         <>
-          <Card className="overflow-hidden shadow-premium">
+          <Card className="overflow-hidden">
             <div className="data-table-wrapper data-table-card-view"><Table>
               <TableHeader>
                 <TableRow>

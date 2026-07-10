@@ -87,7 +87,7 @@ export function AiAssistant({ role }) {
           <h1 className="text-gradient-premium text-2xl font-bold">المساعد الذكي</h1>
           <p className="text-sm text-muted-foreground mt-1">توليد ردود ذكية باستخدام الذكاء الاصطناعي</p>
         </div>
-        <Card className="glass-card">
+        <Card>
           <CardContent className="flex flex-col items-center py-16 text-center">
             <Brain className="h-16 w-16 text-muted-foreground/30 mb-5" />
             <h2 className="text-lg font-semibold text-foreground mb-2">AI غير مفعل</h2>

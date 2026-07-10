@@ -83,7 +83,7 @@ export function Posts({ role }) {
                 <Textarea placeholder="اكتب محتوى المنشور..." value={message} onChange={(e) => setMessage(e.target.value)} required rows={4} />
                 <Input placeholder="رابط الصورة (اختياري)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                 {imageUrl && (
-                  <div className="rounded-xl overflow-hidden border bg-muted/20 shadow-premium">
+                  <div className="rounded-xl overflow-hidden border bg-muted/20">
                     <img src={imageUrl} alt="معاينة" className="w-full max-h-48 object-cover" onError={(e) => { e.target.style.display = 'none' }} />
                   </div>
                 )}

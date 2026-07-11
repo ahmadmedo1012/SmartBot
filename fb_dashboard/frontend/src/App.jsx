@@ -2,18 +2,17 @@ import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Analytics } from "@vercel/analytics/react"
 import { Toaster, toast } from "sonner"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Topbar } from "@/components/topbar"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { NotificationsProvider, useNotifications } from "@/hooks/use-notifications"
 import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
-import { MotionConfig } from "framer-motion"
-import { Login } from "@/pages/login"
 import { Dashboard } from "@/pages/dashboard"
 
 const PAGES_GLOB = import.meta.glob("./pages/[a-df-z]*.jsx", { eager: false })
-const EXPORT_OVERRIDES = { scheduled: "ScheduledPosts", "content-calendar": "ContentCalendar", "agent-chat": "AgentChat", "quick-replies": "QuickReplies", "ai-assistant": "AiAssistant", "analytics-dashboard": "AnalyticsDashboard", "live-logs": "LiveLogs" }
+// ponytail: dashboard excluded from glob — statically imported as default fallback
+const EXPORT_OVERRIDES = { scheduled: "ScheduledPosts", calendar: "ContentCalendar" }
+
 const toPascal = (str) => str.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join("")
 const pageModules = {}
 for (const [path, loader] of Object.entries(PAGES_GLOB)) {
@@ -21,15 +20,13 @@ for (const [path, loader] of Object.entries(PAGES_GLOB)) {
   const exportName = EXPORT_OVERRIDES[key] || toPascal(key)
   pageModules[key] = lazy(() => loader().then(m => ({ default: m[exportName] })))
 }
-import { AnimatePresence, motion } from "framer-motion"
-import { AnimatedBackground } from "@/components/AnimatedBackground"
 
 const queryClient = new QueryClient()
 
 function PageLoader() {
   return (
     <div className="min-h-[200px] flex flex-col items-center justify-center gap-6 p-8">
-      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
       <div className="w-full max-w-md space-y-3">
         <div className="skeleton skeleton-text" />
         <div className="skeleton skeleton-text" style={{ width: "85%" }} />
@@ -61,6 +58,12 @@ function AppInner() {
   const [authLoading, setAuthLoading] = useState(true)
   const [page, setPage] = useState("dashboard")
 
+  // navigate function matching design's window.navigate
+  const navigate = useCallback((pageKey) => {
+    setPage(pageKey)
+    document.title = `SmartBot — ${pageNames[pageKey] || pageKey}`
+  }, [])
+
   useEffect(() => {
     fetchMe()
       .then((u) => setAuth(u))
@@ -68,7 +71,6 @@ function AppInner() {
       .finally(() => setAuthLoading(false))
   }, [])
 
-  // SSE real-time updates
   useEffect(() => {
     if (!auth) return
     let es
@@ -91,15 +93,14 @@ function AppInner() {
     return () => es?.close()
   }, [auth])
 
-  // Scroll to top on page change — target main content container
   useEffect(() => {
-    document.querySelector('main')?.scrollTo({ top: 0, behavior: "smooth" })
+    document.querySelector(".content")?.scrollTo({ top: 0 })
   }, [page])
 
   const handleLogin = useCallback((res) => {
     setAuth({ username: res.username, role: res.role })
-    setPage("dashboard")
-  }, [])
+    navigate("dashboard")
+  }, [navigate])
 
   const handleLogout = useCallback(async () => {
     try { await apiLogout() } catch {}
@@ -108,32 +109,32 @@ function AppInner() {
 
   if (authLoading) {
     return (
-        <div className="loading-screen">
-          <div className="loading-grid" />
-          <div className="relative flex flex-col items-center gap-6">
-            <div className="loading-logo">
-              <div className="loading-ring" />
-              <span className="text-2xl font-bold text-white">S</span>
-            </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">SmartBot</h1>
-              <p className="text-sm text-muted-foreground mt-1">جاري تحميل لوحة التحكم...</p>
-            </div>
-            <div className="flex gap-1.5">
-              {[0,1,2].map(i => (
-                <motion.div key={i} className="w-2 h-2 rounded-full bg-accent/60" animate={{y:[0,-6,0]}} transition={{duration:.6,repeat:Infinity,delay:i*0.15,ease:"easeInOut"}} />
-              ))}
-            </div>
+      <div className="loading-screen">
+        <div className="relative flex flex-col items-center gap-6">
+          <div className="loading-logo">
+            <div className="loading-ring" />
+            <span className="text-2xl font-bold text-white">S</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-[var(--fg)] tracking-tight">SmartBot</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">جاري تحميل لوحة التحكم...</p>
+          </div>
+          <div className="flex gap-1.5">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-2 h-2 rounded-full bg-[var(--accent)]" style={{ animation: "pulse-dot 2s var(--ease) infinite", animationDelay: `${i*0.15}s` }} />
+            ))}
           </div>
         </div>
+      </div>
     )
   }
 
   if (!auth) {
+    const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-          <Login onAuth={handleLogin} />
-        </Suspense>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+        <Login onAuth={handleLogin} />
+      </Suspense>
     )
   }
 
@@ -141,59 +142,49 @@ function AppInner() {
   const role = auth.role
 
   return (
-      <NotificationsProvider>
-      <div className="min-h-screen bg-noise">
-        <AnimatedBackground aria-hidden="true" />
-        <a href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:right-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-card focus:text-foreground focus:border focus:rounded-lg focus:shadow-lg focus:outline-2 focus:outline-ring">
-          تخطى إلى المحتوى الرئيسي
-        </a>
-        <div className="relative z-10">
+    <NotificationsProvider>
+      <RefreshProvider queryClient={queryClient}>
         <Topbar
           currentPage={page}
-          onNavigate={setPage}
+          onNavigate={navigate}
           username={auth.username}
           role={role}
           onLogout={handleLogout}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={page}
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <ErrorBoundary key={page}>
-                <Suspense fallback={<PageLoader />}>
-                  <Page role={role} />
-                </Suspense>
-              </ErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
+          <main className="content">
+            <ErrorBoundary key={page}>
+              <Suspense fallback={<PageLoader />}>
+                <Page role={role} />
+              </Suspense>
+            </ErrorBoundary>
+          </main>
         </Topbar>
         <ToastBridge />
-        </div>
-      </div>
-      </NotificationsProvider>
+      </RefreshProvider>
+    </NotificationsProvider>
   )
 }
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" storageKey="smartbot-theme">
-        <MotionConfig reducedMotion="user">
-        <QueryClientProvider client={queryClient}>
-          <RefreshProvider queryClient={queryClient}>
-            <AppInner />
-            <Analytics />
-          </RefreshProvider>
-        </QueryClientProvider>
-        </MotionConfig>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppInner />
+        <Analytics />
+      </QueryClientProvider>
     </ErrorBoundary>
   )
+}
+
+const pageNames = {
+  dashboard: "لوحة البيانات", messages: "الرسائل", comments: "التعليقات",
+  posts: "المنشورات", scheduled: "المجدول", analytics: "التحليلات",
+  audience: "الجمهور", leads: "العملاء المتوقعون", ads: "الإعلانات",
+  broadcast: "البث الجماعي", marketing: "التسويق", reports: "التقارير",
+  pages: "الصفحات", team: "الفريق", calendar: "تقويم المحتوى",
+  autoreply: "الردود التلقائية", activity: "سجل النشاطات",
+  notifications: "الإشعارات", tools: "الأدوات", billing: "الفواتير",
+  support: "الدعم", settings: "الإعدادات",
 }
 
 export default App

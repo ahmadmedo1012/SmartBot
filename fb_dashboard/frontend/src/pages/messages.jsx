@@ -6,23 +6,8 @@ import {
   fetchInboxTags, assignTagToConversation, removeTagFromConversation,
   createInboxTag, deleteInboxTag, fetchTemplates,
 } from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog"
 import { format } from "date-fns"
-import { motion, AnimatePresence } from "framer-motion"
-import {
-  Inbox, Search, Send, Tag, Plus, X, MessageSquare,
-  ChevronRight, Mail, MailOpen, Reply,
-  Bookmark, CheckCheck, Loader2,
-} from "lucide-react"
 
 function initials(name) {
   if (!name) return "?"
@@ -54,109 +39,59 @@ function formatMsgTime(dateStr) {
 }
 
 const FILTERS = [
-  { value: "all", label: "الكل", icon: Inbox },
-  { value: "unread", label: "غير مقروء", icon: Mail },
-  { value: "read", label: "مقروء", icon: MailOpen },
-  { value: "needs_reply", label: "بحاجة رد", icon: Reply },
+  { value: "all", label: "الكل" },
+  { value: "unread", label: "غير مقروء" },
+  { value: "read", label: "مقروء" },
+  { value: "needs_reply", label: "بحاجة رد" },
 ]
 
 const TAG_COLORS = ["#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6"]
 
-function MessageBubble({ message, isPage, idx }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.2, delay: Math.min(idx * 0.03, 0.15), ease: [0.16, 1, 0.3, 1] }}
-      className={`flex ${isPage ? "justify-end" : "justify-start"} px-1`}
-    >
-      <div className="max-w-[80%] sm:max-w-[70%] min-w-[100px]">
-        <div className={`
-            relative p-3 text-sm leading-relaxed shadow-sm cursor-default select-none
-            ${isPage
-              ? "bubble-page rounded-2xl rounded-br-lg text-white"
-              : "bubble-user rounded-2xl rounded-bl-lg"}
-          `}
-        >
-          <p className="whitespace-pre-wrap break-words">{message.message || <span className="italic opacity-60">(وسائط)</span>}</p>
-          <div className={`flex items-center gap-1 mt-1.5 ${isPage ? "justify-end" : "justify-start"}`}>
-            <span className={`text-[10px] ${isPage ? "text-white/70" : "text-muted-foreground/70"}`}>
-              {message.created_time ? formatMsgTime(message.created_time) : ""}
-            </span>
-            {isPage && <CheckCheck className="size-3 text-white/60" />}
-          </div>
-        </div>
-        {!isPage && message.from?.name && (
-          <div className="flex items-center gap-1.5 mt-0.5 px-1">
-            <span className="text-[10px] text-muted-foreground/50">{message.from.name}</span>
-          </div>
-        )}
-      </div>
-    </motion.div>
-  )
-}
-
-function ConvItem({ conv, idx, selectedId, onSelect }) {
+function ConvItem({ conv, selectedId, onSelect }) {
   const hasUnread = conv.unread_count > 0
+  const selected = selectedId === conv.id
+  const gradient = conv.senders?.[0]?.name ? `hsl(${conv.senders[0].name.length * 37 % 360}, 55%, 45%)` : "var(--muted)"
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: Math.min(idx * 0.02, 0.2), duration: 0.2 }}
-      layout
+    <button
+      onClick={() => onSelect(conv.id)}
+      style={{
+        width:"100%",textAlign:"right",padding:12,fontSize:13,cursor:"pointer",
+        background:selected ? "var(--accent-soft)" : "transparent",
+        border:"none",borderBottom:"1px solid var(--border)",borderRight:`3px solid ${selected ? "var(--accent)" : "transparent"}`,
+      }}
     >
-      <button
-        onClick={() => onSelect(conv.id)}
-        className={`w-full text-right p-3 transition-all duration-150 text-sm cursor-pointer relative group
-          ${selectedId === conv.id
-            ? "bg-primary/[0.07] border-l-[3px] border-l-primary"
-            : "hover:bg-muted/40 border-l-[3px] border-l-transparent"}
-        `}
-      >
-        <div className="flex items-start gap-3">
-          <div className="relative shrink-0">
-            <Avatar className={`size-11 ${hasUnread ? "ring-2 ring-accent/40" : ""}`}>
-              <AvatarFallback className={`text-sm font-semibold ${
-                hasUnread ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-              }`}>
-                {initials(conv.senders?.[0]?.name)}
-              </AvatarFallback>
-            </Avatar>
+      <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+        <div className="person-avatar" style={{background:gradient,width:44,height:44,fontSize:13,outline:hasUnread ? "2px solid var(--accent)" : "none"}}>
+          {initials(conv.senders?.[0]?.name)}
+        </div>
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center"}}>
+            <p style={{fontSize:13,fontWeight:hasUnread?700:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {conv.subject || conv.senders?.[0]?.name || "بدون موضوع"}
+            </p>
+            <span style={{fontSize:11,color:"var(--muted)",flexShrink:0}}>{timeAgo(conv.updated_time)}</span>
+          </div>
+          <p style={{fontSize:12,color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBlockStart:4}}>
+            {conv.senders?.map(s => s.name).join("، ") || "غير معروف"}
+          </p>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBlockStart:6}}>
+            <span style={{fontSize:11,color:"var(--muted)"}}>{conv.message_count} رسالة</span>
             {hasUnread && (
-              <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-accent border-2 border-card" />
+              <span className="badge badge-d" style={{fontSize:10,minWidth:18,height:18,padding:"0 4px",borderRadius:9,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+                {conv.unread_count}
+              </span>
+            )}
+            {conv.tags?.length > 0 && (
+              <div style={{display:"flex",gap:4}}>
+                {conv.tags.slice(0, 3).map(t => (
+                  <span key={t.id} style={{width:8,height:8,borderRadius:"50%",background:t.color}} />
+                ))}
+              </div>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className={`text-sm truncate ${hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/90"}`}>
-                {conv.subject || conv.senders?.[0]?.name || "بدون موضوع"}
-              </p>
-              <span className={`text-[11px] shrink-0 ${hasUnread ? "text-accent font-medium" : "text-muted-foreground/60"}`}>
-                {timeAgo(conv.updated_time)}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
-              {conv.senders?.map(s => s.name).join("، ") || "غير معروف"}
-            </p>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-[11px] text-muted-foreground/50">{conv.message_count} رسالة</span>
-              {hasUnread && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 min-w-[18px] flex items-center justify-center rounded-full">
-                  {conv.unread_count}
-                </Badge>
-              )}
-              {conv.tags?.length > 0 && (
-                <div className="flex gap-1">
-                  {conv.tags.slice(0, 3).map(t => (
-                    <span key={t.id} className="size-2 rounded-full ring-1 ring-border/30" style={{ backgroundColor: t.color }} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
-      </button>
-    </motion.div>
+      </div>
+    </button>
   )
 }
 
@@ -175,7 +110,6 @@ export function Messages({ role }) {
   const [optimisticMessages, setOptimisticMessages] = useState([])
   const replyInputRef = useRef(null)
   const messagesEndRef = useRef(null)
-  const msgContainerRef = useRef(null)
 
   const convInterval = useAdaptiveInterval("normal")
   const msgInterval = useAdaptiveInterval("critical")
@@ -184,22 +118,17 @@ export function Messages({ role }) {
     if (selectedId) {
       const saved = localStorage.getItem(`msg-draft-${selectedId}`)
       setReplyText(saved || "")
-    } else {
-      setReplyText("")
-    }
+    } else setReplyText("")
   }, [selectedId])
 
   useEffect(() => {
-    if (selectedId && replyText) {
-      localStorage.setItem(`msg-draft-${selectedId}`, replyText)
-    }
+    if (selectedId && replyText) localStorage.setItem(`msg-draft-${selectedId}`, replyText)
   }, [replyText, selectedId])
 
   const { data, isLoading } = useQuery({
     queryKey: ["inbox-conversations", filter, search],
     queryFn: () => fetchInboxConversations(filter, "", search),
-    staleTime: 10000, refetchOnWindowFocus: true,
-    refetchInterval: convInterval, retry: 2,
+    staleTime: 10000, refetchOnWindowFocus: true, refetchInterval: convInterval, retry: 2,
     placeholderData: (prev) => prev,
   })
   const conversations = data?.items || []
@@ -208,36 +137,20 @@ export function Messages({ role }) {
   const { data: messages = [], isLoading: msgLoading, refetch: refetchMsgs } = useQuery({
     queryKey: ["inbox-messages", selectedId],
     queryFn: () => fetchInboxMessages(selectedId),
-    enabled: !!selectedId,
-    staleTime: 5000, refetchOnWindowFocus: true,
-    refetchInterval: msgInterval, retry: 2,
+    enabled: !!selectedId, staleTime: 5000, refetchOnWindowFocus: true, refetchInterval: msgInterval, retry: 2,
     placeholderData: (prev) => prev,
   })
 
-  const { data: tags = [] } = useQuery({
-    queryKey: ["inbox-tags"],
-    queryFn: fetchInboxTags,
-  })
-
-  const { data: templates = [] } = useQuery({
-    queryKey: ["templates"],
-    queryFn: () => fetchTemplates(),
-  })
+  const { data: tags = [] } = useQuery({ queryKey: ["inbox-tags"], queryFn: fetchInboxTags })
+  const { data: templates = [] } = useQuery({ queryKey: ["templates"], queryFn: () => fetchTemplates() })
 
   const scrollToBottom = useCallback((smooth = true) => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" })
-    }, 50)
+    setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" }) }, 50)
   }, [])
 
-  useEffect(() => {
-    if (messages.length > 0) scrollToBottom(true)
-  }, [messages, scrollToBottom])
+  useEffect(() => { if (messages.length > 0) scrollToBottom(true) }, [messages, scrollToBottom])
 
-  const selectedConv = useMemo(
-    () => conversations.find(c => c.id === selectedId),
-    [conversations, selectedId]
-  )
+  const selectedConv = useMemo(() => conversations.find(c => c.id === selectedId), [conversations, selectedId])
 
   const sendMut = useMutation({
     mutationFn: () => replyToInbox(selectedId, replyText),
@@ -245,27 +158,13 @@ export function Messages({ role }) {
       const text = replyText
       setReplyText("")
       if (selectedId) localStorage.removeItem(`msg-draft-${selectedId}`)
-      const optimisticMsg = {
-        id: `opt-${Date.now()}`,
-        message: text,
-        from: { name: "أنت", id: "page" },
-        created_time: new Date().toISOString(),
-        _optimistic: true,
-      }
+      const optimisticMsg = { id: `opt-${Date.now()}`, message: text, from: { name: "أنت", id: "page" }, created_time: new Date().toISOString(), _optimistic: true }
       setOptimisticMessages(prev => [...prev, optimisticMsg])
       scrollToBottom(true)
       return { text }
     },
-    onSuccess: () => {
-      refetchMsgs()
-      queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] })
-      setOptimisticMessages([])
-    },
-    onError: (e, __, ctx) => {
-      setOptimisticMessages([])
-      toast.error(e.message || "فشل الإرسال")
-      if (ctx?.text) setReplyText(ctx.text)
-    },
+    onSuccess: () => { refetchMsgs(); queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] }); setOptimisticMessages([]) },
+    onError: (e, __, ctx) => { setOptimisticMessages([]); toast.error(e.message || "فشل الإرسال"); if (ctx?.text) setReplyText(ctx.text) },
   })
 
   const assignTagMut = useMutation({
@@ -289,324 +188,245 @@ export function Messages({ role }) {
     onError: (e) => toast.error(e.message),
   })
 
-  const insertTemplate = (text) => {
-    setReplyText(prev => prev + text)
-    setShowTemplates(false)
-    setTimeout(() => replyInputRef.current?.focus(), 100)
-  }
+  const insertTemplate = (text) => { setReplyText(prev => prev + text); setShowTemplates(false); setTimeout(() => replyInputRef.current?.focus(), 100) }
 
   const allMessages = useMemo(() => {
     if (optimisticMessages.length === 0) return messages
     const realIds = new Set(messages.map(m => m.id))
-    const filteredOpt = optimisticMessages.filter(o => !realIds.has(o.id))
-    return [...messages, ...filteredOpt]
+    return [...messages, ...optimisticMessages.filter(o => !realIds.has(o.id))]
   }, [messages, optimisticMessages])
 
-  const handleSend = useCallback(() => {
-    if (replyText.trim() && !sendMut.isPending) sendMut.mutate()
-  }, [replyText, sendMut])
-
-  const handleSelectConv = useCallback((id) => {
-    setSelectedId(prev => prev === id ? null : id)
-    setOptimisticMessages([])
-    setShowTemplates(false)
-  }, [])
+  const handleSend = useCallback(() => { if (replyText.trim() && !sendMut.isPending) sendMut.mutate() }, [replyText, sendMut])
+  const handleSelectConv = useCallback((id) => { setSelectedId(prev => prev === id ? null : id); setOptimisticMessages([]); setShowTemplates(false) }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100svh-3.5rem)] lg:h-[calc(100svh-3.5rem-0.5rem)] overflow-hidden bg-gradient-to-b from-background to-muted/20" dir="rtl">
-      <div className="flex flex-1 overflow-hidden lg:gap-1 lg:p-2">
-        {/* ═══ LEFT: CONVERSATION LIST ═══ */}
-        <div className={`${selectedId ? "hidden lg:flex" : "flex"} flex-col w-full lg:w-[380px] xl:w-[420px] border-l border-border/50 bg-card/50`}>
-          <div className="shrink-0 px-4 pt-4 pb-2 space-y-3 border-b border-border/30">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-foreground tracking-tight">المحادثات</h2>
-              <span className="text-[11px] text-muted-foreground/60 font-mono">{total}</span>
-            </div>
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-              <Input
-                placeholder="بحث في المحادثات..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pr-8 h-9 text-sm rounded-xl bg-muted/40 border-0 focus:bg-background"
-              />
+    <section className="page active" style={{animation:"pageIn 0.35s ease",height:"100%",display:"flex",flexDirection:"column"}}>
+      <div style={{display:"flex",flex:1,overflow:"hidden",gap:0}}>
+        {/* ─── LEFT: CONVERSATIONS ─── */}
+        <div className={`card glass`} style={{display:"flex",flexDirection:"column",width:selectedId ? [0,0,"380px"] : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
+          <div style={{padding:"16px 16px 8px",borderBottom:"1px solid var(--border)"}}>
+            <h2 style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
+            <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)",pointerEvents:"none"}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input className="fld" placeholder="بحث..." value={search} onChange={e => { setSearch(e.target.value); setSelectedId(null) }} style={{width:"100%",paddingRight:32}} />
               {search && (
-                <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground cursor-pointer">
-                  <X className="size-3.5" />
+                <button onClick={() => setSearch("")} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",color:"var(--muted)",padding:0}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               )}
             </div>
-            <div className="flex gap-1 overflow-x-auto pb-0.5">
-              {FILTERS.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => { setFilter(value); setSelectedId(null) }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer shrink-0
-                    ${filter === value
-                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                      : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted/80"}
-                  `}
-                >
-                  <Icon className="size-3" />
-                  {label}
+            <div className="qactions" style={{gap:4,flexWrap:"wrap"}}>
+              {FILTERS.map(f => (
+                <button key={f.value} className={`btn ${filter === f.value ? "btn-primary" : "btn-outline"}`} style={{padding:"4px 10px",fontSize:11}} onClick={() => { setFilter(f.value); setSelectedId(null) }}>
+                  {f.label}
                 </button>
               ))}
             </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-border/20">
+          <div style={{flex:1,overflowY:"auto",overflowX:"hidden"}}>
             {isLoading ? (
-              <div className="space-y-1 p-3">
+              <div style={{padding:12}}>
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="flex items-center gap-3 p-2">
-                    <Skeleton className="size-11 rounded-full shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-3/4 rounded" />
-                      <Skeleton className="h-2.5 w-1/2 rounded" />
-                    </div>
+                  <div key={i} style={{display:"flex",gap:12,padding:8}}>
+                    <div className="stat-card glass" style={{width:44,height:44,borderRadius:"50%",background:"var(--skeleton)",flexShrink:0}} />
+                    <div style={{flex:1}}><div className="stat-card glass" style={{height:12,width:"70%",background:"var(--skeleton)",marginBlockEnd:8}} /><div className="stat-card glass" style={{height:10,width:"40%",background:"var(--skeleton)"}} /></div>
                   </div>
                 ))}
               </div>
             ) : conversations.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center px-6">
-                <div className="size-16 rounded-2xl bg-muted/40 flex items-center justify-center mb-4">
-                  <Inbox className="size-7 text-muted-foreground/30" />
-                </div>
-                <p className="text-sm font-medium text-foreground mb-1">{search ? "لا توجد نتائج" : "لا توجد محادثات"}</p>
-                <p className="text-xs text-muted-foreground/60">{search ? "حاول بكلمة بحث مختلفة" : "عندما يرسل أحدهم رسالة، ستظهر هنا"}</p>
-              </motion.div>
+              <div className="empty-state" style={{padding:"40px 16px"}}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:12}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <p>{search ? "لا توجد نتائج" : "لا توجد محادثات"}</p>
+              </div>
             ) : (
-              <div className="py-1">
-                {conversations.map((conv, idx) => (
-                  <ConvItem key={conv.id} conv={conv} idx={idx} selectedId={selectedId} onSelect={handleSelectConv} />
-                ))}
-              </div>
-            )}
-            {total > 0 && (
-              <div className="text-center text-[10px] text-muted-foreground/40 py-2.5 border-t border-border/20">
-                {total} محادثة · {conversations.filter(c => c.unread_count > 0).length} غير مقروءة
-              </div>
+              conversations.map((conv, idx) => <ConvItem key={conv.id} conv={conv} idx={idx} selectedId={selectedId} onSelect={handleSelectConv} />)
             )}
           </div>
-
-          <div className="shrink-0 border-t border-border/20 px-3 py-2">
-            <Dialog open={showTagDialog} onOpenChange={setShowTagDialog}>
-              <DialogTrigger asChild>
-                {canEdit && (
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-foreground rounded-xl cursor-pointer">
-                    <Plus className="size-3.5" />
-                    وسم جديد
-                  </Button>
-                )}
-              </DialogTrigger>
-              <DialogContent className="glass-heavy max-w-sm">
-                <DialogHeader><DialogTitle>وسم جديد</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <Input placeholder="اسم الوسم" value={newTagName} onChange={e => setNewTagName(e.target.value)} />
-                  <div className="flex gap-2 flex-wrap">
-                    {TAG_COLORS.map(c => (
-                      <button key={c} onClick={() => setNewTagColor(c)}
-                        aria-label={`لون ${c}`}
-                        className={`size-7 rounded-full border-2 transition-all cursor-pointer ${newTagColor === c ? "border-foreground scale-110 ring-2 ring-foreground/20" : "border-transparent"}`}
-                        style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
-                  <Button onClick={() => createTagMut.mutate()} disabled={!newTagName.trim()} className="w-full">
-                    {createTagMut.isPending ? "جاري..." : "إنشاء الوسم"}
-                  </Button>
-                  {tags.length > 0 && (
-                    <div className="space-y-2 pt-3 border-t">
-                      <p className="text-xs text-muted-foreground/60">الوسوم الموجودة:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {tags.map(t => (
-                          <div key={t.id} className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium"
-                            style={{ backgroundColor: t.color + "18", color: t.color }}>
-                            {t.name}
-                            <X className="size-3 cursor-pointer opacity-50 hover:opacity-100" onClick={() => deleteTagMut.mutate(t.id)} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          {canEdit && (
+            <div style={{padding:"8px 12px",borderTop:"1px solid var(--border)"}}>
+              <button className="btn btn-outline" style={{fontSize:12,width:"100%",justifyContent:"center"}} onClick={() => setShowTagDialog(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                وسم جديد
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ═══ RIGHT: CONVERSATION DETAIL ═══ */}
+        {/* ─── RIGHT: CONVERSATION DETAIL ─── */}
         {!selectedId ? (
-          <div className="hidden lg:flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <div className="size-20 mx-auto rounded-3xl bg-muted/30 flex items-center justify-center mb-5">
-                <MessageSquare className="size-9 text-muted-foreground/20" />
-              </div>
-              <p className="text-lg font-semibold text-foreground/80">اختر محادثة</p>
-              <p className="text-sm text-muted-foreground/50 mt-1">اختر محادثة من القائمة لعرض الرسائل والرد</p>
+          <div className="card glass" style={{flex:1,display:"none",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:0,border:"none"}}>
+            <div className="empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:12}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <p>اختر محادثة</p>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-w-0 bg-card">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 shrink-0 bg-background/50 backdrop-blur-sm">
-              <div className="flex items-center gap-3 min-w-0">
-                <Button variant="ghost" size="icon" className="lg:hidden size-8 cursor-pointer shrink-0" onClick={() => setSelectedId(null)} aria-label="عودة">
-                  <ChevronRight className="size-5" />
-                </Button>
-                <Avatar className="size-9 shrink-0 ring-2 ring-border/30">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                    {initials(selectedConv?.senders?.[0]?.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {selectedConv?.subject || selectedConv?.senders?.[0]?.name || "بدون موضوع"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground/60 truncate">
-                    {selectedConv?.senders?.map(s => s.name).join("، ") || "غير معروف"}
-                    {selectedConv?.unread_count > 0 && (
-                      <span className="mr-2 text-accent font-medium">{selectedConv.unread_count} غير مقروءة</span>
-                    )}
-                  </p>
+          <div className="card glass" style={{flex:1,display:"flex",flexDirection:"column",borderRadius:0,border:"none",minWidth:0}}>
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderBottom:"1px solid var(--border)"}}>
+              <button className="btn btn-outline" style={{padding:"4px 6px",fontSize:12}} onClick={() => setSelectedId(null)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <div className="person-row" style={{flex:1}}>
+                <div className="person-avatar" style={{width:36,height:36,fontSize:12,background:`hsl(${(selectedConv?.senders?.[0]?.name?.length || 0) * 37 % 360},55%,45%)`}}>
+                  {initials(selectedConv?.senders?.[0]?.name)}
+                </div>
+                <div className="person-info">
+                  <div className="p-name">{selectedConv?.subject || selectedConv?.senders?.[0]?.name || "بدون موضوع"}</div>
+                  <div className="p-detail">{selectedConv?.senders?.map(s => s.name).join("، ") || "غير معروف"}{selectedConv?.unread_count > 0 && ` · ${selectedConv.unread_count} غير مقروءة`}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="flex flex-wrap gap-1 max-w-[120px] justify-end">
+              {canEdit && tags.length > 0 && (
+                <div style={{display:"flex",gap:4}}>
                   {(selectedConv?.tags || []).map(t => (
-                    <span key={t.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                      style={{ backgroundColor: t.color + "18", color: t.color }}>
+                    <span key={t.id} className="badge badge-s" style={{fontSize:10,background:t.color+"18",color:t.color}}>
                       {t.name}
-                      {canEdit && (
-                        <X className="size-2.5 cursor-pointer opacity-50 hover:opacity-100"
-                          onClick={() => removeTagMut.mutate({ convId: selectedId, tagId: t.id })} />
-                      )}
+                      <span onClick={() => removeTagMut.mutate({ convId: selectedId, tagId: t.id })}
+                        style={{cursor:"pointer",marginInlineStart:4,opacity:0.6,display:"inline-flex"}}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </span>
                     </span>
                   ))}
-                </div>
-                {canEdit && tags.length > 0 && (
-                  <div className="relative group">
-                    <Button variant="ghost" size="icon" className="size-8 cursor-pointer" aria-label="إضافة وسم">
-                      <Tag className="size-4 text-muted-foreground/60 hover:text-foreground" />
-                    </Button>
-                    <div className="absolute left-0 top-full mt-1 bg-popover border rounded-xl shadow-lg shadow-black/5 p-1.5 z-50 hidden group-hover:block min-w-[150px]">
-                      <p className="text-[10px] text-muted-foreground/60 px-2 py-1">إضافة وسم</p>
-                      {tags.filter(t => !(selectedConv?.tags || []).find(ct => ct.id === t.id)).map(t => (
-                        <button key={t.id} onClick={() => assignTagMut.mutate({ convId: selectedId, tagId: t.id })}
-                          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-lg hover:bg-muted text-right cursor-pointer">
-                          <span className="size-2.5 rounded-full" style={{ backgroundColor: t.color }} />
-                          {t.name}
-                        </button>
-                      ))}
-                    </div>
+                  <div style={{position:"relative"}} className="qactions">
+                    {tags.filter(t => !(selectedConv?.tags || []).find(ct => ct.id === t.id)).map(t => (
+                      <button key={t.id} className="btn btn-outline" style={{padding:"4px 8px",fontSize:10}} onClick={() => assignTagMut.mutate({ convId: selectedId, tagId: t.id })}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:t.color,display:"inline-block",marginInlineEnd:4}} />
+                        {t.name}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            <div ref={msgContainerRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-2.5 overscroll-contain"
-              style={{ backgroundImage: "radial-gradient(circle, hsl(var(--border)/0.03) 1px, transparent 1px)", backgroundSize: "24px 24px" }}>
+            {/* Messages */}
+            <div ref={messagesEndRef} style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:8}}>
               {msgLoading && messages.length === 0 ? (
-                <div className="space-y-3 p-4">
-                  {[1,2,3].map(i => (
-                    <div key={i} className={`flex ${i % 2 === 0 ? "justify-end" : "justify-start"}`}>
-                      <Skeleton className={`h-12 rounded-2xl ${i % 2 === 0 ? "w-3/5" : "w-2/5"}`} />
-                    </div>
-                  ))}
-                </div>
-              ) : allMessages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="size-12 mx-auto rounded-2xl bg-muted/30 flex items-center justify-center mb-3">
-                      <MessageSquare className="size-5 text-muted-foreground/20" />
-                    </div>
-                    <p className="text-sm text-muted-foreground/60">لا توجد رسائل بعد</p>
-                    <p className="text-xs text-muted-foreground/40 mt-1">أرسل أول رسالة لبدء المحادثة</p>
+                [1,2,3].map(i => (
+                  <div key={i} style={{display:"flex",justifyContent:i%2===0?"flex-end":"flex-start"}}>
+                    <div className="stat-card glass" style={{height:40,width:i%2===0?"60%":"40%",borderRadius:12,background:"var(--skeleton)"}} />
                   </div>
+                ))
+              ) : allMessages.length === 0 ? (
+                <div className="empty-state" style={{flex:1}}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:8}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <p>لا توجد رسائل بعد</p>
                 </div>
               ) : (
-                <AnimatePresence initial={false}>
-                  {[...allMessages].reverse().map((m, idx) => {
-                    const isPage = m.from?.id === "page" || m.from?.id?.includes("page") || m._optimistic
-                    return (
-                      <MessageBubble
-                        key={m.id || `msg-${idx}`}
-                        message={m}
-                        isPage={isPage}
-                        idx={idx}
-                      />
-                    )
-                  })}
-                </AnimatePresence>
-              )}
-              <div ref={messagesEndRef} className="h-1" />
-            </div>
-
-            <div className="border-t border-border/30 shrink-0 bg-background/80 backdrop-blur-sm">
-              <AnimatePresence>
-                {showTemplates && templates.length > 0 && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-4 py-2 border-b border-border/20 bg-muted/20">
-                      <p className="text-[10px] text-muted-foreground/60 mb-1.5 font-medium">الردود السريعة:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {templates.map(t => (
-                          <button key={t.id} onClick={() => insertTemplate(t.text)}
-                            className="px-2.5 py-1 rounded-full text-[11px] bg-card border hover:bg-accent/10 hover:border-accent/30 transition-colors whitespace-nowrap cursor-pointer"
-                          >
-                            {t.shortcut && <span className="text-primary font-mono ml-1 text-[10px]">{t.shortcut}</span>}
-                            {t.name}
-                          </button>
-                        ))}
+                [...allMessages].reverse().map((m, idx) => {
+                  const isPage = m.from?.id === "page" || m.from?.id?.includes("page") || m._optimistic
+                  return (
+                    <div key={m.id || `msg-${idx}`} style={{display:"flex",justifyContent:isPage?"flex-end":"flex-start",animation:`pageIn 0.2s ease ${Math.min(idx*0.03,0.15)}s both`}}>
+                      <div style={{maxWidth:"75%",minWidth:100}}>
+                        <div style={{
+                          padding:"10px 14px",fontSize:13,lineHeight:1.5,
+                          background:isPage ? "var(--accent)" : "var(--bg)",
+                          color:isPage ? "#fff" : "var(--text)",
+                          borderRadius:12,
+                          borderBottomRightRadius:isPage ? 4 : 12,
+                          borderBottomLeftRadius:isPage ? 12 : 4,
+                        }}>
+                          <p style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{m.message || <span style={{opacity:0.6,fontStyle:"italic"}}>(وسائط)</span>}</p>
+                          <div style={{display:"flex",alignItems:"center",gap:4,marginBlockStart:4,justifyContent:isPage?"flex-end":"flex-start"}}>
+                            <span style={{fontSize:10,opacity:0.7}}>{m.created_time ? formatMsgTime(m.created_time) : ""}</span>
+                            {isPage &&
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.6}}><polyline points="20 6 9 17 4 12"/></svg>}
+                          </div>
+                        </div>
+                        {!isPage && m.from?.name && <p style={{fontSize:10,color:"var(--muted)",marginBlockStart:2,paddingInline:4}}>{m.from.name}</p>}
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  )
+                })
+              )}
+              <div style={{height:4}} />
+            </div>
 
-              <div className="flex items-end gap-2 p-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowTemplates(s => !s)}
-                  className={`size-9 shrink-0 rounded-xl cursor-pointer ${showTemplates ? "text-accent bg-accent/10" : "text-muted-foreground/60"}`}
-                  aria-label="الردود السريعة"
-                >
-                  <Bookmark className="size-4" />
-                </Button>
-                <div className="flex-1 relative">
-                  <Textarea
-                    ref={replyInputRef}
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="اكتب رسالتك..."
-                    rows={1}
-                    className="min-h-[44px] max-h-[120px] resize-none text-sm rounded-xl bg-muted/40 border-0 focus:bg-background focus:ring-1 focus:ring-primary/20 py-3 px-4"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault()
-                        if (replyText.trim() && !sendMut.isPending) handleSend()
-                      }
-                    }}
-                  />
+            {/* Input */}
+            <div style={{borderTop:"1px solid var(--border)",padding:12,display:"flex",flexDirection:"column",gap:8}}>
+              {showTemplates && templates.length > 0 && (
+                <div style={{padding:"8px 12px",background:"var(--skeleton)",borderRadius:8}}>
+                  <p style={{fontSize:10,color:"var(--muted)",marginBlockEnd:6}}>الردود السريعة:</p>
+                  <div className="qactions" style={{gap:4,flexWrap:"wrap"}}>
+                    {templates.map(t => (
+                      <button key={t.id} className="btn btn-outline" style={{padding:"4px 10px",fontSize:11}} onClick={() => insertTemplate(t.text)}>
+                        {t.shortcut && <span style={{fontSize:10}}>{t.shortcut} </span>}{t.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <Button
-                  onClick={handleSend}
-                  disabled={!replyText.trim() || sendMut.isPending}
-                  className="shrink-0 size-10 rounded-xl p-0 cursor-pointer"
-                  aria-label="إرسال"
-                >
-                  {sendMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                </Button>
+              )}
+              <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+                <button className="btn btn-outline" style={{padding:"8px",fontSize:12,flexShrink:0}} onClick={() => setShowTemplates(s => !s)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <textarea
+                  ref={replyInputRef}
+                  className="fld"
+                  rows={1}
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  placeholder="اكتب رسالتك..."
+                  style={{flex:1,resize:"none",minHeight:44,maxHeight:120,borderRadius:12}}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (replyText.trim() && !sendMut.isPending) handleSend() } }}
+                />
+                <button className="btn btn-primary" style={{width:44,height:44,borderRadius:12,padding:0,justifyContent:"center"}} onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending}>
+                  {sendMut.isPending ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{animation:"spin 1s linear infinite"}}><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>
         )}
       </div>
-      <div className="lg:hidden mobile-nav-spacer" />
-    </div>
+
+      {showTagDialog && (
+        <div className="modal-overlay" onClick={() => setShowTagDialog(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
+            <div className="cc-header"><div className="cc-title">وسم جديد</div></div>
+            <div style={{padding:16}}>
+              <div className="fld" style={{marginBlockEnd:12}}>
+                <label style={{fontSize:12,color:"var(--muted)",display:"block",marginBlockEnd:4}}>اسم الوسم</label>
+                <input className="fld" value={newTagName} onChange={e => setNewTagName(e.target.value)} style={{width:"100%"}} />
+              </div>
+              <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:6}}>اللون</p>
+              <div className="qactions" style={{gap:4,marginBlockEnd:16,flexWrap:"wrap"}}>
+                {TAG_COLORS.map(c => (
+                  <button key={c} onClick={() => setNewTagColor(c)}
+                    style={{
+                      width:28,height:28,borderRadius:"50%",background:c,
+                      border: newTagColor === c ? "3px solid var(--text)" : "2px solid transparent",
+                      cursor:"pointer",padding:0,
+                    }} />
+                ))}
+              </div>
+              <button className="btn btn-primary" style={{width:"100%"}} onClick={() => createTagMut.mutate()} disabled={!newTagName.trim()}>
+                {createTagMut.isPending ? "جاري..." : "إنشاء الوسم"}
+              </button>
+              {tags.length > 0 && (
+                <div style={{marginBlockStart:16,paddingBlockStart:12,borderTop:"1px solid var(--border)"}}>
+                  <p style={{fontSize:11,color:"var(--muted)",marginBlockEnd:8}}>الوسوم الموجودة:</p>
+                  <div className="qactions" style={{gap:4,flexWrap:"wrap"}}>
+                    {tags.map(t => (
+                      <span key={t.id} className="badge badge-s" style={{fontSize:11,background:t.color+"18",color:t.color,cursor:"default"}}>
+                        {t.name}
+                        <span onClick={() => deleteTagMut.mutate(t.id)} style={{cursor:"pointer",marginInlineStart:4,opacity:0.6,display:"inline-flex"}}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mobile-nav-spacer" />
+    </section>
   )
 }

@@ -1,1 +1,0 @@
-import{n as e}from"./loader-circle-UVTQY-EX.js";var t=e(`chevron-right`,[[`path`,{d:`m9 18 6-6-6-6`,key:`mthhwq`}]]);export{t};

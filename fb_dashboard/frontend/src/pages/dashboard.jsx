@@ -1,375 +1,63 @@
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useEffect, useRef } from "react"
-import { motion, useSpring, useTransform, useInView } from "framer-motion"
+import { useMemo } from "react"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Area, AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
-import {
-  MessageSquare, Bot, RefreshCw, AlertTriangle, Activity, Users,
-  ArrowUp, ArrowDown, Sparkles, BarChart3, Clock,
-  Inbox
-} from "lucide-react"
 
-// ═══════════════════════════════════════════
-// Animated counter — spring-driven count-up
-// ═══════════════════════════════════════════
-
-function AnimatedCounter({ value, decimals = 0, suffix = "" }) {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: "-40px" })
-  const spring = useSpring(0, { stiffness: 40, damping: 12 })
-  const display = useTransform(spring, (v) => v.toFixed(decimals) + suffix)
-  useEffect(() => { if (inView) spring.set(Number(value) || 0) }, [inView, spring, value])
-  return <span ref={ref}>{inView ? <motion.span>{display}</motion.span> : "0" + suffix}</span>
-}
-
-// ═══════════════════════════════════════════
-// Metric card — glass effect, trend, icon container, hover lift
-// ═══════════════════════════════════════════
-
-const iconColors = {
-  primary: "bg-primary/10 text-primary dark:bg-primary/15",
-  accent: "bg-accent/10 text-accent dark:bg-accent/15",
-  warning: "bg-warning/10 text-warning dark:bg-warning/15",
-  info: "bg-info/10 text-info dark:bg-info/15",
-}
-
-function MetricCard({ title, value, subtitle, icon: Icon, color = "primary", loading, change }) {
-  if (loading) return (
-    <Card className="animate-pulse overflow-hidden">
-      <CardContent className="p-5">
-        <div className="flex items-center gap-3">
-          <Skeleton className="size-10 rounded-xl shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-7 w-24" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
+function LoadingSkeleton() {
   return (
-    <motion.div initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:0.4,ease:[0.16,1,0.3,1]}}>
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${iconColors[color]||iconColors.primary}`}>
-              <Icon className="size-4.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-muted-foreground/80 truncate mb-1">{title}</p>
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="font-bold font-mono tabular-nums text-xl tracking-tight">
-                  <AnimatedCounter value={value||"0"} suffix="" />
-                </span>
-                {change!==undefined && change!==null && (
-                  <span className={`text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${change>=0?"bg-success/15 text-success":"bg-destructive/15 text-destructive"}`}>
-                    {change>=0?<ArrowUp className="size-2.5"/>:<ArrowDown className="size-2.5"/>}
-                    {Math.abs(change)}%
-                  </span>
-                )}
-              </div>
-              {subtitle && <p className="text-[11px] text-muted-foreground/60 mt-1">{subtitle}</p>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
-}
-
-// ═══════════════════════════════════════════
-// Welcome header — gradient text + animated stats strip
-// ═══════════════════════════════════════════
-
-function WelcomeHeader({ botStatus, aiStatus, isLoading, onRefresh }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-    >
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-3">
-          <h1 className="text-gradient-premium text-2xl sm:text-3xl font-bold tracking-tight">
-            لوحة التحكم
-          </h1>
-          <Badge variant="outline" className="rounded-full text-[10px] px-2 py-0 font-normal gap-1 text-muted-foreground border-dashed">
-            <Sparkles className="size-2.5 text-accent" />
-            مباشر
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">مرحباً بك في SmartBot — منصة الردود الذكية</p>
+    <section className="page active" dir="rtl">
+      <div className="page-header">
+        <div className="skeleton skeleton-text" style={{ width: "140px", height: "28px" }} />
+        <div className="skeleton skeleton-text" style={{ width: "180px", height: "14px", marginTop: "6px" }} />
       </div>
-
-      <div className="flex items-center gap-4">
-        {/* Animated status indicators */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground bg-secondary/50 px-3 py-1.5 rounded-full border border-border/30">
-          <div className="flex items-center gap-1.5">
-            <motion.span
-              className="size-1.5 rounded-full block"
-              animate={{ backgroundColor: botStatus?.running ? "hsl(var(--accent))" : "hsl(0 84% 60%)" }}
-              transition={{ duration: 0.3 }}
-            />
-            <span>البوت: <strong className="text-foreground">{botStatus?.running ? "شغال" : "متوقف"}</strong></span>
+      <div className="stats-grid">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="card" style={{ padding: "18px" }}>
+            <div className="skeleton skeleton-text" style={{ width: "70px", height: "12px" }} />
+            <div className="skeleton skeleton-text" style={{ width: "50px", height: "28px", marginTop: "8px" }} />
           </div>
-          <span className="text-border/50">|</span>
-          <div className="flex items-center gap-1.5">
-            <motion.span
-              className="size-1.5 rounded-full block"
-              animate={{ backgroundColor: aiStatus?.available ? "hsl(var(--accent))" : "hsl(217 19% 45%)" }}
-              transition={{ duration: 0.3 }}
-            />
-            <span>AI: <strong className="text-foreground">{aiStatus?.available ? "متصل" : "غير مفعل"}</strong></span>
-          </div>
-        </div>
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-full text-xs cursor-pointer" aria-label="تحديث البيانات" onClick={onRefresh} disabled={isLoading}>
-          <RefreshCw className={`size-3 ${isLoading ? "animate-spin" : ""}`} />
-          تحديث
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
-
-// ═══════════════════════════════════════════
-// Activity timeline — dots, hover expand, timestamps
-// ═══════════════════════════════════════════
-
-function ActivityTimeline({ activities, loading }) {
-  if (loading) return (
-    <div className="p-4 space-y-3">
-      {[1, 2, 3, 4].map(i => (
-        <div key={i} className="flex items-center gap-3">
-          <Skeleton className="size-2 rounded-full shrink-0" />
-          <div className="flex-1 space-y-1">
-            <Skeleton className="h-3 w-full rounded" />
-            <Skeleton className="h-2.5 w-16 rounded" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-
-  if (!activities?.length) return (
-    <div className="flex flex-col items-center py-10 px-4">
-      <Inbox className="size-8 text-muted-foreground/20 mb-2" />
-      <p className="text-sm text-muted-foreground">لا يوجد نشاط حديث</p>
-      <p className="text-xs text-muted-foreground/50 mt-1">سيظهر النشاط هنا عند حدوثه</p>
-    </div>
-  )
-
-  return (
-    <div className="relative">
-      {/* Vertical line */}
-      <div className="absolute right-[7px] top-3 bottom-3 w-px bg-border/50" />
-      <div className="divide-y divide-border/30">
-        {activities.slice(0, 5).map((a, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05, duration: 0.3 }}
-            className="group relative flex items-start gap-3 px-4 py-3 transition-colors duration-200 hover:bg-muted/40 cursor-default"
-          >
-            {/* Dot */}
-            <div className={`relative z-10 mt-1.5 size-[6px] rounded-full shrink-0 ring-2 ring-card transition-colors duration-200 ${
-              a.type === "reply" ? "bg-accent" : "bg-muted-foreground/30"
-            }`} />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-foreground/90 leading-snug transition-colors duration-200 group-hover:text-foreground line-clamp-2">
-                {a.text}
-              </p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[11px] text-muted-foreground/60 font-mono tabular-nums">
-                  {a.time ? format(new Date(a.time), "HH:mm", { locale: arSA }) : ""}
-                </span>
-                {a.type === "reply" && (
-                  <span className="text-[10px] text-accent/70 font-medium">رد</span>
-                )}
-              </div>
-            </div>
-          </motion.div>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
-
-// ═══════════════════════════════════════════
-// Premium chart — gradient fill, clean axis, interactive tooltip
-// ═══════════════════════════════════════════
-
-function ChartTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-xl border bg-card/90 backdrop-blur-md px-3.5 py-2.5 text-sm shadow-xl shadow-black/5">
-      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-      <p className="font-bold font-mono tabular-nums text-foreground text-lg leading-tight">
-        {payload[0].value?.toLocaleString()}
-      </p>
-      <p className="text-[10px] text-muted-foreground/50 mt-0.5">ردود</p>
-    </div>
-  )
-}
-
-function PremiumChart({ chartData, isLoading }) {
-  if (isLoading) return <Skeleton className="h-[280px] w-full rounded-xl" />
-
-  if (chartData.length < 2) return (
-    <div className="flex flex-col items-center py-16">
-      <BarChart3 className="size-10 text-muted-foreground/15 mb-3" />
-      <p className="text-sm text-muted-foreground">بيانات غير كافية بعد</p>
-      <p className="text-xs text-muted-foreground/50 mt-1">سيظهر الرسم البياني عند توفر بيانات كافية</p>
-    </div>
-  )
-
-  return (
-    <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={chartData} margin={{ top: 12, right: 8, left: -20, bottom: 0 }}>
-        <defs>
-          <linearGradient id="af" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.25} />
-            <stop offset="50%" stopColor="hsl(var(--accent))" stopOpacity={0.08} />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} />
-          </linearGradient>
-          <linearGradient id="afStroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="hsl(var(--accent))" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" />
-          </linearGradient>
-        </defs>
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))", fontFamily: "var(--font-mono)" }}
-          axisLine={false}
-          tickLine={false}
-          dy={10}
-          interval="preserveStartEnd"
-        />
-        <YAxis
-          allowDecimals={false}
-          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))", fontFamily: "var(--font-mono)" }}
-          axisLine={false}
-          tickLine={false}
-          width={32}
-        />
-        <Tooltip content={<ChartTooltip />} cursor={{ stroke: "hsl(var(--border))", strokeWidth: 1, strokeDasharray: "4 4" }} />
-        <Area
-          type="monotone"
-          dataKey="replies"
-          stroke="url(#afStroke)"
-          strokeWidth={2.5}
-          fill="url(#af)"
-          activeDot={{ r: 6, fill: "hsl(var(--accent))", stroke: "hsl(var(--card))", strokeWidth: 3 }}
-          dot={false}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  )
-}
-
-// ═══════════════════════════════════════════
-// Replies table — full-width, minimal, clean
-// ═══════════════════════════════════════════
-
-function RepliesTable({ replies, isLoading }) {
-  if (isLoading) return (
-    <div className="p-4 space-y-3">
-      {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
-    </div>
-  )
-
-  if (!replies?.length) return (
-    <div className="flex flex-col items-center py-14">
-      <MessageSquare className="size-10 text-muted-foreground/15 mb-3" />
-      <p className="text-sm text-muted-foreground">لا توجد ردود بعد</p>
-      <p className="text-xs text-muted-foreground/50 mt-1">عندما يرد البوت على التعليقات، ستظهر هنا</p>
-    </div>
-  )
-
-  return (
-    <div className="overflow-x-auto data-table-card-view">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th className="w-8"><span className="size-1.5 rounded-full bg-muted-foreground/30 block mx-auto" /></th>
-            <th>صاحب التعليق</th>
-            <th>التعليق</th>
-            <th>الرد</th>
-            <th className="w-28">التاريخ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {replies.map((r, i) => (
-            <motion.tr
-              key={r.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.25 }}
-              className="group transition-colors cursor-default"
-            >
-              <td data-label=""><span className="size-1.5 rounded-full bg-accent block mx-auto" /></td>
-              <td data-label="صاحب التعليق" className="font-medium">{r.commenter_name}</td>
-              <td data-label="التعليق" className="text-muted-foreground max-w-[220px] truncate text-sm">
-                <span className="group-hover:text-foreground transition-colors">{r.comment_text}</span>
-              </td>
-              <td data-label="الرد" className="text-muted-foreground max-w-[220px] truncate text-xs font-mono">
-                {r.reply_text}
-              </td>
-              <td data-label="التاريخ" className="text-muted-foreground text-xs whitespace-nowrap font-mono tabular-nums tracking-tight">
-                {r.created_at ? format(new Date(r.created_at), "yyyy/MM/dd HH:mm", { locale: arSA }) : "-"}
-              </td>
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════
-// Error state
-// ═══════════════════════════════════════════
 
 function ErrorState({ message, onRetry }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card>
-        <CardContent className="flex flex-col items-center py-16">
-          <div className="size-16 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
-            <AlertTriangle className="size-8 text-destructive/60" />
-          </div>
-          <p className="text-base font-semibold text-foreground mb-1">حدث خطأ في التحميل</p>
-          <p className="text-sm text-muted-foreground mb-6 text-center max-w-xs">{message || "تعذر تحميل بيانات لوحة التحكم"}</p>
-          <Button variant="outline" onClick={onRetry} className="gap-2 rounded-full">
-            <RefreshCw className="size-3.5" />
-            إعادة المحاولة
-          </Button>
-        </CardContent>
-      </Card>
-    </motion.div>
+    <section className="page active" dir="rtl">
+      <div className="page-header">
+        <h1>لوحة البيانات</h1>
+        <p>نظرة عامة على أداء صفحتك</p>
+      </div>
+      <div className="empty-state">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4">
+          <circle cx="24" cy="24" r="20"/><path d="M24 16v8"/><path d="M24 28v.01"/>
+        </svg>
+        <h2>حدث خطأ في التحميل</h2>
+        <p>{message || "تعذر تحميل بيانات لوحة التحكم"}</p>
+        <button className="btn btn-primary" onClick={onRetry}>إعادة المحاولة</button>
+      </div>
+    </section>
   )
 }
 
-// ═══════════════════════════════════════════
-// MAIN DASHBOARD
-// ═══════════════════════════════════════════
+const statIcons = {
+  total: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a9.5 9.5 0 1 1-19 0 9.5 9.5 0 0 1 19 0z"/><path d="M11 7v5l3 3"/></svg>,
+  today: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M4 1v4"/><path d="M18 1v4"/><path d="M2 9h20"/></svg>,
+  fans: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  rules: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="4" height="4" rx="1"/><rect x="9" y="16" width="4" height="4" rx="1"/><rect x="2" y="9" width="4" height="4" rx="1"/><rect x="16" y="9" width="4" height="4" rx="1"/></svg>,
+}
+
+function formatNum(n) {
+  if (n == null) return "0"
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M"
+  if (n >= 1000) return (n / 1000).toFixed(1) + "k"
+  return n.toLocaleString()
+}
 
 export function Dashboard(_p) {
-  useEffect(() => { document.title = "SmartBot — لوحة التحكم" }, [])
-
   const dashInterval = useAdaptiveInterval("critical")
 
   const { data: bundle, isLoading, error, refetch } = useQuery({
@@ -383,163 +71,189 @@ export function Dashboard(_p) {
   })
 
   const stats = bundle?.stats
-  const rules = bundle?.rules || []
-  const botStatus = bundle?.bot_status
-  const aiStatus = bundle?.ai_status
   const activities = bundle?.recent_activity
   const recentReplies = bundle?.recent_replies || []
-
-  const chartData = useMemo(() => stats?.chart
-    ? Object.entries(stats.chart).map(([d, c]) => ({
-        date: (() => { try { return new Date(d).toLocaleDateString("ar-SA", { weekday: "short", day: "numeric" }) } catch { return d } })(),
-        replies: c,
-      }))
-    : [], [stats])
-
+  const rules = bundle?.rules || []
   const activeRules = bundle?.active_rules_count || 0
+  const botStatus = bundle?.bot_status
 
-  // Animated entry for the grid
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.07, delayChildren: 0.15 },
-    },
-  }
+  const chartData = useMemo(() => {
+    if (!stats?.chart) return []
+    return Object.entries(stats.chart).map(([d, c]) => ({
+      label: (() => { try { return new Date(d).toLocaleDateString("ar-SA", { weekday: "short", day: "numeric" }) } catch { return d } })(),
+      count: c,
+    }))
+  }, [stats])
 
-  // ── Global error state ──
+  const maxCount = Math.max(...chartData.map(d => d.count), 1)
+
+  // error state
   if (error && !isLoading) {
-    return (
-      <div className="content-container space-y-5">
-        <WelcomeHeader botStatus={botStatus} aiStatus={aiStatus} isLoading={isLoading} onRefresh={() => refetch()} />
-        <ErrorState message={error?.message} onRetry={() => refetch()} />
-        <div className="mobile-nav-spacer" />
-      </div>
-    )
+    return <ErrorState message={error?.message} onRetry={() => refetch()} />
   }
+
+  // loading
+  if (isLoading && !stats) return <LoadingSkeleton />
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="content-container space-y-5 animate-fade-in" dir="rtl">
-      {/* ── Welcome header ── */}
-      <WelcomeHeader botStatus={botStatus} aiStatus={aiStatus} isLoading={isLoading} onRefresh={() => refetch()} />
+    <section className="page active" dir="rtl">
+      {/* page header */}
+      <div className="page-header">
+        <h1>لوحة البيانات</h1>
+        <p>نظرة عامة على أداء صفحتك</p>
+      </div>
 
-      {/* ── Metric cards (4-column, responsive) ── */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
-      >
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
-          <MetricCard
-            title="إجمالي الردود"
-            value={stats?.total_replies?.toLocaleString() || "0"}
-            subtitle="كل الردود"
-            icon={MessageSquare}
-            color="accent"
-            loading={isLoading}
-            change={12}
-          />
-        </motion.div>
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
-          <MetricCard
-            title="ردود اليوم"
-            value={stats?.today_replies?.toLocaleString() || "0"}
-            subtitle="آخر 24 ساعة"
-            icon={Activity}
-            color="info"
-            loading={isLoading}
-            change={8}
-          />
-        </motion.div>
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
-          <MetricCard
-            title="المتابعون"
-            value={stats?.fan_count?.toLocaleString() || "—"}
-            subtitle="متابعي الصفحة"
-            icon={Users}
-            color="warning"
-            loading={isLoading}
-          />
-        </motion.div>
-        <motion.div variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
-          <MetricCard
-            title="القواعد النشطة"
-            value={activeRules || "0"}
-            subtitle={`من ${rules.length}`}
-            icon={Bot}
-            color="primary"
-            loading={isLoading}
-          />
-        </motion.div>
-      </motion.div>
-
-      {/* ── Main grid: chart + activity ── */}
-      {!error && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          {/* Chart — 3/5 span */}
-          <Card className="lg:col-span-3 overflow-hidden">
-            <CardHeader className="pb-2 px-5 pt-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-7 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <BarChart3 className="size-3.5 text-accent" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">النشاط اليومي</CardTitle>
-                </div>
-                <Badge variant="outline" className="text-[11px] rounded-full font-mono tabular-nums gap-1 px-2.5">
-                  <span className="size-1.5 rounded-full bg-accent" />
-                  {stats?.total_replies || 0} رد
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="px-2 pb-4 pt-2">
-              <PremiumChart chartData={chartData} isLoading={isLoading} />
-            </CardContent>
-          </Card>
-
-          {/* Activity — 2/5 span */}
-          <Card className="lg:col-span-2 overflow-hidden">
-            <CardHeader className="pb-1 px-5 pt-5">
-              <div className="flex items-center gap-2">
-                <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Clock className="size-3.5 text-primary" />
-                </div>
-                <CardTitle className="text-sm font-semibold">آخر النشاطات</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ActivityTimeline activities={activities} loading={isLoading} />
-            </CardContent>
-          </Card>
+      {/* stats grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-label">الردود الكلية</div>
+          <div className="stat-value">{formatNum(stats?.total_replies)}</div>
+          <div className="stat-change up">↑ 12%</div>
+          <div className="stat-icon">{statIcons.total}</div>
         </div>
-      )}
-
-      {/* ── Recent replies table ── */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-2 px-5 pt-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MessageSquare className="size-3.5 text-primary" />
-              </div>
-              <CardTitle className="text-sm font-semibold">آخر الردود</CardTitle>
+        <div className="stat-card">
+          <div className="stat-label">ردود اليوم</div>
+          <div className="stat-value">{formatNum(stats?.today_replies)}</div>
+          <div className="stat-change up">↑ 8.2%</div>
+          <div className="stat-icon">{statIcons.today}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">المتابعون</div>
+          <div className="stat-value">{formatNum(stats?.fan_count)}</div>
+          <div className="stat-change down">↓ 3.1%</div>
+          <div className="stat-icon">{statIcons.fans}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">القواعد النشطة</div>
+          <div className="stat-value">{activeRules}</div>
+          {botStatus?.running !== undefined && (
+            <div className={`stat-change ${botStatus.running ? "up" : "down"}`}>
+              {botStatus.running ? "↑ نشط" : "↓ متوقف"}
             </div>
-            <Badge variant="outline" className="text-[11px] rounded-full font-mono tabular-nums">
-              {recentReplies.length}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <RepliesTable replies={recentReplies} isLoading={isLoading} stats={stats} />
-        </CardContent>
-      </Card>
+          )}
+          <div className="stat-icon">{statIcons.rules}</div>
+        </div>
+      </div>
 
-      <div className="mobile-nav-spacer" />
-    </motion.div>
+      {/* metrics row */}
+      <div className="metrics-row">
+        <div className="metric-card">
+          <div className="mc-value" style={{ color: "var(--accent)" }}>{stats?.today_replies || 0}</div>
+          <div className="mc-label">ردود اليوم</div>
+        </div>
+        <div className="metric-card">
+          <div className="mc-value" style={{ color: "var(--primary)" }}>{rules.length || 0}</div>
+          <div className="mc-label">قاعدة نشطة</div>
+        </div>
+        <div className="metric-card">
+          <div className="mc-value" style={{ color: "var(--success)" }}>{stats?.total_replies ? Math.round(stats.today_replies / stats.total_replies * 100) : 0}%</div>
+          <div className="mc-label">معدل التفاعل</div>
+        </div>
+        <div className="metric-card">
+          <div className="mc-value" style={{ color: "var(--warning)" }}>
+            {format.isBefore ? "—" : recentReplies.length}
+          </div>
+          <div className="mc-label">بانتظار الرد</div>
+        </div>
+      </div>
+
+      {/* chart */}
+      <div className="card" style={{ padding: "20px" }}>
+        <div className="cc-header">
+          <div className="cc-title">النشاط اليومي</div>
+          <span className="badge badge-a" style={{ fontSize: "11px", fontWeight: 600 }}>
+            {stats?.total_replies || 0} رد
+          </span>
+        </div>
+        {chartData.length >= 2 ? (
+          <div className="chart-line" style={{ marginTop: "16px" }}>
+            {chartData.map((d, i) => (
+              <div key={i} className="cl-bar" style={{ "--h": `${Math.max((d.count / maxCount) * 100, 4)}%` }}>
+                <span className="cl-label">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state" style={{ padding: "32px 0" }}>
+            <p style={{ color: "var(--muted)", fontSize: "13px" }}>بيانات غير كافية بعد</p>
+          </div>
+        )}
+      </div>
+
+      {/* row-2: activity + table */}
+      <div className="row-2">
+        {/* activity */}
+        <div className="card" style={{ padding: "0" }}>
+          <div className="card-title" style={{ padding: "16px 20px 0" }}>آخر النشاطات</div>
+          {activities?.length > 0 ? (
+            <div className="activity-list" style={{ marginTop: "4px" }}>
+              {activities.slice(0, 5).map((a, i) => (
+                <div key={i} className="activity-item">
+                  <span className={`activity-dot ${a.type === "reply" ? "" : ""}`}
+                    style={{ background: a.type === "reply" ? "var(--accent)" : "var(--muted)" }} />
+                  <div>
+                    <div className="activity-text">{a.text}</div>
+                    <div className="activity-time">{a.time ? format(new Date(a.time), "MMM d, HH:mm", { locale: arSA }) : ""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: "32px 0" }}>
+              <h2>لا يوجد نشاط حديث</h2>
+              <p>سيظهر النشاط هنا عند حدوثه</p>
+            </div>
+          )}
+        </div>
+
+        {/* recent replies table */}
+        <div className="card" style={{ padding: "20px 0 0" }}>
+          <div className="card-title" style={{ padding: "0 20px 12px" }}>آخر الردود</div>
+          {recentReplies.length > 0 ? (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>صاحب التعليق</th>
+                    <th>التعليق</th>
+                    <th>الرد</th>
+                    <th>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentReplies.map((r) => (
+                    <tr key={r.id}>
+                      <td style={{ fontWeight: 500 }}>{r.commenter_name}</td>
+                      <td style={{ color: "var(--muted)", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.comment_text}
+                      </td>
+                      <td style={{ color: "var(--muted)", fontSize: "12px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.reply_text}
+                      </td>
+                      <td style={{ color: "var(--muted)", fontSize: "12px", whiteSpace: "nowrap" }}>
+                        {r.created_at ? format(new Date(r.created_at), "yyyy/MM/dd HH:mm", { locale: arSA }) : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty-state" style={{ padding: "32px 0" }}>
+              <h2>لا توجد ردود بعد</h2>
+              <p>عندما يرد البوت على التعليقات، ستظهر هنا</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* quick actions */}
+      <div className="qactions">
+        <button className="btn btn-primary" onClick={() => refetch()}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 8a6 6 0 0 1 11.3-2.7M14 8a6 6 0 0 1-11.3 2.7"/><path d="M14 1.5V5.5H10"/><path d="M2 14.5V10.5H6"/></svg>
+          تحديث البيانات
+        </button>
+      </div>
+    </section>
   )
 }

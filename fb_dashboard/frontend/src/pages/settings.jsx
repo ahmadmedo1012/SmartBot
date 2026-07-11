@@ -1,77 +1,41 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { fetchBotStatus, restartBot, fetchLogs, fetchFacebookSettings, fetchEnv, fetchSystemStats, clearLogs } from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import {
-  RefreshCw, Terminal, Inbox, AlertTriangle, Plug, Clock, Bot, Trash2,
-  Settings2, Database, Key, Server,
-  Sun, Moon, Monitor, HardDrive, MessageSquare, BookOpen, Eraser,
-  Smartphone, Users
-} from "lucide-react"
 import { format } from "date-fns"
-import { motion } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
-import { useTheme } from "@/components/theme-provider"
 
 const levelBadgeClass = {
-  INFO: "border bg-primary/10 text-primary",
-  WARNING: "border bg-warning/10 text-warning",
-  ERROR: "border bg-destructive/10 text-destructive",
-}
-
-function EmptyState({ message, icon: Icon }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-      {Icon ? <Icon className="h-12 w-12 text-muted-foreground/40" /> : <Inbox className="h-12 w-12 text-muted-foreground/40" />}
-      <p className="text-muted-foreground">{message || "لا توجد سجلات بعد"}</p>
-    </div>
-  )
+  INFO: "badge-s",
+  WARNING: "badge-w",
+  ERROR: "badge-d",
 }
 
 function ErrorState({ error, onRetry }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
-      <div className="p-3 rounded-full bg-destructive/10">
-        <AlertTriangle className="h-6 w-6 text-destructive" />
-      </div>
-      <p className="text-sm text-muted-foreground">{error?.message || "فشل التحميل"}</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RefreshCw className="ml-1 h-3 w-3" />
+    <div style={{textAlign:"center",padding:32}}>
+      <p style={{color:"var(--muted)",fontSize:13,marginBlockEnd:12}}>{error?.message || "فشل التحميل"}</p>
+      <button className="btn btn-outline" style={{fontSize:12}} onClick={onRetry}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         إعادة المحاولة
-      </Button>
+      </button>
     </div>
   )
 }
 
 const tabItems = [
-  { value: "bot", label: "إعدادات البوت", icon: Bot },
-  { value: "facebook", label: "فيسبوك", icon: Smartphone },
-  { value: "api", label: "إعدادات API", icon: Settings2 },
-  { value: "theme", label: "المظهر", icon: Monitor },
-  { value: "system", label: "النظام", icon: Server },
+  { value: "bot", label: "إعدادات البوت" },
+  { value: "facebook", label: "فيسبوك" },
+  { value: "api", label: "إعدادات API" },
+  { value: "theme", label: "المظهر" },
+  { value: "system", label: "النظام" },
 ]
 
 function FacebookTab() {
-  const { data: fbSettings, isLoading, isError, refetch } = useQuery({
-    queryKey: ["facebook-settings"],
-    queryFn: fetchFacebookSettings,
-  })
-  const { data: status } = useQuery({
-    queryKey: ["bot-status"],
-    queryFn: fetchBotStatus,
-    refetchInterval: 10000,
-  })
+  const { data: fbSettings, isLoading, isError, refetch } = useQuery({ queryKey: ["facebook-settings"], queryFn: fetchFacebookSettings })
+  const { data: status } = useQuery({ queryKey: ["bot-status"], queryFn: fetchBotStatus, refetchInterval: 10000 })
   const queryClient = useQueryClient()
   const [newInterval, setNewInterval] = useState("")
-  useEffect(() => {
-    if (status?.interval) setNewInterval(String(status.interval))
-  }, [status?.interval])
+  useEffect(() => { if (status?.interval) setNewInterval(String(status.interval)) }, [status?.interval])
   const updateIntervalMut = useMutation({
     mutationFn: async (sec) => {
       const fd = new FormData(); fd.append("interval", String(sec))
@@ -79,73 +43,60 @@ function FacebookTab() {
       if (!r.ok) throw new Error("فشل التحديث")
       return r.json()
     },
-    onSuccess: (_, sec) => {
-      queryClient.invalidateQueries({ queryKey: ["bot-status"] })
-      toast.success(`تم تحديث الفاصل الزمني إلى ${sec} ثانية`)
-    },
+    onSuccess: (_, sec) => { queryClient.invalidateQueries({ queryKey: ["bot-status"] }); toast.success(`تم تحديث الفاصل الزمني إلى ${sec} ثانية`) },
     onError: (e) => toast.error(e.message || "فشل تحديث الفاصل الزمني"),
   })
-  if (isLoading) return <div className="flex justify-center py-12"><Skeleton className="h-32 w-full max-w-md rounded-lg" /></div>
+  if (isLoading) return <div className="stat-card glass" style={{height:80,background:"var(--skeleton)"}} />
   if (isError) return <ErrorState onRetry={() => refetch()} />
   return (
-    <div className="grid gap-5 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10"><Smartphone className="h-5 w-5 text-primary" /></div>
-            <CardTitle className="text-base">اتصال فيسبوك</CardTitle>
+    <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+      <div className="card glass" style={{padding:16}}>
+        <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+          <div className="cc-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" x2="10"/><path d="M12 22V8"/><path d="M12 8H5a3 3 0 0 0-3 3v8"/><path d="M12 8h7a3 3 0 0 1 3 3v8"/></svg>
+            اتصال فيسبوك
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Badge variant={fbSettings?.connected ? "default" : "destructive"} className="text-sm px-3 py-1 rounded-full">
-              <div className={`w-1.5 h-1.5 rounded-full ml-1.5 ${fbSettings?.connected ? "bg-primary animate-pulse" : "bg-muted-foreground/30"}`} />
-              {fbSettings?.connected ? "متصل" : "غير متصل"}
-            </Badge>
+        </div>
+        <div className="fld" style={{marginBlockEnd:8}}>
+          <span className={`badge ${fbSettings?.connected ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:fbSettings?.connected ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+            {fbSettings?.connected ? "متصل" : "غير متصل"}
+          </span>
+        </div>
+        {fbSettings?.page_name && <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:4}}>اسم الصفحة: <strong style={{color:"var(--text)"}}>{fbSettings.page_name}</strong></p>}
+        {fbSettings?.page_id && <p style={{fontSize:12,color:"var(--muted)"}}>معرف الصفحة: <code style={{background:"var(--skeleton)",padding:"2px 6px",borderRadius:4,fontSize:11}}>{fbSettings.page_id}</code></p>}
+        <p style={{fontSize:12,color:"var(--muted)",marginBlockStart:4}}>
+          Token: {fbSettings?.has_token ? <code style={{background:"var(--skeleton)",padding:"2px 6px",borderRadius:4,fontSize:11}}>{fbSettings.token_preview}</code> : <span className="badge badge-d" style={{fontSize:10}}>غير مضبوط</span>}
+        </p>
+      </div>
+      <div className="card glass" style={{padding:16}}>
+        <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+          <div className="cc-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            حالة البوت
           </div>
-          {fbSettings?.page_name && (
-            <p className="text-sm text-muted-foreground">اسم الصفحة: <span className="text-foreground font-medium">{fbSettings.page_name}</span></p>
-          )}
-          {fbSettings?.page_id && (
-            <p className="text-sm text-muted-foreground">معرف الصفحة: <code className="px-2 py-0.5 bg-muted rounded text-xs font-mono">{fbSettings.page_id}</code></p>
-          )}
-          <p className="text-sm text-muted-foreground">
-            Token: {fbSettings?.has_token
-              ? <code className="px-2 py-0.5 bg-muted rounded text-xs font-mono">{fbSettings.token_preview}</code>
-              : <Badge variant="destructive" className="text-xs">غير مضبوط</Badge>}
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-primary/10"><Bot className="h-5 w-5 text-primary" /></div>
-            <CardTitle className="text-base">حالة البوت</CardTitle>
+        </div>
+        <div className="fld" style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:12}}>
+          <span className={`badge ${status?.running ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+            {status?.running ? "شغال" : "متوقف"}
+          </span>
+          <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            الفحص كل: {status?.interval ?? 10} ث
+          </span>
+        </div>
+        <div className="fld" style={{display:"flex",alignItems:"flex-end",gap:8}}>
+          <div style={{flex:1}}>
+            <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>الفاصل الزمني (ثواني)</label>
+            <input type="number" min={1} className="fld" value={newInterval} onChange={e => setNewInterval(e.target.value)} style={{width:"100%"}} />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Badge variant={status?.running ? "default" : "destructive"} className="text-sm px-3 py-1 rounded-full">
-              <div className={`w-1.5 h-1.5 rounded-full ml-1.5 ${status?.running ? "bg-primary animate-pulse" : "bg-muted-foreground/30"}`} />
-              {status?.running ? "شغال" : "متوقف"}
-            </Badge>
-            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />
-              الفحص كل: {status?.interval ?? 10} ثانية
-            </span>
-          </div>
-          <div className="flex items-end gap-3">
-            <div className="flex-1 space-y-1.5">
-              <label className="text-xs text-muted-foreground font-medium">الفاصل الزمني (ثواني)</label>
-              <Input type="number" min={1} value={newInterval} onChange={e => setNewInterval(e.target.value)} className="h-9" />
-            </div>
-            <Button variant="outline" size="sm" onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }} disabled={updateIntervalMut.isPending} className="mt-1.5">
-              <RefreshCw className={`h-3.5 w-3.5 ml-1 ${updateIntervalMut.isPending ? "animate-spin" : ""}`} />
-              تحديث
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <button className="btn btn-outline" style={{fontSize:11,padding:"6px 12px"}} onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }} disabled={updateIntervalMut.isPending}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            {updateIntervalMut.isPending ? "..." : "تحديث"}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -154,38 +105,28 @@ export function Settings({ role }) {
   useEffect(() => { document.title = "الإعدادات | SmartBot" }, [])
   const queryClient = useQueryClient()
   const [tab, setTab] = useState("bot")
-  const { setTheme, resolvedTheme } = useTheme()
   const [newInterval, setNewInterval] = useState("")
+  const [cleared, setCleared] = useState(false)
 
   const { data: status, isLoading: statusLoading, isError: statusError, refetch: refetchStatus } = useQuery({
-    queryKey: ["bot-status"],
-    queryFn: fetchBotStatus,
-    staleTime: 5000, refetchOnWindowFocus: true,
-    refetchInterval: 10000, retry: 2,
+    queryKey: ["bot-status"], queryFn: fetchBotStatus, staleTime: 5000, refetchOnWindowFocus: true, refetchInterval: 10000, retry: 2,
     placeholderData: (prev) => prev,
   })
 
   const { data: logs = [], isLoading: logsLoading, isError: logsError, refetch: refetchLogs } = useQuery({
-    queryKey: ["logs"],
-    queryFn: () => fetchLogs(50),
-    enabled: tab === "bot",
+    queryKey: ["logs"], queryFn: () => fetchLogs(50), enabled: tab === "bot",
   })
 
   const { data: env, isLoading: envLoading } = useQuery({
-    queryKey: ["env"],
-    queryFn: fetchEnv,
-    enabled: tab === "api",
+    queryKey: ["env"], queryFn: fetchEnv, enabled: tab === "api",
   })
 
   const { data: sysStats, isLoading: sysStatsLoading } = useQuery({
-    queryKey: ["system-stats"],
-    queryFn: fetchSystemStats,
-    enabled: tab === "system",
+    queryKey: ["system-stats"], queryFn: fetchSystemStats, enabled: tab === "system",
   })
 
   const logsEndRef = useRef(null)
   const logsContainerRef = useRef(null)
-  const [cleared, setCleared] = useState(false)
 
   useEffect(() => {
     if (logsEndRef.current && logsContainerRef.current) {
@@ -197,12 +138,11 @@ export function Settings({ role }) {
     if (status?.interval) setNewInterval(String(status.interval))
   }, [status?.interval])
 
+  const [confirmClear, setConfirmClear] = useState(false)
+
   const restartMut = useMutation({
     mutationFn: restartBot,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bot-status"] })
-      toast.success("تم إعادة تشغيل البوت بنجاح")
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bot-status"] }); toast.success("تم إعادة تشغيل البوت") },
     onError: (e) => toast.error(e.message),
   })
 
@@ -213,395 +153,318 @@ export function Settings({ role }) {
       if (!r.ok) throw new Error("فشل التحديث")
       return r.json()
     },
-    onSuccess: (_, sec) => {
-      queryClient.invalidateQueries({ queryKey: ["bot-status"] })
-      toast.success(`تم تحديث الفاصل الزمني إلى ${sec} ثانية`)
-    },
+    onSuccess: (_, sec) => { queryClient.invalidateQueries({ queryKey: ["bot-status"] }); toast.success(`تم تحديث الفاصل الزمني إلى ${sec} ثانية`) },
     onError: (e) => toast.error(e.message || "فشل تحديث الفاصل الزمني"),
   })
 
   const clearLogsMut = useMutation({
     mutationFn: () => clearLogs(30),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["logs"] })
-      toast.success(`تم حذف ${data.deleted} سجل`)
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["logs"] }); toast.success("تم تنظيف السجلات") },
     onError: (e) => toast.error(e.message),
   })
 
   const envConfig = env
     ? [
         { key: "DATABASE_URL", value: env.db_type === "postgres" ? "postgresql://***" : "sqlite:///data.db", hidden: true },
-        { key: "FACEBOOK_ACCESS_TOKEN", value: env.has_fb_token ? "مُعد" : "غير مُعد", hidden: false },
-        { key: "WEBHOOK_URL", value: env.webhook_url || "غير مُعد", hidden: false },
-        { key: "BOT_INTERVAL", value: `${env.bot_interval}s`, hidden: false },
-        { key: "DEBUG", value: env.debug ? "نعم" : "لا", hidden: false },
-        { key: "VERSION", value: env.version, hidden: false },
+        { key: "FACEBOOK_ACCESS_TOKEN", value: env.has_fb_token ? "مُعد" : "غير مُعد" },
+        { key: "WEBHOOK_URL", value: env.webhook_url || "غير مُعد" },
+        { key: "BOT_INTERVAL", value: `${env.bot_interval}s` },
+        { key: "DEBUG", value: env.debug ? "نعم" : "لا" },
+        { key: "VERSION", value: env.version },
       ]
     : []
 
   const systemStats = [
-    { label: "الإصدار", value: sysStats?.version || "—", icon: HardDrive },
-    { label: "عدد القواعد", value: sysStats?.rule_count ?? "—", icon: BookOpen },
-    { label: "عدد الردود", value: sysStats?.reply_count ?? "—", icon: MessageSquare },
-    { label: "عدد المستخدمين", value: sysStats?.user_count ?? "—", icon: Users },
-    { label: "حجم قاعدة البيانات", value: sysStats?.db_size || "—", icon: Database },
-    { label: "حالة البوت", value: status?.running ? "شغال" : "متوقف", icon: Bot },
+    { label: "الإصدار", value: sysStats?.version || "—" },
+    { label: "عدد القواعد", value: sysStats?.rule_count ?? "—" },
+    { label: "عدد الردود", value: sysStats?.reply_count ?? "—" },
+    { label: "عدد المستخدمين", value: sysStats?.user_count ?? "—" },
+    { label: "حجم قاعدة البيانات", value: sysStats?.db_size || "—" },
+    { label: "حالة البوت", value: status?.running ? "شغال" : "متوقف" },
   ]
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="content-container space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">الإعدادات</h1>
-        <p className="text-sm text-muted-foreground mt-1">إعدادات البوت، API، المظهر وإحصائيات النظام</p>
+    <section className="page active" style={{animation:"pageIn 0.35s ease"}}>
+      <div className="page-header">
+        <h1>الإعدادات</h1>
+        <p>إعدادات البوت، API، المظهر وإحصائيات النظام</p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-5">
-        <TabsList className="w-full justify-start gap-1 bg-transparent p-0 h-auto">
-          {tabItems.map(({ value, label, icon: Icon }) => (
-            <TabsTrigger
-              key={value}
-              value={value}
-              className="data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5 text-sm gap-2"
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div className="qactions" style={{gap:4,marginBlockEnd:16,flexWrap:"wrap"}}>
+        {tabItems.map(t => (
+          <button key={t.value} className={`btn ${tab === t.value ? "btn-primary" : "btn-outline"}`} style={{padding:"6px 14px",fontSize:12}} onClick={() => setTab(t.value)}>{t.label}</button>
+        ))}
+      </div>
 
-        {tab === "bot" && (
-          <div className="space-y-5">
-                <div className="grid gap-5 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <Bot className="h-5 w-5 text-primary" />
-                        </div>
-                        <CardTitle className="text-base">حالة البوت</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {statusLoading ? (
-                        <div className="space-y-3">
-                          <Skeleton className="h-8 w-40 rounded-lg" />
-                          <Skeleton className="h-9 w-32 rounded-lg" />
-                          <Skeleton className="h-9 w-full rounded-lg" />
-                        </div>
-                      ) : statusError ? (
-                        <ErrorState onRetry={() => refetchStatus()} />
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <Badge variant={status?.running ? "default" : "destructive"} className="text-sm px-3 py-1 rounded-full">
-                              <div className={`w-1.5 h-1.5 rounded-full ml-1.5 ${status?.running ? "bg-primary animate-pulse" : "bg-muted-foreground/30"}`} />
-                              {status?.running ? "شغال" : "متوقف"}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5" />
-                              الفحص كل: {status?.interval ?? 10} ثانية
-                            </span>
-                          </div>
-                          <div className="flex items-end gap-3">
-                            <div className="flex-1 space-y-1.5">
-                              <label className="text-xs text-muted-foreground font-medium">الفاصل الزمني (ثواني)</label>
-                              <Input type="number" min={1} value={newInterval} onChange={e => setNewInterval(e.target.value)} className="h-9" />
-                            </div>
-                            <Button variant="outline" size="sm"
-                              onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }}
-                              disabled={updateIntervalMut.isPending}
-                              className="mt-1.5">
-                              <RefreshCw className={`h-3.5 w-3.5 ml-1 ${updateIntervalMut.isPending ? "animate-spin" : ""}`} />
-                              تحديث
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-3 pt-1">
-                            <Button variant="destructive" size="sm"
-                              onClick={() => restartMut.mutate()}
-                              disabled={restartMut.isPending || role !== "admin"}
-                              className={role !== "admin" ? "opacity-50 cursor-not-allowed" : ""}>
-                              <RefreshCw className={`h-4 w-4 ml-1.5 ${restartMut.isPending ? "animate-spin" : ""}`} />
-                              {restartMut.isPending ? "جاري..." : "إعادة تشغيل البوت"}
-                            </Button>
-                            {role !== "admin" && <span className="text-xs font-medium text-muted-foreground">متاح للمدير فقط</span>}
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-primary/10">
-                          <Plug className="h-5 w-5 text-primary" />
-                        </div>
-                        <CardTitle className="text-base">اتصال فيسبوك</CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {statusLoading ? (
-                        <div className="space-y-2">
-                          <Skeleton className="h-4 w-48 rounded-lg" />
-                          <Skeleton className="h-4 w-32 rounded-lg" />
-                        </div>
-                      ) : statusError ? (
-                        <ErrorState onRetry={() => refetchStatus()} />
-                      ) : !status ? null : (
-                        <>
-                          <div className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">معرف الصفحة:</span>{" "}
-                            <code className="px-2 py-0.5 bg-muted rounded text-xs font-mono">مُعد في الإعدادات</code>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="font-medium text-foreground">الحالة:</span>
-                            <Badge variant={status.running ? "default" : "secondary"} className="text-xs rounded-full">
-                              <div className={`w-1.5 h-1.5 rounded-full ml-1.5 ${status.running ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
-                              {status.running ? "متصل" : "غير متصل"}
-                            </Badge>
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
+      {tab === "bot" && (
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+            <div className="card glass" style={{padding:16}}>
+              <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+                <div className="cc-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                  حالة البوت
                 </div>
-
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Terminal className="h-5 w-5 text-primary" />
-                      </div>
-                      <CardTitle className="text-base">سجل البوت</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {logsLoading ? (
-                      <div className="space-y-2">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
-                            <Skeleton className="h-5 w-16 shrink-0 rounded" />
-                            <Skeleton className="h-5 w-full rounded" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : logsError ? (
-                      <ErrorState onRetry={() => refetchLogs()} />
-                    ) : logs.length === 0 || cleared ? (
-                      <EmptyState message="لا توجد سجلات بعد" />
-                    ) : (
-                      <div className="relative">
-                        <div ref={logsContainerRef} className="space-y-1 max-h-80 overflow-y-auto" dir="ltr">
-                          {logs.map((log, i) => (
-                            <div key={log.id ?? i}
-                              className="flex items-start gap-2 text-sm py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0 ${levelBadgeClass[log.level] ?? "bg-muted text-muted-foreground"}`}>
-                                {log.level}
-                              </span>
-                              <span className="text-muted-foreground text-xs shrink-0 font-mono" dir="ltr">
-                                {log.created_at ? format(new Date(log.created_at), "HH:mm:ss") : "—"}
-                              </span>
-                              <span className="break-words text-foreground">{log.message}</span>
-                            </div>
-                          ))}
-                          <div ref={logsEndRef} />
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t mt-1">
-                          <Button variant="outline" size="sm" onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending} className="text-xs cursor-pointer">
-                            <Eraser className="h-3 w-3 ml-1" />
-                            {clearLogsMut.isPending ? "جاري..." : "تنظيف السجلات القديمة"}
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setCleared(true)} className="text-xs cursor-pointer">
-                            <Trash2 className="h-3 w-3 ml-1" />
-                            مسح السجلات
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </div>
-            )}
-
-            {tab === "facebook" && (
-              <FacebookTab />
-            )}
-
-            {tab === "api" && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-primary/10">
-                      <Settings2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-base">إعدادات API</CardTitle>
+              {statusLoading ? (
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <div className="stat-card glass" style={{height:24,background:"var(--skeleton)"}} />
+                  <div className="stat-card glass" style={{height:24,width:"60%",background:"var(--skeleton)"}} />
+                </div>
+              ) : statusError ? (
+                <ErrorState onRetry={() => refetchStatus()} />
+              ) : (
+                <>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:12}}>
+                    <span className={`badge ${status?.running ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+                      {status?.running ? "شغال" : "متوقف"}
+                    </span>
+                    <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      الفحص كل: {status?.interval ?? 10} ثانية
+                    </span>
                   </div>
-                  <CardDescription>متغيرات البيئة — للقراءة فقط</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {envLoading ? (
-                    <div className="space-y-3">
-                      {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+                  <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBlockEnd:12}}>
+                    <div style={{flex:1}}>
+                      <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>الفاصل الزمني (ثواني)</label>
+                      <input type="number" min={1} className="fld" value={newInterval} onChange={e => setNewInterval(e.target.value)} style={{width:"100%"}} />
                     </div>
-                  ) : !env ? (
-                    <ErrorState error={new Error("فشل تحميل الإعدادات")} onRetry={() => queryClient.invalidateQueries({ queryKey: ["env"] })} />
-                  ) : (
-                    <>
-                      <div className="rounded-lg border divide-y">
-                        {envConfig.map(({ key, value, hidden }) => (
-                          <div key={key} className="flex items-center justify-between p-4">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="p-1.5 rounded-lg bg-muted shrink-0">
-                                {key.startsWith("DATABASE") ? <Database className="h-4 w-4 text-muted-foreground" /> :
-                                 key.startsWith("FACEBOOK") ? <Key className="h-4 w-4 text-muted-foreground" /> :
-                                 <Settings2 className="h-4 w-4 text-muted-foreground" />}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-foreground">{key}</p>
-                                <p className="text-xs text-muted-foreground font-mono truncate max-w-[260px] sm:max-w-md" dir="ltr">
-                                  {hidden ? "******" : value}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
-                        <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-                        <div className="text-sm text-warning">
-                          <p className="font-medium">تعديل هذه الإعدادات</p>
-                          <p className="mt-1">تتم إدارة متغيرات البيئة من خلال لوحة تحكم Render Dashboard.</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                    <button className="btn btn-outline" style={{fontSize:11,padding:"6px 12px"}} onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }} disabled={updateIntervalMut.isPending}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                      {updateIntervalMut.isPending ? "..." : "تحديث"}
+                    </button>
+                  </div>
+                  <div className="qactions">
+                    <button className="btn btn-outline" style={{color:"var(--danger)",fontSize:12}} onClick={() => restartMut.mutate()} disabled={restartMut.isPending || role !== "admin"}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                      {restartMut.isPending ? "جاري..." : "إعادة تشغيل البوت"}
+                    </button>
+                    {role !== "admin" && <span style={{fontSize:11,color:"var(--muted)"}}>متاح للمدير فقط</span>}
+                  </div>
+                </>
+              )}
+            </div>
 
-            {tab === "theme" && (
-              <div className="grid gap-5 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Monitor className="h-5 w-5 text-primary" />
+            <div className="card glass" style={{padding:16}}>
+              <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+                <div className="cc-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  اتصال فيسبوك
+                </div>
+              </div>
+              {statusLoading ? (
+                <div className="stat-card glass" style={{height:24,background:"var(--skeleton)"}} />
+              ) : (
+                <>
+                  <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>معرف الصفحة: <code style={{background:"var(--skeleton)",padding:"2px 6px",borderRadius:4,fontSize:11}}>مُعد في الإعدادات</code></p>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span>الحالة:</span>
+                    <span className={`badge ${status?.running ? "badge-s" : "badge-w"}`} style={{fontSize:11}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+                      {status?.running ? "متصل" : "غير متصل"}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="card glass" style={{padding:16}}>
+            <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                سجل البوت
+              </div>
+            </div>
+            {logsLoading ? (
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[1,2,3,4,5].map(i => <div key={i} className="stat-card glass" style={{height:24,background:"var(--skeleton)"}} />)}
+              </div>
+            ) : logsError ? (
+              <ErrorState onRetry={() => refetchLogs()} />
+            ) : logs.length === 0 || cleared ? (
+              <div style={{textAlign:"center",padding:24}}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3}}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <p style={{fontSize:13,color:"var(--muted)",marginBlockStart:8}}>لا توجد سجلات بعد</p>
+              </div>
+            ) : (
+              <>
+                <div ref={logsContainerRef} style={{maxHeight:240,overflowY:"auto",marginBlockEnd:8}} dir="ltr">
+                  {logs.map((log, i) => (
+                    <div key={log.id ?? i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--border)",fontSize:12}}>
+                      <span className={`badge ${levelBadgeClass[log.level] ?? "badge-w"}`} style={{fontSize:9,padding:"1px 6px",flexShrink:0}}>{log.level}</span>
+                      <span style={{color:"var(--muted)",fontSize:11,fontFamily:"monospace",flexShrink:0}}>{log.created_at ? format(new Date(log.created_at), "HH:mm:ss") : "—"}</span>
+                      <span style={{wordBreak:"break-word"}}>{log.message}</span>
+                    </div>
+                  ))}
+                  <div ref={logsEndRef} />
+                </div>
+                <div className="qactions" style={{gap:4}}>
+                  <button className="btn btn-outline" style={{fontSize:11}} onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    {clearLogsMut.isPending ? "جاري..." : "تنظيف السجلات القديمة"}
+                  </button>
+                  <button className="btn btn-outline" style={{fontSize:11}} onClick={() => setCleared(true)}>مسح السجلات</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "facebook" && <FacebookTab />}
+
+      {tab === "api" && (
+        <div className="card glass" style={{padding:16}}>
+          <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
+            <div className="cc-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              إعدادات API
+            </div>
+            <p style={{fontSize:11,color:"var(--muted)",marginBlockStart:4}}>متغيرات البيئة — للقراءة فقط</p>
+          </div>
+          {envLoading ? (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass" style={{height:40,background:"var(--skeleton)"}} />)}
+            </div>
+          ) : !env ? (
+            <ErrorState error={new Error("فشل تحميل الإعدادات")} onRetry={() => queryClient.invalidateQueries({ queryKey: ["env"] })} />
+          ) : (
+            <>
+              <div style={{borderRadius:8,border:"1px solid var(--border)",overflow:"hidden"}}>
+                {envConfig.map(({ key, value, hidden }) => (
+                  <div key={key} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",borderBottom:"1px solid var(--border)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontSize:13}}>
+                        <p style={{fontWeight:600}}>{key}</p>
+                        <p style={{fontSize:11,color:"var(--muted)",fontFamily:"monospace",direction:"ltr",textAlign:"left"}}>{hidden ? "******" : value}</p>
                       </div>
-                      <CardTitle className="text-base">المظهر</CardTitle>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">اختر نمط العرض:</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onClick={() => setTheme("light")} aria-label="الوضع الفاتح"
-                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors cursor-pointer ${resolvedTheme === "light" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                          <Sun className={`h-8 w-8 ${resolvedTheme === "light" ? "text-primary" : "text-muted-foreground"}`} />
-                          <span className={`text-sm font-medium ${resolvedTheme === "light" ? "text-primary" : ""}`}>فاتح</span>
-                        </button>
-                        <button onClick={() => setTheme("dark")} aria-label="الوضع الداكن"
-                          className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors cursor-pointer ${resolvedTheme === "dark" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                          <Moon className={`h-8 w-8 ${resolvedTheme === "dark" ? "text-primary" : "text-muted-foreground"}`} />
-                          <span className={`text-sm font-medium ${resolvedTheme === "dark" ? "text-primary" : ""}`}>داكن</span>
-                        </button>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">الحالي</span>
-                      <Badge variant="outline" className="gap-1.5">
-                        {resolvedTheme === "dark" ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
-                        {resolvedTheme === "dark" ? "داكن" : "فاتح"}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Eye className="h-5 w-5 text-primary" />
-                      </div>
-                      <CardTitle className="text-base">معاينة حية</CardTitle>
-                    </div>
-                    <CardDescription>معاينة المظهر المختار</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`rounded-lg border overflow-hidden transition-colors duration-300`}>
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-primary" />
-                          <div className="h-2 w-20 rounded bg-muted" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                          {[1,2,3,4].map(i => <div key={i} className="h-8 rounded bg-muted" />)}
-                        </div>
-                        <div className="h-3 w-32 rounded bg-muted" />
-                        <div className="h-3 w-24 rounded bg-muted" />
-                        <div className="h-8 w-full rounded-lg bg-primary flex items-center justify-center">
-                          <span className="text-primary-foreground text-xs font-medium">زر تجريبي</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:12,marginBlockStart:12,borderRadius:8,background:"var(--warning-soft)",border:"1px solid var(--warning)"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--warning)",flexShrink:0}}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div style={{fontSize:12,color:"var(--warning)"}}>
+                  <p style={{fontWeight:600}}>تعديل هذه الإعدادات</p>
+                  <p style={{marginBlockStart:4}}>تتم إدارة متغيرات البيئة من خلال لوحة تحكم Render Dashboard.</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === "theme" && (
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="card glass" style={{padding:16}}>
+            <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                المظهر
+              </div>
+            </div>
+            <div className="fld">
+              <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>اختر نمط العرض:</p>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+                <button onClick={() => document.documentElement.style.colorScheme = "light"}
+                  style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                  <span style={{fontSize:12}}>فاتح</span>
+                </button>
+                <button onClick={() => document.documentElement.style.colorScheme = "dark"}
+                  style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  <span style={{fontSize:12}}>داكن</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="card glass" style={{padding:16}}>
+            <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                معاينة حية
+              </div>
+            </div>
+            <div style={{border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
+              <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:12,height:12,borderRadius:"50%",background:"var(--accent)"}} />
+                  <div style={{height:8,width:80,background:"var(--skeleton)",borderRadius:4}} />
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+                  {[1,2,3,4].map(i => <div key={i} style={{height:32,borderRadius:4,background:"var(--skeleton)"}} />)}
+                </div>
+                <div style={{height:12,width:120,borderRadius:4,background:"var(--skeleton)"}} />
+                <div style={{height:12,width:80,borderRadius:4,background:"var(--skeleton)"}} />
+                <button className="btn btn-primary" style={{width:"100%",textAlign:"center"}}>زر تجريبي</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "system" && (
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div className="card glass" style={{padding:16}}>
+            <div className="cc-header" style={{padding:0,marginBlockEnd:12}}>
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                إحصائيات النظام
+              </div>
+            </div>
+            {sysStatsLoading ? (
+              <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+                {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass" style={{height:60,background:"var(--skeleton)"}} />)}
+              </div>
+            ) : (
+              <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+                {systemStats.map(s => (
+                  <div key={s.label} className="stat-card glass" style={{padding:16}}>
+                    <div className="stat-label">{s.label}</div>
+                    <div className="stat-value" style={{fontSize:18}}>{s.value}</div>
+                  </div>
+                ))}
               </div>
             )}
+          </div>
 
-            {tab === "system" && (
-              <div className="space-y-5">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Server className="h-5 w-5 text-primary" />
-                      </div>
-                      <CardTitle className="text-base">إحصائيات النظام</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {sysStatsLoading ? (
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {[1,2,3,4,5,6].map(i => <div key={i} className="p-4 rounded-lg border space-y-2"><Skeleton className="h-4 w-16" /><Skeleton className="h-7 w-24" /></div>)}
-                      </div>
-                    ) : (
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {systemStats.map(({ label, value, icon: Icon }) => (
-                          <div key={label} className="p-4 rounded-lg border">
-                            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1.5">
-                              <Icon className="h-3.5 w-3.5" />{label}
-                            </div>
-                            <p className="text-lg font-semibold font-mono text-foreground">{value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Eraser className="h-5 w-5 text-primary" />
-                      </div>
-                      <CardTitle className="text-base">صيانة</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">تنظيف السجلات التي مضى عليها أكثر من 30 يوماً.</p>
-                    <Button variant="outline" onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending}>
-                      <Eraser className={`h-4 w-4 ml-1.5 ${clearLogsMut.isPending ? "animate-pulse" : ""}`} />
-                      {clearLogsMut.isPending ? "جاري التنظيف..." : "تنظيف السجلات القديمة"}
-                    </Button>
-                  </CardContent>
-                </Card>
+          <div className="card glass" style={{padding:16}}>
+            <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                صيانة
               </div>
-            )}
-        </Tabs>
+            </div>
+            <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:12}}>تنظيف السجلات التي مضى عليها أكثر من 30 يوماً.</p>
+            <button className="btn btn-outline" style={{fontSize:12}} onClick={() => setConfirmClear(true)} disabled={clearLogsMut.isPending}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              {clearLogsMut.isPending ? "جاري التنظيف..." : "تنظيف السجلات القديمة"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmClear && (
+        <div className="modal-overlay" onClick={() => setConfirmClear(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
+            <div className="cc-header"><div className="cc-title">تأكيد التنظيف</div></div>
+            <div style={{padding:16}}>
+              <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:16}}>تنظيف السجلات التي مضى عليها أكثر من 30 يوماً؟ لا يمكن التراجع.</p>
+              <div className="qactions" style={{justifyContent:"flex-end"}}>
+                <button className="btn btn-outline" onClick={() => setConfirmClear(false)}>إلغاء</button>
+                <button className="btn btn-primary" onClick={() => { clearLogsMut.mutate(); setConfirmClear(false) }} disabled={clearLogsMut.isPending}>
+                  {clearLogsMut.isPending ? "جاري..." : "تنظيف"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mobile-nav-spacer" />
-      </motion.div>
+    </section>
   )
 }

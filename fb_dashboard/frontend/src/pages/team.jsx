@@ -1,361 +1,241 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { motion } from "framer-motion"
+import { toast } from "sonner"
+
 function api(path, opts = {}) {
   return fetch(path, {
     ...opts,
     headers: opts.body instanceof FormData ? {} : { "Content-Type": "application/json", ...opts.headers },
   }).then((r) => { if (!r.ok) throw new Error("Request failed"); return r.json() })
 }
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
-import { toast } from "sonner"
-import {
-  Users, UserPlus, UserCheck, UserCog, Activity, Clock,
-  AlertCircle, Shield, Mail, Reply, Edit3, UserMinus,
-  RefreshCw, User as UserIcon,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
 
-// ---- API ----
 function fetchTeamMembers() { return api("/api/team/members") }
 function fetchTeamActivity(days) { return api(`/api/team/activity?days=${days}`) }
-function fetchTeamPerformance() { return api("/api/team/performance") }
 function fetchRoleSummary() { return api("/api/team/role-summary") }
 
 const ROLE_LABELS = { admin: "مدير", editor: "محرر", viewer: "مشاهد" }
-const ROLE_BADGE = {
-  admin: "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20",
-  editor: "bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 border-sky-500/20 dark:text-sky-400",
-  viewer: "bg-muted text-muted-foreground hover:bg-muted/80 border-transparent",
-}
-const ACTIVITY_ICONS = {
-  reply: Reply, comment: Mail, mention: AtSign, login: UserCheck,
-  edit: Edit3, remove: UserMinus, invite: UserPlus, default: Activity,
-}
-const ACTIVITY_COLORS = {
-  reply: "text-accent bg-accent/10",
-  comment: "text-blue-500 bg-blue-500/10",
-  mention: "text-violet-500 bg-violet-500/10",
-  login: "text-primary bg-primary/10", edit: "text-amber-500 bg-amber-500/10",
-  remove: "text-destructive bg-destructive/10", invite: "text-accent bg-accent/10",
-  default: "text-muted-foreground bg-muted",
-}
 
 function timeAgo(date) {
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
   if (diff < 60) return "الآن"
-  if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`
-  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`
-  return `منذ ${Math.floor(diff / 86400)} يوم`
+  if (diff < 3600) return `منذ ${Math.floor(diff / 60)} د`
+  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} س`
+  return `منذ ${Math.floor(diff / 86400)} ي`
 }
 
-// ---- Invite Dialog ----
-function InviteDialog({ trigger }) {
+const ACT_COLORS = {
+  reply: { bg: "var(--accent-soft)", color: "var(--accent)" },
+  comment: { bg: "var(--info-soft)", color: "var(--info)" },
+  mention: { bg: "#f0f0ff", color: "#8b5cf6" },
+  login: { bg: "var(--accent-soft)", color: "var(--accent)" },
+  edit: { bg: "var(--warning-soft)", color: "var(--warning)" },
+  remove: { bg: "var(--danger-soft)", color: "var(--danger)" },
+  invite: { bg: "var(--accent-soft)", color: "var(--accent)" },
+}
+
+const ACT_SVG = {
+  reply: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>,
+  comment: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  mention: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg>,
+  login: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>,
+  edit: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  remove: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  invite: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="20 8 20 14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+}
+
+function InviteDialog({ isAdmin }) {
   const [open, setOpen] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [role, setRole] = useState("viewer")
   const queryClient = useQueryClient()
-
   const inviteMut = useMutation({
-    mutationFn: () => api("/api/team/members", {
-      method: "POST",
-      body: JSON.stringify({ username, password, role }),
-    }),
-    onSuccess: () => {
-      // ponytail: removed unused
-            // queryClient.invalidateQueries({ queryKey: ["team-members"] })
-      // ponytail: removed unused
-            // queryClient.invalidateQueries({ queryKey: ["role-summary"] })
-      setOpen(false); setUsername(""); setPassword(""); setRole("viewer")
-      toast.success("تمت إضافة العضو")
-    },
+    mutationFn: () => api("/api/team/members", { method: "POST", body: JSON.stringify({ username, password, role }) }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["team-members"] }); queryClient.invalidateQueries({ queryKey: ["role-summary"] }); setOpen(false); setUsername(""); setPassword(""); setRole("viewer"); toast.success("تمت إضافة العضو") },
     onError: (e) => toast.error(e.message),
   })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!username || !password) return toast.error("يرجى تعبئة جميع الحقول")
-    inviteMut.mutate()
-  }
-
+  const handleSubmit = (e) => { e.preventDefault(); if (!username || !password) return toast.error("يرجى تعبئة جميع الحقول"); inviteMut.mutate() }
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="glass-heavy">
-        <DialogHeader><DialogTitle>دعوة عضو جديد</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">اسم المستخدم</label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} required dir="ltr" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">كلمة المرور</label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">الدور</label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="viewer">مشاهد</SelectItem>
-                <SelectItem value="editor">محرر</SelectItem>
-                <SelectItem value="admin">مدير</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" type="button" onClick={() => setOpen(false)}>إلغاء</Button>
-            <Button type="submit" disabled={inviteMut.isPending}>
-              {inviteMut.isPending ? "جاري..." : "دعوة"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function AtSign(props) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
-    </svg>
-  )
-}
-
-// ---- Stats Card ----
-function StatCard({ icon: Icon, label, value, color }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={cn("rounded-full p-2.5 shrink-0", color || "bg-muted")}>
-          <Icon className={cn("h-5 w-5", color ? "text-white" : "text-muted-foreground")} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-2xl font-bold tabular-nums text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// ---- Member Card ----
-function MemberCard({ member }) {
-  const initial = (member.username || "?").charAt(0).toUpperCase()
-  const gradient = `hsl(${member.id * 37 % 360}, 55%, 45%)`
-
-  return (
-    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white"
-            style={{ background: gradient }}
-          >
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground truncate">{member.username}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {member.replies_count != null && `${member.replies_count} ردود`}
-              {member.last_active && ` · ${timeAgo(member.last_active)}`}
-            </p>
-            <div className="mt-2">
-              <Badge className={cn("text-xs rounded-full", ROLE_BADGE[member.role] || ROLE_BADGE.viewer)}>
-                <Shield className="h-3 w-3 ml-1" />{ROLE_LABELS[member.role] || member.role}
-              </Badge>
-            </div>
+    <>
+      <button className="btn btn-primary" disabled={!isAdmin} onClick={() => isAdmin && setOpen(true)}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="20 8 20 14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        دعوة عضو
+      </button>
+      {open && (
+        <div className="modal-overlay" onClick={() => setOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:420}}>
+            <div className="cc-header"><div className="cc-title">دعوة عضو جديد</div></div>
+            <form onSubmit={handleSubmit} style={{padding:16}}>
+              <div className="fld" style={{marginBlockEnd:12}}>
+                <label style={{fontSize:12,color:"var(--muted)",display:"block",marginBlockEnd:4}}>اسم المستخدم</label>
+                <input className="fld" value={username} onChange={e => setUsername(e.target.value)} required dir="ltr" style={{width:"100%"}} />
+              </div>
+              <div className="fld" style={{marginBlockEnd:12}}>
+                <label style={{fontSize:12,color:"var(--muted)",display:"block",marginBlockEnd:4}}>كلمة المرور</label>
+                <input type="password" className="fld" value={password} onChange={e => setPassword(e.target.value)} required style={{width:"100%"}} />
+              </div>
+              <div className="fld" style={{marginBlockEnd:16}}>
+                <label style={{fontSize:12,color:"var(--muted)",display:"block",marginBlockEnd:4}}>الدور</label>
+                <select className="fld" value={role} onChange={e => setRole(e.target.value)} style={{width:"100%"}}>
+                  <option value="viewer">مشاهد</option>
+                  <option value="editor">محرر</option>
+                  <option value="admin">مدير</option>
+                </select>
+              </div>
+              <div className="qactions" style={{justifyContent:"flex-end"}}>
+                <button className="btn btn-outline" type="button" onClick={() => setOpen(false)}>إلغاء</button>
+                <button className="btn btn-primary" type="submit" disabled={inviteMut.isPending}>{inviteMut.isPending ? "جاري..." : "دعوة"}</button>
+              </div>
+            </form>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </>
   )
 }
 
-// ---- Activity Item ----
-function ActivityItem({ activity }) {
-  const Icon = ACTIVITY_ICONS[activity.type] || ACTIVITY_ICONS.default
-  const colorClass = ACTIVITY_COLORS[activity.type] || ACTIVITY_COLORS.default
-
-  return (
-    <div className="flex gap-3 py-3">
-      <div className={cn("rounded-full p-2 shrink-0 mt-0.5", colorClass)}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm text-foreground">
-          <span className="font-semibold">{activity.user}</span>
-          <span className="text-muted-foreground"> {activity.action}</span>
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-          <Clock className="h-3 w-3 inline" />{timeAgo(activity.created_at || activity.timestamp)}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-// ---- Main Page ----
 export function Team({ role }) {
   useEffect(() => { document.title = "فريق العمل | SmartBot" }, [])
+  const isAdmin = role === "admin"
   const [activityDays, setActivityDays] = useState(7)
 
   const { data: members = [], isLoading: membersLoading, error: membersErr, refetch: refetchMembers } = useQuery({
-    queryKey: ["team-members"], queryFn: fetchTeamMembers,
-    staleTime: 15000, refetchOnWindowFocus: true,
+    queryKey: ["team-members"], queryFn: fetchTeamMembers, staleTime: 15000, refetchOnWindowFocus: true,
   })
   const { data: activities = [], isLoading: activitiesLoading } = useQuery({
-    queryKey: ["team-activity", activityDays], queryFn: () => fetchTeamActivity(activityDays),
-    staleTime: 15000, refetchOnWindowFocus: true,
-  })
-  const { data: perf, isLoading: perfLoading } = useQuery({
-    queryKey: ["team-performance"], queryFn: fetchTeamPerformance, enabled: false, // ponytail: lazy load
+    queryKey: ["team-activity", activityDays], queryFn: () => fetchTeamActivity(activityDays), staleTime: 15000, refetchOnWindowFocus: true,
   })
   const { data: roleSummary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["role-summary"], queryFn: fetchRoleSummary,
-    staleTime: 30000, refetchOnWindowFocus: true,
+    queryKey: ["role-summary"], queryFn: fetchRoleSummary, staleTime: 30000, refetchOnWindowFocus: true,
   })
 
   const summary = roleSummary || {}
   const totalMembers = members.length || summary.total || 0
-  const totalRoles = Object.keys(ROLE_LABELS).filter((r) => (summary[r] || 0) > 0 || members.some((m) => m.role === r)).length
+  const totalRoles = Object.keys(ROLE_LABELS).filter(r => (summary[r] || 0) > 0 || members.some(m => m.role === r)).length
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="content-container space-y-6"
-    >
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-gradient-premium text-2xl font-bold tracking-tight">فريق العمل</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalMembers} عضو · {totalRoles} أدوار
-          </p>
-        </div>
-        <InviteDialog trigger={
-          <Button disabled={!isAdmin}><UserPlus className="ml-2 h-4 w-4" />دعوة عضو</Button>
-        } />
+    <section className="page active" style={{animation:"pageIn 0.35s ease"}}>
+      <div className="page-header">
+        <h1>فريق العمل</h1>
+        <p>{totalMembers} عضو · {totalRoles} أدوار</p>
       </div>
 
-      {/* ── Role Summary ── */}
+      <div className="qactions">
+        <InviteDialog isAdmin={isAdmin} />
+      </div>
+
       {summaryLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:72,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={Users} label="إجمالي الأعضاء" value={summary.total ?? totalMembers} color="bg-primary" />
-          <StatCard icon={UserCog} label="مدير" value={summary.admin ?? 0} color="bg-warning" />
-          <StatCard icon={UserCheck} label="محرر" value={summary.editor ?? 0} color="bg-info" />
-          <StatCard icon={UserIcon} label="مشاهد" value={summary.viewer ?? 0} color="bg-muted-foreground" />
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+          {[
+            { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "إجمالي الأعضاء", value: summary.total ?? totalMembers, color: "var(--accent)" },
+            { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 12l-4-4m4 4l4-4"/><path d="M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>, label: "مدير", value: summary.admin ?? 0, color: "var(--warning)" },
+            { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "محرر", value: summary.editor ?? 0, color: "var(--info)" },
+            { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "مشاهد", value: summary.viewer ?? 0, color: "var(--muted)" },
+          ].map(s => (
+            <div key={s.label} className="stat-card glass" style={{display:"flex",alignItems:"center",gap:12,padding:16}}>
+              <div style={{width:40,height:40,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:s.color,color:"#fff",flexShrink:0}}>{s.icon}</div>
+              <div><div className="stat-value" style={{fontSize:22}}>{s.value}</div><div className="stat-label">{s.label}</div></div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ── Members Grid ── */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">الأعضاء</h2>
-        {membersLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+      <div className="page-header" style={{marginBlockStart:12}}><h2 style={{fontSize:14,fontWeight:600}}>الأعضاء</h2></div>
+
+      {membersLoading ? (
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+        </div>
+      ) : membersErr ? (
+        <div className="card glass" style={{textAlign:"center",padding:40}}>
+          <p style={{color:"var(--muted)",marginBlockEnd:12}}>فشل تحميل الأعضاء</p>
+          <button className="btn btn-outline" onClick={() => refetchMembers()}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : members.length === 0 ? (
+        <div className="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:12}}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <p>لا يوجد أعضاء — قم بدعوة أول عضو</p>
+          <div className="qactions" style={{marginBlockStart:12}}><InviteDialog isAdmin={isAdmin} /></div>
+        </div>
+      ) : (
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
+          {members.map(m => {
+            const initial = (m.username || "?").charAt(0).toUpperCase()
+            const gradient = `hsl(${m.id * 37 % 360}, 55%, 45%)`
+            const rs = m.role === "admin" ? {bg:"var(--accent-soft)",color:"var(--accent)"} : m.role === "editor" ? {bg:"var(--info-soft)",color:"var(--info)"} : {bg:"var(--skeleton)",color:"var(--muted)"}
+            return (
+              <div key={m.id} className="stat-card glass">
+                <div className="person-row">
+                  <div className="person-avatar" style={{background:gradient}}>{initial}</div>
+                  <div className="person-info">
+                    <div className="p-name">{m.username}</div>
+                    <div className="p-detail">{m.replies_count != null && `${m.replies_count} ردود`}{m.last_active && ` · ${timeAgo(m.last_active)}`}</div>
                   </div>
                 </div>
-                <Skeleton className="h-6 w-16 rounded-full" />
+                <span className="badge badge-s" style={{fontSize:10,background:rs.bg,color:rs.color,border:"none",marginBlockStart:8,display:"inline-flex",alignItems:"center",gap:4}}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  {ROLE_LABELS[m.role] || m.role}
+                </span>
               </div>
+            )
+          })}
+        </div>
+      )}
+
+      <div style={{marginBlockStart:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBlockEnd:12}}>
+          <h2 style={{fontSize:14,fontWeight:600}}>النشاطات</h2>
+          <div className="qactions" style={{gap:4}}>
+            {[{v:1,l:"اليوم"},{v:7,l:"7 أيام"},{v:30,l:"30 يوم"}].map(f => (
+              <button key={f.v} className={`btn ${activityDays === f.v ? "btn-primary" : "btn-outline"}`} style={{padding:"4px 10px",fontSize:11}} onClick={() => setActivityDays(f.v)}>{f.l}</button>
             ))}
           </div>
-        ) : membersErr ? (
-          <div className="flex flex-col items-center py-12 text-center">
-            <div className="rounded-full bg-destructive/10 p-4 mb-4"><AlertCircle className="h-10 w-10 text-destructive" /></div>
-            <p className="text-muted-foreground mb-4">فشل تحميل الأعضاء</p>
-            <Button variant="outline" onClick={refetchMembers}><RefreshCw className="ml-2 h-4 w-4" />إعادة المحاولة</Button>
-          </div>
-        ) : members.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
-            <div className="rounded-full bg-muted p-5"><Users className="h-12 w-12 text-muted-foreground/50" /></div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">لا يوجد أعضاء</h2>
-              <p className="text-sm text-muted-foreground mt-1">قم بدعوة أول عضو للفريق</p>
-            </div>
-            <InviteDialog trigger={<Button disabled={!isAdmin}><UserPlus className="ml-2 h-4 w-4" />دعوة عضو</Button>} />
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {members.map((m) => <MemberCard key={m.id} member={m} isAdmin={isAdmin} />)}
-          </div>
-        )}
-      </div>
-
-      {/* ── Activity Feed ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">النشاطات</h2>
-          <div className="flex items-center gap-1 text-sm">
-            <Button
-              variant={activityDays === 1 ? "default" : "ghost"} size="sm"
-              onClick={() => setActivityDays(1)}
-              className="h-8 px-2.5"
-            >اليوم</Button>
-            <Button
-              variant={activityDays === 7 ? "default" : "ghost"} size="sm"
-              onClick={() => setActivityDays(7)}
-              className="h-8 px-2.5"
-            >7 أيام</Button>
-            <Button
-              variant={activityDays === 30 ? "default" : "ghost"} size="sm"
-              onClick={() => setActivityDays(30)}
-              className="h-8 px-2.5"
-            >30 يوم</Button>
-          </div>
         </div>
+
         {activitiesLoading ? (
-          <div className="rounded-lg border p-4 space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton className="h-8 w-8 rounded-full shrink-0" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
+          <div className="card glass" style={{padding:16}}>
+            {[1,2,3,4,5].map(i => (
+              <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:"var(--skeleton)",flexShrink:0}} />
+                <div style={{flex:1}}><div style={{height:12,width:"60%",background:"var(--skeleton)",borderRadius:6,marginBlockEnd:6}} /><div style={{height:10,width:"30%",background:"var(--skeleton)",borderRadius:6}} /></div>
               </div>
             ))}
           </div>
         ) : activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 rounded-lg border">
-            <div className="rounded-full bg-muted p-4"><Activity className="h-8 w-8 text-muted-foreground/50" /></div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">لا توجد نشاطات</p>
-              <p className="text-xs text-muted-foreground mt-1">لايوجد نشاط خلال هذه الفترة</p>
-            </div>
+          <div className="card glass" style={{textAlign:"center",padding:40}}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:8}}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p style={{fontSize:13,color:"var(--muted)"}}>لا توجد نشاطات خلال هذه الفترة</p>
           </div>
         ) : (
-          <div className="rounded-lg border divide-y">
-            {activities.map((a, i) => <ActivityItem key={a.id || i} activity={a} />)}
+          <div className="card glass" style={{padding:"8px 16px"}}>
+            {activities.map((a, i) => {
+              const icon = ACT_SVG[a.type] || <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              const c = ACT_COLORS[a.type] || {bg:"var(--skeleton)",color:"var(--muted)"}
+              return (
+                <div key={a.id || i} style={{display:"flex",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+                  <div style={{width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,background:c.bg,color:c.color}}>{icon}</div>
+                  <div style={{minWidth:0,flex:1}}>
+                    <p style={{fontSize:13}}><strong>{a.user}</strong><span style={{color:"var(--muted)"}}> {a.action}</span></p>
+                    <p style={{fontSize:11,color:"var(--muted)",marginBlockStart:4,display:"flex",alignItems:"center",gap:4}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {timeAgo(a.created_at || a.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
+
       <div className="mobile-nav-spacer" />
-    </motion.div>
+    </section>
   )
 }

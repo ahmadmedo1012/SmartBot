@@ -1,49 +1,21 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { motion } from "framer-motion"
-import {
-  fetchBroadcasts, createBroadcast, sendBroadcast, cancelBroadcast, deleteBroadcast,
-  estimateAudience, fetchTags,
-} from "@/lib/api"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table"
+import { fetchBroadcasts, createBroadcast, sendBroadcast, cancelBroadcast, deleteBroadcast, estimateAudience, fetchTags } from "@/lib/api"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import {
-  Plus, Send, X, Trash2, ArrowLeft, Users, MessageSquare,
-  Calendar, Clock, AlertCircle, Eye, BarChart3,
-  XCircle, Loader2, Image as ImageIcon,
-} from "lucide-react"
 
-// ── Status helpers ──
 const STATUS_MAP = {
-  draft: { label: "مسودة", color: "bg-muted text-muted-foreground border-muted" },
-  sending: { label: "جارٍ الإرسال", color: "bg-info/10 text-info border-info/30" },
-  sent: { label: "تم الإرسال", color: "bg-success/10 text-success border-success/30" },
-  cancelled: { label: "ملغي", color: "bg-destructive/10 text-destructive border-destructive/30" },
-  partial: { label: "جزئي", color: "bg-warning/10 text-warning border-warning/30" },
+  draft: { label: "مسودة", cls: "badge-w" },
+  sending: { label: "جارٍ الإرسال", cls: "badge-i" },
+  sent: { label: "تم الإرسال", cls: "badge-s" },
+  cancelled: { label: "ملغي", cls: "badge-d" },
+  partial: { label: "جزئي", cls: "badge-w" },
 }
-
 const PLATFORMS = [
   { value: "all", label: "الكل" },
   { value: "messenger", label: "Messenger" },
   { value: "instagram", label: "Instagram" },
   { value: "whatsapp", label: "WhatsApp" },
 ]
-
 const LAST_INTERACTION = [
   { value: "any", label: "في أي وقت" },
   { value: "7d", label: "آخر 7 أيام" },
@@ -51,38 +23,11 @@ const LAST_INTERACTION = [
   { value: "90d", label: "آخر 90 يوم" },
 ]
 
-// ── Estimate Button ──
-function EstimateButton({ filters, onCount }) {
-  const [loading, setLoading] = useState(false)
-  const handleEstimate = async () => {
-    setLoading(true)
-    try {
-      const res = await estimateAudience(filters)
-      onCount(res?.count ?? res?.estimated ?? 0)
-    } catch (e) {
-      toast.error(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-  return (
-    <Button type="button" variant="outline" size="sm" onClick={handleEstimate} disabled={loading}>
-      <Users className="ml-1 size-3.5" />
-      {loading ? "جاري التقدير..." : "تقدير الجمهور"}
-    </Button>
-  )
-}
-
-// ── Status Badge ──
 function StatusBadge({ status }) {
   const s = STATUS_MAP[status] || STATUS_MAP.draft
-  return <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", s.color)}>{s.label}</Badge>
+  return <span className={`badge ${s.cls}`} style={{fontSize:11}}>{s.label}</span>
 }
 
-// ── Progress Bar ──
-// ponytail: used inline in details view
-
-// ── Broadcast Composer ──
 function Composer({ onBack, queryClient }) {
   const [step, setStep] = useState(0)
   const [name, setName] = useState("")
@@ -96,16 +41,13 @@ function Composer({ onBack, queryClient }) {
   const [imageUrl, setImageUrl] = useState("")
   const [schedule, setSchedule] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [estLoading, setEstLoading] = useState(false)
 
   const { data: tags = [] } = useQuery({ queryKey: ["tags"], queryFn: fetchTags })
 
   const createMut = useMutation({
     mutationFn: (data) => createBroadcast(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
-      toast.success("تم إنشاء البث")
-      onBack()
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["broadcasts"] }); toast.success("تم إنشاء البث"); onBack() },
     onError: (e) => toast.error(e.message),
   })
 
@@ -117,231 +59,185 @@ function Composer({ onBack, queryClient }) {
     min_replies: minReplies ? parseInt(minReplies) : undefined,
   }
 
+  const handleEstimate = async () => {
+    setEstLoading(true)
+    try { const res = await estimateAudience(filters); setEstimatedCount(res?.count ?? res?.estimated ?? 0) }
+    catch (e) { toast.error(e.message) } finally { setEstLoading(false) }
+  }
+
   const handleSend = () => {
-    createMut.mutate({
-      name,
-      platform,
-      filters,
-      message,
-      image_url: imageUrl || undefined,
-      scheduled_at: schedule || undefined,
-    })
+    createMut.mutate({ name, platform, filters, message, image_url: imageUrl || undefined, scheduled_at: schedule || undefined })
   }
 
-  const canProceed = () => {
-    if (step === 0) return !!name.trim()
-    if (step === 2) return !!message.trim()
-    return true
-  }
+  const canProceed = () => { if (step === 0) return !!name.trim(); if (step === 2) return !!message.trim(); return true }
 
-  const renderStep = () => {
-    switch (step) {
-      case 0: return (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">اسم البث</label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="مثال: عروض الأسبوع" autoFocus />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">المنصة</label>
-            <Select value={platform} onValueChange={setPlatform}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PLATFORMS.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )
-      case 1: return (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">يحتوي على الوسوم</label>
-            <Select value={hasTags.length === 1 ? hasTags[0] : ""} onValueChange={v => setHasTags(hasTags.includes(v) ? hasTags.filter(t => t !== v) : [...hasTags, v])}>
-              <SelectTrigger><SelectValue placeholder="اختر الوسوم" /></SelectTrigger>
-              <SelectContent>
-                {tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {hasTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {hasTags.map(tid => {
-                  const t = tags.find(tt => tt.id === tid)
-                  return t ? <span key={tid} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary"><span>{t.name}</span><button onClick={() => setHasTags(hasTags.filter(x => x !== tid))}><X className="size-2.5" /></button></span> : null
-                })}
-              </div>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">لا يحتوي على الوسوم</label>
-            <Select value={notTags.length === 1 ? notTags[0] : ""} onValueChange={v => setNotTags(notTags.includes(v) ? notTags.filter(t => t !== v) : [...notTags, v])}>
-              <SelectTrigger><SelectValue placeholder="اختر الوسوم" /></SelectTrigger>
-              <SelectContent>
-                {tags.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {notTags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {notTags.map(tid => {
-                  const t = tags.find(tt => tt.id === tid)
-                  return t ? <span key={tid} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-destructive/10 text-destructive"><span>{t.name}</span><button onClick={() => setNotTags(notTags.filter(x => x !== tid))}><X className="size-2.5" /></button></span> : null
-                })}
-              </div>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">آخر تفاعل</label>
-            <Select value={lastInteraction} onValueChange={setLastInteraction}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {LAST_INTERACTION.map(i => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">الحد الأدنى للردود</label>
-            <Input type="number" min={0} value={minReplies} onChange={e => setMinReplies(e.target.value)} placeholder="0" className="w-32" />
-          </div>
-          <div className="flex items-center gap-3 pt-2">
-            <EstimateButton filters={filters} onCount={setEstimatedCount} />
-            {estimatedCount !== null && (
-              <span className="text-sm font-semibold text-primary flex items-center gap-1">
-                <Users className="size-4" /> ~{estimatedCount.toLocaleString()} مشترك
-              </span>
-            )}
-          </div>
-        </div>
-      )
-      case 2: return (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">نص الرسالة</label>
-            <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={6}
-              placeholder="أدخل نص الرسالة...&#10;&#10;المتغيرات: {name} - اسم المشترك&#10;{full_name} - الاسم الكامل&#10;{platform} - اسم المنصة" />
-            <p className="text-[11px] text-muted-foreground">
-              المتغيرات المتاحة: <code className="bg-muted px-1 rounded text-[10px]">{'{name}'}</code>{' '}
-              <code className="bg-muted px-1 rounded text-[10px]">{'{full_name}'}</code>{' '}
-              <code className="bg-muted px-1 rounded text-[10px]">{'{platform}'}</code>
-            </p>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1"><ImageIcon className="size-3.5 text-muted-foreground" /> رابط الصورة <Badge variant="outline" className="text-[10px] px-1 py-0">اختياري</Badge></label>
-            <Input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" dir="ltr" />
-          </div>
-          <Card className="bg-muted/30">
-            <CardHeader className="pb-2"><CardTitle className="text-xs font-semibold text-muted-foreground">معاينة الرسالة</CardTitle></CardHeader>
-            <CardContent>
-              <div className="rounded-lg border bg-card p-3 space-y-2">
-                <p className="text-sm whitespace-pre-wrap break-words">{message || <span className="text-muted-foreground/40">سيظهر نص الرسالة هنا</span>}</p>
-                {imageUrl && <img src={imageUrl} alt="" className="max-h-40 rounded object-cover" onError={e => e.target.style.display = "none"} />}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )
-      case 3: return (
-        <div className="space-y-4">
-          <p className="text-sm font-semibold">مراجعة البث</p>
-          <div className="rounded-lg border divide-y text-sm">
-            <div className="p-3 flex justify-between"><span className="text-muted-foreground">الاسم</span><span className="font-medium">{name}</span></div>
-            <div className="p-3 flex justify-between"><span className="text-muted-foreground">المنصة</span><span className="font-medium">{PLATFORMS.find(p => p.value === platform)?.label}</span></div>
-            {hasTags.length > 0 && <div className="p-3 flex justify-between"><span className="text-muted-foreground">الوسوم (يحتوي)</span><span className="font-medium">{hasTags.map(tid => tags.find(t => t.id === tid)?.name).join("، ")}</span></div>}
-            {notTags.length > 0 && <div className="p-3 flex justify-between"><span className="text-muted-foreground">الوسوم (لا يحتوي)</span><span className="font-medium">{notTags.map(tid => tags.find(t => t.id === tid)?.name).join("، ")}</span></div>}
-            {estimatedCount !== null && <div className="p-3 flex justify-between"><span className="text-muted-foreground">الجمهور المقدر</span><span className="font-medium">{estimatedCount.toLocaleString()} مشترك</span></div>}
-            <div className="p-3"><span className="text-muted-foreground block mb-1">الرسالة</span><p className="text-sm whitespace-pre-wrap break-words rounded bg-muted/40 p-2">{message}</p></div>
-          </div>
-          <div className="space-y-1.5 pt-2">
-            <label className="flex items-center gap-2 text-sm">
-              <Calendar className="size-4 text-muted-foreground" />
-              <span>جدولة لوقت لاحق</span>
-            </label>
-            <Input type="datetime-local" value={schedule} onChange={e => setSchedule(e.target.value)} className="w-64" />
-          </div>
-        </div>
-      )
-    }
-  }
+  const tagSelect = (list, setList, bgVar) => (
+    <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBlockStart:4}}>
+      <select className="fld" onChange={e => { const v = e.target.value; if (!v) return; setList(list.includes(v) ? list.filter(t => t !== v) : [...list, v]); e.target.value="" }} style={{fontSize:12}}>
+        <option value="">اختر الوسوم</option>
+        {tags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+      {list.map(tid => {
+        const t = tags.find(tt => tt.id === tid)
+        return t ? <span key={tid} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11,padding:"2px 8px",borderRadius:6,background:"var(--accent-soft)",color:"var(--accent)"}}>{t.name}<button onClick={() => setList(list.filter(x => x !== tid))} style={{background:"none",border:"none",cursor:"pointer",padding:0,color:"inherit",fontSize:14}}>&times;</button></span> : null
+      })}
+    </div>
+  )
 
-  const steps = [
-    { label: "معلومات أساسية", icon: MessageSquare },
-    { label: "تصفية الجمهور", icon: Users },
-    { label: "الرسالة", icon: MessageSquare },
-    { label: "مراجعة", icon: Eye },
-  ]
+  const steps = [{ label: "معلومات أساسية" }, { label: "تصفية الجمهور" }, { label: "الرسالة" }, { label: "مراجعة" }]
 
   return (
-    <div className="content-container space-y-6 animate-fade-in">
-      {/* Steps indicator */}
-      <div className="flex items-center gap-1 rtl:flex-row-reverse">
+    <section className="page active">
+      <div className="page-header"><h1>بث جماعي جديد</h1></div>
+
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:20}}>
         {steps.map((s, i) => {
-          const Icon = s.icon
-          const active = i === step
-          const done = i < step
+          const active = i === step; const done = i < step
           return (
-            <div key={i} className="flex items-center gap-1 flex-1">
-              <button
-                type="button"
-                onClick={() => done ? setStep(i) : null}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all",
-                  active ? "bg-primary text-primary-foreground" : done ? "text-primary cursor-pointer" : "text-muted-foreground/40 cursor-default",
-                )}
-              >
-                <Icon className="size-3" />
-                <span className="hidden sm:inline">{s.label}</span>
+            <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+              <button onClick={() => done && setStep(i)}
+                style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"none",fontWeight:600,
+                  background: active ? "var(--accent)" : done ? "var(--accent-soft)" : "var(--skeleton)",
+                  color: active || done ? "#fff" : "var(--muted)",cursor: done ? "pointer" : "default"}}>
+                {s.label}
               </button>
-              {i < steps.length - 1 && <div className={cn("flex-1 h-px", done ? "bg-primary" : "bg-muted")} />}
+              {i < steps.length - 1 && <div style={{flex:1,height:2,background: done ? "var(--accent)" : "var(--skeleton)"}} />}
             </div>
           )
         })}
       </div>
 
-      {/* Step Content */}
-      <Card>
-        <CardContent className="p-6">{renderStep()}</CardContent>
-      </Card>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => step > 0 ? setStep(s => s - 1) : onBack()}>
-          <ArrowLeft className="ml-1 size-3.5" /> {step > 0 ? "السابق" : "إلغاء"}
-        </Button>
-        {step < 3 ? (
-          <Button size="sm" onClick={() => setStep(s => s + 1)} disabled={!canProceed()}>
-            التالي <ArrowLeft className="mr-1 size-3.5 rotate-180" />
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => setConfirmOpen(true)} disabled={createMut.isPending}>
-            <Send className="ml-1 size-3.5" />
-            {createMut.isPending ? "جاري..." : schedule ? "جدولة" : "إرسال"}
-          </Button>
+      <div className="card glass" style={{padding:24}}>
+        {step === 0 && (
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>اسم البث</label>
+              <input className="fld" value={name} onChange={e => setName(e.target.value)} placeholder="مثال: عروض الأسبوع" autoFocus style={{width:"100%"}} />
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>المنصة</label>
+              <select className="fld" value={platform} onChange={e => setPlatform(e.target.value)} style={{width:"100%"}}>
+                {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
+        {step === 1 && (
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>يحتوي على الوسوم</label>
+              {tagSelect(hasTags, setHasTags, "accent-soft")}
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>لا يحتوي على الوسوم</label>
+              {tagSelect(notTags, setNotTags, "info-soft")}
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>آخر تفاعل</label>
+              <select className="fld" value={lastInteraction} onChange={e => setLastInteraction(e.target.value)} style={{width:"100%"}}>
+                {LAST_INTERACTION.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+              </select>
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>الحد الأدنى للردود</label>
+              <input type="number" min={0} className="fld" value={minReplies} onChange={e => setMinReplies(e.target.value)} placeholder="0" style={{width:120}} />
+            </div>
+            <div className="qactions">
+              <button className="btn btn-outline" style={{fontSize:12}} onClick={handleEstimate} disabled={estLoading}>
+                {estLoading ? "جاري التقدير..." : "تقدير الجمهور"}
+              </button>
+              {estimatedCount !== null && <span style={{fontSize:13,fontWeight:600,color:"var(--accent)"}}>~{estimatedCount.toLocaleString()} مشترك</span>}
+            </div>
+          </div>
+        )}
+        {step === 2 && (
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>نص الرسالة</label>
+              <textarea className="fld" rows={6} value={message} onChange={e => setMessage(e.target.value)} placeholder={"أدخل نص الرسالة...\nالمتغيرات: {name} - اسم المشترك\n{full_name} - الاسم الكامل\n{platform} - اسم المنصة"} style={{width:"100%"}} />
+              <p style={{fontSize:11,color:"var(--muted)"}}>المتغيرات: <code style={{background:"var(--skeleton)",padding:"1px 6px",borderRadius:4,fontSize:10}}>{'{name}'}</code> <code style={{background:"var(--skeleton)",padding:"1px 6px",borderRadius:4,fontSize:10}}>{'{full_name}'}</code> <code style={{background:"var(--skeleton)",padding:"1px 6px",borderRadius:4,fontSize:10}}>{'{platform}'}</code></p>
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)"}}>رابط الصورة (اختياري)</label>
+              <input className="fld" value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://example.com/image.jpg" dir="ltr" style={{width:"100%"}} />
+            </div>
+            <div className="card glass" style={{padding:16}}>
+              <p style={{fontSize:12,fontWeight:600,color:"var(--muted)",marginBlockEnd:8}}>معاينة الرسالة</p>
+              <div className="card glass" style={{padding:12}}>
+                <p style={{fontSize:13,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{message || <span style={{color:"var(--muted)",opacity:0.4}}>سيظهر نص الرسالة هنا</span>}</p>
+                {imageUrl && <img src={imageUrl} alt="" style={{maxHeight:160,borderRadius:8,objectFit:"cover",marginBlockStart:8}} onError={e => e.target.style.display = "none"} />}
+              </div>
+            </div>
+          </div>
+        )}
+        {step === 3 && (
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <p style={{fontSize:14,fontWeight:600}}>مراجعة البث</p>
+            <div className="card glass" style={{padding:0,overflow:"hidden"}}>
+              {[
+                { l: "الاسم", v: name },
+                { l: "المنصة", v: PLATFORMS.find(p => p.value === platform)?.label },
+                ...(hasTags.length > 0 ? [{ l: "الوسوم (يحتوي)", v: hasTags.map(tid => tags.find(t => t.id === tid)?.name).join("، ") }] : []),
+                ...(notTags.length > 0 ? [{ l: "الوسوم (لا يحتوي)", v: notTags.map(tid => tags.find(t => t.id === tid)?.name).join("، ") }] : []),
+                ...(estimatedCount !== null ? [{ l: "الجمهور المقدر", v: `${estimatedCount.toLocaleString()} مشترك` }] : []),
+              ].map((r, i) => (
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid var(--border)"}}>
+                  <span style={{color:"var(--muted)",fontSize:13}}>{r.l}</span>
+                  <span style={{fontWeight:500,fontSize:13}}>{r.v}</span>
+                </div>
+              ))}
+              <div style={{padding:"10px 16px"}}>
+                <p style={{color:"var(--muted)",fontSize:12,marginBlockEnd:6}}>الرسالة</p>
+                <p style={{fontSize:12,whiteSpace:"pre-wrap",wordBreak:"break-word",background:"var(--skeleton)",padding:12,borderRadius:8}}>{message}</p>
+              </div>
+            </div>
+            <div className="fld" style={{display:"flex",flexDirection:"column",gap:4}}>
+              <label style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:6}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                جدولة لوقت لاحق
+              </label>
+              <input type="datetime-local" className="fld" value={schedule} onChange={e => setSchedule(e.target.value)} style={{width:260}} />
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Confirm Dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="glass-heavy">
-          <DialogHeader><DialogTitle>تأكيد الإرسال</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            سيتم إرسال الرسالة إلى <strong className="text-foreground">{estimatedCount?.toLocaleString() || "..."} مشترك</strong>.
-            {schedule ? ` مجدولة في ${new Date(schedule).toLocaleString("ar-SA")}.` : " هل أنت متأكد؟"}
-          </p>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>إلغاء</Button>
-            <Button onClick={handleSend} disabled={createMut.isPending}>
-              {createMut.isPending ? "جاري..." : schedule ? "تأكيد الجدولة" : "إرسال"}
-            </Button>
+      <div className="qactions" style={{justifyContent:"space-between",marginBlockStart:16}}>
+        <button className="btn btn-outline" onClick={() => step > 0 ? setStep(s => s - 1) : onBack()}>{step > 0 ? "السابق" : "إلغاء"}</button>
+        {step < 3 ? (
+          <button className="btn btn-primary" onClick={() => setStep(s => s + 1)} disabled={!canProceed()}>التالي</button>
+        ) : (
+          <button className="btn btn-primary" onClick={() => setConfirmOpen(true)} disabled={createMut.isPending}>
+            {createMut.isPending ? "جاري..." : schedule ? "جدولة" : "إرسال"}
+          </button>
+        )}
+      </div>
+
+      {confirmOpen && (
+        <div className="modal-overlay" onClick={() => setConfirmOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
+            <div className="cc-header"><div className="cc-title">تأكيد الإرسال</div></div>
+            <div style={{padding:16}}>
+              <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:16}}>
+                سيتم إرسال الرسالة إلى <strong style={{color:"var(--text)"}}>{estimatedCount?.toLocaleString() || "..."} مشترك</strong>.
+                {schedule ? ` مجدولة في ${new Date(schedule).toLocaleString("ar-SA")}.` : " هل أنت متأكد؟"}
+              </p>
+              <div className="qactions" style={{justifyContent:"flex-end"}}>
+                <button className="btn btn-outline" onClick={() => setConfirmOpen(false)}>إلغاء</button>
+                <button className="btn btn-primary" onClick={handleSend} disabled={createMut.isPending}>
+                  {createMut.isPending ? "جاري..." : schedule ? "تأكيد الجدولة" : "إرسال"}
+                </button>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      )}
+    </section>
   )
 }
 
-// ── Broadcast Detail ──
 function BroadcastDetail({ broadcastId, onBack }) {
   const [collapsedFailed, setCollapsedFailed] = useState(true)
-
   const { data: broadcasts = [] } = useQuery({ queryKey: ["broadcasts"], queryFn: fetchBroadcasts })
   const b = broadcasts.find(x => x.id === broadcastId)
   const queryClient = useQueryClient()
@@ -352,7 +248,7 @@ function BroadcastDetail({ broadcastId, onBack }) {
     onError: (e) => toast.error(e.message),
   })
 
-  if (!b) return <div className="flex items-center justify-center py-16"><Skeleton className="h-48 w-full max-w-md rounded-xl" /></div>
+  if (!b) return <div className="card glass" style={{textAlign:"center",padding:40,height:200,background:"var(--skeleton)"}} />
 
   const total = (b.sent_count || 0) + (b.failed_count || 0) + (b.pending_count || 0)
   const sentPct = total ? Math.round(((b.sent_count || 0) / total) * 100) : 0
@@ -360,97 +256,84 @@ function BroadcastDetail({ broadcastId, onBack }) {
   const pendPct = total ? Math.round(((b.pending_count || 0) / total) * 100) : 0
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="size-8" onClick={onBack}>
-          <ArrowLeft className="size-4" />
-        </Button>
-        <div>
-          <h2 className="text-lg font-bold">{b.name}</h2>
-          <StatusBadge status={b.status} />
+    <section className="page active">
+      <div className="qactions" style={{marginBlockEnd:16}}>
+        <button className="btn btn-outline" onClick={onBack}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          عودة
+        </button>
+      </div>
+      <div className="page-header"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
+
+      <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stat-card glass" style={{textAlign:"center"}}>
+          <div className="stat-value" style={{color:"var(--success)"}}>{b.sent_count || 0}</div>
+          <div className="stat-label">تم الإرسال</div>
+        </div>
+        <div className="stat-card glass" style={{textAlign:"center"}}>
+          <div className="stat-value" style={{color:"var(--danger)"}}>{b.failed_count || 0}</div>
+          <div className="stat-label">فشل</div>
+        </div>
+        <div className="stat-card glass" style={{textAlign:"center"}}>
+          <div className="stat-value" style={{color:"var(--warning)"}}>{b.pending_count || 0}</div>
+          <div className="stat-label">قيد الانتظار</div>
         </div>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card><CardContent className="p-4 text-center space-y-1">
-          <BarChart3 className="size-5 mx-auto text-success" />
-          <p className="text-xl font-bold">{b.sent_count || 0}</p>
-          <p className="text-[10px] text-muted-foreground">تم الإرسال</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center space-y-1">
-          <XCircle className="size-5 mx-auto text-destructive" />
-          <p className="text-xl font-bold">{b.failed_count || 0}</p>
-          <p className="text-[10px] text-muted-foreground">فشل</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center space-y-1">
-          <Loader2 className="size-5 mx-auto text-warning" />
-          <p className="text-xl font-bold">{b.pending_count || 0}</p>
-          <p className="text-[10px] text-muted-foreground">قيد الانتظار</p>
-        </CardContent></Card>
-      </div>
-
-      {/* Progress */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="card glass" style={{padding:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>
           <span>{sentPct}% تم · {failedPct}% فشل · {pendPct}% معلق</span>
-          {b.scheduled_at && <span className="flex items-center gap-1"><Clock className="size-3" />{new Date(b.scheduled_at).toLocaleString("ar-SA")}</span>}
+          {b.scheduled_at && <span>{new Date(b.scheduled_at).toLocaleString("ar-SA")}</span>}
         </div>
-        <div className="w-full h-3 rounded-full bg-muted overflow-hidden flex">
-          <div className="h-full bg-success transition-all" style={{ width: `${sentPct}%` }} title={`تم: ${sentPct}%`} />
-          {failedPct > 0 && <div className="h-full bg-destructive transition-all" style={{ width: `${failedPct}%` }} title={`فشل: ${failedPct}%`} />}
-          {pendPct > 0 && <div className="h-full bg-warning transition-all" style={{ width: `${pendPct}%` }} title={`معلق: ${pendPct}%`} />}
+        <div style={{height:12,borderRadius:8,background:"var(--skeleton)",overflow:"hidden",display:"flex"}}>
+          <div style={{height:"100%",background:"var(--success)",width:`${sentPct}%`,transition:"width 0.3s"}} />
+          {failedPct > 0 && <div style={{height:"100%",background:"var(--danger)",width:`${failedPct}%`,transition:"width 0.3s"}} />}
+          {pendPct > 0 && <div style={{height:"100%",background:"var(--warning)",width:`${pendPct}%`,transition:"width 0.3s"}} />}
         </div>
       </div>
 
-      {/* Settings read-only */}
-      <Card>
-        <CardHeader><CardTitle className="text-sm">تفاصيل البث</CardTitle></CardHeader>
-        <CardContent className="text-sm space-y-2">
-          <div className="flex justify-between"><span className="text-muted-foreground">المنصة</span><span>{b.platform ? PLATFORMS.find(p => p.value === b.platform)?.label || b.platform : "الكل"}</span></div>
-          {b.scheduled_at && <div className="flex justify-between"><span className="text-muted-foreground">مجدول في</span><span>{new Date(b.scheduled_at).toLocaleString("ar-SA")}</span></div>}
-          {b.sent_at && <div className="flex justify-between"><span className="text-muted-foreground">تاريخ الإرسال</span><span>{new Date(b.sent_at).toLocaleString("ar-SA")}</span></div>}
-          <div className="pt-2 border-t">
-            <p className="text-muted-foreground mb-1">الرسالة</p>
-            <div className="rounded bg-muted/40 p-3 whitespace-pre-wrap text-sm">{b.message}</div>
+      <div className="card glass" style={{padding:16}}>
+        <p style={{fontSize:12,fontWeight:600,color:"var(--muted)",marginBlockEnd:12}}>تفاصيل البث</p>
+        {[
+          { l: "المنصة", v: b.platform ? PLATFORMS.find(p => p.value === b.platform)?.label || b.platform : "الكل" },
+          ...(b.scheduled_at ? [{ l: "مجدول في", v: new Date(b.scheduled_at).toLocaleString("ar-SA") }] : []),
+          ...(b.sent_at ? [{ l: "تاريخ الإرسال", v: new Date(b.sent_at).toLocaleString("ar-SA") }] : []),
+        ].map((r, i) => (
+          <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+            <span style={{color:"var(--muted)"}}>{r.l}</span><span>{r.v}</span>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+        <div style={{marginBlockStart:12}}>
+          <p style={{color:"var(--muted)",fontSize:12,marginBlockEnd:6}}>الرسالة</p>
+          <p style={{fontSize:13,whiteSpace:"pre-wrap",background:"var(--skeleton)",padding:12,borderRadius:8}}>{b.message}</p>
+        </div>
+      </div>
 
-      {/* Failed recipients */}
       {b.failed_recipients?.length > 0 && (
-        <Card>
-          <CardHeader className="cursor-pointer" onClick={() => setCollapsedFailed(!collapsedFailed)}>
-            <CardTitle className="text-sm flex items-center justify-between">
-              <span>المستلمون الفاشلون ({b.failed_recipients.length})</span>
-              <Badge variant="outline" className="text-[10px]">{collapsedFailed ? "عرض" : "إخفاء"}</Badge>
-            </CardTitle>
-          </CardHeader>
-          {!collapsedFailed && (
-            <CardContent className="space-y-1">
-              {b.failed_recipients.map((r, i) => (
-                <div key={i} className="text-xs text-muted-foreground flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
-                  <XCircle className="size-3 text-destructive shrink-0" />
-                  <span>{r.name || r.user_id || `#${r.id || i}`}</span>
-                  {r.error && <span className="text-destructive/70">— {r.error}</span>}
-                </div>
-              ))}
-            </CardContent>
-          )}
-        </Card>
+        <div className="card glass" style={{padding:16}}>
+          <div onClick={() => setCollapsedFailed(!collapsedFailed)} style={{display:"flex",justifyContent:"space-between",cursor:"pointer",marginBlockEnd:collapsedFailed ? 0 : 12}}>
+            <p style={{fontSize:12,fontWeight:600,color:"var(--muted)"}}>المستلمون الفاشلون ({b.failed_recipients.length})</p>
+            <span className="badge badge-w" style={{fontSize:10}}>{collapsedFailed ? "عرض" : "إخفاء"}</span>
+          </div>
+          {!collapsedFailed && b.failed_recipients.map((r, i) => (
+            <div key={i} style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{color:"var(--danger)"}}>&times;</span>
+              <span>{r.name || r.user_id || `#${r.id || i}`}</span>
+              {r.error && <span style={{color:"var(--danger)",fontSize:11}}>— {r.error}</span>}
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Cancel button */}
       {(b.status === "sending" || b.status === "draft") && (
-        <Button variant="destructive" onClick={() => cancelMut.mutate()} disabled={cancelMut.isPending}>
+        <button className="btn btn-outline" style={{color:"var(--danger)"}} onClick={() => cancelMut.mutate()} disabled={cancelMut.isPending}>
           {cancelMut.isPending ? "جاري..." : "إلغاء البث"}
-        </Button>
+        </button>
       )}
-    </div>
+    </section>
   )
 }
 
-// ── Main Broadcast Component ──
 export function Broadcast({ role }) {
   useEffect(() => { document.title = "البث الجماعي | SmartBot" }, [])
   const canEdit = role === "admin" || role === "editor"
@@ -470,13 +353,11 @@ export function Broadcast({ role }) {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["broadcasts"] }); toast.success("بدأ الإرسال") },
     onError: (e) => toast.error(e.message),
   })
-
   const cancelMut = useMutation({
     mutationFn: (id) => cancelBroadcast(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["broadcasts"] }); toast.success("تم إلغاء البث") },
     onError: (e) => toast.error(e.message),
   })
-
   const [deleteTarget, setDeleteTarget] = useState(null)
   const deleteMut = useMutation({
     mutationFn: (id) => deleteBroadcast(id),
@@ -484,132 +365,100 @@ export function Broadcast({ role }) {
     onError: (e) => toast.error(e.message),
   })
 
-  // Composer / Detail views
   if (view === "composer") return <Composer onBack={() => setView("list")} queryClient={queryClient} />
   if (view === "detail" && selectedId) return <BroadcastDetail broadcastId={selectedId} onBack={() => { setView("list"); setSelectedId(null) }} />
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="content-container space-y-6"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-gradient-premium text-2xl font-bold">البث الجماعي</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}
-          </p>
-        </div>
+    <section className="page active">
+      <div className="page-header">
+        <h1>البث الجماعي</h1>
+        <p>{broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}</p>
+      </div>
+
+      <div className="qactions">
         {canEdit && (
-          <Button onClick={() => setView("composer")}>
-            <Plus className="ml-2 h-4 w-4" /> إنشاء بث جديد
-          </Button>
+          <button className="btn btn-primary" onClick={() => setView("composer")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            إنشاء بث جديد
+          </button>
         )}
       </div>
 
-      {/* Loading */}
       {isLoading ? (
-        <div className="space-y-2">{[1,2,3,4].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div>
+        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:80,background:"var(--skeleton)"}} />)}
+        </div>
       ) : error ? (
-        /* Error */
-        <div className="flex flex-col items-center py-16">
-          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <p className="text-sm text-muted-foreground mb-4">{error?.message || "فشل تحميل البثات"}</p>
-          <Button variant="outline" onClick={refetch}>إعادة المحاولة</Button>
+        <div className="card glass" style={{textAlign:"center",padding:40}}>
+          <p style={{color:"var(--muted)",marginBlockEnd:12}}>{error?.message || "فشل تحميل البثات"}</p>
+          <button className="btn btn-outline" onClick={refetch}>إعادة المحاولة</button>
         </div>
       ) : broadcasts.length === 0 ? (
-        /* Empty */
-        <div className="flex flex-col items-center py-16">
-          <Send className="h-16 w-16 text-muted-foreground/20 mb-4" />
-          <p className="text-sm text-foreground font-medium">لا توجد بثات بعد</p>
-          <p className="text-xs text-muted-foreground mt-1 mb-6">
-            {canEdit ? "أنشئ بثاً جماعياً للبدء" : "البثات ستظهر هنا"}
-          </p>
-          {canEdit && (
-            <Button variant="outline" onClick={() => setView("composer")}>
-              <Plus className="ml-2 h-4 w-4" /> إنشاء بث جديد
-            </Button>
-          )}
+        <div className="empty-state">
+          <p>لا توجد بثات بعد</p>
+          {canEdit && <button className="btn btn-primary" style={{marginBlockStart:12}} onClick={() => setView("composer")}>إنشاء بث جديد</button>}
         </div>
       ) : (
-        /* Table */
-        <div className="rounded-lg border overflow-hidden">
-          <div className="data-table-wrapper data-table-card-view"><Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs">الاسم</TableHead>
-                <TableHead className="text-xs">الحالة</TableHead>
-                <TableHead className="text-xs">الجمهور</TableHead>
-                <TableHead className="text-xs">التاريخ</TableHead>
-                <TableHead className="text-xs w-28">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>الاسم</th><th>الحالة</th><th>الجمهور</th><th>التاريخ</th><th>إجراءات</th></tr>
+            </thead>
+            <tbody>
               {broadcasts.map(b => {
                 const total = (b.sent_count || 0) + (b.failed_count || 0)
                 return (
-                  <TableRow
-                    key={b.id}
-                    className="cursor-pointer hover:bg-muted/40"
-                    onClick={() => { setSelectedId(b.id); setView("detail") }}
-                  >
-                    <TableCell className="text-sm font-medium" data-label="الاسم">{b.name}</TableCell>
-                    <TableCell data-label="الحالة"><StatusBadge status={b.status} /></TableCell>
-                    <TableCell className="text-xs text-muted-foreground" data-label="الجمهور">
-                      {b.sent_count || 0}/{b.failed_count || 0}/{total || "-"}{total ? " تم/فشل/كل" : ""}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground" data-label="التاريخ">
+                  <tr key={b.id} style={{cursor:"pointer"}} onClick={() => { setSelectedId(b.id); setView("detail") }}>
+                    <td data-label="الاسم" style={{fontWeight:500}}>{b.name}</td>
+                    <td data-label="الحالة"><StatusBadge status={b.status} /></td>
+                    <td data-label="الجمهور" style={{fontSize:12,color:"var(--muted)"}}>{b.sent_count || 0}/{b.failed_count || 0}/{total || "-"}</td>
+                    <td data-label="التاريخ" style={{fontSize:12,color:"var(--muted)"}}>
                       {b.sent_at ? new Date(b.sent_at).toLocaleDateString("ar-SA") : b.created_at ? new Date(b.created_at).toLocaleDateString("ar-SA") : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    </td>
+                    <td data-label="إجراءات">
+                      <div style={{display:"flex",gap:4}} onClick={e => e.stopPropagation()}>
                         {b.status === "draft" && canSend && (
-                          <Button variant="ghost" size="icon" className="size-7 text-success hover:text-success/80"
-                            onClick={() => sendMut.mutate(b.id)} disabled={sendMut.isPending}>
-                            <Send className="size-3.5" />
-                          </Button>
+                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--success)"}} onClick={() => sendMut.mutate(b.id)} disabled={sendMut.isPending}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                          </button>
                         )}
                         {b.status === "sending" && canSend && (
-                          <Button variant="ghost" size="icon" className="size-7 text-destructive/70 hover:text-destructive"
-                            onClick={() => cancelMut.mutate(b.id)} disabled={cancelMut.isPending}>
-                            <X className="size-3.5" />
-                          </Button>
+                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--danger)"}} onClick={() => cancelMut.mutate(b.id)} disabled={cancelMut.isPending}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
                         )}
                         {(b.status === "draft" || b.status === "cancelled") && canEdit && (
-                          <Button variant="ghost" size="icon" className="size-7 text-destructive/70 hover:text-destructive"
-                            onClick={() => setDeleteTarget(b)}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--danger)"}} onClick={() => setDeleteTarget(b)}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          </button>
                         )}
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )
               })}
-            </TableBody>
-          </Table></div>
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Delete Confirm */}
-      <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) setDeleteTarget(null) }}>
-        <DialogContent className="glass-heavy">
-          <DialogHeader><DialogTitle>تأكيد حذف البث</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            هل أنت متأكد من حذف <strong className="text-foreground">{deleteTarget?.name}</strong>؟ لا يمكن التراجع.
-          </p>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>إلغاء</Button>
-            <Button variant="destructive" onClick={() => deleteMut.mutate(deleteTarget.id)} disabled={deleteMut.isPending}>
-              {deleteMut.isPending ? "جاري..." : "حذف"}
-            </Button>
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTarget(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
+            <div className="cc-header"><div className="cc-title">تأكيد حذف البث</div></div>
+            <div style={{padding:16}}>
+              <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:16}}>هل أنت متأكد من حذف <strong>{deleteTarget?.name}</strong>؟ لا يمكن التراجع.</p>
+              <div className="qactions" style={{justifyContent:"flex-end"}}>
+                <button className="btn btn-outline" onClick={() => setDeleteTarget(null)}>إلغاء</button>
+                <button className="btn btn-primary" onClick={() => deleteMut.mutate(deleteTarget.id)} disabled={deleteMut.isPending}>
+                  {deleteMut.isPending ? "جاري..." : "حذف"}
+                </button>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
       <div className="mobile-nav-spacer" />
-    </motion.div>
+    </section>
   )
 }

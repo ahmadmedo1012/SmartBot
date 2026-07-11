@@ -73,6 +73,14 @@ class StructuredLogger:
         self._buffer: list[LogEvent] = []
         self._buffer_max = 1000
 
+    # ── Public logging methods ──
+    def info(self, message: str, **kw): self._emit(LogEvent("INFO", message, **kw))
+    def warn(self, message: str, **kw): self._emit(LogEvent("WARN", message, **kw))
+    def warning(self, message: str, **kw): self.warn(message, **kw)
+    def error(self, message: str, **kw): self._emit(LogEvent("ERROR", message, **kw))
+    def debug(self, message: str, **kw): self._emit(LogEvent("DEBUG", message, **kw))
+    def trace(self, message: str, **kw): self._emit(LogEvent("TRACE", message, **kw))
+
     def _emit(self, event: LogEvent):
         line = json.dumps(event.to_dict(), ensure_ascii=False, default=str)
         level_map = {"TRACE": DEBUG, "DEBUG": DEBUG, "INFO": INFO,

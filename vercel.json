@@ -3,6 +3,6 @@
     { "source": "/(.*)", "destination": "/api/index.py" }
   ],
   "crons": [
-    { "path": "/api/cron/bot-cycle", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/bot-cycle", "schedule": "* * * * *" }
   ]
 }

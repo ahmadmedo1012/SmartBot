@@ -490,10 +490,7 @@ async def static_cache_middleware(request: Request, call_next):
 @api_cache.cached(ttl=5)
 async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
-    # Run a single bot cycle synchronously on every dashboard load
-    # Vercel serverless keeps the function alive ~30s after response
-    # The cycle runs within this window
-    asyncio.create_task(_run_single_cycle())
+    # ponytail: bot cycle removed from dashboard — use cron or manual trigger instead
     now = datetime.utcnow()
     today = now.date()
 
@@ -978,10 +975,18 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
 
 
 @app.get("/api/cron/bot-cycle")
-async def cron_bot_cycle():
-    """Vercel Cron: runs bot cycle every 2 minutes. No auth needed (Vercel-internal)."""
+async def cron_bot_cycle(request: Request):
+    """Vercel Cron: runs bot cycle. Auth via CRON_SECRET env var."""
+    secret = os.getenv("CRON_SECRET")
+    if secret and request.headers.get("authorization", "") != f"Bearer {secret}":
+        raise HTTPException(401, "Unauthorized cron")
     try:
         from bot import BotEngine
+        from monitor import StructuredLogger
+        # verify the fix is deployed
+        _check = StructuredLogger()
+        if not hasattr(_check, 'error'):
+            return {"ok": False, "error": "StructuredLogger still missing error() — cache stale?"}
         engine = BotEngine(fb)
         await engine.cycle()
         return {"ok": True, "cycle": "completed"}

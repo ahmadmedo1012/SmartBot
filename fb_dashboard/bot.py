@@ -378,11 +378,12 @@ class ReplyPipeline:
         # Stage 8: Send with exponential backoff
         result = None
         max_attempts = 3
+        send_started = time.time()
         for attempt in range(max_attempts):
             try:
                 result = await self.fb.reply_to_comment(ctx.cid, reply)
                 if result:
-                    self._diag.record_cycle((time.time() - t0) * 1000 if 't0' in dir() else 0)
+                    self._diag.record_cycle((time.time() - send_started) * 1000)
                     break
                 if attempt < max_attempts - 1:
                     delay = 2 ** attempt  # 1, 2, 4s backoff
@@ -693,7 +694,7 @@ class BotEngine:
 
     async def _load_dm_map(self) -> dict[str, str]:
         from pathlib import Path
-        json_path = Path(__file__).resolve().parent.parent / "facebook_automation.json"
+        json_path = Path(__file__).resolve().parent / "facebook_automation.json"
         try:
             with open(json_path, encoding='utf-8') as f:
                 data = json.load(f)

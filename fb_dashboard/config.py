@@ -1,5 +1,7 @@
+import os, logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+log = logging.getLogger("fb-config")
 
 class Settings(BaseSettings):
     # DATABASE_URL is optional - defaults to SQLite if not set
@@ -27,3 +29,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ponytail: startup check — refuse default SECRET_KEY in production
+if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
+    log.warning("CRITICAL: SECRET_KEY is the default — override via .env or env var")

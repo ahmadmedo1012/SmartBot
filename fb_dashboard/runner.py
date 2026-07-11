@@ -84,6 +84,24 @@ _publisher = PublisherEngine()
 api_cache = APICache()
 
 
+# ── Login rate limiter: memory-based, per-IP, 5 attempts per 60s ──
+_login_attempts: dict[str, list[float]] = {}
+_LOGIN_RATE_LIMIT = 5
+_LOGIN_RATE_WINDOW = 60
+
+
+def _check_login_rate(ip: str) -> bool:
+    now = time.time()
+    attempts = _login_attempts.get(ip, [])
+    # prune old entries
+    attempts = [t for t in attempts if now - t < _LOGIN_RATE_WINDOW]
+    if len(attempts) >= _LOGIN_RATE_LIMIT:
+        return False
+    attempts.append(now)
+    _login_attempts[ip] = attempts
+    return True
+
+
 # ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
 _dedup_locks: dict[str, asyncio.Lock] = {}
 _dedup_lock = asyncio.Lock()
@@ -163,7 +181,7 @@ async def seed_admin(db):
     else:
         db.add(User(username="admin", password_hash=pw_hash, role="admin"))
     await db.commit()
-    log.info("Default admin user seeded (admin/admin) — CHANGE PASSWORD")
+    log.info("Default admin user seeded")
 
 
 @asynccontextmanager
@@ -176,6 +194,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE rules ADD COLUMN priority INTEGER DEFAULT 999",
                 "ALTER TABLE rules ADD COLUMN bot_type VARCHAR(20) DEFAULT 'reply'",
                 "ALTER TABLE rules ADD COLUMN dm_template TEXT DEFAULT ''",
+                "ALTER TABLE scheduled_posts ADD COLUMN platform VARCHAR(20) DEFAULT 'facebook'",
+                "ALTER TABLE scheduled_posts ADD COLUMN fb_post_id VARCHAR(100) DEFAULT ''",
             ]:
                 try:
                     await conn.execute(text(col_sql))
@@ -277,7 +297,10 @@ def get_bot_engine() -> BotEngine:
 
 
 @app.post("/api/login")
-async def login(username: str = Form(...), password: str = Form(...), db=Depends(get_db)):
+async def login(username: str = Form(...), password: str = Form(...), request: Request = None, db=Depends(get_db)):
+    ip = request.client.host if request and request.client else "unknown"
+    if not _check_login_rate(ip):
+        raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
     user = await db.execute(select(User).where(User.username == username))
     user = user.scalar_one_or_none()
     if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
@@ -412,7 +435,7 @@ async def get_system_stats(db=Depends(get_db), _=Depends(get_current_user)):
 
 
 @app.get("/api/debug")
-async def debug():
+async def debug(_=Depends(get_current_user)):
     return {
         "has_secret_key": bool(settings.SECRET_KEY),
         "has_db_url": bool(settings.DATABASE_URL),
@@ -1160,21 +1183,25 @@ async def agent_interpret(
             pil_img.save(buf, "JPEG", quality=85, optimize=True)
             compressed = buf.getvalue()
             log.info(f"Image compressed: {len(img_data)}→{len(compressed)} bytes ({pil_img.width}x{pil_img.height})")
-            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            from pathlib import PurePosixPath
+            safe_name = os.path.basename(image.filename or "photo.jpg")
+            img_filename = f"agent_{int(time.time())}_{safe_name}"
             img_path = STATIC_DIR / "uploads" / img_filename
             img_path.parent.mkdir(parents=True, exist_ok=True)
             img_path.write_bytes(compressed)
             image_url = f"/static/uploads/{img_filename}"
         except ImportError:
             # Pillow not installed — save raw
-            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            safe_name = os.path.basename(image.filename or "photo.jpg")
+            img_filename = f"agent_{int(time.time())}_{safe_name}"
             img_path = STATIC_DIR / "uploads" / img_filename
             img_path.parent.mkdir(parents=True, exist_ok=True)
             img_path.write_bytes(img_data)
             image_url = f"/static/uploads/{img_filename}"
         except Exception as e:
             log.warning(f"Image compression failed, saving raw: {e}")
-            img_filename = f"agent_{int(time.time())}_{image.filename or 'photo.jpg'}"
+            safe_name = os.path.basename(image.filename or "photo.jpg")
+            img_filename = f"agent_{int(time.time())}_{safe_name}"
             img_path = STATIC_DIR / "uploads" / img_filename
             img_path.parent.mkdir(parents=True, exist_ok=True)
             img_path.write_bytes(img_data)
@@ -2011,6 +2038,8 @@ def _track_event(event_type: str, metadata: dict | None = None):
 
 WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
 WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
+if not WEBHOOK_APP_SECRET:
+    log.warning("FACEBOOK_APP_SECRET not set — webhook HMAC verification disabled")
 
 
 @app.get("/webhook")

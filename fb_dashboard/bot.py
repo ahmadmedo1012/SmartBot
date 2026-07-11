@@ -311,7 +311,7 @@ class ReplyPipeline:
 
         # Stage 2: Dedup
         try:
-            if self.dedup.is_dup(ctx.cid):
+            if await self.dedup.is_dup(ctx.cid):
                 self._mon.debug(f"dedup skip {ctx.cid[:12]}")
                 return False
         except Exception:
@@ -349,7 +349,7 @@ class ReplyPipeline:
         except Exception:
             pass
 
-        self.dedup.mark(ctx.cid)
+        await self.dedup.mark(ctx.cid)
 
         # Stage 6: Attach offer (for sales-oriented intents)
         offer_text = ""
@@ -562,7 +562,7 @@ class BotEngine:
 
                 # Seed dedup from DB
                 replied_ids = await self._load_replied_ids(session)
-                self._dedup_engine.load(replied_ids)
+                await self._dedup_engine.load(replied_ids)
 
                 # Fetch posts from FB
                 posts, _ = await self.fb.get_page_posts(10)
@@ -655,7 +655,7 @@ class BotEngine:
                 dm_map = await self._load_dm_map()
                 matcher = IntentAwareMatcher(rules, dm_map)
                 replied_ids = await self._load_replied_ids(session)
-                self._dedup_engine.load(replied_ids)
+                await self._dedup_engine.load(replied_ids)
                 pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
                 ok = await pipeline.process(session, comment, post_id, matcher)
                 elapsed = (time.time() - t0) * 1000

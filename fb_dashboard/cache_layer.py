@@ -59,22 +59,26 @@ class RuleCache(TTLCache):
 
 
 class ReplyDedupCache(TTLCache):
-    """In-memory dedup set with TTL to prevent unbounded growth."""
+    """In-memory dedup set with TTL to prevent unbounded growth + lock for concurrent cycles."""
     def __init__(self, initial: set | None = None, ttl: int = 300):
         super().__init__(ttl_seconds=ttl)
         self._seen: set[str] = set(initial or [])
         self._loaded_at = time.time()
+        self._dedup_lock = asyncio.Lock()
 
-    def is_dup(self, comment_id: str) -> bool:
-        now = time.time()
-        if (now - self._loaded_at) > self._ttl:
-            self._seen.clear()
-            self._loaded_at = now
-        return comment_id in self._seen
+    async def is_dup(self, comment_id: str) -> bool:
+        async with self._dedup_lock:
+            now = time.time()
+            if (now - self._loaded_at) > self._ttl:
+                self._seen.clear()
+                self._loaded_at = now
+            return comment_id in self._seen
 
-    def mark(self, comment_id: str):
-        self._seen.add(comment_id)
+    async def mark(self, comment_id: str):
+        async with self._dedup_lock:
+            self._seen.add(comment_id)
 
-    def load(self, ids: set[str]):
-        self._seen = set(ids)
-        self._loaded_at = time.time()
+    async def load(self, ids: set[str]):
+        async with self._dedup_lock:
+            self._seen = set(ids)
+            self._loaded_at = time.time()

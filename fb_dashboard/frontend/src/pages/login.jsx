@@ -68,8 +68,8 @@ export function Login({ onAuth }) {
     if (emailLike && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
       errs.username = "صيغة البريد الإلكتروني غير صحيحة"
     }
-    if (password.length > 0 && password.length < 6) {
-      errs.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+    if (password.length > 0 && password.length < 4) {
+      errs.password = "كلمة المرور يجب أن تكون 4 أحرف على الأقل"
     }
     setFieldErrors(errs)
     return !Object.keys(errs).length

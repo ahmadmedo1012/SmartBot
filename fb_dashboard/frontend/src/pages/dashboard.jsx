@@ -14,7 +14,7 @@ function LoadingSkeleton() {
       </div>
       <div className="stats-grid">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="card" style={{ padding: "18px" }}>
+          <div key={i} className="card glass" style={{ padding: "18px" }}>
             <div className="skeleton skeleton-text" style={{ width: "70px", height: "12px" }} />
             <div className="skeleton skeleton-text" style={{ width: "50px", height: "28px", marginTop: "8px" }} />
           </div>
@@ -105,29 +105,29 @@ export function Dashboard(_p) {
 
       {/* stats grid */}
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card glass">
           <div className="stat-label">الردود الكلية</div>
           <div className="stat-value">{formatNum(stats?.total_replies)}</div>
-          <div className="stat-change up">↑ 12%</div>
+          <div className="stat-change stat-up">↑ 12%</div>
           <div className="stat-icon">{statIcons.total}</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card glass">
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value">{formatNum(stats?.today_replies)}</div>
-          <div className="stat-change up">↑ 8.2%</div>
+          <div className="stat-change stat-up">↑ 8.2%</div>
           <div className="stat-icon">{statIcons.today}</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card glass">
           <div className="stat-label">المتابعون</div>
           <div className="stat-value">{formatNum(stats?.fan_count)}</div>
-          <div className="stat-change down">↓ 3.1%</div>
+          <div className="stat-change stat-down">↓ 3.1%</div>
           <div className="stat-icon">{statIcons.fans}</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card glass">
           <div className="stat-label">القواعد النشطة</div>
           <div className="stat-value">{activeRules}</div>
           {botStatus?.running !== undefined && (
-            <div className={`stat-change ${botStatus.running ? "up" : "down"}`}>
+            <div className={`stat-change ${botStatus.running ? "stat-up" : "stat-down"}`}>
               {botStatus.running ? "↑ نشط" : "↓ متوقف"}
             </div>
           )}
@@ -136,44 +136,49 @@ export function Dashboard(_p) {
       </div>
 
       {/* metrics row */}
-      <div className="metrics-row">
-        <div className="metric-card">
-          <div className="mc-value" style={{ color: "var(--accent)" }}>{stats?.today_replies || 0}</div>
-          <div className="mc-label">ردود اليوم</div>
+      <div className="stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBlockEnd: "var(--space-lg)" }}>
+        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+          <div className="stat-value" style={{ fontSize: "22px", color: "var(--accent)" }}>{stats?.today_replies || 0}</div>
+          <div className="stat-label">ردود اليوم</div>
         </div>
-        <div className="metric-card">
-          <div className="mc-value" style={{ color: "var(--primary)" }}>{rules.length || 0}</div>
-          <div className="mc-label">قاعدة نشطة</div>
+        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+          <div className="stat-value" style={{ fontSize: "22px", color: "var(--info)" }}>{rules.length || 0}</div>
+          <div className="stat-label">قاعدة نشطة</div>
         </div>
-        <div className="metric-card">
-          <div className="mc-value" style={{ color: "var(--success)" }}>{stats?.total_replies ? Math.round(stats.today_replies / stats.total_replies * 100) : 0}%</div>
-          <div className="mc-label">معدل التفاعل</div>
+        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+          <div className="stat-value" style={{ fontSize: "22px", color: "var(--success)" }}>{stats?.total_replies ? Math.round(stats.today_replies / stats.total_replies * 100) : 0}%</div>
+          <div className="stat-label">معدل التفاعل</div>
         </div>
-        <div className="metric-card">
-          <div className="mc-value" style={{ color: "var(--warning)" }}>
+        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+          <div className="stat-value" style={{ fontSize: "22px", color: "var(--warn)" }}>
             {format.isBefore ? "—" : recentReplies.length}
           </div>
-          <div className="mc-label">بانتظار الرد</div>
+          <div className="stat-label">بانتظار الرد</div>
         </div>
       </div>
 
       {/* chart */}
-      <div className="card" style={{ padding: "20px" }}>
+      <div className="card glass" style={{ marginBlockEnd: "var(--space-lg)" }}>
         <div className="cc-header">
-          <div className="cc-title">النشاط اليومي</div>
-          <span className="badge badge-a" style={{ fontSize: "11px", fontWeight: 600 }}>
-            {stats?.total_replies || 0} رد
-          </span>
+          <h2 className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            النشاط اليومي</h2>
+          <span className="cc-count">{stats?.total_replies || 0} رد</span>
         </div>
-        {chartData.length >= 2 ? (
-          <div className="chart-line" style={{ marginTop: "16px" }}>
+        {chartData.length >= 2 ? (<>
+          <div className="chart-line" style={{ marginTop: "var(--space-md)" }}>
             {chartData.map((d, i) => (
-              <div key={i} className="cl-bar" style={{ "--h": `${Math.max((d.count / maxCount) * 100, 4)}%` }}>
+              <div key={i} className="cl-bar" style={{ height: `${Math.max((d.count / maxCount) * 100, 4)}%` }}>
                 <span className="cl-label">{d.label}</span>
               </div>
             ))}
           </div>
-        ) : (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--muted)", marginBlockStart: "var(--space-xs)", paddingInline: "var(--space-2xs)" }}>
+            {chartData.map((d, i) => (
+              <span key={i}>{d.label}</span>
+            ))}
+          </div>
+        </>) : (
           <div className="empty-state" style={{ padding: "32px 0" }}>
             <p style={{ color: "var(--muted)", fontSize: "13px" }}>بيانات غير كافية بعد</p>
           </div>
@@ -183,8 +188,10 @@ export function Dashboard(_p) {
       {/* row-2: activity + table */}
       <div className="row-2">
         {/* activity */}
-        <div className="card" style={{ padding: "0" }}>
-          <div className="card-title" style={{ padding: "16px 20px 0" }}>آخر النشاطات</div>
+        <div className="card glass" data-od-id="card-dashboard-2">
+          <h2 className="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            آخر النشاطات</h2>
           {activities?.length > 0 ? (
             <div className="activity-list" style={{ marginTop: "4px" }}>
               {activities.slice(0, 5).map((a, i) => (
@@ -207,8 +214,12 @@ export function Dashboard(_p) {
         </div>
 
         {/* recent replies table */}
-        <div className="card" style={{ padding: "20px 0 0" }}>
-          <div className="card-title" style={{ padding: "0 20px 12px" }}>آخر الردود</div>
+        <div className="card glass" data-od-id="card-dashboard-3">
+          <div className="cc-header" style={{ marginBlockEnd: "var(--space-md)" }}>
+            <h2 className="cc-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              آخر الردود</h2>
+          </div>
           {recentReplies.length > 0 ? (
             <div className="table-wrap">
               <table>

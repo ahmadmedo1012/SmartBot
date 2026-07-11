@@ -79,7 +79,7 @@
 @keyframes scale-in { from { opacity:0; transform:scale(0.95) } to { opacity:1; transform:scale(1) } }
 @keyframes slide-up { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
 @keyframes pulse-dot { 0%,100%{opacity:1}50%{opacity:.4} }
-@keyframes pageIn { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:translateY(0) } }
+@keyframes pageIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
 @keyframes pulse { 0%,100%{opacity:.6}50%{opacity:.3} }
 @keyframes float-slow { 0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)} }
 @keyframes glass-shimmer { 0%{background-position:-200% center}100%{background-position:200% center} }
@@ -174,7 +174,7 @@ button, a, select, input, textarea {
 .content::-webkit-scrollbar { width: 6px; }
 .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
 
-.page { display: none; animation: pageIn .3s var(--ease); }
+.page { display: none; animation: pageIn .35s var(--ease); }
 .page.active { display: block; }
 @media (prefers-reduced-motion: reduce) { .page { animation: none; } }
 .page-header { margin-block-end: 20px; }
@@ -184,7 +184,10 @@ button, a, select, input, textarea {
 .glass { background: rgba(255,255,255,.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.5); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .glass-solid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 
-.card { padding: 20px; }
+.card { padding: 20px; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+@media (prefers-reduced-motion: no-preference) {
+  .glass:hover, .glass-solid:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+}
 .card-title { font: 600 14px/1 var(--font-dsp); margin-block-end: 14px; display: flex; align-items: center; gap: 8px; }
 .cc-header { display: flex; align-items: center; justify-content: space-between; margin-block-end: 14px; }
 .cc-title { font: 600 14px/1 var(--font-dsp); display: flex; align-items: center; gap: 8px; }

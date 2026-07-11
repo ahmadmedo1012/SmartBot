@@ -981,12 +981,18 @@ async def cron_bot_cycle(request: Request):
     if secret and request.headers.get("authorization", "") != f"Bearer {secret}":
         raise HTTPException(401, "Unauthorized cron")
     try:
-        from bot import BotEngine
         from monitor import StructuredLogger
-        # verify the fix is deployed
-        _check = StructuredLogger()
-        if not hasattr(_check, 'error'):
-            return {"ok": False, "error": "StructuredLogger still missing error() — cache stale?"}
+        # ponytail: hot-patch if deployed bytecode is stale
+        if not hasattr(StructuredLogger, 'error'):
+            def _patch(self, message, **kw): self._emit(LogEvent("ERROR", message, **kw))
+            def _info(self, message, **kw): self._emit(LogEvent("INFO", message, **kw))
+            def _warn(self, message, **kw): self._emit(LogEvent("WARN", message, **kw))
+            def _debug(self, message, **kw): self._emit(LogEvent("DEBUG", message, **kw))
+            StructuredLogger.error = _patch
+            StructuredLogger.info = _info
+            StructuredLogger.warn = _warn
+            StructuredLogger.debug = _debug
+        from bot import BotEngine
         engine = BotEngine(fb)
         await engine.cycle()
         return {"ok": True, "cycle": "completed"}

@@ -101,7 +101,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">S</div>
-          <div className="sidebar-title">SmartBot<span>لوحة تحكم فيسبوك</span></div>
+          <div className="sidebar-title">Smart<span style={{whiteSpace:"nowrap"}}>Bot</span><span>لوحة تحكم فيسبوك</span></div>
         </div>
         <nav className="sidebar-nav">
           {sidebarSections.map((section) => (
@@ -113,6 +113,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
                   className={`nav-item ${currentPage === item.key ? "active" : ""}`}
                   onClick={() => handleNav(item.key)}
                   href="#"
+                  aria-current={currentPage === item.key ? "page" : undefined}
                 >
                   <span className="nav-icon">{navIcons[item.icon]}</span>
                   {item.label}
@@ -156,6 +157,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
               <span className="notif-dot"></span>
             </div>
             <div className="avatar">{avatarLetter}</div>
+            <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out infinite",flexShrink:0}}></span>مباشر</span>
           </div>
         </header>
 

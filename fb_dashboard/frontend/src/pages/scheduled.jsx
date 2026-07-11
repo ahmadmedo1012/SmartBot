@@ -70,41 +70,51 @@ export function ScheduledPosts({ role }) {
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
-          {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass" style={{height:160,background:"var(--skeleton)"}} />)}
+      <div className="content-card glass">
+        <div className="cc-header">
+          <div className="cc-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="2"/><path d="M12 13v2l1 1"/></svg>
+            المنشورات المجدولة
+          </div>
+          <span className="cc-count">الإجمالي: {posts.length}</span>
         </div>
-      ) : error ? (
-        <div className="card glass" style={{textAlign:"center",padding:40}}>
-          <p style={{color:"var(--muted)",marginBlockEnd:12}}>فشل تحميل المنشورات</p>
-          <button className="btn btn-outline" onClick={refetch}>إعادة المحاولة</button>
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="empty-state"><p>لا توجد منشورات</p></div>
-      ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
-          {posts.map(p => {
-            const st = statusMap[p.status] || statusMap.draft
-            return (
-              <div key={p.id} className="stat-card glass">
-                <div className="stat-label" style={{fontWeight:400,fontSize:13,lineHeight:1.5}}>{p.message}</div>
-                <span className={`badge ${st.cls}`} style={{marginBlock:"8px",display:"inline-block"}}>{st.label}</span>
-                {p.scheduled_at && (
-                  <div className="stat-change" style={{fontSize:11}}>{format(new Date(p.scheduled_at), "yyyy/MM/dd HH:mm", { locale: arSA })}</div>
-                )}
-                {canEdit && p.status !== "published" && (
-                  <div className="qactions" style={{marginBlockStart:8,gap:4}}>
-                    {p.status === "scheduled" && (
-                      <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => publishMut.mutate(p.id)}>نشر</button>
-                    )}
-                    <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => deleteMut.mutate(p.id)}>حذف</button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
+
+        {isLoading ? (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+            {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass skel-card" style={{height:160}} />)}
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <p>فشل تحميل المنشورات</p>
+            <button className="btn btn-outline" onClick={refetch} style={{marginBlockStart:12}}>إعادة المحاولة</button>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="empty-state"><p>لا توجد منشورات</p></div>
+        ) : (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+            {posts.map(p => {
+              const st = statusMap[p.status] || statusMap.draft
+              return (
+                <div key={p.id} className="stat-card glass">
+                  <div className="card-text">{p.message}</div>
+                  <span className={`badge ${st.cls}`} style={{marginBlock:"8px"}}>{st.label}</span>
+                  {p.scheduled_at && (
+                    <div className="stat-change" style={{fontSize:11}}>{format(new Date(p.scheduled_at), "yyyy/MM/dd HH:mm", { locale: arSA })}</div>
+                  )}
+                  {canEdit && p.status !== "published" && (
+                    <div className="qactions" style={{marginBlockStart:8,gap:4}}>
+                      {p.status === "scheduled" && (
+                        <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => publishMut.mutate(p.id)}>نشر</button>
+                      )}
+                      <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => deleteMut.mutate(p.id)}>حذف</button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Add Dialog */}
       {showAdd && (

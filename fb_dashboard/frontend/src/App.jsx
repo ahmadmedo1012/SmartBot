@@ -159,7 +159,7 @@ function AppInner() {
             </ErrorBoundary>
           </main>
         </Topbar>
-        <ToastBridge />
+        <div aria-live="polite" aria-atomic="false"><ToastBridge /></div>
       </RefreshProvider>
     </NotificationsProvider>
   )

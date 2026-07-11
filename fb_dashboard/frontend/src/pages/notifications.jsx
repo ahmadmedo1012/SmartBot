@@ -14,12 +14,18 @@ export function Notifications() {
         <p>آخر الإشعارات والتنبيهات</p>
       </div>
       <div className="qactions">
-        <button className="btn btn-outline">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <button className="btn btn-outline" aria-label="تحديد الكل كمقروء">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           تحديد الكل كمقروء
         </button>
       </div>
-      <div className="card glass">
+      <div className="content-card glass">
+        <div className="cc-header">
+          <div className="cc-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            آخر الإشعارات
+          </div>
+        </div>
         <div className="activity-list">
           {items.map((n, i) => (
             <div className="activity-item" key={i}>

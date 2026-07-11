@@ -102,7 +102,7 @@ export function Login({ onAuth }) {
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setFieldErrors((p) => ({...p, username: ""})) }}
                   required
-                  className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm outline-none transition-all"
+                  className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder="اسم المستخدم أو البريد الإلكتروني"
                   autoComplete="username"
@@ -123,7 +123,7 @@ export function Login({ onAuth }) {
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({...p, password: ""})) }}
                   required
-                  className="peer w-full h-11 pr-10 pl-10 rounded-xl text-sm outline-none transition-all"
+                  className="peer w-full h-11 pr-10 pl-10 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder="كلمة المرور"
                   autoComplete="current-password"

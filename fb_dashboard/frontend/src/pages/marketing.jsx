@@ -15,7 +15,7 @@ export function Marketing() {
         <div className="post-card">
           <div className="post-img" style={{ background: "var(--accent-soft)" }} />
           <div className="post-info">
-            <h4>خصم الصيف – 20% على جميع الطلبات</h4>
+            <h3>خصم الصيف – 20% على جميع الطلبات</h3>
             <p>ساري حتى 31 يوليو · 234 مستفيداً</p>
           </div>
           <span className="badge badge-s">نشطة</span>
@@ -23,7 +23,7 @@ export function Marketing() {
         <div className="post-card">
           <div className="post-img" style={{ background: "var(--info-soft)" }} />
           <div className="post-info">
-            <h4>أطلب مرتين واحصل على الثالثة مجاناً</h4>
+            <h3>أطلب مرتين واحصل على الثالثة مجاناً</h3>
             <p>ساري حتى 15 أغسطس · 112 مستفيداً</p>
           </div>
           <span className="badge badge-s">نشطة</span>

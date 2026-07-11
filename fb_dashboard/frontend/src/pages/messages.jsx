@@ -208,7 +208,7 @@ export function Messages({ role }) {
             <h2 style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
             <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)",pointerEvents:"none"}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input className="fld" placeholder="بحث..." value={search} onChange={e => { setSearch(e.target.value); setSelectedId(null) }} style={{width:"100%",paddingRight:32}} />
+              <input className="fld" placeholder="بحث..." aria-label="بحث في المحادثات" value={search} onChange={e => { setSearch(e.target.value); setSelectedId(null) }} style={{width:"100%",paddingRight:32}} />
               {search && (
                 <button onClick={() => setSearch("")} style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",color:"var(--muted)",padding:0}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -254,7 +254,7 @@ export function Messages({ role }) {
 
         {/* ─── RIGHT: CONVERSATION DETAIL ─── */}
         {!selectedId ? (
-          <div className="card glass" style={{flex:1,display:"none",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:0,border:"none"}}>
+          <div className="card glass" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:0,border:"none"}}>
             <div className="empty-state">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:12}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <p>اختر محادثة</p>

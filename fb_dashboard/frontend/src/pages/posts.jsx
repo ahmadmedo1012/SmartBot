@@ -4,6 +4,7 @@ import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchPosts, publishPost, deletePost } from "@/lib/api"
 import { toast } from "sonner"
 import { format } from "date-fns"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 export function Posts({ role }) {
   useEffect(() => { document.title = "المنشورات | SmartBot" }, [])
@@ -15,6 +16,7 @@ export function Posts({ role }) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const perPage = 10
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const pInterval = useAdaptiveInterval("normal")
   const { data: postsRes, isLoading, error, refetch } = useQuery({
@@ -58,42 +60,52 @@ export function Posts({ role }) {
             نشر منشور
           </button>
         )}
-        <input className="fld" placeholder="بحث في المنشورات..." value={search} onChange={e => setSearch(e.target.value)}
+        <input className="fld" placeholder="بحث في المنشورات..." aria-label="بحث في المنشورات" value={search} onChange={e => setSearch(e.target.value)}
           style={{maxWidth:280,width:"100%"}} />
       </div>
 
-      {isLoading ? (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
-          {[1,2,3].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+      <div className="content-card glass">
+        <div className="cc-header">
+          <div className="cc-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            جميع المنشورات
+          </div>
+          <span className="cc-count">الإجمالي: {total}</span>
         </div>
-      ) : error ? (
-        <div className="card glass" style={{textAlign:"center",padding:40}}>
-          <p style={{color:"var(--muted)",marginBlockEnd:12}}>{error?.message || "فشل تحميل المنشورات"}</p>
-          <button className="btn btn-outline" onClick={() => refetch()}>إعادة المحاولة</button>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد منشورات"}</p></div>
-      ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
-          {filtered.map(p => (
-            <div key={p.id} className="stat-card glass">
-              <p className="stat-label" style={{fontWeight:400,fontSize:13,lineHeight:1.5}}>
-                {p.message || <span style={{color:"var(--muted)",fontStyle:"italic"}}>(بدون نص)</span>}
-              </p>
-              <div className="stat-change" style={{marginBlockStart:8}}>
-                {p.created_time ? format(new Date(p.created_time), "yyyy/MM/dd") : ""}
+
+        {isLoading ? (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+            {[1,2,3].map(i => <div key={i} className="stat-card glass skel-card" />)}
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <p>{error?.message || "فشل تحميل المنشورات"}</p>
+            <button className="btn btn-outline" onClick={() => refetch()} style={{marginBlockStart:12}}>إعادة المحاولة</button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد منشورات"}</p></div>
+        ) : (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+            {filtered.map(p => (
+              <div key={p.id} className="stat-card glass">
+                <p className="card-text">
+                  {p.message || <span className="text-muted-italic">(بدون نص)</span>}
+                </p>
+                <div className="stat-change" style={{marginBlockStart:8}}>
+                  {p.created_time ? format(new Date(p.created_time), "yyyy/MM/dd") : ""}
+                </div>
+                {canEdit && (
+                  <button className="btn btn-outline" style={{marginBlockStart:8,padding:"4px 12px",fontSize:12}}
+                    onClick={() => setConfirmDelete(p.id)}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    حذف
+                  </button>
+                )}
               </div>
-              {canEdit && (
-                <button className="btn btn-outline" style={{marginBlockStart:8,padding:"4px 12px",fontSize:12}}
-                  onClick={() => { if (confirm("حذف المنشور؟")) delPost.mutate(p.id) }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  حذف
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {totalPages > 1 && (
         <div className="qactions" style={{justifyContent:"center"}}>
@@ -109,13 +121,13 @@ export function Posts({ role }) {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="cc-header">
               <div className="cc-title">نشر منشور جديد</div>
-              <button className="btn btn-outline" style={{padding:"4px 8px"}} onClick={() => setShowPublish(false)}>✕</button>
+              <button className="btn btn-outline" style={{padding:"4px 8px"}} onClick={() => setShowPublish(false)} aria-label="إغلاق">✕</button>
             </div>
             <form onSubmit={e => { e.preventDefault(); publishMut.mutate() }} style={{padding:16}}>
               <div className="fld" style={{marginBlockEnd:12}}>
-                <textarea className="fld" rows={4} placeholder="اكتب محتوى المنشور..." value={message} onChange={e => setMessage(e.target.value)} required style={{width:"100%"}} />
+                <textarea className="fld" rows={4} placeholder="اكتب محتوى المنشور..." aria-label="محتوى المنشور" value={message} onChange={e => setMessage(e.target.value)} required style={{width:"100%"}} />
               </div>
-              <input className="fld" placeholder="رابط الصورة (اختياري)" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{width:"100%",marginBlockEnd:12}} />
+              <input className="fld" placeholder="رابط الصورة (اختياري)" aria-label="رابط الصورة" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{width:"100%",marginBlockEnd:12}} />
               <div className="qactions" style={{justifyContent:"flex-end"}}>
                 <button className="btn btn-outline" type="button" onClick={() => setShowPublish(false)}>إلغاء</button>
                 <button className="btn btn-primary" type="submit" disabled={publishMut.isPending}>
@@ -126,6 +138,13 @@ export function Posts({ role }) {
           </div>
         </div>
       )}
+      <ConfirmDialog open={!!confirmDelete}
+        title="حذف المنشور"
+        message="هل أنت متأكد من حذف هذا المنشور؟"
+        confirmLabel="حذف"
+        isLoading={delPost.isPending}
+        onConfirm={() => { delPost.mutate(confirmDelete); setConfirmDelete(null) }}
+        onCancel={() => setConfirmDelete(null)} />
       <div className="mobile-nav-spacer" />
     </section>
   )

@@ -210,7 +210,7 @@ export function ContentCalendar({ role }) {
           <p>عرض وإدارة المنشورات المجدولة</p>
         </div>
         <div className="qactions" style={{gap:4}}>
-          <button className="btn btn-outline" style={{fontSize:11,padding:"4px 10px"}} onClick={goToToday}>
+          <button className="btn btn-outline" style={{fontSize:11,padding:"4px 10px"}} onClick={goToToday} aria-label="اليوم">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             اليوم
           </button>
@@ -242,12 +242,12 @@ export function ContentCalendar({ role }) {
       </div>
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBlock:"12px 8px"}}>
-        <button className="btn btn-outline" onClick={prevMonth} style={{padding:"4px 8px"}}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <button className="btn btn-outline" onClick={prevMonth} style={{padding:"4px 8px"}} aria-label="الشهر السابق">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <h2 style={{fontSize:14,fontWeight:600}}>{monthText}</h2>
-        <button className="btn btn-outline" onClick={nextMonth} style={{padding:"4px 8px"}}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <button className="btn btn-outline" onClick={nextMonth} style={{padding:"4px 8px"}} aria-label="الشهر التالي">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
 
@@ -301,7 +301,7 @@ export function ContentCalendar({ role }) {
               {format(selectedDay, "EEEE d MMMM yyyy", { locale: arSA })}
             </div>
             {canEdit && (
-              <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={handleOpenCreate}>
+              <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={handleOpenCreate} aria-label="إضافة منشور جديد">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 إضافة
               </button>

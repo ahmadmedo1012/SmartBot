@@ -96,7 +96,8 @@ export function Dashboard(_p) {
   if (isLoading && !stats) return <LoadingSkeleton />
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       {/* page header */}
       <div className="page-header">
         <h1>لوحة البيانات</h1>
@@ -104,26 +105,27 @@ export function Dashboard(_p) {
       </div>
 
       {/* stats grid */}
-      <div className="stats-grid">
+      <div className="stats-grid stagger-children">
         <div className="stat-card glass">
+          <div className="stat-icon" data-color="">{statIcons.total}</div>
           <div className="stat-label">الردود الكلية</div>
           <div className="stat-value">{formatNum(stats?.total_replies)}</div>
           <div className="stat-change stat-up">↑ 12%</div>
-          <div className="stat-icon">{statIcons.total}</div>
         </div>
         <div className="stat-card glass">
+          <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value">{formatNum(stats?.today_replies)}</div>
           <div className="stat-change stat-up">↑ 8.2%</div>
-          <div className="stat-icon">{statIcons.today}</div>
         </div>
         <div className="stat-card glass">
+          <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
           <div className="stat-value">{formatNum(stats?.fan_count)}</div>
           <div className="stat-change stat-down">↓ 3.1%</div>
-          <div className="stat-icon">{statIcons.fans}</div>
         </div>
         <div className="stat-card glass">
+          <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
           <div className="stat-label">القواعد النشطة</div>
           <div className="stat-value">{activeRules}</div>
           {botStatus?.running !== undefined && (
@@ -131,7 +133,6 @@ export function Dashboard(_p) {
               {botStatus.running ? "↑ نشط" : "↓ متوقف"}
             </div>
           )}
-          <div className="stat-icon">{statIcons.rules}</div>
         </div>
       </div>
 

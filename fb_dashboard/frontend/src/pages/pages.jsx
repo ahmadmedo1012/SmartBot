@@ -22,7 +22,7 @@ export function Pages() {
           <div className="post-card" key={p.name}>
             <div className="post-img" style={{ background: p.color }} />
             <div className="post-info">
-              <h4>{p.name}</h4>
+              <h3>{p.name}</h3>
               <p>{p.followers} متابع · آخر نشاط: {p.lastActive}</p>
             </div>
             <span className="badge badge-s">{p.status}</span>

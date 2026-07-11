@@ -69,7 +69,7 @@ export function Reports() {
   const allReplies = repliesRes?.items || []
 
   return (
-    <section className="page active" style={{animation:"pageIn 0.35s ease"}}>
+    <section className="page active">
       <div className="page-header">
         <h1>التقارير</h1>
         <p>تحليلات متقدمة لأداء البوت والتفاعلات</p>
@@ -109,7 +109,7 @@ export function Reports() {
               الاتجاه اليومي
             </div>
           </div>
-          {aLoading ? <div className="stat-card glass" style={{height:200,background:"var(--skeleton)"}} /> :
+          {aLoading ? <div className="stat-card glass skel-card-200" /> :
            chartData.length > 1 ? <MiniBar data={chartData} dataKey="replies" /> :
            <p className="empty-state" style={{padding:40}}>بيانات غير كافية</p>}
         </div>
@@ -121,7 +121,7 @@ export function Reports() {
               التوزيع الساعي
             </div>
           </div>
-          {hLoading ? <div className="stat-card glass" style={{height:200,background:"var(--skeleton)"}} /> :
+          {hLoading ? <div className="stat-card glass skel-card-200" /> :
            hourly?.length > 0 ? <MiniBar data={hourly.map(h => ({...h, hour: `${h.hour}`}))} dataKey="count" color="var(--info)" /> :
            <p className="empty-state" style={{padding:40}}>لا توجد بيانات</p>}
         </div>

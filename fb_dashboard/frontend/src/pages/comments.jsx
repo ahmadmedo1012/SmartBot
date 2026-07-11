@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchAllComments, replyToComment, hideComment, deleteComment, suggestAiReplies } from "@/lib/api"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 function timeAgo(dateStr) {
   if (!dateStr) return ""
@@ -50,7 +51,7 @@ function ReplyDialog({ comment, open, onOpenChange }) {
   })
 
   const insertName = () => {
-    const name = comment.from_name?.split(" ")[0] || comment.from_name || "صديقنا"
+    const name = comment.from_name?.split(" ")[0] || comment.from_name || "المستخدم"
     setMessage((p) => p + `${name} `)
   }
 
@@ -97,7 +98,7 @@ function ReplyDialog({ comment, open, onOpenChange }) {
             @{comment?.from_name?.split(" ")[0] || "الاسم"}
           </button>
 
-          <textarea className="fld" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="اكتب ردك..." style={{width:"100%",marginBlockEnd:12}} />
+          <textarea className="fld" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="اكتب ردك..." style={{marginBlockEnd:12}} />
           <div className="qactions" style={{justifyContent:"flex-end"}}>
             <button className="btn btn-outline" onClick={() => onOpenChange(false)}>إلغاء</button>
             <button className="btn btn-primary" onClick={() => replyMut.mutate()} disabled={!message.trim() || replyMut.isPending}>
@@ -120,6 +121,7 @@ export function Comments({ role }) {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [replyTarget, setReplyTarget] = useState(null)
+  const [confirmAction, setConfirmAction] = useState(null)
 
   const cmInterval = useAdaptiveInterval("normal")
   const { data, isLoading, error, refetch } = useQuery({
@@ -144,6 +146,13 @@ export function Comments({ role }) {
     onError: (e) => toast.error(e.message),
   })
 
+  const handleConfirm = useCallback(() => {
+    if (!confirmAction) return
+    if (confirmAction.type === "hide") hideMut.mutate(confirmAction.id)
+    if (confirmAction.type === "delete") deleteMut.mutate(confirmAction.id)
+    setConfirmAction(null)
+  }, [confirmAction])
+
   return (
     <section className="page active">
       <div className="page-header">
@@ -152,24 +161,33 @@ export function Comments({ role }) {
       </div>
 
       <div className="qactions">
-        <input className="fld" placeholder="بحث في التعليقات..." value={search} onChange={e => setSearch(e.target.value)} style={{maxWidth:320,width:"100%"}} />
+        <input className="fld" placeholder="بحث في التعليقات..." aria-label="بحث في التعليقات" value={search} onChange={e => setSearch(e.target.value)} style={{maxWidth:320,width:"100%"}} />
       </div>
 
-      {isLoading ? (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
-          {[1,2,3].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+      <div className="content-card glass">
+        <div className="cc-header">
+          <div className="cc-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            جميع التعليقات
+          </div>
+          <span className="cc-count">الإجمالي: {filtered.length}</span>
         </div>
-      ) : error ? (
-        <div className="card glass" style={{textAlign:"center",padding:40}}>
-          <p style={{color:"var(--muted)",marginBlockEnd:12}}>{error?.message || "فشل تحميل التعليقات"}</p>
-          <button className="btn btn-outline" onClick={refetch}>إعادة المحاولة</button>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد تعليقات"}</p></div>
-      ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
-          {filtered.map(c => (
-            <div key={c.id} className="stat-card glass" style={{borderRight:"3px solid var(--accent)"}}>
+
+        {isLoading ? (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
+            {[1,2,3].map(i => <div key={i} className="stat-card glass skel-card" />)}
+          </div>
+        ) : error ? (
+          <div className="empty-state">
+            <p>{error?.message || "فشل تحميل التعليقات"}</p>
+            <button className="btn btn-outline" onClick={refetch} style={{marginBlockStart:12}}>إعادة المحاولة</button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد تعليقات"}</p></div>
+        ) : (
+          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
+            {filtered.map(c => (
+              <div key={c.id} className="stat-card glass card-border-accent">
               <div className="person-row">
                 <div className="person-avatar" style={{background:`hsl(${c.from_name?.length * 37 || 0},55%,45%)`}}>
                   {getInitials(c.from_name)}
@@ -183,16 +201,16 @@ export function Comments({ role }) {
                   </div>
                 </div>
               </div>
-              <p className="stat-label" style={{fontWeight:400,fontSize:13,lineHeight:1.5,marginBlockStart:8}}>{c.message}</p>
+              <p className="stat-label" style={{fontWeight:400,fontSize:13,lineHeight:1.5,marginBlockStart:8,color:"var(--fg)"}}>{c.message}</p>
               {c.post_message && (
                 <p className="stat-change" style={{fontSize:11,marginBlockStart:4}}>على منشور: {c.post_message}</p>
               )}
               {canEdit && (
                 <div className="qactions" style={{marginBlockStart:8,gap:4}}>
                   <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--info)"}} onClick={() => setReplyTarget(c)}>رد</button>
-                  <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--warning)"}} onClick={() => { if (confirm("إخفاء هذا التعليق؟")) hideMut.mutate(c.id) }}>إخفاء</button>
+                  <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--warning)"}} onClick={() => setConfirmAction({ type:"hide", id:c.id })}>إخفاء</button>
                   {isAdmin && (
-                    <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--danger)"}} onClick={() => { if (confirm("حذف هذا التعليق نهائياً؟")) deleteMut.mutate(c.id) }}>حذف</button>
+                    <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--danger)"}} onClick={() => setConfirmAction({ type:"delete", id:c.id })}>حذف</button>
                   )}
                 </div>
               )}
@@ -201,9 +219,18 @@ export function Comments({ role }) {
         </div>
       )}
 
+      </div>
+
       {replyTarget && (
         <ReplyDialog comment={replyTarget} open={!!replyTarget} onOpenChange={(o) => { if (!o) setReplyTarget(null) }} />
       )}
+      <ConfirmDialog open={!!confirmAction}
+        title={confirmAction?.type === "delete" ? "حذف التعليق" : "إخفاء التعليق"}
+        message={confirmAction?.type === "delete" ? "هل أنت متأكد من حذف هذا التعليق نهائياً؟" : "إخفاء هذا التعليق؟"}
+        confirmLabel={confirmAction?.type === "delete" ? "حذف" : "إخفاء"}
+        isLoading={confirmAction?.type === "hide" ? hideMut.isPending : deleteMut.isPending}
+        onConfirm={handleConfirm}
+        onCancel={() => setConfirmAction(null)} />
       <div className="mobile-nav-spacer" />
     </section>
   )

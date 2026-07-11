@@ -71,7 +71,7 @@ function Composer({ onBack, queryClient }) {
 
   const canProceed = () => { if (step === 0) return !!name.trim(); if (step === 2) return !!message.trim(); return true }
 
-  const tagSelect = (list, setList, bgVar) => (
+  const tagSelect = (list, setList) => (
     <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBlockStart:4}}>
       <select className="fld" onChange={e => { const v = e.target.value; if (!v) return; setList(list.includes(v) ? list.filter(t => t !== v) : [...list, v]); e.target.value="" }} style={{fontSize:12}}>
         <option value="">اختر الوسوم</option>
@@ -418,7 +418,7 @@ export function Broadcast({ role }) {
                     <td data-label="إجراءات">
                       <div style={{display:"flex",gap:4}} onClick={e => e.stopPropagation()}>
                         {b.status === "draft" && canSend && (
-                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--success)"}} onClick={() => sendMut.mutate(b.id)} disabled={sendMut.isPending}>
+                          <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11,color:"var(--success)"}} onClick={() => sendMut.mutate(b.id)} disabled={sendMut.isPending} aria-label="إرسال البث">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                           </button>
                         )}

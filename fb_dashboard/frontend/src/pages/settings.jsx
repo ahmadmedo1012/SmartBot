@@ -184,7 +184,7 @@ export function Settings({ role }) {
   ]
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الإعدادات</h1>
         <p>إعدادات البوت، API، المظهر وإحصائيات النظام</p>

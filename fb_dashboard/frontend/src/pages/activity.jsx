@@ -8,7 +8,7 @@ const activities = [
 
 export function Activity() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>سجل النشاطات</h1>
         <p>جميع الأحداث والنشاطات على الصفحات</p>

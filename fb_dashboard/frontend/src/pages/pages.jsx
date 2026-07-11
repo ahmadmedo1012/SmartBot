@@ -6,7 +6,7 @@ const connectedPages = [
 
 export function Pages() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>

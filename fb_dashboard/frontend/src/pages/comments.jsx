@@ -154,7 +154,7 @@ export function Comments({ role }) {
   }, [confirmAction])
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>مركز التعليقات</h1>
         <p>جميع التعليقات من فيسبوك — رد بذكاء وتحكم بسرعة</p>
@@ -183,7 +183,7 @@ export function Comments({ role }) {
             <button className="btn btn-outline" onClick={refetch} style={{marginBlockStart:12}}>إعادة المحاولة</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد تعليقات"}</p></div>
+          <div className="empty-state" role="status"><p>{search ? "لا توجد نتائج" : "لا توجد تعليقات"}</p></div>
         ) : (
           <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
             {filtered.map(c => (

@@ -8,7 +8,7 @@ const items = [
 
 export function Notifications() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الإشعارات</h1>
         <p>آخر الإشعارات والتنبيهات</p>

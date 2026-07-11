@@ -25,7 +25,7 @@ export function Ads({ role }) {
 
   if (!isAdmin) {
     return (
-      <section className="page active">
+      <section className="page active" dir="rtl">
         <div className="page-header"><h1>الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
         <div className="content-card glass" style={{textAlign:"center",padding:40}}>
           <p>غير مصرح — إدارة الإعلانات متاحة للمدير فقط</p>
@@ -35,7 +35,7 @@ export function Ads({ role }) {
   }
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الإعلانات</h1>
         <p>إدارة حملات فيسبوك الإعلانية</p>
@@ -89,7 +89,7 @@ export function Ads({ role }) {
               <button className="btn btn-outline" onClick={() => refetchCamp()}>إعادة المحاولة</button>
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="empty-state"><p>لا توجد حملات في هذا الحساب</p></div>
+            <div className="empty-state" role="status"><p>لا توجد حملات في هذا الحساب</p></div>
           ) : (
             <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
               {campaigns.map(c => (

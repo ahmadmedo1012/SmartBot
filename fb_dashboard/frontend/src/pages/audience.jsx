@@ -7,7 +7,7 @@ const people = [
 
 export function Audience() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الجمهور</h1>
         <p>قاعدة متابعيك – إدارة الجمهور</p>

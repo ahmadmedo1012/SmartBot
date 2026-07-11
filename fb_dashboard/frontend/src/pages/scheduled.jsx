@@ -47,7 +47,7 @@ export function ScheduledPosts({ role }) {
   })
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>المنشورات المجدولة</h1>
         <p>إنشاء وجدولة ونشر منشورات فيسبوك</p>
@@ -89,7 +89,7 @@ export function ScheduledPosts({ role }) {
             <button className="btn btn-outline" onClick={refetch} style={{marginBlockStart:12}}>إعادة المحاولة</button>
           </div>
         ) : posts.length === 0 ? (
-          <div className="empty-state"><p>لا توجد منشورات</p></div>
+          <div className="empty-state" role="status"><p>لا توجد منشورات</p></div>
         ) : (
           <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
             {posts.map(p => {

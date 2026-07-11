@@ -7,7 +7,7 @@ const ageGroups = [
 
 export function Analytics() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>التحليلات</h1>
         <p>بيانات وإحصائيات الأداء</p>

@@ -6,7 +6,7 @@ const rules = [
 
 export function Autoreply() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الردود التلقائية</h1>
         <p>إعدادات الرد الآلي للرسائل والتعليقات</p>

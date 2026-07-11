@@ -47,7 +47,7 @@ export function Posts({ role }) {
   })
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>المنشورات</h1>
         <p>إدارة منشورات الصفحة</p>
@@ -83,7 +83,7 @@ export function Posts({ role }) {
             <button className="btn btn-outline" onClick={() => refetch()} style={{marginBlockStart:12}}>إعادة المحاولة</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="empty-state"><p>{search ? "لا توجد نتائج" : "لا توجد منشورات"}</p></div>
+          <div className="empty-state" role="status"><p>{search ? "لا توجد نتائج" : "لا توجد منشورات"}</p></div>
         ) : (
           <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
             {filtered.map(p => (

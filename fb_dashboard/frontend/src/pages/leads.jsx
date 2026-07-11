@@ -7,7 +7,7 @@ const leads = [
 
 export function Leads() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>العملاء المتوقعون</h1>
         <p>قائمة العملاء المحتملين من الصفحات</p>

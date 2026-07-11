@@ -69,7 +69,7 @@ export function Reports() {
   const allReplies = repliesRes?.items || []
 
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>التقارير</h1>
         <p>تحليلات متقدمة لأداء البوت والتفاعلات</p>

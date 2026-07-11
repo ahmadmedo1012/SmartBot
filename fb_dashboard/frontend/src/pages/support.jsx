@@ -6,7 +6,7 @@ const faqs = [
 
 export function Support() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الدعم الفني</h1>
         <p>تواصل مع فريق الدعم والمساعدة</p>

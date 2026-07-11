@@ -1,6 +1,6 @@
 export function Marketing() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>التسويق</h1>
         <p>الحملات التسويقية والعروض</p>

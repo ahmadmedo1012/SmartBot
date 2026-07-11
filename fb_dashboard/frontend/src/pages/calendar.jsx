@@ -203,7 +203,7 @@ export function ContentCalendar({ role }) {
   const isLoadingInitial = monthLoading && monthPosts.length === 0
 
   return (
-    <section className="page active" style={{animation:"pageIn 0.35s ease"}}>
+    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s ease"}}>
       <div className="page-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <h1>التقويم</h1>

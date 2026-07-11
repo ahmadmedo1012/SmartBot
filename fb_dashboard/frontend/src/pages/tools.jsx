@@ -1,6 +1,6 @@
 export function Tools() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الأدوات</h1>
         <p>أدوات مساعدة لإدارة الصفحات</p>

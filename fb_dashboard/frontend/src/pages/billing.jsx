@@ -6,7 +6,7 @@ const invoices = [
 
 export function Billing() {
   return (
-    <section className="page active">
+    <section className="page active" dir="rtl">
       <div className="page-header">
         <h1>الفواتير</h1>
         <p>إدارة الاشتراكات والمدفوعات</p>

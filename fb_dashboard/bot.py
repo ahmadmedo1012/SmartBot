@@ -25,11 +25,15 @@ from sqlalchemy import select, func, cast, Date
 from sqlalchemy.exc import IntegrityError
 
 from database import AsyncSessionLocal
-from models import Rule, Reply, BotLog, Offer, BotState
+from models import Rule, Reply, BotLog, Offer, BotState, Customer
 from fb_client import FBClient
 from config import settings
 
 # ── Lazy imports for new modules (graceful if not yet installed) ──
+try:
+    from ws_manager import ws_manager
+except ImportError:
+    ws_manager = None  # ponytail: WS disabled when module absent (e.g. some tests)
 _enhanced_intent = None
 _cache_layer = None
 _context_engine = None
@@ -198,10 +202,36 @@ class IntentAwareMatcher:
         self._catch_all = None
         self._precompute()
 
+    # intent → rule name prefix map for phase-1 matching
+    INTENT_RULE_MAP = {
+        "complaint": "frustrated_complaint",
+        "problem": "problem_issue",
+        "price_inquiry": "price_inquiry",
+        "interest_want": "interest_want",
+        "order": "interest_want",
+        "subscription": "interest_want",
+        "contact": "contact_request",
+        "availability": "availability",
+        "location": "location",
+        "working_hours": "working_hours",
+        "recommendation": "recommendation",
+        "collaboration": "collaboration",
+        "greeting": "greeting",
+        "welcome": "welcome_greeting",
+        "praise": "compliment_praise",
+        "thanks": "greeting",
+        "emoji_only": "emoji_only",
+        "one_word": "one_word_generic",
+        "generic": "generic_comment",
+        "smart_menu": "generic_comment",
+        "negative": "frustrated_complaint",
+    }
+
     def _precompute(self):
         remaining = []
         for r in self._all_rules:
             kw = r.get("keywords", [])
+            rname = r.get("name", "")
             if not kw or kw == ["__catch_all__"]:
                 self._catch_all = r
                 continue
@@ -216,26 +246,28 @@ class IntentAwareMatcher:
         self._all_rules = remaining
 
     def match(self, text: str, intent: str | None = None) -> tuple[str | None, str | None, int | None]:
-        """
-        Returns (reply_template, dm_template, rule_id) or (None, None, None).
-
-        Phase 1: If intent is available, first try rules whose keywords overlap
-        with the intent (better semantic match).
-        Phase 2: Try all rules with keyword matching (original behavior).
-        Phase 3: Fallback to catch-all.
-        """
         if not text:
             return None, None, None
 
         text_lower = text.lower().strip()
         text_norm = TextNormalizer.normalize_for_matching(text_lower)
 
-        # Phase 1: Intent-aware matching (if intent classifier available)
+        # Phase 1: Intent-first — find rule whose name matches the intent
+        if intent:
+            rule_name = self.INTENT_RULE_MAP.get(intent)
+            if rule_name:
+                for rule in self._all_rules:
+                    if rule.get("name") == rule_name:
+                        rid = rule.get("id")
+                        dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
+                        return rule.get("reply_template", ""), dm, rid
+
+        # Phase 2: Keyword scan over all rules
         matched = self._keyword_scan(self._all_rules, text_lower, text_norm)
         if matched:
             return matched
 
-        # Phase 2: Catch-all
+        # Phase 3: Catch-all
         if self._catch_all:
             r = self._catch_all
             rid = r.get("id")
@@ -262,24 +294,25 @@ class IntentAwareMatcher:
 # -------------------------------------------------------------------
 
 class CooldownManager:
-    def __init__(self, cooldown_sec: int = 60):
-        self._cooldown_sec = cooldown_sec
+    def __init__(self, default_cooldown_sec: int = 60):
+        self._default_sec = default_cooldown_sec
         self._store: dict[str, float] = {}
+        self._user_windows: dict[str, int] = {}  # per-user override
 
     def is_blocked(self, user_id: str) -> bool:
         if not user_id or user_id in ("None", "0", "undefined"):
             return False
         now = time.time()
         last = self._store.get(user_id)
-        if last and (now - last) < self._cooldown_sec:
-            # Renew timestamp so spammer stays blocked
+        window = self._user_windows.get(user_id, self._default_sec)
+        if last and (now - last) < window:
             self._store[user_id] = now
             return True
         self._store[user_id] = now
         return False
 
-    def adjust_window(self, seconds: int):
-        self._cooldown_sec = max(10, min(3600, seconds))
+    def adjust_window(self, user_id: str, seconds: int):
+        self._user_windows[user_id] = max(10, min(3600, seconds))
 
 # -------------------------------------------------------------------
 # Reply Pipeline (v2 — structured stages with error boundaries)
@@ -371,7 +404,6 @@ class ReplyPipeline:
             classification_local = locals().get("classification", {})
             urgency = classification_local.get("urgency", 0) if isinstance(classification_local, dict) else 0
             if intent in ("complaint", "urgent", "negative") or urgency > 0.5:
-                from ws_manager import ws_manager
                 asyncio.create_task(ws_manager.broadcast("alert", {
                     "type": "urgent_comment", "severity": "warning",
                     "message": f"تعليق عاجل من {ctx.from_first}: {ctx.text[:100]}",
@@ -383,10 +415,9 @@ class ReplyPipeline:
         # Stage 5c: Adjust cooldown by user category
         try:
             if user_ctx and user_ctx.is_frequent():
-                # Frequent customers: shorter cooldown
-                self.cooldown.adjust_window(30)
+                self.cooldown.adjust_window(ctx.from_id, 30)
             else:
-                self.cooldown.adjust_window(60)
+                self.cooldown.adjust_window(ctx.from_id, 60)
         except Exception:
             pass
 
@@ -405,7 +436,11 @@ class ReplyPipeline:
                 offer_text = o_engine.format_offer_text(offer)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
-                sales_stage = "consideration"
+                classification_local = locals().get("classification", {})
+                if isinstance(classification_local, dict):
+                    sales_stage = classification_local.get("sales_stage") or "consideration"
+                else:
+                    sales_stage = "consideration"
         except Exception as e:
             self._mon.warn(f"offer failed: {e}", module="pipeline")
 
@@ -501,7 +536,6 @@ class ReplyPipeline:
                 ctx_engine.tag_user(ctx.from_id, "potential_buyer")
                 # Auto-create/update CRM record in DB
                 try:
-                    from models import Customer
                     existing = await session.execute(
                         select(Customer).where(Customer.fb_user_id == ctx.from_id)
                     )
@@ -520,14 +554,13 @@ class ReplyPipeline:
                         )
                         session.add(c)
                     await session.commit()
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as e:
+                    self._mon.warn(f"CRM update failed: {e}", module="pipeline")
+        except Exception as e:
+            self._mon.warn(f"context update failed: {e}", module="pipeline")
 
         # Notify WebSocket
         try:
-            from ws_manager import ws_manager
             asyncio.create_task(ws_manager.broadcast("new_reply", {
                 "commenter": ctx.from_name, "comment": ctx.text[:50],
                 "reply": reply[:50], "rule_id": rule_id,
@@ -666,7 +699,6 @@ class BotEngine:
 
                 # Broadcast stats after every cycle (WS + SSE)
                 try:
-                    from ws_manager import ws_manager
                     from event_bus import event_bus
                     async with AsyncSessionLocal() as s:
                         total = await s.scalar(select(func.count(Reply.id))) or 0

@@ -207,11 +207,11 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
             # Migration: add missing columns (safe — IF NOT EXISTS equivalent via try/except)
             for col_sql in [
-                "ALTER TABLE rules ADD COLUMN priority INTEGER DEFAULT 999",
-                "ALTER TABLE rules ADD COLUMN bot_type VARCHAR(20) DEFAULT 'reply'",
-                "ALTER TABLE rules ADD COLUMN dm_template TEXT DEFAULT ''",
-                "ALTER TABLE scheduled_posts ADD COLUMN platform VARCHAR(20) DEFAULT 'facebook'",
-                "ALTER TABLE scheduled_posts ADD COLUMN fb_post_id VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 999",
+                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS bot_type VARCHAR(20) DEFAULT 'reply'",
+                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS dm_template TEXT DEFAULT ''",
+                "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS platform VARCHAR(20) DEFAULT 'facebook'",
+                "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEFAULT ''",
             ]:
                 try:
                     await conn.execute(text(col_sql))
@@ -222,8 +222,8 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
 
-        # Bot runs on all platforms (including Vercel serverless via lifecycle hooks)
-        if settings.START_BOT:
+        # Bot runs via background loop locally, Vercel Cron on serverless
+        if settings.START_BOT and not _IS_VERCEL:
             global _bot_task
             _bot_task = asyncio.create_task(_run_bot_loop())
             log.info("Bot started in background")
@@ -2133,10 +2133,8 @@ async def webhook_receive(request: Request):
             if not comment_payload["id"]:
                 continue
 
-            # Process this single comment immediately
-            asyncio.create_task(
-                _process_webhook_comment(comment_payload, post_id)
-            )
+            # Process this single comment immediately (inline, not fire-and-forget — Vercel kills background tasks)
+            await _process_webhook_comment(comment_payload, post_id)
 
     return {"ok": True}
 

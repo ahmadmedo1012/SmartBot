@@ -258,9 +258,12 @@ class IntentAwareMatcher:
             if rule_name:
                 for rule in self._all_rules:
                     if rule.get("name") == rule_name:
-                        rid = rule.get("id")
-                        dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
-                        return rule.get("reply_template", ""), dm, rid
+                        nkw = rule.get("_normalized_kw", [])
+                        if nkw and any(raw in text_lower or norm in text_norm for raw, norm in nkw):
+                            rid = rule.get("id")
+                            dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
+                            return rule.get("reply_template", ""), dm, rid
+                        break  # rule found but no keyword match → fall to Phase 2
 
         # Phase 2: Keyword scan over all rules
         matched = self._keyword_scan(self._all_rules, text_lower, text_norm)
@@ -306,7 +309,6 @@ class CooldownManager:
         last = self._store.get(user_id)
         window = self._user_windows.get(user_id, self._default_sec)
         if last and (now - last) < window:
-            self._store[user_id] = now
             return True
         self._store[user_id] = now
         return False
@@ -501,7 +503,7 @@ class ReplyPipeline:
                         fb_err = dm_result.get("body", dm_result.get("error", fb_err))
                     self._mon.warn(f"private_reply failed: {fb_err}", comment_id=ctx.cid[:12], module="pipeline")
                     # Strategy 2: MESSAGE_TAG — works for opted-in users without prior conversation
-                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="MESSAGE_TAG")
+                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="MESSAGE_TAG", tag="POST_PURCHASE_UPDATE")
                     if dm_result:
                         dm_sent = True
                     else:

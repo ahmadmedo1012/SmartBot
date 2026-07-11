@@ -209,14 +209,17 @@ class FBClient:
             return None
         return await self.send_dm(user_id, message)
 
-    async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE") -> dict | None:
+    async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE", tag: str = None) -> dict | None:
         if not user_id or user_id == "None":
             return None
-        r = await self._post(f"{self.page_id}/messages", {
+        data = {
             "recipient": json.dumps({"id": user_id}),
             "message": json.dumps({"text": message}),
             "messaging_type": messaging_type,
-        })
+        }
+        if tag:
+            data["tag"] = tag
+        r = await self._post(f"{self.page_id}/messages", data)
         if r and r.get("_error"):
             log.error(f"send_dm ({messaging_type}) failed: {r.get('body', r.get('error', 'unknown'))}")
             return None

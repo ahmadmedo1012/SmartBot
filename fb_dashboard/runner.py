@@ -1373,7 +1373,7 @@ async def inbox_reply(
 
     # Fallback: try private_reply (works for ANY comment, no prior conversation needed)
     result = await fb.send_private_reply(conversation_id, message)
-    if result:
+    if result and not result.get("_error"):
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
         return {"ok": True}
 

@@ -60,8 +60,9 @@ class FBClient:
                 if r.status_code == 200:
                     return r.json()
                 if 400 <= r.status_code < 500:
-                    log.error(f"POST {r.status_code} on {path[:50]}: {r.text[:150]}")
-                    return None
+                    body = r.text[:300]
+                    log.error(f"POST {r.status_code} on {path[:50]}: {body}")
+                    return {"_error": True, "status": r.status_code, "body": body}
                 last_err = f"POST {r.status_code}: {r.text[:150]}"
                 if attempt < max_retries - 1:
                     await asyncio.sleep(1.5 ** attempt)  # 1.0, 1.5, 2.25s
@@ -160,7 +161,8 @@ class FBClient:
         return all_comments
 
     async def reply_to_comment(self, comment_id: str, message: str) -> dict | None:
-        return await self._post(f"{comment_id}/comments", {"message": message})
+        r = await self._post(f"{comment_id}/comments", {"message": message})
+        return None if r and r.get("_error") else r
 
     async def send_private_reply(self, comment_id: str, message: str) -> dict | None:
         return await self._post(f"{comment_id}/private_replies", {"message": message})
@@ -207,14 +209,18 @@ class FBClient:
             return None
         return await self.send_dm(user_id, message)
 
-    async def send_dm(self, user_id: str, message: str) -> dict | None:
+    async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE") -> dict | None:
         if not user_id or user_id == "None":
             return None
-        return await self._post(f"{self.page_id}/messages", {
+        r = await self._post(f"{self.page_id}/messages", {
             "recipient": json.dumps({"id": user_id}),
             "message": json.dumps({"text": message}),
-            "messaging_type": "RESPONSE",
+            "messaging_type": messaging_type,
         })
+        if r and r.get("_error"):
+            log.error(f"send_dm ({messaging_type}) failed: {r.get('body', r.get('error', 'unknown'))}")
+            return None
+        return r
 
     # ── Page info ─────────────────────────────────────────────────
 

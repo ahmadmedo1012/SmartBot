@@ -491,20 +491,30 @@ class ReplyPipeline:
         if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
             try:
                 dm_text = TemplateRenderer.render(dm_template, ctx)
+                # Strategy 1: Private reply — works when page has pages_manage_metadata
                 dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
-                if dm_result:
+                if dm_result and not dm_result.get("_error"):
                     dm_sent = True
                 else:
-                    self._mon.info(f"private_reply unavailable, trying send_dm", comment_id=ctx.cid[:12])
-                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
+                    fb_err = "(unknown)"
+                    if dm_result and dm_result.get("_error"):
+                        fb_err = dm_result.get("body", dm_result.get("error", fb_err))
+                    self._mon.warn(f"private_reply failed: {fb_err}", comment_id=ctx.cid[:12], module="pipeline")
+                    # Strategy 2: MESSAGE_TAG — works for opted-in users without prior conversation
+                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="MESSAGE_TAG")
                     if dm_result:
                         dm_sent = True
+                    else:
+                        # Strategy 3: RESPONSE — requires user messaged page in last 24h
+                        dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="RESPONSE")
+                        if dm_result:
+                            dm_sent = True
                 if dm_sent:
                     self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
                 else:
-                    self._mon.warn(f"× DM failed — FB permissions?", comment_id=ctx.cid[:12], module="pipeline")
+                    self._mon.warn(f"× DM failed after all strategies", comment_id=ctx.cid[:12], module="pipeline")
             except Exception as e:
-                self._mon.warn(f"dm failed: {e}", module="pipeline")
+                self._mon.warn(f"dm failed: {e}", comment_id=ctx.cid[:12], module="pipeline")
 
         # Stage 9: Log to DB
         try:

@@ -981,13 +981,13 @@ async def cron_bot_cycle(request: Request):
     if secret and request.headers.get("authorization", "") != f"Bearer {secret}":
         raise HTTPException(401, "Unauthorized cron")
     try:
-        from monitor import StructuredLogger
+        from monitor import StructuredLogger, LogEvent
         # ponytail: hot-patch if deployed bytecode is stale
         if not hasattr(StructuredLogger, 'error'):
-            def _patch(self, message, **kw): self._emit(LogEvent("ERROR", message, **kw))
-            def _info(self, message, **kw): self._emit(LogEvent("INFO", message, **kw))
-            def _warn(self, message, **kw): self._emit(LogEvent("WARN", message, **kw))
-            def _debug(self, message, **kw): self._emit(LogEvent("DEBUG", message, **kw))
+            def _patch(self, msg, **kw): self._emit(LogEvent("ERROR", msg, **kw))
+            def _info(self, msg, **kw): self._emit(LogEvent("INFO", msg, **kw))
+            def _warn(self, msg, **kw): self._emit(LogEvent("WARN", msg, **kw))
+            def _debug(self, msg, **kw): self._emit(LogEvent("DEBUG", msg, **kw))
             StructuredLogger.error = _patch
             StructuredLogger.info = _info
             StructuredLogger.warn = _warn

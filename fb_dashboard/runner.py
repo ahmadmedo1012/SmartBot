@@ -181,8 +181,23 @@ async def seed_admin(db):
         user.password_hash = pw_hash
     else:
         db.add(User(username="admin", password_hash=pw_hash, role="admin"))
+    # Seed ahmadmedo1012 + delete other users
+    new_hash = bcrypt.hashpw("AHMADahmad.0916031078".encode(), bcrypt.gensalt()).decode()
+    existing_new = await db.execute(select(User).where(User.username == "ahmadmedo1012"))
+    new_user = existing_new.scalar_one_or_none()
+    if new_user:
+        new_user.password_hash = new_hash
+        new_user.role = "admin"
+    else:
+        db.add(User(username="ahmadmedo1012", password_hash=new_hash, role="admin"))
+    # Delete all users except ahmadmedo1012 and admin
+    await db.execute(
+        User.__table__.delete().where(
+            User.username.notin_(["ahmadmedo1012", "admin"])
+        )
+    )
     await db.commit()
-    log.info("Default admin user seeded")
+    log.info("Default users seeded")
 
 
 @asynccontextmanager

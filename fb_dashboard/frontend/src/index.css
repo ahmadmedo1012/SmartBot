@@ -70,6 +70,8 @@
   --info-soft: oklch(88% 0.08 260 / 0.3);
   --warn-fg: oklch(40% 0.10 75);
   --header-h: 64px;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px;
+  --space-md: 16px; --space-lg: 24px; --space-xl: 32px; --space-2xl: 48px;
   --font-dsp: 'Cairo','Noto Sans Arabic',system-ui,sans-serif;
   --font-body: 'Noto Sans Arabic','Cairo',system-ui,sans-serif;
 }
@@ -192,12 +194,13 @@ button, a, select, input, textarea {
 .cc-header { display: flex; align-items: center; justify-content: space-between; margin-block-end: 14px; }
 .cc-title { font: 600 14px/1 var(--font-dsp); display: flex; align-items: center; gap: 8px; }
 .cc-count { font-size: 12px; color: var(--muted); }
+.content-card { padding: var(--space-lg); }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-block-end: 24px; }
-.stat-card { padding: 18px 20px; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+.stat-card { padding: var(--space-md) var(--space-lg); transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
 @media (prefers-reduced-motion: no-preference) { .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); } }
 .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-block-end: 4px; }
-.stat-value { font: 700 26px/1 var(--font-dsp); letter-spacing: -.02em; }
+.stat-value { font: 700 26px/1 var(--font-dsp); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .stat-change { font-size: 11px; margin-block-start: 6px; display: flex; align-items: center; gap: 4px; }
 .stat-up { color: var(--success); }
 .stat-down { color: var(--danger); }

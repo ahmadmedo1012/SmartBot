@@ -377,6 +377,42 @@ class ConversationAssignee(Base):
     assigned_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class BrandConfig(Base):
+    """Brand identity and copyright configuration for Smart Link."""
+    __tablename__ = "brand_config"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    brand_name = Column(String(100), default="Smart Link")
+    tagline = Column(String(300), default="اللي يواكب التطور يسبق الجميع")
+    copyright_text = Column(String(500), default="© 2025 Smart Link. جميع الحقوق محفوظة.")
+    website = Column(String(200), default="https://smart-menu-sigma.vercel.app")
+    whatsapp = Column(String(50), default="+218910089975")
+    projects = Column(JSON, default=list)  # ["Smart Menu", "Smart Bot", "Smart POS", ...]
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+
+class Customer(Base):
+    """CRM — customers and leads from social interactions."""
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fb_user_id = Column(String(100), unique=True, nullable=False)
+    name = Column(String(200), default="")
+    phone = Column(String(50), default="")
+    email = Column(String(200), default="")
+    source = Column(String(50), default="facebook")  # facebook, whatsapp, instagram, website
+    stage = Column(String(30), default="lead")  # lead, prospect, trial, active, churned
+    notes = Column(Text, default="")
+    total_interactions = Column(Integer, default=0)
+    last_intent = Column(String(50), default="")
+    interested_in = Column(String(200), default="")  # product/category interested
+    custom_fields = Column(JSON, default={})
+    first_seen_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_contacted_at = Column(DateTime, nullable=True)
+    converted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 class ReportSchedule(Base):
     """Scheduled report delivery configuration."""
     __tablename__ = "report_schedules"

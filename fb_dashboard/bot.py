@@ -124,6 +124,13 @@ class TemplateRenderer:
     def validate(cls, template: str) -> bool:
         return bool(template and template.strip())
 
+    @classmethod
+    def render_with_offer(cls, template: str, ctx: CommentContext, offer_text: str = "") -> str:
+        reply = cls.render(template, ctx)
+        if offer_text:
+            reply += offer_text
+        return reply
+
 # -------------------------------------------------------------------
 # Stop words
 # -------------------------------------------------------------------
@@ -317,6 +324,14 @@ class ReplyPipeline:
         except Exception:
             pass
 
+        # Stage 2b: Get user context (new vs returning)
+        user_ctx = None
+        try:
+            ctx_engine = _get_ctx()
+            user_ctx = ctx_engine.get(ctx.from_id)
+        except Exception:
+            pass
+
         # Stage 3: Classify intent
         intent = "neutral"
         try:
@@ -351,29 +366,62 @@ class ReplyPipeline:
 
         await self.dedup.mark(ctx.cid)
 
-        # Stage 6: Attach offer (for sales-oriented intents)
-        offer_text = ""
+        # Stage 5b: Urgent notification
         try:
-            if intent in ("price_inquiry", "order", "contact", "question"):
+            classification_local = locals().get("classification", {})
+            urgency = classification_local.get("urgency", 0) if isinstance(classification_local, dict) else 0
+            if intent in ("complaint", "urgent", "negative") or urgency > 0.5:
+                from ws_manager import ws_manager
+                asyncio.create_task(ws_manager.broadcast("alert", {
+                    "type": "urgent_comment", "severity": "warning",
+                    "message": f"تعليق عاجل من {ctx.from_first}: {ctx.text[:100]}",
+                    "link": f"/comments?comment_id={ctx.cid[:20]}"
+                }))
+        except Exception:
+            pass
+
+        # Stage 5c: Adjust cooldown by user category
+        try:
+            if user_ctx and user_ctx.is_frequent():
+                # Frequent customers: shorter cooldown
+                self.cooldown.adjust_window(30)
+            else:
+                self.cooldown.adjust_window(60)
+        except Exception:
+            pass
+
+        # Stage 6: Attach offer (context-aware)
+        offer_text = ""
+        sales_stage = None
+        try:
+            # Check if EnhancedIntentClassifier returned sales info
+            if intent in ("price_inquiry", "order", "subscription", "contact", "question"):
                 o_engine = _get_offer()
-                offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
+                # New users get welcome offers
+                if user_ctx and user_ctx.is_new():
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome")
+                else:
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
                 offer_text = o_engine.format_offer_text(offer)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
+                sales_stage = "consideration"
         except Exception as e:
             self._mon.warn(f"offer failed: {e}", module="pipeline")
 
         # Stage 7: Render reply
         try:
-            reply = TemplateRenderer.render(template, ctx)
-            if offer_text:
-                reply += offer_text
+            reply = TemplateRenderer.render_with_offer(template, ctx, offer_text)
         except Exception as e:
             self._mon.error(f"render failed: {e}", module="pipeline")
             return False
 
+        user_type = "new"
+        if user_ctx:
+            user_type = "frequent" if user_ctx.is_frequent() else "returning" if user_ctx.is_returning() else "new"
         self._mon.info(f"→ Reply to {ctx.from_first}",
-                       comment_id=ctx.cid[:12], intent=intent, rule_id=rule_id)
+                       comment_id=ctx.cid[:12], intent=intent, rule_id=rule_id,
+                       extra={"user_type": user_type, "sales_stage": sales_stage or ""})
 
         # Stage 8: Send with exponential backoff
         result = None
@@ -441,7 +489,7 @@ class ReplyPipeline:
             await session.rollback()
             return False
 
-        # Stage 10: Update context
+        # Stage 10: Update context + auto-create CRM lead
         try:
             ctx_engine = _get_ctx()
             uc = ctx_engine.get(ctx.from_id)
@@ -449,8 +497,31 @@ class ReplyPipeline:
             uc.add_reply(reply)
             if intent in ("complaint", "negative"):
                 ctx_engine.tag_user(ctx.from_id, "complainer")
-            elif intent in ("price_inquiry", "order", "contact"):
+            elif intent in ("price_inquiry", "subscription", "order", "contact"):
                 ctx_engine.tag_user(ctx.from_id, "potential_buyer")
+                # Auto-create/update CRM record in DB
+                try:
+                    from models import Customer
+                    existing = await session.execute(
+                        select(Customer).where(Customer.fb_user_id == ctx.from_id)
+                    )
+                    c = existing.scalar_one_or_none()
+                    if c:
+                        c.total_interactions = (c.total_interactions or 0) + 1
+                        c.last_intent = intent
+                        c.last_contacted_at = datetime.utcnow()
+                        if c.stage == "lead" and intent in ("price_inquiry", "subscription"):
+                            c.stage = "prospect"
+                    else:
+                        c = Customer(
+                            fb_user_id=ctx.from_id, name=ctx.from_name,
+                            source="facebook", stage="lead",
+                            last_intent=intent, total_interactions=1,
+                        )
+                        session.add(c)
+                    await session.commit()
+                except Exception:
+                    pass
         except Exception:
             pass
 

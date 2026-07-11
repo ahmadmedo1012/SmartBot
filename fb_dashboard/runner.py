@@ -25,7 +25,7 @@ from api_cache import APICache
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim
+from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
 from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
 from ws_manager import ws_manager
@@ -2983,4 +2983,177 @@ async def rule_categories(_=Depends(get_current_user)):
         {"id": "urgent", "label": "عاجل", "color": "orange"},
         {"id": "neutral", "label": "محايد", "color": "gray"},
     ]}
+
+
+# ── Brand / Copyright ────────────────────────────────────────────────────
+
+@app.get("/api/brand")
+async def get_brand(db=Depends(get_db), _=Depends(get_current_user)):
+    """Smart Link brand info and copyright."""
+    from models import BrandConfig
+    brand = await db.execute(select(BrandConfig).limit(1))
+    brand = brand.scalar_one_or_none()
+    if not brand:
+        # Seed default
+        brand = BrandConfig(
+            brand_name="Smart Link",
+            tagline="اللي يواكب التطور يسبق الجميع",
+            copyright_text="© 2025 Smart Link. جميع الحقوق محفوظة. Smart Menu®",
+            website="https://smart-menu-sigma.vercel.app",
+            whatsapp="+218910089975",
+            projects=["Smart Menu", "Smart Bot (قريباً)", "Smart POS (قريباً)"],
+        )
+        db.add(brand)
+        await db.commit()
+        await db.refresh(brand)
+    return {
+        "brand_name": brand.brand_name,
+        "tagline": brand.tagline,
+        "copyright": brand.copyright_text,
+        "website": brand.website,
+        "whatsapp": brand.whatsapp,
+        "projects": brand.projects,
+    }
+
+
+@app.put("/api/brand")
+async def update_brand(
+    brand_name: str = Form(...), tagline: str = Form(""),
+    copyright_text: str = Form(""), website: str = Form(""),
+    whatsapp: str = Form(""), projects: str = Form(""),
+    db=Depends(get_db), _=Depends(require_role("admin")),
+):
+    from models import BrandConfig
+    brand = await db.execute(select(BrandConfig).limit(1))
+    brand = brand.scalar_one_or_none()
+    if not brand:
+        brand = BrandConfig()
+        db.add(brand)
+    brand.brand_name = brand_name
+    brand.tagline = tagline
+    brand.copyright_text = copyright_text
+    brand.website = website
+    brand.whatsapp = whatsapp
+    brand.projects = [p.strip() for p in projects.split(",") if p.strip()]
+    await db.commit()
+    return {"ok": True}
+
+
+# ── CRM / Customers ──────────────────────────────────────────────────────
+
+@app.get("/api/crm/customers")
+async def crm_list(
+    stage: str = Query(""), search: str = Query(""),
+    page: int = Query(1), per_page: int = Query(25),
+    db=Depends(get_db), _=Depends(get_current_user),
+):
+    from models import Customer
+    stmt = select(Customer)
+    if stage:
+        stmt = stmt.where(Customer.stage == stage)
+    if search:
+        stmt = stmt.where(
+            or_(Customer.name.ilike(f"%{search}%"), Customer.phone.ilike(f"%{search}%"))
+        )
+    total = await db.scalar(select(func.count(Customer.id)).select_from(stmt.subquery()))
+    rows = await db.execute(
+        stmt.order_by(desc(Customer.last_contacted_at)).offset((page-1)*per_page).limit(per_page)
+    )
+    return {
+        "total": total or 0, "page": page, "per_page": per_page,
+        "items": [{
+            "id": c.id, "name": c.name, "phone": c.phone,
+            "source": c.source, "stage": c.stage,
+            "total_interactions": c.total_interactions,
+            "interested_in": c.interested_in,
+            "last_intent": c.last_intent,
+            "notes": c.notes,
+            "first_seen_at": c.first_seen_at.isoformat() if c.first_seen_at else None,
+            "last_contacted_at": c.last_contacted_at.isoformat() if c.last_contacted_at else None,
+        } for c in rows.scalars().all()],
+    }
+
+
+@app.post("/api/crm/customers")
+async def crm_create(
+    fb_user_id: str = Form(...), name: str = Form(""),
+    phone: str = Form(""), stage: str = Form("lead"),
+    interested_in: str = Form(""),
+    db=Depends(get_db), _=Depends(require_role("editor")),
+):
+    from models import Customer
+    existing = await db.execute(select(Customer).where(Customer.fb_user_id == fb_user_id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, "العميل موجود بالفعل")
+    c = Customer(fb_user_id=fb_user_id, name=name, phone=phone,
+                 stage=stage, interested_in=interested_in)
+    db.add(c)
+    await db.commit()
+    return {"id": c.id}
+
+
+@app.put("/api/crm/customers/{customer_id}")
+async def crm_update(
+    customer_id: int, name: str = Form(""), phone: str = Form(""),
+    stage: str = Form(""), notes: str = Form(""), interested_in: str = Form(""),
+    db=Depends(get_db), _=Depends(require_role("editor")),
+):
+    from models import Customer
+    c = await db.get(Customer, customer_id)
+    if not c:
+        raise HTTPException(404, "العميل غير موجود")
+    if name: c.name = name
+    if phone: c.phone = phone
+    if stage: c.stage = stage
+    if notes: c.notes = notes
+    if interested_in: c.interested_in = interested_in
+    await db.commit()
+    return {"ok": True}
+
+
+# ── Alerts / Notifications ───────────────────────────────────────────────
+
+@app.get("/api/alerts")
+async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
+    from models import BotAlert
+    stmt = select(BotAlert).where(BotAlert.resolved == resolved).order_by(desc(BotAlert.created_at)).limit(20)
+    rows = await db.execute(stmt)
+    return [{
+        "id": a.id, "type": a.alert_type, "severity": a.severity,
+        "message": a.message, "resolved": a.resolved,
+        "created_at": a.created_at.isoformat() if a.created_at else None,
+    } for a in rows.scalars().all()]
+
+
+@app.post("/api/alerts")
+async def create_alert(
+    alert_type: str = Form(...), severity: str = Form("info"),
+    message: str = Form(...), db=Depends(get_db),
+    _=Depends(require_role("admin")),
+):
+    from models import BotAlert
+    alert = BotAlert(alert_type=alert_type, severity=severity, message=message)
+    db.add(alert)
+    await db.commit()
+    # Broadcast via WebSocket
+    try:
+        from ws_manager import ws_manager
+        asyncio.create_task(ws_manager.broadcast("alert", {
+            "type": alert_type, "severity": severity, "message": message,
+        }))
+    except Exception:
+        pass
+    return {"id": alert.id}
+
+
+@app.post("/api/alerts/{alert_id}/resolve")
+async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+    from models import BotAlert
+    a = await db.get(BotAlert, alert_id)
+    if not a:
+        raise HTTPException(404, "التنبيه غير موجود")
+    a.resolved = True
+    a.resolved_at = datetime.utcnow()
+    await db.commit()
+    return {"ok": True}
 

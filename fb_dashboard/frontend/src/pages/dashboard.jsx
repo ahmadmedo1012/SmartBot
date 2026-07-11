@@ -116,7 +116,7 @@ function WelcomeHeader({ botStatus, aiStatus, isLoading, onRefresh }) {
           <div className="flex items-center gap-1.5">
             <motion.span
               className="size-1.5 rounded-full block"
-              animate={{ backgroundColor: botStatus?.running ? "hsl(142 70% 40%)" : "hsl(0 84% 60%)" }}
+              animate={{ backgroundColor: botStatus?.running ? "hsl(var(--accent))" : "hsl(0 84% 60%)" }}
               transition={{ duration: 0.3 }}
             />
             <span>البوت: <strong className="text-foreground">{botStatus?.running ? "شغال" : "متوقف"}</strong></span>
@@ -125,7 +125,7 @@ function WelcomeHeader({ botStatus, aiStatus, isLoading, onRefresh }) {
           <div className="flex items-center gap-1.5">
             <motion.span
               className="size-1.5 rounded-full block"
-              animate={{ backgroundColor: aiStatus?.available ? "hsl(142 70% 40%)" : "hsl(217 19% 45%)" }}
+              animate={{ backgroundColor: aiStatus?.available ? "hsl(var(--accent))" : "hsl(217 19% 45%)" }}
               transition={{ duration: 0.3 }}
             />
             <span>AI: <strong className="text-foreground">{aiStatus?.available ? "متصل" : "غير مفعل"}</strong></span>

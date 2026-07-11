@@ -610,7 +610,12 @@ class BotEngine:
                     pass
 
                 # Cycle end telemetry
-                total_comments = sum(len(await self.fb.get_post_comments(p["id"])) for p in posts) if posts else 0
+                total_comments = 0
+                for p_ in posts:
+                    try:
+                        total_comments += len(await self.fb.get_post_comments(p_["id"]))
+                    except Exception:
+                        pass
                 cycle_ms = (time.time() - t_start) * 1000
                 self._mon.info(
                     f"Cycle #{self._cycle} done",

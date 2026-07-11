@@ -367,10 +367,11 @@ class ReplyPipeline:
 
         # Stage 3: Classify intent
         intent = "neutral"
+        classification = {}
         try:
             EI = _get_ei()
-            classification = EI.classify(ctx.text)
-            intent = classification["primary_intent"]
+            classification = EI.classify(ctx.text) or {}
+            intent = classification.get("primary_intent", "neutral")
         except Exception as e:
             self._mon.warn("intent classify failed", module="pipeline", extra={"error": str(e)})
 
@@ -399,11 +400,10 @@ class ReplyPipeline:
 
         await self.dedup.mark(ctx.cid)
 
-        # Stage 5b: Urgent notification
+        # Stage 5b: Urgent notification via WebSocket
         try:
-            classification_local = locals().get("classification", {})
-            urgency = classification_local.get("urgency", 0) if isinstance(classification_local, dict) else 0
-            if intent in ("complaint", "urgent", "negative") or urgency > 0.5:
+            urgency = classification.get("urgency", 0) if isinstance(classification, dict) else 0
+            if ws_manager and (intent in ("complaint", "urgent", "negative") or urgency > 0.5):
                 asyncio.create_task(ws_manager.broadcast("alert", {
                     "type": "urgent_comment", "severity": "warning",
                     "message": f"تعليق عاجل من {ctx.from_first}: {ctx.text[:100]}",
@@ -436,11 +436,8 @@ class ReplyPipeline:
                 offer_text = o_engine.format_offer_text(offer)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
-                classification_local = locals().get("classification", {})
-                if isinstance(classification_local, dict):
-                    sales_stage = classification_local.get("sales_stage") or "consideration"
-                else:
-                    sales_stage = "consideration"
+                if isinstance(classification, dict):
+                    sales_stage = classification.get("sales_stage") or "consideration"
         except Exception as e:
             self._mon.warn(f"offer failed: {e}", module="pipeline")
 
@@ -561,15 +558,16 @@ class ReplyPipeline:
 
         # Notify WebSocket
         try:
-            asyncio.create_task(ws_manager.broadcast("new_reply", {
-                "commenter": ctx.from_name, "comment": ctx.text[:50],
-                "reply": reply[:50], "rule_id": rule_id,
-            }))
-            asyncio.create_task(ws_manager.broadcast("notification", {
-                "type": "reply", "title": "رد جديد",
-                "message": f"تم الرد على {ctx.from_first}",
-                "link": "/replies",
-            }))
+            if ws_manager:
+                asyncio.create_task(ws_manager.broadcast("new_reply", {
+                    "commenter": ctx.from_name, "comment": ctx.text[:50],
+                    "reply": reply[:50], "rule_id": rule_id,
+                }))
+                asyncio.create_task(ws_manager.broadcast("notification", {
+                    "type": "reply", "title": "رد جديد",
+                    "message": f"تم الرد على {ctx.from_first}",
+                    "link": "/replies",
+                }))
         except Exception:
             pass
 
@@ -619,7 +617,7 @@ class BotEngine:
             return
         self._initialized = True
         self.fb = fb
-        self.cooldown = CooldownManager(cooldown_sec=60)
+        self.cooldown = CooldownManager(default_cooldown_sec=60)
         self._cycle = 0
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
@@ -707,7 +705,8 @@ class BotEngine:
                             .where(cast(Reply.created_at, Date) == datetime.utcnow().date())
                         ) or 0
                         payload = {"total_replies": total, "today_replies": today_val, "cycle": self._cycle}
-                        asyncio.create_task(ws_manager.broadcast("stats_update", payload))
+                        if ws_manager:
+                            asyncio.create_task(ws_manager.broadcast("stats_update", payload))
                         asyncio.create_task(event_bus.emit("stats_update", payload))
                 except Exception:
                     pass

@@ -431,7 +431,6 @@ class ReplyPipeline:
                     offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome")
                 else:
                     offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
-                offer_text = o_engine.format_offer_text(offer)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
                 if isinstance(classification, dict):
@@ -439,9 +438,9 @@ class ReplyPipeline:
         except Exception as e:
             self._mon.warn(f"offer failed: {e}", module="pipeline")
 
-        # Stage 7: Render reply
+        # Stage 7: Render reply (public comment — NO offer text, it garbles)
         try:
-            reply = TemplateRenderer.render_with_offer(template, ctx, offer_text)
+            reply = TemplateRenderer.render(template, ctx)
         except Exception as e:
             self._mon.error(f"render failed: {e}", module="pipeline")
             return False
@@ -496,9 +495,14 @@ class ReplyPipeline:
                 if dm_result:
                     dm_sent = True
                 else:
+                    self._mon.info(f"private_reply unavailable, trying send_dm", comment_id=ctx.cid[:12])
                     dm_result = await self.fb.send_dm(ctx.from_id, dm_text)
                     if dm_result:
                         dm_sent = True
+                if dm_sent:
+                    self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
+                else:
+                    self._mon.warn(f"× DM failed — FB permissions?", comment_id=ctx.cid[:12], module="pipeline")
             except Exception as e:
                 self._mon.warn(f"dm failed: {e}", module="pipeline")
 

@@ -155,11 +155,13 @@ def require_role(min_role: str):
 
 
 async def seed_admin(db):
-    existing = await db.execute(select(User).where(User.username == "admin"))
-    if existing.scalar_one_or_none():
-        return
     pw_hash = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
-    db.add(User(username="admin", password_hash=pw_hash, role="admin"))
+    existing = await db.execute(select(User).where(User.username == "admin"))
+    user = existing.scalar_one_or_none()
+    if user:
+        user.password_hash = pw_hash
+    else:
+        db.add(User(username="admin", password_hash=pw_hash, role="admin"))
     await db.commit()
     log.info("Default admin user seeded (admin/admin) — CHANGE PASSWORD")
 

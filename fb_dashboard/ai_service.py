@@ -9,6 +9,8 @@ Usage:
 """
 import logging, json, os, time
 from typing import Any
+from dotenv import load_dotenv
+load_dotenv()
 
 log = logging.getLogger("fb-ai")
 

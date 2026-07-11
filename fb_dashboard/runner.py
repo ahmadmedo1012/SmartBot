@@ -13,6 +13,7 @@ from typing import Any
 import bcrypt
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
@@ -251,6 +252,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
+
+# ponytail: friendly 422 → readable Arabic message
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    msgs = []
+    for e in errors:
+        field = ".".join(str(x) for x in e.get("loc", []))
+        msgs.append(f"الحقل '{field}' مطلوب")
+    return JSONResponse(status_code=422, content={"detail": "؛ ".join(msgs) or "بيانات غير صالحة"})
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.middleware("http")(dedup_middleware)
 

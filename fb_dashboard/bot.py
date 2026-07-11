@@ -398,8 +398,6 @@ class ReplyPipeline:
         except Exception:
             pass
 
-        await self.dedup.mark(ctx.cid)
-
         # Stage 5b: Urgent notification via WebSocket
         try:
             urgency = classification.get("urgency", 0) if isinstance(classification, dict) else 0
@@ -485,6 +483,9 @@ class ReplyPipeline:
             except Exception:
                 pass
             return False
+
+        # Mark dedup only after successful send
+        await self.dedup.mark(ctx.cid)
 
         # Stage 8b: Send DM (private reply or messenger)
         dm_sent = False

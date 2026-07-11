@@ -261,7 +261,7 @@ class IntentAwareMatcher:
                         nkw = rule.get("_normalized_kw", [])
                         if nkw and any(raw in text_lower or norm in text_norm for raw, norm in nkw):
                             rid = rule.get("id")
-                            dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
+                            dm = self._dm_map.get(rule.get("name")) or rule.get("dm_template", "")
                             return rule.get("reply_template", ""), dm, rid
                         break  # rule found but no keyword match → fall to Phase 2
 
@@ -274,7 +274,7 @@ class IntentAwareMatcher:
         if self._catch_all:
             r = self._catch_all
             rid = r.get("id")
-            dm = self._dm_map.get(str(rid)) or r.get("dm_template", "")
+            dm = self._dm_map.get(r.get("name")) or r.get("dm_template", "")
             return r.get("reply_template", ""), dm, rid
 
         return None, None, None
@@ -288,7 +288,7 @@ class IntentAwareMatcher:
             for raw, norm in nkw:
                 if raw in text_lower or norm in text_norm:
                     rid = rule.get("id")
-                    dm = self._dm_map.get(str(rid)) or rule.get("dm_template", "")
+                    dm = self._dm_map.get(rule.get("name")) or rule.get("dm_template", "")
                     return rule.get("reply_template", ""), dm, rid
         return None
 
@@ -492,6 +492,7 @@ class ReplyPipeline:
         dm_sent = False
         if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
             try:
+                log.info(f"DM attempt to {ctx.from_first}: template={dm_template[:50]}")
                 dm_text = TemplateRenderer.render(dm_template, ctx)
                 # Strategy 1: Private reply — works when page has pages_manage_metadata
                 dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)

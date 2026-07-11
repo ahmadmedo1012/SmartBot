@@ -200,6 +200,28 @@ async def seed_admin(db):
     log.info("Default users seeded")
 
 
+async def _seed_dm_templates(db):
+    """Copy dm_template from JSON to DB rows where DB dm_template is empty."""
+    json_path = (Path(__file__).resolve().parent / "facebook_automation.json")
+    if not json_path.exists():
+        return
+    try:
+        with open(json_path, encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception:
+        return
+    json_rules = {r["id"]: r.get("dm_template", "") for r in data.get("rules", [])}
+    if not json_rules:
+        return
+    from models import Rule
+    result = await db.execute(select(Rule))
+    for rule in result.scalars().all():
+        if not rule.dm_template and rule.name in json_rules:
+            rule.dm_template = json_rules[rule.name]
+    await db.commit()
+    log.info("DM templates seeded from JSON")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -221,6 +243,7 @@ async def lifespan(app: FastAPI):
 
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
+            await _seed_dm_templates(session)
 
         # Bot runs via background loop locally, Vercel Cron on serverless
         if settings.START_BOT and not _IS_VERCEL:

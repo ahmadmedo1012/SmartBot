@@ -26,7 +26,7 @@ from api_cache import APICache
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote
+from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
 from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
@@ -357,11 +357,34 @@ async def _run_bot_loop():
 
 _bot_engine_singleton: BotEngine | None = None
 
-def get_bot_engine() -> BotEngine:
+def get_bot_engine(fb_client: FBClient | None = None) -> BotEngine:
     global _bot_engine_singleton
+    if fb_client is not None:
+        _bot_engine_singleton = BotEngine(fb_client)
+        return _bot_engine_singleton
     if _bot_engine_singleton is None:
         _bot_engine_singleton = BotEngine(fb)
     return _bot_engine_singleton
+
+
+async def get_tenant_fb_client(tenant_id: int) -> FBClient | None:
+    """Create a per-tenant FBClient using stored encrypted credentials."""
+    async with AsyncSessionLocal() as db:
+        row = await db.execute(
+            select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == "fb_page_id")
+        )
+        page_id_bs = row.scalar_one_or_none()
+        row = await db.execute(
+            select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == "fb_access_token")
+        )
+        token_bs = row.scalar_one_or_none()
+    if not page_id_bs or not token_bs or not token_bs.value:
+        return None
+    try:
+        token = decrypt_token(token_bs.value)
+    except Exception:
+        return None
+    return FBClient(token, page_id_bs.value or "")
 
 
 
@@ -390,8 +413,6 @@ async def logout():
 @app.post("/api/register")
 async def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
     """Register a new user. Creates both a User and a Tenant."""
-    from models import Tenant
-
     ip = request.client.host if request.client else "unknown"
     if not _check_register_rate(ip):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
@@ -1183,15 +1204,23 @@ _cron_lock = asyncio.Lock()
 
 @app.get("/api/cron/bot-cycle")
 async def cron_bot_cycle(request: Request):
-    """Vercel Cron: runs bot cycle. Auth via CRON_SECRET env var."""
+    """Vercel Cron: runs one bot cycle per active tenant. Auth via CRON_SECRET env var."""
     secret = os.getenv("CRON_SECRET")
     if not secret or request.headers.get("authorization", "") != f"Bearer {secret}":
         raise HTTPException(403, "Unauthorized cron")
     async with _cron_lock:
         try:
-            engine = get_bot_engine()
-            await engine.cycle()
-            return {"ok": True, "cycle": "completed"}
+            async with AsyncSessionLocal() as db:
+                tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
+            results = []
+            for tenant in tenants.scalars().all():
+                fb_cli = await get_tenant_fb_client(tenant.id)
+                if not fb_cli:
+                    continue
+                engine = get_bot_engine(fb_cli)
+                await engine.cycle()
+                results.append({"tenant_id": tenant.id, "status": "ok"})
+            return {"ok": True, "tenants_processed": len(results)}
         except Exception as e:
             log.error(f"Cron bot cycle error: {e}")
             return {"ok": False, "error": str(e)[:200]}
@@ -1251,13 +1280,13 @@ async def check_webhook(_=Depends(get_current_user)):
         webhook_url = "https://smartbot-6lxo.onrender.com/webhook"
     return {
         "configured": bool(WEBHOOK_APP_SECRET),
-        "verify_token": WEBHOOK_VERIFY_TOKEN,
+        "verify_token": "***" if WEBHOOK_VERIFY_TOKEN else "",
         "webhook_url": webhook_url,
         "instructions": [
             "1. Go to https://developers.facebook.com/apps",
             "2. Select your app -> Webhooks -> Page",
             "3. Set Callback URL to: " + webhook_url,
-            f"4. Set Verify Token to: {WEBHOOK_VERIFY_TOKEN}",
+            "4. Set Verify Token in your Facebook app settings",
             "5. Subscribe to 'feed' field",
             "6. After setup, POST /api/webhook/test to verify",
         ],

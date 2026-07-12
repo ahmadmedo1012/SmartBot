@@ -624,18 +624,28 @@ class BotEngine:
 
     _instance = None
 
+    @classmethod
+    def reset_instance(cls):
+        cls._instance = None
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, fb: FBClient | None = None):
+    def __init__(self, fb: FBClient | None = None, tenant_id: int = 0):
         if hasattr(self, '_initialized'):
             if fb is not None:
                 self.fb = fb
+                self._tenant_id = tenant_id
+                # ponytail: reset caches so next cycle loads per-tenant rules
+                self._rule_cache = None
+                self._dm_map_cache = None
+                self._dm_map_loaded_at = 0
             return
         self._initialized = True
         self.fb = fb
+        self._tenant_id = tenant_id
         self.cooldown = CooldownManager(default_cooldown_sec=60)
         self._cycle = 0
         self._post_reply_count: dict[str, int] = {}
@@ -789,12 +799,10 @@ class BotEngine:
                                 comment_id=cid, module="engine")
 
     async def _load_rules_from_db(self) -> list[dict]:
-        # ponytail: cross-tenant data flow — loads ALL rules without tenant_id filter.
-        # Per-tenant rule isolation requires BotEngine refactor (Sprint 4).
-        # At MVP with single FBClient this is harmless since only one tenant
-        # can actively process comments. Fix: add .where(Rule.tenant_id == self._tid)
         async with AsyncSessionLocal() as session:
             stmt = select(Rule)
+            if self._tenant_id:
+                stmt = stmt.where(Rule.tenant_id == self._tenant_id)
             result = await session.execute(stmt)
             return [
                 {

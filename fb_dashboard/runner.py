@@ -854,7 +854,7 @@ async def create_rule(
     name: str = Form(...), keywords: str = Form(...),
     reply_template: str = Form(...), description: str = Form(""),
     bot_type: str = Form("reply"), dm_template: str = Form(""),
-    db=Depends(get_db), _=Depends(require_role("editor")),
+    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
     rule = Rule(name=name, keywords=kw_list, reply_template=reply_template,

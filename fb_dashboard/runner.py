@@ -318,6 +318,29 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 
+
+@app.post("/api/repair")
+async def repair():
+    """Manual DB repair: create tables, run migrations, seed admin. No auth needed."""
+    try:
+        async with engine.connect() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            for col_sql in [
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE",
+            ]:
+                try:
+                    await conn.execute(text(col_sql))
+                except Exception:
+                    pass
+            await conn.commit()
+        async with AsyncSessionLocal() as session:
+            await seed_admin(session)
+        return {"ok": True, "message": "DB repaired"}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
 # ponytail: friendly 422 → readable Arabic message
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request: Request, exc: RequestValidationError):

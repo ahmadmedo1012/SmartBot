@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
+from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_, update
 
 from api_cache import APICache
 from telegram_bot import notify_admins_new_payment, send_message, edit_keyboard, edit_message, answer_callback
@@ -535,9 +535,17 @@ async def payment_history(db=Depends(get_db), current_user: User = Depends(get_c
 # ── Telegram Payment Webhook ────────────────────────────────────────────
 
 
+_TG_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+_ALLOW_UNVERIFIED = os.getenv("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true"
+
+
 @app.post("/api/telegram/webhook")
-async def telegram_webhook(body: dict = Body(...)):
+async def telegram_webhook(request: Request, body: dict = Body(...)):
     """Handle Telegram callback queries for payment approve/reject."""
+    # Webhook secret check — Telegram sends via x-telegram-bot-api-secret-token
+    if _TG_SECRET and not _ALLOW_UNVERIFIED:
+        if request.headers.get("x-telegram-bot-api-secret-token", "") != _TG_SECRET:
+            raise HTTPException(403, "Forbidden")
     cq = (body or {}).get("callback_query")
     if not cq:
         return {"ok": True}
@@ -554,16 +562,22 @@ async def telegram_webhook(body: dict = Body(...)):
         await answer_callback(cq["id"], "عذراً، لا تمتلك الصلاحية", True)
         return {"ok": True}
     async with AsyncSessionLocal() as db:
-        pr = await db.get(PaymentRequest, payment_id)
-        if not pr or pr.status != "pending":
+        # Race-safe: atomic UPDATE only if status=pending
+        new_status = "confirmed" if action == "pay_app" else "cancelled"
+        result = await db.execute(
+            update(PaymentRequest)
+            .where(PaymentRequest.id == payment_id, PaymentRequest.status == "pending")
+            .values(status=new_status)
+            .returning(PaymentRequest)
+        )
+        pr = result.scalar_one_or_none()
+        if not pr:
             await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
-            # Strip keyboard
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await edit_keyboard(msg["chat"]["id"], msg["message_id"])
             return {"ok": True}
         if action == "pay_app":
-            pr.status = "confirmed"
             # Credit balance
             existing = await db.execute(
                 select(BotState).where(BotState.tenant_id == pr.tenant_id, BotState.key == "balance")
@@ -582,7 +596,6 @@ async def telegram_webhook(body: dict = Body(...)):
                 await edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
         else:
-            pr.status = "cancelled"
             await db.commit()
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):

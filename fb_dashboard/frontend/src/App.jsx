@@ -57,12 +57,26 @@ function ToastBridge() {
 function AppInner() {
   const [auth, setAuth] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [page, setPage] = useState("dashboard")
+  const [page, setPage] = useState(() => {
+    const hash = window.location.hash.replace("#", "") || "dashboard"
+    return hash
+  })
 
-  // navigate function matching design's window.navigate
+  // navigate function — syncs hash with page state
   const navigate = useCallback((pageKey) => {
     setPage(pageKey)
+    window.location.hash = pageKey
     document.title = `SmartBot — ${pageNames[pageKey] || pageKey}`
+  }, [])
+
+  // Listen for hash changes (browser back/forward)
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.replace("#", "") || "dashboard"
+      setPage(hash)
+    }
+    window.addEventListener("hashchange", onHashChange)
+    return () => window.removeEventListener("hashchange", onHashChange)
   }, [])
 
   useEffect(() => {

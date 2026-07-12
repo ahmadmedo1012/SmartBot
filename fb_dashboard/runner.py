@@ -966,6 +966,24 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         except Exception:
             pass
 
+        # Trend data — today vs yesterday, last 7d vs prior 7d
+        yesterday = now - timedelta(days=1)
+        yesterday_replies = await db.scalar(
+            select(func.count(Reply.id))
+            .where(Reply.tenant_id == _tid, Reply.created_at >= yesterday, Reply.created_at < today)
+        ) or 0
+        week_ago = now - timedelta(days=7)
+        prior_week_end = week_ago
+        prior_week_start = now - timedelta(days=14)
+        w7 = await db.scalar(
+            select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= week_ago)
+        ) or 0
+        w7_prior = await db.scalar(
+            select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= prior_week_start, Reply.created_at < prior_week_end)
+        ) or 0
+        stats["today_trend"] = (round((today_replies - yesterday_replies) / yesterday_replies * 100, 1) if yesterday_replies else (100 if today_replies else 0))
+        stats["week_trend"] = (round((w7 - w7_prior) / w7_prior * 100, 1) if w7_prior else (100 if w7 else 0))
+
         # Top rule
         top = None
         try:
@@ -1028,6 +1046,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
                 "fan_count": fan_count,
                 "top_rule_id": int(top[0]) if top and top[0] is not None else None,
                 "chart": chart,
+                "trend": await _get_trend_data(db, _tid),
             },
             "rules": rules,
             "rules_count": rules_count,

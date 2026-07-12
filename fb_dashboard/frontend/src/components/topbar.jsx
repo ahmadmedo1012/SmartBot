@@ -27,7 +27,7 @@ const sidebarSections = [
     { key: "activity", label: "سجل النشاطات", icon: "activity" },
   ]},
   { label: "أخرى", items: [
-    { key: "notifications", label: "الإشعارات", icon: "notifications", badge: "5" },
+    { key: "notifications", label: "الإشعارات", icon: "notifications", badge: "0" },
     { key: "tools", label: "الأدوات", icon: "tools" },
     { key: "billing", label: "الفواتير", icon: "billing" },
     { key: "support", label: "الدعم", icon: "support" },
@@ -75,7 +75,7 @@ const mobileIcons = {
   settings: <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="10" cy="10" r="2.5"/><path d="M17 10a7 7 0 0 1-.3 2.3l1.8 1.4-2 3.3-2.1-.7a7 7 0 0 1-2.8 1.6L11 19H9l-.6-2.1a7 7 0 0 1-2.8-1.6l-2.1.7-2-3.3 1.8-1.4A7 7 0 0 1 3 10a7 7 0 0 1 .3-2.3L1.5 6.3l2-3.3 2.1.7a7 7 0 0 1 2.8-1.6L9 1h2l.6 2.1a7 7 0 0 1 2.8 1.6l2.1-.7 2 3.3L17.3 7.7A7 7 0 0 1 17 10z"/></svg>,
 }
 
-export function Topbar({ currentPage, onNavigate, username, children }) {
+export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0 }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleNav = (key) => {
@@ -117,7 +117,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
                 >
                   <span className="nav-icon">{navIcons[item.icon]}</span>
                   {item.label}
-                  {item.badge && <span className="nav-badge">{item.badge}</span>}
+                  {item.badge && parseInt(item.badge) > 0 && <span className="nav-badge">{item.badge}</span>}
                 </a>
               ))}
             </div>
@@ -154,7 +154,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
               aria-label="الإشعارات"
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 14H4l1.5-5a4.5 4.5 0 0 1 8.9 0L16 14z"/><path d="M8.5 16a1.5 1.5 0 0 0 3 0"/></svg>
-              <span className="notif-dot"></span>
+              {notifCount > 0 && <span className="notif-dot"></span>}
             </div>
             <div className="avatar">{avatarLetter}</div>
             <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out infinite",flexShrink:0}}></span>مباشر</span>

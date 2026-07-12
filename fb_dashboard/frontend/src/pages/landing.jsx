@@ -159,7 +159,7 @@ function CTASection({ onGetStarted }) {
           استعد لتطوير أعمالك
         </h2>
         <p className="text-lg mb-8 opacity-85" style={{ color: "var(--accent-fg)" }}>
-          انضم إلى مئات المستخدمين وحسّن إدارة صفحات فيسبوك
+          حسّن إدارة صفحات فيسبوك وزد تفاعلك
         </p>
         <button className="btn text-base px-10 py-3 font-bold"
           style={{

@@ -108,21 +108,28 @@ export function Dashboard(_p) {
       <div className="stats-grid stagger-children">
         <div className="stat-card glass">
           <div className="stat-icon" data-color="">{statIcons.total}</div>
-          <div className="stat-label">الردود الكلية</div>
+          <div className="stat-label">آخر 7 أيام</div>
           <div className="stat-value">{formatNum(stats?.total_replies)}</div>
-          <div className="stat-change stat-up">↑ 12%</div>
+          {stats?.week_trend !== undefined && (
+            <div className={`stat-change ${stats.week_trend >= 0 ? "stat-up" : "stat-down"}`}>
+              {stats.week_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.week_trend)}%
+            </div>
+          )}
         </div>
         <div className="stat-card glass">
           <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value">{formatNum(stats?.today_replies)}</div>
-          <div className="stat-change stat-up">↑ 8.2%</div>
+          {stats?.today_trend !== undefined && (
+            <div className={`stat-change ${stats.today_trend >= 0 ? "stat-up" : "stat-down"}`}>
+              {stats.today_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.today_trend)}%
+            </div>
+          )}
         </div>
         <div className="stat-card glass">
           <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
           <div className="stat-value">{formatNum(stats?.fan_count)}</div>
-          <div className="stat-change stat-down">↓ 3.1%</div>
         </div>
         <div className="stat-card glass">
           <div className="stat-icon" data-color="warn">{statIcons.rules}</div>

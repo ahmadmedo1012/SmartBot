@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-dsp: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-body: "Noto Sans Arabic", "Cairo", system-ui, sans-serif;
+  --font-sans: "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-dsp: "Cairo", "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-body: "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
   --font-mono: "Noto Naskh Arabic", "Courier New", monospace;
   --radius-sm: 6px;
   --radius-md: 10px;

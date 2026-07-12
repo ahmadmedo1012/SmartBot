@@ -8,6 +8,7 @@ import { NotificationsProvider, useNotifications } from "@/hooks/use-notificatio
 import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { Dashboard } from "@/pages/dashboard"
+import { Landing } from "@/pages/landing"
 
 const PAGES_GLOB = import.meta.glob("./pages/[ab-cef-z]*.jsx", { eager: false })
 // ponytail: dashboard excluded from glob — statically imported as default fallback
@@ -67,7 +68,12 @@ function AppInner() {
   useEffect(() => {
     fetchMe()
       .then((u) => setAuth(u))
-      .catch(() => setAuth(null))
+      .catch(() => {
+        setAuth(null)
+        // Show landing page on root, login otherwise
+        if (window.location.hash === "#login") setPage("login")
+        else setPage("landing")
+      })
       .finally(() => setAuthLoading(false))
   }, [])
 
@@ -91,7 +97,7 @@ function AppInner() {
         <div className="relative flex flex-col items-center gap-6">
           <div className="loading-logo">
             <div className="loading-ring" />
-            <span className="text-2xl font-bold text-white">S</span>
+            <img src="/static/favicon.png" alt="SmartBot" className="w-8 h-8 object-contain" />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-[var(--fg)] tracking-tight">SmartBot</h1>
@@ -108,6 +114,9 @@ function AppInner() {
   }
 
   if (!auth) {
+    if (page === "landing") {
+      return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} />
+    }
     const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>

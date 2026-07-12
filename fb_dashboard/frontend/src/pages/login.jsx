@@ -102,12 +102,8 @@ export function Login({ onAuth }) {
           <div className="relative rounded-2xl p-6 sm:p-8 glass-liquid">
             {/* Logo */}
             <div className="text-center mb-6">
-              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: "color-mix(in oklch, var(--muted) 30%, transparent)" }}>
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round">
-                  <path d="M12 20a8 8 0 0 1 16 0v2a8 8 0 0 1-16 0v-2z"/>
-                  <path d="M20 10V6M26 12l3-3M14 12l-3-3M20 34v-2"/>
-                  <circle cx="20" cy="20" r="2" fill="var(--accent)" stroke="none"/>
-                </svg>
+              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: "color-mix(in oklch, var(--muted) 30%, transparent)" }}>
+                <img src="/static/favicon.png" alt="SmartBot" className="w-12 h-12 object-contain" />
               </div>
               <h1 className="text-3xl font-bold text-iridescent">SmartBot</h1>
               <p style={{ fontSize: "14px", color: "var(--muted)", marginTop: 6 }}>{isRegister ? "إنشاء حساب جديد" : "لوحة التحكم الذكية"}</p>

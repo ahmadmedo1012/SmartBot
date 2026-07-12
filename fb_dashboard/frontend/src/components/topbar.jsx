@@ -100,7 +100,7 @@ export function Topbar({ currentPage, onNavigate, username, children }) {
       {/* sidebar */}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-logo">S</div>
+          <div className="sidebar-logo"><img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" /></div>
           <div className="sidebar-title">Smart<span style={{whiteSpace:"nowrap"}}>Bot</span><span>لوحة تحكم فيسبوك</span></div>
         </div>
         <nav className="sidebar-nav">

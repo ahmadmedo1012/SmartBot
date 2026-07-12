@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { fetchAnalyticsOverview, fetchHourlyStats, fetchRules, fetchReplies } from "@/lib/api"
 import { format } from "date-fns"
+
+const barProps = { radius: [4, 4, 0, 0], maxBarSize: 36 }
 
 function exportCSV(data, filename) {
   if (!data.length) return
@@ -12,22 +15,11 @@ function exportCSV(data, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
-function MiniBar({ data, dataKey, color = "var(--accent)" }) {
-  const max = Math.max(...data.map(d => d[dataKey]), 1)
-  return (
-    <div style={{display:"flex",alignItems:"flex-end",gap:2,height:180,padding:"8px 0",overflowX:"auto"}}>
-      {data.map((d, i) => {
-        const pct = (d[dataKey] / max) * 100
-        return (
-          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,minWidth:24,position:"relative"}}>
-            <span style={{fontSize:9,color:"var(--muted)",opacity:pct>30?1:0}}>{d[dataKey]}</span>
-            <div style={{width:"100%",height:`${Math.max(pct,2)}%`,background:color,borderRadius:"4px 4px 0 0",minHeight:2,transition:"height 0.3s"}} />
-            <span style={{fontSize:8,color:"var(--muted)",opacity:0.6,whiteSpace:"nowrap"}}>{d.date || d.hour}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
+const ChartTooltip = ({ active, payload, label }) => {
+  if (active && payload?.length) {
+    return <div className="glass" style={{ padding: "6px 10px", fontSize: 12, borderRadius: 8 }}>{label}: {payload[0].value}</div>
+  }
+  return null
 }
 
 export function Reports() {
@@ -111,8 +103,16 @@ export function Reports() {
             </div>
           </div>
           {aLoading ? <div className="stat-card glass skel-card-200" /> :
-           chartData.length > 1 ? <MiniBar data={chartData} dataKey="replies" /> :
-           <p className="empty-state" style={{padding:40}}>بيانات غير كافية</p>}
+           chartData.length > 1 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData} margin={{ top: 8, right: 0, bottom: 4, left: 0 }} barCategoryGap="20%">
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--border)" }} />
+                <Bar dataKey="replies" fill="var(--accent)" {...barProps} />
+              </BarChart>
+            </ResponsiveContainer>
+           ) : <p className="empty-state" style={{padding:40}}>بيانات غير كافية</p>}
         </div>
 
         <div className="card glass" style={{padding:16}}>
@@ -123,8 +123,16 @@ export function Reports() {
             </div>
           </div>
           {hLoading ? <div className="stat-card glass skel-card-200" /> :
-           hourly?.length > 0 ? <MiniBar data={hourly.map(h => ({...h, hour: `${h.hour}`}))} dataKey="count" color="var(--info)" /> :
-           <p className="empty-state" style={{padding:40}}>لا توجد بيانات</p>}
+           hourly?.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={hourly.map(h => ({...h, hour: `${h.hour}`}))} margin={{ top: 8, right: 0, bottom: 4, left: 0 }} barCategoryGap={3}>
+                <XAxis dataKey="hour" tick={{ fontSize: 9, fill: "var(--muted)" }} axisLine={false} tickLine={false} />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--border)" }} />
+                <Bar dataKey="count" fill="var(--info)" {...barProps} />
+              </BarChart>
+            </ResponsiveContainer>
+           ) : <p className="empty-state" style={{padding:40}}>لا توجد بيانات</p>}
         </div>
 
         <div className="card glass" style={{padding:16}}>
@@ -135,18 +143,21 @@ export function Reports() {
             </div>
           </div>
           {pieData.length > 0 ? (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:24,padding:"20px 0"}}>
-              <div style={{width:160,height:160,borderRadius:"50%",background:`conic-gradient(${pieData.map((e,i,a) => {
-                const pct = (e.value / a.reduce((s,x) => s + x.value, 0)) * 100
-                const start = a.slice(0,i).reduce((s,x) => s + (x.value / a.reduce((t,y) => t + y.value, 0)) * 360, 0)
-                return `${e.color} ${start}deg ${start + pct * 3.6}deg`
-              }).join(", ")})`}} />
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",flexDirection:"column",gap:12,padding:"12px 0"}}>
+              <ResponsiveContainer width="100%" height={30}>
+                <BarChart data={[{total: pieData.reduce((s, x) => s + x.value, 0), ...pieData.reduce((acc, e) => ({...acc, [e.name]: e.value}), {})}]} layout="vertical" margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" hide />
+                  <Bar dataKey="إيجابي" stackId="a" fill="hsl(152, 72%, 26%)" barSize={14} radius={[4, 0, 0, 4]} />
+                  <Bar dataKey="محايد" stackId="a" fill="hsl(211, 92%, 42%)" barSize={14} />
+                  <Bar dataKey="سلبي" stackId="a" fill="hsl(0, 88%, 50%)" barSize={14} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{display:"flex",justifyContent:"center",gap:20}}>
                 {pieData.map(e => (
-                  <div key={e.name} style={{display:"flex",alignItems:"center",gap:8,fontSize:12}}>
-                    <span style={{width:12,height:12,borderRadius:"50%",background:e.color}} />
-                    <span>{e.name}</span>
-                    <span style={{color:"var(--muted)",fontFamily:"monospace"}}>{e.value}</span>
+                  <div key={e.name} style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+                    <span style={{width:10,height:10,borderRadius:"50%",background:e.color}} />
+                    <span>{e.name} <span style={{color:"var(--muted)"}}>{e.value}</span></span>
                   </div>
                 ))}
               </div>

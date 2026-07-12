@@ -14,6 +14,22 @@ export function Tools() {
     queryFn: fetchDiagnosticsPermissions,
   })
 
+  if (permsLoading) {
+    return (
+      <section className="page active" dir="rtl" style={{position:"relative"}}>
+        <div className="mesh-bg"></div>
+        <div className="page-header">
+          <h1>الأدوات التشخيصية</h1>
+          <p>اختبار وتحليل أداء النظام</p>
+        </div>
+        <div className="content-card glass">
+          <div className="cc-header"><div className="cc-title" style={{height:18,width:120,background:"var(--skeleton)",borderRadius:6}} /></div>
+          <div className="stat-card glass" style={{height:60,background:"var(--skeleton)",margin:8}} />
+        </div>
+      </section>
+    )
+  }
+
   const handleTest = async () => {
     if (!testInput.trim()) return
     setTestLoading(true)
@@ -45,9 +61,7 @@ export function Tools() {
             صلاحيات توكن فيسبوك
           </div>
         </div>
-        {permsLoading ? (
-          <div className="stat-card glass" style={{height:60,background:"var(--skeleton)",margin:8}} />
-        ) : !perms?.has_token ? (
+        {!perms?.has_token ? (
           <div className="post-card"><p style={{fontSize:13,color:"var(--muted)"}}>لم يتم تعيين توكن فيسبوك — قم بتعيين FACEBOOK_ACCESS_TOKEN</p></div>
         ) : (
           <div className="activity-list">

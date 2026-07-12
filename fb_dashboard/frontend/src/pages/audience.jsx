@@ -25,6 +25,30 @@ export function Audience() {
       .catch(() => setLoading(false))
   }, [])
 
+  if (loading) {
+    return (
+      <section className="page active" dir="rtl" style={{position:"relative"}}>
+        <div className="mesh-bg"></div>
+        <div className="page-header">
+          <h1>الجمهور</h1>
+          <p>قاعدة متابعيك – إدارة الجمهور</p>
+        </div>
+        <div className="content-card glass stagger-children">
+          <div className="cc-header"><div className="cc-title" style={{height:18,width:100,background:"var(--skeleton)",borderRadius:6}} /></div>
+          {[1,2,3].map(i => (
+            <div className="person-row" key={i}>
+              <div className="person-avatar" style={{background:"var(--skeleton)"}} />
+              <div className="person-info">
+                <div className="p-name" style={{height:14,width:"40%",background:"var(--skeleton)",borderRadius:6}} />
+                <div className="p-detail" style={{height:12,width:"60%",background:"var(--skeleton)",borderRadius:6,marginBlockStart:4}} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
@@ -49,9 +73,7 @@ export function Audience() {
             الجمهور النشط
           </div>
         </div>
-        {loading ? (
-          <p className="empty-state">جاري التحميل...</p>
-        ) : subs.length === 0 ? (
+        {subs.length === 0 ? (
           <p className="empty-state">لا يوجد مشتركون بعد</p>
         ) : subs.map((sub) => (
           <div className="person-row" key={sub.id || sub.name}>

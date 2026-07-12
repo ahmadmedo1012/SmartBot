@@ -23,6 +23,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
 
 from api_cache import APICache
+from telegram_bot import notify_admins_new_payment, send_message, edit_keyboard, edit_message, answer_callback
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
@@ -35,7 +36,7 @@ from flow_engine import FlowEngine
 from sequence_engine import SequenceEngine, SequenceScheduler
 from broadcast_engine import BroadcastEngine
 from subscriber_engine import SubscriberEngine, TagEngine
-from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule
+from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from analytics_engine import AnalyticsEngine
 from report_engine import ReportEngine, REPORT_DIR
 from pdf_reports_engine import PdfReportsEngine, BrandingConfig
@@ -457,7 +458,6 @@ async def register(request: Request, username: str = Form(...), email: str = For
 # ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
 
 # ── Payment / Billing ────────────────────────────────────────────────────
-_pending_payments: dict[str, dict] = {}  # payment_id -> PaymentRequest dict
 
 @app.post("/api/payments/topup")
 async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -470,44 +470,43 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
         raise HTTPException(400, "مزود الدفع غير صالح")
     if not phone or len(phone) < 7:
         raise HTTPException(400, "رقم الهاتف غير صالح")
-    pid = hashlib.md5(f"{current_user._tenant_id}:{time.time()}:{amount}".encode()).hexdigest()[:12]
-    _pending_payments[pid] = {
-        "payment_id": pid, "tenant_id": current_user._tenant_id,
-        "amount": amount, "provider": provider, "phone": phone,
-        "status": "pending", "reference": "",
-        "created_at": utcnow().isoformat(),
-    }
+    pr = PaymentRequest(
+        tenant_id=current_user._tenant_id,
+        username=current_user.username,
+        amount=amount,
+        provider=provider,
+        phone=phone,
+        status="pending",
+    )
+    db.add(pr)
+    await db.commit()
+    await db.refresh(pr)
+    # Notify Telegram admins
+    asyncio.create_task(
+        notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
+    )
     instructions = (
         f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
-        f"— بعد الإرسال، استخدم رقم الحوالة لتأكيد الدفع"
+        f"— بعد الإرسال، انتظر موافقة الأدمن"
     )
-    return {"payment_id": pid, "instructions": instructions}
+    return {"payment_id": pr.id, "instructions": instructions}
 
 @app.post("/api/payments/confirm")
 async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    pid = body.get("payment_id", "")
+    """User submits transfer reference — marks pending for admin approval."""
+    pid = body.get("payment_id", 0)
     ref = body.get("reference", "")
     if not pid or not ref:
         raise HTTPException(400, "معرف الدفع ورقم الحوالة مطلوبان")
-    pay = _pending_payments.get(pid)
-    if not pay or pay["tenant_id"] != current_user._tenant_id:
+    pr = await db.get(PaymentRequest, int(pid))
+    if not pr or pr.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الدفعة غير موجودة")
-    if pay["status"] != "pending":
+    if pr.status != "pending":
         raise HTTPException(400, "الدفعة تم تأكيدها مسبقاً")
-    pay["status"] = "confirmed"
-    pay["reference"] = ref
-    # Add balance via BotState
-    existing = await db.execute(
-        select(BotState).where(BotState.tenant_id == current_user._tenant_id, BotState.key == "balance")
-    )
-    bs = existing.scalar_one_or_none()
-    new_balance = (int(bs.value) if bs and bs.value else 0) + pay["amount"]
-    if bs:
-        bs.value = str(new_balance)
-    else:
-        db.add(BotState(tenant_id=current_user._tenant_id, key="balance", value=str(new_balance)))
+    pr.reference = ref
+    pr.note = "انتظار موافقة الأدمن"
     await db.commit()
-    return {"ok": True, "balance": new_balance}
+    return {"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"}
 
 @app.get("/api/payments/balance")
 async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -519,11 +518,80 @@ async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_c
     return {"balance": balance, "currency": "LYD"}
 
 @app.get("/api/payments/history")
-async def payment_history(_=Depends(get_current_user)):
-    tid = current_user._tenant_id
-    items = [p for p in _pending_payments.values() if p["tenant_id"] == tid]
-    items.sort(key=lambda p: p["created_at"], reverse=True)
-    return items
+async def payment_history(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = await db.execute(
+        select(PaymentRequest)
+        .where(PaymentRequest.tenant_id == current_user._tenant_id)
+        .order_by(desc(PaymentRequest.created_at))
+    )
+    return [
+        {"payment_id": r.id, "amount": r.amount, "provider": r.provider,
+         "phone": r.phone, "reference": r.reference, "status": r.status,
+         "note": r.note, "created_at": r.created_at.isoformat() if r.created_at else None}
+        for r in rows.scalars().all()
+    ]
+
+
+# ── Telegram Payment Webhook ────────────────────────────────────────────
+
+
+@app.post("/api/telegram/webhook")
+async def telegram_webhook(body: dict = Body(...)):
+    """Handle Telegram callback queries for payment approve/reject."""
+    cq = (body or {}).get("callback_query")
+    if not cq:
+        return {"ok": True}
+    data = cq.get("data", "")
+    colon = data.find(":")
+    if colon == -1 or not data.startswith("pay_"):
+        return {"ok": True}
+    action = data[:colon]  # pay_app or pay_rej
+    payment_id = int(data[colon + 1:])
+    from_id = cq.get("from", {}).get("id")
+    # Verify admin
+    from telegram_bot import ADMIN_IDS
+    if from_id not in ADMIN_IDS:
+        await answer_callback(cq["id"], "عذراً، لا تمتلك الصلاحية", True)
+        return {"ok": True}
+    async with AsyncSessionLocal() as db:
+        pr = await db.get(PaymentRequest, payment_id)
+        if not pr or pr.status != "pending":
+            await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
+            # Strip keyboard
+            msg = cq.get("message", {})
+            if msg.get("chat") and msg.get("message_id"):
+                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
+            return {"ok": True}
+        if action == "pay_app":
+            pr.status = "confirmed"
+            # Credit balance
+            existing = await db.execute(
+                select(BotState).where(BotState.tenant_id == pr.tenant_id, BotState.key == "balance")
+            )
+            bs = existing.scalar_one_or_none()
+            new_bal = (int(bs.value) if bs and bs.value else 0) + pr.amount
+            if bs:
+                bs.value = str(new_bal)
+            else:
+                db.add(BotState(tenant_id=pr.tenant_id, key="balance", value=str(new_bal)))
+            await db.commit()
+            msg = cq.get("message", {})
+            if msg.get("chat") and msg.get("message_id"):
+                await edit_message(msg["chat"]["id"], msg["message_id"],
+                                   f"✅ *تم تأكيد الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
+                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
+            await answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
+        else:
+            pr.status = "cancelled"
+            await db.commit()
+            msg = cq.get("message", {})
+            if msg.get("chat") and msg.get("message_id"):
+                await edit_message(msg["chat"]["id"], msg["message_id"],
+                                   f"❌ *تم رفض الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
+                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
+            await answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
+    return {"ok": True}
+
 
 @app.get("/api/me")
 async def get_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
@@ -1300,10 +1368,12 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
 _cron_lock = asyncio.Lock()
 
 @app.get("/api/cron/bot-cycle")
-async def cron_bot_cycle(request: Request):
-    """Vercel Cron: runs one bot cycle per active tenant. Auth via CRON_SECRET env var."""
+async def cron_bot_cycle(request: Request, token: str = Query("")):
+    """Cron-job.org: runs one bot cycle per active tenant. Auth via CRON_SECRET env var (header Bearer or ?token=)."""
     secret = os.getenv("CRON_SECRET")
-    if not secret or request.headers.get("authorization", "") != f"Bearer {secret}":
+    auth_header = request.headers.get("authorization", "")
+    valid = bool(secret) and (auth_header == f"Bearer {secret}" or token == secret)
+    if not valid:
         raise HTTPException(403, "Unauthorized cron")
     async with _cron_lock:
         try:

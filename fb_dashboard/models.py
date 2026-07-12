@@ -474,6 +474,23 @@ class Customer(Base):
     created_at = Column(DateTime, default=utcnow)
 
 
+class PaymentRequest(Base):
+    """Subscription/topup payment with Telegram admin approval."""
+    __tablename__ = "payment_requests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    username = Column(String(100), default="")
+    amount = Column(Integer, nullable=False, default=0)
+    provider = Column(String(20), default="liyana")  # liyana, madar
+    phone = Column(String(50), default="")
+    reference = Column(String(100), default="")
+    status = Column(String(20), default="pending")  # pending, confirmed, cancelled
+    note = Column(String(500), default="")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class ReportSchedule(Base):
     """Scheduled report delivery configuration."""
     __tablename__ = "report_schedules"

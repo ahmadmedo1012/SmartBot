@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
+# ponytail: Telegram config loaded from env vars (no DB panel needed yet)
+TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ADMIN_IDS: list[int] = [int(x) for x in os.environ.get("TELEGRAM_ADMIN_IDS", "").split(",") if x.strip().isdigit()]
+
+
 settings = Settings()
 
 # ponytail: fail-fast — refuse default SECRET_KEY in production

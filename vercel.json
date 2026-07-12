@@ -7,8 +7,5 @@
   "functions": {
     "api/index.py": { "maxDuration": 30 }
   },
-  "buildCommand": null,
-  "crons": [
-    { "path": "/api/cron/bot-cycle", "schedule": "0 6 * * *" }
-  ]
+  "buildCommand": null
 }

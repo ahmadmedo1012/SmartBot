@@ -1,4 +1,4 @@
-import datetime
+from _utils import utcnow
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -19,8 +19,8 @@ class Rule(Base):
     description = Column(String(255), default="")
     priority = Column(Integer, default=999)
     bot_type = Column(String(20), default="reply")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class Reply(Base):
@@ -33,7 +33,7 @@ class Reply(Base):
     comment_text = Column(Text, default="")
     reply_text = Column(Text, default="")
     rule_id = Column(Integer, nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
 
 
 class BotLog(Base):
@@ -42,7 +42,7 @@ class BotLog(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     level = Column(String(20), default="INFO")
     message = Column(Text, default="")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
 
 
 class BotState(Base):
@@ -60,7 +60,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="viewer")  # admin, editor, viewer
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 # ── Professional Features ────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ class ReplyTemplate(Base):
     text = Column(Text, nullable=False)
     category = Column(String(50), default="general")  # general, greeting, complaint, pricing
     shortcut = Column(String(20), default="")  # keyboard shortcut like /price
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class AISuggestion(Base):
@@ -90,7 +90,7 @@ class AISuggestion(Base):
     sentiment = Column(String(50), default="")
     confidence = Column(Integer, default=0)  # 0-100
     latency_ms = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ConversationTag(Base):
@@ -100,7 +100,7 @@ class ConversationTag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(50), unique=True, nullable=False)
     color = Column(String(7), default="#6366f1")  # hex color
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ConversationLabel(Base):
@@ -110,7 +110,7 @@ class ConversationLabel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     conversation_id = Column(String(100), nullable=False, index=True)
     tag_id = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ScheduledPost(Base):
@@ -125,7 +125,7 @@ class ScheduledPost(Base):
     status = Column(String(20), default="draft")  # draft, scheduled, published, failed
     fb_post_id = Column(String(100), default="")
     created_by = Column(String(100), default="")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     published_at = Column(DateTime, nullable=True)
 
 
@@ -136,7 +136,7 @@ class AnalyticsEvent(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     event_type = Column(String(50), nullable=False, index=True)  # reply_sent, comment_received, dm_sent, webhook_received
     metadata_json = Column(Text, default="{}")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class BotAlert(Base):
@@ -148,7 +148,7 @@ class BotAlert(Base):
     severity = Column(String(20), default="info")  # info, warning, critical
     message = Column(Text, default="")
     resolved = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     resolved_at = Column(DateTime, nullable=True)
 
 
@@ -172,7 +172,7 @@ class Offer(Base):
     is_active = Column(Boolean, default=True)
     starts_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class OfferClaim(Base):
@@ -183,7 +183,7 @@ class OfferClaim(Base):
     offer_id = Column(Integer, nullable=False, index=True)
     fb_user_id = Column(String(100), nullable=False)
     user_name = Column(String(200), default="")
-    claimed_at = Column(DateTime, default=datetime.datetime.utcnow)
+    claimed_at = Column(DateTime, default=utcnow)
 
 
 # ── Subscriber Management ──────────────────────────────────────────────────────
@@ -203,12 +203,12 @@ class Subscriber(Base):
     platform = Column(String(20), default="messenger")  # messenger/instagram/whatsapp
     page_id = Column(String(100), default="")
     status = Column(String(20), default="active")  # active/inactive/blocked
-    first_seen_at = Column(DateTime, default=datetime.datetime.utcnow)
+    first_seen_at = Column(DateTime, default=utcnow)
     last_interaction_at = Column(DateTime, nullable=True)
     last_comment_text = Column(Text, default="")
     reply_count = Column(Integer, default=0)
     custom_data = Column(JSON, default={})
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     tags = relationship("Tag", secondary="subscriber_tags", lazy="selectin", back_populates=None)
 
@@ -220,7 +220,7 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(50), unique=True, nullable=False)
     color = Column(String(7), default="#6366f1")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     subscribers = relationship("Subscriber", secondary="subscriber_tags", lazy="selectin", back_populates=None)
 
@@ -232,7 +232,7 @@ class SubscriberTag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
     tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     __table_args__ = (UniqueConstraint("subscriber_id", "tag_id", name="uq_subscriber_tag"),)
 
@@ -254,8 +254,8 @@ class Flow(Base):
     created_by = Column(String(100), default="")
     total_replies = Column(Integer, default=0)
     last_triggered_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class FlowExecution(Base):
@@ -269,7 +269,7 @@ class FlowExecution(Base):
     trigger_data = Column(JSON, default={})
     current_node_id = Column(String(100), default="")
     status = Column(String(20), default="active")  # active/completed/failed/expired
-    started_at = Column(DateTime, default=datetime.datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
     error_log = Column(JSON, default={})
 
@@ -288,8 +288,8 @@ class Sequence(Base):
     created_by = Column(String(100), default="")
     total_subscribers = Column(Integer, default=0)
     total_sent = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class SequenceStep(Base):
@@ -304,7 +304,7 @@ class SequenceStep(Base):
     message_template = Column(Text, default="")
     message_type = Column(String(20), default="text")  # text/image/carrier
     action_on_complete = Column(JSON, default={})
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class SequenceSubscription(Base):
@@ -316,7 +316,7 @@ class SequenceSubscription(Base):
     sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False)
     current_step = Column(Integer, default=0)
     status = Column(String(20), default="active")  # active/completed/unsubscribed
-    entered_at = Column(DateTime, default=datetime.datetime.utcnow)
+    entered_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     __table_args__ = (UniqueConstraint("subscriber_id", "sequence_id", name="uq_seq_sub"),)
@@ -340,7 +340,7 @@ class Broadcast(Base):
     failed_count = Column(Integer, default=0)
     opened_count = Column(Integer, default=0)
     created_by = Column(String(100), default="")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     sent_at = Column(DateTime, nullable=True)
 
 
@@ -364,7 +364,7 @@ class ConversationNote(Base):
     conversation_id = Column(String(100), nullable=False, index=True)
     content = Column(Text, default="")
     created_by = Column(String(100), default="")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ConversationAssignee(Base):
@@ -374,7 +374,7 @@ class ConversationAssignee(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     conversation_id = Column(String(100), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    assigned_at = Column(DateTime, default=datetime.datetime.utcnow)
+    assigned_at = Column(DateTime, default=utcnow)
 
 
 class BrandConfig(Base):
@@ -388,7 +388,7 @@ class BrandConfig(Base):
     website = Column(String(200), default="https://smart-menu-sigma.vercel.app")
     whatsapp = Column(String(50), default="+218910089975")
     projects = Column(JSON, default=list)  # ["Smart Menu", "Smart Bot", "Smart POS", ...]
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class Customer(Base):
@@ -407,10 +407,10 @@ class Customer(Base):
     last_intent = Column(String(50), default="")
     interested_in = Column(String(200), default="")  # product/category interested
     custom_fields = Column(JSON, default={})
-    first_seen_at = Column(DateTime, default=datetime.datetime.utcnow)
+    first_seen_at = Column(DateTime, default=utcnow)
     last_contacted_at = Column(DateTime, nullable=True)
     converted_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class ReportSchedule(Base):
@@ -423,4 +423,4 @@ class ReportSchedule(Base):
     enabled = Column(Boolean, default=True)
     schedule = Column(String(50), default="monthly")  # daily, weekly, monthly
     last_sent = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

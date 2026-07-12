@@ -7,6 +7,7 @@ import logging
 import hmac
 import hashlib
 from datetime import datetime
+from _utils import utcnow
 from typing import Any
 from fastapi import Request, HTTPException
 
@@ -46,7 +47,7 @@ class ShopifyIntegration:
 
     async def handle_webhook(self, topic: str, payload: dict) -> dict:
         """Process Shopify webhook and return flow context."""
-        ctx = {"platform": "shopify", "event": topic, "timestamp": datetime.utcnow().isoformat()}
+        ctx = {"platform": "shopify", "event": topic, "timestamp": utcnow().isoformat()}
 
         if topic == "orders/create":
             customer = payload.get("customer", {})

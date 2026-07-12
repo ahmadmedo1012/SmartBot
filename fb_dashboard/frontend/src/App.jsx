@@ -72,28 +72,6 @@ function AppInner() {
   }, [])
 
   useEffect(() => {
-    if (!auth) return
-    let es
-    function connect() {
-      es = new EventSource("/api/events")
-      es.addEventListener("stats_update", () => {
-        queryClient.invalidateQueries({ queryKey: ["stats"] })
-      })
-      es.addEventListener("agent_message", () => {
-        queryClient.invalidateQueries({ queryKey: ["stats"] })
-        queryClient.invalidateQueries({ queryKey: ["replies"] })
-        queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
-      })
-      es.onerror = () => {
-        es.close()
-        setTimeout(connect, 3000)
-      }
-    }
-    connect()
-    return () => es?.close()
-  }, [auth])
-
-  useEffect(() => {
     document.querySelector(".content")?.scrollTo({ top: 0 })
   }, [page])
 

@@ -4,6 +4,7 @@ Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 import io
 import logging
 from datetime import datetime, timedelta
+from _utils import utcnow
 
 from sqlalchemy import select, func, cast, Date, desc
 
@@ -142,7 +143,7 @@ class PdfReportsEngine:
         return f'<div class="kpi"><div class="val">{value}</div><div class="lbl">{label}</div></div>'
 
     def _footer_html(self, brand: BrandingConfig) -> str:
-        return f'<div class="footer">{brand.company_name} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {datetime.utcnow().strftime("%Y-%m-%d %H:%M")} UTC</div>'
+        return f'<div class="footer">{brand.company_name} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {utcnow().strftime("%Y-%m-%d %H:%M")} UTC</div>'
 
     def _build_html(self, body_parts: list[str], brand: BrandingConfig, title: str, subtitle: str = "") -> str:
         parts = [
@@ -179,9 +180,9 @@ class PdfReportsEngine:
 
     async def _get_overview(self, days: int, session) -> dict:
         from models import Reply, Rule, Subscriber
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         total = await session.scalar(select(func.count(Reply.id)).where(Reply.created_at >= cutoff)) or 0
-        today = await session.scalar(select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == datetime.utcnow().date())) or 0
+        today = await session.scalar(select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == utcnow().date())) or 0
         rules = await session.scalar(select(func.count(Rule.id)).where(Rule.enabled == True)) or 0
         subs = await session.scalar(select(func.count(Subscriber.id))) or 0
         unique = await session.scalar(
@@ -193,7 +194,7 @@ class PdfReportsEngine:
 
     async def _get_daily_trend(self, days: int, session) -> list[dict]:
         from models import Reply
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
             .where(Reply.created_at >= cutoff)
@@ -204,7 +205,7 @@ class PdfReportsEngine:
 
     async def _get_top_rules(self, days: int, limit: int, session) -> list[dict]:
         from models import Reply, Rule
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(Reply.rule_id, Rule.name, func.count(Reply.id).label("cnt"))
             .join(Rule, Reply.rule_id == Rule.id)
@@ -220,7 +221,7 @@ class PdfReportsEngine:
 
     async def _get_sentiment_trend(self, days: int, session) -> list[dict]:
         from models import AISuggestion
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(cast(AISuggestion.created_at, Date).label("d"),
                    AISuggestion.sentiment, func.count(AISuggestion.id).label("cnt"))
@@ -243,7 +244,7 @@ class PdfReportsEngine:
 
     async def _get_top_commenters(self, days: int, limit: int, session) -> list[dict]:
         from models import Reply
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(Reply.commenter_name, func.count(Reply.id).label("cnt"))
             .where(Reply.created_at >= cutoff, Reply.commenter_name != "")
@@ -254,7 +255,7 @@ class PdfReportsEngine:
 
     async def _get_subscriber_growth(self, days: int, session) -> list[dict]:
         from models import Subscriber
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(cast(Subscriber.created_at, Date).label("d"), func.count(Subscriber.id).label("cnt"))
             .where(Subscriber.created_at >= cutoff)
@@ -428,7 +429,7 @@ class PdfReportsEngine:
             sentiment_trend = await self._get_sentiment_trend(days, session)
             top_commenters = await self._get_top_commenters(days, 10, session)
             subscriber_growth = await self._get_subscriber_growth(days, session)
-            period = f"{datetime.utcnow().strftime('%B %Y')} | آخر {days} يوم"
+            period = f"{utcnow().strftime('%B %Y')} | آخر {days} يوم"
             html = self._build_monthly_html(overview, daily_trend, top_rules, sentiment_trend,
                                             top_commenters, subscriber_growth, brand, days, period)
         return self._render(html)

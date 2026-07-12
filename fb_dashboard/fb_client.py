@@ -94,10 +94,10 @@ class FBClient:
     async def post_to_page_with_image(self, message: str, image_url: str) -> dict | None:
         """Post with attached image. Uploads photo first, then publishes with attachment."""
         # Upload photo to get media_fbid
-        import httpx
         client = await _ensure_client()
+        resp = await client.get(image_url)
         photo_data = {"access_token": self.token}
-        files = {"source": ("photo.jpg", httpx.get(image_url).content, "image/jpeg")} if image_url.startswith("http") else None
+        files = {"source": ("photo.jpg", resp.content, "image/jpeg")} if image_url.startswith("http") else None
         if not files:
             return await self.post_to_page(message)
         try:

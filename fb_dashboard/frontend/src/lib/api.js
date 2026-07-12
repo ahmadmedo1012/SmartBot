@@ -503,4 +503,4 @@ export function fetchLogStats() {
 export function fetchPublisherStatus() { return api("/api/publisher/status") }
 export function configurePublisher(data) { return api("/api/publisher/configure", { method:"POST", body:data }) }
 export function publishToPlatform(platform, message, imageUrl) { return api("/api/publisher/publish", { method:"POST", body:{platform,message,image_url:imageUrl} }) }
-export function fetchPlatformSettings(platform) { return api("/api/publisher/settings", { params: {platform} }) }
+export function fetchPlatformSettings(platform) { return api(`/api/publisher/settings?platform=${platform}`) }

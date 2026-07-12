@@ -3,6 +3,7 @@ Generates client-ready analytics reports matching Metricool/Hootsuite quality.
 """
 import logging
 from datetime import datetime, timedelta, date
+from _utils import utcnow
 from pathlib import Path
 
 from analytics_engine import AnalyticsEngine
@@ -42,7 +43,7 @@ class ReportEngine:
 
         import weasyprint
 
-        filename = f"report-{datetime.utcnow().strftime('%Y-%m-%d')}.pdf"
+        filename = f"report-{utcnow().strftime('%Y-%m-%d')}.pdf"
         filepath = str(REPORT_DIR / filename)
         weasyprint.HTML(string=html).write_pdf(filepath)
         log.info("Report written to %s", filepath)
@@ -51,7 +52,7 @@ class ReportEngine:
     def _build_html(self, overview, daily_trend, top_rules, sentiment,
                     top_commenters, comparison, peak_hour,
                     brand_name, logo_url, primary_color, days) -> str:
-        month_name = datetime.utcnow().strftime("%B %Y")
+        month_name = utcnow().strftime("%B %Y")
         brand = brand_name or "SmartBot"
 
         html = f"""<!DOCTYPE html>
@@ -80,7 +81,7 @@ class ReportEngine:
 <div class="header">
   {f'<img src="{logo_url}" height="50" style="margin-bottom:8px">' if logo_url else ''}
   <h1>{brand} — التقرير الشهري</h1>
-  <p>{month_name} | {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}</p>
+  <p>{month_name} | {utcnow().strftime('%Y-%m-%d %H:%M')}</p>
 </div>"""
 
         # KPI cards

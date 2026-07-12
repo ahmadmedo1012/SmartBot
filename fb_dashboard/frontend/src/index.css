@@ -78,6 +78,22 @@
   --text: var(--fg);
 }
 
+[data-theme="dark"] {
+  --bg: oklch(15% 0.01 240);
+  --surface: oklch(20% 0.012 240);
+  --fg: oklch(88% 0.01 240);
+  --muted: oklch(55% 0.015 250);
+  --border: oklch(30% 0.01 240);
+  --skeleton: oklch(25% 0.01 240);
+  --accent: oklch(65% 0.18 55);
+  --accent-soft: oklch(65% 0.18 55 / 0.2);
+  --accent-fg: oklch(15% 0 0);
+  --success: oklch(60% 0.18 150);
+  --warn: oklch(70% 0.16 85);
+  --danger: oklch(60% 0.20 27);
+  --info: oklch(60% 0.18 260);
+}
+
 @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
 @keyframes fade-in { from { opacity:0 } to { opacity:1 } }
 @keyframes scale-in { from { opacity:0; transform:scale(0.95) } to { opacity:1; transform:scale(1) } }

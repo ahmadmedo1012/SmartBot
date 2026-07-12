@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, date
+from _utils import utcnow
 from typing import Any
 from sqlalchemy import select, func, and_, or_, desc
 
@@ -91,7 +92,7 @@ class ContentCalendarEngine:
             return False
         post.status = "published"
         post.fb_post_id = result.get("id", "")
-        post.published_at = datetime.utcnow()
+        post.published_at = utcnow()
         await session.commit()
         asyncio.create_task(self._track("post_published", {"scheduled_post_id": post_id}))
         return True
@@ -133,7 +134,7 @@ class ContentCalendarEngine:
         }
 
     async def check_due_posts(self, session) -> list[ScheduledPost]:
-        now = datetime.utcnow()
+        now = utcnow()
         rows = await session.execute(
             select(ScheduledPost).where(
                 ScheduledPost.status == "scheduled",

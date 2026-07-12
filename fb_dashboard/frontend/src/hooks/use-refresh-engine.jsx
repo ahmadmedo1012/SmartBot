@@ -39,6 +39,10 @@ export function RefreshProvider({ children, queryClient }) {
           queryClient.invalidateQueries({ queryKey: ["stats"] })
           queryClient.invalidateQueries({ queryKey: ["replies"] })
           queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
+        } else if (msg.event === "agent_message") {
+          queryClient.invalidateQueries({ queryKey: ["stats"] })
+          queryClient.invalidateQueries({ queryKey: ["replies"] })
+          queryClient.invalidateQueries({ queryKey: ["recent-activity"] })
         } else if (msg.event === "bot_status") {
           queryClient.setQueryData(["bot-status"], msg.data)
         }

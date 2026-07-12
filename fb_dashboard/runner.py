@@ -6,6 +6,7 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from _utils import utcnow
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Any
@@ -139,7 +140,7 @@ _IS_VERCEL = bool(os.getenv("VERCEL"))
 
 def make_token(username: str) -> str:
     return jwt.encode(
-        {"sub": username, "exp": datetime.utcnow() + ACCESS_TOKEN_EXPIRE},
+        {"sub": username, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY,
         algorithm=ALGORITHM,
     )
@@ -174,30 +175,16 @@ def require_role(min_role: str):
 
 
 async def seed_admin(db):
-    pw_hash = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
-    existing = await db.execute(select(User).where(User.username == "admin"))
-    user = existing.scalar_one_or_none()
-    if user:
-        user.password_hash = pw_hash
-    else:
-        db.add(User(username="admin", password_hash=pw_hash, role="admin"))
-    # Seed ahmadmedo1012 + delete other users
-    new_hash = bcrypt.hashpw("AHMADahmad.0916031078".encode(), bcrypt.gensalt()).decode()
-    existing_new = await db.execute(select(User).where(User.username == "ahmadmedo1012"))
-    new_user = existing_new.scalar_one_or_none()
-    if new_user:
-        new_user.password_hash = new_hash
-        new_user.role = "admin"
-    else:
-        db.add(User(username="ahmadmedo1012", password_hash=new_hash, role="admin"))
-    # Delete all users except ahmadmedo1012 and admin
-    await db.execute(
-        User.__table__.delete().where(
-            User.username.notin_(["ahmadmedo1012", "admin"])
-        )
-    )
+    """Seed initial admin user from env vars if no users exist."""
+    count = await db.scalar(select(func.count(User.id))) or 0
+    if count > 0:
+        return  # ponytail: users already exist — do not reset passwords
+    username = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
+    password = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    db.add(User(username=username, password_hash=pw_hash, role="admin"))
     await db.commit()
-    log.info("Default users seeded")
+    log.info("Initial admin user seeded")
 
 
 async def _seed_dm_templates(db):
@@ -210,7 +197,7 @@ async def _seed_dm_templates(db):
             data = json.load(f)
     except Exception:
         return
-    json_rules = {r["id"]: r.get("dm_template", "") for r in data.get("rules", [])}
+    json_rules = {r.get("name", ""): r.get("dm_template", "") for r in data.get("rules", [])}
     if not json_rules:
         return
     from models import Rule
@@ -225,6 +212,9 @@ async def _seed_dm_templates(db):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
+        # ponytail: fail-fast if default SECRET_KEY in production (belt-and-suspenders with config.py)
+        if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
+            raise RuntimeError("SECRET_KEY is default — set SECRET_KEY env var for production")
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
             # Migration: add missing columns (safe — IF NOT EXISTS equivalent via try/except)
@@ -266,11 +256,11 @@ async def lifespan(app: FastAPI):
             while True:
                 try:
                     async with AsyncSessionLocal() as db:
-                        hour_ago = datetime.utcnow() - timedelta(hours=1)
+                        hour_ago = utcnow() - timedelta(hours=1)
                         recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
                         running = _bot_task is not None and not _bot_task.done() if _bot_task else False
                         payload = {"replies_last_hour": recent, "running": running,
-                                   "timestamp": datetime.utcnow().isoformat()}
+                                   "timestamp": utcnow().isoformat()}
                         await ws_manager.broadcast("bot_health", payload)
                         await event_bus.emit("bot_health", payload)
                 except Exception:
@@ -530,7 +520,7 @@ async def static_cache_middleware(request: Request, call_next):
 async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
     # ponytail: bot cycle removed from dashboard — use cron or manual trigger instead
-    now = datetime.utcnow()
+    now = utcnow()
     today = now.date()
 
     # Stats — merged queries
@@ -631,7 +621,7 @@ async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
 @app.get("/api/stats")
 async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
     total_replies = await db.scalar(select(func.count(Reply.id))) or 0
-    today = datetime.utcnow().date()
+    today = utcnow().date()
     today_replies = await db.scalar(
         select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
     ) or 0
@@ -653,7 +643,7 @@ async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
     try:
         rows = await db.execute(
             select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
-            .where(Reply.created_at >= datetime.utcnow() - timedelta(days=7))
+            .where(Reply.created_at >= utcnow() - timedelta(days=7))
             .group_by(cast(Reply.created_at, Date))
         )
         chart_data = {str(row[0]): row[1] for row in rows if row[0]}
@@ -822,7 +812,7 @@ async def delete_api_comment(comment_id: str, _=Depends(require_role("editor")))
 
 @app.get("/api/stats/hourly")
 async def get_hourly_stats(db=Depends(get_db), _=Depends(get_current_user)):
-    cutoff = datetime.utcnow() - timedelta(days=7)
+    cutoff = utcnow() - timedelta(days=7)
     rows = await db.execute(
         select(func.extract("hour", Reply.created_at).label("hour"), func.count(Reply.id).label("count"))
         .where(Reply.created_at >= cutoff)
@@ -1013,27 +1003,22 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
     return {"ok": True, "interval": interval}
 
 
-_cron_lock = False  # ponytail: in-process mutex, not cross-instance; use Redis for multi-replica
+_cron_lock = asyncio.Lock()
 
 @app.get("/api/cron/bot-cycle")
 async def cron_bot_cycle(request: Request):
     """Vercel Cron: runs bot cycle. Auth via CRON_SECRET env var."""
     secret = os.getenv("CRON_SECRET")
-    if secret and request.headers.get("authorization", "") != f"Bearer {secret}":
-        raise HTTPException(401, "Unauthorized cron")
-    global _cron_lock
-    if _cron_lock:
-        return {"ok": False, "error": "cycle already running"}
-    _cron_lock = True
-    try:
-        engine = get_bot_engine()
-        await engine.cycle()
-        return {"ok": True, "cycle": "completed"}
-    except Exception as e:
-        log.error(f"Cron bot cycle error: {e}")
-        return {"ok": False, "error": str(e)[:200]}
-    finally:
-        _cron_lock = False
+    if not secret or request.headers.get("authorization", "") != f"Bearer {secret}":
+        raise HTTPException(403, "Unauthorized cron")
+    async with _cron_lock:
+        try:
+            engine = get_bot_engine()
+            await engine.cycle()
+            return {"ok": True, "cycle": "completed"}
+        except Exception as e:
+            log.error(f"Cron bot cycle error: {e}")
+            return {"ok": False, "error": str(e)[:200]}
 
 
 
@@ -1051,7 +1036,7 @@ async def get_logs(limit: int = Query(50), db=Depends(get_db), _=Depends(get_cur
 @app.post("/api/logs/clear")
 async def clear_logs(payload: dict = None, db=Depends(get_db), _=Depends(require_role("admin"))):
     days = (payload or {}).get("days", 30)
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
     result = await db.execute(select(func.count(BotLog.id)).where(BotLog.created_at < cutoff))
     count = result.scalar() or 0
     await db.execute(BotLog.__table__.delete().where(BotLog.created_at < cutoff))
@@ -1099,8 +1084,7 @@ async def check_webhook(_=Depends(get_current_user)):
 async def test_facebook_comment_flow(_=Depends(get_current_user)):
     """Simulate a test comment flow — fetches latest posts and tries to reply."""
     try:
-        from bot import BotEngine
-        engine = BotEngine(fb)
+        engine = get_bot_engine()
         await engine.cycle()
         return {"ok": True, "message": "Bot cycle completed successfully"}
     except Exception as e:
@@ -1116,7 +1100,7 @@ async def trigger_bot_cycle(_=Depends(require_role("admin"))):
 
 async def _run_single_cycle():
     try:
-        engine = BotEngine(fb)
+        engine = get_bot_engine()
         await engine.cycle()
     except Exception as e:
         log.error(f"Forced cycle error: {e}")
@@ -1176,8 +1160,7 @@ async def ai_generate_reply(
 
 
 @app.post("/api/ai/analyze-image")
-async def ai_analyze_image(data: dict = Body(...)):
-    """Analyze text/image context with AI. Used by agent chat for analysis overlay."""
+async def ai_analyze_image(data: dict = Body(...), _: User = Depends(require_role("editor"))):
     ai = get_ai()
     if not ai.available:
         return {"analysis": ""}
@@ -1699,7 +1682,7 @@ async def publish_scheduled_post(post_id: int, db=Depends(get_db),
         raise HTTPException(400, "فشل النشر على فيسبوك")
     post.status = "published"
     post.fb_post_id = result.get("id", "")
-    post.published_at = datetime.utcnow()
+    post.published_at = utcnow()
     await db.commit()
     _track_event("post_published", {"scheduled_post_id": post_id})
     return {"ok": True, "fb_post_id": post.fb_post_id}
@@ -1721,11 +1704,11 @@ async def delete_scheduled_post(post_id: int, db=Depends(get_db),
 @app.get("/api/analytics/overview")
 async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
     """Aggregated analytics overview."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
 
     total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= cutoff)) or 0
     today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == datetime.utcnow().date())
+        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == utcnow().date())
     ) or 0
 
     # Daily breakdown
@@ -1801,7 +1784,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
 async def analytics_export(format: str = Query("csv"), days: int = Query(30),
                            db=Depends(get_db), _=Depends(require_role("admin"))):
     """Export replies as CSV or JSON."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
     rows = await db.execute(
         select(Reply).where(Reply.created_at >= cutoff).order_by(desc(Reply.created_at))
     )
@@ -1822,13 +1805,13 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
     for it in items:
         w.writerow([it["id"], it["commenter"], it["comment"], it["reply"], it["rule_id"], it["fb_comment_id"], it["created_at"]])
     return Response(content=buf.getvalue(), media_type="text/csv",
-                    headers={"Content-Disposition": f"attachment; filename=replies-export-{datetime.utcnow().date()}.csv"})
+                    headers={"Content-Disposition": f"attachment; filename=replies-export-{utcnow().date()}.csv"})
 
 
 @app.get("/api/analytics/scheduler-check")
 async def analytics_scheduler_check(db=Depends(get_db), _=Depends(get_current_user)):
     """Check and publish overdue scheduled posts."""
-    now = datetime.utcnow()
+    now = utcnow()
     due = await db.execute(
         select(ScheduledPost).where(
             ScheduledPost.status == "scheduled",
@@ -1837,11 +1820,12 @@ async def analytics_scheduler_check(db=Depends(get_db), _=Depends(get_current_us
     )
     published = 0
     for post in due.scalars().all():
-        if post.platform == "facebook":
+        platform = getattr(post, "platform", "facebook") or "facebook"
+        if platform == "facebook":
             result = await fb.post_to_page(post.message)
         else:
             _publisher.load_credentials(db)
-            result = await _publisher.publish_to_platform(post.platform, post.message, post.image_url)
+            result = await _publisher.publish_to_platform(platform, post.message, post.image_url)
         if result:
             post.status = "published"
             post.fb_post_id = result.get("post_id", "")
@@ -1894,7 +1878,7 @@ async def widget_ai_insights(db=Depends(get_db), _=Depends(get_current_user)):
 @app.get("/api/widgets/response-time")
 async def widget_response_time(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
     """Average response time (mock — FB doesn't return timing, so we use reply count by hour as proxy)."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
     row = await db.execute(
         select(func.count(Reply.id).label("cnt"))
         .where(Reply.created_at >= cutoff)
@@ -1911,7 +1895,7 @@ async def widget_response_time(days: int = Query(7), db=Depends(get_db), _=Depen
 async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
     """Sentiment distribution over time."""
     from sqlalchemy import cast as sql_cast, Date
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utcnow() - timedelta(days=days)
     rows = await db.execute(
         select(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date).label("d"), func.count(AISuggestion.id))
         .where(AISuggestion.created_at >= cutoff)
@@ -1968,7 +1952,7 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_rol
     if not alert:
         raise HTTPException(404, "Alert not found")
     alert.resolved = True
-    alert.resolved_at = datetime.utcnow()
+    alert.resolved_at = utcnow()
     await db.commit()
     return {"ok": True}
 
@@ -1979,7 +1963,7 @@ async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
     issues = []
 
     # 1. Check recent reply volume
-    hour_ago = datetime.utcnow() - timedelta(hours=1)
+    hour_ago = utcnow() - timedelta(hours=1)
     recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
     if recent == 0:
         issues.append({"type": "no_replies", "severity": "warning", "message": "لا توجد ردود في آخر ساعة"})
@@ -2016,6 +2000,15 @@ async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
 async def websocket_endpoint(ws: WebSocket):
     """WebSocket endpoint for real-time dashboard data.
     Sends events: stats_update, new_reply, bot_status, alert."""
+    token = ws.query_params.get("token")
+    if not token:
+        await ws.close(code=4001, reason="Missing token")
+        return
+    try:
+        jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+        await ws.close(code=4001, reason="Invalid or expired token")
+        return
     await ws_manager.connect(ws)
     try:
         while True:
@@ -2026,7 +2019,7 @@ async def websocket_endpoint(ws: WebSocket):
                 try:
                     async with AsyncSessionLocal() as db:
                         total = await db.scalar(select(func.count(Reply.id))) or 0
-                        today_date = datetime.utcnow().date()
+                        today_date = utcnow().date()
                         today = await db.scalar(
                             select(func.count(Reply.id))
                             .where(cast(Reply.created_at, Date) == today_date)
@@ -2046,7 +2039,7 @@ async def websocket_endpoint(ws: WebSocket):
 # ── Server-Sent Events ─────────────────────────────────────────────
 
 @app.get("/api/events")
-async def sse_endpoint(request: Request):
+async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)):
     """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health)."""
     async def event_generator():
         queue: asyncio.Queue = asyncio.Queue()
@@ -2559,7 +2552,7 @@ async def inbox_all(search: str = Query(""), db=Depends(get_db), _=Depends(get_c
 # ── Content Calendar ───────────────────────────────────────────────────────────
 
 @app.get("/api/calendar")
-async def calendar_list(year: int = Query(datetime.utcnow().year), month: int = Query(datetime.utcnow().month),
+async def calendar_list(year: int = Query(utcnow().year), month: int = Query(utcnow().month),
                         db=Depends(get_db), _=Depends(get_current_user)):
     return await content_calendar_engine.get_calendar_posts(year, month, db)
 
@@ -2785,7 +2778,7 @@ async def generate_pdf_report(request: Request, _=Depends(require_role("editor")
     else:
         raise HTTPException(400, f"Unknown report type: {rtype}")
     return Response(content=pdf_bytes, media_type="application/pdf",
-                    headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{datetime.utcnow().strftime('%Y%m%d')}.pdf"})
+                    headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{utcnow().strftime('%Y%m%d')}.pdf"})
 
 
 @app.post("/api/reports/schedule")
@@ -3171,7 +3164,7 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_rol
     if not a:
         raise HTTPException(404, "التنبيه غير موجود")
     a.resolved = True
-    a.resolved_at = datetime.utcnow()
+    a.resolved_at = utcnow()
     await db.commit()
     return {"ok": True}
 

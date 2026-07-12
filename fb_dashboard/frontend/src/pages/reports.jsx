@@ -9,7 +9,7 @@ function exportCSV(data, filename) {
   const rows = data.map(r => Object.values(r).map(v => `"${v}"`).join(","))
   const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv" })
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; a.click()
-  URL.revokeObjectURL(a.href)
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
 function MiniBar({ data, dataKey, color = "var(--accent)" }) {

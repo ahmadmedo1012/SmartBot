@@ -106,7 +106,7 @@ export function ScheduledPosts({ role }) {
                       {p.status === "scheduled" && (
                         <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => publishMut.mutate(p.id)}>نشر</button>
                       )}
-                      <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => deleteMut.mutate(p.id)}>حذف</button>
+                      <button className="btn btn-outline" style={{padding:"4px 8px",fontSize:11}} onClick={() => { if (window.confirm("هل أنت متأكد من حذف هذا المنشور؟")) deleteMut.mutate(p.id) }}>حذف</button>
                     </div>
                   )}
                 </div>

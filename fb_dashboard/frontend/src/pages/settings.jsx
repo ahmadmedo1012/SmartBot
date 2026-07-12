@@ -3,6 +3,7 @@ import { fetchBotStatus, restartBot, fetchLogs, fetchFacebookSettings, fetchEnv,
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { useRef, useState, useEffect } from "react"
+import { ConfirmDialog } from "@/components/ConfirmDialog"
 
 const levelBadgeClass = {
   INFO: "badge-s",
@@ -368,12 +369,12 @@ export function Settings({ role }) {
             <div className="fld">
               <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>اختر نمط العرض:</p>
               <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-                <button onClick={() => document.documentElement.style.colorScheme = "light"}
+                <button onClick={() => { document.documentElement.style.colorScheme = "light"; document.documentElement.removeAttribute("data-theme") }}
                   style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                   <span style={{fontSize:12}}>فاتح</span>
                 </button>
-                <button onClick={() => document.documentElement.style.colorScheme = "dark"}
+                <button onClick={() => { document.documentElement.style.colorScheme = "dark"; document.documentElement.setAttribute("data-theme", "dark") }}
                   style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                   <span style={{fontSize:12}}>داكن</span>
@@ -447,22 +448,15 @@ export function Settings({ role }) {
         </div>
       )}
 
-      {confirmClear && (
-        <div className="modal-overlay" onClick={() => setConfirmClear(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth:400}}>
-            <div className="cc-header"><div className="cc-title">تأكيد التنظيف</div></div>
-            <div className="card-inset">
-              <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:16}}>تنظيف السجلات التي مضى عليها أكثر من 30 يوماً؟ لا يمكن التراجع.</p>
-              <div className="qactions" style={{justifyContent:"flex-end"}}>
-                <button className="btn btn-outline" onClick={() => setConfirmClear(false)}>إلغاء</button>
-                <button className="btn btn-primary" onClick={() => { clearLogsMut.mutate(); setConfirmClear(false) }} disabled={clearLogsMut.isPending}>
-                  {clearLogsMut.isPending ? "جاري..." : "تنظيف"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmClear}
+        title="تأكيد التنظيف"
+        message="تنظيف السجلات التي مضى عليها أكثر من 30 يوماً؟ لا يمكن التراجع."
+        confirmLabel="تنظيف"
+        isLoading={clearLogsMut.isPending}
+        onConfirm={() => { clearLogsMut.mutate(); setConfirmClear(false) }}
+        onCancel={() => setConfirmClear(false)}
+      />
 
       <div className="mobile-nav-spacer" />
     </section>

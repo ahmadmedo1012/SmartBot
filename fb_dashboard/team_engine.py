@@ -4,6 +4,7 @@ Enterprise team features matching Hootsuite + Respond.io.
 import json
 import logging
 from datetime import datetime, timedelta
+from _utils import utcnow
 from typing import Any
 from sqlalchemy import select, func, desc, or_
 from sqlalchemy.orm import selectinload
@@ -49,7 +50,7 @@ class TeamEngine:
 
     async def get_team_activity(self, days: int, session) -> list[dict]:
         """Recent team activity feed — BotLog, Replies, AnalyticsEvent combined."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         activities: list[dict] = []
 
         log_stmt = select(BotLog).where(
@@ -113,7 +114,7 @@ class TeamEngine:
 
     async def get_activity_log(self, days: int, page: int, per_page: int, session) -> dict:
         """Comprehensive activity log with pagination — AnalyticsEvents."""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = utcnow() - timedelta(days=days)
         base = select(AnalyticsEvent).where(AnalyticsEvent.created_at >= cutoff)
         total = await session.scalar(select(func.count(AnalyticsEvent.id)).where(AnalyticsEvent.created_at >= cutoff)) or 0
         offset = (page - 1) * per_page
@@ -159,7 +160,7 @@ class TeamEngine:
                 .where(
                     BotLog.message.contains(f"User {u.username}"),
                     BotLog.level != "DEBUG",
-                    BotLog.created_at >= datetime.utcnow() - timedelta(days=30),
+                    BotLog.created_at >= utcnow() - timedelta(days=30),
                 )
             ) or 0
             result.append({

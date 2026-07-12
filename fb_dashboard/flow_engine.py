@@ -8,6 +8,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from _utils import utcnow
 from typing import Any
 
 import httpx
@@ -240,7 +241,7 @@ class FlowEngine:
             expr.status = status
             expr.current_node_id = trace.get("node_id", "")
             if status in ("completed", "failed"):
-                expr.completed_at = datetime.utcnow()
+                expr.completed_at = utcnow()
             if trace.get("action") == "exception":
                 expr.error_log = {"error": trace.get("error", "")}
 
@@ -248,7 +249,7 @@ class FlowEngine:
         flow_row = await session.get(Flow, flow_id)
         if flow_row:
             flow_row.total_replies = (flow_row.total_replies or 0) + 1
-            flow_row.last_triggered_at = datetime.utcnow()
+            flow_row.last_triggered_at = utcnow()
 
         try:
             await session.commit()
@@ -421,7 +422,7 @@ class FlowEngine:
             expr = await session.get(FlowExecution, execution_id)
             if expr:
                 expr.status = "completed"
-                expr.completed_at = datetime.utcnow()
+                expr.completed_at = utcnow()
             return {"action": "flow_completed", "node_id": node_id, "status": "completed"}
 
         # ── SEQUENCE ──

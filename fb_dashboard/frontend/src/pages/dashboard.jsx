@@ -152,7 +152,7 @@ export function Dashboard(_p) {
         </div>
         <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--warn)" }}>
-            {format.isBefore ? "—" : recentReplies.length}
+            {recentReplies.length}
           </div>
           <div className="stat-label">بانتظار الرد</div>
         </div>
@@ -197,7 +197,7 @@ export function Dashboard(_p) {
             <div className="activity-list" style={{ marginTop: "4px" }}>
               {activities.slice(0, 5).map((a, i) => (
                 <div key={i} className="activity-item">
-                  <span className={`activity-dot ${a.type === "reply" ? "" : ""}`}
+                  <span className="activity-dot"
                     style={{ background: a.type === "reply" ? "var(--accent)" : "var(--muted)" }} />
                   <div>
                     <div className="activity-text">{a.text}</div>

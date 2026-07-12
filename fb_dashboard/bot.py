@@ -20,6 +20,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 from datetime import datetime, timedelta, timezone
+from _utils import utcnow
 
 from sqlalchemy import select, func, cast, Date
 from sqlalchemy.exc import IntegrityError
@@ -558,7 +559,7 @@ class ReplyPipeline:
                     if c:
                         c.total_interactions = (c.total_interactions or 0) + 1
                         c.last_intent = intent
-                        c.last_contacted_at = datetime.utcnow()
+                        c.last_contacted_at = utcnow()
                         if c.stage == "lead" and intent in ("price_inquiry", "subscription"):
                             c.stage = "prospect"
                     else:
@@ -644,6 +645,7 @@ class BotEngine:
         self._dedup_engine = None
         self._rule_cache = None
         self._dm_map_cache = None
+        self._dm_map_loaded_at: float = 0
 
     async def _ensure_cache(self):
         if self._rule_cache is None:
@@ -714,7 +716,7 @@ class BotEngine:
                         total = await s.scalar(select(func.count(Reply.id))) or 0
                         today_val = await s.scalar(
                             select(func.count(Reply.id))
-                            .where(cast(Reply.created_at, Date) == datetime.utcnow().date())
+                            .where(cast(Reply.created_at, Date) == utcnow().date())
                         ) or 0
                         payload = {"total_replies": total, "today_replies": today_val, "cycle": self._cycle}
                         if ws_manager:
@@ -805,12 +807,14 @@ class BotEngine:
             ]
 
     async def _load_replied_ids(self, session) -> set[str]:
-        stmt = select(Reply.fb_comment_id)
+        cutoff = datetime.utcnow() - timedelta(hours=48)
+        stmt = select(Reply.fb_comment_id).where(Reply.created_at >= cutoff)
         result = await session.execute(stmt)
         return {row[0] for row in result}
 
     async def _load_dm_map(self) -> dict[str, str]:
-        if self._dm_map_cache is not None:
+        now = time.time()
+        if self._dm_map_cache is not None and (now - self._dm_map_loaded_at) < 300:
             return self._dm_map_cache
         from pathlib import Path
         json_path = Path(__file__).resolve().parent / "facebook_automation.json"
@@ -824,6 +828,7 @@ class BotEngine:
                     key = str(r["id"])
                     dm[key] = tmpl
             self._dm_map_cache = dm
+            self._dm_map_loaded_at = now
             return dm
         except Exception:
             return {}

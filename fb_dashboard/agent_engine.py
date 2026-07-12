@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio, json, logging, time
 from typing import Any
 from datetime import datetime
+from _utils import utcnow
 
 from sqlalchemy import select, func, desc
 
@@ -126,13 +127,13 @@ class AgentEngine:
                 result = {**result, **exec_result}
 
             step = "memory write"
-            turn = {"role": "user", "text": text, "timestamp": datetime.utcnow().isoformat()}
+            turn = {"role": "user", "text": text, "timestamp": utcnow().isoformat()}
             try:
                 await mem.append_to_session(db, username, turn)
                 if action != "unknown":
                     await mem.update_user_memory(db, username, {
                         "last_action": action,
-                        "last_timestamp": datetime.utcnow().isoformat(),
+                        "last_timestamp": utcnow().isoformat(),
                     })
             except Exception as e:
                 log.warning(f"Memory write failed: {e}")

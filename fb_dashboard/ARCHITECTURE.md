@@ -34,3 +34,6 @@ Event (FB Webhook / Poll)
 - **ponytail**: single-process in-memory caches. Multi-worker Redis when horizontal scaling.
 - **ponytail**: basic TTL eviction. LRU/second-level when >10K users.
 - **ponytail**: set-based intent matching. ML classifier when rules >100 or accuracy <90%.
+- **Security**: JWT auth on all API routes + SSE/WS. CRON_SECRET for cron endpoints. No plaintext passwords stored.
+- **Realtime**: SSE primary for dashboard events. WebSocket disabled on Vercel (serverless limitation); SSE works within 10s timeout via chunked transfer.
+- **DB**: PostgreSQL (Neon) via asyncpg. SQLite fallback. `_utils.utcnow()` replaces deprecated `datetime.utcnow()` everywhere.

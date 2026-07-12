@@ -30,6 +30,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# ponytail: startup check — refuse default SECRET_KEY in production
+# ponytail: fail-fast — refuse default SECRET_KEY in production
 if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
-    log.warning("CRITICAL: SECRET_KEY is the default — override via .env or env var")
+    raise RuntimeError("CRITICAL: SECRET_KEY is the default — set SECRET_KEY env var for production")
+
+# ponytail: CRON_SECRET required in production (non-DEBUG)
+if not settings.DEBUG and not os.environ.get("CRON_SECRET"):
+    raise RuntimeError("CRITICAL: CRON_SECRET env var is required in production")

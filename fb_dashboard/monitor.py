@@ -17,15 +17,14 @@ _botlog_batch: list[dict] = []
 _botlog_flushing = False
 
 async def _flush_botlog():
-    global _botlog_flushing
+    global _botlog_flushing, _botlog_batch
     if _botlog_flushing:
         return
     _botlog_flushing = True
     try:
         from database import AsyncSessionLocal
         from models import BotLog
-        batch = list(_botlog_batch)
-        _botlog_batch.clear()
+        batch, _botlog_batch = _botlog_batch, []
         if not batch:
             return
         async with AsyncSessionLocal() as session:
@@ -97,7 +96,8 @@ class StructuredLogger:
             pass
         try:
             from ws_manager import ws_manager
-            asyncio.create_task(ws_manager.broadcast("log_event", event.to_dict()))
+            if ws_manager.count:
+                asyncio.create_task(ws_manager.broadcast("log_event", event.to_dict()))
         except Exception:
             pass
         # Batch-write to BotLog every 10 events

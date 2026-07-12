@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
+from _utils import utcnow
 from typing import Any
 from sqlalchemy import select, and_, or_, func, desc, not_, exists
 from sqlalchemy.orm import joinedload
@@ -158,7 +159,7 @@ class BroadcastEngine:
 
         last_interaction_before_days = segment_filters.get("last_interaction_before_days")
         if last_interaction_before_days:
-            cutoff = datetime.utcnow() - timedelta(days=int(last_interaction_before_days))
+            cutoff = utcnow() - timedelta(days=int(last_interaction_before_days))
             q = q.where(Subscriber.last_interaction_at >= cutoff)
 
         # Min replies
@@ -237,7 +238,7 @@ class BroadcastEngine:
 
             last_interaction_before_days = sf.get("last_interaction_before_days")
             if last_interaction_before_days:
-                cutoff = datetime.utcnow() - timedelta(days=int(last_interaction_before_days))
+                cutoff = utcnow() - timedelta(days=int(last_interaction_before_days))
                 subq = subq.where(Subscriber.last_interaction_at >= cutoff)
 
             min_replies = sf.get("min_replies")
@@ -251,13 +252,13 @@ class BroadcastEngine:
             if not subscriber_ids:
                 b.status = "sent"
                 b.total_recipients = 0
-                b.sent_at = datetime.utcnow()
+                b.sent_at = utcnow()
                 await session.commit()
                 log.info(f"Broadcast #{broadcast_id}: no matching subscribers")
                 return True
 
             # Create recipient records
-            now = datetime.utcnow()
+            now = utcnow()
             for sid in subscriber_ids:
                 session.add(BroadcastRecipient(
                     broadcast_id=broadcast_id,
@@ -307,7 +308,7 @@ class BroadcastEngine:
                         rcpt.status = "sent" if ok else "failed"
                         if not ok:
                             rcpt.error_message = f"Unsupported platform or send failed: {sub.platform}"
-                        rcpt.sent_at = datetime.utcnow()
+                        rcpt.sent_at = utcnow()
 
                     if ok:
                         sent += 1
@@ -343,7 +344,7 @@ class BroadcastEngine:
             b.status = "failed" if sent == 0 else "sent" if failed == 0 else "partial"
             b.sent_count = sent
             b.failed_count = failed
-            b.sent_at = datetime.utcnow()
+            b.sent_at = utcnow()
             await session.commit()
             log.info(f"Broadcast #{broadcast_id} done: {sent} sent, {failed} failed")
             return True
@@ -351,7 +352,7 @@ class BroadcastEngine:
         except Exception as e:
             log.exception(f"Broadcast #{broadcast_id} failed: {e}")
             b.status = "failed"
-            b.sent_at = datetime.utcnow()
+            b.sent_at = utcnow()
             await session.commit()
             return False
 

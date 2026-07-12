@@ -2,6 +2,7 @@
 import json
 import logging
 from datetime import datetime, timedelta, date
+from _utils import utcnow
 from typing import Any
 
 from sqlalchemy import select, func, cast, Date, extract, desc, and_, text
@@ -27,7 +28,7 @@ class AnalyticsEngine:
     @staticmethod
     def _cutoff(days: int) -> datetime:
         """Start of the analysis window."""
-        return datetime.utcnow() - timedelta(days=days)
+        return utcnow() - timedelta(days=days)
 
     @staticmethod
     def _pct_change(current: int, previous: int) -> float:
@@ -47,7 +48,7 @@ class AnalyticsEngine:
         and a percentage change versus the identical-length window
         immediately before ``days``.
         """
-        now = datetime.utcnow()
+        now = utcnow()
         cutoff = self._cutoff(days)
         prior_cutoff = self._cutoff(days * 2)
 
@@ -292,7 +293,7 @@ class AnalyticsEngine:
         Returns ``{"replies_before", "replies_now", "change_pct",
         "period_days"}``.  Useful for "vs last month" widgets.
         """
-        now = datetime.utcnow()
+        now = utcnow()
         cutoff = now - timedelta(days=days)
         prior_cutoff = cutoff - timedelta(days=days)
 

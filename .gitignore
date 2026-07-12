@@ -19,7 +19,4 @@ _scratch/
 skills-lock.json
 MASTER-AUDIT.md
 report-comprehensive.md
-fb_dashboard/static/assets/*.js
-fb_dashboard/static/assets/*.css
 index-design-redesign.html
-vercel.json

@@ -900,15 +900,27 @@ async def debug(_=Depends(get_current_user)):
 
 
 
+# ── SPA index.html: serve for all non-API, non-static routes ────────────────
+_SPA_TEMPLATE: str | None = None
+
+def _get_spa() -> str:
+    global _SPA_TEMPLATE
+    if _SPA_TEMPLATE is None:
+        static_index = STATIC_DIR / "index.html"
+        if static_index.exists():
+            _SPA_TEMPLATE = static_index.read_text(encoding="utf-8")
+        else:
+            html_path = TEMPLATES_DIR / "index.html"
+            if html_path.exists():
+                _SPA_TEMPLATE = html_path.read_text(encoding="utf-8")
+            else:
+                _SPA_TEMPLATE = "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
+    return _SPA_TEMPLATE
+
+
 @app.get("/", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
-    static_index = STATIC_DIR / "index.html"
-    if static_index.exists():
-        return HTMLResponse(static_index.read_text(encoding="utf-8"))
-    html_path = TEMPLATES_DIR / "index.html"
-    if html_path.exists():
-        return HTMLResponse(html_path.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>SmartBot Dashboard</h1><p>Loading...</p>")
+async def dashboard_page():
+    return HTMLResponse(_get_spa())
 
 
 # ── Static file caching headers ────────────────────────────────────────────────
@@ -3729,4 +3741,13 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = 
     a.resolved_at = utcnow()
     await db.commit()
     return {"ok": True}
+
+
+# ── SPA catch-all: serve index.html for any unmatched browser route ──────────
+@app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
+async def spa_catch_all(path: str):
+    # Don't catch API or static paths
+    if path.startswith(("api/", "static/", "healthz", "webhook", "favicon")):
+        return HTMLResponse("", status_code=404)
+    return HTMLResponse(_get_spa())
 

@@ -20,29 +20,32 @@ class ContentCalendarEngine:
     def __init__(self, fb: FBClient):
         self.fb = fb
 
-    async def get_calendar_posts(self, year: int, month: int, session) -> list[dict]:
+    async def get_calendar_posts(self, year: int, month: int, session, tenant_id: int = 0) -> list[dict]:
         start_date = date(year, month, 1)
         end_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         rows = await session.execute(
             select(ScheduledPost)
-            .where(ScheduledPost.scheduled_at >= start_date,
+            .where(ScheduledPost.tenant_id == tenant_id,
+                   ScheduledPost.scheduled_at >= start_date,
                    ScheduledPost.scheduled_at < end_date)
             .order_by(ScheduledPost.scheduled_at)
         )
         return [self._post_to_dict(p) for p in rows.scalars().all()]
 
-    async def get_calendar_posts_by_date(self, year: int, month: int, day: int, session) -> list[dict]:
+    async def get_calendar_posts_by_date(self, year: int, month: int, day: int, session, tenant_id: int = 0) -> list[dict]:
         target = date(year, month, day)
         rows = await session.execute(
             select(ScheduledPost)
-            .where(ScheduledPost.scheduled_at >= target,
+            .where(ScheduledPost.tenant_id == tenant_id,
+                   ScheduledPost.scheduled_at >= target,
                    ScheduledPost.scheduled_at < target + timedelta(days=1))
             .order_by(ScheduledPost.scheduled_at)
         )
         return [self._post_to_dict(p) for p in rows.scalars().all()]
 
     async def create_post(self, message: str, image_url: str, scheduled_at: str,
-                          platform: str, created_by: str, session) -> int:
+                          platform: str, created_by: str, session,
+                          tenant_id: int = 0) -> int:
         sched = None
         if scheduled_at:
             try:
@@ -55,6 +58,7 @@ class ContentCalendarEngine:
             scheduled_at=sched,
             status="draft" if not sched else "scheduled",
             created_by=created_by,
+            tenant_id=tenant_id,
         )
         session.add(post)
         await session.commit()
@@ -105,11 +109,12 @@ class ContentCalendarEngine:
         )
         return rows.scalar() or 0
 
-    async def get_month_summary(self, year: int, month: int, session) -> dict:
+    async def get_month_summary(self, year: int, month: int, session, tenant_id: int = 0) -> dict:
         start_date = date(year, month, 1)
         end_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
         all_rows = await session.execute(
             select(ScheduledPost).where(
+                ScheduledPost.tenant_id == tenant_id,
                 ScheduledPost.scheduled_at >= start_date,
                 ScheduledPost.scheduled_at < end_date,
             )

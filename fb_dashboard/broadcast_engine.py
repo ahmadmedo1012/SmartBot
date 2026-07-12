@@ -26,6 +26,7 @@ class BroadcastEngine:
         self, name: str, message_template: str,
         platform_filter: dict, segment_filters: dict,
         created_by: str, session,
+        tenant_id: int = 0,
     ) -> int:
         bc = Broadcast(
             name=name,
@@ -34,6 +35,7 @@ class BroadcastEngine:
             segment_filters=json.dumps(segment_filters),
             status="draft",
             created_by=created_by,
+            tenant_id=tenant_id,
         )
         session.add(bc)
         await session.commit()
@@ -41,9 +43,9 @@ class BroadcastEngine:
         log.info(f"Created broadcast #{bc.id}: {name}")
         return bc.id
 
-    async def list_broadcasts(self, session) -> list[dict]:
+    async def list_broadcasts(self, session, tenant_id: int = 0) -> list[dict]:
         q = await session.execute(
-            select(Broadcast).order_by(desc(Broadcast.created_at))
+            select(Broadcast).where(Broadcast.tenant_id == tenant_id).order_by(desc(Broadcast.created_at))
         )
         rows = q.scalars().all()
         return [

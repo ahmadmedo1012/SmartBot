@@ -59,10 +59,10 @@ class SequenceEngine:
             ],
         }
 
-    async def list_sequences(self, session) -> list[dict]:
+    async def list_sequences(self, session, tenant_id: int = 0) -> list[dict]:
         """List all sequences with subscriber stats."""
         rows = await session.execute(
-            select(Sequence).order_by(Sequence.created_at.desc())
+            select(Sequence).where(Sequence.tenant_id == tenant_id).order_by(Sequence.created_at.desc())
         )
         sequences = rows.scalars().all()
         results: list[dict] = []
@@ -92,13 +92,15 @@ class SequenceEngine:
         return results
 
     async def create_sequence(
-        self, name: str, description: str, created_by: str, session
+        self, name: str, description: str, created_by: str, session,
+        tenant_id: int = 0,
     ) -> int:
         """Create a new sequence. Returns the new sequence ID."""
         seq = Sequence(
             name=name,
             description=description or "",
             created_by=created_by,
+            tenant_id=tenant_id,
         )
         session.add(seq)
         await session.flush()

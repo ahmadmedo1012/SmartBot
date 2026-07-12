@@ -91,6 +91,9 @@ export function fetchFacebookSettings() {
 export function updateFacebookSettings(data) {
   return api("/api/facebook/settings", { method: "PUT", body: JSON.stringify(data) });
 }
+export function testFacebookConnection() {
+  return api("/api/facebook/test", { method: "POST" });
+}
 
 export function fetchPostDetail(postId) {
   return api(`/api/posts/${postId}`);

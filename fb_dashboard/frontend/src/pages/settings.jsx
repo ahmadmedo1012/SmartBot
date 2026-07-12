@@ -36,7 +36,39 @@ function FacebookTab() {
   const { data: status } = useQuery({ queryKey: ["bot-status"], queryFn: fetchBotStatus, refetchInterval: 10000 })
   const queryClient = useQueryClient()
   const [newInterval, setNewInterval] = useState("")
+  const [pageId, setPageId] = useState("")
+  const [accessToken, setAccessToken] = useState("")
+  const [showToken, setShowToken] = useState(false)
   useEffect(() => { if (status?.interval) setNewInterval(String(status.interval)) }, [status?.interval])
+  useEffect(() => { if (fbSettings?.page_id) setPageId(fbSettings.page_id) }, [fbSettings?.page_id])
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/facebook/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_id: pageId, access_token: accessToken }),
+      })
+      if (!r.ok) throw new Error("فشل الحفظ")
+      return r.json()
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["facebook-settings"] }); toast.success("تم حفظ الإعدادات") },
+    onError: (e) => toast.error(e.message || "فشل حفظ الإعدادات"),
+  })
+
+  const testMut = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/facebook/test", { method: "POST" })
+      if (!r.ok) throw new Error("فشل الاختبار")
+      return r.json()
+    },
+    onSuccess: (data) => {
+      if (data.connected) toast.success(`اتصال ناجح! عدد المعجبين: ${data.fan_count}`)
+      else toast.error(data.error || "فشل الاتصال")
+    },
+    onError: (e) => toast.error(e.message || "فشل اختبار الاتصال"),
+  })
+
   const updateIntervalMut = useMutation({
     mutationFn: async (sec) => {
       const fd = new FormData(); fd.append("interval", String(sec))
@@ -47,6 +79,7 @@ function FacebookTab() {
     onSuccess: (_, sec) => { queryClient.invalidateQueries({ queryKey: ["bot-status"] }); toast.success(`تم تحديث الفاصل الزمني إلى ${sec} ثانية`) },
     onError: (e) => toast.error(e.message || "فشل تحديث الفاصل الزمني"),
   })
+
   if (isLoading) return <div className="stat-card glass skel-card" style={{height:80}} />
   if (isError) return <ErrorState onRetry={() => refetch()} />
   return (
@@ -55,20 +88,36 @@ function FacebookTab() {
         <div className="cc-header card-header-flush">
           <div className="cc-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" x2="10"/><path d="M12 22V8"/><path d="M12 8H5a3 3 0 0 0-3 3v8"/><path d="M12 8h7a3 3 0 0 1 3 3v8"/></svg>
-            اتصال فيسبوك
+            إعدادات فيسبوك
           </div>
         </div>
         <div className="fld mb-8">
-          <span className={`badge ${fbSettings?.connected ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
-            <span className="stat-dot" style={{background:fbSettings?.connected ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
-            {fbSettings?.connected ? "متصل" : "غير متصل"}
-          </span>
+          <label style={{fontSize:12,fontWeight:600,display:"block",marginBlockEnd:4}}>معرف الصفحة (Page ID)</label>
+          <input type="text" className="fld" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل Page ID" style={{width:"100%"}} />
         </div>
-        {fbSettings?.page_name && <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:4}}>اسم الصفحة: <strong style={{color:"var(--text)"}}>{fbSettings.page_name}</strong></p>}
-        {fbSettings?.page_id && <p className="text-muted-md">معرف الصفحة: <code className="code-inline">{fbSettings.page_id}</code></p>}
-        <p style={{fontSize:12,color:"var(--muted)",marginBlockStart:4}}>
-          Token: {fbSettings?.has_token ? <code className="code-inline">{fbSettings.token_preview}</code> : <span className="badge badge-d" style={{fontSize:10}}>غير مضبوط</span>}
-        </p>
+        <div className="fld mb-8">
+          <label style={{fontSize:12,fontWeight:600,display:"block",marginBlockEnd:4}}>رمز الوصول (Access Token)</label>
+          <div style={{display:"flex",gap:4}}>
+            <input type={showToken ? "text" : "password"} className="fld" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder={fbSettings?.has_token ? "●●●●●●●● (مخزن)" : "أدخل Access Token"} style={{flex:1}} />
+            <button className="btn btn-outline" style={{fontSize:11,padding:"6px 10px"}} onClick={() => setShowToken(!showToken)}>
+              {showToken ? "إخفاء" : "إظهار"}
+            </button>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBlockStart:8}}>
+          <button className="btn btn-primary" style={{fontSize:12}} onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+            {saveMut.isPending ? "..." : "حفظ الإعدادات"}
+          </button>
+          <button className="btn btn-outline" style={{fontSize:12}} onClick={() => testMut.mutate()} disabled={testMut.isPending}>
+            {testMut.isPending ? "..." : "اختبار الاتصال"}
+          </button>
+        </div>
+        {fbSettings?.connected && (
+          <p style={{fontSize:12,color:"var(--success)",marginBlockStart:8}}>
+            <span className="stat-dot" style={{background:"var(--success)",display:"inline-block",marginInlineEnd:4}} />
+            الإعدادات الحالية متصلة
+          </p>
+        )}
       </div>
       <div className="card glass card-inset">
         <div className="cc-header card-header-flush">

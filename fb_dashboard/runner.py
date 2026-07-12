@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from _utils import utcnow
@@ -46,6 +47,7 @@ from publisher_engine import PublisherEngine
 from event_bus import event_bus
 from logs_api import logs_router
 from agent_engine import get_agent
+from _crypto import encrypt_token, decrypt_token
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -92,6 +94,21 @@ _LOGIN_RATE_LIMIT = 5
 _LOGIN_RATE_WINDOW = 60
 _LOGIN_CLEANUP_EVERY = 300  # purge stale IPs every 5 min
 _login_last_cleanup: float = 0
+
+_register_attempts: dict[str, list[float]] = {}
+_REGISTER_RATE_LIMIT = 3
+_REGISTER_RATE_WINDOW = 300
+
+
+def _check_register_rate(ip: str) -> bool:
+    now = time.time()
+    attempts = _register_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < _REGISTER_RATE_WINDOW]
+    if len(attempts) >= _REGISTER_RATE_LIMIT:
+        return False
+    attempts.append(now)
+    _register_attempts[ip] = attempts
+    return True
 
 
 def _check_login_rate(ip: str) -> bool:
@@ -146,9 +163,9 @@ ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 
 
-def make_token(username: str) -> str:
+def make_token(username: str, tenant_id: int = 0) -> str:
     return jwt.encode(
-        {"sub": username, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
+        {"sub": username, "tid": tenant_id, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY,
         algorithm=ALGORITHM,
     )
@@ -168,6 +185,7 @@ async def get_current_user(request: Request, db=Depends(get_db)):
     user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(401, "User not found")
+    user._tenant_id = payload.get("tid", 0)
     return user
 
 
@@ -356,7 +374,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
     user = user.scalar_one_or_none()
     if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         raise HTTPException(401, "Invalid credentials")
-    token = make_token(username)
+    token = make_token(username, user.tenant_id)
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
     resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -370,9 +388,19 @@ async def logout():
 
 
 @app.post("/api/register")
-async def register(username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
+async def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
     """Register a new user. Creates both a User and a Tenant."""
     from models import Tenant
+
+    ip = request.client.host if request.client else "unknown"
+    if not _check_register_rate(ip):
+        raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
+
+    if len(username) < 3:
+        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
+    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        raise HTTPException(400, "البريد الإلكتروني غير صالح")
+
     existing = await db.execute(select(User).where(or_(User.username == username, User.email == email)))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم المستخدم أو البريد موجود مسبقاً")
@@ -388,7 +416,7 @@ async def register(username: str = Form(...), email: str = Form(...), password: 
     db.add(user)
     await db.commit()
 
-    token = make_token(username)
+    token = make_token(username, tenant.id)
     resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
     resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -398,7 +426,7 @@ async def register(username: str = Form(...), email: str = Form(...), password: 
 
 @app.get("/api/me")
 async def get_me(current_user: User = Depends(get_current_user)):
-    return {"username": current_user.username, "role": current_user.role}
+    return {"username": current_user.username, "role": current_user.role, "tenant_id": getattr(current_user, '_tenant_id', 0)}
 
 
 
@@ -450,21 +478,121 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
 
 
 @app.get("/api/facebook/settings")
-async def get_facebook_settings(_=Depends(require_role("admin"))):
+async def get_facebook_settings(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    tenant_id = current_user.tenant_id or 0
+    page_id = settings.FACEBOOK_PAGE_ID or ""
+    has_token = bool(settings.FACEBOOK_ACCESS_TOKEN)
+
+    if tenant_id:
+        row = await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id,
+                BotState.key == "fb_page_id",
+            )
+        )
+        bs = row.scalar_one_or_none()
+        if bs and bs.value:
+            page_id = bs.value
+
+        row = await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id, BotState.key == "fb_access_token"
+            )
+        )
+        bs = row.scalar_one_or_none()
+        if bs and bs.value:
+            has_token = True
+
     return {
-        "page_id": settings.FACEBOOK_PAGE_ID or "",
-        "has_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
-        "token_preview": settings.FACEBOOK_ACCESS_TOKEN[:8] + "..." if settings.FACEBOOK_ACCESS_TOKEN else "",
-        "connected": bool(settings.FACEBOOK_ACCESS_TOKEN and settings.FACEBOOK_PAGE_ID),
+        "page_id": page_id,
+        "has_token": has_token,
+        "connected": bool(page_id and has_token),
         "page_name": "",
     }
 
 
 @app.put("/api/facebook/settings")
-async def update_facebook_settings(_=Depends(require_role("admin"))):
-    # In production, these would be written to .env or DB.
-    # For now, return instructions since Render env vars are set via dashboard.
-    raise HTTPException(400, "تعديل إعدادات فيسبوك يتم من خلال Render Dashboard → Environment Variables")
+async def update_facebook_settings(
+    request: Request,
+    db=Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    body = await request.json()
+    page_id = body.get("page_id", "").strip()
+    access_token = body.get("access_token", "").strip()
+    tenant_id = current_user.tenant_id or 0
+
+    if page_id:
+        existing = await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id, BotState.key == "fb_page_id"
+            )
+        )
+        row = existing.scalar_one_or_none()
+        if row:
+            row.value = page_id
+        else:
+            db.add(BotState(tenant_id=tenant_id, key="fb_page_id", value=page_id))
+
+    if access_token:
+        encrypted = encrypt_token(access_token)
+        existing = await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id, BotState.key == "fb_access_token"
+            )
+        )
+        row = existing.scalar_one_or_none()
+        if row:
+            row.value = encrypted
+        else:
+            db.add(
+                BotState(
+                    tenant_id=tenant_id, key="fb_access_token", value=encrypted
+                )
+            )
+
+    await db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/facebook/test")
+async def test_facebook_connection(
+    db=Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    tenant_id = current_user.tenant_id or 0
+    page_id = ""
+    token = ""
+
+    row = await db.execute(
+        select(BotState).where(
+            BotState.tenant_id == tenant_id, BotState.key == "fb_page_id"
+        )
+    )
+    bs = row.scalar_one_or_none()
+    if bs:
+        page_id = bs.value
+
+    row = await db.execute(
+        select(BotState).where(
+            BotState.tenant_id == tenant_id, BotState.key == "fb_access_token"
+        )
+    )
+    bs = row.scalar_one_or_none()
+    if bs and bs.value:
+        token = decrypt_token(bs.value)
+
+    if not token or not page_id:
+        return {"connected": False, "fan_count": 0, "error": "لم يتم تعيين بيانات فيسبوك"}
+
+    try:
+        from fb_client import FBClient
+
+        tmp = FBClient(token, page_id)
+        fan_count = await tmp.get_page_fan_count()
+        return {"connected": True, "fan_count": fan_count}
+    except Exception as e:
+        return {"connected": False, "fan_count": 0, "error": str(e)[:200]}
 
 
 
@@ -553,23 +681,24 @@ async def static_cache_middleware(request: Request, call_next):
 
 # ── Dashboard Bundle Endpoint ──────────────────────────────────────────────────
 @app.get("/api/dashboard/bundle")
-async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
+async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
+    _tid = current_user._tenant_id
     # ponytail: bot cycle removed from dashboard — use cron or manual trigger instead
     try:
         now = utcnow()
         today = now.date()
 
         # Stats — merged queries
-        total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+        total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid)) or 0
         today_replies = await db.scalar(
-            select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+            select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == today)
         ) or 0
 
         # Chart data — single query
         chart_rows = await db.execute(
             select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
-            .where(Reply.created_at >= now - timedelta(days=7))
+            .where(Reply.tenant_id == _tid, Reply.created_at >= now - timedelta(days=7))
             .group_by(cast(Reply.created_at, Date))
         )
         chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
@@ -584,13 +713,13 @@ async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
         # Top rule
         top = None
         try:
-            stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
+            stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
             top = (await db.execute(stmt)).first()
         except Exception:
             pass
 
         # Rules — just count + enabled count for dashboard
-        rule_rows = await db.execute(select(Rule))
+        rule_rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid))
         all_rules = rule_rows.scalars().all()
         rules = [{
             "id": r.id, "name": r.name, "enabled": r.enabled,
@@ -606,10 +735,10 @@ async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
 
         # Recent activity — last 8 entries
         recent_replies_rows = await db.execute(
-            select(Reply).order_by(desc(Reply.created_at)).limit(8)
+            select(Reply).where(Reply.tenant_id == _tid).order_by(desc(Reply.created_at)).limit(8)
         )
         recent_logs_rows = await db.execute(
-            select(BotLog).order_by(desc(BotLog.created_at)).limit(8)
+            select(BotLog).where(BotLog.tenant_id == _tid).order_by(desc(BotLog.created_at)).limit(8)
         )
         activities = []
         for r in recent_replies_rows.scalars().all():
@@ -627,7 +756,7 @@ async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
 
         # Recent replies — last 5
         recent_replies_data = await db.execute(
-            select(Reply).order_by(desc(Reply.created_at)).limit(5)
+            select(Reply).where(Reply.tenant_id == _tid).order_by(desc(Reply.created_at)).limit(5)
         )
         recent_replies = [{
             "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
@@ -659,16 +788,17 @@ async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
 
 
 @app.get("/api/stats")
-async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
-    total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
+    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid)) or 0
     today = utcnow().date()
     today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == today)
     ) or 0
 
     top = None
     try:
-        stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
+        stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
         top = (await db.execute(stmt)).first()
     except Exception:
         pass
@@ -683,7 +813,7 @@ async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
     try:
         rows = await db.execute(
             select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
-            .where(Reply.created_at >= utcnow() - timedelta(days=7))
+            .where(Reply.tenant_id == _tid, Reply.created_at >= utcnow() - timedelta(days=7))
             .group_by(cast(Reply.created_at, Date))
         )
         chart_data = {str(row[0]): row[1] for row in rows if row[0]}
@@ -702,10 +832,11 @@ async def get_stats(db=Depends(get_db), _=Depends(get_current_user)):
 # Protected by get_current_user — roles enforced in frontend hiding (DELETE/POST require editor+)
 
 @app.get("/api/rules")
-async def list_rules(db=Depends(get_db), _=Depends(get_current_user)):
-    rows = await db.execute(select(Rule).order_by(Rule.id))
+async def list_rules(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
+    rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid).order_by(Rule.id))
     rules = rows.scalars().all()
-    counts_stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id)
+    counts_stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id)
     counts = {row[0]: row[1] for row in (await db.execute(counts_stmt))}
     return [{
         "id": r.id, "name": r.name, "keywords": r.keywords,
@@ -728,6 +859,7 @@ async def create_rule(
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
     rule = Rule(name=name, keywords=kw_list, reply_template=reply_template,
                 description=description, dm_template=dm_template)
+    rule.tenant_id = current_user._tenant_id
     db.add(rule)
     await db.commit()
     await db.refresh(rule)
@@ -775,14 +907,15 @@ async def toggle_rule(rule_id: int, db=Depends(get_db), _=Depends(require_role("
 
 
 @app.get("/api/replies")
-async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id: int = Query(None), db=Depends(get_db), _=Depends(get_current_user)):
+async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id: int = Query(None), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
     offset = (page - 1) * per_page
-    stmt = select(Reply)
+    stmt = select(Reply).where(Reply.tenant_id == _tid)
     if rule_id:
         stmt = stmt.where(Reply.rule_id == rule_id)
-        total = await db.scalar(select(func.count(Reply.id)).where(Reply.rule_id == rule_id))
+        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.rule_id == rule_id))
     else:
-        total = await db.scalar(select(func.count(Reply.id)))
+        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid))
     rows = await db.execute(
         stmt.order_by(desc(Reply.created_at)).offset(offset).limit(per_page)
     )
@@ -798,7 +931,8 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
 
 
 @app.get("/api/comments")
-async def list_comments(limit: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
     all_comments = await fb.get_recent_comments(limit)
     # Pre‑fetch replied_at for all known fb_comment_ids
     fb_ids = [c["id"] for c in all_comments if c.get("id")]
@@ -806,7 +940,7 @@ async def list_comments(limit: int = Query(30), db=Depends(get_db), _=Depends(ge
     if fb_ids:
         rows = await db.execute(
             select(Reply.fb_comment_id, Reply.reply_text, Reply.created_at)
-            .where(Reply.fb_comment_id.in_(fb_ids))
+            .where(Reply.tenant_id == _tid, Reply.fb_comment_id.in_(fb_ids))
         )
         for r in rows:
             replied_map[r.fb_comment_id] = {
@@ -851,11 +985,12 @@ async def delete_api_comment(comment_id: str, _=Depends(require_role("editor")))
 
 
 @app.get("/api/stats/hourly")
-async def get_hourly_stats(db=Depends(get_db), _=Depends(get_current_user)):
+async def get_hourly_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=7)
     rows = await db.execute(
         select(func.extract("hour", Reply.created_at).label("hour"), func.count(Reply.id).label("count"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(text("hour")).order_by(text("hour"))
     )
     return [{"hour": int(r.hour), "count": r.count} for r in rows]
@@ -933,6 +1068,7 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
         fb_comment_id=comment_id,
         fb_post_id="",
         rule_id=None,
+        tenant_id=current_user._tenant_id,
     )
     db.add(reply)
     await db.commit()
@@ -1063,9 +1199,9 @@ async def cron_bot_cycle(request: Request):
 
 
 @app.get("/api/logs")
-async def get_logs(limit: int = Query(50), db=Depends(get_db), _=Depends(get_current_user)):
+async def get_logs(limit: int = Query(50), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     rows = await db.execute(
-        select(BotLog).order_by(desc(BotLog.created_at)).limit(limit)
+        select(BotLog).where(BotLog.tenant_id == current_user._tenant_id).order_by(desc(BotLog.created_at)).limit(limit)
     )
     return [{
         "level": r.level, "message": r.message,
@@ -1074,12 +1210,13 @@ async def get_logs(limit: int = Query(50), db=Depends(get_db), _=Depends(get_cur
 
 
 @app.post("/api/logs/clear")
-async def clear_logs(payload: dict = None, db=Depends(get_db), _=Depends(require_role("admin"))):
+async def clear_logs(payload: dict = None, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    _tid = current_user._tenant_id
     days = (payload or {}).get("days", 30)
     cutoff = utcnow() - timedelta(days=days)
-    result = await db.execute(select(func.count(BotLog.id)).where(BotLog.created_at < cutoff))
+    result = await db.execute(select(func.count(BotLog.id)).where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
     count = result.scalar() or 0
-    await db.execute(BotLog.__table__.delete().where(BotLog.created_at < cutoff))
+    await db.execute(BotLog.__table__.delete().where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
     await db.commit()
     return {"deleted": count}
 
@@ -1092,9 +1229,9 @@ if not WEBHOOK_APP_SECRET:
 
 
 @app.get("/api/webhook/events")
-async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), _=Depends(get_current_user)):
+async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     rows = await db.execute(
-        select(BotLog).where(BotLog.message.contains("webhook")).order_by(desc(BotLog.created_at)).limit(limit)
+        select(BotLog).where(BotLog.tenant_id == current_user._tenant_id, BotLog.message.contains("webhook")).order_by(desc(BotLog.created_at)).limit(limit)
     )
     return [{
         "id": r.id, "level": r.level, "message": r.message,
@@ -1509,27 +1646,26 @@ async def debug_fb_reply(
                 "3_update": m3,
                 "4_msg_sender_id": r4,
             },
-            "token_prefix": tok[:15] + "...",
             "page_id": page_id,
             "page_info": {"status": r5.status_code, "body": r5.text[:500]},
         }
 
 
 @app.get("/api/inbox/tags")
-async def inbox_list_tags(db=Depends(get_db), _=Depends(get_current_user)):
+async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """List all conversation tags."""
-    rows = await db.execute(select(ConversationTag))
+    rows = await db.execute(select(ConversationTag).where(ConversationTag.tenant_id == current_user._tenant_id))
     return [{"id": t.id, "name": t.name, "color": t.color} for t in rows.scalars().all()]
 
 
 @app.post("/api/inbox/tags")
 async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
-                           db=Depends(get_db), _=Depends(require_role("editor"))):
+                           db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     """Create a new tag."""
     existing = await db.execute(select(ConversationTag).where(ConversationTag.name == name))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم الوسم موجود مسبقاً")
-    tag = ConversationTag(name=name, color=color)
+    tag = ConversationTag(name=name, color=color, tenant_id=current_user._tenant_id)
     db.add(tag)
     await db.commit()
     await db.refresh(tag)
@@ -1634,8 +1770,9 @@ async def inbox_delete_note(note_id: int, db=Depends(get_db),
 # ── Reply Templates (Quick Replies) ──────────────────────────────────────────
 
 @app.get("/api/templates")
-async def list_templates(category: str = Query(""), db=Depends(get_db), _=Depends(get_current_user)):
-    stmt = select(ReplyTemplate)
+async def list_templates(category: str = Query(""), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
+    stmt = select(ReplyTemplate).where(ReplyTemplate.tenant_id == _tid)
     if category:
         stmt = stmt.where(ReplyTemplate.category == category)
     rows = await db.execute(stmt.order_by(ReplyTemplate.category, ReplyTemplate.name))
@@ -1645,8 +1782,8 @@ async def list_templates(category: str = Query(""), db=Depends(get_db), _=Depend
 
 @app.post("/api/templates")
 async def create_template(name: str = Form(...), text: str = Form(...), category: str = Form("general"),
-                          shortcut: str = Form(""), db=Depends(get_db), _=Depends(require_role("editor"))):
-    t = ReplyTemplate(name=name, text=text, category=category, shortcut=shortcut)
+                          shortcut: str = Form(""), db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    t = ReplyTemplate(name=name, text=text, category=category, shortcut=shortcut, tenant_id=current_user._tenant_id)
     db.add(t)
     await db.commit()
     await db.refresh(t)
@@ -1678,8 +1815,9 @@ async def delete_template(template_id: int, db=Depends(get_db), _=Depends(requir
 # ── Scheduled Posts ──────────────────────────────────────────────────────────
 
 @app.get("/api/scheduled-posts")
-async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), _=Depends(get_current_user)):
-    stmt = select(ScheduledPost)
+async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
+    stmt = select(ScheduledPost).where(ScheduledPost.tenant_id == _tid)
     if status:
         stmt = stmt.where(ScheduledPost.status == status)
     rows = await db.execute(stmt.order_by(desc(ScheduledPost.scheduled_at)))
@@ -1710,6 +1848,7 @@ async def create_scheduled_post(
         message=message, image_url=image_url, scheduled_at=sched,
         status="draft" if not sched else "scheduled",
         created_by=current_user.username or "",
+        tenant_id=current_user._tenant_id,
     )
     db.add(post)
     await db.commit()
@@ -1749,19 +1888,20 @@ async def delete_scheduled_post(post_id: int, db=Depends(get_db),
 # ── Advanced Analytics ───────────────────────────────────────────────────────
 
 @app.get("/api/analytics/overview")
-async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
+async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Aggregated analytics overview."""
+    _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=days)
 
-    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= cutoff)) or 0
+    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)) or 0
     today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == utcnow().date())
+        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == utcnow().date())
     ) or 0
 
     # Daily breakdown
     daily_rows = await db.execute(
         select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(cast(Reply.created_at, Date)).order_by(cast(Reply.created_at, Date))
     )
     daily = {str(row[0]): row[1] for row in daily_rows if row[0]}
@@ -1771,7 +1911,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
         select(func.extract("hour", Reply.created_at).label("h"),
                cast(Reply.created_at, Date).label("d"),
                func.count(Reply.id).label("cnt"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(text("h"), cast(Reply.created_at, Date))
     )
     heatmap = {}
@@ -1783,7 +1923,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
     # Top rules
     top_rules_rows = await db.execute(
         select(Reply.rule_id, func.count(Reply.id).label("cnt"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(Reply.rule_id).order_by(desc("cnt")).limit(10)
     )
     top_rules = [{"rule_id": int(r[0]), "count": r[1]} for r in top_rules_rows if r[0] is not None]
@@ -1793,7 +1933,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
     try:
         sent_rows = await db.execute(
             select(AISuggestion.sentiment, func.count(AISuggestion.id))
-            .where(AISuggestion.created_at >= cutoff)
+            .where(AISuggestion.tenant_id == _tid, AISuggestion.created_at >= cutoff)
             .group_by(AISuggestion.sentiment)
         )
         sentiment = {row[0]: row[1] for row in sent_rows}
@@ -1804,7 +1944,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
     peak_hour_rows = await db.execute(
         select(func.extract("hour", Reply.created_at).label("h"),
                func.count(Reply.id).label("cnt"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(text("h")).order_by(desc("cnt")).limit(1)
     )
     peak_hour = peak_hour_rows.first()
@@ -1829,11 +1969,12 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), _=Depend
 
 @app.get("/api/analytics/export")
 async def analytics_export(format: str = Query("csv"), days: int = Query(30),
-                           db=Depends(get_db), _=Depends(require_role("admin"))):
+                           db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     """Export replies as CSV or JSON."""
+    _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=days)
     rows = await db.execute(
-        select(Reply).where(Reply.created_at >= cutoff).order_by(desc(Reply.created_at))
+        select(Reply).where(Reply.tenant_id == _tid, Reply.created_at >= cutoff).order_by(desc(Reply.created_at))
     )
     items = [{
         "id": r.id, "commenter": r.commenter_name, "comment": r.comment_text,
@@ -1856,11 +1997,13 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
 
 
 @app.get("/api/analytics/scheduler-check")
-async def analytics_scheduler_check(db=Depends(get_db), _=Depends(get_current_user)):
+async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Check and publish overdue scheduled posts."""
+    _tid = current_user._tenant_id
     now = utcnow()
     due = await db.execute(
         select(ScheduledPost).where(
+            ScheduledPost.tenant_id == _tid,
             ScheduledPost.status == "scheduled",
             ScheduledPost.scheduled_at <= now,
         )
@@ -1886,13 +2029,14 @@ async def analytics_scheduler_check(db=Depends(get_db), _=Depends(get_current_us
 
 @app.get("/api/widgets/recent-activity")
 async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
-                                 _=Depends(get_current_user)):
+                                 current_user: User = Depends(get_current_user)):
     """Recent activity timeline for the dashboard."""
+    _tid = current_user._tenant_id
     recent_replies = await db.execute(
-        select(Reply).order_by(desc(Reply.created_at)).limit(limit)
+        select(Reply).where(Reply.tenant_id == _tid).order_by(desc(Reply.created_at)).limit(limit)
     )
     recent_logs = await db.execute(
-        select(BotLog).order_by(desc(BotLog.created_at)).limit(limit)
+        select(BotLog).where(BotLog.tenant_id == _tid).order_by(desc(BotLog.created_at)).limit(limit)
     )
     activities = []
     for r in recent_replies.scalars().all():
@@ -1910,10 +2054,10 @@ async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
 
 
 @app.get("/api/widgets/ai-insights")
-async def widget_ai_insights(db=Depends(get_db), _=Depends(get_current_user)):
+async def widget_ai_insights(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Dashboard widget: AI status & quick stats with template count."""
     ai = get_ai()
-    rows = await db.execute(select(func.count(ReplyTemplate.id)))
+    rows = await db.execute(select(func.count(ReplyTemplate.id)).where(ReplyTemplate.tenant_id == current_user._tenant_id))
     template_count = rows.scalar() or 0
     return {
         "ai_available": ai.available,
@@ -1923,12 +2067,13 @@ async def widget_ai_insights(db=Depends(get_db), _=Depends(get_current_user)):
 
 
 @app.get("/api/widgets/response-time")
-async def widget_response_time(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
+async def widget_response_time(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Average response time (mock — FB doesn't return timing, so we use reply count by hour as proxy)."""
+    _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=days)
     row = await db.execute(
         select(func.count(Reply.id).label("cnt"))
-        .where(Reply.created_at >= cutoff)
+        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
     )
     total = row.scalar() or 0
     return {
@@ -1939,13 +2084,14 @@ async def widget_response_time(days: int = Query(7), db=Depends(get_db), _=Depen
 
 
 @app.get("/api/widgets/sentiment-trend")
-async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
+async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Sentiment distribution over time."""
+    _tid = current_user._tenant_id
     from sqlalchemy import cast as sql_cast, Date
     cutoff = utcnow() - timedelta(days=days)
     rows = await db.execute(
         select(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date).label("d"), func.count(AISuggestion.id))
-        .where(AISuggestion.created_at >= cutoff)
+        .where(AISuggestion.tenant_id == _tid, AISuggestion.created_at >= cutoff)
         .group_by(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date))
         .order_by(sql_cast(AISuggestion.created_at, Date))
     )
@@ -1958,12 +2104,13 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Dep
 
 
 @app.get("/api/widgets/top-keywords")
-async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
+async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Most triggered rules (keywords proxy)."""
+    _tid = current_user._tenant_id
     try:
         agg_rows = await db.execute(
             select(Reply.rule_id, func.count(Reply.id).label("cnt"))
-            .where(Reply.rule_id.isnot(None))
+            .where(Reply.tenant_id == _tid, Reply.rule_id.isnot(None))
             .group_by(Reply.rule_id).order_by(desc("cnt")).limit(limit)
         )
         top = agg_rows.all()
@@ -1972,7 +2119,7 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depe
         rule_ids = [r.rule_id for r in top if r.rule_id is not None]
         rules_map = {}
         if rule_ids:
-            rule_rows = await db.execute(select(Rule).where(Rule.id.in_(rule_ids)))
+            rule_rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid, Rule.id.in_(rule_ids)))
             for r in rule_rows.scalars().all():
                 rules_map[r.id] = r
         count_map = {r.rule_id: r.cnt for r in top}
@@ -1990,9 +2137,9 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depe
 # ── Bot Health / Alerts ──────────────────────────────────────────────────────
 
 @app.get("/api/health/alerts")
-async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
+async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get bot health alerts."""
-    stmt = select(BotAlert)
+    stmt = select(BotAlert).where(BotAlert.tenant_id == current_user._tenant_id)
     if not resolved:
         stmt = stmt.where(BotAlert.resolved == False)
     rows = await db.execute(stmt.order_by(desc(BotAlert.created_at)).limit(20))
@@ -2015,13 +2162,14 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_rol
 
 
 @app.get("/api/health/bot-check")
-async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
+async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Run bot health checks and return status."""
+    _tid = current_user._tenant_id
     issues = []
 
     # 1. Check recent reply volume
     hour_ago = utcnow() - timedelta(hours=1)
-    recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
+    recent = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= hour_ago)) or 0
     if recent == 0:
         issues.append({"type": "no_replies", "severity": "warning", "message": "لا توجد ردود في آخر ساعة"})
 
@@ -2033,7 +2181,7 @@ async def health_bot_check(db=Depends(get_db), _=Depends(get_current_user)):
         issues.append({"type": "fb_token", "severity": "critical", "message": "فشل الاتصال بفيسبوك — تحقق من التوكن"})
 
     # 3. Check rules
-    rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+    rule_count = await db.scalar(select(func.count(Rule.id)).where(Rule.tenant_id == _tid)) or 0
     if rule_count == 0:
         issues.append({"type": "no_rules", "severity": "critical", "message": "لا توجد قواعد رد — البوت لن يعمل"})
 
@@ -2062,10 +2210,11 @@ async def websocket_endpoint(ws: WebSocket):
         await ws.close(code=4001, reason="Missing token")
         return
     try:
-        jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         await ws.close(code=4001, reason="Invalid or expired token")
         return
+    ws_tid = payload.get("tid", 0)
     await ws_manager.connect(ws)
     try:
         while True:
@@ -2075,11 +2224,11 @@ async def websocket_endpoint(ws: WebSocket):
             elif data == "stats":
                 try:
                     async with AsyncSessionLocal() as db:
-                        total = await db.scalar(select(func.count(Reply.id))) or 0
+                        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == ws_tid)) or 0
                         today_date = utcnow().date()
                         today = await db.scalar(
                             select(func.count(Reply.id))
-                            .where(cast(Reply.created_at, Date) == today_date)
+                            .where(Reply.tenant_id == ws_tid, cast(Reply.created_at, Date) == today_date)
                         ) or 0
                         await ws.send_text(json.dumps({
                             "event": "stats_update",
@@ -2216,8 +2365,8 @@ async def _process_webhook_comment(comment: dict, post_id: str):
 # ── FLOWS API ─────────────────────────────────────────────────────────────────
 
 @app.get("/api/flows")
-async def list_flows(db=Depends(get_db), _=Depends(get_current_user)):
-    rows = await db.execute(select(Flow).order_by(Flow.created_at.desc()))
+async def list_flows(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    rows = await db.execute(select(Flow).where(Flow.tenant_id == current_user._tenant_id).order_by(Flow.created_at.desc()))
     return [{
         "id": f.id, "name": f.name, "description": f.description,
         "status": f.status, "version": f.version, "total_replies": f.total_replies,
@@ -2227,13 +2376,14 @@ async def list_flows(db=Depends(get_db), _=Depends(get_current_user)):
 
 
 @app.post("/api/flows")
-async def create_flow(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def create_flow(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     flow = Flow(
         name=body["name"],
         description=body.get("description", ""),
         nodes=body.get("nodes", []),
         edges=body.get("edges", []),
+        tenant_id=current_user._tenant_id,
     )
     db.add(flow)
     await db.commit()
@@ -2317,11 +2467,12 @@ async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depend
 async def list_subscribers(
     search: str = Query(""), platform: str = Query(""), tag: str = Query(""),
     page: int = Query(1), per_page: int = Query(20),
-    db=Depends(get_db), _=Depends(get_current_user),
+    db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
     return await subscriber_engine.search(
         query=search, platform=platform, tag=tag,
         page=page, per_page=per_page, session=db,
+        tenant_id=current_user._tenant_id,
     )
 
 
@@ -2351,15 +2502,15 @@ async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), _=
 # ── TAGS API ──────────────────────────────────────────────────────────────────
 
 @app.get("/api/tags")
-async def list_tags(db=Depends(get_db), _=Depends(get_current_user)):
-    return await tag_engine.list_tags(db)
+async def list_tags(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await tag_engine.list_tags(db, tenant_id=current_user._tenant_id)
 
 
 @app.post("/api/tags")
-async def create_tag(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def create_tag(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     try:
-        result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db)
+        result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
         return result
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -2376,18 +2527,19 @@ async def delete_tag(tag_id: int, db=Depends(get_db), _=Depends(require_role("ad
 # ── SEQUENCES API ─────────────────────────────────────────────────────────────
 
 @app.get("/api/sequences")
-async def list_sequences(db=Depends(get_db), _=Depends(get_current_user)):
-    return await sequence_engine.list_sequences(db)
+async def list_sequences(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await sequence_engine.list_sequences(db, tenant_id=current_user._tenant_id)
 
 
 @app.post("/api/sequences")
-async def create_sequence(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def create_sequence(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     seq_id = await sequence_engine.create_sequence(
         name=body["name"],
         description=body.get("description", ""),
         created_by=body.get("created_by", ""),
         session=db,
+        tenant_id=current_user._tenant_id,
     )
     await db.commit()
     await db.refresh(await db.get(Sequence, seq_id))
@@ -2465,12 +2617,12 @@ async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db)
 # ── BROADCASTS API ────────────────────────────────────────────────────────────
 
 @app.get("/api/broadcasts")
-async def list_broadcasts(db=Depends(get_db), _=Depends(get_current_user)):
-    return await broadcast_engine.list_broadcasts(db)
+async def list_broadcasts(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id)
 
 
 @app.post("/api/broadcasts")
-async def create_broadcast(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def create_broadcast(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     bcast_id = await broadcast_engine.create_broadcast(
         name=body["name"],
@@ -2479,6 +2631,7 @@ async def create_broadcast(request: Request, db=Depends(get_db), _=Depends(requi
         segment_filters=body.get("segment_filters", {}),
         created_by="",
         session=db,
+        tenant_id=current_user._tenant_id,
     )
     return {"id": bcast_id}
 
@@ -2541,44 +2694,44 @@ async def estimate_broadcast_audience(request: Request, db=Depends(get_db), _=De
 # ── Analytics ──────────────────────────────────────────────────────────────────
 
 @app.get("/api/analytics/dashboard")
-async def analytics_dashboard(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_dashboard_overview(days, db)
+async def analytics_dashboard(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_dashboard_overview(days, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/daily-trend")
-async def analytics_daily_trend(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_daily_trend(days, db)
+async def analytics_daily_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_daily_trend(days, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/hourly-heatmap")
-async def analytics_hourly_heatmap(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_hourly_heatmap(days, db)
+async def analytics_hourly_heatmap(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_hourly_heatmap(days, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/top-rules")
-async def analytics_top_rules(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_top_rules(days, limit, db)
+async def analytics_top_rules(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_top_rules(days, limit, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/sentiment-trend")
-async def analytics_sentiment_trend(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_sentiment_trend(days, db)
+async def analytics_sentiment_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_sentiment_trend(days, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/peak-hour")
-async def analytics_peak_hour(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    peak = await analytics_engine.get_peak_hour(days, db)
+async def analytics_peak_hour(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    peak = await analytics_engine.get_peak_hour(days, db, tenant_id=current_user._tenant_id)
     return {"peak_hour": peak}
 
 
 @app.get("/api/analytics/top-commenters")
-async def analytics_top_commenters(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_top_commenters(days, limit, db)
+async def analytics_top_commenters(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_top_commenters(days, limit, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/analytics/period-comparison")
-async def analytics_period_comparison(days: int = Query(30), db=Depends(get_db), _=Depends(get_current_user)):
-    return await analytics_engine.get_period_comparison(days, db)
+async def analytics_period_comparison(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await analytics_engine.get_period_comparison(days, db, tenant_id=current_user._tenant_id)
 
 
 # ── Inbox ──────────────────────────────────────────────────────────────────────
@@ -2600,18 +2753,18 @@ async def inbox_all(search: str = Query(""), db=Depends(get_db), _=Depends(get_c
 
 @app.get("/api/calendar")
 async def calendar_list(year: int = Query(utcnow().year), month: int = Query(utcnow().month),
-                        db=Depends(get_db), _=Depends(get_current_user)):
-    return await content_calendar_engine.get_calendar_posts(year, month, db)
+                        db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await content_calendar_engine.get_calendar_posts(year, month, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/calendar/day")
 async def calendar_day(year: int = Query(...), month: int = Query(...), day: int = Query(...),
-                       db=Depends(get_db), _=Depends(get_current_user)):
-    return await content_calendar_engine.get_calendar_posts_by_date(year, month, day, db)
+                       db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await content_calendar_engine.get_calendar_posts_by_date(year, month, day, db, tenant_id=current_user._tenant_id)
 
 
 @app.post("/api/calendar")
-async def calendar_create(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def calendar_create(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     try:
         post_id = await content_calendar_engine.create_post(
@@ -2621,6 +2774,7 @@ async def calendar_create(request: Request, db=Depends(get_db), _=Depends(requir
             platform=body.get("platform", "facebook"),
             created_by="editor",
             session=db,
+            tenant_id=current_user._tenant_id,
         )
         return {"id": post_id}
     except ValueError as e:
@@ -2654,8 +2808,8 @@ async def calendar_publish(post_id: int, db=Depends(get_db), _=Depends(require_r
 
 @app.get("/api/calendar/month-summary")
 async def calendar_month_summary(year: int = Query(...), month: int = Query(...),
-                                 db=Depends(get_db), _=Depends(get_current_user)):
-    return await content_calendar_engine.get_month_summary(year, month, db)
+                                 db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await content_calendar_engine.get_month_summary(year, month, db, tenant_id=current_user._tenant_id)
 
 
 # ── Publisher (Multi-Platform) ──────────────────────────────────────────────────
@@ -2706,6 +2860,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",
             created_by=current_user.username or "",
+            tenant_id=current_user._tenant_id,
         )
         db.add(post)
         await db.commit()
@@ -2832,10 +2987,10 @@ async def generate_pdf_report(request: Request, _=Depends(require_role("editor")
 async def reports_create_schedule(
     report_type: str = Form("monthly"), email: str = Form(""),
     schedule: str = Form("monthly"), db=Depends(get_db),
-    _=Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin")),
 ):
     """Create a report schedule."""
-    rs = ReportSchedule(report_type=report_type, email=email, schedule=schedule, enabled=True)
+    rs = ReportSchedule(report_type=report_type, email=email, schedule=schedule, enabled=True, tenant_id=current_user._tenant_id)
     db.add(rs)
     await db.commit()
     await db.refresh(rs)
@@ -2843,9 +2998,9 @@ async def reports_create_schedule(
 
 
 @app.get("/api/reports/schedules")
-async def reports_list_schedules(db=Depends(get_db), _=Depends(get_current_user)):
+async def reports_list_schedules(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """List all report schedules."""
-    rows = await db.execute(select(ReportSchedule).order_by(ReportSchedule.created_at.desc()))
+    rows = await db.execute(select(ReportSchedule).where(ReportSchedule.tenant_id == current_user._tenant_id).order_by(ReportSchedule.created_at.desc()))
     return [{
         "id": r.id, "report_type": r.report_type, "email": r.email,
         "enabled": r.enabled, "schedule": r.schedule,
@@ -2869,8 +3024,9 @@ async def reports_delete_schedule(schedule_id: int, db=Depends(get_db), _=Depend
 
 
 @app.get("/api/offers")
-async def list_offers(active_only: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
-    stmt = select(Offer)
+async def list_offers(active_only: bool = Query(False), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    _tid = current_user._tenant_id
+    stmt = select(Offer).where(Offer.tenant_id == _tid)
     if active_only:
         stmt = stmt.where(Offer.is_active == True)
     rows = await db.execute(stmt.order_by(Offer.created_at.desc()))
@@ -2887,11 +3043,12 @@ async def list_offers(active_only: bool = Query(False), db=Depends(get_db), _=De
 async def create_offer(
     title: str = Form(...), code: str = Form(""), description: str = Form(""),
     discount_type: str = Form("percentage"), discount_value: int = Form(0),
-    expires_at: str = Form(""), db=Depends(get_db), _=Depends(require_role("admin")),
+    expires_at: str = Form(""), db=Depends(get_db), current_user: User = Depends(require_role("admin")),
 ):
     exp = datetime.fromisoformat(expires_at) if expires_at else None
     offer = Offer(title=title, code=code, description=description,
-                  discount_type=discount_type, discount_value=discount_value, expires_at=exp)
+                  discount_type=discount_type, discount_value=discount_value, expires_at=exp,
+                  tenant_id=current_user._tenant_id)
     db.add(offer)
     await db.commit()
     await db.refresh(offer)
@@ -3103,10 +3260,11 @@ async def update_brand(
 async def crm_list(
     stage: str = Query(""), search: str = Query(""),
     page: int = Query(1), per_page: int = Query(25),
-    db=Depends(get_db), _=Depends(get_current_user),
+    db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
     from models import Customer
-    stmt = select(Customer)
+    _tid = current_user._tenant_id
+    stmt = select(Customer).where(Customer.tenant_id == _tid)
     if stage:
         stmt = stmt.where(Customer.stage == stage)
     if search:
@@ -3137,14 +3295,14 @@ async def crm_create(
     fb_user_id: str = Form(...), name: str = Form(""),
     phone: str = Form(""), stage: str = Form("lead"),
     interested_in: str = Form(""),
-    db=Depends(get_db), _=Depends(require_role("editor")),
+    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     from models import Customer
     existing = await db.execute(select(Customer).where(Customer.fb_user_id == fb_user_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "العميل موجود بالفعل")
     c = Customer(fb_user_id=fb_user_id, name=name, phone=phone,
-                 stage=stage, interested_in=interested_in)
+                 stage=stage, interested_in=interested_in, tenant_id=current_user._tenant_id)
     db.add(c)
     await db.commit()
     return {"id": c.id}
@@ -3187,10 +3345,10 @@ async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), _=Depen
 async def create_alert(
     alert_type: str = Form(...), severity: str = Form("info"),
     message: str = Form(...), db=Depends(get_db),
-    _=Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin")),
 ):
     from models import BotAlert
-    alert = BotAlert(alert_type=alert_type, severity=severity, message=message)
+    alert = BotAlert(alert_type=alert_type, severity=severity, message=message, tenant_id=current_user._tenant_id)
     db.add(alert)
     await db.commit()
     # Broadcast via WebSocket

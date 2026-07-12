@@ -63,6 +63,7 @@ class SubscriberEngine:
         page: int = 1,
         per_page: int = 20,
         session=None,
+        tenant_id: int = 0,
     ) -> dict:
         """Search subscribers with pagination, platform/tag filters."""
         close = False
@@ -70,8 +71,8 @@ class SubscriberEngine:
             session = AsyncSessionLocal()
             close = True
         try:
-            base = select(Subscriber)
-            count_base = select(func.count(Subscriber.id))
+            base = select(Subscriber).where(Subscriber.tenant_id == tenant_id)
+            count_base = select(func.count(Subscriber.id)).where(Subscriber.tenant_id == tenant_id)
 
             # query filter — name, first_name, fb_user_id
             if query:
@@ -327,9 +328,9 @@ class SubscriberEngine:
 class TagEngine:
     """CRUD for subscriber tags."""
 
-    async def list_tags(self, session) -> list[dict]:
+    async def list_tags(self, session, tenant_id: int = 0) -> list[dict]:
         """All tags with subscriber count."""
-        r = await session.execute(select(Tag).order_by(Tag.name))
+        r = await session.execute(select(Tag).where(Tag.tenant_id == tenant_id).order_by(Tag.name))
         tags = r.scalars().all()
         result = []
         for t in tags:
@@ -348,12 +349,12 @@ class TagEngine:
             )
         return result
 
-    async def create_tag(self, name: str, color: str, session) -> dict:
+    async def create_tag(self, name: str, color: str, session, tenant_id: int = 0) -> dict:
         """Create a new tag. Returns dict or raises on duplicate."""
         existing = await session.execute(select(Tag).where(Tag.name == name))
         if existing.scalar_one_or_none():
             raise ValueError(f"Tag '{name}' already exists")
-        tag = Tag(name=name, color=color)
+        tag = Tag(name=name, color=color, tenant_id=tenant_id)
         session.add(tag)
         await session.commit()
         await session.refresh(tag)

@@ -122,8 +122,8 @@ class BroadcastEngine:
         log.info(f"Updated broadcast #{broadcast_id}")
         return True
 
-    async def estimate_audience(self, segment_filters: dict, platform_filter: dict, session) -> dict:
-        q = select(func.count(Subscriber.id)).where(Subscriber.status == "active")
+    async def estimate_audience(self, segment_filters: dict, platform_filter: dict, session, tenant_id: int = 0) -> dict:
+        q = select(func.count(Subscriber.id)).where(Subscriber.status == "active", Subscriber.tenant_id == tenant_id)
 
         # Platform filter
         platform = platform_filter.get("platform", "all")

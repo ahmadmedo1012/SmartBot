@@ -100,12 +100,12 @@ class PublisherEngine:
         self.x = XPublisher()
         self.linkedin = LinkedInPublisher()
 
-    def load_credentials(self, db_session):
+    def load_credentials(self, db_session, tenant_id: int = 0):
         """Load stored credentials from BotState. Pass None to skip DB load."""
         if db_session is None:
             return
         rows = db_session.execute(
-            select(BotState).where(BotState.key.like("publisher_%"))
+            select(BotState).where(BotState.tenant_id == tenant_id, BotState.key.like("publisher_%"))
         ).scalars().all()
         creds = {}
         for row in rows:
@@ -156,18 +156,18 @@ class PublisherEngine:
         }
         return templates.get(platform, [])
 
-    async def save_credentials(self, db_session, platform: str, data: dict) -> bool:
+    async def save_credentials(self, db_session, platform: str, data: dict, tenant_id: int = 0) -> bool:
         """Save platform credentials to BotState."""
         prefix = f"publisher_{platform}"
         for key, value in data.items():
             existing = await db_session.execute(
-                select(BotState).where(BotState.key == f"{prefix}_{key}")
+                select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == f"{prefix}_{key}")
             )
             row = existing.scalar_one_or_none()
             if row:
                 row.value = str(value)
             else:
-                db_session.add(BotState(key=f"{prefix}_{key}", value=str(value)))
+                db_session.add(BotState(tenant_id=tenant_id, key=f"{prefix}_{key}", value=str(value)))
         await db_session.commit()
         # Reload credentials
         self.load_credentials(db_session)

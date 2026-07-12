@@ -2277,7 +2277,17 @@ async def websocket_endpoint(ws: WebSocket):
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         await ws.close(code=4001, reason="Invalid or expired token")
         return
-    ws_tid = payload.get("tid", 0)
+    async with AsyncSessionLocal() as db:
+        user = await db.execute(select(User).where(User.username == payload["sub"]))
+        user = user.scalar_one_or_none()
+        if not user or not user.tenant_id or user.tenant_id != payload.get("tid", 0):
+            await ws.close(code=4001, reason="Invalid tenant")
+            return
+        tenant = await db.get(Tenant, user.tenant_id)
+        if not tenant or not tenant.is_active:
+            await ws.close(code=4001, reason="Tenant inactive")
+            return
+        ws_tid = user.tenant_id  # authoritative from DB
     await ws_manager.connect(ws)
     try:
         while True:
@@ -2339,12 +2349,15 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
 
 # ── Analytics Events (internal) ──────────────────────────────────────────────
 
-def _track_event(event_type: str, metadata: dict | None = None):
+def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int = 0):
     """Async-fire AnalyticsEvent (non-blocking)."""
     async def _write():
         try:
             async with AsyncSessionLocal() as s:
-                s.add(AnalyticsEvent(event_type=event_type, metadata_json=json.dumps(metadata or {}, ensure_ascii=False)))
+                ev = AnalyticsEvent(event_type=event_type, metadata_json=json.dumps(metadata or {}, ensure_ascii=False))
+                if tenant_id:
+                    ev.tenant_id = tenant_id
+                s.add(ev)
                 await s.commit()
         except Exception:
             pass

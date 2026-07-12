@@ -455,9 +455,83 @@ async def register(request: Request, username: str = Form(...), email: str = For
 
 # ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
 
+# ── Payment / Billing ────────────────────────────────────────────────────
+_pending_payments: dict[str, dict] = {}  # payment_id -> PaymentRequest dict
+
+@app.post("/api/payments/topup")
+async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    amount = body.get("amount", 0)
+    provider = body.get("provider", "")
+    phone = body.get("phone", "")
+    if amount < 1 or amount > 10000:
+        raise HTTPException(400, "المبلغ غير صالح (1-10000)")
+    if provider not in ("liyana", "madar"):
+        raise HTTPException(400, "مزود الدفع غير صالح")
+    if not phone or len(phone) < 7:
+        raise HTTPException(400, "رقم الهاتف غير صالح")
+    pid = hashlib.md5(f"{current_user._tenant_id}:{time.time()}:{amount}".encode()).hexdigest()[:12]
+    _pending_payments[pid] = {
+        "payment_id": pid, "tenant_id": current_user._tenant_id,
+        "amount": amount, "provider": provider, "phone": phone,
+        "status": "pending", "reference": "",
+        "created_at": utcnow().isoformat(),
+    }
+    instructions = (
+        f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
+        f"— بعد الإرسال، استخدم رقم الحوالة لتأكيد الدفع"
+    )
+    return {"payment_id": pid, "instructions": instructions}
+
+@app.post("/api/payments/confirm")
+async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    pid = body.get("payment_id", "")
+    ref = body.get("reference", "")
+    if not pid or not ref:
+        raise HTTPException(400, "معرف الدفع ورقم الحوالة مطلوبان")
+    pay = _pending_payments.get(pid)
+    if not pay or pay["tenant_id"] != current_user._tenant_id:
+        raise HTTPException(404, "الدفعة غير موجودة")
+    if pay["status"] != "pending":
+        raise HTTPException(400, "الدفعة تم تأكيدها مسبقاً")
+    pay["status"] = "confirmed"
+    pay["reference"] = ref
+    # Add balance via BotState
+    existing = await db.execute(
+        select(BotState).where(BotState.tenant_id == current_user._tenant_id, BotState.key == "balance")
+    )
+    bs = existing.scalar_one_or_none()
+    new_balance = (int(bs.value) if bs and bs.value else 0) + pay["amount"]
+    if bs:
+        bs.value = str(new_balance)
+    else:
+        db.add(BotState(tenant_id=current_user._tenant_id, key="balance", value=str(new_balance)))
+    await db.commit()
+    return {"ok": True, "balance": new_balance}
+
+@app.get("/api/payments/balance")
+async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    existing = await db.execute(
+        select(BotState).where(BotState.tenant_id == current_user._tenant_id, BotState.key == "balance")
+    )
+    bs = existing.scalar_one_or_none()
+    balance = int(bs.value) if bs and bs.value else 0
+    return {"balance": balance, "currency": "LYD"}
+
+@app.get("/api/payments/history")
+async def payment_history(_=Depends(get_current_user)):
+    tid = current_user._tenant_id
+    items = [p for p in _pending_payments.values() if p["tenant_id"] == tid]
+    items.sort(key=lambda p: p["created_at"], reverse=True)
+    return items
+
 @app.get("/api/me")
-async def get_me(current_user: User = Depends(get_current_user)):
-    return {"username": current_user.username, "role": current_user.role, "tenant_id": getattr(current_user, '_tenant_id', 0)}
+async def get_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    plan = "free"
+    if current_user.tenant_id:
+        tenant = await db.get(Tenant, current_user.tenant_id)
+        if tenant:
+            plan = tenant.plan or "free"
+    return {"username": current_user.username, "role": current_user.role, "tenant_id": getattr(current_user, '_tenant_id', 0), "plan": plan}
 
 
 

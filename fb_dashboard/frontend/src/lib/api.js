@@ -435,6 +435,20 @@ export function fetchPeriodComparison(days) {
   return api(`/api/analytics/period-comparison?days=${days}`);
 }
 
+// ── Payments / Billing ──
+export function fetchBalance() {
+  return api("/api/payments/balance");
+}
+export function topupBalance(amount, provider, phone) {
+  return api("/api/payments/topup", { method: "POST", body: JSON.stringify({ amount, provider, phone }) });
+}
+export function confirmPayment(paymentId, reference) {
+  return api("/api/payments/confirm", { method: "POST", body: JSON.stringify({ payment_id: paymentId, reference }) });
+}
+export function fetchPaymentHistory() {
+  return api("/api/payments/history");
+}
+
 // ── Content Calendar API ──
 export function fetchCalendarPosts(year, month) {
   return api(`/api/calendar?year=${year}&month=${month}`);

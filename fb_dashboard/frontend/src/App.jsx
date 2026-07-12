@@ -9,7 +9,7 @@ import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { Dashboard } from "@/pages/dashboard"
 
-const PAGES_GLOB = import.meta.glob("./pages/[a-cef-z]*.jsx", { eager: false })
+const PAGES_GLOB = import.meta.glob("./pages/[ab-cef-z]*.jsx", { eager: false })
 // ponytail: dashboard excluded from glob — statically imported as default fallback
 const EXPORT_OVERRIDES = { scheduled: "ScheduledPosts", calendar: "ContentCalendar" }
 

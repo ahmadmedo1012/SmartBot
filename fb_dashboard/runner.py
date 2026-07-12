@@ -256,7 +256,9 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS platform VARCHAR(20) DEFAULT 'facebook'",
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEFAULT ''",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(200) DEFAULT ''",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER DEFAULT NULL",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE",
             ]:
                 try:
                     await conn.execute(text(col_sql))
@@ -795,7 +797,7 @@ async def healthz():
 
 
 @app.get("/api/env")
-async def get_env(_=Depends(get_current_user)):
+async def get_env():
     version = "2.0.0"
     vf = BASE_DIR / "VERSION"
     if vf.exists():

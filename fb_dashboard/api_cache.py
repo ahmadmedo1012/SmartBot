@@ -9,6 +9,7 @@ _cache_locks: dict[str, asyncio.Lock] = {}
 _invalidate_on_write: set[str] = set()
 
 _cache_ttl: dict[str, int] = {}
+MAX_KEYS = 1000
 
 
 def _lock_for(key: str) -> asyncio.Lock:
@@ -67,6 +68,12 @@ class APICache:
 
                     result = await fn(*args, **kwargs)
                     _cache_store[key] = (now, json.dumps(result, default=str))
+                    if len(_cache_store) > MAX_KEYS:
+                        to_evict = sorted(_cache_store, key=lambda k: _cache_store[k][0])[:MAX_KEYS // 5]
+                        for k in to_evict:
+                            _cache_store.pop(k, None)
+                            _cache_locks.pop(k, None)
+                            _cache_ttl.pop(k, None)
                 return result
             return wrapper
         return decorator

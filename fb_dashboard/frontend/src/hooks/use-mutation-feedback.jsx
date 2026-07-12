@@ -14,6 +14,7 @@ import { toast } from "sonner"
 export function useMutationFeedback({ action, confirmTitle, confirmMessage: _confirmMsg, onSuccess, onError, successMsg } = {}) {
   const [loading, setLoading] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
 
   const execute = useCallback(async (skipConfirm = false) => {
     if (confirmTitle && !skipConfirm) {

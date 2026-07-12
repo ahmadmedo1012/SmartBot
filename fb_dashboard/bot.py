@@ -643,6 +643,7 @@ class BotEngine:
         self._diag = _get_diag()
         self._dedup_engine = None
         self._rule_cache = None
+        self._dm_map_cache = None
 
     async def _ensure_cache(self):
         if self._rule_cache is None:
@@ -679,11 +680,6 @@ class BotEngine:
                     return
 
                 dm_map = await self._load_dm_map()
-                matcher = IntentAwareMatcher(rules, dm_map)
-
-                # Seed dedup from DB
-                replied_ids = await self._load_replied_ids(session)
-                await self._dedup_engine.load(replied_ids)
 
                 # Fetch posts from FB
                 posts, _ = await self.fb.get_page_posts(10)
@@ -692,17 +688,15 @@ class BotEngine:
                                extra={"fetch_ms": f"{elapsed:.0f}"})
                 self._diag.record_cycle(elapsed)
 
-                # Reload dedup from DB (in case another instance added replies)
-                pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
-
                 total_replied = 0
                 for post in posts:
                     pid = post["id"]
                     if not await self._check_rate_limit(pid):
                         continue
                     comments = await self.fb.get_post_comments(pid)
+                    post["_comment_count"] = len(comments)
                     for c in comments:
-                        if await pipeline.process(session, c, pid, matcher):
+                        if await self._process_comment(session, c, pid):
                             total_replied += 1
                             self._mark_replied(pid)
 
@@ -730,12 +724,7 @@ class BotEngine:
                     pass
 
                 # Cycle end telemetry
-                total_comments = 0
-                for p_ in posts:
-                    try:
-                        total_comments += len(await self.fb.get_post_comments(p_["id"]))
-                    except Exception:
-                        pass
+                total_comments = sum(p_.get("_comment_count", 0) for p_ in posts)
                 cycle_ms = (time.time() - t_start) * 1000
                 self._mon.info(
                     f"Cycle #{self._cycle} done",
@@ -766,6 +755,18 @@ class BotEngine:
                 except Exception:
                     pass
 
+    async def _process_comment(self, session, comment: dict, post_id: str) -> bool:
+        """Shared setup + process: loads rules, seeds dedup, creates pipeline, processes one comment."""
+        rules = await self._rule_cache.get_rules()
+        if not rules:
+            return False
+        dm_map = await self._load_dm_map()
+        matcher = IntentAwareMatcher(rules, dm_map)
+        replied_ids = await self._load_replied_ids(session)
+        await self._dedup_engine.load(replied_ids)
+        pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
+        return await pipeline.process(session, comment, post_id, matcher)
+
     async def process_single_comment(self, comment: dict, post_id: str):
         """Process a single webhook comment without running a full cycle."""
         cid = comment.get("id", "")[:12]
@@ -774,16 +775,7 @@ class BotEngine:
         self._mon.info("webhook comment received", comment_id=cid, module="webhook")
         async with AsyncSessionLocal() as session:
             try:
-                rules = await self._rule_cache.get_rules()
-                if not rules:
-                    self._mon.debug("webhook: no rules", comment_id=cid, module="webhook")
-                    return
-                dm_map = await self._load_dm_map()
-                matcher = IntentAwareMatcher(rules, dm_map)
-                replied_ids = await self._load_replied_ids(session)
-                await self._dedup_engine.load(replied_ids)
-                pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
-                ok = await pipeline.process(session, comment, post_id, matcher)
+                ok = await self._process_comment(session, comment, post_id)
                 elapsed = (time.time() - t0) * 1000
                 self._mon.info(
                     f"webhook {'replied' if ok else 'skipped'}",
@@ -818,6 +810,8 @@ class BotEngine:
         return {row[0] for row in result}
 
     async def _load_dm_map(self) -> dict[str, str]:
+        if self._dm_map_cache is not None:
+            return self._dm_map_cache
         from pathlib import Path
         json_path = Path(__file__).resolve().parent / "facebook_automation.json"
         try:
@@ -829,6 +823,7 @@ class BotEngine:
                 if tmpl:
                     key = str(r["id"])
                     dm[key] = tmpl
+            self._dm_map_cache = dm
             return dm
         except Exception:
             return {}

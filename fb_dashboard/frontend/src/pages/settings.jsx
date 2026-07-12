@@ -57,7 +57,7 @@ function FacebookTab() {
             اتصال فيسبوك
           </div>
         </div>
-        <div className="fld" className="mb-8">
+        <div className="fld mb-8">
           <span className={`badge ${fbSettings?.connected ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
             <span className="stat-dot" style={{background:fbSettings?.connected ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
             {fbSettings?.connected ? "متصل" : "غير متصل"}
@@ -86,7 +86,7 @@ function FacebookTab() {
             الفحص كل: {status?.interval ?? 10} ث
           </span>
         </div>
-        <div className="fld" className="flex-center" style={{alignItems:"flex-end",gap:8}}>
+        <div className="fld flex-center" style={{alignItems:"flex-end",gap:8}}>
           <div style={{flex:1}}>
             <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>الفاصل الزمني (ثواني)</label>
             <input type="number" min={1} className="fld" value={newInterval} onChange={e => setNewInterval(e.target.value)} style={{width:"100%"}} />
@@ -422,7 +422,7 @@ export function Settings({ role }) {
             ) : (
               <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
                 {systemStats.map(s => (
-                  <div key={s.label} className="stat-card glass" className="card-inset">
+                  <div key={s.label} className="stat-card glass card-inset">
                     <div className="stat-label">{s.label}</div>
                     <div className="stat-value" style={{fontSize:18}}>{s.value}</div>
                   </div>

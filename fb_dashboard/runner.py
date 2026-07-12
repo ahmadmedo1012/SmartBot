@@ -225,7 +225,7 @@ async def _seed_dm_templates(db):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        async with engine.begin() as conn:
+        async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
             # Migration: add missing columns (safe — IF NOT EXISTS equivalent via try/except)
             for col_sql in [
@@ -239,6 +239,7 @@ async def lifespan(app: FastAPI):
                     await conn.execute(text(col_sql))
                 except Exception:
                     pass  # column already exists
+            await conn.commit()
         log.info("DB tables ready")
 
         async with AsyncSessionLocal() as session:
@@ -1012,31 +1013,27 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
     return {"ok": True, "interval": interval}
 
 
+_cron_lock = False  # ponytail: in-process mutex, not cross-instance; use Redis for multi-replica
+
 @app.get("/api/cron/bot-cycle")
 async def cron_bot_cycle(request: Request):
     """Vercel Cron: runs bot cycle. Auth via CRON_SECRET env var."""
     secret = os.getenv("CRON_SECRET")
     if secret and request.headers.get("authorization", "") != f"Bearer {secret}":
         raise HTTPException(401, "Unauthorized cron")
+    global _cron_lock
+    if _cron_lock:
+        return {"ok": False, "error": "cycle already running"}
+    _cron_lock = True
     try:
-        from monitor import StructuredLogger, LogEvent
-        # ponytail: hot-patch if deployed bytecode is stale
-        if not hasattr(StructuredLogger, 'error'):
-            def _patch(self, msg, **kw): self._emit(LogEvent("ERROR", msg, **kw))
-            def _info(self, msg, **kw): self._emit(LogEvent("INFO", msg, **kw))
-            def _warn(self, msg, **kw): self._emit(LogEvent("WARN", msg, **kw))
-            def _debug(self, msg, **kw): self._emit(LogEvent("DEBUG", msg, **kw))
-            StructuredLogger.error = _patch
-            StructuredLogger.info = _info
-            StructuredLogger.warn = _warn
-            StructuredLogger.debug = _debug
-        from bot import BotEngine
-        engine = BotEngine(fb)
+        engine = get_bot_engine()
         await engine.cycle()
         return {"ok": True, "cycle": "completed"}
     except Exception as e:
         log.error(f"Cron bot cycle error: {e}")
         return {"ok": False, "error": str(e)[:200]}
+    finally:
+        _cron_lock = False
 
 
 

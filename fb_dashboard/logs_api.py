@@ -38,33 +38,24 @@ async def realtime_logs(
     _=Depends(lambda: None),
 ):
     """SSE endpoint streaming log events as they happen."""
-    import queue
-
-    q: asyncio.Queue[dict] = asyncio.Queue()
-
-    original_emit = get_logger()._emit
-
-    async def bridge(event):
-        try:
-            await q.put(event.to_dict())
-        except Exception:
-            pass
-
-    # monkey-patch: bridge events to SSE queue
-    from monitor import StructuredLogger
+    from event_bus import event_bus
 
     async def sse_generator():
-        logger = get_logger()
-        logger._emit = bridge  # ponytail: replaces _emit; single-session, fine
+        q: asyncio.Queue[dict] = asyncio.Queue()
+
+        async def handler(data):
+            await q.put(data)
+
+        event_bus.subscribe("log_event", handler)
         try:
             while True:
                 try:
                     ev = await asyncio.wait_for(q.get(), timeout=30)
                     yield f"data: {json.dumps(ev, ensure_ascii=False, default=str)}\n\n"
                 except asyncio.TimeoutError:
-                    yield f"data: {json.dumps({'event': 'heartbeat'})}\n\n"
+                    yield "data: {\"event\":\"heartbeat\"}\n\n"
         finally:
-            logger._emit = original_emit
+            event_bus.unsubscribe("log_event", handler)
 
     return StreamingResponse(
         sse_generator(),

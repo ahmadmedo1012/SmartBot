@@ -350,10 +350,16 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 async def _run_bot_loop():
-    engine = get_bot_engine()
     while True:
         try:
-            await engine.cycle()
+            async with AsyncSessionLocal() as db:
+                tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
+            for tenant in tenants.scalars().all():
+                fb = await get_tenant_fb_client(tenant.id)
+                if not fb:
+                    continue
+                engine = get_bot_engine(fb, tenant_id=tenant.id)
+                await engine.cycle()
         except Exception as e:
             log.error(f"Bot loop err: {e}")
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
@@ -2075,7 +2081,7 @@ async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Dep
         if platform == "facebook":
             result = await fb.post_to_page(post.message)
         else:
-            _publisher.load_credentials(db)
+            _publisher.load_credentials(db, tenant_id=_tid)
             result = await _publisher.publish_to_platform(platform, post.message, post.image_url)
         if result:
             post.status = "published"
@@ -2771,12 +2777,13 @@ async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User
 
 
 @app.post("/api/broadcasts/estimate")
-async def estimate_broadcast_audience(request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def estimate_broadcast_audience(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     result = await broadcast_engine.estimate_audience(
         segment_filters=body.get("segment_filters", {}),
         platform_filter=body.get("platform_filter", {}),
         session=db,
+        tenant_id=current_user._tenant_id,
     )
     return {"count": result["count"]}
 
@@ -2909,8 +2916,8 @@ async def calendar_month_summary(year: int = Query(...), month: int = Query(...)
 # ── Publisher (Multi-Platform) ──────────────────────────────────────────────────
 
 @app.get("/api/publisher/status")
-async def publisher_status(_=Depends(get_current_user)):
-    _publisher.load_credentials(None)
+async def publisher_status(current_user: User = Depends(get_current_user)):
+    _publisher.load_credentials(None, tenant_id=current_user._tenant_id)
     return _publisher.get_status()
 
 
@@ -2924,12 +2931,12 @@ async def publisher_settings(platform: str, _=Depends(get_current_user)):
 
 @app.post("/api/publisher/configure")
 async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
-                               _=Depends(require_role("admin"))):
+                               current_user: User = Depends(require_role("admin"))):
     platform = data.get("platform", "")
     creds = data.get("credentials", {})
     if not platform or not creds:
         raise HTTPException(400, "platform and credentials required")
-    ok = await _publisher.save_credentials(db, platform, creds)
+    ok = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)
     return {"ok": ok, "platform": platform}
 
 
@@ -2949,7 +2956,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             sched = datetime.fromisoformat(scheduled_at)
         except ValueError:
             raise HTTPException(400, "Invalid date format — use ISO 8601")
-        _publisher.load_credentials(db)
+        _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",
@@ -2970,7 +2977,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         _track_event("post_published", {"platform": "facebook"})
         return {"platform": "facebook", "post_id": fb_post_id, "status": "published"}
     else:
-        _publisher.load_credentials(db)
+        _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         result = await _publisher.publish_to_platform(platform, message, image_url)
         if not result:
             raise HTTPException(400, f"فشل النشر على {_publisher.get_platform_display_name(platform)}")
@@ -2981,18 +2988,18 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
 # ── Team ───────────────────────────────────────────────────────────────────────
 
 @app.get("/api/team/members")
-async def team_members(db=Depends(get_db), _=Depends(require_role("admin"))):
-    return await team_engine.get_team_members(db)
+async def team_members(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    return await team_engine.get_team_members(db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/team/activity")
-async def team_activity(days: int = Query(7), db=Depends(get_db), _=Depends(get_current_user)):
-    return await team_engine.get_team_activity(days, db)
+async def team_activity(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await team_engine.get_team_activity(days, db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/team/performance")
-async def team_performance(db=Depends(get_db), _=Depends(require_role("admin"))):
-    return await team_engine.get_team_performance(db)
+async def team_performance(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    return await team_engine.get_team_performance(db, tenant_id=current_user._tenant_id)
 
 
 @app.get("/api/team/role-summary")

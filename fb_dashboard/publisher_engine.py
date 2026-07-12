@@ -170,7 +170,7 @@ class PublisherEngine:
                 db_session.add(BotState(tenant_id=tenant_id, key=f"{prefix}_{key}", value=str(value)))
         await db_session.commit()
         # Reload credentials
-        self.load_credentials(db_session)
+        self.load_credentials(db_session, tenant_id=tenant_id)
         return True
 
     @staticmethod

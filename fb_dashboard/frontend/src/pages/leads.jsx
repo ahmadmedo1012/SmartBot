@@ -19,18 +19,18 @@ export function Leads() {
   const converted = customers.filter(c => c.stage === "active").length
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-leads" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>العملاء المتوقعون</h1>
         <p>قائمة العملاء المحتملين من الصفحات</p>
       </div>
       <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
-        <div className="stat-card glass" data-od-id="leads-total"><div className="stat-label">إجمالي</div><div className="stat-value">{total}</div></div>
-        <div className="stat-card glass" data-od-id="leads-new"><div className="stat-label">جديد هذا الأسبوع</div><div className="stat-value" style={{ color: "var(--accent)" }}>{newThisWeek}</div></div>
-        <div className="stat-card glass" data-od-id="leads-converted"><div className="stat-label">تم التحويل</div><div className="stat-value" style={{ color: "var(--success)" }}>{converted}</div></div>
+        <div className="stat-card glass"><div className="stat-label">إجمالي</div><div className="stat-value">{total}</div></div>
+        <div className="stat-card glass"><div className="stat-label">جديد هذا الأسبوع</div><div className="stat-value" style={{ color: "var(--accent)" }}>{newThisWeek}</div></div>
+        <div className="stat-card glass"><div className="stat-label">تم التحويل</div><div className="stat-value" style={{ color: "var(--success)" }}>{converted}</div></div>
       </div>
-      <div className="card glass table-wrap" data-od-id="card-leads-table">
+      <div className="card glass table-wrap">
         <table>
           <thead><tr><th>الاسم</th><th>الهاتف</th><th>المصدر</th><th>الحالة</th></tr></thead>
           <tbody>

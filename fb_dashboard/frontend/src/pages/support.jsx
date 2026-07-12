@@ -24,7 +24,7 @@ export function Support() {
   const isLoading = diagLoading || alertsLoading
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-support" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الدعم الفني</h1>
@@ -37,19 +37,19 @@ export function Support() {
         </div>
       ) : (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          <div className="stat-card glass" data-od-id="support-system">
+          <div className="stat-card glass">
             <div className="stat-label">حالة النظام</div>
             <div className="stat-value" style={{color:"var(--success)",fontSize:18}}>
               {diag?.system?.python ? "متصل" : "—"}
             </div>
             <div className="stat-change">بايثون {diag?.system?.python || "—"}</div>
           </div>
-          <div className="stat-card glass" data-od-id="support-cycles">
+          <div className="stat-card glass">
             <div className="stat-label">دورات البوت</div>
             <div className="stat-value" style={{color:"var(--accent)"}}>{diag?.cycles?.count || 0}</div>
             <div className="stat-change">آخر دورة: {diag?.cycles?.last_ms || 0}ms</div>
           </div>
-          <div className="stat-card glass" data-od-id="support-errors">
+          <div className="stat-card glass">
             <div className="stat-label">معدل الأخطاء</div>
             <div className="stat-value" style={{color: (diag?.errors?.rate_pct || 0) > 5 ? "var(--danger)" : "var(--success)"}}>
               {diag?.errors?.rate_pct || 0}%

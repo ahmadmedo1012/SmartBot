@@ -87,7 +87,7 @@ function Composer({ onBack, queryClient }) {
   const steps = [{ label: "معلومات أساسية" }, { label: "تصفية الجمهور" }, { label: "الرسالة" }, { label: "مراجعة" }]
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-broadcast-composer" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header"><h1>بث جماعي جديد</h1></div>
 
@@ -257,7 +257,7 @@ function BroadcastDetail({ broadcastId, onBack }) {
   const pendPct = total ? Math.round(((b.pending_count || 0) / total) * 100) : 0
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-broadcast-detail" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="qactions" style={{marginBlockEnd:16}}>
         <button className="btn btn-outline" onClick={onBack}>
@@ -371,7 +371,7 @@ export function Broadcast({ role }) {
   if (view === "detail" && selectedId) return <BroadcastDetail broadcastId={selectedId} onBack={() => { setView("list"); setSelectedId(null) }} />
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-broadcast" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>البث الجماعي</h1>

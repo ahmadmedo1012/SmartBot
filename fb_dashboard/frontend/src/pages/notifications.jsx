@@ -30,7 +30,7 @@ export function Notifications() {
   const { notifications, markAllRead } = useNotifications()
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-notifications" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الإشعارات</h1>
@@ -42,7 +42,7 @@ export function Notifications() {
           تحديد الكل كمقروء
         </button>
       </div>
-      <div className="content-card glass stagger-children" data-od-id="card-notifications-list">
+      <div className="content-card glass stagger-children">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -54,7 +54,7 @@ export function Notifications() {
         ) : (
           <div className="activity-list">
             {notifications.map(n => (
-              <div className="activity-item" key={n.id} data-od-id={`notification-${n.id}`}>
+              <div className="activity-item" key={n.id}>
                 <div className="activity-dot" style={{ background: TYPE_COLORS[n.type] || "var(--info)" }} />
                 <div className="activity-text">
                   <strong style={{ fontWeight: 600 }}>

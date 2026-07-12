@@ -10,7 +10,7 @@ export function Billing() {
   })
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-billing" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>إحصائيات النظام</h1>
@@ -29,22 +29,22 @@ export function Billing() {
         <div className="empty-state" role="status"><p>لا توجد إحصائيات متاحة بعد</p></div>
       ) : (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          <div className="stat-card glass" data-od-id="billing-replies">
+          <div className="stat-card glass">
             <div className="stat-label">إجمالي الردود</div>
             <div className="stat-value" style={{fontSize:20,color:"var(--accent)"}}>{stats.reply_count?.toLocaleString() || 0}</div>
           </div>
-          <div className="stat-card glass" data-od-id="billing-rules">
+          <div className="stat-card glass">
             <div className="stat-label">قواعد الرد</div>
             <div className="stat-value" style={{fontSize:20,color:"var(--success)"}}>{stats.rule_count || 0}</div>
           </div>
-          <div className="stat-card glass" data-od-id="billing-users">
+          <div className="stat-card glass">
             <div className="stat-label">المستخدمون</div>
             <div className="stat-value" style={{fontSize:20}}>{stats.user_count || 0}</div>
           </div>
         </div>
       )}
 
-      <div className="card glass table-wrap" data-od-id="card-billing-table" style={{marginBlockStart:16}}>
+      <div className="card glass table-wrap" style={{marginBlockStart:16}}>
         <table>
           <thead><tr><th>الخاصية</th><th>القيمة</th></tr></thead>
           <tbody>

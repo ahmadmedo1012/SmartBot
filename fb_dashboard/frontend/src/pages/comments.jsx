@@ -154,7 +154,7 @@ export function Comments({ role }) {
   }, [confirmAction])
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-comments" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>مركز التعليقات</h1>
@@ -188,7 +188,7 @@ export function Comments({ role }) {
         ) : (
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
             {filtered.map(c => (
-              <div key={c.id} className="stat-card glass card-border-accent" data-od-id={`comment-${c.id}`}>
+              <div key={c.id} className="stat-card glass card-border-accent">
               <div className="person-row">
                 <div className="person-avatar" style={{background:`hsl(${c.from_name?.length * 37 || 0},55%,45%)`}}>
                   {getInitials(c.from_name)}

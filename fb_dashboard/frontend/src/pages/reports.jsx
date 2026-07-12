@@ -69,7 +69,7 @@ export function Reports() {
   const allReplies = repliesRes?.items || []
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-reports" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>التقارير</h1>

@@ -26,7 +26,7 @@ export function Audience() {
   }, [])
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-audience" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الجمهور</h1>

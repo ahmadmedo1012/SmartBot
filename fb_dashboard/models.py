@@ -1,5 +1,5 @@
 from _utils import utcnow
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -25,6 +25,7 @@ class Rule(Base):
 
 class Reply(Base):
     __tablename__ = "replies"
+    __table_args__ = (Index("ix_reply_rule_created", "rule_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     fb_comment_id = Column(String(100), nullable=False, unique=True)
@@ -38,6 +39,7 @@ class Reply(Base):
 
 class BotLog(Base):
     __tablename__ = "bot_logs"
+    __table_args__ = (Index("ix_botlog_level_created", "level", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     level = Column(String(20), default="INFO")
@@ -116,6 +118,7 @@ class ConversationLabel(Base):
 class ScheduledPost(Base):
     """Scheduled posts for any platform."""
     __tablename__ = "scheduled_posts"
+    __table_args__ = (Index("ix_schedpost_status_sched", "status", "scheduled_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     message = Column(Text, nullable=False)
@@ -158,6 +161,7 @@ class BotAlert(Base):
 class Offer(Base):
     """Special offers and coupons for customer engagement."""
     __tablename__ = "offers"
+    __table_args__ = (Index("ix_offer_active_expires", "is_active", "expires_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=False)
@@ -394,6 +398,7 @@ class BrandConfig(Base):
 class Customer(Base):
     """CRM — customers and leads from social interactions."""
     __tablename__ = "customers"
+    __table_args__ = (Index("ix_customer_stage_contacted", "stage", "last_contacted_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     fb_user_id = Column(String(100), unique=True, nullable=False)

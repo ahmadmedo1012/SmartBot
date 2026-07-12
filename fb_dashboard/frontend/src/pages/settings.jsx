@@ -103,7 +103,17 @@ function FacebookTab() {
 }
 
 export function Settings({ role }) {
-  useEffect(() => { document.title = "الإعدادات | SmartBot" }, [])
+  useEffect(() => {
+    document.title = "الإعدادات | SmartBot"
+    const saved = localStorage.getItem("theme")
+    if (saved === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark")
+      document.documentElement.style.colorScheme = "dark"
+    } else {
+      document.documentElement.removeAttribute("data-theme")
+      document.documentElement.style.colorScheme = "light"
+    }
+  }, [])
   const queryClient = useQueryClient()
   const [tab, setTab] = useState("bot")
   const [newInterval, setNewInterval] = useState("")
@@ -185,7 +195,7 @@ export function Settings({ role }) {
   ]
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-settings" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الإعدادات</h1>
@@ -370,12 +380,12 @@ export function Settings({ role }) {
             <div className="fld">
               <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>اختر نمط العرض:</p>
               <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-                <button onClick={() => { document.documentElement.style.colorScheme = "light"; document.documentElement.removeAttribute("data-theme") }}
+                <button onClick={() => { document.documentElement.style.colorScheme = "light"; document.documentElement.removeAttribute("data-theme"); localStorage.setItem("theme", "light") }}
                   style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                   <span style={{fontSize:12}}>فاتح</span>
                 </button>
-                <button onClick={() => { document.documentElement.style.colorScheme = "dark"; document.documentElement.setAttribute("data-theme", "dark") }}
+                <button onClick={() => { document.documentElement.style.colorScheme = "dark"; document.documentElement.setAttribute("data-theme", "dark"); localStorage.setItem("theme", "dark") }}
                   style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                   <span style={{fontSize:12}}>داكن</span>

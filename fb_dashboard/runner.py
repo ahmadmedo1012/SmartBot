@@ -1932,19 +1932,17 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Dep
 async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
     """Most triggered rules (keywords proxy)."""
     rows = (await db.execute(
-        select(Reply.rule_id, func.count(Reply.id).label("cnt"))
+        select(Reply.rule_id, Rule.name, Rule.keywords, func.count(Reply.id).label("cnt"))
+        .join(Rule, Reply.rule_id == Rule.id, isouter=True)
         .where(Reply.rule_id.isnot(None))
-        .group_by(Reply.rule_id).order_by(desc("cnt")).limit(limit)
+        .group_by(Reply.rule_id, Rule.name, Rule.keywords)
+        .order_by(desc("cnt")).limit(limit)
     )).all()
-    if not rows:
-        return []
-    r_rows = await db.execute(select(Rule).where(Rule.id.in_([r.rule_id for r in rows])))
-    rules_map = {r.id: r for r in r_rows.scalars().all()}
     return [{
         "rule_id": row.rule_id,
-        "rule_name": rules_map[row.rule_id].name if row.rule_id in rules_map else f"#{row.rule_id}",
+        "rule_name": row.name or f"#{row.rule_id}",
         "count": row.cnt,
-        "keywords": rules_map[row.rule_id].keywords[:3] if row.rule_id in rules_map and rules_map[row.rule_id].keywords else [],
+        "keywords": (row.keywords or [])[:3],
     } for row in rows if row.rule_id is not None]
 
 

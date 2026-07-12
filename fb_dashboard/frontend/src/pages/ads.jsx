@@ -25,7 +25,7 @@ export function Ads({ role }) {
 
   if (!isAdmin) {
     return (
-      <section className="page active" dir="rtl" data-od-id="page-ads" style={{position:"relative"}}>
+      <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
         <div className="page-header"><h1>الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
         <div className="content-card glass" style={{textAlign:"center",padding:40}}>
@@ -36,7 +36,7 @@ export function Ads({ role }) {
   }
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-ads" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الإعلانات</h1>

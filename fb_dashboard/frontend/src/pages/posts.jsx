@@ -47,7 +47,7 @@ export function Posts({ role }) {
   })
 
   return (
-    <section className="page active" dir="rtl" data-od-id="page-posts" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>المنشورات</h1>

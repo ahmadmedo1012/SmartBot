@@ -273,10 +273,11 @@ async def lifespan(app: FastAPI):
             global _bot_task
             _bot_task = asyncio.create_task(_run_bot_loop())
             log.info("Bot started in background")
-        _seq_scheduler = SequenceScheduler(sequence_engine)
-        asyncio.create_task(_seq_scheduler.start())
-        _calendar_scheduler = CalendarScheduler(content_calendar_engine)
-        asyncio.create_task(_calendar_scheduler.start())
+        if not _IS_VERCEL:
+            _seq_scheduler = SequenceScheduler(sequence_engine)
+            asyncio.create_task(_seq_scheduler.start())
+            _calendar_scheduler = CalendarScheduler(content_calendar_engine)
+            asyncio.create_task(_calendar_scheduler.start())
 
         # Bridge event bus → WebSocket
         async def _ws_bridge(data):
@@ -1310,6 +1311,16 @@ async def cron_bot_cycle(request: Request):
                 tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
             results = []
             for tenant in tenants.scalars().all():
+                # ponytail: balance check — skip tenant if balance ≤ 0 (BotState key="balance")
+                async with AsyncSessionLocal() as db2:
+                    bs = await db2.execute(
+                        select(BotState).where(BotState.tenant_id == tenant.id, BotState.key == "balance")
+                    )
+                    bs = bs.scalar_one_or_none()
+                    balance = int(bs.value) if bs and bs.value else 0
+                if balance <= 0:
+                    results.append({"tenant_id": tenant.id, "status": "skipped", "reason": "no_balance"})
+                    continue
                 fb_cli = await get_tenant_fb_client(tenant.id)
                 if not fb_cli:
                     continue

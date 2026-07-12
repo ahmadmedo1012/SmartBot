@@ -524,7 +524,6 @@ async def static_cache_middleware(request: Request, call_next):
 
 # ── Dashboard Bundle Endpoint ──────────────────────────────────────────────────
 @app.get("/api/dashboard/bundle")
-@api_cache.cached(ttl=5)
 async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
     # ponytail: bot cycle removed from dashboard — use cron or manual trigger instead

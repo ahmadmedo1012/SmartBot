@@ -185,7 +185,11 @@ async def get_current_user(request: Request, db=Depends(get_db)):
     user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(401, "User not found")
-    user._tenant_id = payload.get("tid", 0)
+    if user.tenant_id:
+        tenant = await db.get(Tenant, user.tenant_id)
+        if not tenant or not tenant.is_active:
+            raise HTTPException(403, "Tenant account is inactive or deleted")
+    user._tenant_id = user.tenant_id or 0  # JWT tid is advisory only — authoritative source is DB
     return user
 
 
@@ -452,20 +456,22 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 
 @app.get("/api/users")
-async def list_users(db=Depends(get_db), _=Depends(require_role("admin"))):
-    rows = await db.execute(select(User).order_by(User.id))
+async def list_users(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    rows = await db.execute(
+        select(User).where(User.tenant_id == current_user._tenant_id).order_by(User.id)
+    )
     return [{"id": u.id, "username": u.username, "role": u.role, "created_at": u.created_at.isoformat() if u.created_at else None}
             for u in rows.scalars().all()]
 
 
 @app.post("/api/users")
 async def create_user(username: str = Form(...), password: str = Form(...), role: str = Form("viewer"),
-                      db=Depends(get_db), _=Depends(require_role("admin"))):
-    existing = await db.execute(select(User).where(User.username == username))
+                      db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    existing = await db.execute(select(User).where(User.username == username, User.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Username exists")
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    user = User(username=username, password_hash=pw_hash, role=role)
+    user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
     db.add(user)
     await db.commit()
     await db.refresh(user)
@@ -474,8 +480,10 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
 
 @app.put("/api/users/{user_id}")
 async def update_user(user_id: int, role: str = Form(...), password: str = Form(""),
-                      db=Depends(get_db), _=Depends(require_role("admin"))):
-    user = await db.get(User, user_id)
+                      db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    user = (await db.execute(
+        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
     user.role = role
@@ -487,7 +495,9 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
 
 @app.delete("/api/users/{user_id}")
 async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = await db.get(User, user_id)
+    user = (await db.execute(
+        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not user:
         raise HTTPException(404, "User not found")
     if user.id == current_user.id:
@@ -894,7 +904,9 @@ async def update_rule(
     dm_template: str = Form(""),
     db=Depends(get_db), _=Depends(require_role("editor")),
 ):
-    rule = await db.get(Rule, rule_id)
+    rule = (await db.execute(
+        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not rule:
         raise HTTPException(404, "Rule not found")
     rule.name = name
@@ -907,8 +919,10 @@ async def update_rule(
 
 
 @app.delete("/api/rules/{rule_id}")
-async def delete_rule(rule_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    rule = await db.get(Rule, rule_id)
+async def delete_rule(rule_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    rule = (await db.execute(
+        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not rule:
         raise HTTPException(404, "Rule not found")
     await db.delete(rule)
@@ -917,8 +931,10 @@ async def delete_rule(rule_id: int, db=Depends(get_db), _=Depends(require_role("
 
 
 @app.post("/api/rules/{rule_id}/toggle")
-async def toggle_rule(rule_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    rule = await db.get(Rule, rule_id)
+async def toggle_rule(rule_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    rule = (await db.execute(
+        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not rule:
         raise HTTPException(404, "Rule not found")
     rule.enabled = not rule.enabled
@@ -1702,8 +1718,10 @@ async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
 
 
 @app.delete("/api/inbox/tags/{tag_id}")
-async def inbox_delete_tag(tag_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    tag = await db.get(ConversationTag, tag_id)
+async def inbox_delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    tag = (await db.execute(
+        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not tag:
         raise HTTPException(404, "الوسم غير موجود")
     await db.execute(ConversationLabel.__table__.delete().where(ConversationLabel.tag_id == tag_id))
@@ -1716,7 +1734,9 @@ async def inbox_delete_tag(tag_id: int, db=Depends(get_db), _=Depends(require_ro
 async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
                            db=Depends(get_db), _=Depends(require_role("editor"))):
     """Assign a tag to a conversation."""
-    tag = await db.get(ConversationTag, tag_id)
+    tag = (await db.execute(
+        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not tag:
         raise HTTPException(404, "الوسم غير موجود")
     existing = await db.execute(
@@ -1742,9 +1762,11 @@ async def inbox_remove_tag(conv_id: str, tag_id: int,
 
 @app.post("/api/inbox/conversations/{conv_id}/assign")
 async def inbox_assign_user(conv_id: str, user_id: int = Form(...),
-                             db=Depends(get_db), current_user=Depends(require_role("editor"))):
+                             db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     """Assign a user to a conversation."""
-    user = await db.get(User, user_id)
+    user = (await db.execute(
+        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not user:
         raise HTTPException(404, "المستخدم غير موجود")
     await inbox_engine.assign_user(conv_id, user_id, db)
@@ -1785,9 +1807,11 @@ async def inbox_create_note(conv_id: str, content: str = Form(...),
 
 @app.delete("/api/inbox/notes/{note_id}")
 async def inbox_delete_note(note_id: int, db=Depends(get_db),
-                             current_user=Depends(require_role("editor"))):
+                             current_user: User = Depends(require_role("editor"))):
     """Delete a note."""
-    note = await db.get(ConversationNote, note_id)
+    note = (await db.execute(
+        select(ConversationNote).where(ConversationNote.id == note_id, ConversationNote.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not note:
         raise HTTPException(404, "الملاحظة غير موجودة")
     if current_user.role != "admin" and note.created_by != current_user.username:
@@ -1822,8 +1846,10 @@ async def create_template(name: str = Form(...), text: str = Form(...), category
 @app.put("/api/templates/{template_id}")
 async def update_template(template_id: int, name: str = Form(...), text: str = Form(...),
                           category: str = Form("general"), shortcut: str = Form(""),
-                          db=Depends(get_db), _=Depends(require_role("editor"))):
-    t = await db.get(ReplyTemplate, template_id)
+                          db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    t = (await db.execute(
+        select(ReplyTemplate).where(ReplyTemplate.id == template_id, ReplyTemplate.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not t:
         raise HTTPException(404, "القالب غير موجود")
     t.name = name; t.text = text; t.category = category; t.shortcut = shortcut
@@ -1832,8 +1858,10 @@ async def update_template(template_id: int, name: str = Form(...), text: str = F
 
 
 @app.delete("/api/templates/{template_id}")
-async def delete_template(template_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    t = await db.get(ReplyTemplate, template_id)
+async def delete_template(template_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    t = (await db.execute(
+        select(ReplyTemplate).where(ReplyTemplate.id == template_id, ReplyTemplate.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not t:
         raise HTTPException(404, "القالب غير موجود")
     await db.delete(t)
@@ -1887,9 +1915,11 @@ async def create_scheduled_post(
 
 @app.post("/api/scheduled-posts/{post_id}/publish")
 async def publish_scheduled_post(post_id: int, db=Depends(get_db),
-                                 _=Depends(require_role("editor"))):
+                                 current_user: User = Depends(require_role("editor"))):
     """Publish a scheduled post immediately or at its scheduled time."""
-    post = await db.get(ScheduledPost, post_id)
+    post = (await db.execute(
+        select(ScheduledPost).where(ScheduledPost.id == post_id, ScheduledPost.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not post:
         raise HTTPException(404, "المنشور غير موجود")
     result = await fb.post_to_page(post.message)
@@ -1905,8 +1935,10 @@ async def publish_scheduled_post(post_id: int, db=Depends(get_db),
 
 @app.delete("/api/scheduled-posts/{post_id}")
 async def delete_scheduled_post(post_id: int, db=Depends(get_db),
-                                _=Depends(require_role("editor"))):
-    post = await db.get(ScheduledPost, post_id)
+                                current_user: User = Depends(require_role("editor"))):
+    post = (await db.execute(
+        select(ScheduledPost).where(ScheduledPost.id == post_id, ScheduledPost.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not post:
         raise HTTPException(404, "المنشور غير موجود")
     await db.delete(post)
@@ -2180,8 +2212,10 @@ async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), curr
 
 
 @app.post("/api/health/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    alert = await db.get(BotAlert, alert_id)
+async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    alert = (await db.execute(
+        select(BotAlert).where(BotAlert.id == alert_id, BotAlert.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not alert:
         raise HTTPException(404, "Alert not found")
     alert.resolved = True
@@ -2421,8 +2455,10 @@ async def create_flow(request: Request, db=Depends(get_db), current_user: User =
 
 
 @app.get("/api/flows/{flow_id}")
-async def get_flow(flow_id: int, db=Depends(get_db), _=Depends(get_current_user)):
-    flow = await db.get(Flow, flow_id)
+async def get_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    flow = (await db.execute(
+        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
     return {
@@ -2438,8 +2474,10 @@ async def get_flow(flow_id: int, db=Depends(get_db), _=Depends(get_current_user)
 
 
 @app.put("/api/flows/{flow_id}")
-async def update_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
-    flow = await db.get(Flow, flow_id)
+async def update_flow(flow_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    flow = (await db.execute(
+        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
     body = await request.json()
@@ -2451,8 +2489,10 @@ async def update_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depe
 
 
 @app.delete("/api/flows/{flow_id}")
-async def delete_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    flow = await db.get(Flow, flow_id)
+async def delete_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    flow = (await db.execute(
+        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
     await db.execute(FlowExecution.__table__.delete().where(FlowExecution.flow_id == flow_id))
@@ -2464,8 +2504,10 @@ async def delete_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("
 ST_CYCLE = {"draft": "active", "active": "paused", "paused": "active"}
 
 @app.post("/api/flows/{flow_id}/toggle")
-async def toggle_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    flow = await db.get(Flow, flow_id)
+async def toggle_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    flow = (await db.execute(
+        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
     flow.status = ST_CYCLE.get(flow.status, "active")
@@ -2476,7 +2518,9 @@ async def toggle_flow(flow_id: int, db=Depends(get_db), _=Depends(require_role("
 @app.post("/api/flows/{flow_id}/test")
 async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
     body = await request.json()
-    flow = await db.get(Flow, flow_id)
+    flow = (await db.execute(
+        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
     from flow_engine import FlowContext
@@ -2506,23 +2550,23 @@ async def list_subscribers(
 
 
 @app.get("/api/subscribers/{sub_id}")
-async def get_subscriber(sub_id: int, db=Depends(get_db), _=Depends(get_current_user)):
-    detail = await subscriber_engine.get_detail(sub_id, db)
+async def get_subscriber(sub_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    detail = await subscriber_engine.get_detail(sub_id, db, tenant_id=current_user._tenant_id)
     if not detail:
         raise HTTPException(404, "Subscriber not found")
     return detail
 
 
 @app.post("/api/subscribers/{sub_id}/tags")
-async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    ok = await subscriber_engine.add_tag(sub_id, body["tag_id"], db)
+    ok = await subscriber_engine.add_tag(sub_id, body["tag_id"], db, tenant_id=current_user._tenant_id)
     return {"ok": ok}
 
 
 @app.delete("/api/subscribers/{sub_id}/tags/{tag_id}")
-async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await subscriber_engine.remove_tag(sub_id, tag_id, db)
+async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await subscriber_engine.remove_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Tag not assigned to subscriber")
     return {"ok": True}
@@ -2546,8 +2590,8 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
 
 
 @app.delete("/api/tags/{tag_id}")
-async def delete_tag(tag_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    ok = await tag_engine.delete_tag(tag_id, db)
+async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    ok = await tag_engine.delete_tag(tag_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Tag not found")
     return {"ok": True}
@@ -2576,17 +2620,17 @@ async def create_sequence(request: Request, db=Depends(get_db), current_user: Us
 
 
 @app.get("/api/sequences/{seq_id}")
-async def get_sequence(seq_id: int, db=Depends(get_db), _=Depends(get_current_user)):
-    seq = await sequence_engine.get_sequence(seq_id, db)
+async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    seq = await sequence_engine.get_sequence(seq_id, db, tenant_id=current_user._tenant_id)
     if not seq:
         raise HTTPException(404, "Sequence not found")
     return seq
 
 
 @app.put("/api/sequences/{seq_id}")
-async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    ok = await sequence_engine.update_sequence(seq_id, body, db)
+    ok = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Sequence not found")
     await db.commit()
@@ -2594,8 +2638,8 @@ async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), _=D
 
 
 @app.delete("/api/sequences/{seq_id}")
-async def delete_sequence(seq_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await sequence_engine.delete_sequence(seq_id, db)
+async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Sequence not found")
     await db.commit()
@@ -2603,17 +2647,17 @@ async def delete_sequence(seq_id: int, db=Depends(get_db), _=Depends(require_rol
 
 
 @app.post("/api/sequences/{seq_id}/steps")
-async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    step_id = await sequence_engine.add_step(seq_id, body, db)
+    step_id = await sequence_engine.add_step(seq_id, body, db, tenant_id=current_user._tenant_id)
     await db.commit()
     return {"id": step_id}
 
 
 @app.put("/api/sequences/steps/{step_id}")
-async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    ok = await sequence_engine.update_step(step_id, body, db)
+    ok = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Step not found")
     await db.commit()
@@ -2621,8 +2665,8 @@ async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db
 
 
 @app.delete("/api/sequences/steps/{step_id}")
-async def delete_sequence_step(step_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await sequence_engine.delete_step(step_id, db)
+async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Step not found")
     await db.commit()
@@ -2630,15 +2674,15 @@ async def delete_sequence_step(step_id: int, db=Depends(get_db), _=Depends(requi
 
 
 @app.post("/api/sequences/{seq_id}/subscribe/{sub_id}")
-async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await sequence_engine.subscribe(sub_id, seq_id, db)
+async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await sequence_engine.subscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
     await db.commit()
     return {"ok": ok}
 
 
 @app.post("/api/sequences/{seq_id}/unsubscribe/{sub_id}")
-async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await sequence_engine.unsubscribe(sub_id, seq_id, db)
+async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await sequence_engine.unsubscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
     await db.commit()
     return {"ok": ok}
 
@@ -2666,25 +2710,27 @@ async def create_broadcast(request: Request, db=Depends(get_db), current_user: U
 
 
 @app.get("/api/broadcasts/{bcast_id}")
-async def get_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(get_current_user)):
-    bcast = await broadcast_engine.get_broadcast(bcast_id, db)
+async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    bcast = await broadcast_engine.get_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not bcast:
         raise HTTPException(404, "Broadcast not found")
     return bcast
 
 
 @app.put("/api/broadcasts/{bcast_id}")
-async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    ok = await broadcast_engine.update_broadcast(bcast_id, body, db)
+    ok = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Broadcast not found")
     return {"ok": True}
 
 
 @app.post("/api/broadcasts/{bcast_id}/send")
-async def send_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    bcast = await db.get(Broadcast, bcast_id)
+async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    bcast = (await db.execute(
+        select(Broadcast).where(Broadcast.id == bcast_id, Broadcast.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not bcast:
         raise HTTPException(404, "Broadcast not found")
     if bcast.status != "draft":
@@ -2698,8 +2744,8 @@ async def send_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(require_ro
 
 
 @app.post("/api/broadcasts/{bcast_id}/cancel")
-async def cancel_broadcast(bcast_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    ok = await broadcast_engine.cancel_broadcast(bcast_id, db)
+async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    ok = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(400, "Broadcast not found or not cancellable")
     return {"ok": True}
@@ -2811,25 +2857,25 @@ async def calendar_create(request: Request, db=Depends(get_db), current_user: Us
 
 
 @app.put("/api/calendar/{post_id}")
-async def calendar_update(post_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def calendar_update(post_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     data = await request.json()
-    ok = await content_calendar_engine.update_post(post_id, data, db)
+    ok = await content_calendar_engine.update_post(post_id, data, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Post not found")
     return {"ok": True}
 
 
 @app.delete("/api/calendar/{post_id}")
-async def calendar_delete(post_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await content_calendar_engine.delete_post(post_id, db)
+async def calendar_delete(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await content_calendar_engine.delete_post(post_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Post not found")
     return {"ok": True}
 
 
 @app.post("/api/calendar/{post_id}/publish")
-async def calendar_publish(post_id: int, db=Depends(get_db), _=Depends(require_role("editor"))):
-    ok = await content_calendar_engine.publish_post(post_id, db)
+async def calendar_publish(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    ok = await content_calendar_engine.publish_post(post_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Post not found or publish failed")
     return {"ok": True}
@@ -3039,9 +3085,11 @@ async def reports_list_schedules(db=Depends(get_db), current_user: User = Depend
 
 
 @app.delete("/api/reports/schedules/{schedule_id}")
-async def reports_delete_schedule(schedule_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+async def reports_delete_schedule(schedule_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     """Delete a report schedule."""
-    rs = await db.get(ReportSchedule, schedule_id)
+    rs = (await db.execute(
+        select(ReportSchedule).where(ReportSchedule.id == schedule_id, ReportSchedule.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not rs:
         raise HTTPException(404, "الجدول غير موجود")
     await db.delete(rs)
@@ -3085,8 +3133,10 @@ async def create_offer(
 
 
 @app.post("/api/offers/{offer_id}/toggle")
-async def toggle_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    offer = await db.get(Offer, offer_id)
+async def toggle_offer(offer_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    offer = (await db.execute(
+        select(Offer).where(Offer.id == offer_id, Offer.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not offer: raise HTTPException(404, "العرض غير موجود")
     offer.is_active = not offer.is_active
     await db.commit()
@@ -3094,8 +3144,10 @@ async def toggle_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role
 
 
 @app.delete("/api/offers/{offer_id}")
-async def delete_offer(offer_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
-    offer = await db.get(Offer, offer_id)
+async def delete_offer(offer_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    offer = (await db.execute(
+        select(Offer).where(Offer.id == offer_id, Offer.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not offer: raise HTTPException(404, "العرض غير موجود")
     await db.delete(offer)
     await db.commit()
@@ -3187,9 +3239,33 @@ async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(requi
     return {"original": comment_text, "normalized": normalized, "classification": classification}
 
 
+@app.delete("/api/admin/tenants/{tenant_id}")
+async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    """GDPR-compliant tenant deletion. Deletes all tenant-scoped data."""
+    tenant = await db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant not found")
+
+    tables = [
+        SequenceSubscription, SequenceStep, BroadcastRecipient, SubscriberTag,
+        Subscriber, Tag, FlowExecution, ConversationLabel, ConversationNote, ConversationAssignee,
+        Customer, OfferClaim, Offer, ScheduledPost, AISuggestion, ReplyTemplate,
+        Reply, BotLog, BotState, BrandConfig, Rule, AnalyticsEvent, BotAlert,
+    ]
+    for table in tables:
+        await db.execute(table.__table__.delete().where(table.tenant_id == tenant_id))
+
+    await db.execute(User.__table__.delete().where(User.tenant_id == tenant_id))
+    await db.delete(tenant)
+    await db.commit()
+    return {"ok": True, "deleted_tenant_id": tenant_id}
+
+
 @app.post("/api/admin/rules/{rule_id}/priority")
-async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(get_db), _=Depends(require_role("admin"))):
-    rule = await db.get(Rule, rule_id)
+async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    rule = (await db.execute(
+        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not rule: raise HTTPException(404, "Rule not found")
     rule.priority = max(0, min(9999, priority))
     await db.commit()
@@ -3341,10 +3417,12 @@ async def crm_create(
 async def crm_update(
     customer_id: int, name: str = Form(""), phone: str = Form(""),
     stage: str = Form(""), notes: str = Form(""), interested_in: str = Form(""),
-    db=Depends(get_db), _=Depends(require_role("editor")),
+    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     from models import Customer
-    c = await db.get(Customer, customer_id)
+    c = (await db.execute(
+        select(Customer).where(Customer.id == customer_id, Customer.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not c:
         raise HTTPException(404, "العميل غير موجود")
     if name: c.name = name
@@ -3359,9 +3437,9 @@ async def crm_update(
 # ── Alerts / Notifications ───────────────────────────────────────────────
 
 @app.get("/api/alerts")
-async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), _=Depends(get_current_user)):
+async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from models import BotAlert
-    stmt = select(BotAlert).where(BotAlert.resolved == resolved).order_by(desc(BotAlert.created_at)).limit(20)
+    stmt = select(BotAlert).where(BotAlert.tenant_id == current_user._tenant_id, BotAlert.resolved == resolved).order_by(desc(BotAlert.created_at)).limit(20)
     rows = await db.execute(stmt)
     return [{
         "id": a.id, "type": a.alert_type, "severity": a.severity,
@@ -3392,9 +3470,11 @@ async def create_alert(
 
 
 @app.post("/api/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_role("admin"))):
+async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     from models import BotAlert
-    a = await db.get(BotAlert, alert_id)
+    a = (await db.execute(
+        select(BotAlert).where(BotAlert.id == alert_id, BotAlert.tenant_id == current_user._tenant_id)
+    )).scalar_one_or_none()
     if not a:
         raise HTTPException(404, "التنبيه غير موجود")
     a.resolved = True

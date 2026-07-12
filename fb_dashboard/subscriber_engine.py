@@ -145,11 +145,12 @@ class SubscriberEngine:
             if close:
                 await session.close()
 
-    async def get_detail(self, subscriber_id: int, session) -> dict | None:
+    async def get_detail(self, subscriber_id: int, session, tenant_id: int = 0) -> dict | None:
         """Full subscriber detail with tags, recent replies, active sequences."""
-        r = await session.execute(
-            select(Subscriber).where(Subscriber.id == subscriber_id)
-        )
+        stmt = select(Subscriber).where(Subscriber.id == subscriber_id)
+        if tenant_id:
+            stmt = stmt.where(Subscriber.tenant_id == tenant_id)
+        r = await session.execute(stmt)
         sub = r.scalar_one_or_none()
         if not sub:
             return None
@@ -216,7 +217,7 @@ class SubscriberEngine:
             "active_sequences": sequences,
         }
 
-    async def add_tag(self, subscriber_id: int, tag_id: int, session) -> bool:
+    async def add_tag(self, subscriber_id: int, tag_id: int, session, tenant_id: int = 0) -> bool:
         """Assign tag to subscriber. Returns True on success or if already exists."""
         try:
             st = SubscriberTag(subscriber_id=subscriber_id, tag_id=tag_id)
@@ -231,7 +232,7 @@ class SubscriberEngine:
             log.exception("add_tag failed")
             return False
 
-    async def remove_tag(self, subscriber_id: int, tag_id: int, session) -> bool:
+    async def remove_tag(self, subscriber_id: int, tag_id: int, session, tenant_id: int = 0) -> bool:
         """Remove tag from subscriber. Returns False if not found."""
         r = await session.execute(
             select(SubscriberTag).where(
@@ -365,12 +366,15 @@ class TagEngine:
             "subscriber_count": 0,
         }
 
-    async def delete_tag(self, tag_id: int, session) -> bool:
+    async def delete_tag(self, tag_id: int, session, tenant_id: int = 0) -> bool:
         """Delete tag and all its SubscriberTag entries."""
+        where_tag = [Tag.id == tag_id]
+        if tenant_id:
+            where_tag.append(Tag.tenant_id == tenant_id)
         await session.execute(
             delete(SubscriberTag).where(SubscriberTag.tag_id == tag_id)
         )
-        r = await session.execute(select(Tag).where(Tag.id == tag_id))
+        r = await session.execute(select(Tag).where(*where_tag))
         tag = r.scalar_one_or_none()
         if not tag:
             return False

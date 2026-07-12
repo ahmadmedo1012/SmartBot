@@ -64,10 +64,11 @@ class BroadcastEngine:
             for b in rows
         ]
 
-    async def get_broadcast(self, broadcast_id: int, session) -> dict | None:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def get_broadcast(self, broadcast_id: int, session, tenant_id: int = 0) -> dict | None:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b:
             return None
@@ -105,10 +106,11 @@ class BroadcastEngine:
             counts[status] = cnt
         return counts
 
-    async def update_broadcast(self, broadcast_id: int, data: dict, session) -> bool:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def update_broadcast(self, broadcast_id: int, data: dict, session, tenant_id: int = 0) -> bool:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b:
             return False
@@ -358,10 +360,11 @@ class BroadcastEngine:
             await session.commit()
             return False
 
-    async def cancel_broadcast(self, broadcast_id: int, session) -> bool:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def cancel_broadcast(self, broadcast_id: int, session, tenant_id: int = 0) -> bool:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b or b.status not in ("draft", "sending"):
             return False

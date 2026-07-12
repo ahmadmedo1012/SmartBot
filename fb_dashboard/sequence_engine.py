@@ -22,9 +22,12 @@ class SequenceEngine:
     def __init__(self, fb: FBClient):
         self.fb = fb
 
-    async def get_sequence(self, seq_id: int, session) -> dict | None:
+    async def get_sequence(self, seq_id: int, session, tenant_id: int = 0) -> dict | None:
         """Load sequence by ID with all steps. Return None if not found."""
-        seq = await session.get(Sequence, seq_id)
+        stmt = select(Sequence).where(Sequence.id == seq_id)
+        if tenant_id:
+            stmt = stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(stmt)).scalar_one_or_none()
         if not seq:
             return None
         result = await session.execute(
@@ -107,11 +110,14 @@ class SequenceEngine:
         return seq.id  # type: ignore[return-value]
 
     async def update_sequence(
-        self, seq_id: int, data: dict, session
+        self, seq_id: int, data: dict, session, tenant_id: int = 0
     ) -> bool:
         """Update sequence fields (name, description, status).
         Return True if found/updated."""
-        seq = await session.get(Sequence, seq_id)
+        stmt = select(Sequence).where(Sequence.id == seq_id)
+        if tenant_id:
+            stmt = stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(stmt)).scalar_one_or_none()
         if not seq:
             return False
         for key in ("name", "description", "status"):
@@ -119,17 +125,26 @@ class SequenceEngine:
                 setattr(seq, key, data[key])
         return True
 
-    async def delete_sequence(self, seq_id: int, session) -> bool:
+    async def delete_sequence(self, seq_id: int, session, tenant_id: int = 0) -> bool:
         """Delete sequence and all related steps + subscriptions.
         Steps cascade via FK ondelete=CASCADE. Return True if deleted."""
-        seq = await session.get(Sequence, seq_id)
+        stmt = select(Sequence).where(Sequence.id == seq_id)
+        if tenant_id:
+            stmt = stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(stmt)).scalar_one_or_none()
         if not seq:
             return False
         await session.delete(seq)
         return True
 
-    async def add_step(self, seq_id: int, step_data: dict, session) -> int:
+    async def add_step(self, seq_id: int, step_data: dict, session, tenant_id: int = 0) -> int:
         """Create a SequenceStep from step_data. Return new step ID."""
+        # Verify sequence belongs to tenant
+        if tenant_id:
+            stmt = select(Sequence).where(Sequence.id == seq_id, Sequence.tenant_id == tenant_id)
+            seq = (await session.execute(stmt)).scalar_one_or_none()
+            if not seq:
+                return 0
         step = SequenceStep(
             sequence_id=seq_id,
             step_order=step_data.get("step_order", 0),
@@ -143,9 +158,12 @@ class SequenceEngine:
         await session.flush()
         return step.id  # type: ignore[return-value]
 
-    async def update_step(self, step_id: int, data: dict, session) -> bool:
+    async def update_step(self, step_id: int, data: dict, session, tenant_id: int = 0) -> bool:
         """Update step fields. Return True if found."""
-        step = await session.get(SequenceStep, step_id)
+        stmt = select(SequenceStep).where(SequenceStep.id == step_id)
+        if tenant_id:
+            stmt = stmt.where(SequenceStep.tenant_id == tenant_id)
+        step = (await session.execute(stmt)).scalar_one_or_none()
         if not step:
             return False
         for key in (
@@ -160,16 +178,19 @@ class SequenceEngine:
                 setattr(step, key, data[key])
         return True
 
-    async def delete_step(self, step_id: int, session) -> bool:
+    async def delete_step(self, step_id: int, session, tenant_id: int = 0) -> bool:
         """Delete a step. Return True if deleted."""
-        step = await session.get(SequenceStep, step_id)
+        stmt = select(SequenceStep).where(SequenceStep.id == step_id)
+        if tenant_id:
+            stmt = stmt.where(SequenceStep.tenant_id == tenant_id)
+        step = (await session.execute(stmt)).scalar_one_or_none()
         if not step:
             return False
         await session.delete(step)
         return True
 
     async def subscribe(
-        self, subscriber_id: int, sequence_id: int, session
+        self, subscriber_id: int, sequence_id: int, session, tenant_id: int = 0
     ) -> bool:
         """Subscribe a user to a sequence at step 0.
         Return False if already subscribed (duplicate)."""
@@ -182,7 +203,10 @@ class SequenceEngine:
             )
             session.add(sub)
             await session.flush()
-            seq = await session.get(Sequence, sequence_id)
+            stmt = select(Sequence).where(Sequence.id == sequence_id)
+            if tenant_id:
+                stmt = stmt.where(Sequence.tenant_id == tenant_id)
+            seq = (await session.execute(stmt)).scalar_one_or_none()
             if seq:
                 seq.total_subscribers += 1
             return True
@@ -191,7 +215,7 @@ class SequenceEngine:
             return False
 
     async def unsubscribe(
-        self, subscriber_id: int, sequence_id: int, session
+        self, subscriber_id: int, sequence_id: int, session, tenant_id: int = 0
     ) -> bool:
         """Unsubscribe a user from a sequence."""
         result = await session.execute(
@@ -205,7 +229,10 @@ class SequenceEngine:
             return False
         sub.status = "unsubscribed"
         sub.completed_at = datetime.now(timezone.utc)
-        seq = await session.get(Sequence, sequence_id)
+        stmt = select(Sequence).where(Sequence.id == sequence_id)
+        if tenant_id:
+            stmt = stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(stmt)).scalar_one_or_none()
         if seq and seq.total_subscribers > 0:
             seq.total_subscribers -= 1
         return True

@@ -527,101 +527,105 @@ async def static_cache_middleware(request: Request, call_next):
 async def dashboard_bundle(db=Depends(get_db), _=Depends(get_current_user)):
     """Returns ALL dashboard data in one request. Reduces 7 API calls → 1."""
     # ponytail: bot cycle removed from dashboard — use cron or manual trigger instead
-    now = utcnow()
-    today = now.date()
-
-    # Stats — merged queries
-    total_replies = await db.scalar(select(func.count(Reply.id))) or 0
-    today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
-    ) or 0
-
-    # Chart data — single query
-    chart_rows = await db.execute(
-        select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
-        .where(Reply.created_at >= now - timedelta(days=7))
-        .group_by(cast(Reply.created_at, Date))
-    )
-    chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
-
-    # Fan count (cached internally by FBClient so no issue calling it)
-    fan_count = 0
     try:
-        fan_count = await fb.get_page_fan_count()
-    except Exception:
-        pass
+        now = utcnow()
+        today = now.date()
 
-    # Top rule
-    top = None
-    try:
-        stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
-        top = (await db.execute(stmt)).first()
-    except Exception:
-        pass
+        # Stats — merged queries
+        total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+        today_replies = await db.scalar(
+            select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+        ) or 0
 
-    # Rules — just count + enabled count for dashboard
-    rule_rows = await db.execute(select(Rule))
-    all_rules = rule_rows.scalars().all()
-    rules = [{
-        "id": r.id, "name": r.name, "enabled": r.enabled,
-    } for r in all_rules]
-    rules_count = len(all_rules)
-    active_rules_count = sum(1 for r in all_rules if r.enabled)
+        # Chart data — single query
+        chart_rows = await db.execute(
+            select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
+            .where(Reply.created_at >= now - timedelta(days=7))
+            .group_by(cast(Reply.created_at, Date))
+        )
+        chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
 
-    # Bot status
-    running = _bot_task is not None and not _bot_task.done()
+        # Fan count (cached internally by FBClient so no issue calling it)
+        fan_count = 0
+        try:
+            fan_count = await fb.get_page_fan_count()
+        except Exception:
+            pass
 
-    # AI status
-    ai = get_ai()
+        # Top rule
+        top = None
+        try:
+            stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
+            top = (await db.execute(stmt)).first()
+        except Exception:
+            pass
 
-    # Recent activity — last 8 entries
-    recent_replies_rows = await db.execute(
-        select(Reply).order_by(desc(Reply.created_at)).limit(8)
-    )
-    recent_logs_rows = await db.execute(
-        select(BotLog).order_by(desc(BotLog.created_at)).limit(8)
-    )
-    activities = []
-    for r in recent_replies_rows.scalars().all():
-        activities.append({
-            "type": "reply", "text": f"رد على {r.commenter_name}",
-            "detail": r.reply_text[:60], "time": r.created_at.isoformat() if r.created_at else None,
-        })
-    for l in recent_logs_rows.scalars().all():
-        activities.append({
-            "type": "log", "level": l.level, "text": l.message[:100],
-            "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
-        })
-    activities.sort(key=lambda a: a.get("time", ""), reverse=True)
-    activities = activities[:8]
+        # Rules — just count + enabled count for dashboard
+        rule_rows = await db.execute(select(Rule))
+        all_rules = rule_rows.scalars().all()
+        rules = [{
+            "id": r.id, "name": r.name, "enabled": r.enabled,
+        } for r in all_rules]
+        rules_count = len(all_rules)
+        active_rules_count = sum(1 for r in all_rules if r.enabled)
 
-    # Recent replies — last 5
-    recent_replies_data = await db.execute(
-        select(Reply).order_by(desc(Reply.created_at)).limit(5)
-    )
-    recent_replies = [{
-        "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
-        "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
-        "rule_id": r.rule_id,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
-    } for r in recent_replies_data.scalars().all()]
+        # Bot status
+        running = _bot_task is not None and not _bot_task.done()
 
-    return {
-        "stats": {
-            "total_replies": total_replies,
-            "today_replies": today_replies,
-            "fan_count": fan_count,
-            "top_rule_id": int(top[0]) if top and top[0] is not None else None,
-            "chart": chart,
-        },
-        "rules": rules,
-        "rules_count": rules_count,
-        "active_rules_count": active_rules_count,
-        "bot_status": {"running": running, "interval": settings.BOT_INTERVAL_SECONDS},
-        "ai_status": {"available": ai.available, "provider": ai.provider_name},
-        "recent_activity": activities,
-        "recent_replies": recent_replies,
-    }
+        # AI status
+        ai = get_ai()
+
+        # Recent activity — last 8 entries
+        recent_replies_rows = await db.execute(
+            select(Reply).order_by(desc(Reply.created_at)).limit(8)
+        )
+        recent_logs_rows = await db.execute(
+            select(BotLog).order_by(desc(BotLog.created_at)).limit(8)
+        )
+        activities = []
+        for r in recent_replies_rows.scalars().all():
+            activities.append({
+                "type": "reply", "text": f"رد على {r.commenter_name}",
+                "detail": r.reply_text[:60], "time": r.created_at.isoformat() if r.created_at else None,
+            })
+        for l in recent_logs_rows.scalars().all():
+            activities.append({
+                "type": "log", "level": l.level, "text": l.message[:100],
+                "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
+            })
+        activities.sort(key=lambda a: a.get("time", ""), reverse=True)
+        activities = activities[:8]
+
+        # Recent replies — last 5
+        recent_replies_data = await db.execute(
+            select(Reply).order_by(desc(Reply.created_at)).limit(5)
+        )
+        recent_replies = [{
+            "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
+            "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
+            "rule_id": r.rule_id,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        } for r in recent_replies_data.scalars().all()]
+
+        return {
+            "stats": {
+                "total_replies": total_replies,
+                "today_replies": today_replies,
+                "fan_count": fan_count,
+                "top_rule_id": int(top[0]) if top and top[0] is not None else None,
+                "chart": chart,
+            },
+            "rules": rules,
+            "rules_count": rules_count,
+            "active_rules_count": active_rules_count,
+            "bot_status": {"running": running, "interval": settings.BOT_INTERVAL_SECONDS},
+            "ai_status": {"available": ai.available, "provider": ai.provider_name},
+            "recent_activity": activities,
+            "recent_replies": recent_replies,
+        }
+    except Exception as e:
+        log.error(f"dashboard_bundle error: {e}", exc_info=True)
+        return {"error": str(e)}, 500
 
 
 

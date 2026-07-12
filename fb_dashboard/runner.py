@@ -2415,7 +2415,13 @@ async def _process_webhook_comment(comment: dict, post_id: str):
     """Process a single webhook comment using shared singleton engine."""
     try:
         engine = get_bot_engine()
-        await engine.process_single_comment(comment, post_id)
+        # ponytail: webhook has no tenant context — uses global singleton engine.
+        # In multi-tenant mode, webhook must dispatch by page_id → lookup tenant.
+        # For now this only works for the deployment's single Facebook page.
+        if not engine._tenant_id:
+            await engine.process_single_comment(comment, post_id)
+        else:
+            log.warning("webhook skipped — no tenant context for per-tenant engine")
         _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
@@ -3242,6 +3248,9 @@ async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(requi
 @app.delete("/api/admin/tenants/{tenant_id}")
 async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     """GDPR-compliant tenant deletion. Deletes all tenant-scoped data."""
+    # Guard: only platform admin (no tenant) can delete other tenants
+    if current_user._tenant_id and current_user._tenant_id != tenant_id:
+        raise HTTPException(403, "لا يمكنك حذف مستأجر آخر")
     tenant = await db.get(Tenant, tenant_id)
     if not tenant:
         raise HTTPException(404, "Tenant not found")

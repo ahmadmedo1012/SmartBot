@@ -821,6 +821,8 @@ class BotEngine:
     async def _load_replied_ids(self, session) -> set[str]:
         cutoff = datetime.utcnow() - timedelta(hours=48)
         stmt = select(Reply.fb_comment_id).where(Reply.created_at >= cutoff)
+        if self._tenant_id:
+            stmt = stmt.where(Reply.tenant_id == self._tenant_id)
         result = await session.execute(stmt)
         return {row[0] for row in result}
 

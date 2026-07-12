@@ -357,10 +357,10 @@ async def _run_bot_loop():
 
 _bot_engine_singleton: BotEngine | None = None
 
-def get_bot_engine(fb_client: FBClient | None = None) -> BotEngine:
+def get_bot_engine(fb_client: FBClient | None = None, tenant_id: int = 0) -> BotEngine:
     global _bot_engine_singleton
     if fb_client is not None:
-        _bot_engine_singleton = BotEngine(fb_client)
+        _bot_engine_singleton = BotEngine(fb_client, tenant_id=tenant_id)
         return _bot_engine_singleton
     if _bot_engine_singleton is None:
         _bot_engine_singleton = BotEngine(fb)
@@ -1217,7 +1217,7 @@ async def cron_bot_cycle(request: Request):
                 fb_cli = await get_tenant_fb_client(tenant.id)
                 if not fb_cli:
                     continue
-                engine = get_bot_engine(fb_cli)
+                engine = get_bot_engine(fb_cli, tenant_id=tenant.id)
                 await engine.cycle()
                 results.append({"tenant_id": tenant.id, "status": "ok"})
             return {"ok": True, "tenants_processed": len(results)}

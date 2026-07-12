@@ -73,16 +73,8 @@ class Tenant(Base):
     created_at = Column(DateTime, default=utcnow)
 
 
-class TenantConfig(Base):
-    __tablename__ = "tenant_configs"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, nullable=False, index=True)
-    config_key = Column(String(100), nullable=False)
-    config_value = Column(Text, default="")
-    created_at = Column(DateTime, default=utcnow)
-    __table_args__ = (UniqueConstraint('tenant_id', 'config_key', name='uq_tenant_config'),)
-
+# ponytail: TenantConfig model removed — Sprint 3 will add config storage per tenant
+# along with the Settings UI that actually needs it
 
 class User(Base):
     __tablename__ = "users"

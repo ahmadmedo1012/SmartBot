@@ -384,7 +384,7 @@ async def register(username: str = Form(...), email: str = Form(...), password: 
     await db.flush()
 
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="viewer")
+    user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
     db.add(user)
     await db.commit()
 
@@ -394,14 +394,7 @@ async def register(username: str = Form(...), email: str = Form(...), password: 
     return resp
 
 
-@app.get("/api/pricing")
-async def get_pricing():
-    return {"plans": [
-        {"id": "free", "name": "مجاني", "price_monthly": 0, "pages": 1, "replies": 100, "features": ["ردود تلقائية", "تحليلات أساسية"]},
-        {"id": "basic", "name": "أساسي", "price_monthly": 49, "pages": 3, "replies": -1, "features": ["ردود غير محدودة", "3 صفحات", "تقارير", "دعم فني"]},
-        {"id": "pro", "name": "احترافي", "price_monthly": 129, "pages": 10, "replies": -1, "features": ["10 صفحات", "تقارير PDF", "دعم فني مخصص", "API"]},
-    ]}
-
+# ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
 
 @app.get("/api/me")
 async def get_me(current_user: User = Depends(get_current_user)):

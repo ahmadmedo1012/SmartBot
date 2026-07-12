@@ -279,10 +279,6 @@ export function register(username, email, password) {
   return api("/api/register", { method: "POST", body: fd });
 }
 
-export function fetchPricing() {
-  return api("/api/pricing");
-}
-
 export function logout() {
   return api("/api/logout", { method: "POST" });
 }

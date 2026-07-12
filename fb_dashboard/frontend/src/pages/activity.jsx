@@ -83,7 +83,7 @@ export function Activity() {
               <div className="activity-item" key={i} data-od-id={`activity-${i}`}>
                 <div className="activity-dot" style={{ background: TYPE_COLORS[a.level] || TYPE_COLORS[a.type] || "var(--muted)" }} />
                 <div className="activity-text">
-                  <strong style={{ fontWeight: 600 }}>{a.level === "ERROR" ? "⚠️ " : ""}{a.text}</strong>
+                  <strong style={{ fontWeight: 600 }}>{a.level === "ERROR" ? "⚠ " : ""}{a.text}</strong>
                   {a.detail ? <span style={{ color: "var(--muted)", fontSize: 12, display: "block" }}>{a.detail}</span> : null}
                 </div>
                 <div className="activity-time">{relativeTime(a.time)}</div>

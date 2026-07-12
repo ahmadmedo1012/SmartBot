@@ -1,48 +1,115 @@
+import { useEffect, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { fetchDiagnosticsPermissions, postDemoTestComment } from "@/lib/api"
+
 export function Tools() {
+  useEffect(() => { document.title = "الأدوات التشخيصية | SmartBot" }, [])
+  const [testInput, setTestInput] = useState("")
+  const [testResult, setTestResult] = useState(null)
+  const [testLoading, setTestLoading] = useState(false)
+  const [testError, setTestError] = useState("")
+
+  const { data: perms, isLoading: permsLoading } = useQuery({
+    queryKey: ["diagnostics-permissions"],
+    queryFn: fetchDiagnosticsPermissions,
+  })
+
+  const handleTest = async () => {
+    if (!testInput.trim()) return
+    setTestLoading(true)
+    setTestError("")
+    setTestResult(null)
+    try {
+      const res = await postDemoTestComment(testInput)
+      setTestResult(res)
+    } catch (e) {
+      setTestError(e.message)
+    } finally {
+      setTestLoading(false)
+    }
+  }
+
   return (
     <section className="page active" dir="rtl" data-od-id="page-tools" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
-        <h1>الأدوات</h1>
-        <p>أدوات مساعدة لإدارة الصفحات</p>
+        <h1>الأدوات التشخيصية</h1>
+        <p>اختبار وتحليل أداء النظام</p>
       </div>
-      <div className="content-card glass" data-od-id="card-tools">
+
+      {/* Token Permissions */}
+      <div className="content-card glass" data-od-id="card-token-perms">
+        <div className="cc-header">
+          <div className="cc-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            صلاحيات توكن فيسبوك
+          </div>
+        </div>
+        {permsLoading ? (
+          <div className="stat-card glass" style={{height:60,background:"var(--skeleton)",margin:8}} />
+        ) : !perms?.has_token ? (
+          <div className="post-card"><p style={{fontSize:13,color:"var(--muted)"}}>لم يتم تعيين توكن فيسبوك — قم بتعيين FACEBOOK_ACCESS_TOKEN</p></div>
+        ) : (
+          <div className="activity-list">
+            {perms.permissions?.length > 0 ? perms.permissions.map((p, i) => (
+              <div className="activity-item" key={i}>
+                <div className="activity-dot" style={{background:"var(--success)"}} />
+                <div className="activity-text" style={{fontSize:12,fontFamily:"monospace"}}>{typeof p === "string" ? p : p.permission || p.scope || JSON.stringify(p)}</div>
+              </div>
+            )) : (
+              <div className="post-card"><p style={{fontSize:13,color:"var(--muted)"}}>تم تعيين التوكن — لكن لم نتمكن من جلب الصلاحيات</p></div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Intent Classifier Test */}
+      <div className="content-card glass" style={{marginBlockStart:16}} data-od-id="card-intent-test">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            الأدوات المتاحة
+            اختبار تصنيف النية
           </div>
         </div>
-        <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))" }}>
-          <div className="stat-card glass" style={{ cursor: "pointer" }} data-od-id="tool-image-designer">
-            <div className="stat-icon" data-color="info">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            </div>
-            <div className="stat-label">تصميم صور</div>
-            <div className="stat-change">أنشئ صوراً احترافية</div>
-          </div>
-          <div className="stat-card glass" style={{ cursor: "pointer" }} data-od-id="tool-url-shortener">
-            <div className="stat-icon" data-color="success">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
-            </div>
-            <div className="stat-label">تقصير الروابط</div>
-            <div className="stat-change">حوِّل روابطك إلى روابط قصيرة</div>
-          </div>
-          <div className="stat-card glass" style={{ cursor: "pointer" }} data-od-id="tool-competitor-analyzer">
-            <div className="stat-icon" data-color="warn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            </div>
-            <div className="stat-label">محلل المنافسين</div>
-            <div className="stat-change">حلل أداء منافسيك</div>
-          </div>
-          <div className="stat-card glass" style={{ cursor: "pointer" }} data-od-id="tool-text-optimizer">
-            <div className="stat-icon" data-color="danger">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </div>
-            <div className="stat-label">مُحسِّن النصوص</div>
-            <div className="stat-change">كتابة إعلانية باحترافية</div>
+        <div className="post-card">
+          <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:8}}>أدخل نص تعليق لاختبار التصنيف التلقائي للنية</p>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <input
+              className="form-input"
+              style={{flex:1,minWidth:200,background:"var(--bg)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px",color:"var(--text)"}}
+              placeholder="مثال: كم سعر هذا المنتج؟"
+              value={testInput}
+              onChange={e => setTestInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleTest()}
+            />
+            <button className="btn btn-primary" onClick={handleTest} disabled={testLoading || !testInput.trim()}>
+              {testLoading ? "جارٍ..." : "اختبار"}
+            </button>
           </div>
         </div>
+
+        {testError && (
+          <div className="post-card" style={{background:"var(--danger-soft)"}}>
+            <p style={{fontSize:13,color:"var(--danger)"}}>{testError}</p>
+          </div>
+        )}
+
+        {testResult && (
+          <div className="activity-list">
+            <div className="activity-item">
+              <div className="activity-dot" style={{background:"var(--accent)"}} />
+              <div className="activity-text"><strong>النص الأصلي:</strong> {testResult.original}</div>
+            </div>
+            <div className="activity-item">
+              <div className="activity-dot" style={{background:"var(--info)"}} />
+              <div className="activity-text"><strong>النص الطبيع:</strong> {testResult.normalized}</div>
+            </div>
+            <div className="activity-item">
+              <div className="activity-dot" style={{background:"var(--success)"}} />
+              <div className="activity-text"><strong>التصنيف:</strong> {JSON.stringify(testResult.classification)}</div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

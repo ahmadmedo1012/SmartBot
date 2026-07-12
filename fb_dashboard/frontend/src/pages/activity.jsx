@@ -1,12 +1,54 @@
-const activities = [
-  { text: "تم نشر منشور – عرض نهاية الأسبوع على صفحة مقهى الواحة", time: "منذ 10 د", color: "var(--accent)" },
-  { text: "تم الرد على رسالة – سارة أحمد عبر ماسنجر", time: "منذ 25 د", color: "var(--info)" },
-  { text: "تم جدولة منشور – وصفة جديدة ليوم الجمعة", time: "منذ ساعة", color: "var(--success)" },
-  { text: "تم حظر تعليق – تعليق غير مناسب على صفحة مطعم الأصيل", time: "منذ ساعتين", color: "var(--warn)" },
-  { text: "فشل إرسال رسالة – البث الجماعي: خطأ في الاتصال", time: "منذ 3 ساعات", color: "var(--danger)" },
-]
+import { useState, useEffect } from "react"
+import { fetchRecentActivity, fetchLogs } from "@/lib/api"
+
+function relativeTime(iso) {
+  if (!iso) return ""
+  const diff = Date.now() - new Date(iso).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 60) return "الآن"
+  const m = Math.floor(s / 60)
+  if (m < 60) return `منذ ${m} د`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `منذ ${h} س`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `منذ ${d} ي`
+  return new Date(iso).toLocaleDateString("ar-SA")
+}
+
+const TYPE_COLORS = {
+  reply: "var(--accent)",
+  log: "var(--muted)",
+  ERROR: "var(--danger)",
+  WARN: "var(--warn)",
+  INFO: "var(--info)",
+  bot_status: "var(--success)",
+}
 
 export function Activity() {
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetchRecentActivity(25).catch(() => []),
+      fetchLogs(25).catch(() => []),
+    ]).then(([recent, logs]) => {
+      const merged = [
+        ...(recent || []).map(a => ({ ...a, _src: "activity" })),
+        ...(logs || []).map(l => ({
+          type: "log",
+          level: l.level,
+          text: l.message,
+          time: l.created_at,
+          _src: "log",
+        })),
+      ]
+      merged.sort((a, b) => ((b.time || "") > (a.time || "") ? 1 : -1))
+      setActivities(merged.slice(0, 50))
+      setLoading(false)
+    })
+  }, [])
+
   return (
     <section className="page active" dir="rtl" data-od-id="page-activity" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
@@ -21,15 +63,34 @@ export function Activity() {
             آخر الأحداث
           </div>
         </div>
-        <div className="activity-list">
-          {activities.map((a, i) => (
-            <div className="activity-item" key={i} data-od-id={`activity-${i}`}>
-              <div className="activity-dot" style={{ background: a.color }} />
-              <div className="activity-text"><strong style={{ fontWeight: 600 }}>{a.text}</strong></div>
-              <div className="activity-time">{a.time}</div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="activity-list" role="status">
+            {[1,2,3,4,5].map(i => (
+              <div className="activity-item" key={i}>
+                <div className="skeleton skeleton-circle" style={{ width: 8, height: 8, borderRadius: "50%", marginBlockStart: 6 }} />
+                <div className="skeleton skeleton-text" style={{ width: `${60 + i * 8}%` }} />
+              </div>
+            ))}
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="empty-state" style={{ padding: "32px 0" }}>
+            <h2>لا توجد نشاطات بعد</h2>
+            <p>عند حدوث نشاط على صفحتك، سيظهر هنا</p>
+          </div>
+        ) : (
+          <div className="activity-list">
+            {activities.map((a, i) => (
+              <div className="activity-item" key={i} data-od-id={`activity-${i}`}>
+                <div className="activity-dot" style={{ background: TYPE_COLORS[a.level] || TYPE_COLORS[a.type] || "var(--muted)" }} />
+                <div className="activity-text">
+                  <strong style={{ fontWeight: 600 }}>{a.level === "ERROR" ? "⚠️ " : ""}{a.text}</strong>
+                  {a.detail ? <span style={{ color: "var(--muted)", fontSize: 12, display: "block" }}>{a.detail}</span> : null}
+                </div>
+                <div className="activity-time">{relativeTime(a.time)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

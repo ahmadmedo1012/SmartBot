@@ -90,10 +90,18 @@ api_cache = APICache()
 _login_attempts: dict[str, list[float]] = {}
 _LOGIN_RATE_LIMIT = 5
 _LOGIN_RATE_WINDOW = 60
+_LOGIN_CLEANUP_EVERY = 300  # purge stale IPs every 5 min
+_login_last_cleanup: float = 0
 
 
 def _check_login_rate(ip: str) -> bool:
+    global _login_last_cleanup
     now = time.time()
+    # periodic full cleanup to prevent unbounded growth
+    if now - _login_last_cleanup > _LOGIN_CLEANUP_EVERY:
+        cutoff = now - _LOGIN_RATE_WINDOW
+        _login_attempts.clear()
+        _login_last_cleanup = now
     attempts = _login_attempts.get(ip, [])
     # prune old entries
     attempts = [t for t in attempts if now - t < _LOGIN_RATE_WINDOW]
@@ -1044,6 +1052,13 @@ async def clear_logs(payload: dict = None, db=Depends(get_db), _=Depends(require
     return {"deleted": count}
 
 
+# ponytail: WEBHOOK globals — defined early, used by /api/webhook/check and /webhook endpoints
+WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
+WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
+if not WEBHOOK_APP_SECRET:
+    log.warning("FACEBOOK_APP_SECRET not set — webhook HMAC verification disabled")
+
+
 @app.get("/api/webhook/events")
 async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), _=Depends(get_current_user)):
     rows = await db.execute(
@@ -1913,21 +1928,21 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Dep
 @app.get("/api/widgets/top-keywords")
 async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
     """Most triggered rules (keywords proxy)."""
-    rows = await db.execute(
+    rows = (await db.execute(
         select(Reply.rule_id, func.count(Reply.id).label("cnt"))
+        .where(Reply.rule_id.isnot(None))
         .group_by(Reply.rule_id).order_by(desc("cnt")).limit(limit)
-    )
-    top = []
-    for row in rows:
-        if row.rule_id is None: continue
-        rule = await db.get(Rule, row.rule_id)
-        top.append({
-            "rule_id": row.rule_id,
-            "rule_name": rule.name if rule else f"#{row.rule_id}",
-            "count": row.cnt,
-            "keywords": rule.keywords[:3] if rule and rule.keywords else [],
-        })
-    return top
+    )).all()
+    if not rows:
+        return []
+    r_rows = await db.execute(select(Rule).where(Rule.id.in_([r.rule_id for r in rows])))
+    rules_map = {r.id: r for r in r_rows.scalars().all()}
+    return [{
+        "rule_id": row.rule_id,
+        "rule_name": rules_map[row.rule_id].name if row.rule_id in rules_map else f"#{row.rule_id}",
+        "count": row.cnt,
+        "keywords": rules_map[row.rule_id].keywords[:3] if row.rule_id in rules_map and rules_map[row.rule_id].keywords else [],
+    } for row in rows if row.rule_id is not None]
 
 
 # ── Bot Health / Alerts ──────────────────────────────────────────────────────
@@ -2081,16 +2096,6 @@ def _track_event(event_type: str, metadata: dict | None = None):
             pass
     asyncio.create_task(_write())
     return
-
-
-# Set your webhook URL in Facebook App Dashboard -> Webhooks -> Page -> feed
-# Set your webhook URL in Facebook App Dashboard → Webhooks → Page → feed
-# Verify token must match FB_WEBHOOK_VERIFY_TOKEN env var
-
-WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
-WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
-if not WEBHOOK_APP_SECRET:
-    log.warning("FACEBOOK_APP_SECRET not set — webhook HMAC verification disabled")
 
 
 @app.get("/webhook")

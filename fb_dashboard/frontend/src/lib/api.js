@@ -515,3 +515,19 @@ export function fetchCrmCustomers(params = {}) {
   const qs = q.toString()
   return api("/api/crm/customers" + (qs ? "?" + qs : ""))
 }
+
+// ── Diagnostics ──
+export function fetchDiagnosticsStatus() {
+  return api("/api/diagnostics/status");
+}
+export function fetchHealthAlerts() {
+  return api("/api/health/alerts");
+}
+export function fetchDiagnosticsPermissions() {
+  return api("/api/diagnostics/permissions");
+}
+export function postDemoTestComment(commentText) {
+  const fd = new FormData();
+  fd.append("comment_text", commentText);
+  return api("/api/diagnostics/demo-test-comment", { method: "POST", body: fd });
+}

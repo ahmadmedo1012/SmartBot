@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    """Return UTC-naive datetime (compatible with SQLAlchemy/Postgres timestamp)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)

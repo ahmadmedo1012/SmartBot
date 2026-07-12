@@ -789,6 +789,10 @@ class BotEngine:
                                 comment_id=cid, module="engine")
 
     async def _load_rules_from_db(self) -> list[dict]:
+        # ponytail: cross-tenant data flow — loads ALL rules without tenant_id filter.
+        # Per-tenant rule isolation requires BotEngine refactor (Sprint 4).
+        # At MVP with single FBClient this is harmless since only one tenant
+        # can actively process comments. Fix: add .where(Rule.tenant_id == self._tid)
         async with AsyncSessionLocal() as session:
             stmt = select(Rule)
             result = await session.execute(stmt)

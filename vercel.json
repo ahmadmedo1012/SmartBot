@@ -9,6 +9,7 @@
   },
   "buildCommand": null,
   "crons": [
-    { "path": "/api/cron/bot-cycle", "schedule": "*/5 * * * *" }
+    { "path": "/api/cron/bot-cycle", "schedule": "0 6 * * *" }
+    # ponytail: hobby plan limits to 1x/day. Upgrade to Pro for */5 polling.
   ]
 }

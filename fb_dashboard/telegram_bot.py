@@ -1,7 +1,7 @@
 """Telegram admin notifications for payment approvals."""
 import os, logging, asyncio
 from typing import Any
-import requests
+import httpx
 
 log = logging.getLogger("fb-tg")
 
@@ -15,8 +15,8 @@ def _call(method: str, payload: dict) -> dict | None:
     if not BOT_TOKEN:
         return None
     try:
-        r = requests.post(f"{_API_BASE}{BOT_TOKEN}/{method}", json=payload, timeout=10)
-        return r.json() if r.ok else None
+        r = httpx.post(f"{_API_BASE}{BOT_TOKEN}/{method}", json=payload, timeout=10)
+        return r.json() if r.is_success else None
     except Exception as e:
         log.warning("Telegram %s failed: %s", method, e)
         return None

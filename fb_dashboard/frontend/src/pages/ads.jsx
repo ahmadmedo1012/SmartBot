@@ -25,7 +25,8 @@ export function Ads({ role }) {
 
   if (!isAdmin) {
     return (
-      <section className="page active" dir="rtl">
+      <section className="page active" dir="rtl" data-od-id="page-ads" style={{position:"relative"}}>
+        <div className="mesh-bg"></div>
         <div className="page-header"><h1>الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
         <div className="content-card glass" style={{textAlign:"center",padding:40}}>
           <p>غير مصرح — إدارة الإعلانات متاحة للمدير فقط</p>
@@ -35,14 +36,15 @@ export function Ads({ role }) {
   }
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-ads" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الإعلانات</h1>
         <p>إدارة حملات فيسبوك الإعلانية</p>
       </div>
 
       {acctsLoading ? (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
           {[1,2].map(i => <div key={i} className="stat-card glass" style={{height:120,background:"var(--skeleton)"}} />)}
         </div>
       ) : acctsError ? (

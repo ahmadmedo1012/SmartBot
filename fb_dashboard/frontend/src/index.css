@@ -300,7 +300,13 @@ tr:hover td { background: oklch(97% 0.003 240); }
 .p-detail { font-size: 11px; color: var(--muted); }
 
 .chart-line { display: flex; align-items: end; height: 120px; gap: 3px; margin-block-start: 14px; }
-.cl-bar { flex: 1; border-radius: var(--radius-sm) var(--radius-sm) 0 0; min-height: 4px; background: linear-gradient(to top, var(--accent), oklch(62% 0.18 55 / .4)); }
+.cl-bar { flex: 1; border-radius: var(--radius-sm) var(--radius-sm) 0 0; min-height: 4px; background: linear-gradient(to top, var(--accent), oklch(62% 0.18 55 / .4)); position: relative; }
+.cl-bar .cl-value { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); margin-bottom: 4px; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+.cl-bar:hover .cl-value { opacity: 1; }
+.cl-bar[data-color="info"] { background: linear-gradient(to top, var(--info), oklch(55% 0.18 260 / .4)); }
+.cl-bar[data-color="success"] { background: linear-gradient(to top, var(--success), oklch(65% 0.18 150 / .4)); }
+.cl-bar[data-color="warn"] { background: linear-gradient(to top, var(--warn), oklch(75% 0.16 85 / .4)); }
+.cl-bar[data-color="danger"] { background: linear-gradient(to top, var(--danger), oklch(55% 0.20 27 / .4)); }
 
 .toggle { position: relative; width: 38px; height: 22px; display: inline-block; flex-shrink: 0; }
 .toggle input { opacity: 0; width: 0; height: 0; }

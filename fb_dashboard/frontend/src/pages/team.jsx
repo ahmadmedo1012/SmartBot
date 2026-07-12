@@ -114,7 +114,8 @@ export function Team({ role }) {
   const totalRoles = Object.keys(ROLE_LABELS).filter(r => (summary[r] || 0) > 0 || members.some(m => m.role === r)).length
 
   return (
-    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s ease"}}>
+    <section className="page active" dir="rtl" data-od-id="page-team" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>فريق العمل</h1>
         <p>{totalMembers} عضو · {totalRoles} أدوار</p>
@@ -125,7 +126,7 @@ export function Team({ role }) {
       </div>
 
       {summaryLoading ? (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
           {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:72,background:"var(--skeleton)"}} />)}
         </div>
       ) : (

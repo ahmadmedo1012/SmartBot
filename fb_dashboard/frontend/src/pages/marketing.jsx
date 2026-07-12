@@ -1,11 +1,12 @@
 export function Marketing() {
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-marketing" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>التسويق</h1>
         <p>الحملات التسويقية والعروض</p>
       </div>
-      <div className="content-card glass">
+      <div className="content-card glass stagger-children" data-od-id="card-marketing-campaigns">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>

@@ -200,7 +200,8 @@ export function Messages({ role }) {
   const handleSelectConv = useCallback((id) => { setSelectedId(prev => prev === id ? null : id); setOptimisticMessages([]); setShowTemplates(false) }, [])
 
   return (
-    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s ease",height:"100%",display:"flex",flexDirection:"column"}}>
+    <section className="page active" dir="rtl" data-od-id="page-messages" style={{position:"relative",animation:"pageIn 0.35s ease",height:"100%",display:"flex",flexDirection:"column"}}>
+      <div className="mesh-bg"></div>
       <div style={{display:"flex",flex:1,overflow:"hidden",gap:0}}>
         {/* ─── LEFT: CONVERSATIONS ─── */}
         <div className={`card glass`} style={{display:"flex",flexDirection:"column",width:selectedId ? [0,0,"380px"] : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>

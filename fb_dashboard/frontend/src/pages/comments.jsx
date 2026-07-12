@@ -154,7 +154,8 @@ export function Comments({ role }) {
   }, [confirmAction])
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-comments" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>مركز التعليقات</h1>
         <p>جميع التعليقات من فيسبوك — رد بذكاء وتحكم بسرعة</p>
@@ -185,9 +186,9 @@ export function Comments({ role }) {
         ) : filtered.length === 0 ? (
           <div className="empty-state" role="status"><p>{search ? "لا توجد نتائج" : "لا توجد تعليقات"}</p></div>
         ) : (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
             {filtered.map(c => (
-              <div key={c.id} className="stat-card glass card-border-accent">
+              <div key={c.id} className="stat-card glass card-border-accent" data-od-id={`comment-${c.id}`}>
               <div className="person-row">
                 <div className="person-avatar" style={{background:`hsl(${c.from_name?.length * 37 || 0},55%,45%)`}}>
                   {getInitials(c.from_name)}

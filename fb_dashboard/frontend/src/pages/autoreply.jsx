@@ -6,17 +6,18 @@ const rules = [
 
 export function Autoreply() {
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-autoreply" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الردود التلقائية</h1>
         <p>إعدادات الرد الآلي للرسائل والتعليقات</p>
       </div>
-      <div className="stats-grid" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+      <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
         <div className="stat-card glass"><div className="stat-label">مفعلة</div><div className="stat-value" style={{ color: "var(--success)" }}>12</div></div>
         <div className="stat-card glass"><div className="stat-label">معلقة</div><div className="stat-value">4</div></div>
         <div className="stat-card glass"><div className="stat-label">تم الرد اليوم</div><div className="stat-value" style={{ color: "var(--accent)" }}>89</div></div>
       </div>
-      <div className="content-card glass">
+      <div className="content-card glass" data-od-id="card-autoreply-rules">
         {rules.map((r) => (
           <div className="activity-item" key={r.name}>
             <label className="toggle">

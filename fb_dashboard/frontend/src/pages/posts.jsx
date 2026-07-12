@@ -47,7 +47,8 @@ export function Posts({ role }) {
   })
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-posts" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>المنشورات</h1>
         <p>إدارة منشورات الصفحة</p>
@@ -74,7 +75,7 @@ export function Posts({ role }) {
         </div>
 
         {isLoading ? (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
             {[1,2,3].map(i => <div key={i} className="stat-card glass skel-card" />)}
           </div>
         ) : error ? (
@@ -85,7 +86,7 @@ export function Posts({ role }) {
         ) : filtered.length === 0 ? (
           <div className="empty-state" role="status"><p>{search ? "لا توجد نتائج" : "لا توجد منشورات"}</p></div>
         ) : (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
             {filtered.map(p => (
               <div key={p.id} className="stat-card glass">
                 <p className="card-text">

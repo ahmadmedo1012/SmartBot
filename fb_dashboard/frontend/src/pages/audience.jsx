@@ -1,13 +1,33 @@
-const people = [
-  { name: "سارة أحمد", status: "نشط", badge: "badge-s", detail: "نشط منذ 5 دقائق · 23 تفاعل هذا الشهر", color: "var(--accent)" },
-  { name: "محمد علي", status: "نشط", badge: "badge-s", detail: "نشط منذ ساعة · 15 تفاعل هذا الشهر", color: "var(--info)" },
-  { name: "أحمد حسن", status: "غير نشط", badge: "badge-w", detail: "غير نشط منذ يومين · 3 تفاعلات هذا الشهر", color: "var(--muted)" },
-  { name: "نورة خالد", status: "مميز", badge: "badge-a", detail: "نشط منذ 10 دقائق · 45 تفاعل هذا الشهر", color: "var(--success)" },
-]
+import { useState, useEffect } from "react"
+import { fetchSubscribers } from "@/lib/api"
+
+const badgeClass = (s) => {
+  if (s === "active" || s === "نشط") return "badge-s"
+  if (s === "inactive" || s === "غير نشط") return "badge-w"
+  if (s === "premium" || s === "مميز") return "badge-a"
+  return "badge-w"
+}
+
+const statusText = (s) => {
+  if (s === "active") return "نشط"
+  if (s === "inactive") return "غير نشط"
+  if (s === "premium") return "مميز"
+  return s
+}
 
 export function Audience() {
+  const [subs, setSubs] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchSubscribers({ per_page: 50 })
+      .then((r) => { setSubs(r?.items || []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-audience" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الجمهور</h1>
         <p>قاعدة متابعيك – إدارة الجمهور</p>
@@ -22,21 +42,29 @@ export function Audience() {
           تصفية
         </button>
       </div>
-      <div className="content-card glass">
+      <div className="content-card glass stagger-children">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             الجمهور النشط
           </div>
         </div>
-        {people.map((p) => (
-          <div className="person-row" key={p.name}>
-            <div className="person-avatar" style={{ background: p.color }} />
+        {loading ? (
+          <p className="empty-state">جاري التحميل...</p>
+        ) : subs.length === 0 ? (
+          <p className="empty-state">لا يوجد مشتركون بعد</p>
+        ) : subs.map((sub) => (
+          <div className="person-row" key={sub.id || sub.name}>
+            <div className="person-avatar" style={{ background: sub.avatar_color || "var(--accent)" }} />
             <div className="person-info">
-              <div className="p-name">{p.name}</div>
-              <div className="p-detail">{p.detail}</div>
+              <div className="p-name">{sub.name}</div>
+              <div className="p-detail">
+                {sub.last_interaction_at
+                  ? `آخر تفاعل: ${new Date(sub.last_interaction_at).toLocaleDateString("ar-EG")}`
+                  : `${sub.reply_count || 0} تفاعل`}
+              </div>
             </div>
-            <span className={`badge ${p.badge}`}>{p.status}</span>
+            <span className={`badge ${badgeClass(sub.status)}`}>{statusText(sub.status)}</span>
           </div>
         ))}
       </div>

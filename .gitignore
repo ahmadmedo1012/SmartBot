@@ -12,3 +12,14 @@ test-results/
 *.log
 node_modules/
 mobile/
+_scratch/
+.superpowers/
+.agents/
+.ruff_cache/
+skills-lock.json
+MASTER-AUDIT.md
+report-comprehensive.md
+fb_dashboard/static/assets/*.js
+fb_dashboard/static/assets/*.css
+index-design-redesign.html
+vercel.json

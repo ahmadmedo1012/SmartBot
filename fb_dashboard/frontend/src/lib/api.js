@@ -504,3 +504,14 @@ export function fetchPublisherStatus() { return api("/api/publisher/status") }
 export function configurePublisher(data) { return api("/api/publisher/configure", { method:"POST", body:data }) }
 export function publishToPlatform(platform, message, imageUrl) { return api("/api/publisher/publish", { method:"POST", body:{platform,message,image_url:imageUrl} }) }
 export function fetchPlatformSettings(platform) { return api(`/api/publisher/settings?platform=${platform}`) }
+
+// ── CRM ──
+export function fetchCrmCustomers(params = {}) {
+  const q = new URLSearchParams()
+  if (params.stage) q.set("stage", params.stage)
+  if (params.search) q.set("search", params.search)
+  if (params.page) q.set("page", params.page)
+  if (params.per_page) q.set("per_page", params.per_page)
+  const qs = q.toString()
+  return api("/api/crm/customers" + (qs ? "?" + qs : ""))
+}

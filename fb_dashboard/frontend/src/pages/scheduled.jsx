@@ -47,7 +47,8 @@ export function ScheduledPosts({ role }) {
   })
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-scheduled" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>المنشورات المجدولة</h1>
         <p>إنشاء وجدولة ونشر منشورات فيسبوك</p>
@@ -80,7 +81,7 @@ export function ScheduledPosts({ role }) {
         </div>
 
         {isLoading ? (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
             {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass skel-card" style={{height:160}} />)}
           </div>
         ) : error ? (

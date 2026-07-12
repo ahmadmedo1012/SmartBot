@@ -69,7 +69,8 @@ export function Reports() {
   const allReplies = repliesRes?.items || []
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-reports" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>التقارير</h1>
         <p>تحليلات متقدمة لأداء البوت والتفاعلات</p>
@@ -87,7 +88,7 @@ export function Reports() {
         </button>
       </div>
 
-      <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
         {[
           { label: "إجمالي الردود", value: analytics?.total_replies || 0 },
           { label: "ردود اليوم", value: analytics?.today_replies || 0 },

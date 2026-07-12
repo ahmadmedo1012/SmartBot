@@ -203,7 +203,8 @@ export function ContentCalendar({ role }) {
   const isLoadingInitial = monthLoading && monthPosts.length === 0
 
   return (
-    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s ease"}}>
+    <section className="page active" dir="rtl" data-od-id="page-calendar" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <h1>التقويم</h1>
@@ -223,7 +224,7 @@ export function ContentCalendar({ role }) {
         </div>
       </div>
 
-      <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
         {summaryLoading ? (
           [1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:60,background:"var(--skeleton)"}} />)
         ) : (

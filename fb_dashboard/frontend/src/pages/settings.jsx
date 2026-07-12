@@ -185,7 +185,8 @@ export function Settings({ role }) {
   ]
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-settings" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>الإعدادات</h1>
         <p>إعدادات البوت، API، المظهر وإحصائيات النظام</p>
@@ -199,7 +200,7 @@ export function Settings({ role }) {
 
       {tab === "bot" && (
         <div className="flex-col" style={{gap:16}}>
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
             <div className="card glass card-inset">
               <div className="cc-header card-header-flush">
                 <div className="cc-title">
@@ -358,7 +359,7 @@ export function Settings({ role }) {
       )}
 
       {tab === "theme" && (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
           <div className="card glass card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
@@ -417,11 +418,11 @@ export function Settings({ role }) {
               </div>
             </div>
             {sysStatsLoading ? (
-              <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
                 {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass skel-card" style={{height:60}} />)}
               </div>
             ) : (
-              <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
                 {systemStats.map(s => (
                   <div key={s.label} className="stat-card glass card-inset">
                     <div className="stat-label">{s.label}</div>

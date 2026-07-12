@@ -87,7 +87,8 @@ function Composer({ onBack, queryClient }) {
   const steps = [{ label: "معلومات أساسية" }, { label: "تصفية الجمهور" }, { label: "الرسالة" }, { label: "مراجعة" }]
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-broadcast-composer" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header"><h1>بث جماعي جديد</h1></div>
 
       <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:20}}>
@@ -256,7 +257,8 @@ function BroadcastDetail({ broadcastId, onBack }) {
   const pendPct = total ? Math.round(((b.pending_count || 0) / total) * 100) : 0
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-broadcast-detail" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="qactions" style={{marginBlockEnd:16}}>
         <button className="btn btn-outline" onClick={onBack}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -265,7 +267,7 @@ function BroadcastDetail({ broadcastId, onBack }) {
       </div>
       <div className="page-header"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
 
-      <div className="stats-grid" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
         <div className="stat-card glass" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--success)"}}>{b.sent_count || 0}</div>
           <div className="stat-label">تم الإرسال</div>
@@ -369,7 +371,8 @@ export function Broadcast({ role }) {
   if (view === "detail" && selectedId) return <BroadcastDetail broadcastId={selectedId} onBack={() => { setView("list"); setSelectedId(null) }} />
 
   return (
-    <section className="page active" dir="rtl">
+    <section className="page active" dir="rtl" data-od-id="page-broadcast" style={{position:"relative"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header">
         <h1>البث الجماعي</h1>
         <p>{broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}</p>

@@ -1931,19 +1931,31 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), _=Dep
 @app.get("/api/widgets/top-keywords")
 async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), _=Depends(get_current_user)):
     """Most triggered rules (keywords proxy)."""
-    rows = (await db.execute(
-        select(Reply.rule_id, Rule.name, Rule.keywords, func.count(Reply.id).label("cnt"))
-        .join(Rule, Reply.rule_id == Rule.id, isouter=True)
-        .where(Reply.rule_id.isnot(None))
-        .group_by(Reply.rule_id, Rule.name, Rule.keywords)
-        .order_by(desc("cnt")).limit(limit)
-    )).all()
-    return [{
-        "rule_id": row.rule_id,
-        "rule_name": row.name or f"#{row.rule_id}",
-        "count": row.cnt,
-        "keywords": (row.keywords or [])[:3],
-    } for row in rows if row.rule_id is not None]
+    try:
+        agg_rows = await db.execute(
+            select(Reply.rule_id, func.count(Reply.id).label("cnt"))
+            .where(Reply.rule_id.isnot(None))
+            .group_by(Reply.rule_id).order_by(desc("cnt")).limit(limit)
+        )
+        top = agg_rows.all()
+        if not top:
+            return []
+        rule_ids = [r.rule_id for r in top if r.rule_id is not None]
+        rules_map = {}
+        if rule_ids:
+            rule_rows = await db.execute(select(Rule).where(Rule.id.in_(rule_ids)))
+            for r in rule_rows.scalars().all():
+                rules_map[r.id] = r
+        count_map = {r.rule_id: r.cnt for r in top}
+        return [{
+            "rule_id": rid,
+            "rule_name": rules_map[rid].name if rid in rules_map else f"#{rid}",
+            "count": count_map.get(rid, 0),
+            "keywords": (rules_map[rid].keywords or [])[:3] if rid in rules_map else [],
+        } for rid in rule_ids if rid]
+    except Exception as e:
+        log.error(f"widget_top_keywords failed: {e}")
+        return []
 
 
 # ── Bot Health / Alerts ──────────────────────────────────────────────────────

@@ -271,6 +271,18 @@ export function login(username, password) {
   return api("/api/login", { method: "POST", body: fd });
 }
 
+export function register(username, email, password) {
+  const fd = new FormData();
+  fd.append("username", username);
+  fd.append("email", email);
+  fd.append("password", password);
+  return api("/api/register", { method: "POST", body: fd });
+}
+
+export function fetchPricing() {
+  return api("/api/pricing");
+}
+
 export function logout() {
   return api("/api/logout", { method: "POST" });
 }

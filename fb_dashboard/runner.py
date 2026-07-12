@@ -232,6 +232,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE rules ADD COLUMN IF NOT EXISTS dm_template TEXT DEFAULT ''",
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS platform VARCHAR(20) DEFAULT 'facebook'",
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(200) DEFAULT ''",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER DEFAULT NULL",
             ]:
                 try:
                     await conn.execute(text(col_sql))
@@ -350,7 +352,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
     ip = request.client.host if request and request.client else "unknown"
     if not _check_login_rate(ip):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
-    user = await db.execute(select(User).where(User.username == username))
+    user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
     user = user.scalar_one_or_none()
     if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         raise HTTPException(401, "Invalid credentials")
@@ -365,6 +367,40 @@ async def logout():
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("token")
     return resp
+
+
+@app.post("/api/register")
+async def register(username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
+    """Register a new user. Creates both a User and a Tenant."""
+    from models import Tenant
+    existing = await db.execute(select(User).where(or_(User.username == username, User.email == email)))
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, "اسم المستخدم أو البريد موجود مسبقاً")
+    if len(password) < 6:
+        raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+
+    tenant = Tenant(name=username)
+    db.add(tenant)
+    await db.flush()
+
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="viewer")
+    db.add(user)
+    await db.commit()
+
+    token = make_token(username)
+    resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
+    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    return resp
+
+
+@app.get("/api/pricing")
+async def get_pricing():
+    return {"plans": [
+        {"id": "free", "name": "مجاني", "price_monthly": 0, "pages": 1, "replies": 100, "features": ["ردود تلقائية", "تحليلات أساسية"]},
+        {"id": "basic", "name": "أساسي", "price_monthly": 49, "pages": 3, "replies": -1, "features": ["ردود غير محدودة", "3 صفحات", "تقارير", "دعم فني"]},
+        {"id": "pro", "name": "احترافي", "price_monthly": 129, "pages": 10, "replies": -1, "features": ["10 صفحات", "تقارير PDF", "دعم فني مخصص", "API"]},
+    ]}
 
 
 @app.get("/api/me")

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
-import { login } from "@/lib/api"
+import { login, register } from "@/lib/api"
+import { toast } from "sonner"
 
 function AnimatedBg() {
   return (
@@ -37,7 +38,9 @@ function AnimatedGradientBorder({ children }) {
 
 export function Login({ onAuth }) {
   useEffect(() => { document.title = "تسجيل الدخول | SmartBot" }, [])
+  const [isRegister, setIsRegister] = useState(false)
   const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState("")
@@ -46,12 +49,17 @@ export function Login({ onAuth }) {
 
   const validate = () => {
     const errs = {}
-    const emailLike = username.includes("@")
-    if (emailLike && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
-      errs.username = "صيغة البريد الإلكتروني غير صحيحة"
-    }
-    if (password.length > 0 && password.length < 4) {
-      errs.password = "كلمة المرور يجب أن تكون 4 أحرف على الأقل"
+    if (isRegister) {
+      if (!email.includes("@")) errs.email = "البريد الإلكتروني غير صالح"
+      if (password.length < 6) errs.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+    } else {
+      const emailLike = username.includes("@")
+      if (emailLike && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
+        errs.username = "صيغة البريد الإلكتروني غير صحيحة"
+      }
+      if (password.length > 0 && password.length < 4) {
+        errs.password = "كلمة المرور يجب أن تكون 4 أحرف على الأقل"
+      }
     }
     setFieldErrors(errs)
     return !Object.keys(errs).length
@@ -63,17 +71,31 @@ export function Login({ onAuth }) {
     if (!validate()) return
     setLoading(true)
     try {
-      const res = await login(username, password)
-      onAuth(res)
+      if (isRegister) {
+        const res = await register(username, email, password)
+        toast.success("تم إنشاء الحساب بنجاح")
+        onAuth(res)
+      } else {
+        const res = await login(username, password)
+        onAuth(res)
+      }
     } catch (err) {
-      setError(err.message || "فشل تسجيل الدخول")
+      const msg = err.message || "فشل"
+      setError(msg)
+      if (isRegister) toast.error(msg)
     } finally { setLoading(false) }
+  }
+
+  const toggleMode = () => {
+    setIsRegister(!isRegister)
+    setError("")
+    setFieldErrors({})
+    setEmail("")
   }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden login-bg-light">
       <AnimatedBg />
-
 
       <div className="login-card-enter relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5">
         <AnimatedGradientBorder>
@@ -88,11 +110,11 @@ export function Login({ onAuth }) {
                 </svg>
               </div>
               <h1 className="text-3xl font-bold text-iridescent">SmartBot</h1>
-              <p style={{ fontSize: "14px", color: "var(--muted)", marginTop: 6 }}>لوحة التحكم الذكية</p>
+              <p style={{ fontSize: "14px", color: "var(--muted)", marginTop: 6 }}>{isRegister ? "إنشاء حساب جديد" : "لوحة التحكم الذكية"}</p>
             </div>
 
             <form onSubmit={handleSubmit}>
-              {/* Username / Email */}
+              {/* Username */}
               <div className="relative mb-4">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 1 }}>
                   <circle cx="6" cy="5" r="3"/><path d="M1 14v-1a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v1"/>
@@ -104,13 +126,36 @@ export function Login({ onAuth }) {
                   required
                   className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
-                  placeholder="اسم المستخدم أو البريد الإلكتروني"
+                  placeholder={isRegister ? "اسم المستخدم" : "اسم المستخدم أو البريد الإلكتروني"}
                   autoComplete="username"
                 />
                 {fieldErrors.username && (
                   <p style={{ fontSize: "12px", color: "var(--danger)", paddingRight: 4, marginTop: 4 }}>{fieldErrors.username}</p>
                 )}
               </div>
+
+              {/* Email — register only */}
+              {isRegister && (
+                <div className="relative mb-4">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 1 }}>
+                    <rect x="2" y="4" width="12" height="9" rx="2"/><path d="M2 5l6 4.5L14 5"/>
+                  </svg>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({...p, email: ""})) }}
+                    required
+                    className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm transition-all"
+                    style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
+                    placeholder="البريد الإلكتروني"
+                    autoComplete="email"
+                  />
+                  {fieldErrors.email && (
+                    <p style={{ fontSize: "12px", color: "var(--danger)", paddingRight: 4, marginTop: 4 }}>{fieldErrors.email}</p>
+                  )}
+                </div>
+              )}
 
               {/* Password */}
               <div className="relative mb-4">
@@ -126,7 +171,7 @@ export function Login({ onAuth }) {
                   className="peer w-full h-11 pr-10 pl-10 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder="كلمة المرور"
-                  autoComplete="current-password"
+                  autoComplete={isRegister ? "new-password" : "current-password"}
                 />
                 <button
                   type="button"
@@ -161,9 +206,20 @@ export function Login({ onAuth }) {
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : "تسجيل الدخول"}
+                ) : isRegister ? "إنشاء حساب" : "تسجيل الدخول"}
               </button>
             </form>
+
+            {/* Toggle link */}
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={toggleMode}
+                style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "13px" }}
+              >
+                {isRegister ? "لديك حساب بالفعل؟ سجل دخول" : "ليس لديك حساب؟ سجل الآن"}
+              </button>
+            </div>
           </div>
         </AnimatedGradientBorder>
 

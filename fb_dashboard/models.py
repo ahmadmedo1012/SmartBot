@@ -11,6 +11,7 @@ class Rule(Base):
     __tablename__ = "rules"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(100), nullable=False)
     keywords = Column(JSON, nullable=False)  # list[str]
     reply_template = Column(Text, nullable=False)
@@ -25,10 +26,14 @@ class Rule(Base):
 
 class Reply(Base):
     __tablename__ = "replies"
-    __table_args__ = (Index("ix_reply_rule_created", "rule_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_reply_rule_created", "rule_id", "created_at"),
+        UniqueConstraint('tenant_id', 'fb_comment_id', name='uq_reply_tenant_comment'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fb_comment_id = Column(String(100), nullable=False, unique=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    fb_comment_id = Column(String(100), nullable=False)
     fb_post_id = Column(String(100), nullable=False)
     commenter_name = Column(String(200), default="")
     comment_text = Column(Text, default="")
@@ -42,6 +47,7 @@ class BotLog(Base):
     __table_args__ = (Index("ix_botlog_level_created", "level", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     level = Column(String(20), default="INFO")
     message = Column(Text, default="")
     created_at = Column(DateTime, default=utcnow, index=True)
@@ -49,17 +55,46 @@ class BotLog(Base):
 
 class BotState(Base):
     __tablename__ = "bot_state"
+    __table_args__ = (UniqueConstraint('tenant_id', 'key', name='uq_botstate_tenant_key'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    key = Column(String(100), nullable=False, unique=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    key = Column(String(100), nullable=False)
     value = Column(Text, default="")
+
+
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(200), default="")
+    plan = Column(String(50), default="free")  # free, basic, pro, enterprise
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class TenantConfig(Base):
+    __tablename__ = "tenant_configs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    config_key = Column(String(100), nullable=False)
+    config_value = Column(Text, default="")
+    created_at = Column(DateTime, default=utcnow)
+    __table_args__ = (UniqueConstraint('tenant_id', 'config_key', name='uq_tenant_config'),)
 
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint('tenant_id', 'username', name='uq_user_tenant_username'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    username = Column(String(100), nullable=False)
+    email = Column(String(200), default="")
+    plan = Column(String(50), default="free")
+    email_verified = Column(Boolean, default=False)
+    reset_token = Column(String(100), default="")
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="viewer")  # admin, editor, viewer
     created_at = Column(DateTime, default=utcnow)
@@ -72,6 +107,7 @@ class ReplyTemplate(Base):
     __tablename__ = "reply_templates"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(100), nullable=False)
     text = Column(Text, nullable=False)
     category = Column(String(50), default="general")  # general, greeting, complaint, pricing
@@ -84,6 +120,7 @@ class AISuggestion(Base):
     __tablename__ = "ai_suggestions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     comment_id = Column(String(100), default="")
     comment_text = Column(Text, default="")
     suggestions = Column(JSON, default=list)  # list of generated suggestions
@@ -98,9 +135,11 @@ class AISuggestion(Base):
 class ConversationTag(Base):
     """Tags for categorizing conversations."""
     __tablename__ = "conversation_tags"
+    __table_args__ = (UniqueConstraint('tenant_id', 'name', name='uq_ctag_tenant_name'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(50), unique=True, nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    name = Column(String(50), nullable=False)
     color = Column(String(7), default="#6366f1")  # hex color
     created_at = Column(DateTime, default=utcnow)
 
@@ -110,6 +149,7 @@ class ConversationLabel(Base):
     __tablename__ = "conversation_labels"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     conversation_id = Column(String(100), nullable=False, index=True)
     tag_id = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=utcnow)
@@ -121,6 +161,7 @@ class ScheduledPost(Base):
     __table_args__ = (Index("ix_schedpost_status_sched", "status", "scheduled_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     message = Column(Text, nullable=False)
     image_url = Column(String(500), default="")
     platform = Column(String(20), default="facebook")  # facebook, x, linkedin, instagram
@@ -137,6 +178,7 @@ class AnalyticsEvent(Base):
     __tablename__ = "analytics_events"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     event_type = Column(String(50), nullable=False, index=True)  # reply_sent, comment_received, dm_sent, webhook_received
     metadata_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=utcnow)
@@ -147,6 +189,7 @@ class BotAlert(Base):
     __tablename__ = "bot_alerts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     alert_type = Column(String(50), nullable=False)  # low_volume, error_rate, token_expiring, no_comments
     severity = Column(String(20), default="info")  # info, warning, critical
     message = Column(Text, default="")
@@ -164,6 +207,7 @@ class Offer(Base):
     __table_args__ = (Index("ix_offer_active_expires", "is_active", "expires_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     title = Column(String(200), nullable=False)
     code = Column(String(50), default="")
     description = Column(Text, default="")
@@ -184,6 +228,7 @@ class OfferClaim(Base):
     __tablename__ = "offer_claims"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     offer_id = Column(Integer, nullable=False, index=True)
     fb_user_id = Column(String(100), nullable=False)
     user_name = Column(String(200), default="")
@@ -196,9 +241,11 @@ class OfferClaim(Base):
 class Subscriber(Base):
     """Social platform subscriber/follower."""
     __tablename__ = "subscribers"
+    __table_args__ = (UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fb_user_id = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    fb_user_id = Column(String(100), nullable=False)
     name = Column(String(200), default="")
     first_name = Column(String(100), default="")
     username = Column(String(100), default="")
@@ -220,9 +267,11 @@ class Subscriber(Base):
 class Tag(Base):
     """Label/category for subscriber segmentation."""
     __tablename__ = "tags"
+    __table_args__ = (UniqueConstraint('tenant_id', 'name', name='uq_tag_tenant_name'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(50), unique=True, nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    name = Column(String(50), nullable=False)
     color = Column(String(7), default="#6366f1")
     created_at = Column(DateTime, default=utcnow)
 
@@ -236,9 +285,10 @@ class SubscriberTag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
     tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=utcnow)
 
-    __table_args__ = (UniqueConstraint("subscriber_id", "tag_id", name="uq_subscriber_tag"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "subscriber_id", "tag_id", name="uq_subscriber_tag"),)
 
 
 # ── Flows (Visual Automation) ──────────────────────────────────────────────────
@@ -249,6 +299,7 @@ class Flow(Base):
     __tablename__ = "flows"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(200), nullable=False)
     description = Column(Text, default="")
     nodes = Column(JSON, default=list)
@@ -267,6 +318,7 @@ class FlowExecution(Base):
     __tablename__ = "flow_executions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     flow_id = Column(Integer, ForeignKey("flows.id"), nullable=False, index=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id"), nullable=True, index=True)
     trigger_type = Column(String(50), default="")
@@ -286,6 +338,7 @@ class Sequence(Base):
     __tablename__ = "sequences"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(200), nullable=False)
     description = Column(Text, default="")
     status = Column(String(20), default="draft")  # draft/active/paused/archived
@@ -301,6 +354,7 @@ class SequenceStep(Base):
     __tablename__ = "sequence_steps"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False, index=True)
     step_order = Column(Integer, default=0)
     delay_days = Column(Integer, default=0)
@@ -316,6 +370,7 @@ class SequenceSubscription(Base):
     __tablename__ = "sequence_subscriptions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False)
     sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False)
     current_step = Column(Integer, default=0)
@@ -323,7 +378,7 @@ class SequenceSubscription(Base):
     entered_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (UniqueConstraint("subscriber_id", "sequence_id", name="uq_seq_sub"),)
+    __table_args__ = (UniqueConstraint("tenant_id", "subscriber_id", "sequence_id", name="uq_seq_sub"),)
 
 
 # ── Broadcasts (One-to-Many) ───────────────────────────────────────────────────
@@ -334,6 +389,7 @@ class Broadcast(Base):
     __tablename__ = "broadcasts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(200), nullable=False)
     message_template = Column(Text, default="")
     platform_filter = Column(JSON, default={})
@@ -353,6 +409,7 @@ class BroadcastRecipient(Base):
     __tablename__ = "broadcast_recipients"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     broadcast_id = Column(Integer, ForeignKey("broadcasts.id", ondelete="CASCADE"), nullable=False, index=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
     status = Column(String(20), default="pending")  # pending/sent/failed/opened
@@ -365,6 +422,7 @@ class ConversationNote(Base):
     __tablename__ = "conversation_notes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     conversation_id = Column(String(100), nullable=False, index=True)
     content = Column(Text, default="")
     created_by = Column(String(100), default="")
@@ -376,6 +434,7 @@ class ConversationAssignee(Base):
     __tablename__ = "conversation_assignees"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     conversation_id = Column(String(100), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_at = Column(DateTime, default=utcnow)
@@ -386,6 +445,7 @@ class BrandConfig(Base):
     __tablename__ = "brand_config"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     brand_name = Column(String(100), default="Smart Link")
     tagline = Column(String(300), default="اللي يواكب التطور يسبق الجميع")
     copyright_text = Column(String(500), default="© 2025 Smart Link. جميع الحقوق محفوظة.")
@@ -398,10 +458,14 @@ class BrandConfig(Base):
 class Customer(Base):
     """CRM — customers and leads from social interactions."""
     __tablename__ = "customers"
-    __table_args__ = (Index("ix_customer_stage_contacted", "stage", "last_contacted_at"),)
+    __table_args__ = (
+        Index("ix_customer_stage_contacted", "stage", "last_contacted_at"),
+        UniqueConstraint('tenant_id', 'fb_user_id', name='uq_customer_tenant_fbuser'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fb_user_id = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    fb_user_id = Column(String(100), nullable=False)
     name = Column(String(200), default="")
     phone = Column(String(50), default="")
     email = Column(String(200), default="")
@@ -423,6 +487,7 @@ class ReportSchedule(Base):
     __tablename__ = "report_schedules"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
     report_type = Column(String(50), nullable=False, default="monthly")
     email = Column(String(200), default="")
     enabled = Column(Boolean, default=True)

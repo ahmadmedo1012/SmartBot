@@ -15,11 +15,13 @@ function HamburgerButton({ open, onClick }) {
       onClick={onClick}
       className="lg:hidden"
       style={{
-        position: "relative", width: 44, height: 44, borderRadius: 12,
+        position: "relative", width: 44, height: 44, borderRadius: 10,
         border: "1px solid var(--border)", background: "transparent",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer", transition: "all .2s",
       }}
+      onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in oklch, var(--accent) 15%, transparent)"; e.currentTarget.style.borderColor = "color-mix(in oklch, var(--accent) 30%, transparent)" }}
+      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border)" }}
       aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
     >
       <span style={{ position: "relative", width: 14, height: 14 }}>
@@ -85,10 +87,10 @@ function MobileMenu({ open, onClose, onNavigate }) {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid color-mix(in oklch, var(--border) 50%, transparent)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 32, height: 32, borderRadius: 10, objectFit: "contain" }} />
-                <span style={{ fontWeight: 700, fontSize: 15 }}>SmartBot</span>
+                <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 36, height: 36, objectFit: "contain" }} />
+                <span style={{ fontWeight: 700, fontSize: 15, color: "var(--fg)" }}>SmartBot</span>
               </div>
-              <button onClick={onClose} style={{ width: 44, height: 44, borderRadius: 12, border: "1px solid color-mix(in oklch, var(--border) 50%, transparent)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--fg)" }}><X size={16} /></button>
+              <button onClick={onClose} style={{ width: 44, height: 44, borderRadius: 10, border: "1px solid color-mix(in oklch, var(--border) 50%, transparent)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--fg)" }}><X size={16} /></button>
             </div>
             <nav style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 4 }}>
               {landingLinks.map((link, i) => (
@@ -147,15 +149,16 @@ export function LandingHeader({ onNavigate }) {
       <header
         dir="rtl"
         style={{
-          position: "fixed", top: 0, insetInline: 0, zIndex: 30, height: 56,
+          position: "fixed", top: 0, insetInline: 0, zIndex: 30, height: 64,
           transition: "transform .5s var(--ease-smooth), background .5s var(--ease-smooth), border-color .5s var(--ease-smooth)",
           transform: visible ? "translateY(0)" : "translateY(-100%)",
           background: scrolled
-            ? "color-mix(in oklch, var(--surface) 40%, transparent)"
+            ? "color-mix(in oklch, var(--surface) 70%, transparent)"
             : "transparent",
-          backdropFilter: scrolled ? "blur(24px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
+          backdropFilter: scrolled ? "blur(32px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
           borderBlockEnd: scrolled ? "1px solid color-mix(in oklch, var(--accent) 15%, transparent)" : "1px solid transparent",
+          boxShadow: scrolled ? "var(--shadow-md)" : "none",
         }}
       >
         <nav style={{ maxWidth: 1220, margin: "0 auto", padding: "0 24px", height: "100%", display: "flex", alignItems: "center", gap: 24 }}>
@@ -163,14 +166,14 @@ export function LandingHeader({ onNavigate }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
             <span onClick={() => onNavigate && onNavigate("landing")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }}>
-              <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 32, height: 32, borderRadius: 10, objectFit: "contain", boxShadow: "var(--shadow-glow)" }} />
-              <span style={{ fontWeight: 700, fontSize: 15, color: "var(--fg)", letterSpacing: "-.01em" }}>SmartBot</span>
+              <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 36, height: 36, borderRadius: 10, objectFit: "contain", boxShadow: "var(--shadow-glow)" }} />
+              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--fg)", letterSpacing: "-.01em" }}>SmartBot</span>
             </span>
           </div>
 
           {/* Tubelight Nav (Desktop) */}
           <div className="hidden lg:flex" style={{ alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", borderRadius: 9999, background: "color-mix(in oklch, var(--surface) 40%, transparent)", backdropFilter: "blur(8px)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", padding: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", borderRadius: 9999, background: "color-mix(in oklch, var(--surface) 60%, transparent)", backdropFilter: "blur(8px)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", padding: 3, boxShadow: scrolled ? "var(--shadow-sm)" : "none" }}>
               {landingLinks.map((link, i) => {
                 const linkActive = isActive(link.href)
                 return (
@@ -191,7 +194,8 @@ export function LandingHeader({ onNavigate }) {
                           layoutId="tubelight-landing"
                           style={{
                             position: "absolute", inset: 0, zIndex: -10, borderRadius: 9999,
-                            background: "var(--accent)", boxShadow: "0 0 18px 3px rgba(200,78,0,0.35), 0 0 6px rgba(200,78,0,0.15)",
+                            background: "var(--accent)",
+                            boxShadow: "0 0 18px 3px rgba(200,78,0,0.35), 0 0 6px rgba(200,78,0,0.15)",
                           }}
                           transition={{ type: "spring", stiffness: 420, damping: 28 }}
                         />
@@ -208,6 +212,9 @@ export function LandingHeader({ onNavigate }) {
             <ThemeToggle />
           </div>
         </nav>
+
+        {/* Shimmer bar */}
+        <div className="shimmer-bar" aria-hidden="true" />
       </header>
 
       <MobileMenu open={mobileMenuOpen} onClose={closeMobileMenu} onNavigate={onNavigate} />

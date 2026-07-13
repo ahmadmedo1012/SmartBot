@@ -252,9 +252,9 @@ button, a, select, input, textarea {
 
 .main { margin-inline-start: var(--sidebar-w, 240px); flex: 1; display: flex; flex-direction: column; height: 100dvh; background-image: radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in oklch, var(--accent) 6%, transparent), transparent 70%); }
 @media (max-width:1024px) { .main { background-image: none; } }
-.header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; will-change: transform; }
+.header { min-height: var(--header-h); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; will-change: transform; }
 .page-title { font: 600 14px/1 var(--font-dsp); color: var(--muted); }
-.header-left { display: flex; align-items: center; gap: 12px; margin-inline-start: auto; }
+.header-left { display: flex; align-items: center; gap: 12px; }
 .hamburger { display: none; background: none; border: 0; font-size: 22px; cursor: pointer; padding: 4px; color: var(--fg); }
 .header-search { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 6px 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
 .header-search:hover { border-color: var(--accent); }
@@ -657,10 +657,10 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
   --muted: oklch(0.52 0.01 0);
   --muted-bg: oklch(0.94 0.003 0);
   --border: oklch(0.85 0.005 0);
-  --accent: #c84e00;
-  --accent-soft: #c84e001a;
+  --accent: #ac2100;
+  --accent-soft: #ac21001f;
   --accent-fg: oklch(0.98 0 0);
-  --accent-glow: 0 0 20px #c84e0026;
+  --accent-glow: 0 0 20px #ac21002e;
   --overlay: oklch(0 0 0 / 0.25);
   --glass-bg: oklch(1 0 0 / 0.6);
   --glass-bg-strong: oklch(1 0 0 / 0.8);

@@ -51,7 +51,7 @@ function LoadingSkeleton() {
       </div>
       <div className="stats-grid">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="card glass" style={{ padding: "18px" }}>
+          <div key={i} className="card glass card-premium card-hover-lift" style={{ padding: "18px" }}>
             <div className="skeleton skeleton-text" style={{ width: "70px", height: "12px" }} />
             <div className="skeleton skeleton-text" style={{ width: "50px", height: "28px", marginTop: "8px" }} />
           </div>
@@ -140,7 +140,7 @@ export function Dashboard(_p) {
           { icon: statIcons.fans, color: "danger", label: "المتابعون", val: stats?.fan_count || 0 },
           { icon: statIcons.rules, color: "warn", label: "القواعد النشطة", val: activeRules, running: botStatus?.running },
         ].map((s, i) => (
-          <motion.div key={s.label} className="stat-card glass-card" custom={i} variants={statCardVariant} initial="hidden" animate="visible">
+          <motion.div key={s.label} className="stat-card glass-card card-premium card-hover-lift" custom={i} variants={statCardVariant} initial="hidden" animate="visible">
             <div className="stat-icon" data-color={s.color}>{s.icon}</div>
             <div className="stat-label">{s.label}</div>
             <div className="stat-value"><AnimatedStat value={s.val} /></div>
@@ -161,21 +161,21 @@ export function Dashboard(_p) {
 
       {/* metrics row */}
       <div className="stats-grid" style={{ gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", marginBlockEnd: "var(--space-lg)" }}>
-        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card card-premium card-hover-lift" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--accent)" }}>
             {stats?.fan_count ? (stats.fan_count >= 1000 ? (stats.fan_count / 1000).toFixed(1) + "k" : stats.fan_count) : 0}
           </div>
           <div className="stat-label">إجمالي المتابعين</div>
         </div>
-        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card card-premium card-hover-lift" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--info)" }}>{rules.length || 0}</div>
           <div className="stat-label">قاعدة نشطة</div>
         </div>
-        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card card-premium card-hover-lift" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--success)" }}>{stats?.total_replies ? Math.round(stats.today_replies / stats.total_replies * 100) : 0}%</div>
           <div className="stat-label">معدل التفاعل</div>
         </div>
-        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card card-premium card-hover-lift" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--warn)" }}>
             {recentReplies.length}
           </div>
@@ -184,7 +184,7 @@ export function Dashboard(_p) {
       </div>
 
       {/* chart */}
-      <div className="card glass" style={{ marginBlockEnd: "var(--space-lg)" }}>
+      <div className="card glass card-premium card-hover-lift" style={{ marginBlockEnd: "var(--space-lg)" }}>
         <div className="cc-header">
           <h2 className="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -214,7 +214,7 @@ export function Dashboard(_p) {
       {/* row-2: activity + table */}
       <div className="row-2">
         {/* activity */}
-        <div className="card glass">
+        <div className="card glass card-premium card-hover-lift">
           <h2 className="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             آخر النشاطات</h2>
@@ -240,7 +240,7 @@ export function Dashboard(_p) {
         </div>
 
         {/* recent replies table */}
-        <div className="card glass">
+        <div className="card glass card-premium card-hover-lift">
           <div className="cc-header" style={{ marginBlockEnd: "var(--space-md)" }}>
             <h2 className="cc-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

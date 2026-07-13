@@ -160,8 +160,10 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
             </svg>
           </button>
           <h2 className="page-title hidden sm:block" id="pageTitle">{pageTitles[currentPage] || currentPage}</h2>
-          <div className="header-left">
+          <div style={{ flex: 1, maxWidth: 384, marginInline: 24, display: "flex", justifyContent: "center" }}>
             <ActionSearchBar onNavigate={onNavigate} currentPage={currentPage} />
+          </div>
+          <div className="header-left">
             <div
               className="notif-btn"
               onClick={() => onNavigate("notifications")}

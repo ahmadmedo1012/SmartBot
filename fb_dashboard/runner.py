@@ -2551,6 +2551,15 @@ async def websocket_endpoint(ws: WebSocket):
         return
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti", "")
+        if jti:
+            async with AsyncSessionLocal() as _db:
+                blocked = await _db.execute(
+                    select(BlacklistedToken).where(BlacklistedToken.jti == jti)
+                )
+                if blocked.scalar_one_or_none():
+                    await ws.close(code=4001, reason="Token revoked")
+                    return
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         await ws.close(code=4001, reason="Invalid or expired token")
         return
@@ -3292,8 +3301,12 @@ async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(requ
     for key, value in body.items():
         existing = await db.execute(select(BotState).where(BotState.key == f"shopify_{key}"))
         row = existing.scalar_one_or_none()
+        val = str(value)
+        if key == "access_token":
+            from _crypto import encrypt_token
+            val = encrypt_token(val) or val
         if row:
-            row.value = str(value)
+            row.value = val
         else:
             db.add(BotState(key=f"shopify_{key}", value=str(value)))
     await db.commit()

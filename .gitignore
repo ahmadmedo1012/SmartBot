@@ -29,3 +29,4 @@ dist/
 .idea/
 mypy_cache/
 .pytest_cache/
+.claude-flow/

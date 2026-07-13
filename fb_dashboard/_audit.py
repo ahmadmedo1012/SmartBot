@@ -9,7 +9,7 @@ async def log_audit(db, action: str, actor_id: int = None, target_type: str = ""
         actor_id=actor_id,
         target_type=target_type,
         target_id=target_id,
-        metadata=metadata or {},
+        data=metadata or {},
         ip=ip,
     ))
     await db.flush()

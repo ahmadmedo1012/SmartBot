@@ -13,7 +13,6 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Any
 
-import bcrypt
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.exceptions import RequestValidationError
@@ -220,7 +219,8 @@ async def seed_admin(db):
         return  # ponytail: users already exist — do not reset passwords
     username = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
     password = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
-    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    from _hash import hash_password
+    pw_hash = hash_password(password)
     db.add(User(username=username, password_hash=pw_hash, role="admin"))
     await db.commit()
     log.info("Initial admin user seeded")
@@ -561,7 +561,7 @@ async def get_audit_logs(limit: int = Query(50), db=Depends(get_db), current_use
         {
             "id": r.id, "action": r.action, "actor_id": r.actor_id,
             "target_type": r.target_type, "target_id": r.target_id,
-            "metadata": r.metadata, "ip": r.ip,
+            "metadata": r.data, "ip": r.ip,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in rows.scalars().all()
@@ -743,7 +743,8 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
     existing = await db.execute(select(User).where(User.username == username, User.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Username exists")
-    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    from _hash import hash_password
+    pw_hash = hash_password(password)
     user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
     db.add(user)
     await db.commit()
@@ -761,7 +762,8 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
         raise HTTPException(404, "User not found")
     user.role = role
     if password:
-        user.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        from _hash import hash_password
+        user.password_hash = hash_password(password)
     await db.commit()
     return {"ok": True}
 

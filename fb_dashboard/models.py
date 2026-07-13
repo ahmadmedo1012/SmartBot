@@ -501,7 +501,7 @@ class AuditLog(Base):
     actor_id = Column(Integer, nullable=True)
     target_type = Column(String(50), default="")
     target_id = Column(Integer, nullable=True)
-    metadata = Column(JSON, default=dict)
+    data = Column(JSON, default=dict)  # ponytail: named "data" not "metadata" — "metadata" is a SQLAlchemy reserved attr
     ip = Column(String(50), default="")
     created_at = Column(DateTime, default=utcnow)
 

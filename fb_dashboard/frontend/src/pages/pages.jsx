@@ -5,7 +5,7 @@ import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 function LoadingSkeleton() {
   return (
     <section className="page active" dir="rtl">
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <div className="skeleton skeleton-text" style={{ width: "100px", height: "28px" }} />
         <div className="skeleton skeleton-text" style={{ width: "160px", height: "14px", marginTop: "6px" }} />
       </div>
@@ -34,8 +34,8 @@ function LoadingSkeleton() {
 
 function ErrorState({ message, onRetry }) {
   return (
-    <section className="page active" dir="rtl">
-      <div className="page-header">
+    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
+      <div className="page-header reveal-blur">
         <h1>الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>
@@ -45,7 +45,7 @@ function ErrorState({ message, onRetry }) {
         </svg>
         <h2>حدث خطأ في التحميل</h2>
         <p>{message || "تعذر تحميل بيانات الصفحات"}</p>
-        <button className="btn btn-primary" onClick={onRetry}>إعادة المحاولة</button>
+        <button className="btn btn-primary" onClick={onRetry} style={{boxShadow:"var(--shadow-glow)"}}>إعادة المحاولة</button>
       </div>
     </section>
   )
@@ -81,9 +81,9 @@ export function Pages() {
   const hasToken = env?.has_fb_token ?? fbSettings?.has_token
 
   return (
-    <section className="page active" dir="rtl" style={{ position: "relative" }}>
+    <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>

@@ -102,11 +102,14 @@ export function Login({ onAuth }) {
           <div className="relative rounded-2xl p-6 sm:p-8 glass-liquid">
             {/* Logo */}
             <div className="text-center mb-6">
-              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: "color-mix(in oklch, var(--muted) 30%, transparent)" }}>
+              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden bg-accent" style={{background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", boxShadow: "var(--shadow-glow)"}}>
                 <img src="/static/favicon.png" alt="SmartBot" className="w-12 h-12 object-contain" />
               </div>
-              <h1 className="text-3xl font-bold text-iridescent">SmartBot</h1>
-              <p style={{ fontSize: "14px", color: "var(--muted)", marginTop: 6 }}>{isRegister ? "إنشاء حساب جديد" : "لوحة التحكم الذكية"}</p>
+              <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <p style={{ fontSize: "14px", color: "var(--muted)" }}>{isRegister ? "إنشاء حساب جديد" : "لوحة التحكم الذكية"}</p>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{background: "var(--accent-soft)", color: "var(--accent)"}}>v2</span>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -198,7 +201,7 @@ export function Login({ onAuth }) {
                 type="submit"
                 disabled={loading}
                 className="btn btn-primary"
-                style={{ width: "100%", height: 48, justifyContent: "center", borderRadius: 12, fontSize: 14 }}
+                style={{ width: "100%", height: 48, justifyContent: "center", borderRadius: 12, fontSize: 14, boxShadow: "var(--shadow-glow)" }}
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -220,7 +223,7 @@ export function Login({ onAuth }) {
         </AnimatedGradientBorder>
 
         <p className="login-fade-in text-center" style={{ fontSize: "11px", marginTop: 24, color: "color-mix(in oklch, var(--muted) 40%, transparent)", letterSpacing: "0.05em" }}>
-          SmartBot v1.0 — منصة إدارة التفاعل الذكية
+          SmartBot v2.0 — منصة إدارة التفاعل الذكية
         </p>
       </div>
     </div>

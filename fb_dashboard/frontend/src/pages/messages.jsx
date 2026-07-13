@@ -58,6 +58,8 @@ function ConvItem({ conv, selectedId, onSelect }) {
         width:"100%",textAlign:"right",padding:12,fontSize:13,cursor:"pointer",
         background:selected ? "var(--accent-soft)" : "transparent",
         border:"none",borderBottom:"1px solid var(--border)",borderRight:`3px solid ${selected ? "var(--accent)" : "transparent"}`,
+        transition:"background .15s var(--ease), border-color .15s var(--ease)",
+        boxShadow: selected ? "var(--shadow-glow)" : "none",
       }}
     >
       <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
@@ -321,11 +323,12 @@ export function Messages({ role }) {
                       <div style={{maxWidth:"75%",minWidth:100}}>
                         <div style={{
                           padding:"10px 14px",fontSize:13,lineHeight:1.5,
-                          background:isPage ? "var(--accent)" : "var(--bg)",
-                          color:isPage ? "#fff" : "var(--text)",
+                          background:isPage ? "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 80%, oklch(0% 0 0)))" : "var(--bg)",
+                          color:isPage ? "var(--accent-fg)" : "var(--text)",
                           borderRadius:12,
                           borderBottomRightRadius:isPage ? 4 : 12,
                           borderBottomLeftRadius:isPage ? 12 : 4,
+                          boxShadow: isPage ? "0 2px 12px var(--accent-soft)" : "var(--shadow-sm)",
                         }}>
                           <p style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{m.message || <span style={{opacity:0.6,fontStyle:"italic"}}>(وسائط)</span>}</p>
                           <div style={{display:"flex",alignItems:"center",gap:4,marginBlockStart:4,justifyContent:isPage?"flex-end":"flex-start"}}>

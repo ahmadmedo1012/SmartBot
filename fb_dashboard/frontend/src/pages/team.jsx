@@ -114,9 +114,9 @@ export function Team({ role }) {
   const totalRoles = Object.keys(ROLE_LABELS).filter(r => (summary[r] || 0) > 0 || members.some(m => m.role === r)).length
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
+      <div className="page-header reveal-blur">
         <h1>فريق العمل</h1>
         <p>{totalMembers} عضو · {totalRoles} أدوار</p>
       </div>

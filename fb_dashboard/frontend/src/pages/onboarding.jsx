@@ -53,7 +53,7 @@ function WelcomeStep({ onNext }) {
           تحليلات شاملة، وأكثر. لنبدأ بإعداد حسابك خلال دقائق.
         </p>
       </div>
-      <button className="btn btn-primary" style={{ fontSize: 14, padding: "10px 32px" }} onClick={onNext}>
+      <button className="btn btn-primary" style={{ fontSize: 14, padding: "10px 32px", boxShadow: "var(--shadow-glow)" }} onClick={onNext}>
         ابدأ
       </button>
     </div>
@@ -130,7 +130,7 @@ function ConnectFacebookStep({ onNext }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, marginBlockStart: 8 }}>
-          <button className="btn btn-primary" style={{ fontSize: 12, flex: 1 }} onClick={handleSave} disabled={saving}>
+          <button className="btn btn-primary" style={{ fontSize: 12, flex: 1, boxShadow: "var(--shadow-glow)" }} onClick={handleSave} disabled={saving}>
             {saving ? "..." : "حفظ الإعدادات"}
           </button>
           <button className="btn btn-outline" style={{ fontSize: 12, flex: 1 }} onClick={handleTest} disabled={testing}>
@@ -144,7 +144,7 @@ function ConnectFacebookStep({ onNext }) {
           </p>
         )}
       </div>
-      <button className="btn btn-primary" style={{ fontSize: 13, alignSelf: "center", padding: "8px 28px", opacity: connected ? 1 : 0.5 }} disabled={!connected} onClick={onNext}>
+      <button className="btn btn-primary" style={{ fontSize: 13, alignSelf: "center", padding: "8px 28px", opacity: connected ? 1 : 0.5, boxShadow: "var(--shadow-glow)" }} disabled={!connected} onClick={onNext}>
         التالي
       </button>
     </div>
@@ -195,7 +195,7 @@ function FirstRuleStep({ onNext }) {
           <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBlockEnd: 4 }}>نص الرد</label>
           <textarea className="fld" rows={4} value={reply} onChange={e => setReply(e.target.value)} placeholder="اكتب نص الرد التلقائي هنا..." style={{ width: "100%", resize: "vertical" }} />
         </div>
-        <button className="btn btn-primary" style={{ fontSize: 13, width: "100%" }} onClick={handleSave} disabled={saving}>
+        <button className="btn btn-primary" style={{ fontSize: 13, width: "100%", boxShadow: "var(--shadow-glow)" }} onClick={handleSave} disabled={saving}>
           {saving ? "..." : "حفظ القاعدة"}
         </button>
       </div>
@@ -225,7 +225,7 @@ function DoneStep({ onComplete }) {
           البيانات لمراقبة التفاعلات وإدارة الإعدادات المتقدمة.
         </p>
       </div>
-      <button className="btn btn-primary" style={{ fontSize: 14, padding: "10px 32px" }} onClick={onComplete}>
+      <button className="btn btn-primary" style={{ fontSize: 14, padding: "10px 32px", boxShadow: "var(--shadow-glow)" }} onClick={onComplete}>
         الذهاب إلى لوحة البيانات
       </button>
     </div>
@@ -236,9 +236,9 @@ export function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0)
 
   return (
-    <section className="page active" dir="rtl" style={{ position: "relative" }}>
+    <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg" />
-      <div className="page-header" style={{ textAlign: "center" }}>
+      <div className="page-header reveal-blur" style={{ textAlign: "center" }}>
         <h1>إعداد SmartBot</h1>
         <p>تجربة الإعداد السريع — دقائق قليلة وتبدأ</p>
       </div>

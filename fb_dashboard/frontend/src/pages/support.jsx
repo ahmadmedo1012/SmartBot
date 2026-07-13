@@ -24,7 +24,7 @@ export function Support() {
   const isLoading = diagLoading || alertsLoading
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
         <h1>الدعم الفني</h1>
@@ -87,7 +87,7 @@ export function Support() {
         </div>
         <div className="activity-list">
           {resourceLinks.map((l, i) => (
-            <div className="activity-item" key={i}>
+            <div className="activity-item" key={i} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
               <div className="activity-dot" style={{background:l.color}} />
               <div className="activity-text">
                 <a href={l.url} target="_blank" rel="noopener noreferrer" style={{fontWeight:600,color:"var(--text)"}}>

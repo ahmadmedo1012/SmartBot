@@ -138,7 +138,7 @@ export function ScheduledPosts({ role }) {
                 <label style={{display:"block",fontSize:12,color:"var(--muted)",marginBlockEnd:4}}>تاريخ النشر (اختياري)</label>
                 <input type="datetime-local" className="fld" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} style={{width:"100%"}} />
               </div>
-              <button className="btn btn-primary" style={{width:"100%"}} onClick={() => createMut.mutate()} disabled={!message.trim() || createMut.isPending}>
+              <button className="btn btn-primary" style={{width:"100%",boxShadow:"var(--shadow-glow)"}} onClick={() => createMut.mutate()} disabled={!message.trim() || createMut.isPending}>
                 {createMut.isPending ? "جاري..." : scheduledAt ? "جدولة" : "حفظ كمسودة"}
               </button>
             </div>

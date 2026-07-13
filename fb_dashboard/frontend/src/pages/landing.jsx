@@ -1,5 +1,5 @@
-import { useEffect } from "react"
-import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star } from "lucide-react"
 
 const features = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
@@ -30,52 +30,116 @@ const faqs = [
   { q: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", a: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود غير المحدودة، اختر الخطة الأساسية أو الاحترافية." },
 ]
 
+const testimonials = [
+  { name: "أحمد المقريف", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
+  { name: "سارة بن غربية", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
+  { name: "محمد التواتي", role: "صاحب متجر — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
+]
+
+const clients = ["مقهى الواحة", "مطعم الأصيل", "بيتزا روما", "SOHO", "مخبز النخبة", "صيدلية الشفاء", "متجر الريف", "استوديو أضواء"]
+
+function AnimatedCounter({ value, label, suffix = "" }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef(null)
+  const counted = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !counted.current) {
+        counted.current = true
+        const duration = 1500
+        const steps = 30
+        const stepVal = value / steps
+        let current = 0
+        const interval = setInterval(() => {
+          current += stepVal
+          if (current >= value) { setCount(value); clearInterval(interval) }
+          else setCount(Math.floor(current))
+        }, duration / steps)
+      }
+    }, { threshold: 0.5 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [value])
+
+  return (
+    <div ref={ref} className="text-center">
+      <div className="text-5xl font-extrabold" style={{ color: "var(--accent)", fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
+        {count}{suffix}
+      </div>
+      <div className="text-sm mt-2" style={{ color: "var(--muted)" }}>{label}</div>
+    </div>
+  )
+}
+
 function HeroSection({ onGetStarted }) {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden" dir="rtl">
       <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "oklch(0.018 0.003 30)" }}>
-        <div className="absolute inset-0 opacity-[0.04]"
+        <div className="absolute inset-0 opacity-[0.03]"
           style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="bg-radial-glow" />
-        <div className="animate-blob-1 absolute -top-40 right-0 w-[700px] h-[700px]"
-          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 20%, transparent), transparent 70%)" }} />
-        <div className="animate-blob-2 absolute -bottom-40 left-0 w-[600px] h-[600px]"
-          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 12%, transparent), transparent 70%)" }} />
+        <div className="animate-blob-1 absolute -top-40 -right-40 w-[800px] h-[800px]"
+          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 18%, transparent), transparent 70%)" }} />
+        <div className="animate-blob-2 absolute -bottom-40 -left-40 w-[700px] h-[700px]"
+          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%)" }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-20" style={{ animation: "reveal-blur 0.8s cubic-bezier(0.16,1,0.3,1) both" }}>
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="stagger-children space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
-                style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
-              <span className="font-bold text-lg" style={{ color: "var(--fg)" }}>SmartBot</span>
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-24 pb-20">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl"
+                style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.48 0.19 45))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
+              <div>
+                <span className="font-bold text-xl" style={{ color: "var(--fg)" }}>SmartBot</span>
+                <span className="text-xs mr-2 px-2 py-0.5 rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>v2</span>
+              </div>
             </div>
-            <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight text-gradient-premium" style={{lineHeight: 1.2}}>
-              إدارة تفاعل فيسبوك<br />بذكاء
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+              <span className="shiny-text">إدارة تفاعل فيسبوك</span>
+              <br />بذكاء
             </h1>
-            <p className="text-lg leading-relaxed" style={{ color: "var(--muted)" }}>
-              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. كل ما تحتاجه في منصة واحدة
+
+            <p className="text-lg leading-relaxed" style={{ color: "var(--muted)", maxWidth: "520px" }}>
+              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك في منصة واحدة مصممة خصيصاً للسوق الليبي
             </p>
+
             <div className="flex gap-4 pt-2">
               <button className="btn btn-primary text-base px-8 py-3 magnetic-btn" onClick={onGetStarted}
-                style={{boxShadow: "var(--shadow-glow)"}}>
+                style={{boxShadow: "var(--shadow-glow)", borderRadius: "var(--radius-lg)"}}>
                 ابدأ الآن مجاناً
-                <span style={{ fontSize: "18px" }}>←</span>
               </button>
-              <button className="btn btn-outline text-base px-8 py-3">
+              <button className="btn btn-outline text-base px-8 py-3" style={{borderRadius: "var(--radius-lg)"}}>
                 اعرف المزيد
+                <ChevronDown className="w-4 h-4" />
               </button>
+            </div>
+
+            <div className="flex items-center gap-4 pt-4" style={{ color: "var(--muted)", fontSize: "13px" }}>
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+              </div>
+              <span>أكثر من ٥٠٠ صفحة تثق فينا</span>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center justify-center">
-            <div className="glass-strong rounded-3xl p-4 w-full max-w-md aspect-[4/3] flex items-center justify-center overflow-hidden" style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)"}}>
-              <img src="/static/assets/index-DQpn7rcg.js" alt="لوحة التحكم" className="w-full h-full object-cover rounded-2xl opacity-80"
-                onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex" }} />
-              <div className="hidden text-center" style={{ display: "none" }}>
-                <BarChart3 className="w-16 h-16 mb-4 opacity-30" />
-                <p className="text-sm" style={{ color: "var(--muted)" }}>لوحة تحكم SmartBot</p>
+            <div className="glass-strong rounded-3xl p-5 w-full max-w-md aspect-[4/3] flex items-center justify-center overflow-hidden reveal-scale"
+              style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)", border: "1px solid var(--glass-border)"}}>
+              <div className="w-full h-full rounded-2xl flex items-center justify-center"
+                style={{background: "linear-gradient(135deg, oklch(0.085 0.004 30), oklch(0.12 0.005 30))"}}>
+                <div className="text-center">
+                  <BarChart3 className="w-16 h-16 mb-3" style={{color: "var(--accent)"}} />
+                  <p className="text-sm" style={{ color: "var(--muted)" }}>لوحة تحكم SmartBot</p>
+                </div>
               </div>
             </div>
           </div>
@@ -85,24 +149,43 @@ function HeroSection({ onGetStarted }) {
   )
 }
 
+function StatsSection() {
+  return (
+    <section className="relative py-16" dir="rtl" style={{background: "oklch(0.04 0.002 30)"}}>
+      <div className="max-w-5xl mx-auto px-6 reveal-stagger">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <AnimatedCounter value={500} suffix="+" label="صفحة نشطة" />
+          <AnimatedCounter value={50} suffix="k+" label="رد تلقائي" />
+          <AnimatedCounter value={98} suffix="%" label="معدل رضا" />
+          <AnimatedCounter value={24} suffix="/7" label="دعم فني" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function FeaturesSection() {
   return (
-    <section className="relative py-24" dir="rtl">
-      <div className="mesh-bg" aria-hidden="true" />
+    <section className="relative py-24 section-padding" dir="rtl">
+      <div className="bg-radial-glow" />
       <div className="relative z-10 max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-3xl font-bold mb-3">مميزات SmartBot</h2>
-          <p className="text-base" style={{ color: "var(--muted)" }}>كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة</p>
+        <div className="text-center mb-16 reveal-up">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+            مميزات <span className="gradient-text">SmartBot</span>
+          </h2>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+            كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية
+          </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 reveal-stagger">
           {features.map((f, i) => (
-            <div key={i} className="glass card-premium rounded-2xl p-8 text-center"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)", animation: `slide-up 0.5s ease-out ${i * 0.08}s both`, animationDelay: `${i * 0.1}s` }}>
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-5"
+            <div key={i} className="glass-card rounded-2xl p-8 text-center card-premium"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
                 style={{ background: "color-mix(in oklch, var(--accent) 12%, transparent)" }}>
                 <f.icon className="w-7 h-7" style={{ color: "var(--accent)" }} />
               </div>
-              <h3 className="text-lg font-bold mb-2">{f.title}</h3>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--fg)" }}>{f.title}</h3>
               <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{f.desc}</p>
             </div>
           ))}
@@ -114,22 +197,90 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section className="relative py-24" dir="rtl" style={{ background: "oklch(12% 0.005 240)" }}>
+    <section className="relative py-24" dir="rtl" style={{ background: "oklch(0.04 0.002 30)" }}>
       <div className="relative z-10 max-w-5xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-3">كيف يعمل SmartBot</h2>
-          <p className="text-base" style={{ color: "var(--muted)" }}>ثلاث خطوات فقط لبدء أتمتة ردودك</p>
+        <div className="text-center mb-16 reveal-up">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+            كيف يعمل <span className="gradient-text">SmartBot</span>
+          </h2>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+            ثلاث خطوات فقط لبدء أتمتة ردودك
+          </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8 stagger-children">
+        <div className="grid md:grid-cols-3 gap-8 reveal-stagger">
           {steps.map((s, i) => (
-            <div key={i} className="text-center" style={{ animation: `slide-up 0.5s ease-out ${i * 0.12}s both` }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 text-2xl font-bold"
-                style={{ background: "color-mix(in oklch, var(--accent) 15%, transparent)", color: "var(--accent)" }}>
-                {s.num}
+            <div key={i} className="text-center">
+              <div className="relative w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold"
+                style={{ background: "linear-gradient(135deg, color-mix(in oklch, var(--accent) 15%, transparent), transparent)", color: "var(--accent)" }}>
+                <span>{s.num}</span>
+                {i < steps.length - 1 && (
+                  <div className="hidden md:block absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-0.5" style={{background: "var(--accent-soft)"}} />
+                )}
               </div>
-              <h3 className="text-xl font-bold mb-2">{s.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{s.desc}</p>
+              <div className="glass-card rounded-2xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <h3 className="text-xl font-bold mb-3" style={{ color: "var(--fg)" }}>{s.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{s.desc}</p>
+              </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function TestimonialsSection() {
+  return (
+    <section className="relative py-24 section-padding" dir="rtl">
+      <div className="bg-radial-glow" />
+      <div className="relative z-10 max-w-5xl mx-auto px-6">
+        <div className="text-center mb-16 reveal-up">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+            ماذا يقول عملاؤنا
+          </h2>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+            آراء حقيقية من مدراء الصفحات الذين يستخدمون SmartBot
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6 reveal-stagger">
+          {testimonials.map((t, i) => (
+            <div key={i} className="glass-card rounded-2xl p-6 card-premium"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div className="flex gap-1 mb-4">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                ))}
+              </div>
+              <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>"{t.text}"</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.48 0.19 45))", color: "var(--accent-fg)" }}>
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <div className="text-sm font-bold" style={{ color: "var(--fg)" }}>{t.name}</div>
+                  <div className="text-xs" style={{ color: "var(--muted)" }}>{t.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ClientsSection() {
+  return (
+    <section className="relative py-16" dir="rtl" style={{background: "oklch(0.04 0.002 30)"}}>
+      <div className="max-w-6xl mx-auto px-6">
+        <p className="text-center text-sm mb-8" style={{ color: "var(--muted)" }}>موثوق من قبل آلاف المداراء والمتاجر</p>
+        <div className="flex flex-wrap justify-center gap-8 gap-y-6 reveal-stagger">
+          {clients.map((c, i) => (
+            <span key={i} className="text-base font-bold px-4 py-2 rounded-xl"
+              style={{ color: "color-mix(in oklch, var(--muted) 50%, transparent)", background: "color-mix(in oklch, var(--border) 20%, transparent)" }}>
+              {c}
+            </span>
           ))}
         </div>
       </div>
@@ -139,41 +290,54 @@ function HowItWorksSection() {
 
 function PricingSection() {
   return (
-    <section className="relative py-24" dir="rtl">
-      <div className="mesh-bg" aria-hidden="true" />
+    <section className="relative py-24 section-padding" dir="rtl">
+      <div className="bg-radial-glow" />
       <div className="relative z-10 max-w-5xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-3">خطط الأسعار</h2>
-          <p className="text-base" style={{ color: "var(--muted)" }}>اختر الخطة المناسبة لاحتياجاتك</p>
+        <div className="text-center mb-16 reveal-up">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+            خطط <span className="gradient-text">الأسعار</span>
+          </h2>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+            اختر الخطة المناسبة لاحتياجاتك
+          </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 stagger-children">
+        <div className="grid md:grid-cols-3 gap-6 reveal-stagger">
           {plans.map((p, i) => (
             <div key={i}
-              className="glass rounded-2xl p-8 flex flex-col"
+              className="rounded-2xl p-8 flex flex-col card-premium"
               style={{
                 background: p.highlight
-                  ? "linear-gradient(135deg, color-mix(in oklch, var(--accent) 12%, var(--surface)), var(--surface))"
+                  ? "linear-gradient(135deg, oklch(0.085 0.004 30), oklch(0.12 0.005 30))"
                   : "var(--surface)",
                 border: p.highlight ? "1px solid var(--accent)" : "1px solid var(--border)",
                 transform: p.highlight ? "scale(1.05)" : "none",
-                animation: `slide-up 0.5s ease-out ${i * 0.1}s both`,
+                boxShadow: p.highlight ? "var(--shadow-glow)" : "var(--shadow-sm)",
               }}>
+              {p.highlight && (
+                <div className="text-center mb-4">
+                  <span className="text-xs px-3 py-1 rounded-full font-bold"
+                    style={{background: "var(--accent)", color: "var(--accent-fg)"}}>الأكثر طلباً</span>
+                </div>
+              )}
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold mb-1">{p.name}</h3>
+                <h3 className="text-xl font-bold mb-1" style={{ color: "var(--fg)" }}>{p.name}</h3>
                 <div className="mt-4">
-                  <span className="text-4xl font-extrabold" style={{ color: "var(--accent)" }}>{p.price}</span>
+                  <span className="text-5xl font-extrabold" style={{ color: "var(--accent)" }}>{p.price}</span>
                   <span className="text-sm mr-1" style={{ color: "var(--muted)" }}>{p.label}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-4 mb-8">
                 {[p.pages, p.replies, p.support].map((item, j) => (
-                  <div key={j} className="flex items-center gap-3 text-sm">
-                    <span style={{ color: "var(--accent)" }}>✓</span>
+                  <div key={j} className="flex items-center gap-3 text-sm" style={{ color: "var(--muted)" }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                     {item}
                   </div>
                 ))}
               </div>
-              <button className={`btn w-full py-3 ${p.highlight ? "btn-primary" : "btn-outline"}`}>
+              <button className={`btn w-full py-3 ${p.highlight ? "btn-primary" : "btn-outline"}`}
+                style={{borderRadius: "var(--radius-lg)", fontSize: "14px"}}>
                 {p.cta}
               </button>
             </div>
@@ -185,19 +349,40 @@ function PricingSection() {
 }
 
 function FaqSection() {
+  const [openIndex, setOpenIndex] = useState(null)
+
   return (
-    <section className="relative py-24" dir="rtl" style={{ background: "oklch(12% 0.005 240)" }}>
+    <section className="relative py-24" dir="rtl" style={{ background: "oklch(0.04 0.002 30)" }}>
       <div className="relative z-10 max-w-3xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-3">أسئلة شائعة</h2>
-          <p className="text-base" style={{ color: "var(--muted)" }}>أهم الأسئلة عن SmartBot</p>
+        <div className="text-center mb-16 reveal-up">
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
+            أسئلة <span className="gradient-text">شائعة</span>
+          </h2>
+          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+            أهم الأسئلة عن SmartBot
+          </p>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3 reveal-stagger">
           {faqs.map((faq, i) => (
-            <details key={i} className="glass rounded-xl p-5" style={{ border: "1px solid var(--border)", animation: `fade-in 0.4s ease-out ${i * 0.06}s both` }}>
-              <summary className="font-bold cursor-pointer" style={{ color: "var(--fg)" }}>{faq.q}</summary>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{faq.a}</p>
-            </details>
+            <div key={i}
+              className="rounded-2xl overflow-hidden card-premium"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <button
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                className="w-full flex items-center justify-between p-5 text-right"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg)", fontSize: "14px", fontWeight: 600 }}
+                aria-expanded={openIndex === i}
+              >
+                <span>{faq.q}</span>
+                <ChevronDown className="w-5 h-5 shrink-0 mr-4"
+                  style={{ transform: openIndex === i ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s var(--ease)" }} />
+              </button>
+              {openIndex === i && (
+                <div className="px-5 pb-5">
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{faq.a}</p>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -208,19 +393,18 @@ function FaqSection() {
 function CTASection({ onGetStarted }) {
   return (
     <section className="relative py-28 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0 mesh-bg" aria-hidden="true" />
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(58% 0.195 45), oklch(48% 0.19 45 / .8))" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.58 0.195 45), oklch(0.48 0.19 45))" }} />
       <div className="absolute inset-0 opacity-20" aria-hidden="true"
         style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 0%, transparent 50%), radial-gradient(circle at 70% 50%, white 0%, transparent 50%)" }} />
-      <div className="relative z-10 max-w-3xl mx-auto px-6 text-center reveal-up">
-        <h2 className="text-3xl lg:text-4xl font-extrabold mb-4" style={{ color: "var(--accent-fg)" }}>
+      <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+        <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--accent-fg)" }}>
           استعد لتطوير أعمالك
         </h2>
-        <p className="text-lg mb-8 opacity-85" style={{ color: "var(--accent-fg)" }}>
+        <p className="text-lg mb-8 opacity-90" style={{ color: "var(--accent-fg)" }}>
           حسّن إدارة صفحات فيسبوك وزد تفاعلك اليوم
         </p>
         <button className="btn text-base px-10 py-3 font-bold magnetic-btn"
-          style={{ background: "var(--accent-fg)", color: "var(--accent)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)" }}
+          style={{ background: "var(--accent-fg)", color: "var(--accent)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)", borderRadius: "var(--radius-lg)" }}
           onClick={onGetStarted}>
           ابدأ الآن مجاناً
         </button>
@@ -230,13 +414,16 @@ function CTASection({ onGetStarted }) {
 }
 
 export function Landing({ onGetStarted }) {
-  useEffect(() => { document.title = "SmartBot — منصة إدارة فيسبوك" }, [])
+  useEffect(() => { document.title = "SmartBot - منصة إدارة فيسبوك" }, [])
 
   return (
     <div className="page active" style={{ animation: "none", padding: 0 }}>
       <HeroSection onGetStarted={onGetStarted} />
+      <StatsSection />
       <FeaturesSection />
       <HowItWorksSection />
+      <TestimonialsSection />
+      <ClientsSection />
       <PricingSection />
       <FaqSection />
       <CTASection onGetStarted={onGetStarted} />

@@ -18,7 +18,7 @@ export function Tools() {
     return (
       <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header">
+        <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
           <h1>الأدوات التشخيصية</h1>
           <p>اختبار وتحليل أداء النظام</p>
         </div>
@@ -48,7 +48,7 @@ export function Tools() {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
         <h1>الأدوات التشخيصية</h1>
         <p>اختبار وتحليل أداء النظام</p>
       </div>
@@ -96,7 +96,7 @@ export function Tools() {
               onChange={e => setTestInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleTest()}
             />
-            <button className="btn btn-primary" onClick={handleTest} disabled={testLoading || !testInput.trim()}>
+            <button className="btn btn-primary" style={{boxShadow:"var(--shadow-glow)"}} onClick={handleTest} disabled={testLoading || !testInput.trim()}>
               {testLoading ? "جارٍ..." : "اختبار"}
             </button>
           </div>

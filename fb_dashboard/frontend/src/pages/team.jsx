@@ -57,7 +57,7 @@ function InviteDialog({ isAdmin }) {
   const handleSubmit = (e) => { e.preventDefault(); if (!username || !password) return toast.error("يرجى تعبئة جميع الحقول"); inviteMut.mutate() }
   return (
     <>
-      <button className="btn btn-primary" disabled={!isAdmin} onClick={() => isAdmin && setOpen(true)}>
+      <button className="btn btn-primary" style={{boxShadow:"var(--shadow-glow)"}} disabled={!isAdmin} onClick={() => isAdmin && setOpen(true)}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="20 8 20 14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
         دعوة عضو
       </button>
@@ -84,7 +84,7 @@ function InviteDialog({ isAdmin }) {
               </div>
               <div className="qactions" style={{justifyContent:"flex-end"}}>
                 <button className="btn btn-outline" type="button" onClick={() => setOpen(false)}>إلغاء</button>
-                <button className="btn btn-primary" type="submit" disabled={inviteMut.isPending}>{inviteMut.isPending ? "جاري..." : "دعوة"}</button>
+                <button className="btn btn-primary" style={{boxShadow:"var(--shadow-glow)"}} type="submit" disabled={inviteMut.isPending}>{inviteMut.isPending ? "جاري..." : "دعوة"}</button>
               </div>
             </form>
           </div>
@@ -116,7 +116,7 @@ export function Team({ role }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
         <h1>فريق العمل</h1>
         <p>{totalMembers} عضو · {totalRoles} أدوار</p>
       </div>

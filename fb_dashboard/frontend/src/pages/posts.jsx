@@ -47,16 +47,16 @@ export function Posts({ role }) {
   })
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>المنشورات</h1>
         <p>إدارة منشورات الصفحة</p>
       </div>
 
       <div className="qactions">
         {canEdit && (
-          <button className="btn btn-primary" onClick={() => setShowPublish(true)}>
+          <button className="btn btn-primary" onClick={() => setShowPublish(true)} style={{boxShadow:"var(--shadow-glow)"}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             نشر منشور
           </button>
@@ -131,7 +131,7 @@ export function Posts({ role }) {
               <input className="fld" placeholder="رابط الصورة (اختياري)" aria-label="رابط الصورة" value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{width:"100%",marginBlockEnd:12}} />
               <div className="qactions" style={{justifyContent:"flex-end"}}>
                 <button className="btn btn-outline" type="button" onClick={() => setShowPublish(false)}>إلغاء</button>
-                <button className="btn btn-primary" type="submit" disabled={publishMut.isPending}>
+                <button className="btn btn-primary" type="submit" disabled={publishMut.isPending} style={{boxShadow:"var(--shadow-glow)"}}>
                   {publishMut.isPending ? "جاري..." : "نشر"}
                 </button>
               </div>

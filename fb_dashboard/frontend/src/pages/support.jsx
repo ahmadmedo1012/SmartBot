@@ -26,7 +26,7 @@ export function Support() {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header" style={{animation:"reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
         <h1>الدعم الفني</h1>
         <p>حالة النظام وموارد المساعدة</p>
       </div>

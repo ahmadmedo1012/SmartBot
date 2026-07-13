@@ -79,7 +79,7 @@ function AnimatedCounter({ value, label, suffix = "" }) {
 function HeroSection({ onGetStarted }) {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden" dir="rtl">
-      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "oklch(0.018 0.003 30)" }}>
+      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "var(--muted-bg)" }}>
         <div className="absolute inset-0 opacity-[0.03]"
           style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="bg-radial-glow" />
@@ -216,7 +216,7 @@ function HeroSection({ onGetStarted }) {
 
 function StatsSection() {
   return (
-    <section className="relative py-16" dir="rtl" style={{background: "oklch(0.04 0.002 30)"}}>
+    <section className="relative py-16" dir="rtl" style={{background: "var(--muted-bg)"}}>
       <div className="max-w-5xl mx-auto px-6 reveal-stagger">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <AnimatedCounter value={500} suffix="+" label="صفحة نشطة" />
@@ -262,7 +262,7 @@ function FeaturesSection() {
 
 function HowItWorksSection() {
   return (
-    <section className="relative py-24" dir="rtl" style={{ background: "oklch(0.04 0.002 30)" }}>
+    <section className="relative py-24" dir="rtl" style={{ background: "var(--muted-bg)" }}>
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
@@ -337,7 +337,7 @@ function TestimonialsSection() {
 
 function ClientsSection() {
   return (
-    <section className="relative py-16" dir="rtl" style={{background: "oklch(0.04 0.002 30)"}}>
+    <section className="relative py-16" dir="rtl" style={{background: "var(--muted-bg)"}}>
       <div className="max-w-6xl mx-auto px-6">
         <p className="text-center text-sm mb-8" style={{ color: "var(--muted)" }}>موثوق من قبل آلاف المداراء والمتاجر</p>
         <div className="flex flex-wrap justify-center gap-8 gap-y-6 reveal-stagger">
@@ -417,7 +417,7 @@ function FaqSection() {
   const [openIndex, setOpenIndex] = useState(null)
 
   return (
-    <section className="relative py-24" dir="rtl" style={{ background: "oklch(0.04 0.002 30)" }}>
+    <section className="relative py-24" dir="rtl" style={{ background: "var(--muted-bg)" }}>
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>

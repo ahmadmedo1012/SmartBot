@@ -114,7 +114,7 @@ function FacebookTab() {
         </div>
         {fbSettings?.connected && (
           <p style={{fontSize:12,color:"var(--success)",marginBlockStart:8}}>
-            <span className="stat-dot" style={{background:"var(--success)",display:"inline-block",marginInlineEnd:4}} />
+            <span className="status-dot" style={{background:"var(--success)",display:"inline-block",marginInlineEnd:4}} />
             الإعدادات الحالية متصلة
           </p>
         )}
@@ -128,7 +128,7 @@ function FacebookTab() {
         </div>
         <div className="fld" style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:12}}>
           <span className={`badge ${status?.running ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
-            <span className="stat-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+            <span className="status-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
             {status?.running ? "شغال" : "متوقف"}
           </span>
           <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
@@ -278,7 +278,7 @@ export function Settings({ role }) {
                 <>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:12}}>
                     <span className={`badge ${status?.running ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
-                      <span className="stat-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+                      <span className="status-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
                       {status?.running ? "شغال" : "متوقف"}
                     </span>
                     <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
@@ -322,7 +322,7 @@ export function Settings({ role }) {
                   <div className="flex-center-gap8">
                     <span>الحالة:</span>
                     <span className={`badge ${status?.running ? "badge-s" : "badge-w"}`} style={{fontSize:11}}>
-                      <span className="stat-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
+                      <span className="status-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
                       {status?.running ? "متصل" : "غير متصل"}
                     </span>
                   </div>

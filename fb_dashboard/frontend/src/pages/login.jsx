@@ -108,7 +108,6 @@ export function Login({ onAuth }) {
               <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>
               <div className="flex items-center justify-center gap-2 mt-2">
                 <p style={{ fontSize: "14px", color: "var(--muted)" }}>{isRegister ? "إنشاء حساب جديد" : "لوحة التحكم الذكية"}</p>
-                <span className="text-xs px-2 py-0.5 rounded-full" style={{background: "var(--accent-soft)", color: "var(--accent)"}}>v2</span>
               </div>
             </div>
 
@@ -118,6 +117,9 @@ export function Login({ onAuth }) {
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 1 }}>
                   <circle cx="6" cy="5" r="3"/><path d="M1 14v-1a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v1"/>
                 </svg>
+                <label htmlFor="username" className="sr-only" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0,0,0,0)"}}>
+                  {isRegister ? "اسم المستخدم" : "اسم المستخدم أو البريد الإلكتروني"}
+                </label>
                 <input
                   id="username"
                   value={username}
@@ -139,6 +141,9 @@ export function Login({ onAuth }) {
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 1 }}>
                     <rect x="2" y="4" width="12" height="9" rx="2"/><path d="M2 5l6 4.5L14 5"/>
                   </svg>
+                  <label htmlFor="email" className="sr-only" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0,0,0,0)"}}>
+                    البريد الإلكتروني
+                  </label>
                   <input
                     id="email"
                     type="email"
@@ -161,6 +166,9 @@ export function Login({ onAuth }) {
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 1 }}>
                   <rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>
                 </svg>
+                <label htmlFor="password" className="sr-only" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0,0,0,0)"}}>
+                  كلمة المرور
+                </label>
                 <input
                   id="password"
                   type={showPw ? "text" : "password"}
@@ -201,7 +209,7 @@ export function Login({ onAuth }) {
                 type="submit"
                 disabled={loading}
                 className="btn btn-primary"
-                style={{ width: "100%", height: 48, justifyContent: "center", borderRadius: 12, fontSize: 14, boxShadow: "var(--shadow-glow)" }}
+                style={{ width: "100%", height: 48, justifyContent: "center", borderRadius: 12, fontSize: 14 }}
               >
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />

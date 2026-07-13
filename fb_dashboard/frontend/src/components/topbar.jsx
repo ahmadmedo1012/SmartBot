@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { motion } from "framer-motion"
 import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send, Search } from "lucide-react"
 
 const iconMap = {
@@ -131,6 +132,9 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                   <span className="nav-icon"><NavIcon name={item.icon} /></span>
                   {item.label}
                   {item.badge && parseInt(item.badge) > 0 && <span className="nav-badge">{item.badge}</span>}
+                  {currentPage === item.key && (
+                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineStart:0,insetBlock:"6px",width:"3px",background:"var(--accent)",borderRadius:"0 2px 2px 0",boxShadow:"0 0 8px #c53c004d"}} />
+                  )}
                 </a>
               ))}
             </div>

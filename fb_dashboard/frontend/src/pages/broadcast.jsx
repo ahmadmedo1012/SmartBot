@@ -89,7 +89,7 @@ function Composer({ onBack, queryClient }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative", animation: "pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header" style={{ animation: "reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both" }}><h1>بث جماعي جديد</h1></div>
+      <div className="page-header reveal-blur" style={{ animation: "reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both" }}><h1 className="shiny-text">بث جماعي جديد</h1></div>
 
       <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:20}}>
         {steps.map((s, i) => {
@@ -265,7 +265,7 @@ function BroadcastDetail({ broadcastId, onBack }) {
           عودة
         </button>
       </div>
-      <div className="page-header"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
+      <div className="page-header reveal-blur"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
 
       <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
         <div className="stat-card glass-card card-premium card-hover-lift reveal-card" style={{textAlign:"center"}}>
@@ -373,8 +373,7 @@ export function Broadcast({ role }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header reveal-blur">
-        <h1 className="gradient-text">البث الجماعي</h1>
+      <div className="page-header reveal-blur"><h1 className="gradient-text">البث الجماعي</h1>
         <p>{broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}</p>
       </div>
 

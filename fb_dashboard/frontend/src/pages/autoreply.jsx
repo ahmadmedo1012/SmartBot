@@ -25,17 +25,17 @@ export function Autoreply() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>الردود التلقائية</h1>
+        <h1 className="gradient-text">الردود التلقائية</h1>
         <p>إعدادات الرد الآلي للرسائل والتعليقات</p>
       </div>
 
       {rulesLoading ? (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          {[1,2,3].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+          {[1,2,3].map(i => <div key={i} className="stat-card glass card-premium" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          <div className="stat-card glass">
+          <div className="stat-card glass card-premium">
             <div className="stat-label">مفعلة</div>
             <div className="stat-value" style={{color:"var(--success)"}}>{enabledCount}</div>
           </div>
@@ -53,7 +53,7 @@ export function Autoreply() {
         </div>
       )}
 
-      <div className="content-card glass" style={{marginBlockStart:16}}>
+      <div className="content-card glass glass-card reveal-up" style={{marginBlockStart:16}}>
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

@@ -27,8 +27,8 @@ export function Ads({ role }) {
     return (
       <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header"><h1>الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
-        <div className="content-card glass" style={{textAlign:"center",padding:40}}>
+        <div className="page-header reveal-blur"><h1 className="gradient-text">الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
+        <div className="content-card glass glass-card" style={{textAlign:"center",padding:40}}>
           <p>غير مصرح — إدارة الإعلانات متاحة للمدير فقط</p>
         </div>
       </section>
@@ -38,8 +38,8 @@ export function Ads({ role }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
-        <h1>الإعلانات</h1>
+      <div className="page-header reveal-blur">
+        <h1 className="gradient-text">الإعلانات</h1>
         <p>إدارة حملات فيسبوك الإعلانية</p>
       </div>
 
@@ -57,13 +57,13 @@ export function Ads({ role }) {
           <p>لا توجد حسابات إعلانات — يجب ربط حساب إعلانات فيسبوك أولاً</p>
         </div>
       ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
           {accounts.map(acc => {
             const badgeCls = statusColors[acc.account_status] || "badge-w"
             const statusLbl = statusLabels[acc.account_status] || "غير معروف"
             const sel = selectedAccount === acc.id?.replace("act_", "")
             return (
-              <div key={acc.id} className={`stat-card glass ${sel ? "stat-card-active" : ""}`}
+              <div key={acc.id} className={`stat-card glass card-premium ${sel ? "stat-card-active" : ""}`}
                 style={{cursor:"pointer",border: sel ? "2px solid var(--accent)" : undefined}}
                 onClick={() => setSelectedAccount(acc.id?.replace("act_", ""))}>
                 <div className="stat-label">{acc.name || "حساب إعلانات"}</div>
@@ -78,7 +78,7 @@ export function Ads({ role }) {
 
       {selectedAccount && (
         <>
-          <div className="page-header" style={{marginBlockStart:24}}>
+          <div className="page-header reveal-blur" style={{marginBlockStart:24}}>
             <h2 style={{fontSize:16}}>الحملات الإعلانية</h2>
           </div>
           {campLoading ? (
@@ -93,9 +93,9 @@ export function Ads({ role }) {
           ) : campaigns.length === 0 ? (
             <div className="empty-state" role="status"><p>لا توجد حملات في هذا الحساب</p></div>
           ) : (
-            <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+            <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
               {campaigns.map(c => (
-                <div key={c.id} className="stat-card glass">
+                <div key={c.id} className="stat-card glass card-premium">
                   <div className="stat-label">{c.name}</div>
                   <div className="stat-change">الهدف: {c.objective || "—"}</div>
                   <div className="stat-change">المجموعات: {c.adsets?.data?.length || 0}</div>

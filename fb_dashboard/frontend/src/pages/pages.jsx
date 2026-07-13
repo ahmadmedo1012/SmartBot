@@ -89,19 +89,19 @@ export function Pages() {
       </div>
 
       <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
-        <div className="stat-card glass glass-card card-premium card-hover-lift">
+        <div className="stat-card glass glass-card card-premium card-hover-lift reveal-card">
           <div className="stat-label">حالة الاتصال</div>
           <div className="stat-value" style={{ color: connected ? "var(--success)" : "var(--danger)" }}>
             {connected ? "متصل" : "غير متصل"}
           </div>
         </div>
         {connected && (
-          <div className="stat-card glass glass-card card-premium card-hover-lift">
+          <div className="stat-card glass glass-card card-premium card-hover-lift reveal-card">
             <div className="stat-label">معرف الصفحة</div>
             <div className="stat-value" style={{ fontSize: 16 }}>{fbSettings.page_id}</div>
           </div>
         )}
-        <div className="stat-card glass glass-card card-premium card-hover-lift">
+        <div className="stat-card glass glass-card card-premium card-hover-lift reveal-card">
           <div className="stat-label">رمز الوصول</div>
           <div className="stat-value" style={{ color: hasToken ? "var(--success)" : "var(--muted)", fontSize: 16 }}>
             {hasToken ? "موجود" : "غير موجود"}

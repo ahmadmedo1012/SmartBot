@@ -19,12 +19,12 @@ export function Tools() {
       <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
         <div className="page-header reveal-blur">
-          <h1>الأدوات التشخيصية</h1>
+          <h1 className="gradient-text">الأدوات التشخيصية</h1>
           <p>اختبار وتحليل أداء النظام</p>
         </div>
-        <div className="content-card glass">
+        <div className="content-card glass-card card-premium card-hover-lift">
           <div className="cc-header"><div className="cc-title" style={{height:18,width:120,background:"var(--skeleton)",borderRadius:6}} /></div>
-          <div className="stat-card glass" style={{height:60,background:"var(--skeleton)",margin:8}} />
+          <div className="stat-card glass glass-card card-premium card-hover-lift" style={{height:60,background:"var(--skeleton)",margin:8,animation:"reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}} />
         </div>
       </section>
     )
@@ -54,7 +54,7 @@ export function Tools() {
       </div>
 
       {/* Token Permissions */}
-      <div className="content-card glass">
+      <div className="content-card glass-card card-premium card-hover-lift">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -78,7 +78,7 @@ export function Tools() {
       </div>
 
       {/* Intent Classifier Test */}
-      <div className="content-card glass" style={{marginBlockStart:16}}>
+      <div className="content-card glass-card card-premium card-hover-lift" style={{marginBlockStart:16}}>
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>

@@ -165,7 +165,7 @@ export function Comments({ role }) {
         <input className="fld" placeholder="بحث في التعليقات..." aria-label="بحث في التعليقات" value={search} onChange={e => setSearch(e.target.value)} style={{maxWidth:320,width:"100%"}} />
       </div>
 
-      <div className="content-card glass">
+      <div className="content-card glass card-premium">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -175,7 +175,7 @@ export function Comments({ role }) {
         </div>
 
         {isLoading ? (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
             {[1,2,3].map(i => <div key={i} className="stat-card glass skel-card" />)}
           </div>
         ) : error ? (

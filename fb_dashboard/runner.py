@@ -413,7 +413,7 @@ def get_bot_engine(fb_client: FBClient | None = None, tenant_id: int = 0) -> Bot
         _bot_engine_singleton = BotEngine(fb_client, tenant_id=tenant_id)
         return _bot_engine_singleton
     if _bot_engine_singleton is None:
-        _bot_engine_singleton = BotEngine(fb)
+        _bot_engine_singleton = BotEngine(None)
     return _bot_engine_singleton
 
 

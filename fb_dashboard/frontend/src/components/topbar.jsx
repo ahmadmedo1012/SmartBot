@@ -115,6 +115,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                   key={item.key}
                   className={`nav-item ${currentPage === item.key ? "active" : ""}`}
                   onClick={(e) => { e.preventDefault(); handleNav(item.key); }}
+                  onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); handleNav(item.key); }}}
                   href="#"
                   aria-current={currentPage === item.key ? "page" : undefined}
                 >

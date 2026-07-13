@@ -54,6 +54,8 @@
   --color-ring: var(--accent);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
 }
 
 @media (prefers-color-scheme: light) {
@@ -553,8 +555,25 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
   0%, 100% { box-shadow: 0 0 8px oklch(0.55 0.19 45 / 0.15); }
   50%      { box-shadow: 0 0 25px oklch(0.55 0.19 45 / 0.35); }
 }
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.05); }
+}
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes magnetic-float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-10px) scale(1.02); } }
+@keyframes breath { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
+@keyframes ring-drain { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 251.327; } }
 .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+.animate-hero-glow-pulse { animation: hero-glow-pulse 4s var(--ease-smooth) infinite; }
+.animate-float { animation: float 3s var(--ease-smooth) infinite; }
+.animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
+.animate-magnetic-float { animation: magnetic-float 4s var(--ease-smooth) infinite; }
+.animate-breath { animation: breath 1.5s ease-in-out infinite; }
+.animate-ring-drain { animation: ring-drain 30s linear forwards; }
 .animate-scale-in { animation: scale-in 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) both; }
+.animate-shimmer-35 { background: linear-gradient(90deg, transparent 25%, var(--muted) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 2.5s infinite; }
+.empty-state-icon { width: 3.5rem; height: 3.5rem; border-radius: var(--radius-md); background: var(--muted); display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem; }
+.empty-state-icon svg { width: 1.75rem; height: 1.75rem; color: var(--muted); opacity: 0.5; }
 @keyframes staggerIn { to{opacity:1;transform:translateY(0)} }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0s!important;transition-duration:0s!important } }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
@@ -706,6 +725,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.08), oklch(0.52 0.19 45 / 0.04));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(0 0 0 / 0.04) 50%, transparent 100%);
   --grid-square: color-mix(in oklch, var(--accent) 8%, transparent);
+  --shadow-glow: 0 0 20px oklch(0.55 0.19 45 / 0.18);
 }
 @keyframes shine { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 @keyframes bar-grow { 0%{transform:scaleY(0);opacity:0} 100%{transform:scaleY(1);opacity:1} }

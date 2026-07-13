@@ -3,6 +3,7 @@ import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDo
 import { LandingHeader } from "@/components/LandingHeader"
 import { LandingFooter } from "@/components/LandingFooter"
 
+
 const features = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
   { icon: MessageCircle, title: "صندوق وارد موحد", desc: "إدارة جميع المحادثات من صفحة واحدة بواجهة بسيطة وسهلة" },

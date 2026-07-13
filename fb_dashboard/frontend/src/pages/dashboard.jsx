@@ -1,9 +1,15 @@
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState, useEffect, useRef } from "react"
+import { motion } from "framer-motion"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
+
+const statCardVariant = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i) => ({ opacity: 1, y: 0, transition: { type: "spring", stiffness: 240, damping: 22, mass: 0.6, delay: i * 0.05 } }),
+}
 
 function AnimatedStat({ value, suffix = "" }) {
   const [display, setDisplay] = useState(0)
@@ -118,45 +124,31 @@ export function Dashboard(_p) {
         <p style={{color:"var(--muted)",fontSize:"14px"}}>نظرة عامة على أداء صفحتك</p>
       </div>
 
-      {/* stats grid */}
+      {/* stats grid — framer stagger entry */}
       <div className="stats-grid">
-        <div className="stat-card glass-card reveal-card">
-          <div className="stat-icon" data-color="">{statIcons.total}</div>
-          <div className="stat-label">آخر 7 أيام</div>
-          <div className="stat-value"><AnimatedStat value={stats?.total_replies || 0} /></div>
-          {stats?.week_trend !== undefined && (
-            <div className={`stat-change ${stats.week_trend >= 0 ? "stat-up" : "stat-down"}`}>
-              <span className="status-dot" style={{background: stats.week_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
-              {stats.week_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.week_trend)}%
-            </div>
-          )}
-        </div>
-        <div className="stat-card glass-card" style={{animation:"reveal-card .3s cubic-bezier(0.16,1,0.3,1) .06s both"}}>
-          <div className="stat-icon" data-color="success">{statIcons.today}</div>
-          <div className="stat-label">ردود اليوم</div>
-          <div className="stat-value"><AnimatedStat value={stats?.today_replies || 0} /></div>
-          {stats?.today_trend !== undefined && (
-            <div className={`stat-change ${stats.today_trend >= 0 ? "stat-up" : "stat-down"}`}>
-              <span className="status-dot" style={{background: stats.today_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
-              {stats.today_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.today_trend)}%
-            </div>
-          )}
-        </div>
-        <div className="stat-card glass-card" style={{animation:"reveal-card .3s cubic-bezier(0.16,1,0.3,1) .12s both"}}>
-          <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
-          <div className="stat-label">المتابعون</div>
-          <div className="stat-value"><AnimatedStat value={stats?.fan_count || 0} /></div>
-        </div>
-        <div className="stat-card glass-card" style={{animation:"reveal-card .3s cubic-bezier(0.16,1,0.3,1) .18s both"}}>
-          <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
-          <div className="stat-label">القواعد النشطة</div>
-          <div className="stat-value"><AnimatedStat value={activeRules} /></div>
-          {botStatus?.running !== undefined && (
-            <div className={`stat-change ${botStatus.running ? "stat-up" : "stat-down"}`}>
-              {botStatus.running ? "● نشط" : "● متوقف"}
-            </div>
-          )}
-        </div>
+        {[
+          { icon: statIcons.total, color: "", label: "آخر 7 أيام", val: stats?.total_replies || 0, trend: stats?.week_trend, cls: "stat-up", arrow: stats?.week_trend >= 0 ? "↑" : "↓" },
+          { icon: statIcons.today, color: "success", label: "ردود اليوم", val: stats?.today_replies || 0, trend: stats?.today_trend, cls: "stat-up", arrow: stats?.today_trend >= 0 ? "↑" : "↓" },
+          { icon: statIcons.fans, color: "danger", label: "المتابعون", val: stats?.fan_count || 0 },
+          { icon: statIcons.rules, color: "warn", label: "القواعد النشطة", val: activeRules, running: botStatus?.running },
+        ].map((s, i) => (
+          <motion.div key={s.label} className="stat-card glass-card" custom={i} variants={statCardVariant} initial="hidden" animate="visible">
+            <div className="stat-icon" data-color={s.color}>{s.icon}</div>
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-value"><AnimatedStat value={s.val} /></div>
+            {s.trend !== undefined && (
+              <div className={`stat-change ${s.trend >= 0 ? "stat-up" : "stat-down"}`}>
+                <span className="status-dot" style={{background: s.trend >= 0 ? "var(--success)" : "var(--danger)"}} />
+                {s.arrow} {Math.abs(s.trend)}%
+              </div>
+            )}
+            {s.running !== undefined && (
+              <div className={`stat-change ${s.running ? "stat-up" : "stat-down"}`}>
+                {s.running ? "● نشط" : "● متوقف"}
+              </div>
+            )}
+          </motion.div>
+        ))}
       </div>
 
       {/* metrics row */}

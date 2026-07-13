@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useCallback, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Analytics } from "@vercel/analytics/react"
 import { Toaster, toast } from "sonner"
@@ -9,6 +10,12 @@ import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { Dashboard } from "@/pages/dashboard"
 import { Landing } from "@/pages/landing"
+
+const pageSlide = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24, mass: 0.6 } },
+  exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
+}
 
 const PAGES_GLOB = import.meta.glob("./pages/[ab-cef-z]*.jsx", { eager: false })
 // ponytail: dashboard excluded from glob — statically imported as default fallback
@@ -156,9 +163,13 @@ function AppInner() {
           <div className="grain-overlay" />
           <main className="content">
             <ErrorBoundary key={page}>
-              <Suspense fallback={<PageLoader />}>
-                <Page role={role} />
-              </Suspense>
+              <AnimatePresence mode="wait">
+                <motion.div key={page} variants={pageSlide} initial="initial" animate="animate" exit="exit" style={{ minHeight: 200 }}>
+                  <Suspense fallback={<PageLoader />}>
+                    <Page role={role} />
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
             </ErrorBoundary>
           </main>
         </Topbar>

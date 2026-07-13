@@ -158,9 +158,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
               <path d="M4 6h14"/><path d="M4 11h14"/><path d="M4 16h14"/>
             </svg>
           </button>
-          <h2 className="header-page-title" id="pageTitle">
-  <span className="shiny-text">{pageTitles[currentPage] || currentPage}</span>
-</h2>
+          <h2 className="page-title hidden sm:block" id="pageTitle">{pageTitles[currentPage] || currentPage}</h2>
           <div className="header-left">
             <div className="header-search" role="button" tabIndex="0" aria-label="بحث"
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("search") }}}>

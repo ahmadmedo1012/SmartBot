@@ -155,7 +155,6 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
         <header className={`header ${scrolled ? "is-scrolled" : ""}`} style={{
           transition: "background .35s var(--ease-smooth), backdrop-filter .35s var(--ease-smooth), border-color .35s var(--ease-smooth)",
         }}>
-          {scrolled && <div className="shimmer-bar" aria-hidden="true" />}
           <button
             className="hamburger"
             id="hamburger"

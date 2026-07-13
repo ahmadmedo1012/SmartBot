@@ -115,7 +115,7 @@ function AppInner() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-[var(--fg)] tracking-tight">SmartBot</h1>
-            <p className="text-sm text-[var(--muted)] mt-1">جاري تحميل لوحة التحكم...</p>
+            <p className="loading-text mt-1">جاري التحميل...</p>
           </div>
           <div className="flex gap-1.5">
             {[0,1,2].map(i => (

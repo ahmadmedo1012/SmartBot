@@ -228,7 +228,7 @@ export function ContentCalendar({ role }) {
 
       <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
         {summaryLoading ? (
-          [1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:60,background:"var(--skeleton)"}} />)
+          [1,2,3,4].map(i => <div key={i} className="stat-card glass-card" style={{height:60,background:"var(--skeleton)"}} />)
         ) : (
           [
             { label: "الإجمالي", value: summary.total, color: "var(--text)" },
@@ -236,7 +236,7 @@ export function ContentCalendar({ role }) {
             { label: "مجدول", value: summary.scheduled, color: "var(--warning)" },
             { label: "مسودة", value: summary.draft, color: "var(--muted)" },
           ].map(s => (
-            <div key={s.label} className="stat-card glass" style={{textAlign:"center",padding:16}}>
+            <div key={s.label} className="stat-card glass-card" style={{textAlign:"center",padding:16}}>
               <div className="stat-value" style={{color:s.color,fontSize:22}}>{s.value}</div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -274,7 +274,7 @@ export function ContentCalendar({ role }) {
               {[1,2,3,4,5].map(row => (
                 <div key={row} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBlockEnd:4}}>
                   {[1,2,3,4,5,6,7].map(col => (
-                    <div key={col} className="stat-card glass" style={{height:60,background:"var(--skeleton)"}} />
+                    <div key={col} className="stat-card glass-card" style={{height:60,background:"var(--skeleton)"}} />
                   ))}
                 </div>
               ))}
@@ -312,7 +312,7 @@ export function ContentCalendar({ role }) {
           </div>
           {dayLoading ? (
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {[1,2].map(i => <div key={i} className="stat-card glass" style={{height:80,background:"var(--skeleton)"}} />)}
+              {[1,2].map(i => <div key={i} className="stat-card glass-card" style={{height:80,background:"var(--skeleton)"}} />)}
             </div>
           ) : dayError ? (
             <div style={{textAlign:"center",padding:32}}>

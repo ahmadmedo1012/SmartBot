@@ -208,7 +208,7 @@ export function Messages({ role }) {
       <div className="mesh-bg"></div>
       <div style={{display:"flex",flex:1,overflow:"hidden",gap:0}}>
         {/* ─── LEFT: CONVERSATIONS ─── */}
-        <div className={`card glass`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
+        <div className={`card glass-card`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
           <div style={{padding:"16px 16px 8px",borderBottom:"1px solid var(--border)"}}>
             <h2 style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
             <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
@@ -233,8 +233,8 @@ export function Messages({ role }) {
               <div style={{padding:12}}>
                 {[1,2,3,4,5].map(i => (
                   <div key={i} style={{display:"flex",gap:12,padding:8}}>
-                    <div className="stat-card glass" style={{width:44,height:44,borderRadius:"50%",background:"var(--skeleton)",flexShrink:0}} />
-                    <div style={{flex:1}}><div className="stat-card glass" style={{height:12,width:"70%",background:"var(--skeleton)",marginBlockEnd:8}} /><div className="stat-card glass" style={{height:10,width:"40%",background:"var(--skeleton)"}} /></div>
+                    <div className="stat-card glass-card" style={{width:44,height:44,borderRadius:"50%",background:"var(--skeleton)",flexShrink:0}} />
+                    <div style={{flex:1}}><div className="stat-card glass-card" style={{height:12,width:"70%",background:"var(--skeleton)",marginBlockEnd:8}} /><div className="stat-card glass-card" style={{height:10,width:"40%",background:"var(--skeleton)"}} /></div>
                   </div>
                 ))}
               </div>
@@ -309,7 +309,7 @@ export function Messages({ role }) {
               {msgLoading && messages.length === 0 ? (
                 [1,2,3].map(i => (
                   <div key={i} style={{display:"flex",justifyContent:i%2===0?"flex-end":"flex-start"}}>
-                    <div className="stat-card glass" style={{height:40,width:i%2===0?"60%":"40%",borderRadius:12,background:"var(--skeleton)"}} />
+                    <div className="stat-card glass-card" style={{height:40,width:i%2===0?"60%":"40%",borderRadius:12,background:"var(--skeleton)"}} />
                   </div>
                 ))
               ) : allMessages.length === 0 ? (

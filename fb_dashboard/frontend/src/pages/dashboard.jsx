@@ -106,7 +106,7 @@ export function Dashboard(_p) {
 
       {/* stats grid */}
       <div className="stats-grid stagger-children">
-        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
+        <div className="stat-card glass-card card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
           <div className="stat-icon" data-color="">{statIcons.total}</div>
           <div className="stat-label">آخر 7 أيام</div>
           <div className="stat-value">{formatNum(stats?.total_replies)}</div>
@@ -117,7 +117,7 @@ export function Dashboard(_p) {
             </div>
           )}
         </div>
-        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both"}}>
+        <div className="stat-card glass-card card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both"}}>
           <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value">{formatNum(stats?.today_replies)}</div>
@@ -128,12 +128,12 @@ export function Dashboard(_p) {
             </div>
           )}
         </div>
-        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both"}}>
+        <div className="stat-card glass-card card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both"}}>
           <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
           <div className="stat-value">{formatNum(stats?.fan_count)}</div>
         </div>
-        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both"}}>
+        <div className="stat-card glass-card card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both"}}>
           <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
           <div className="stat-label">القواعد النشطة</div>
           <div className="stat-value">{activeRules}</div>
@@ -147,21 +147,21 @@ export function Dashboard(_p) {
 
       {/* metrics row */}
       <div className="stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBlockEnd: "var(--space-lg)" }}>
-        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--accent)" }}>
             {stats?.fan_count ? (stats.fan_count >= 1000 ? (stats.fan_count / 1000).toFixed(1) + "k" : stats.fan_count) : 0}
           </div>
           <div className="stat-label">إجمالي المتابعين</div>
         </div>
-        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--info)" }}>{rules.length || 0}</div>
           <div className="stat-label">قاعدة نشطة</div>
         </div>
-        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--success)" }}>{stats?.total_replies ? Math.round(stats.today_replies / stats.total_replies * 100) : 0}%</div>
           <div className="stat-label">معدل التفاعل</div>
         </div>
-        <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
+        <div className="stat-card glass-card" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--warn)" }}>
             {recentReplies.length}
           </div>

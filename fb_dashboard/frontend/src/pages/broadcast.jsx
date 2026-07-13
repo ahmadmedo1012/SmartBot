@@ -268,15 +268,15 @@ function BroadcastDetail({ broadcastId, onBack }) {
       <div className="page-header"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
 
       <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-        <div className="stat-card glass" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--success)"}}>{b.sent_count || 0}</div>
           <div className="stat-label">تم الإرسال</div>
         </div>
-        <div className="stat-card glass" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--danger)"}}>{b.failed_count || 0}</div>
           <div className="stat-label">فشل</div>
         </div>
-        <div className="stat-card glass" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--warning)"}}>{b.pending_count || 0}</div>
           <div className="stat-label">قيد الانتظار</div>
         </div>
@@ -389,7 +389,7 @@ export function Broadcast({ role }) {
 
       {isLoading ? (
         <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
-          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:80,background:"var(--skeleton)"}} />)}
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass-card" style={{height:80,background:"var(--skeleton)"}} />)}
         </div>
       ) : error ? (
         <div className="card glass" style={{textAlign:"center",padding:40}}>

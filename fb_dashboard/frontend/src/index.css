@@ -331,12 +331,13 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .badge-a { background: var(--accent-soft); color: var(--accent); }
 
 .qactions { display: flex; flex-wrap: wrap; gap: 10px; margin-block-end: 16px; }
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 9999px; font: 600 13px/1 var(--font-body); cursor: pointer; transition: background .12s var(--ease), color .12s var(--ease), border-color .12s var(--ease), transform .12s var(--ease), box-shadow .12s var(--ease); border: 0; text-decoration: none; }
-.btn-primary { background: var(--accent); color: var(--accent-fg); box-shadow: 0 4px 14px #c84e0033; }
-.btn-primary:hover { background: #d45600; transform: translateY(-1px); box-shadow: 0 6px 20px #c84e004d; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 9999px; font: 600 13px/1 var(--font-body); cursor: pointer; transition: background .12s var(--ease), color .12s var(--ease), border-color .12s var(--ease), transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .12s var(--ease); border: 0; text-decoration: none; }
+.btn-primary { background: var(--accent); color: var(--accent-fg); box-shadow: 0 4px 14px #c84e0033; will-change:transform }
+.btn-primary:hover { background: #d45600; transform: translateY(-2px); box-shadow: 0 6px 20px #c84e004d; }
 .btn-primary:active { transform: translateY(0) scale(.97); }
-.btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-.btn-outline:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 16px #c84e0026; }
+.btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); will-change:transform }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); box-shadow: 0 0 16px #c84e0026; }
+.btn-outline:active { transform: scale(.97) }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .btn-sm { padding: 5px 14px; font-size: 12px; }
 

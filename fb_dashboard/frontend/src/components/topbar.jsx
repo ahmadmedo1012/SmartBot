@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send, Search } from "lucide-react"
 
 const iconMap = {
@@ -59,31 +60,18 @@ const mobileNav = [
 
 export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0 }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const [hideHeader, setHideHeader] = useState(false)
   const lastY = useRef(0)
 
-  // IntersectionObserver for scroll-state + hide-on-scroll-down
+  // hide header on scroll down (Smart Menu behavior)
   useEffect(() => {
-    const sentinel = document.createElement("div")
-    sentinel.style.position = "absolute"
-    sentinel.style.top = "21px"
-    sentinel.style.height = "1px"
-    sentinel.style.width = "1px"
-    sentinel.style.pointerEvents = "none"
-    document.body.prepend(sentinel)
-    const obs = new IntersectionObserver(
-      ([e]) => setScrolled(!e.isIntersecting),
-      { rootMargin: "-20px 0px 0px 0px" }
-    )
-    obs.observe(sentinel)
     const onScroll = () => {
       const y = window.scrollY
       if (y > 80) setHideHeader(y > lastY.current)
       lastY.current = y
     }
     window.addEventListener("scroll", onScroll, { passive: true })
-    return () => { obs.disconnect(); sentinel.remove(); window.removeEventListener("scroll", onScroll) }
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
   const handleNav = (key) => {
@@ -145,8 +133,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* main area */}
       <div className="main">
         {/* header */}
-        <header className={`header ${scrolled ? "is-scrolled" : ""}`} style={{
-          transition: "background .35s var(--ease-smooth), backdrop-filter .35s var(--ease-smooth), border-color .35s var(--ease-smooth), transform .35s var(--ease-smooth)",
+        <header className="header" style={{
+          transition: "transform .35s var(--ease-smooth)",
           transform: hideHeader ? "translateY(-100%)" : "translateY(0)",
         }}>
           <button
@@ -181,6 +169,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
             </div>
             <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("profile") }}}>{avatarLetter}</div>
+            <ThemeToggle />
             <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out infinite",flexShrink:0}}></span>مباشر</span>
           </div>
         </header>

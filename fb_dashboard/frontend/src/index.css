@@ -54,6 +54,27 @@
   --color-ring: var(--accent);
 }
 
+.light {
+  color-scheme: light;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --fg: #040404;
+  --muted: #6e6769;
+  --border: #d1cccd;
+  --accent: #ac2100;
+  --accent-soft: #ac21001f;
+  --accent-fg: #fafafa;
+  --overlay: oklch(0 0 0 / 0.25);
+  --glass-bg: color-mix(in oklch, #ffffff 60%, transparent);
+  --glass-bg-strong: color-mix(in oklch, #ffffff 80%, transparent);
+  --glass-border: color-mix(in oklch, #d1cccd 50%, transparent);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.04), 0 1px 2px rgba(0,0,0,.03);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.06), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.08), 0 4px 8px rgba(0,0,0,.05);
+  --shadow-xl: 0 24px 60px rgba(0,0,0,.1), 0 8px 16px rgba(0,0,0,.06);
+  --shadow-glow: 0 0 20px #ac21002e;
+}
+
 :root {
   color-scheme: dark;
   --ease: cubic-bezier(.165,.84,.44,1);
@@ -225,9 +246,9 @@ button, a, select, input, textarea {
 .nav-item .nav-icon svg { display: block; }
 .nav-item .nav-badge { margin-inline-start: auto; background: var(--accent); color: var(--accent-fg); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill); line-height: 1.6; animation: badgePop .35s var(--ease); }
 
-.main { margin-inline-start: var(--sidebar-w, 240px); flex: 1; display: flex; flex-direction: column; height: 100dvh; }
-.header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 60%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; }
-.header.is-scrolled { background: color-mix(in oklch, var(--surface) 30%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end-color: color-mix(in oklch, var(--accent) 15%, transparent); box-shadow: 0 1px 0 color-mix(in oklch, var(--accent) 8%, transparent); }
+.main { margin-inline-start: var(--sidebar-w, 240px); flex: 1; display: flex; flex-direction: column; height: 100dvh; background-image: radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in oklch, var(--accent) 6%, transparent), transparent 70%); }
+@media (max-width:1024px) { .main { background-image: none; } }
+.header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; }
 .header-page-title { font: 600 16px/1 var(--font-dsp); }
 .header-left { display: flex; align-items: center; gap: 12px; margin-inline-start: auto; }
 .hamburger { display: none; background: none; border: 0; font-size: 22px; cursor: pointer; padding: 4px; color: var(--fg); }
@@ -573,7 +594,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 
 /* ── SmartLink utility classes ── */
 .gradient-text { background-image: linear-gradient(135deg, var(--accent), oklch(0.58 0.16 40), oklch(0.62 0.14 45)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.glass-card { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); transition: transform .2s var(--ease-smooth), border-color .2s var(--ease-smooth), box-shadow .2s var(--ease-smooth); }
+.glass-card { background: var(--glass-bg); backdrop-filter: blur(32px) saturate(1.4); -webkit-backdrop-filter: blur(32px) saturate(1.4); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); transition: transform .2s var(--ease-smooth), border-color .2s var(--ease-smooth), box-shadow .2s var(--ease-smooth); }
 .glass-card:hover { transform: translateY(-1px); border-color: #c53c004d; box-shadow: var(--glass-shadow-lg), 0 0 20px #c53c0033; }
 .section-padding { padding-top: 7rem; padding-bottom: 7rem; }
 @media (width <= 768px) { .section-padding { padding-top: 4.5rem; padding-bottom: 4.5rem; } }

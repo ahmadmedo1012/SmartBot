@@ -66,9 +66,9 @@ export function LandingHeader({ onNavigate }) {
           </button>
           <button
             onClick={() => onNavigate && onNavigate("dashboard")}
-            style={{ padding: "6px 18px", borderRadius: 9999, fontSize: 13, fontWeight: 600, background: "var(--accent)", color: "var(--accent-fg)", border: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 4px 14px #c53c0033", transition: "background .15s, box-shadow .15s" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "#d45600"; e.currentTarget.style.boxShadow = "0 6px 20px #c53c004d" }}
-            onMouseLeave={e => { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.boxShadow = "0 4px 14px #c53c0033" }}
+            style={{ padding: "6px 18px", borderRadius: 9999, fontSize: 13, fontWeight: 600, background: "var(--accent)", color: "var(--accent-fg)", border: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 4px 14px #c84e0033", transition: "background .15s, box-shadow .15s" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "#d45600"; e.currentTarget.style.boxShadow = "0 6px 20px #c84e004d" }}
+            onMouseLeave={e => { e.currentTarget.style.background = "var(--accent)"; e.currentTarget.style.boxShadow = "0 4px 14px #c84e0033" }}
           >
             <Smartphone size={15} strokeWidth={1.8} />
             ابدأ مجاناً

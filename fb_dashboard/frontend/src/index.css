@@ -539,8 +539,8 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 @keyframes ring-drain { from{stroke-dashoffset:0} to{stroke-dashoffset:251.327} }
 @keyframes confetti { 0%{transform:translateY(0) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
 @keyframes confetti-fall { 0%{transform:translateY(0) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
-.animate-float { animation:float 3s var(--ease-smooth) infinite }
-.animate-float-delayed { animation:float 3.5s var(--ease-smooth) infinite 1s }
+.animate-float { animation:float 3s var(--ease-smooth) infinite; will-change:transform }
+.animate-float-delayed { animation:float 3.5s var(--ease-smooth) infinite 1s; will-change:transform }
 .animate-magnetic-float { animation:magnetic-float 4s var(--ease-smooth) infinite }
 .animate-breath { animation:breath 1.5s ease-in-out infinite }
 .animate-pulse-glow { animation:pulse-glow 2.5s ease-in-out infinite }

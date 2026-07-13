@@ -346,8 +346,8 @@ app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 
 
 @app.post("/api/repair")
-async def repair():
-    """Manual DB repair: create tables, run migrations, seed admin. No auth needed."""
+async def repair(current_user: User = Depends(require_role("admin"))):
+    """Manual DB repair: create tables, run migrations, seed admin. Admin only."""
     try:
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -935,6 +935,37 @@ async def static_cache_middleware(request: Request, call_next):
     return response
 
 
+async def _get_trend_data(db, tenant_id: int) -> dict:
+    """Trend data: today vs yesterday, last 7d vs prior 7d."""
+    now = utcnow()
+    today_start = datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
+    yesterday_start = today_start - timedelta(days=1)
+    week_start = now - timedelta(days=7)
+    prior_week_start = now - timedelta(days=14)
+
+    today_replies = await db.scalar(select(func.count(Reply.id)).where(
+        Reply.tenant_id == tenant_id, Reply.created_at >= today_start,
+    )) or 0
+    yesterday_replies = await db.scalar(select(func.count(Reply.id)).where(
+        Reply.tenant_id == tenant_id,
+        Reply.created_at >= yesterday_start, Reply.created_at < today_start,
+    )) or 0
+    week_replies = await db.scalar(select(func.count(Reply.id)).where(
+        Reply.tenant_id == tenant_id, Reply.created_at >= week_start,
+    )) or 0
+    prior_week_replies = await db.scalar(select(func.count(Reply.id)).where(
+        Reply.tenant_id == tenant_id,
+        Reply.created_at >= prior_week_start, Reply.created_at < week_start,
+    )) or 0
+
+    return {
+        "today": round((today_replies - yesterday_replies) / yesterday_replies * 100, 1)
+        if yesterday_replies else (100 if today_replies else 0),
+        "week": round((week_replies - prior_week_replies) / prior_week_replies * 100, 1)
+        if prior_week_replies else (100 if week_replies else 0),
+    }
+
+
 # ── Dashboard Bundle Endpoint ──────────────────────────────────────────────────
 @app.get("/api/dashboard/bundle")
 async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -966,23 +997,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         except Exception:
             pass
 
-        # Trend data — today vs yesterday, last 7d vs prior 7d
-        yesterday = now - timedelta(days=1)
-        yesterday_replies = await db.scalar(
-            select(func.count(Reply.id))
-            .where(Reply.tenant_id == _tid, Reply.created_at >= yesterday, Reply.created_at < today)
-        ) or 0
-        week_ago = now - timedelta(days=7)
-        prior_week_end = week_ago
-        prior_week_start = now - timedelta(days=14)
-        w7 = await db.scalar(
-            select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= week_ago)
-        ) or 0
-        w7_prior = await db.scalar(
-            select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= prior_week_start, Reply.created_at < prior_week_end)
-        ) or 0
-        stats["today_trend"] = (round((today_replies - yesterday_replies) / yesterday_replies * 100, 1) if yesterday_replies else (100 if today_replies else 0))
-        stats["week_trend"] = (round((w7 - w7_prior) / w7_prior * 100, 1) if w7_prior else (100 if w7 else 0))
+        # ponytail: trend computed by _get_trend_data() below
 
         # Top rule
         top = None
@@ -1146,7 +1161,7 @@ async def update_rule(
     rule_id: int, name: str = Form(...), keywords: str = Form(...),
     reply_template: str = Form(...), description: str = Form(""),
     dm_template: str = Form(""),
-    db=Depends(get_db), _=Depends(require_role("editor")),
+    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     rule = (await db.execute(
         select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
@@ -1689,49 +1704,23 @@ async def agent_interpret(
     # Handle image upload — compress with Pillow before save
     image_url = ""
     if image and has_image == "true":
+        import secrets
+        from pathlib import PurePosixPath
+
+        allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+        if image.content_type not in allowed_types:
+            raise HTTPException(400, f"Unsupported file type: {image.content_type}")
+
         img_data = await image.read()
         if len(img_data) > 10 * 1024 * 1024:
-            raise HTTPException(400, "Image too large — max 10MB")
-        try:
-            from PIL import Image as PILImage
-            import io
-            pil_img = PILImage.open(io.BytesIO(img_data))
-            # Convert RGBA/P to RGB for JPEG save compatibility
-            if pil_img.mode in ("RGBA", "P"):
-                pil_img = pil_img.convert("RGB")
-            # Resize if wider than 2048px (vision model limit)
-            max_dim = 2048
-            if pil_img.width > max_dim or pil_img.height > max_dim:
-                ratio = min(max_dim / pil_img.width, max_dim / pil_img.height)
-                new_size = (int(pil_img.width * ratio), int(pil_img.height * ratio))
-                pil_img = pil_img.resize(new_size, PILImage.LANCZOS)
-            buf = io.BytesIO()
-            pil_img.save(buf, "JPEG", quality=85, optimize=True)
-            compressed = buf.getvalue()
-            log.info(f"Image compressed: {len(img_data)}→{len(compressed)} bytes ({pil_img.width}x{pil_img.height})")
-            from pathlib import PurePosixPath
-            safe_name = os.path.basename(image.filename or "photo.jpg")
-            img_filename = f"agent_{int(time.time())}_{safe_name}"
-            img_path = STATIC_DIR / "uploads" / img_filename
-            img_path.parent.mkdir(parents=True, exist_ok=True)
-            img_path.write_bytes(compressed)
-            image_url = f"/static/uploads/{img_filename}"
-        except ImportError:
-            # Pillow not installed — save raw
-            safe_name = os.path.basename(image.filename or "photo.jpg")
-            img_filename = f"agent_{int(time.time())}_{safe_name}"
-            img_path = STATIC_DIR / "uploads" / img_filename
-            img_path.parent.mkdir(parents=True, exist_ok=True)
-            img_path.write_bytes(img_data)
-            image_url = f"/static/uploads/{img_filename}"
-        except Exception as e:
-            log.warning(f"Image compression failed, saving raw: {e}")
-            safe_name = os.path.basename(image.filename or "photo.jpg")
-            img_filename = f"agent_{int(time.time())}_{safe_name}"
-            img_path = STATIC_DIR / "uploads" / img_filename
-            img_path.parent.mkdir(parents=True, exist_ok=True)
-            img_path.write_bytes(img_data)
-            image_url = f"/static/uploads/{img_filename}"
+            raise HTTPException(400, "Image too large — max 10 MB")
+
+        ext = PurePosixPath(image.filename or "photo.jpg").suffix or ".jpg"
+        img_filename = f"agent_{secrets.token_hex(8)}{ext}"
+        img_path = STATIC_DIR / "uploads" / img_filename
+        img_path.parent.mkdir(parents=True, exist_ok=True)
+        img_path.write_bytes(img_data)
+        image_url = f"/static/uploads/{img_filename}"
 
     try:
         result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)
@@ -1988,7 +1977,7 @@ async def inbox_delete_tag(tag_id: int, db=Depends(get_db), current_user: User =
 
 @app.post("/api/inbox/conversations/{conv_id}/tags")
 async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
-                           db=Depends(get_db), _=Depends(require_role("editor"))):
+                           db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     """Assign a tag to a conversation."""
     tag = (await db.execute(
         select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)

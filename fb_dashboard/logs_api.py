@@ -32,10 +32,10 @@ async def get_token_user(request: Request):
         raise HTTPException(401, "Invalid token")
 
 
-async def _require_user():
+async def _require_user(db=Depends(get_db)):
     """Lazy-import get_current_user to avoid circular import with runner."""
     from runner import get_current_user
-    return await get_current_user(None, Depends(get_db))
+    return await get_current_user(None, db)
 
 
 @logs_router.get("/stream")

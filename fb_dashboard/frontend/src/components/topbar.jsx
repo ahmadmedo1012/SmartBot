@@ -170,7 +170,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
   <span className="shiny-text">{pageTitles[currentPage] || currentPage}</span>
 </h2>
           <div className="header-left">
-            <div className="header-search" role="button" tabIndex="0" aria-label="بحث">
+            <div className="header-search" role="button" tabIndex="0" aria-label="بحث"
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("search") }}}>
               <span><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="5"/><path d="M11.5 11.5l4 4"/></svg></span>
               <span>بحث سريع...</span>
             </div>
@@ -185,7 +186,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 14H4l1.5-5a4.5 4.5 0 0 1 8.9 0L16 14z"/><path d="M8.5 16a1.5 1.5 0 0 0 3 0"/></svg>
               {notifCount > 0 && <span className="notif-dot"></span>}
             </div>
-            <div className="avatar">{avatarLetter}</div>
+            <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("profile") }}}>{avatarLetter}</div>
             <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out infinite",flexShrink:0}}></span>مباشر</span>
           </div>
         </header>

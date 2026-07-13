@@ -114,45 +114,45 @@
   --shadow-glow-strong: 0 0 30px #bc47004d;
 }
 
-@keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
-@keyframes fade-in { from { opacity:0 } to { opacity:1 } }
-@keyframes scale-in { from { opacity:0; transform:scale(0.95) } to { opacity:1; transform:scale(1) } }
-@keyframes slide-up { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
-@keyframes pulse-dot { 0%,100%{opacity:1}50%{opacity:.4} }
-@keyframes pageIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
-@keyframes pulse { 0%,100%{opacity:.6}50%{opacity:.3} }
-@keyframes float-slow { 0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)} }
-@keyframes glass-shimmer { 0%{background-position:-200% center}100%{background-position:200% center} }
-@keyframes spin { to { transform:rotate(360deg) } }
+/* ── Motion: GSAP-performance — tiered timing, transform/opacity, reduced-motion ── */
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+@keyframes scale-in { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+@keyframes slide-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes pageIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:.3} }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes notif-shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} 75%{transform:rotate(-4deg)} }
+@keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+@keyframes breathe-glow { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:.7;transform:scale(1.02)} }
+@keyframes shimmer-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+@keyframes nav-shine { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }
+@keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 var(--accent-soft)} 70%{box-shadow:0 0 0 12px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+@keyframes shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.shiny-text { background-size:200% auto;background-image:linear-gradient(135deg,var(--accent),oklch(0.62 0.14 45),var(--fg),oklch(0.62 0.14 45),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shine 4s linear infinite}
+/* ── Transitions: 300ms cards, 400ms reveals, 500ms page ── */
+@keyframes reveal-card { 0%{opacity:0;transform:translateY(24px) scale(.97)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes reveal-up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+@keyframes reveal-scale { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+@keyframes reveal-blur { from{opacity:0;filter:blur(6px);transform:translateY(10px)} to{opacity:1;filter:blur(0);transform:translateY(0)} }
+@keyframes login-card-in { 0%{opacity:0;transform:translateY(24px) scale(.97)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes login-logo-in { 0%{opacity:0;transform:scale(0)} 100%{opacity:1;transform:scale(1)} }
+@keyframes bar-grow { 0%{transform:scaleY(0);opacity:0} 100%{transform:scaleY(1);opacity:1} }
+@keyframes slide-right { 0%{opacity:0;transform:translateX(-14px)} 100%{opacity:1;transform:translateX(0)} }
+@keyframes slide-left { 0%{opacity:0;transform:translateX(14px)} 100%{opacity:1;transform:translateX(0)} }
+@keyframes meshDrift { 0%{transform:translate(0,0)} 100%{transform:translate(-2%,-1.5%)} }
 @keyframes blob-1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,-40px)} }
 @keyframes blob-2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
 @keyframes blob-3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(50px,-30px)} }
-@keyframes notif-shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} 75%{transform:rotate(-4deg)} }
-@keyframes badge-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
-@keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
-.notif-shake { animation: notif-shake .4s ease-in-out; }
-.notif-badge { animation: badge-pop .2s ease-out both; }
-@keyframes reveal-card { 0%{opacity:0;transform:translateY(30px) scale(.97);clip-path:inset(5% 0 10% 0)} 100%{opacity:1;transform:translateY(0) scale(1);clip-path:inset(0 0 0 0)} }
-@keyframes scale-in-blur { 0%{opacity:0;transform:scale(0.85);filter:blur(4px)} 100%{opacity:1;transform:scale(1);filter:blur(0)} }
-@keyframes slide-up-reveal { 0%{opacity:0;transform:translateY(40px) scale(0.96)} 100%{opacity:1;transform:translateY(0) scale(1)} }
-@keyframes breathe-glow { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:.7;transform:scale(1.02)} }
-@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 var(--accent-soft)} 70%{box-shadow:0 0 0 12px transparent} 100%{box-shadow:0 0 0 0 transparent} }
-@keyframes blob-drift { 0%,100%{transform:translate(0,0) scale(1)} 25%{transform:translate(30px,-30px) scale(1.05)} 50%{transform:translate(-20px,20px) scale(.95)} }
-@keyframes magnetic-hover { 0%{transform:translate(0,0)} 100%{transform:translate(var(--mx,0),var(--my,0))} }
-@keyframes backdrop-blur-in { 0%{backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)} 100%{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)} }
-@keyframes shimmer-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
-@keyframes reveal-up { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-@keyframes reveal-scale { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
-@keyframes reveal-blur { from{opacity:0;filter:blur(8px);transform:translateY(12px)} to{opacity:1;filter:blur(0);transform:translateY(0)} }
-@keyframes login-card-in { 0%{opacity:0;transform:translateY(30px) scale(.97)} 100%{opacity:1;transform:translateY(0) scale(1)} }
-@keyframes login-logo-in { 0%{opacity:0;transform:scale(0)} 100%{opacity:1;transform:scale(1)} }
-.text-iridescent { background: linear-gradient(135deg, var(--fg), var(--accent), var(--fg)); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.animate-blob-1 { animation: blob-1 18s ease-in-out infinite; will-change: transform; }
-.animate-blob-2 { animation: blob-2 22s ease-in-out infinite 4s; will-change: transform; }
-.animate-blob-3 { animation: blob-3 25s ease-in-out infinite 2s; will-change: transform; }
-.login-card-enter { animation: login-card-in 0.7s cubic-bezier(0.16,1,0.3,1) both; }
-.login-logo-enter { animation: login-logo-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.15s both; }
-.login-fade-in { animation: fade-in 0.5s ease-out 0.6s both; }
+.animate-blob-1 { animation:blob-1 18s ease-in-out infinite; will-change:transform }
+.animate-blob-2 { animation:blob-2 22s ease-in-out infinite 4s; will-change:transform }
+.animate-blob-3 { animation:blob-3 25s ease-in-out infinite 2s; will-change:transform }
+.login-card-enter { animation:login-card-in .5s cubic-bezier(0.16,1,0.3,1) both }
+.login-logo-enter { animation:login-logo-in .4s cubic-bezier(0.34,1.56,0.64,1) .15s both }
+.login-fade-in { animation:fade-in .4s ease-out .5s both }
 
 @layer base {
   * { border-color: var(--border); }
@@ -460,23 +460,19 @@ html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(el
 .mesh-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .mesh-bg::before { content: ''; position: absolute; inset: -50%; width: 200%; height: 200%; background: radial-gradient(ellipse 50% 40% at 15% 20%, oklch(62% 0.18 55 / .07) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 85% 80%, oklch(55% 0.18 260 / .05) 0%, transparent 60%); animation: meshDrift 25s ease-in-out infinite alternate; will-change: transform; }
 @keyframes meshDrift { 0%{transform:translate(0,0)} 100%{transform:translate(-3%,-2%)} }
-.stagger-children>* { opacity: 0; transform: translateY(10px); animation: staggerIn .5s cubic-bezier(.34,1.56,.64,1) forwards; will-change: transform, opacity; }
-.stagger-children>*:nth-child(2){animation-delay:70ms}
-.stagger-children>*:nth-child(3){animation-delay:140ms}
-.stagger-children>*:nth-child(4){animation-delay:210ms}
-.stagger-children>*:nth-child(5){animation-delay:280ms}
-.stagger-children>*:nth-child(6){animation-delay:350ms}
+.stagger-children>* { opacity:0;transform:translateY(10px);animation:staggerIn .35s cubic-bezier(.16,1,.3,1) forwards }
+.stagger-children>*:nth-child(2){animation-delay:60ms}
+.stagger-children>*:nth-child(3){animation-delay:120ms}
+.stagger-children>*:nth-child(4){animation-delay:180ms}
+.stagger-children>*:nth-child(5){animation-delay:240ms}
+.stagger-children>*:nth-child(6){animation-delay:300ms}
 @keyframes staggerIn { to{opacity:1;transform:translateY(0)} }
+@media (prefers-reduced-motion:reduce) { .stagger-children>*,.reveal-up,.reveal-scale,.reveal-card,.reveal-blur,.shiny-text,.chart-bar-grow,.activity-enter,.login-card-enter,.login-logo-enter,.login-fade-in,.animate-blob-1,.animate-blob-2,.animate-blob-3,.notif-shake,.notif-badge,.pageIn { animation:none!important;opacity:1!important;transform:none!important;filter:blur(0)!important } }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
 
-@keyframes breathe-glow { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.02)} }
 @keyframes nav-shine { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }
 @keyframes shimmer-wave { 0%{background-position:-200% center} 100%{background-position:200% center} }
-@keyframes scale-in-blur { 0%{opacity:0;transform:scale(0.85);filter:blur(4px)} 100%{opacity:1;transform:scale(1);filter:blur(0)} }
-@keyframes count-in { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
-@keyframes slide-up-reveal { 0%{opacity:0;transform:translateY(40px) scale(0.96)} 100%{opacity:1;transform:translateY(0) scale(1)} }
-@keyframes reveal-card { 0%{opacity:0;transform:translateY(30px) scale(0.97);clip-path:inset(5% 0 10% 0)} 100%{opacity:1;transform:translateY(0) scale(1);clip-path:inset(0 0 0 0)} }
 .shimmer-bar { position:absolute;bottom:0;left:0;width:100%;height:1px;overflow:hidden;pointer-events:none; }
 .shimmer-bar::after { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,var(--accent-soft) 20%,color-mix(in oklch,var(--accent) 30%,transparent) 40%,color-mix(in oklch,var(--accent) 20%,transparent) 60%,transparent 100%);animation:nav-shine 2s ease-in-out infinite; }
 
@@ -562,14 +558,14 @@ html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(el
 @media (width <= 768px) { .section-padding { padding-top: 4.5rem; padding-bottom: 4.5rem; } }
 
 @media (prefers-reduced-motion: no-preference) {
-  .reveal-up { animation: reveal-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .reveal-scale { animation: reveal-scale 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .reveal-stagger > *:nth-child(1) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0s; }
-  .reveal-stagger > *:nth-child(2) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.08s; }
-  .reveal-stagger > *:nth-child(3) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.16s; }
-  .reveal-stagger > *:nth-child(4) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.24s; }
-  .reveal-stagger > *:nth-child(5) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.32s; }
-  .reveal-stagger > *:nth-child(6) { animation: reveal-blur 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: 0.4s; }
+  .reveal-up { animation:reveal-up .3s cubic-bezier(0.16,1,0.3,1) both }
+  .reveal-scale { animation:reveal-scale .25s cubic-bezier(0.16,1,0.3,1) both }
+  .reveal-stagger > *:nth-child(1) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both }
+  .reveal-stagger > *:nth-child(2) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:60ms }
+  .reveal-stagger > *:nth-child(3) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:120ms }
+  .reveal-stagger > *:nth-child(4) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:180ms }
+  .reveal-stagger > *:nth-child(5) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:240ms }
+  .reveal-stagger > *:nth-child(6) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:300ms }
 }
 
 .shiny-text { background-size: 200% auto; background-image: linear-gradient(135deg, var(--accent) 0%, oklch(0.62 0.14 45) 30%, var(--fg) 50%, oklch(0.62 0.14 45) 70%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shine 4s linear infinite; }
@@ -578,13 +574,10 @@ html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(el
 @keyframes bar-grow { 0%{transform:scaleY(0);opacity:0} 100%{transform:scaleY(1);opacity:1} }
 @keyframes slide-right { 0%{opacity:0;transform:translateX(-16px)} 100%{opacity:1;transform:translateX(0)} }
 @keyframes slide-left { 0%{opacity:0;transform:translateX(16px)} 100%{opacity:1;transform:translateX(0)} }
-@keyframes count-in { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
-.chart-bar-grow { transform-origin:bottom;animation:bar-grow .5s cubic-bezier(0.16,1,0.3,1) both; }
-.activity-enter { animation:slide-right .35s cubic-bezier(0.16,1,0.3,1) both; }
+.chart-bar-grow { transform-origin:bottom;animation:bar-grow .5s cubic-bezier(0.16,1,0.3,1) both }
+.activity-enter { animation:slide-right .35s cubic-bezier(0.16,1,0.3,1) both }
 .activity-enter:nth-child(1){animation-delay:0ms}
 .activity-enter:nth-child(2){animation-delay:50ms}
 .activity-enter:nth-child(3){animation-delay:100ms}
 .activity-enter:nth-child(4){animation-delay:150ms}
 .activity-enter:nth-child(5){animation-delay:200ms}
-@media (prefers-reduced-motion:reduce) { .chart-bar-grow,.activity-enter,.count-in{animation:none!important;opacity:1!important;transform:none!important} }
-.table-wrap table { font-size: 12px; }

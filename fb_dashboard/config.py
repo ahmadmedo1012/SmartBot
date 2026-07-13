@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
     SECRET_KEY: str = "smartbot-fallback-dev-key-change-in-production"
+    FERNET_KEY: str = ""
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     BOT_INTERVAL_SECONDS: int = 10
@@ -26,6 +27,7 @@ class Settings(BaseSettings):
         return clean.replace("postgresql://", "postgresql+asyncpg://", 1)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # ponytail: extra="ignore" masks misspelled env vars — tighten once all vars are in Settings class
 
 
 # ponytail: Telegram config loaded from env vars (no DB panel needed yet)

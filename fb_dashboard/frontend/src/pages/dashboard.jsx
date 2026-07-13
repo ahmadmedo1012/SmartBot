@@ -125,7 +125,7 @@ export function Dashboard(_p) {
 
       {/* stats grid */}
       <div className="stats-grid stagger-children">
-        <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
+        <div className="stat-card glass-card card-premium card-hover-glow reveal-card">
           <div className="stat-icon" data-color="">{statIcons.total}</div>
           <div className="stat-label">آخر 7 أيام</div>
           <div className="stat-value"><AnimatedStat value={stats?.total_replies || 0} /></div>
@@ -136,7 +136,7 @@ export function Dashboard(_p) {
             </div>
           )}
         </div>
-        <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both"}}>
+        <div className="stat-card glass-card card-premium card-hover-glow" style={{animationDelay:"0.08s"}}>
           <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value"><AnimatedStat value={stats?.today_replies || 0} /></div>
@@ -147,12 +147,12 @@ export function Dashboard(_p) {
             </div>
           )}
         </div>
-        <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both"}}>
+        <div className="stat-card glass-card card-premium card-hover-glow" style={{animationDelay:"0.16s"}}>
           <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
           <div className="stat-value"><AnimatedStat value={stats?.fan_count || 0} /></div>
         </div>
-        <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both"}}>
+        <div className="stat-card glass-card card-premium card-hover-glow" style={{animationDelay:"0.24s"}}>
           <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
           <div className="stat-label">القواعد النشطة</div>
           <div className="stat-value"><AnimatedStat value={activeRules} /></div>

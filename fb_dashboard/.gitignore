@@ -1,2 +1,10 @@
 .vercel
 .env*
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+dist/
+*.egg-info/
+.DS_Store

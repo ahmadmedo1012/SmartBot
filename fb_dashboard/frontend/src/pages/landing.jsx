@@ -478,12 +478,12 @@ function CTASection({ onGetStarted }) {
   )
 }
 
-export function Landing({ onGetStarted }) {
+export function Landing({ onGetStarted, onNavigate: navigateProp }) {
   useEffect(() => { document.title = "SmartBot - منصة إدارة فيسبوك" }, [])
 
   return (
     <div className="page active" style={{ animation: "none", padding: 0 }}>
-      <LandingHeader onNavigate={(page) => window.dispatchEvent(new CustomEvent('navigate', { detail: page }))} />
+      <LandingHeader onNavigate={navigateProp} />
       <div style={{ paddingBlockStart: 56 }}>
         <HeroSection onGetStarted={onGetStarted} />
         <StatsSection />
@@ -495,7 +495,7 @@ export function Landing({ onGetStarted }) {
         <FaqSection />
         <CTASection onGetStarted={onGetStarted} />
       </div>
-      <LandingFooter onNavigate={(page) => window.dispatchEvent(new CustomEvent('navigate', { detail: page }))} />
+      <LandingFooter onNavigate={navigateProp} />
     </div>
   )
 }

@@ -129,7 +129,7 @@ function AppInner() {
 
   if (!auth) {
     if (page === "landing") {
-      return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} />
+      return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} onNavigate={navigate} />
     }
     const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     return (

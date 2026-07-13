@@ -43,7 +43,8 @@ export function LandingHeader({ onNavigate }) {
         </a>
 
         {/* Desktop nav */}
-        <div style={{ display: "none", gap: 4, alignItems: "center", background: "color-mix(in oklch, var(--surface) 40%, transparent)", padding: 3, borderRadius: 9999, border: "1px solid var(--border)" }}>
+        {/* Desktop nav */}
+        <div style={{ gap: 4, alignItems: "center", background: "color-mix(in oklch, var(--surface) 40%, transparent)", padding: 3, borderRadius: 9999, border: "1px solid var(--border)" }} className="hidden lg:flex">
           <span onClick={() => onNavigate && onNavigate("dashboard")} style={{ padding: "6px 14px", borderRadius: 9999, fontSize: 13, fontWeight: 500, color: "var(--fg)", cursor: "pointer", background: "transparent", transition: "background .15s" }} onMouseEnter={e => e.currentTarget.style.background = "color-mix(in oklch, var(--border) 30%, transparent)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>لوحة التحكم</span>
           <span onClick={() => onNavigate && onNavigate("pricing")} style={{ padding: "6px 14px", borderRadius: 9999, fontSize: 13, fontWeight: 500, color: "var(--muted)", cursor: "pointer", transition: "background .15s" }} onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"} onMouseLeave={e => e.currentTarget.style.color = ""}>الخطط والأسعار</span>
           <span style={{ padding: "6px 14px", borderRadius: 9999, fontSize: 13, fontWeight: 500, color: "var(--muted)", cursor: "pointer" }}>مميزات</span>
@@ -53,7 +54,7 @@ export function LandingHeader({ onNavigate }) {
         <div style={{ flex: 1 }} />
 
         {/* Desktop right */}
-        <div style={{ display: "none", alignItems: "center", gap: 8 }}>
+        <div style={{ alignItems: "center", gap: 8 }} className="hidden lg:flex">
           <button
             onClick={() => onNavigate && onNavigate("login")}
             style={{ padding: "6px 16px", borderRadius: 9999, fontSize: 13, fontWeight: 600, background: "transparent", color: "var(--fg)", border: "1px solid var(--border)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "border-color .15s, color .15s" }}
@@ -75,7 +76,7 @@ export function LandingHeader({ onNavigate }) {
         </div>
 
         {/* Mobile hamburger */}
-        <button onClick={() => setMenuOpen(!menuOpen)} style={{ display: "block", background: "none", border: 0, color: "var(--fg)", cursor: "pointer", padding: 4 }}>
+        <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden" style={{ background: "none", border: 0, color: "var(--fg)", cursor: "pointer", padding: 4 }}>
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </nav>

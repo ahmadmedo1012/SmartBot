@@ -57,7 +57,7 @@ export function LandingFooter({ onNavigate }) {
 
         {/* Bottom bar */}
         <div style={{ marginBlockStart: 32, paddingBlockStart: 16, borderBlockStart: "1px solid var(--border)", display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>© 2026 Smart-ling | SmartBot. جميع الحقوق محفوظة.</span>
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>© {new Date().getFullYear()} الربط الذكي | SmartBot. جميع الحقوق محفوظة.</span>
           <div style={{ display: "flex", gap: 16 }}>
             <span style={{ fontSize: 12, color: "var(--muted)", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"} onMouseLeave={e => e.currentTarget.style.color = ""}>شروط الاستخدام</span>
             <span style={{ fontSize: 12, color: "var(--muted)", cursor: "pointer" }} onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"} onMouseLeave={e => e.currentTarget.style.color = ""}>سياسة الخصوصية</span>

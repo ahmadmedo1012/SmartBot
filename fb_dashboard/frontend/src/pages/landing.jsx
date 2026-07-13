@@ -105,6 +105,8 @@ function HeroSection({ onGetStarted }) {
                 <br />بذكاء واحترافية
               </h1>
 
+              <div className="mx-auto my-4 w-16 h-px rounded-full" style={{ background: "linear-gradient(to right, transparent, var(--accent), transparent)" }} />
+
               <p className="text-lg md:text-xl leading-relaxed max-w-lg" style={{ color: "var(--muted)", animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both" }}>
                 أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا لإدارة تفاعلك بذكاء
               </p>

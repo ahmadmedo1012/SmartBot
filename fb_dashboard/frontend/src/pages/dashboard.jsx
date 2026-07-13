@@ -134,8 +134,8 @@ export function Dashboard(_p) {
       {/* stats grid — framer stagger entry */}
       <div className="stats-grid">
         {[
-          { icon: statIcons.total, color: "", label: "آخر 7 أيام", val: stats?.total_replies || 0, trend: stats?.trend?.week, cls: "stat-up", arrow: stats?.week_trend >= 0 ? "↑" : "↓" },
-          { icon: statIcons.today, color: "success", label: "ردود اليوم", val: stats?.today_replies || 0, trend: stats?.trend?.today, cls: "stat-up", arrow: stats?.today_trend >= 0 ? "↑" : "↓" },
+          { icon: statIcons.total, color: "", label: "آخر 7 أيام", val: stats?.total_replies || 0, trend: stats?.trend?.week, cls: "stat-up", arrow: (stats?.trend?.week ?? 0) >= 0 ? "↑" : "↓" },
+          { icon: statIcons.today, color: "success", label: "ردود اليوم", val: stats?.today_replies || 0, trend: stats?.trend?.today, cls: "stat-up", arrow: (stats?.trend?.today ?? 0) >= 0 ? "↑" : "↓" },
           { icon: statIcons.fans, color: "danger", label: "المتابعون", val: stats?.fan_count || 0 },
           { icon: statIcons.rules, color: "warn", label: "القواعد النشطة", val: activeRules, running: botStatus?.running },
         ].map((s, i) => (

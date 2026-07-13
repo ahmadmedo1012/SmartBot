@@ -61,10 +61,11 @@ export function LandingFooter({ onNavigate }) {
             <h4 style={{ fontSize: 13, fontWeight: 600, color: "var(--fg)", marginBlockEnd: 12 }}>روابط سريعة</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {QUICK_LINKS.map((link) => (
-                <span key={link.key} onClick={() => onNavigate && onNavigate(link.key)}
-                  style={{ fontSize: 13, color: "var(--muted)", cursor: "pointer", transition: "color .15s", width: "fit-content" }}
+                <button key={link.key} type="button" onClick={() => onNavigate && onNavigate(link.key)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate && onNavigate(link.key); }}}
+                  style={{ fontSize: 13, color: "var(--muted)", cursor: "pointer", transition: "color .15s", width: "fit-content", background: "none", border: 0, padding: 0, textAlign: "start", fontFamily: "inherit", lineHeight: "inherit" }}
                   onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"}
-                  onMouseLeave={e => e.currentTarget.style.color = ""}>{link.label}</span>
+                  onMouseLeave={e => e.currentTarget.style.color = ""}>{link.label}</button>
               ))}
             </div>
           </div>
@@ -96,8 +97,8 @@ export function LandingFooter({ onNavigate }) {
             &copy; {new Date().getFullYear()} الربط الذكي | SmartBot. جميع الحقوق محفوظة.
           </span>
           <div style={{ display: "flex", gap: 16 }}>
-            <span style={{ fontSize: 12, color: "color-mix(in oklch, var(--muted) 60%, transparent)", cursor: "pointer", transition: "color .15s" }} onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"} onMouseLeave={e => e.currentTarget.style.color = ""}>شروط الاستخدام</span>
-            <span style={{ fontSize: 12, color: "color-mix(in oklch, var(--muted) 60%, transparent)", cursor: "pointer", transition: "color .15s" }} onMouseEnter={e => e.currentTarget.style.color = "var(--fg)"} onMouseLeave={e => e.currentTarget.style.color = ""}>سياسة الخصوصية</span>
+            <span style={{ fontSize: 12, color: "color-mix(in oklch, var(--muted) 60%, transparent)" }}>شروط الاستخدام</span>
+            <span style={{ fontSize: 12, color: "color-mix(in oklch, var(--muted) 60%, transparent)" }}>سياسة الخصوصية</span>
           </div>
         </div>
       </div>

@@ -174,7 +174,7 @@ class AnalyticsEvent(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     event_type = Column(String(50), nullable=False, index=True)  # reply_sent, comment_received, dm_sent, webhook_received
-    metadata_json = Column(Text, default="{}")
+    metadata_json = Column(JSON, default=dict)
     created_at = Column(DateTime, default=utcnow)
 
 

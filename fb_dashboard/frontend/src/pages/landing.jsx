@@ -101,7 +101,7 @@ function HeroSection({ onGetStarted }) {
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tighter" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both" }}>
-                <span className="shiny-text">إدارة تفاعل فيسبوك</span>
+                <span className="gradient-text">إدارة تفاعل فيسبوك</span>
                 <br />بذكاء واحترافية
               </h1>
 

@@ -234,16 +234,23 @@ class EnhancedIntentClassifier:
 
     @classmethod
     def _stem_word(cls, word: str) -> str:
-        """Strip common Arabic prefixes and suffixes."""
-        for p in ("بال", "فل", "وب", "فب", "بل", "ول", "وال", "فال", "ب", "ف", "و", "ل", "ال"):
-            if word.startswith(p) and len(word) > len(p) + 1:
-                word = word[len(p):]
-                break
-        for s in ("هم", "هن", "كما", "كم", "كن", "نا", "ني", "ون", "ين", "ات", "ان"):
-            if word.endswith(s) and len(word) > len(s) + 1:
-                word = word[:-len(s)]
-                break
+        """Strip common Arabic prefixes and suffixes (multi-pass)."""
+        prefixes = ("بال", "فل", "وب", "فب", "بل", "ول", "وال", "فال", "ب", "ف", "و", "ل", "ال")
+        suffixes = ("هم", "هن", "كما", "كم", "كن", "نا", "ني", "ون", "ين", "ات", "ان")
+        while any(word.startswith(p) and len(word) > len(p) + 1 for p in prefixes):
+            for p in prefixes:
+                if word.startswith(p) and len(word) > len(p) + 1:
+                    word = word[len(p):]
+                    break
+        while any(word.endswith(s) and len(word) > len(s) + 1 for s in suffixes):
+            for s in suffixes:
+                if word.endswith(s) and len(word) > len(s) + 1:
+                    word = word[:-len(s)]
+                    break
         return word
+
+    # ponytail: boundary characters for phrase matching (space, tab, newline, return, period, Arabic comma, comma, Arabic ?, ?, !)
+    _BOUNDARY = frozenset(' \t\n\r.،,؟?!')
 
     @classmethod
     def classify(cls, text: str) -> dict:
@@ -288,8 +295,8 @@ class EnhancedIntentClassifier:
                 if phrase in text_lower:
                     idx = text_lower.find(phrase)
                     while idx != -1:
-                        start_ok = idx == 0 or text_lower[idx-1] in ' \t\n\r.،,'
-                        end_ok = idx + len(phrase) >= len(text_lower) or text_lower[idx + len(phrase)] in ' \t\n\r.،,؟?'
+                        start_ok = idx == 0 or text_lower[idx-1] in cls._BOUNDARY
+                        end_ok = idx + len(phrase) >= len(text_lower) or text_lower[idx + len(phrase)] in cls._BOUNDARY
                         if start_ok and end_ok:
                             matched_keywords.append(phrase)
                             intents[intent] = intents.get(intent, 0) + weight

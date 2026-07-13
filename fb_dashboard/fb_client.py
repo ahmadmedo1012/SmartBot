@@ -138,7 +138,8 @@ class FBClient:
 
     async def get_post_detail(self, post_id: str) -> dict | None:
         fields = "id,message,created_time,permalink_url,comments.limit(10){id,message,from{name,id},created_time}"
-        return await self._get(f"{post_id}", {"fields": fields})
+        r = await self._get(f"{post_id}", {"fields": fields})
+        return r or {"id": post_id, "error": "failed"}
 
     # ── Comments ──────────────────────────────────────────────────
 

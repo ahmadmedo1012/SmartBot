@@ -1,5 +1,5 @@
 from _utils import utcnow
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -253,7 +253,7 @@ class Subscriber(Base):
     custom_data = Column(JSON, default={})
     created_at = Column(DateTime, default=utcnow)
 
-    tags = relationship("Tag", secondary="subscriber_tags", lazy="selectin", back_populates=None)
+    tags = relationship("Tag", secondary="subscriber_tags", lazy="selectin", back_populates="subscribers")
 
 
 class Tag(Base):
@@ -267,7 +267,7 @@ class Tag(Base):
     color = Column(String(7), default="#6366f1")
     created_at = Column(DateTime, default=utcnow)
 
-    subscribers = relationship("Subscriber", secondary="subscriber_tags", lazy="selectin", back_populates=None)
+    subscribers = relationship("Subscriber", secondary="subscriber_tags", lazy="selectin", back_populates="tags", overlaps="subscriber_tags")
 
 
 class SubscriberTag(Base):
@@ -481,7 +481,7 @@ class PaymentRequest(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     username = Column(String(100), default="")
-    amount = Column(Integer, nullable=False, default=0)
+    amount = Column(Numeric(10, 3), nullable=False, default=0)
     provider = Column(String(20), default="liyana")  # liyana, madar
     phone = Column(String(50), default="")
     reference = Column(String(100), default="")
@@ -497,6 +497,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
     action = Column(String(50), nullable=False)
     actor_id = Column(Integer, nullable=True)
     target_type = Column(String(50), default="")

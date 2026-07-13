@@ -89,47 +89,6 @@ _publisher = PublisherEngine()
 api_cache = APICache()
 
 
-# ── Login rate limiter: memory-based, per-IP, 5 attempts per 60s ──
-_login_attempts: dict[str, list[float]] = {}
-_LOGIN_RATE_LIMIT = 5
-_LOGIN_RATE_WINDOW = 60
-_LOGIN_CLEANUP_EVERY = 300  # purge stale IPs every 5 min
-_login_last_cleanup: float = 0
-
-_register_attempts: dict[str, list[float]] = {}
-_REGISTER_RATE_LIMIT = 3
-_REGISTER_RATE_WINDOW = 300
-
-
-def _check_register_rate(ip: str) -> bool:
-    now = time.time()
-    attempts = _register_attempts.get(ip, [])
-    attempts = [t for t in attempts if now - t < _REGISTER_RATE_WINDOW]
-    if len(attempts) >= _REGISTER_RATE_LIMIT:
-        return False
-    attempts.append(now)
-    _register_attempts[ip] = attempts
-    return True
-
-
-def _check_login_rate(ip: str) -> bool:
-    global _login_last_cleanup
-    now = time.time()
-    # periodic full cleanup to prevent unbounded growth
-    if now - _login_last_cleanup > _LOGIN_CLEANUP_EVERY:
-        cutoff = now - _LOGIN_RATE_WINDOW
-        _login_attempts.clear()
-        _login_last_cleanup = now
-    attempts = _login_attempts.get(ip, [])
-    # prune old entries
-    attempts = [t for t in attempts if now - t < _LOGIN_RATE_WINDOW]
-    if len(attempts) >= _LOGIN_RATE_LIMIT:
-        return False
-    attempts.append(now)
-    _login_attempts[ip] = attempts
-    return True
-
-
 # ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
 _dedup_locks: dict[str, asyncio.Lock] = {}
 _dedup_lock = asyncio.Lock()
@@ -293,6 +252,9 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE broadcast_recipients ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE conversation_notes ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE conversation_assignees ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
+                # ponytail: amount column migration — Integer→Numeric; safe on both SQLite and PG
+                "ALTER TABLE payment_requests ADD COLUMN IF NOT EXISTS amount_numeric NUMERIC(10,3)",
             ]:
                 try:
                     await conn.execute(text(col_sql))
@@ -472,7 +434,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
         raise HTTPException(401, "Invalid credentials")
     token = make_token(username, user.tenant_id)
     from _audit import log_audit
-    await log_audit(db, "login", actor_id=user.id, ip=ip)
+    await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
     resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
@@ -527,7 +489,7 @@ async def register(request: Request, username: str = Form(...), email: str = For
     await db.flush()
 
     from _audit import log_audit
-    await log_audit(db, "register", actor_id=user.id, ip=ip)
+    await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
     await db.commit()
 
     token = make_token(username, tenant.id)
@@ -541,13 +503,19 @@ async def register(request: Request, username: str = Form(...), email: str = For
 
 @app.get("/api/me")
 @app.get("/api/auth/me")
-async def auth_me(current_user: User = Depends(get_current_user)):
+async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    plan = "free"
+    if current_user.tenant_id:
+        tenant = await db.get(Tenant, current_user.tenant_id)
+        if tenant:
+            plan = tenant.plan or "free"
     return {
         "authenticated": True,
         "role": current_user.role,
         "username": current_user.username,
         "tenant_id": current_user.tenant_id,
         "email": current_user.email,
+        "plan": plan,
     }
 
 
@@ -556,7 +524,11 @@ async def auth_me(current_user: User = Depends(get_current_user)):
 @app.get("/api/audit/logs")
 async def get_audit_logs(limit: int = Query(50), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     from models import AuditLog
-    rows = await db.execute(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit))
+    rows = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.tenant_id == current_user._tenant_id)
+        .order_by(desc(AuditLog.created_at)).limit(limit)
+    )
     return [
         {
             "id": r.id, "action": r.action, "actor_id": r.actor_id,
@@ -636,7 +608,7 @@ async def payment_history(db=Depends(get_db), current_user: User = Depends(get_c
         .order_by(desc(PaymentRequest.created_at))
     )
     return [
-        {"payment_id": r.id, "amount": r.amount, "provider": r.provider,
+        {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
          "phone": r.phone, "reference": r.reference, "status": r.status,
          "note": r.note, "created_at": r.created_at.isoformat() if r.created_at else None}
         for r in rows.scalars().all()
@@ -694,7 +666,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 select(BotState).where(BotState.tenant_id == pr.tenant_id, BotState.key == "balance")
             )
             bs = existing.scalar_one_or_none()
-            new_bal = (int(bs.value) if bs and bs.value else 0) + pr.amount
+            new_bal = (int(float(bs.value)) if bs and bs.value else 0) + int(float(pr.amount))
             if bs:
                 bs.value = str(new_bal)
             else:
@@ -715,17 +687,6 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 await edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}
-
-
-@app.get("/api/me")
-async def get_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
-    plan = "free"
-    if current_user.tenant_id:
-        tenant = await db.get(Tenant, current_user.tenant_id)
-        if tenant:
-            plan = tenant.plan or "free"
-    return {"username": current_user.username, "role": current_user.role, "tenant_id": getattr(current_user, '_tenant_id', 0), "plan": plan}
-
 
 
 @app.get("/api/users")

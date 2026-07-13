@@ -20,7 +20,7 @@ class EventBus:
             pass
 
     async def emit(self, event: str, data: Any = None):
-        for cb in self._subscribers.get(event, []):
+        for cb in list(self._subscribers.get(event, [])):
             try:
                 await cb(data)
             except Exception:

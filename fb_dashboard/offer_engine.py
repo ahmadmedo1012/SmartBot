@@ -31,11 +31,14 @@ class OfferEngine:
         session: AsyncSession,
         user_id: str | None = None,
         intent: str = "",
+        tenant_id: int = 0,
     ) -> dict | None:
         """Get the best offer for given context."""
         from models import Offer
         try:
             stmt = select(Offer).where(Offer.is_active == True)
+            if tenant_id:
+                stmt = stmt.where(Offer.tenant_id == tenant_id)
             result = await session.execute(stmt)
             offers = result.scalars().all()
         except Exception:

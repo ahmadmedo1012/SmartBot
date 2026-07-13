@@ -324,10 +324,11 @@ class CooldownManager:
 class ReplyPipeline:
     """Pipeline with error boundaries per stage and diagnostics."""
 
-    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager):
+    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager, tenant_id: int = 0):
         self.fb = fb
         self.dedup = dedup_engine
         self.cooldown = cooldown
+        self._tenant_id = tenant_id
         self._mon = _get_monitor()
         self._diag = _get_diag()
 
@@ -431,9 +432,9 @@ class ReplyPipeline:
                 o_engine = _get_offer()
                 # New users get welcome offers
                 if user_ctx and user_ctx.is_new():
-                    offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome")
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome", tenant_id=self._tenant_id)
                 else:
-                    offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, intent, tenant_id=self._tenant_id)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
                 if isinstance(classification, dict):
@@ -776,7 +777,7 @@ class BotEngine:
         matcher = IntentAwareMatcher(rules, dm_map)
         replied_ids = await self._load_replied_ids(session)
         await self._dedup_engine.load(replied_ids)
-        pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
+        pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown, tenant_id=self._tenant_id)
         return await pipeline.process(session, comment, post_id, matcher)
 
     async def process_single_comment(self, comment: dict, post_id: str):

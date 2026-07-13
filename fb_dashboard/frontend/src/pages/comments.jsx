@@ -157,7 +157,7 @@ export function Comments({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">مركز التعليقات</h1>
+        <h1 >مركز التعليقات</h1>
         <p>جميع التعليقات من فيسبوك — رد بذكاء وتحكم بسرعة</p>
       </div>
 

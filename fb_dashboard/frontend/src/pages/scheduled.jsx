@@ -50,7 +50,7 @@ export function ScheduledPosts({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">المنشورات المجدولة</h1>
+        <h1 >المنشورات المجدولة</h1>
         <p>إنشاء وجدولة ونشر منشورات فيسبوك</p>
       </div>
 

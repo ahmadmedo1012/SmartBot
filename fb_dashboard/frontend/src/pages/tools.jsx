@@ -19,7 +19,7 @@ export function Tools() {
       <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
         <div className="page-header reveal-blur">
-          <h1 className="gradient-text">الأدوات التشخيصية</h1>
+          <h1 >الأدوات التشخيصية</h1>
           <p>اختبار وتحليل أداء النظام</p>
         </div>
         <div className="content-card glass-card card-premium card-hover-lift">

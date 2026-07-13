@@ -13,7 +13,7 @@ export function Marketing() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">التسويق</h1>
+        <h1 >التسويق</h1>
         <p>بيانات التحليلات والتسويق من الصفحة المتصلة</p>
       </div>
 

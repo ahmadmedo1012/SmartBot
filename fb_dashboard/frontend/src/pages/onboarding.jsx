@@ -239,7 +239,7 @@ export function Onboarding({ onComplete }) {
     <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg" />
       <div className="page-header reveal-blur" style={{ textAlign: "center" }}>
-        <h1 className="gradient-text">إعداد SmartBot</h1>
+        <h1 >إعداد SmartBot</h1>
         <p>تجربة الإعداد السريع — دقائق قليلة وتبدأ</p>
       </div>
 

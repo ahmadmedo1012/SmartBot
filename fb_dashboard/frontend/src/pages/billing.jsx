@@ -55,7 +55,7 @@ export function Billing() {
     <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">الفواتير والاشتراك</h1>
+        <h1 >الفواتير والاشتراك</h1>
         <p>إدارة خطتك واشتراكاتك</p>
       </div>
 

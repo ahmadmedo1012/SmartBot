@@ -64,7 +64,7 @@ export function Reports() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">التقارير</h1>
+        <h1 >التقارير</h1>
         <p>تحليلات متقدمة لأداء البوت والتفاعلات</p>
       </div>
 

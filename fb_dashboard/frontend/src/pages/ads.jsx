@@ -27,7 +27,7 @@ export function Ads({ role }) {
     return (
       <section className="page active" dir="rtl" style={{position:"relative"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header reveal-blur"><h1 className="gradient-text">الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
+        <div className="page-header reveal-blur"><h1 >الإعلانات</h1><p>إدارة حملات فيسبوك الإعلانية</p></div>
         <div className="content-card glass glass-card" style={{textAlign:"center",padding:40}}>
           <p>غير مصرح — إدارة الإعلانات متاحة للمدير فقط</p>
         </div>
@@ -39,7 +39,7 @@ export function Ads({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">الإعلانات</h1>
+        <h1 >الإعلانات</h1>
         <p>إدارة حملات فيسبوك الإعلانية</p>
       </div>
 

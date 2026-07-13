@@ -210,7 +210,7 @@ export function Messages({ role }) {
         {/* ─── LEFT: CONVERSATIONS ─── */}
         <div className={`card glass-card card-premium card-hover-lift`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
           <div style={{padding:"16px 16px 8px",borderBottom:"1px solid var(--border)"}}>
-            <h2 className="gradient-text" style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
+            <h2  style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
             <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)",pointerEvents:"none"}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input className="fld" placeholder="بحث..." aria-label="بحث في المحادثات" value={search} onChange={e => { setSearch(e.target.value); setSelectedId(null) }} style={{width:"100%",paddingRight:32}} />

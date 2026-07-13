@@ -373,7 +373,7 @@ export function Broadcast({ role }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header reveal-blur"><h1 className="gradient-text">البث الجماعي</h1>
+      <div className="page-header reveal-blur"><h1 >البث الجماعي</h1>
         <p>{broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}</p>
       </div>
 

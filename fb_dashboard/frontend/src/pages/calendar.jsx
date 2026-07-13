@@ -209,7 +209,7 @@ export function ContentCalendar({ role }) {
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <h1 className="gradient-text">التقويم</h1>
+          <h1 >التقويم</h1>
           <p>عرض وإدارة المنشورات المجدولة</p>
         </div>
         <div className="qactions" style={{gap:4}}>
@@ -248,7 +248,7 @@ export function ContentCalendar({ role }) {
         <button className="btn btn-outline" onClick={prevMonth} style={{padding:"4px 8px"}} aria-label="الشهر السابق">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <h2 className="gradient-text" style={{fontSize:14,fontWeight:600}}>{monthText}</h2>
+        <h2  style={{fontSize:14,fontWeight:600}}>{monthText}</h2>
         <button className="btn btn-outline" onClick={nextMonth} style={{padding:"4px 8px"}} aria-label="الشهر التالي">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
         </button>

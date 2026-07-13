@@ -25,7 +25,7 @@ export function Autoreply() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">الردود التلقائية</h1>
+        <h1 >الردود التلقائية</h1>
         <p>إعدادات الرد الآلي للرسائل والتعليقات</p>
       </div>
 

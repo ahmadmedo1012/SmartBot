@@ -36,7 +36,7 @@ function ErrorState({ message, onRetry }) {
   return (
     <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">الصفحات</h1>
+        <h1 >الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>
       <div className="empty-state">
@@ -84,7 +84,7 @@ export function Pages() {
     <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">الصفحات</h1>
+        <h1 >الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>
 

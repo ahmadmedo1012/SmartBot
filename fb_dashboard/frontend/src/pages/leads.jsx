@@ -22,7 +22,7 @@ export function Leads() {
       <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
         <div className="mesh-bg"></div>
         <div className="page-header reveal-blur">
-          <h1 className="gradient-text">العملاء المتوقعون</h1>
+          <h1 >العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
@@ -40,7 +40,7 @@ export function Leads() {
       <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
         <div className="mesh-bg"></div>
         <div className="page-header reveal-blur">
-          <h1 className="gradient-text">العملاء المتوقعون</h1>
+          <h1 >العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
@@ -57,7 +57,7 @@ export function Leads() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">العملاء المتوقعون</h1>
+        <h1 >العملاء المتوقعون</h1>
         <p>قائمة العملاء المحتملين من الصفحات</p>
       </div>
       <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>

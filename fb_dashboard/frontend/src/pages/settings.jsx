@@ -247,7 +247,7 @@ export function Settings({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
-        <h1 className="gradient-text">الإعدادات</h1>
+        <h1 >الإعدادات</h1>
         <p style={{color:"var(--muted)",fontSize:"14px"}}>إعدادات البوت، API، المظهر وإحصائيات النظام</p>
       </div>
 

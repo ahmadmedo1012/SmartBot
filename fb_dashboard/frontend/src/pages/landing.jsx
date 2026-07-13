@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react"
 import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star } from "lucide-react"
+import { LandingHeader } from "@/components/LandingHeader"
+import { LandingFooter } from "@/components/LandingFooter"
 
 const features = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
@@ -481,15 +483,19 @@ export function Landing({ onGetStarted }) {
 
   return (
     <div className="page active" style={{ animation: "none", padding: 0 }}>
-      <HeroSection onGetStarted={onGetStarted} />
-      <StatsSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <TestimonialsSection />
-      <ClientsSection />
-      <PricingSection />
-      <FaqSection />
-      <CTASection onGetStarted={onGetStarted} />
+      <LandingHeader onNavigate={(page) => window.dispatchEvent(new CustomEvent('navigate', { detail: page }))} />
+      <div style={{ paddingBlockStart: 56 }}>
+        <HeroSection onGetStarted={onGetStarted} />
+        <StatsSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <TestimonialsSection />
+        <ClientsSection />
+        <PricingSection />
+        <FaqSection />
+        <CTASection onGetStarted={onGetStarted} />
+      </div>
+      <LandingFooter onNavigate={(page) => window.dispatchEvent(new CustomEvent('navigate', { detail: page }))} />
     </div>
   )
 }

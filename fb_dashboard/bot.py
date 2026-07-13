@@ -315,7 +315,11 @@ class CooldownManager:
         return False
 
     def adjust_window(self, user_id: str, seconds: int):
-        self._user_windows[user_id] = max(10, min(3600, seconds))
+        seconds = max(10, min(3600, seconds))
+        if user_id == "global":
+            self._default_sec = seconds
+        else:
+            self._user_windows[user_id] = seconds
 
 # -------------------------------------------------------------------
 # Reply Pipeline (v2 — structured stages with error boundaries)

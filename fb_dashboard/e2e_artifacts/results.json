@@ -1,0 +1,11 @@
+{
+  "pass": 0,
+  "fail": 1,
+  "errors": [
+    {
+      "page": "Login",
+      "elem": "Auth",
+      "issue": "Cookie auth not working via context.addCookies"
+    }
+  ]
+}

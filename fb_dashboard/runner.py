@@ -446,7 +446,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    resp.set_cookie(key="token", value=token, httponly=True, secure=False, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
 
@@ -503,7 +503,7 @@ async def register(request: Request, username: str = Form(...), email: str = For
 
     token = make_token(username, tenant.id)
     resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    resp.set_cookie(key="token", value=token, httponly=True, secure=False, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
 

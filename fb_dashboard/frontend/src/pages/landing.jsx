@@ -237,7 +237,7 @@ function FeaturesSection() {
       <div className="relative z-10 max-w-6xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            مميزات <span className="gradient-text">SmartBot</span>
+            مميزات <span style={{ color: "var(--accent)" }}>SmartBot</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية
@@ -267,7 +267,7 @@ function HowItWorksSection() {
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            كيف يعمل <span className="gradient-text">SmartBot</span>
+            كيف يعمل <span style={{ color: "var(--accent)" }}>SmartBot</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             ثلاث خطوات فقط لبدء أتمتة ردودك
@@ -361,7 +361,7 @@ function PricingSection() {
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            خطط <span className="gradient-text">الأسعار</span>
+            خطط <span style={{ color: "var(--accent)" }}>الأسعار</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             اختر الخطة المناسبة لاحتياجاتك
@@ -422,7 +422,7 @@ function FaqSection() {
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            أسئلة <span className="gradient-text">شائعة</span>
+            أسئلة <span style={{ color: "var(--accent)" }}>شائعة</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             أهم الأسئلة عن SmartBot

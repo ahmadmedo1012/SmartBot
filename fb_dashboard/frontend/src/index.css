@@ -624,7 +624,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 }
 
 /* ── SmartLink utility classes ── */
-.gradient-text { background-image: linear-gradient(135deg, var(--accent), oklch(0.58 0.16 40), oklch(0.62 0.14 45)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.gradient-text { color: var(--accent); font-weight: 700; }
 .glass-card { background: var(--glass-bg); backdrop-filter: blur(32px) saturate(1.4); -webkit-backdrop-filter: blur(32px) saturate(1.4); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); transition: transform .2s var(--ease-smooth), border-color .2s var(--ease-smooth), box-shadow .2s var(--ease-smooth); }
 .glass-card:hover { transform: translateY(-1px); border-color: #c84e004d; box-shadow: var(--glass-shadow-lg), 0 0 20px #c84e0033; }
 .section-padding { padding-top: 7rem; padding-bottom: 7rem; }

@@ -29,7 +29,7 @@ function SocialIcon({ children, href, label }) {
 
 export function LandingFooter({ onNavigate }) {
   return (
-    <footer dir="rtl" style={{ borderBlockStart: "1px solid color-mix(in oklch, var(--border) 50%, transparent)", paddingBlock: "48px 32px" }}>
+  <footer dir="rtl" style={{ borderBlockStart: "1px solid color-mix(in oklch, var(--border) 50%, transparent)", paddingBlock: "64px 40px" }}>
       <div style={{ maxWidth: 1220, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px 32px", marginBlockEnd: 40 }}
           className="sm:grid-cols-4">

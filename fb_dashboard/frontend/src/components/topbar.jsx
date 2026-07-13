@@ -117,9 +117,14 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
 
       {/* sidebar */}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo"><img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" /></div>
-          <div className="sidebar-title">Smart<span style={{whiteSpace:"nowrap"}}>Bot</span><span>لوحة تحكم فيسبوك</span></div>
+        <div className="sidebar-header" style={{ position: "relative", overflow: "hidden" }}>
+          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", boxShadow:"var(--shadow-glow)"}}>
+            <img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
+          </div>
+          <div className="sidebar-title">Smart<span style={{whiteSpace:"nowrap"}}>Bot</span>
+            <span style={{fontSize:"10px", color:"var(--muted)"}}>لوحة تحكم فيسبوك</span>
+          </div>
+          <div className="shimmer-bar" aria-hidden="true" style={{position:"absolute",bottom:0,left:0,width:"100%",height:"1px",overflow:"hidden",pointerEvents:"none"}} />
         </div>
         <nav className="sidebar-nav">
           {sidebarSections.map((section) => (

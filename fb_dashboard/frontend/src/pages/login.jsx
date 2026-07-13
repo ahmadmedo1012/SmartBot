@@ -7,12 +7,8 @@ function AnimatedBg() {
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <div className="absolute inset-0 opacity-[0.03]"
         style={{ backgroundImage: 'linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-      <div className="animate-blob-1 absolute -top-32 right-0 w-[600px] h-[600px]"
-        style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, var(--accent) 15%, transparent), transparent 70%)' }} />
-      <div className="animate-blob-2 absolute -bottom-32 left-0 w-[550px] h-[550px]"
-        style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%)' }} />
-      <div className="animate-blob-3 absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
-        style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 60%)' }} />
+      <div className="absolute inset-0"
+        style={{ background: 'radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklch, var(--accent) 8%, transparent), transparent 70%)' }} />
     </div>
   )
 }

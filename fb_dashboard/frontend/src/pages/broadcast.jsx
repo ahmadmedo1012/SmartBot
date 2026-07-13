@@ -89,7 +89,7 @@ function Composer({ onBack, queryClient }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative", animation: "pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header reveal-blur" style={{ animation: "reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both" }}><h1 className="shiny-text">بث جماعي جديد</h1></div>
+      <div className="page-header reveal-blur" style={{ animation: "reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both" }}><h1>بث جماعي جديد</h1></div>
 
       <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:20}}>
         {steps.map((s, i) => {

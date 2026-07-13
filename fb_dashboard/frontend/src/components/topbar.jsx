@@ -59,7 +59,7 @@ const mobileNav = [
   { key: "settings", label: "الإعدادات", icon: "settings" },
 ]
 
-export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0 }) {
+export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0, onLogout }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [hideHeader, setHideHeader] = useState(false)
   const lastY = useRef(0)
@@ -101,7 +101,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
             <img src="/static/brand-icon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
           </div>
           <div className="sidebar-title">
-            <span className="shiny-text" style={{fontSize:"15px",fontWeight:700}}>SmartBot</span>
+            <span style={{fontSize:"15px",fontWeight:700,color:"var(--fg)"}}>SmartBot</span>
             <span style={{fontSize:"10px", color:"var(--muted)"}}>لوحة تحكم فيسبوك</span>
           </div>
           <div className="shimmer-bar" aria-hidden="true" style={{position:"absolute",bottom:0,left:0,width:"100%",height:"1px",overflow:"hidden",pointerEvents:"none"}} />
@@ -114,7 +114,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                 <a
                   key={item.key}
                   className={`nav-item ${currentPage === item.key ? "active" : ""}`}
-                  onClick={() => handleNav(item.key)}
+                  onClick={(e) => { e.preventDefault(); handleNav(item.key); }}
                   href="#"
                   aria-current={currentPage === item.key ? "page" : undefined}
                 >
@@ -131,7 +131,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
         </nav>
         {/* Sidebar footer — logout + back to site */}
         <div style={{borderBlockStart:"1px solid color-mix(in oklch, var(--border) 50%, transparent)",padding:"10px 8px",display:"flex",flexDirection:"column",gap:2}}>
-          <button onClick={()=>{}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",background:"none",border:0,cursor:"pointer",width:"100%",textAlign:"start",transition:"color .15s, background .15s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--danger) 10%,transparent)";e.currentTarget.style.color="var(--danger)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
+          <button onClick={()=>{onNavigate&&onNavigate("login");handleLogout&&handleLogout()}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",background:"none",border:0,cursor:"pointer",width:"100%",textAlign:"start",transition:"color .15s, background .15s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--danger) 10%,transparent)";e.currentTarget.style.color="var(--danger)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             تسجيل الخروج
           </button>
@@ -176,7 +176,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
               {notifCount > 0 && <span className="notif-dot"></span>}
             </div>
             <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("profile") }}}>{avatarLetter}</div>
+              onClick={() => onNavigate("settings")}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("settings") }}}>{avatarLetter}</div>
             <ThemeToggle />
             <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out 3",flexShrink:0}}></span>مباشر</span>
           </div>

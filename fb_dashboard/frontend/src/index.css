@@ -527,6 +527,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .data-table td { padding: .5rem .75rem; font-size: .8125rem; color: var(--fg); border-bottom: 1px solid color-mix(in oklch, var(--border) 50%, transparent); }
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover { background: var(--accent-soft); }
+.data-table tbody tr { animation: fade-in 0.3s cubic-bezier(0.16,1,0.3,1) both; }
 .icon-premium { display: flex; align-items: center; justify-content: center; border-radius: 14px; position: relative; overflow: hidden; }
 .icon-premium::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(135deg, rgba(255,255,255,.2), transparent 60%); pointer-events: none; }
 .login-bg { background: linear-gradient(135deg, oklch(5% 0.01 30), oklch(2% 0.01 30)); }

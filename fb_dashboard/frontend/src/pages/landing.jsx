@@ -317,7 +317,7 @@ function TestimonialsSection() {
               <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>"{t.text}"</p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.48 0.19 45))", color: "var(--accent-fg)" }}>
+                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.42 0.14 38))", color: "var(--accent-fg)" }}>
                   {t.name.charAt(0)}
                 </div>
                 <div>
@@ -456,7 +456,7 @@ function FaqSection() {
 function CTASection({ onGetStarted }) {
   return (
     <section className="relative py-28 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.58 0.195 45), oklch(0.48 0.19 45))" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.48 0.16 40), oklch(0.42 0.14 38))" }} />
       <div className="absolute inset-0 opacity-20" aria-hidden="true"
         style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 0%, transparent 50%), radial-gradient(circle at 70% 50%, white 0%, transparent 50%)" }} />
       <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">

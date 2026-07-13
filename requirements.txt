@@ -16,3 +16,4 @@ tenacity>=9.1.4              # retry around LLM calls with backoff
 jsonschema>=4.26.0           # validate agent JSON tool output before execution
 Pillow>=12.3.0               # image resize/compress before base64 encode for vision
 cryptography>=42.0.0
+argon2-cffi>=23.1.0

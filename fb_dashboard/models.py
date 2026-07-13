@@ -491,6 +491,41 @@ class PaymentRequest(Base):
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+# ── Auth Infrastructure ─────────────────────────────────────────────
+class AuditLog(Base):
+    """Immutable audit trail for auth and sensitive operations."""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    action = Column(String(50), nullable=False)
+    actor_id = Column(Integer, nullable=True)
+    target_type = Column(String(50), default="")
+    target_id = Column(Integer, nullable=True)
+    metadata = Column(JSON, default=dict)
+    ip = Column(String(50), default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class BlacklistedToken(Base):
+    """JWT tokens revoked before expiry (password reset, logout all)."""
+    __tablename__ = "blacklisted_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    jti = Column(String(100), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class RateLimitEntry(Base):
+    """DB-backed rate limit counter — works across Vercel serverless instances."""
+    __tablename__ = "rate_limit_entries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(100), nullable=False, index=True)
+    window_end = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+
+
 class ReportSchedule(Base):
     """Scheduled report delivery configuration."""
     __tablename__ = "report_schedules"

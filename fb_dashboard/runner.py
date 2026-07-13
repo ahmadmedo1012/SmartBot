@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import time
 from datetime import datetime, timedelta, timezone
 from _utils import utcnow
@@ -27,7 +28,7 @@ from telegram_bot import notify_admins_new_payment, send_message, edit_keyboard,
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote
+from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote, BlacklistedToken
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
 from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
@@ -165,8 +166,9 @@ _IS_VERCEL = bool(os.getenv("VERCEL"))
 
 
 def make_token(username: str, tenant_id: int = 0) -> str:
+    jti = secrets.token_hex(16)
     return jwt.encode(
-        {"sub": username, "tid": tenant_id, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
+        {"sub": username, "tid": tenant_id, "jti": jti, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY,
         algorithm=ALGORITHM,
     )
@@ -182,6 +184,12 @@ async def get_current_user(request: Request, db=Depends(get_db)):
         raise HTTPException(401, "Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(401, "Invalid token")
+    # Check blacklist
+    jti = payload.get("jti", "")
+    if jti:
+        blacklisted = await db.execute(select(BlacklistedToken).where(BlacklistedToken.jti == jti))
+        if blacklisted.scalar_one_or_none():
+            raise HTTPException(401, "Token revoked")
     user = await db.execute(select(User).where(User.username == payload["sub"]))
     user = user.scalar_one_or_none()
     if not user:
@@ -454,20 +462,36 @@ async def get_tenant_fb_client(tenant_id: int) -> FBClient | None:
 @app.post("/api/login")
 async def login(username: str = Form(...), password: str = Form(...), request: Request = None, db=Depends(get_db)):
     ip = request.client.host if request and request.client else "unknown"
-    if not _check_login_rate(ip):
+    from _rate_limit import check_rate_limit
+    if not await check_rate_limit(db, f"login:{ip}:{username}", max_attempts=10, window_seconds=60):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
     user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
     user = user.scalar_one_or_none()
-    if not user or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
+    from _hash import verify_password
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "Invalid credentials")
     token = make_token(username, user.tenant_id)
+    from _audit import log_audit
+    await log_audit(db, "login", actor_id=user.id, ip=ip)
+    await db.commit()
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
     resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="strict", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
 
 @app.post("/api/logout")
-async def logout():
+async def logout(request: Request, db=Depends(get_db)):
+    token = request.cookies.get("token")
+    if token:
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            jti = payload.get("jti", "")
+            exp = payload.get("exp")
+            if jti and exp:
+                db.add(BlacklistedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, tz=timezone.utc)))
+                await db.commit()
+        except Exception:
+            pass
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("token")
     return resp
@@ -477,7 +501,8 @@ async def logout():
 async def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
     """Register a new user. Creates both a User and a Tenant."""
     ip = request.client.host if request.client else "unknown"
-    if not _check_register_rate(ip):
+    from _rate_limit import check_rate_limit
+    if not await check_rate_limit(db, f"register:{ip}", max_attempts=5, window_seconds=300):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
 
     if len(username) < 3:
@@ -495,9 +520,14 @@ async def register(request: Request, username: str = Form(...), email: str = For
     db.add(tenant)
     await db.flush()
 
-    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    from _hash import hash_password
+    pw_hash = hash_password(password)
     user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
     db.add(user)
+    await db.flush()
+
+    from _audit import log_audit
+    await log_audit(db, "register", actor_id=user.id, ip=ip)
     await db.commit()
 
     token = make_token(username, tenant.id)
@@ -507,6 +537,19 @@ async def register(request: Request, username: str = Form(...), email: str = For
 
 
 # ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
+
+
+@app.get("/api/me")
+@app.get("/api/auth/me")
+async def auth_me(current_user: User = Depends(get_current_user)):
+    return {
+        "authenticated": True,
+        "role": current_user.role,
+        "username": current_user.username,
+        "tenant_id": current_user.tenant_id,
+        "email": current_user.email,
+    }
+
 
 # ── Payment / Billing ────────────────────────────────────────────────────
 

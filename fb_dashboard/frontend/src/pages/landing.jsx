@@ -49,13 +49,12 @@ function HeroSection({ onGetStarted }) {
               <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
                 style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
               <span className="font-bold text-lg" style={{ color: "var(--fg)" }}>SmartBot</span>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{background: "var(--accent-soft)", color: "var(--accent)"}}>v2</span>
             </div>
             <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight text-gradient-premium" style={{lineHeight: 1.2}}>
               إدارة تفاعل فيسبوك<br />بذكاء
             </h1>
             <p className="text-lg leading-relaxed" style={{ color: "var(--muted)" }}>
-              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك — كل ما تحتاجه في منصة واحدة
+              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. كل ما تحتاجه في منصة واحدة
             </p>
             <div className="flex gap-4 pt-2">
               <button className="btn btn-primary text-base px-8 py-3 magnetic-btn" onClick={onGetStarted}

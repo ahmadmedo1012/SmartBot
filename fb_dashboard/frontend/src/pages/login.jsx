@@ -223,7 +223,7 @@ export function Login({ onAuth }) {
         </AnimatedGradientBorder>
 
         <p className="login-fade-in text-center" style={{ fontSize: "11px", marginTop: 24, color: "color-mix(in oklch, var(--muted) 40%, transparent)", letterSpacing: "0.05em" }}>
-          SmartBot v2.0 — منصة إدارة التفاعل الذكية
+          SmartBot - منصة إدارة التفاعل الذكية
         </p>
       </div>
     </div>

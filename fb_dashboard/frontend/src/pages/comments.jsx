@@ -188,7 +188,7 @@ export function Comments({ role }) {
         ) : (
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))"}}>
             {filtered.map(c => (
-              <div key={c.id} className="stat-card glass card-border-accent">
+              <div key={c.id} className="stat-card glass card-premium">
               <div className="person-row">
                 <div className="person-avatar" style={{background:`hsl(${c.from_name?.length * 37 || 0},55%,45%)`}}>
                   {getInitials(c.from_name)}

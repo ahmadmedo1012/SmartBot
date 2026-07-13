@@ -3308,11 +3308,12 @@ async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(requ
         if row:
             row.value = val
         else:
-            db.add(BotState(key=f"shopify_{key}", value=str(value)))
+            db.add(BotState(key=f"shopify_{key}", value=val))
     await db.commit()
     commerce_engine.shopify = ShopifyIntegration(
         store_domain=body.get("store_domain", ""),
         access_token=body.get("access_token", ""),
+        webhook_secret=body.get("webhook_secret", ""),
     )
     return {"ok": True, "store": body.get("store_domain", "")}
 

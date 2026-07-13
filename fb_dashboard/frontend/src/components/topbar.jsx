@@ -178,7 +178,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
             <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("profile") }}}>{avatarLetter}</div>
             <ThemeToggle />
-            <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out infinite",flexShrink:0}}></span>مباشر</span>
+            <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out 3",flexShrink:0}}></span>مباشر</span>
           </div>
         </header>
 

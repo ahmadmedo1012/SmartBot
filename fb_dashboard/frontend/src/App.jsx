@@ -127,7 +127,7 @@ function AppInner() {
           </div>
           <div className="flex gap-1.5">
             {[0,1,2].map(i => (
-              <div key={i} className="w-2 h-2 rounded-full bg-[var(--accent)]" style={{ animation: "pulse-dot 2s var(--ease) infinite", animationDelay: `${i*0.15}s` }} />
+              <div key={i} className="w-2 h-2 rounded-full bg-[var(--accent)]" style={{ animation: "pulse-dot 2s var(--ease) 5", animationDelay: `${i*0.15}s` }} />
             ))}
           </div>
         </div>

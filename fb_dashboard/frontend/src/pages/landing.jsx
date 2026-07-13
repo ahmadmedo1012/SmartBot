@@ -84,10 +84,7 @@ function HeroSection({ onGetStarted }) {
         <div className="absolute inset-0 opacity-[0.03]"
           style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="bg-radial-glow" />
-        <div className="animate-blob-1 absolute -top-40 -right-40 w-[900px] h-[900px]"
-          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 20%, transparent), transparent 70%)" }} />
-        <div className="animate-blob-2 absolute -bottom-40 -left-40 w-[700px] h-[700px]"
-          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%)" }} />
+        {/* ponytail: removed blob animations — caused perf stuttering, Smart Menu uses static radial instead */}
       </div>
 
       <div className="relative z-10 w-full pt-32 pb-24">

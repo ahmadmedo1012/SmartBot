@@ -99,7 +99,7 @@ function HeroSection({ onGetStarted }) {
                   style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xl tracking-tight" style={{ color: "var(--fg)" }}>SmartBot</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>v2</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "color-mix(in oklch, var(--success) 15%, transparent)", color: "var(--success)" }}>نشط</span>
                 </div>
               </div>
 

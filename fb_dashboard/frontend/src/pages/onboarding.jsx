@@ -139,7 +139,7 @@ function ConnectFacebookStep({ onNext }) {
         </div>
         {connected && (
           <p style={{ fontSize: 12, color: "var(--success)", marginBlockStart: 8, textAlign: "center" }}>
-            <span className="stat-dot" style={{ background: "var(--success)", display: "inline-block", marginInlineEnd: 4 }} />
+            <span className="status-dot" style={{ background: "var(--success)", display: "inline-block", marginInlineEnd: 4 }} />
             تم الاتصال بنجاح
           </p>
         )}

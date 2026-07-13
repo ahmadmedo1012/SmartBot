@@ -149,7 +149,7 @@ export function Messages({ role }) {
   const { data: templates = [] } = useQuery({ queryKey: ["templates"], queryFn: () => fetchTemplates() })
 
   const scrollToBottom = useCallback((smooth = true) => {
-    setTimeout(() => { messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" }) }, 50)
+    setTimeout(() => { messagesEndRef.current?.scrollTo({ top: messagesEndRef.current.scrollHeight, behavior: smooth ? "smooth" : "auto" }) }, 50)
   }, [])
 
   useEffect(() => { if (messages.length > 0) scrollToBottom(true) }, [messages, scrollToBottom])

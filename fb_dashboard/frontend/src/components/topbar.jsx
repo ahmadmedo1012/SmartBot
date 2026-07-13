@@ -95,20 +95,20 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       />
 
       {/* sidebar */}
-      <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
-        <div className="sidebar-header" style={{ position: "relative", overflow: "hidden" }}>
-          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", boxShadow:"var(--shadow-glow-strong)"}}>
+      <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar" style={{ background: "color-mix(in oklch, var(--surface) 80%, transparent)", backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)", borderInlineEnd: "1px solid color-mix(in oklch, var(--border) 20%, transparent)" }}>
+        <div className="sidebar-header" style={{ position: "relative", overflow: "hidden", borderBlockEnd: "1px solid color-mix(in oklch, var(--border) 20%, transparent)" }}>
+          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--primary), oklch(0.48 0.19 45))", boxShadow:"0 4px 10px oklch(0.55 0.19 45 / 0.25)"}}>
             <img src="/static/brand-icon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
           </div>
           <div className="sidebar-title">
-            <span style={{fontSize:"15px",fontWeight:700,color:"var(--fg)"}}>SmartBot</span>
+            <span style={{fontSize:"14px",fontWeight:700,color:"var(--fg)"}}>الربط الذكي</span>
             <span style={{fontSize:"10px", color:"var(--muted)"}}>لوحة تحكم فيسبوك</span>
           </div>
           <div className="shimmer-bar" aria-hidden="true" style={{position:"absolute",bottom:0,left:0,width:"100%",height:"1px",overflow:"hidden",pointerEvents:"none"}} />
         </div>
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" style={{ flex:1, overflowY:"auto", padding:"12px 8px" }}>
           {sidebarSections.map((section) => (
-            <div key={section.label}>
+            <div key={section.label} style={{ marginBlockEnd: 4 }}>
               <div className="nav-section">{section.label}</div>
               {section.items.map((item) => (
                 <a
@@ -118,12 +118,13 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                   onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); handleNav(item.key); }}}
                   href="#"
                   aria-current={currentPage === item.key ? "page" : undefined}
+                  style={{ borderRadius: 12 }}
                 >
                   <span className="nav-icon"><NavIcon name={item.icon} /></span>
                   {item.label}
                   {item.badge && parseInt(item.badge) > 0 && <span className="nav-badge">{item.badge}</span>}
                   {currentPage === item.key && (
-                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineStart:0,insetBlock:"6px",width:"3px",background:"var(--primary)",borderRadius:"0 2px 2px 0",boxShadow:"0 0 8px oklch(0.55 0.19 45 / 0.4)"}} />
+                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineEnd:0,insetBlock:"6px",width:"3px",background:"linear-gradient(to bottom, var(--primary), oklch(0.48 0.19 45))",borderRadius:"2px 0 0 2px",boxShadow:"0 0 8px oklch(0.55 0.19 45 / 0.3)"}} />
                   )}
                 </a>
               ))}
@@ -131,13 +132,13 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
           ))}
         </nav>
         {/* Sidebar footer — logout + back to site */}
-        <div style={{borderBlockStart:"1px solid color-mix(in oklch, var(--border) 50%, transparent)",padding:"10px 8px",display:"flex",flexDirection:"column",gap:2}}>
-          <button onClick={()=>{onLogout?.();onNavigate&&onNavigate("login")}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",background:"none",border:0,cursor:"pointer",width:"100%",textAlign:"start",transition:"color .15s, background .15s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--danger) 10%,transparent)";e.currentTarget.style.color="var(--danger)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
+        <div style={{borderBlockStart:"1px solid color-mix(in oklch, var(--border) 20%, transparent)",padding:"12px 8px",display:"flex",flexDirection:"column",gap:2}}>
+          <button onClick={()=>{onLogout?.();onNavigate&&onNavigate("login")}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",background:"none",border:0,cursor:"pointer",width:"100%",textAlign:"start",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--danger) 10%,transparent)";e.currentTarget.style.color="var(--danger)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             تسجيل الخروج
           </button>
-          <span onClick={()=>onNavigate&&onNavigate("landing")} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",cursor:"pointer",transition:"color .15s, background .15s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--border) 30%,transparent)";e.currentTarget.style.color="var(--fg)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span onClick={()=>onNavigate&&onNavigate("landing")} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--accent) 10%,transparent)";e.currentTarget.style.color="var(--fg)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 17 10 12 15 7"/><line x1="8" y1="12" x2="20" y2="12"/></svg>
             العودة للموقع
           </span>
         </div>
@@ -147,7 +148,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       <div className="main">
         {/* header */}
         <header className="header" style={{
-          transition: "transform .35s var(--ease-smooth)",
+          transition: "transform .35s var(--ease-smooth), background .35s",
           transform: hideHeader ? "translateY(-100%)" : "translateY(0)",
         }}>
           <button

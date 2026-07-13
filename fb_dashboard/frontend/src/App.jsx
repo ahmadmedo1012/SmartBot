@@ -114,22 +114,14 @@ function AppInner() {
 
   if (authLoading) {
     return (
-      <div className="loading-screen">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg)]">
         <div className="grain-overlay" />
-        <div className="relative flex flex-col items-center gap-6">
-          <div className="loading-logo">
-            <div className="loading-ring" />
-            <img src="/static/brand-icon.png" alt="SmartBot" className="w-8 h-8 object-contain" />
+        <div className="flex flex-col items-center gap-5">
+          <div className="size-12 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 flex items-center justify-center shadow-lg shadow-[var(--primary)]/20">
+            <img src="/static/brand-icon.png" alt="SmartBot" className="w-7 h-7 object-contain" />
           </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-[var(--fg)] tracking-tight">SmartBot</h1>
-            <p className="loading-text mt-1">جاري التحميل...</p>
-          </div>
-          <div className="flex gap-1.5">
-            {[0,1,2].map(i => (
-              <div key={i} className="w-2 h-2 rounded-full bg-[var(--accent)]" style={{ animation: "pulse-dot 2s var(--ease) 5", animationDelay: `${i*0.15}s` }} />
-            ))}
-          </div>
+          <div className="size-7 rounded-full border-2 border-[var(--primary)]/30 border-t-[var(--primary)] animate-spin" />
+          <p className="text-sm text-[var(--muted)] animate-breath">جاري التحميل...</p>
         </div>
       </div>
     )

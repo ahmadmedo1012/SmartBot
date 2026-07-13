@@ -78,7 +78,7 @@ export function Activity() {
             <p>عند حدوث نشاط على صفحتك، سيظهر هنا</p>
           </div>
         ) : (
-          <div className="activity-list">
+          <div className="activity-list stagger-children">
             {activities.map((a, i) => (
               <div className="activity-item" key={i}>
                 <div className="activity-dot" style={{ background: TYPE_COLORS[a.level] || TYPE_COLORS[a.type] || "var(--muted)" }} />

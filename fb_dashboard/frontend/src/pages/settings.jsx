@@ -80,11 +80,11 @@ function FacebookTab() {
     onError: (e) => toast.error(e.message || "فشل تحديث الفاصل الزمني"),
   })
 
-  if (isLoading) return <div className="stat-card glass skel-card" style={{height:80}} />
+  if (isLoading) return <div className="stat-card glass glass-card skel-card" style={{height:80}} />
   if (isError) return <ErrorState onRetry={() => refetch()} />
   return (
     <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
-      <div className="card glass card-inset">
+      <div className="card glass glass-card card-premium card-hover-lift card-inset">
         <div className="cc-header card-header-flush">
           <div className="cc-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" x2="10"/><path d="M12 22V8"/><path d="M12 8H5a3 3 0 0 0-3 3v8"/><path d="M12 8h7a3 3 0 0 1 3 3v8"/></svg>
@@ -119,7 +119,7 @@ function FacebookTab() {
           </p>
         )}
       </div>
-      <div className="card glass card-inset">
+      <div className="card glass glass-card card-premium card-hover-lift card-inset">
         <div className="cc-header card-header-flush">
           <div className="cc-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
@@ -247,8 +247,8 @@ export function Settings({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header">
-        <h1>الإعدادات</h1>
-        <p>إعدادات البوت، API، المظهر وإحصائيات النظام</p>
+        <h1 className="gradient-text">الإعدادات</h1>
+        <p style={{color:"var(--muted)",fontSize:"14px"}}>إعدادات البوت، API، المظهر وإحصائيات النظام</p>
       </div>
 
       <div className="qactions" style={{gap:4,marginBlockEnd:16,flexWrap:"wrap"}}>
@@ -260,7 +260,7 @@ export function Settings({ role }) {
       {tab === "bot" && (
         <div className="flex-col" style={{gap:16}}>
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
-            <div className="card glass card-inset">
+            <div className="card glass glass-card card-premium card-hover-lift card-inset">
               <div className="cc-header card-header-flush">
                 <div className="cc-title">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
@@ -269,8 +269,8 @@ export function Settings({ role }) {
               </div>
               {statusLoading ? (
                 <div className="flex-col" style={{gap:8}}>
-                  <div className="stat-card glass skel-card" style={{height:24}} />
-                  <div className="stat-card glass skel-card" style={{height:24,width:"60%"}} />
+                  <div className="stat-card glass glass-card skel-card" style={{height:24}} />
+                  <div className="stat-card glass glass-card skel-card" style={{height:24,width:"60%"}} />
                 </div>
               ) : statusError ? (
                 <ErrorState onRetry={() => refetchStatus()} />
@@ -278,8 +278,7 @@ export function Settings({ role }) {
                 <>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:12}}>
                     <span className={`badge ${status?.running ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
-                      <span className="status-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
-                      {status?.running ? "شغال" : "متوقف"}
+                      <span className="status-indicator"><span className="status-dot-success" />{status?.running ? "شغال" : "متوقف"}</span>
                     </span>
                     <span style={{fontSize:12,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -291,7 +290,7 @@ export function Settings({ role }) {
                       <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>الفاصل الزمني (ثواني)</label>
                       <input type="number" min={1} className="fld" value={newInterval} onChange={e => setNewInterval(e.target.value)} style={{width:"100%"}} />
                     </div>
-                    <button className="btn btn-outline" style={{fontSize:11,padding:"6px 12px"}} onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }} disabled={updateIntervalMut.isPending}>
+                    <button className="btn btn-outline btn-glow" style={{fontSize:11,padding:"6px 12px"}} onClick={() => { const sec = parseInt(newInterval); if (!sec || sec < 1) { toast.error("أدخل رقماً صالحاً"); return } updateIntervalMut.mutate(sec) }} disabled={updateIntervalMut.isPending}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                       {updateIntervalMut.isPending ? "..." : "تحديث"}
                     </button>
@@ -307,7 +306,7 @@ export function Settings({ role }) {
               )}
             </div>
 
-            <div className="card glass card-inset">
+            <div className="card glass glass-card card-premium card-hover-lift card-inset">
               <div className="cc-header card-header-flush">
                 <div className="cc-title">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -315,23 +314,20 @@ export function Settings({ role }) {
                 </div>
               </div>
               {statusLoading ? (
-                <div className="stat-card glass skel-card" style={{height:24}} />
+                <div className="stat-card glass glass-card skel-card" style={{height:24}} />
               ) : (
                 <>
                   <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>معرف الصفحة: <code className="code-inline">مُعد في الإعدادات</code></p>
                   <div className="flex-center-gap8">
                     <span>الحالة:</span>
-                    <span className={`badge ${status?.running ? "badge-s" : "badge-w"}`} style={{fontSize:11}}>
-                      <span className="status-dot" style={{background:status?.running ? "var(--success)" : "var(--muted)",display:"inline-block",marginInlineEnd:4}} />
-                      {status?.running ? "متصل" : "غير متصل"}
-                    </span>
+                    <span className="status-indicator"><span className={status?.running ? "status-dot-success" : "status-dot-warn"} />{status?.running ? "متصل" : "غير متصل"}</span>
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          <div className="card glass card-inset">
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
@@ -377,7 +373,7 @@ export function Settings({ role }) {
       {tab === "facebook" && <FacebookTab />}
 
       {tab === "api" && (
-        <div className="card glass card-inset">
+        <div className="card glass glass-card card-premium card-hover-lift card-inset">
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -419,7 +415,7 @@ export function Settings({ role }) {
 
       {tab === "theme" && (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
-          <div className="card glass card-inset">
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -442,7 +438,7 @@ export function Settings({ role }) {
               </div>
             </div>
           </div>
-          <div className="card glass card-inset">
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -469,7 +465,7 @@ export function Settings({ role }) {
 
       {tab === "system" && (
         <div className="flex-col" style={{gap:16}}>
-          <div className="card glass card-inset">
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
@@ -492,7 +488,7 @@ export function Settings({ role }) {
             )}
           </div>
 
-          <div className="card glass card-inset">
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
               <div className="cc-title">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

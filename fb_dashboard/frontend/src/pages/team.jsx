@@ -127,7 +127,7 @@ export function Team({ role }) {
 
       {summaryLoading ? (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
-          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:72,background:"var(--skeleton)"}} />)}
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass glass-card" style={{height:72,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
@@ -137,7 +137,7 @@ export function Team({ role }) {
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "محرر", value: summary.editor ?? 0, color: "var(--info)" },
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "مشاهد", value: summary.viewer ?? 0, color: "var(--muted)" },
           ].map(s => (
-            <div key={s.label} className="stat-card glass card-premium card-hover-lift" style={{display:"flex",alignItems:"center",gap:12,padding:16}}>
+            <div key={s.label} className="stat-card glass glass-card card-premium card-hover-lift" style={{display:"flex",alignItems:"center",gap:12,padding:16}}>
               <div style={{width:40,height:40,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:s.color,color:"#fff",flexShrink:0}}>{s.icon}</div>
               <div><div className="stat-value" style={{fontSize:22}}>{s.value}</div><div className="stat-label">{s.label}</div></div>
             </div>
@@ -149,10 +149,10 @@ export function Team({ role }) {
 
       {membersLoading ? (
         <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
-          {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass glass-card" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       ) : membersErr ? (
-        <div className="card glass" style={{textAlign:"center",padding:40}}>
+        <div className="card glass glass-card" style={{textAlign:"center",padding:40}}>
           <p style={{color:"var(--muted)",marginBlockEnd:12}}>فشل تحميل الأعضاء</p>
           <button className="btn btn-outline" onClick={() => refetchMembers()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -172,7 +172,7 @@ export function Team({ role }) {
             const gradient = `hsl(${m.id * 37 % 360}, 55%, 45%)`
             const rs = m.role === "admin" ? {bg:"var(--accent-soft)",color:"var(--accent)"} : m.role === "editor" ? {bg:"var(--info-soft)",color:"var(--info)"} : {bg:"var(--skeleton)",color:"var(--muted)"}
             return (
-              <div key={m.id} className="stat-card glass card-premium card-hover-lift">
+              <div key={m.id} className="stat-card glass glass-card card-premium card-hover-lift">
                 <div className="person-row">
                   <div className="person-avatar" style={{background:gradient}}>{initial}</div>
                   <div className="person-info">
@@ -201,7 +201,7 @@ export function Team({ role }) {
         </div>
 
         {activitiesLoading ? (
-          <div className="card glass" style={{padding:16}}>
+          <div className="card glass glass-card" style={{padding:16}}>
             {[1,2,3,4,5].map(i => (
               <div key={i} style={{display:"flex",gap:12,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
                 <div style={{width:36,height:36,borderRadius:"50%",background:"var(--skeleton)",flexShrink:0}} />
@@ -210,12 +210,12 @@ export function Team({ role }) {
             ))}
           </div>
         ) : activities.length === 0 ? (
-          <div className="card glass" style={{textAlign:"center",padding:40}}>
+          <div className="card glass glass-card" style={{textAlign:"center",padding:40}}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:8}}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             <p style={{fontSize:13,color:"var(--muted)"}}>لا توجد نشاطات خلال هذه الفترة</p>
           </div>
         ) : (
-          <div className="card glass" style={{padding:"8px 16px"}}>
+          <div className="card glass glass-card" style={{padding:"8px 16px"}}>
             {activities.map((a, i) => {
               const icon = ACT_SVG[a.type] || <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               const c = ACT_COLORS[a.type] || {bg:"var(--skeleton)",color:"var(--muted)"}

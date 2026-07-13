@@ -81,64 +81,74 @@ function HeroSection({ onGetStarted }) {
         <div className="absolute inset-0 opacity-[0.03]"
           style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="bg-radial-glow" />
-        <div className="animate-blob-1 absolute -top-40 -right-40 w-[800px] h-[800px]"
-          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 18%, transparent), transparent 70%)" }} />
+        <div className="animate-blob-1 absolute -top-40 -right-40 w-[900px] h-[900px]"
+          style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 20%, transparent), transparent 70%)" }} />
         <div className="animate-blob-2 absolute -bottom-40 -left-40 w-[700px] h-[700px]"
           style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%)" }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pt-24 pb-20">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          <div className="space-y-8">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl"
-                style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.48 0.19 45))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
-              <div>
-                <span className="font-bold text-xl" style={{ color: "var(--fg)" }}>SmartBot</span>
-                <span className="text-xs mr-2 px-2 py-0.5 rounded-full" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>v2</span>
+      <div className="relative z-10 w-full pt-32 pb-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <div className="flex items-center gap-3" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) both" }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl magnetic-btn"
+                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xl tracking-tight" style={{ color: "var(--fg)" }}>SmartBot</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>v2</span>
+                </div>
+              </div>
+
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tighter" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both" }}>
+                <span className="shiny-text">إدارة تفاعل فيسبوك</span>
+                <br />بذكاء واحترافية
+              </h1>
+
+              <p className="text-lg md:text-xl leading-relaxed max-w-lg" style={{ color: "var(--muted)", animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both" }}>
+                أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا لإدارة تفاعلك بذكاء
+              </p>
+
+              <div className="flex flex-wrap gap-4" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s both" }}>
+                <button className="btn btn-primary text-base px-10 py-3.5 magnetic-btn" onClick={onGetStarted}
+                  style={{borderRadius: "var(--radius-lg)", fontSize: "15px", fontWeight: 700, boxShadow: "var(--shadow-glow)"}}>
+                  ابدأ الآن مجاناً
+                </button>
+                <button className="btn btn-outline text-base px-10 py-3.5 magnetic-btn" style={{borderRadius: "var(--radius-lg)", fontSize: "15px"}}>
+                  اعرف المزيد
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 pt-2" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both" }}>
+                <div className="flex -space-x-2" style={{ direction: "ltr" }}>
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "var(--bg)", background: "linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", color: "var(--accent-fg)" }}>
+                      {["أ", "س", "م", "ن"][i-1]}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex items-center gap-0.5 mb-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                    ))}
+                  </div>
+                  <span className="text-xs" style={{ color: "var(--muted)" }}>أكثر من ٥٠٠ صفحة تثق فينا</span>
+                </div>
               </div>
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-              <span className="shiny-text">إدارة تفاعل فيسبوك</span>
-              <br />بذكاء
-            </h1>
-
-            <p className="text-lg leading-relaxed" style={{ color: "var(--muted)", maxWidth: "520px" }}>
-              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك في منصة واحدة مصممة خصيصاً للسوق الليبي
-            </p>
-
-            <div className="flex gap-4 pt-2">
-              <button className="btn btn-primary text-base px-8 py-3 magnetic-btn" onClick={onGetStarted}
-                style={{boxShadow: "var(--shadow-glow)", borderRadius: "var(--radius-lg)"}}>
-                ابدأ الآن مجاناً
-              </button>
-              <button className="btn btn-outline text-base px-8 py-3" style={{borderRadius: "var(--radius-lg)"}}>
-                اعرف المزيد
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4 pt-4" style={{ color: "var(--muted)", fontSize: "13px" }}>
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
-                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
-                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
-                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
-                <Star className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
-              </div>
-              <span>أكثر من ٥٠٠ صفحة تثق فينا</span>
-            </div>
-          </div>
-
-          <div className="hidden lg:flex items-center justify-center">
-            <div className="glass-strong rounded-3xl p-5 w-full max-w-md aspect-[4/3] flex items-center justify-center overflow-hidden reveal-scale"
-              style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)", border: "1px solid var(--glass-border)"}}>
-              <div className="w-full h-full rounded-2xl flex items-center justify-center"
-                style={{background: "linear-gradient(135deg, oklch(0.085 0.004 30), oklch(0.12 0.005 30))"}}>
-                <div className="text-center">
-                  <BarChart3 className="w-16 h-16 mb-3" style={{color: "var(--accent)"}} />
-                  <p className="text-sm" style={{ color: "var(--muted)" }}>لوحة تحكم SmartBot</p>
+            <div className="hidden lg:flex items-center justify-center" style={{ animation: "reveal-scale 0.7s cubic-bezier(0.16,1,0.3,1) 0.15s both" }}>
+              <div className="glass-card rounded-3xl p-6 w-full max-w-lg aspect-[4/3] flex items-center justify-center overflow-hidden"
+                style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)", border: "1px solid var(--glass-border)"}}>
+                <div className="w-full h-full rounded-2xl flex items-center justify-center"
+                  style={{background: "linear-gradient(135deg, oklch(0.12 0.005 30), oklch(0.085 0.004 30))"}}>
+                  <div className="text-center">
+                    <BarChart3 className="w-20 h-20 mb-4" style={{color: "var(--accent)"}} />
+                    <p className="text-base font-medium" style={{ color: "var(--muted)" }}>لوحة تحكم SmartBot</p>
+                    <p className="text-sm mt-1" style={{ color: "var(--muted)", opacity: 0.6 }}>ردود تلقائية • تحليلات • جدولة</p>
+                  </div>
                 </div>
               </div>
             </div>

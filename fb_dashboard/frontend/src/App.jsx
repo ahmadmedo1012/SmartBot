@@ -12,9 +12,9 @@ import { Dashboard } from "@/pages/dashboard"
 import { Landing } from "@/pages/landing"
 
 const pageSlide = {
-  initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24, mass: 0.6 } },
-  exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
+  initial: { opacity: 0, y: 8, scale: 0.99, filter: "blur(2px)" },
+  animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: { type: "spring", stiffness: 280, damping: 26, mass: 0.5 } },
+  exit: { opacity: 0, y: -6, scale: 0.99, filter: "blur(1px)", transition: { duration: 0.15, ease: [0.4, 0, 0.2, 1] } },
 }
 
 const PAGES_GLOB = import.meta.glob("./pages/[ab-cef-z]*.jsx", { eager: false })

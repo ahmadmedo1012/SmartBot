@@ -58,9 +58,11 @@ function ConvItem({ conv, selectedId, onSelect }) {
         width:"100%",textAlign:"right",padding:12,fontSize:13,cursor:"pointer",
         background:selected ? "var(--accent-soft)" : "transparent",
         border:"none",borderBottom:"1px solid var(--border)",borderRight:`3px solid ${selected ? "var(--accent)" : "transparent"}`,
-        transition:"background .15s var(--ease), border-color .15s var(--ease)",
+        transition:"background .15s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease)",
         boxShadow: selected ? "var(--shadow-glow)" : "none",
       }}
+      aria-current={selected ? "page" : undefined}
+      aria-label={conv.senders?.[0]?.name || "محادثة"}
     >
       <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
         <div className="person-avatar" style={{background:gradient,width:44,height:44,fontSize:13,outline:hasUnread ? "2px solid var(--accent)" : "none"}}>
@@ -206,7 +208,7 @@ export function Messages({ role }) {
       <div className="mesh-bg"></div>
       <div style={{display:"flex",flex:1,overflow:"hidden",gap:0}}>
         {/* ─── LEFT: CONVERSATIONS ─── */}
-        <div className={`card glass`} style={{display:"flex",flexDirection:"column",width:selectedId ? [0,0,"380px"] : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
+        <div className={`card glass`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
           <div style={{padding:"16px 16px 8px",borderBottom:"1px solid var(--border)"}}>
             <h2 style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
             <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
@@ -242,7 +244,7 @@ export function Messages({ role }) {
                 <p>{search ? "لا توجد نتائج" : "لا توجد محادثات"}</p>
               </div>
             ) : (
-              conversations.map((conv, idx) => <ConvItem key={conv.id} conv={conv} idx={idx} selectedId={selectedId} onSelect={handleSelectConv} />)
+              conversations.map((conv) => <ConvItem key={conv.id} conv={conv} selectedId={selectedId} onSelect={handleSelectConv} />)
             )}
           </div>
           {canEdit && (

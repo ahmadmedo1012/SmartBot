@@ -148,8 +148,10 @@ export function Dashboard(_p) {
       {/* metrics row */}
       <div className="stats-grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBlockEnd: "var(--space-lg)" }}>
         <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
-          <div className="stat-value" style={{ fontSize: "22px", color: "var(--accent)" }}>{stats?.today_replies || 0}</div>
-          <div className="stat-label">ردود اليوم</div>
+          <div className="stat-value" style={{ fontSize: "22px", color: "var(--accent)" }}>
+            {stats?.fan_count ? (stats.fan_count >= 1000 ? (stats.fan_count / 1000).toFixed(1) + "k" : stats.fan_count) : 0}
+          </div>
+          <div className="stat-label">إجمالي المتابعين</div>
         </div>
         <div className="stat-card glass" style={{ textAlign: "center", padding: "14px" }}>
           <div className="stat-value" style={{ fontSize: "22px", color: "var(--info)" }}>{rules.length || 0}</div>

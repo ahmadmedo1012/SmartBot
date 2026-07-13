@@ -33,9 +33,10 @@ const faqs = [
 function HeroSection({ onGetStarted }) {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden" dir="rtl">
-      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "oklch(14% 0.008 240)" }}>
+      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "oklch(0.018 0.003 30)" }}>
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+        <div className="bg-radial-glow" />
         <div className="animate-blob-1 absolute -top-40 right-0 w-[700px] h-[700px]"
           style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 20%, transparent), transparent 70%)" }} />
         <div className="animate-blob-2 absolute -bottom-40 left-0 w-[600px] h-[600px]"

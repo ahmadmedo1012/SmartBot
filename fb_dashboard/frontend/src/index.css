@@ -2,9 +2,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-dsp: "Cairo", "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-body: "Tajawal", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-sans: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-dsp: "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-body: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
   --font-mono: "Noto Naskh Arabic", "Courier New", monospace;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -60,15 +60,17 @@
   --move-fast: .15s;
   --move-base: .3s;
   --move-slow: .6s;
-  --bg: oklch(97.5% 0.003 240);
+
+  /* ── SmartLink warm palette ── */
+  --bg: oklch(98.5% 0 0);
   --surface: oklch(100% 0 0);
-  --fg: oklch(22% 0.02 240);
-  --muted: oklch(50% 0.02 250);
-  --border: oklch(90% 0.006 240);
+  --fg: oklch(12% 0.004 30);
+  --muted: oklch(55% 0.01 30);
+  --border: oklch(88% 0.006 30);
   --accent: oklch(58% 0.195 45);
-  --accent-soft: oklch(58% 0.195 45 / 0.12);
+  --accent-soft: oklch(48% 0.19 45 / 0.1);
   --accent-fg: oklch(100% 0 0);
-  --accent-glow: 0 0 30px oklch(58% 0.195 45 / 0.12);
+  --accent-glow: 0 0 30px oklch(48% 0.19 45 / 0.12);
   --success: oklch(62% 0.18 145);
   --success-soft: oklch(92% 0.08 150 / 0.4);
   --warn: oklch(72% 0.16 80);
@@ -85,32 +87,40 @@
   --warning: var(--warn);
   --warning-soft: var(--warn-soft);
   --text: var(--fg);
-  --glass-bg: oklch(100% 0 0 / .3);
-  --glass-bg-strong: oklch(100% 0 0 / .5);
-  --glass-border: oklch(58% 0.195 45 / 0.08);
-  --glass-shadow: 0 8px 32px oklch(0 0 0 / .06), inset 0 1px 0 oklch(1 1 0 / .6);
-  --glass-shadow-lg: 0 12px 48px oklch(0 0 0 / .08), inset 0 1px 0 oklch(1 1 0 / .6);
-  --shadow-sm: 0 1px 3px oklch(0 0 0 / .06);
-  --shadow-md: 0 4px 12px oklch(0 0 0 / .06);
-  --shadow-lg: 0 12px 40px oklch(0 0 0 / .08);
-  --shadow-xl: 0 24px 60px oklch(0 0 0 / .1);
-  --shadow-glow: 0 0 30px oklch(58% 0.195 45 / 0.12);
-  --surface-raised: oklch(96% 0.003 240);
-  --overlay: oklch(0 0 0 / .15);
-}
+
+  /* ── Surface hierarchy ── */
+  --surface-raised: oklch(96% 0.003 30);
+  --surface-sunken: oklch(98% 0.002 30);
+  --surface-elevated: oklch(94% 0.004 30);
+  --overlay: oklch(0 0 0 / 0.15);
+
+  /* ── Glass ── */
+  --glass-bg: oklch(1 0 0 / 0.3);
+  --glass-bg-strong: oklch(1 0 0 / 0.5);
+  --glass-border: oklch(48% 0.19 45 / 0.1);
+  --glass-shadow: 0 8px 32px oklch(0 0 0 / 0.06), inset 0 1px 0 oklch(1 1 0 / 0.6);
+  --glass-shadow-lg: 0 12px 48px oklch(0 0 0 / 0.08), inset 0 1px 0 oklch(1 1 0 / 0.6);
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.06);
+  --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.08);
+  --shadow-xl: 0 24px 60px oklch(0 0 0 / 0.1);
+  --shadow-glow: 0 0 30px oklch(48% 0.19 45 / 0.12);
+  --shadow-glow-strong: 0 0 60px oklch(48% 0.19 45 / 0.2);
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --bg: oklch(14% 0.008 240);
-  --surface: oklch(18% 0.01 240);
-  --fg: oklch(92% 0.005 250);
-  --muted: oklch(55% 0.015 250);
-  --border: oklch(28% 0.008 240);
-  --skeleton: oklch(24% 0.01 240);
-  --accent: oklch(68% 0.18 55);
-  --accent-soft: oklch(38% 0.12 55 / 0.35);
-  --accent-fg: oklch(14% 0 0);
-  --accent-glow: 0 0 30px oklch(68% 0.18 55 / 0.25);
+  --bg: oklch(0.018 0.003 30);
+  --surface: oklch(0.085 0.004 30);
+  --fg: oklch(0.95 0.003 30);
+  --muted: oklch(0.62 0.015 30);
+  --border: oklch(0.18 0.006 30);
+  --skeleton: oklch(0.14 0.006 30);
+  --accent: oklch(0.58 0.195 45);
+  --accent-soft: oklch(0.58 0.195 45 / 0.12);
+  --accent-fg: oklch(0.01 0 0);
+  --accent-glow: 0 0 30px oklch(0.58 0.195 45 / 0.25);
   --warn-fg: oklch(85% 0.10 85);
   --success: oklch(60% 0.18 150);
   --success-soft: oklch(35% 0.10 150 / 0.4);
@@ -123,18 +133,21 @@ html[data-theme="dark"] {
   --warning: var(--warn);
   --warning-soft: var(--warn-soft);
   --text: var(--fg);
-  --glass-bg: oklch(18% 0.01 240 / .35);
-  --glass-bg-strong: oklch(18% 0.01 240 / .55);
-  --glass-border: oklch(68% 0.18 55 / 0.08);
-  --glass-shadow: 0 8px 32px oklch(0 0 0 / .45), inset 0 1px 0 oklch(1 1 0 / .04);
-  --glass-shadow-lg: 0 12px 48px oklch(0 0 0 / .5), inset 0 1px 0 oklch(1 1 0 / .06);
-  --shadow-sm: 0 1px 3px oklch(0 0 0 / .35);
-  --shadow-md: 0 4px 16px oklch(0 0 0 / .4);
-  --shadow-lg: 0 12px 40px oklch(0 0 0 / .45);
-  --shadow-xl: 0 24px 60px oklch(0 0 0 / .5);
-  --shadow-glow: 0 0 30px oklch(68% 0.18 55 / 0.25);
-  --surface-raised: oklch(22% 0.01 240);
-  --overlay: oklch(0 0 0 / .6);
+  --surface-raised: oklch(0.14 0.006 30);
+  --surface-sunken: oklch(0.04 0.002 30);
+  --surface-elevated: oklch(0.18 0.008 30);
+  --overlay: oklch(0 0 0 / 0.6);
+  --glass-bg: oklch(0.085 0.004 30 / 0.35);
+  --glass-bg-strong: oklch(0.12 0.005 30 / 0.55);
+  --glass-border: oklch(0.58 0.195 45 / 0.08);
+  --glass-shadow: 0 8px 32px oklch(0 0 0 / 0.45), inset 0 1px 0 oklch(1 1 0 / 0.04);
+  --glass-shadow-lg: 0 12px 48px oklch(0 0 0 / 0.5), inset 0 1px 0 oklch(1 1 0 / 0.06);
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.35), 0 1px 2px oklch(0 0 0 / 0.25);
+  --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4), 0 2px 4px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.45), 0 4px 8px oklch(0 0 0 / 0.35);
+  --shadow-xl: 0 24px 60px oklch(0 0 0 / 0.5), 0 8px 16px oklch(0 0 0 / 0.4);
+  --shadow-glow: 0 0 30px oklch(0.58 0.195 45 / 0.25);
+  --shadow-glow-strong: 0 0 60px oklch(0.58 0.195 45 / 0.35);
 }
 
 @keyframes shimmer { 0% { background-position:200% 0 } 100% { background-position:-200% 0 } }
@@ -476,6 +489,11 @@ html[data-theme="dark"] .login-bg-light { background: linear-gradient(135deg, ok
 /* ─── Design enhancements ─── */
 .enh-glass { box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface) 60%, transparent), var(--shadow-sm); }
 .enh-glass:hover { box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface) 60%, transparent), var(--shadow-md), 0 0 20px color-mix(in oklch, var(--accent) 15%, transparent); }
+/* ── Radial background glow (SmartLink style) ── */
+.bg-radial-glow { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.bg-radial-glow::before { content: ''; position: absolute; width: 100%; height: 100%; background: radial-gradient(ellipse 80% 50% at 50% -8%, color-mix(in oklch, var(--accent) 12%, transparent), transparent 70%); }
+html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(ellipse 80% 50% at 50% -8%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%); }
+
 .mesh-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
 .mesh-bg::before { content: ''; position: absolute; inset: -50%; width: 200%; height: 200%; background: radial-gradient(ellipse 50% 40% at 15% 20%, oklch(62% 0.18 55 / .07) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 85% 80%, oklch(55% 0.18 260 / .05) 0%, transparent 60%); animation: meshDrift 25s ease-in-out infinite alternate; will-change: transform; }
 @keyframes meshDrift { 0%{transform:translate(0,0)} 100%{transform:translate(-3%,-2%)} }

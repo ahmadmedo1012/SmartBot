@@ -94,7 +94,7 @@ export function Login({ onAuth }) {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden login-bg-light">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{background:"oklch(98.5% 0 0)"}}>
       <AnimatedBg />
 
       <div className="login-card-enter relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5">

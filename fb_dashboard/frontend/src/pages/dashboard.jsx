@@ -106,38 +106,40 @@ export function Dashboard(_p) {
 
       {/* stats grid */}
       <div className="stats-grid stagger-children">
-        <div className="stat-card glass">
+        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
           <div className="stat-icon" data-color="">{statIcons.total}</div>
           <div className="stat-label">آخر 7 أيام</div>
           <div className="stat-value">{formatNum(stats?.total_replies)}</div>
           {stats?.week_trend !== undefined && (
             <div className={`stat-change ${stats.week_trend >= 0 ? "stat-up" : "stat-down"}`}>
+              <span className="status-dot" style={{background: stats.week_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
               {stats.week_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.week_trend)}%
             </div>
           )}
         </div>
-        <div className="stat-card glass">
+        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both"}}>
           <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
           <div className="stat-value">{formatNum(stats?.today_replies)}</div>
           {stats?.today_trend !== undefined && (
             <div className={`stat-change ${stats.today_trend >= 0 ? "stat-up" : "stat-down"}`}>
+              <span className="status-dot" style={{background: stats.today_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
               {stats.today_trend >= 0 ? "↑" : "↓"} {Math.abs(stats.today_trend)}%
             </div>
           )}
         </div>
-        <div className="stat-card glass">
+        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both"}}>
           <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
           <div className="stat-value">{formatNum(stats?.fan_count)}</div>
         </div>
-        <div className="stat-card glass">
+        <div className="stat-card glass card-premium" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both"}}>
           <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
           <div className="stat-label">القواعد النشطة</div>
           <div className="stat-value">{activeRules}</div>
           {botStatus?.running !== undefined && (
             <div className={`stat-change ${botStatus.running ? "stat-up" : "stat-down"}`}>
-              {botStatus.running ? "↑ نشط" : "↓ متوقف"}
+              {botStatus.running ? "● نشط" : "● متوقف"}
             </div>
           )}
         </div>

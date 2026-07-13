@@ -42,22 +42,24 @@ function HeroSection({ onGetStarted }) {
           style={{ background: "radial-gradient(ellipse, color-mix(in oklch, var(--accent) 12%, transparent), transparent 70%)" }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-20" style={{ animation: "fade-in 0.6s ease-out" }}>
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-6 py-20" style={{ animation: "reveal-blur 0.8s cubic-bezier(0.16,1,0.3,1) both" }}>
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="stagger-children space-y-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg"
-                style={{ background: "var(--accent)", color: "var(--accent-fg)" }}>S</div>
+                style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
               <span className="font-bold text-lg" style={{ color: "var(--fg)" }}>SmartBot</span>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{background: "var(--accent-soft)", color: "var(--accent)"}}>v2</span>
             </div>
-            <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight" style={{ color: "var(--fg)" }}>
+            <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight text-gradient-premium" style={{lineHeight: 1.2}}>
               إدارة تفاعل فيسبوك<br />بذكاء
             </h1>
             <p className="text-lg leading-relaxed" style={{ color: "var(--muted)" }}>
-              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك
+              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك — كل ما تحتاجه في منصة واحدة
             </p>
             <div className="flex gap-4 pt-2">
-              <button className="btn btn-primary text-base px-8 py-3" onClick={onGetStarted}>
+              <button className="btn btn-primary text-base px-8 py-3 magnetic-btn" onClick={onGetStarted}
+                style={{boxShadow: "var(--shadow-glow)"}}>
                 ابدأ الآن مجاناً
                 <span style={{ fontSize: "18px" }}>←</span>
               </button>
@@ -68,7 +70,7 @@ function HeroSection({ onGetStarted }) {
           </div>
 
           <div className="hidden lg:flex items-center justify-center">
-            <div className="glass rounded-3xl p-4 w-full max-w-md aspect-[4/3] flex items-center justify-center overflow-hidden">
+            <div className="glass-strong rounded-3xl p-4 w-full max-w-md aspect-[4/3] flex items-center justify-center overflow-hidden" style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)"}}>
               <img src="/static/assets/index-DQpn7rcg.js" alt="لوحة التحكم" className="w-full h-full object-cover rounded-2xl opacity-80"
                 onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex" }} />
               <div className="hidden text-center" style={{ display: "none" }}>
@@ -206,19 +208,19 @@ function FaqSection() {
 function CTASection({ onGetStarted }) {
   return (
     <section className="relative py-28 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0"
-        style={{ background: "linear-gradient(135deg, oklch(62% 0.18 55), oklch(55% 0.18 260))" }} />
+      <div className="absolute inset-0 mesh-bg" aria-hidden="true" />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(58% 0.195 45), oklch(48% 0.19 45 / .8))" }} />
       <div className="absolute inset-0 opacity-20" aria-hidden="true"
         style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 0%, transparent 50%), radial-gradient(circle at 70% 50%, white 0%, transparent 50%)" }} />
-      <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+      <div className="relative z-10 max-w-3xl mx-auto px-6 text-center reveal-up">
         <h2 className="text-3xl lg:text-4xl font-extrabold mb-4" style={{ color: "var(--accent-fg)" }}>
           استعد لتطوير أعمالك
         </h2>
         <p className="text-lg mb-8 opacity-85" style={{ color: "var(--accent-fg)" }}>
-          حسّن إدارة صفحات فيسبوك وزد تفاعلك
+          حسّن إدارة صفحات فيسبوك وزد تفاعلك اليوم
         </p>
-        <button className="btn text-base px-10 py-3 font-bold"
-          style={{ background: "var(--accent-fg)", color: "var(--accent)" }}
+        <button className="btn text-base px-10 py-3 font-bold magnetic-btn"
+          style={{ background: "var(--accent-fg)", color: "var(--accent)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)" }}
           onClick={onGetStarted}>
           ابدأ الآن مجاناً
         </button>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const sidebarSections = [
   { label: "الرئيسية", items: [
@@ -77,6 +77,24 @@ const mobileIcons = {
 
 export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0 }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  // IntersectionObserver for scroll-state — avoids style recalc per scroll frame
+  useEffect(() => {
+    const sentinel = document.createElement("div")
+    sentinel.style.position = "absolute"
+    sentinel.style.top = "21px"
+    sentinel.style.height = "1px"
+    sentinel.style.width = "1px"
+    sentinel.style.pointerEvents = "none"
+    document.body.prepend(sentinel)
+    const obs = new IntersectionObserver(
+      ([e]) => setScrolled(!e.isIntersecting),
+      { rootMargin: "-20px 0px 0px 0px" }
+    )
+    obs.observe(sentinel)
+    return () => { obs.disconnect(); sentinel.remove() }
+  }, [])
 
   const handleNav = (key) => {
     onNavigate(key)
@@ -128,7 +146,13 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* main area */}
       <div className="main">
         {/* header */}
-        <header className="header">
+        <header className="header" style={{
+          background: scrolled ? "color-mix(in oklch, var(--surface) 70%, transparent)" : "var(--surface)",
+          backdropFilter: scrolled ? "blur(12px)" : "none",
+          borderBlockEnd: scrolled ? "1px solid var(--border)" : "1px solid transparent",
+          transition: "background .3s var(--ease), backdrop-filter .3s var(--ease), border-color .3s var(--ease)",
+        }}>
+          {scrolled && <div className="shimmer-bar" aria-hidden="true" />}
           <button
             className="hamburger"
             id="hamburger"

@@ -5,7 +5,6 @@ import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
-import { Clock, Calendar, Users, Grid, TrendingUp, Activity, AlertCircle, RefreshCw } from "lucide-react"
 
 const statCardVariant = {
   hidden: { opacity: 0, y: 12 },

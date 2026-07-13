@@ -348,6 +348,14 @@ async def validation_handler(request: Request, exc: RequestValidationError):
         msgs.append(f"الحقل '{field}' مطلوب")
     return JSONResponse(status_code=422, content={"detail": "؛ ".join(msgs) or "بيانات غير صالحة"})
 
+
+# ponytail: catch-all 500 — log full traceback server-side, return generic message
+@app.exception_handler(Exception)
+async def global_500_handler(request: Request, exc: Exception):
+    import traceback
+    log.error(f"Unhandled 500 | {request.method} {request.url.path} | {traceback.format_exc()}")
+    return JSONResponse(status_code=500, content={"detail": "حدث خطأ داخلي — الرجاء المحاولة لاحقاً"})
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,

@@ -452,7 +452,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .p-16 { padding: 16px; }
 @media (max-width: 600px) { .card-inner, .card-inset, .p-16 { padding: 10px; } }
 
-.pill { display: inline-block; width: 80px; height: 14px; border-radius: var(--radius-pill); background: var(--border); animation: pulse 1.5s var(--ease) infinite; }
+.pill { display: inline-block; width: 80px; height: 14px; border-radius: var(--radius-pill); background: var(--border); }
 .content-wrap { margin-block-end: 24px; }
 
 /* ─── Extras (retained from React, unused by design but harmless) ─── */

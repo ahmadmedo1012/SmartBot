@@ -155,11 +155,14 @@
 @keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
 @keyframes breathe-glow { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:.7;transform:scale(1.02)} }
 @keyframes nav-shine { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
-@keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }
-@keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
-@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 var(--accent-soft)} 70%{box-shadow:0 0 0 12px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+/* ponytail: box-shadow pulse → opacity on ::before pseudo-element via .has-pulse-ring class in components */
+@keyframes glow-pulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:0.8;transform:scale(1.08)} }
+@keyframes livePulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+@keyframes pulse-ring { 0%,100%{opacity:0.5;transform:scale(1)} 70%{opacity:1;transform:scale(1.12)} }
+/* ponytail: shine is background-position → kept as-is, GPU can't optimize background. Add will-change. */
 @keyframes shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.shiny-text { background-size:200% auto;background-image:linear-gradient(135deg,var(--accent),oklch(0.62 0.14 45),var(--fg),oklch(0.62 0.14 45),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shine 4s linear infinite}
+
+.shiny-text { background-size:200% auto;background-image:linear-gradient(135deg,var(--accent),oklch(0.62 0.14 45),var(--fg),oklch(0.62 0.14 45),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shine 4s linear infinite;will-change:background-position}
 /* ── Transitions: 300ms cards, 400ms reveals, 500ms page ── */
 @keyframes reveal-card { 0%{opacity:0;transform:translateY(24px) scale(.97)} 100%{opacity:1;transform:translateY(0) scale(1)} }
 @keyframes reveal-up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
@@ -517,12 +520,14 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .stagger-children>*:nth-child(5){animation-delay:240ms}
 .stagger-children>*:nth-child(6){animation-delay:300ms}
 @keyframes staggerIn { to{opacity:1;transform:translateY(0)} }
-@media (prefers-reduced-motion:reduce) { .stagger-children>*,.reveal-up,.reveal-scale,.reveal-card,.reveal-blur,.shiny-text,.chart-bar-grow,.activity-enter,.login-card-enter,.login-logo-enter,.login-fade-in,.animate-blob-1,.animate-blob-2,.animate-blob-3,.notif-shake,.notif-badge,.pageIn { animation:none!important;opacity:1!important;transform:none!important;filter:blur(0)!important } }
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0s!important;transition-duration:0s!important } }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
 @keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
 @keyframes magnetic-float { 0%,100% { transform:translateY(0) scale(1) } 50% { transform:translateY(-10px) scale(1.02) } }
 @keyframes breath { 0%,100% { opacity:0.6 } 50% { opacity:0.3 } }
-@keyframes pulse-glow { 0%,100% { box-shadow:0 0 8px oklch(0.55 0.19 45 / 0.15) } 50% { box-shadow:0 0 25px oklch(0.55 0.19 45 / 0.35) } }
+@keyframes pulse-glow { 0%,100% { opacity:0.5;transform:scale(1) } 50% { opacity:1;transform:scale(1.12) } }
+.animate-pulse-glow { position:relative }
+.animate-pulse-glow::before { content:'';position:absolute;inset:-4px;border-radius:inherit;background:var(--accent);opacity:0;z-index:-1;animation:pulse-glow 2.5s ease-in-out infinite;will-change:transform,opacity }
 @keyframes hero-glow-pulse { 0%,100% { opacity:0.6; transform:scale(1) } 50% { opacity:1; transform:scale(1.05) } }
 @keyframes marquee { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
 @keyframes ring-drain { from{stroke-dashoffset:0} to{stroke-dashoffset:251.327} }
@@ -668,8 +673,14 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 @keyframes bar-grow { 0%{transform:scaleY(0);opacity:0} 100%{transform:scaleY(1);opacity:1} }
 @keyframes slide-right { 0%{opacity:0;transform:translateX(-16px)} 100%{opacity:1;transform:translateX(0)} }
 @keyframes slide-left { 0%{opacity:0;transform:translateX(16px)} 100%{opacity:1;transform:translateX(0)} }
-.chart-bar-grow { transform-origin:bottom;animation:bar-grow .5s cubic-bezier(0.16,1,0.3,1) both }
-.activity-enter { animation:slide-right .35s cubic-bezier(0.16,1,0.3,1) both }
+.reveal-up { will-change:transform,opacity }
+.reveal-scale { will-change:transform,opacity }
+.reveal-card { will-change:transform,opacity }
+.reveal-blur { will-change:transform,opacity,filter }
+.reveal-stagger > * { will-change:transform,opacity,filter }
+.stagger-children>* { will-change:transform,opacity }
+.chart-bar-grow { transform-origin:bottom;animation:bar-grow .5s cubic-bezier(0.16,1,0.3,1) both;will-change:transform,opacity }
+.activity-enter { animation:slide-right .35s cubic-bezier(0.16,1,0.3,1) both;will-change:transform,opacity }
 .activity-enter:nth-child(1){animation-delay:0ms}
 .activity-enter:nth-child(2){animation-delay:50ms}
 .activity-enter:nth-child(3){animation-delay:100ms}

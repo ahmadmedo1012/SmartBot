@@ -9,6 +9,7 @@ class Base(DeclarativeBase):
 
 class Rule(Base):
     __tablename__ = "rules"
+    __table_args__ = (Index("ix_rule_tenant_id", "tenant_id", "id"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -44,7 +45,7 @@ class Reply(Base):
 
 class BotLog(Base):
     __tablename__ = "bot_logs"
-    __table_args__ = (Index("ix_botlog_level_created", "level", "created_at"),)
+    __table_args__ = (Index("ix_botlog_tenant_created", "tenant_id", "created_at"), Index("ix_botlog_level_created", "level", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -78,7 +79,7 @@ class Tenant(Base):
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (UniqueConstraint('tenant_id', 'username', name='uq_user_tenant_username'),)
+    __table_args__ = (Index("ix_user_tenant_id", "tenant_id", "id"), UniqueConstraint('tenant_id', 'username', name='uq_user_tenant_username'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -97,6 +98,7 @@ class User(Base):
 class ReplyTemplate(Base):
     """Saved reply templates for quick-access."""
     __tablename__ = "reply_templates"
+    __table_args__ = (Index("ix_replytmpl_tenant_id", "tenant_id", "id"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -233,7 +235,7 @@ class OfferClaim(Base):
 class Subscriber(Base):
     """Social platform subscriber/follower."""
     __tablename__ = "subscribers"
-    __table_args__ = (UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),)
+    __table_args__ = (Index("ix_sub_tenant_id", "tenant_id", "id"), UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -289,6 +291,7 @@ class SubscriberTag(Base):
 class Flow(Base):
     """Visual bot flow — nodes and edges."""
     __tablename__ = "flows"
+    __table_args__ = (Index("ix_flow_tenant_status", "tenant_id", "status"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -308,6 +311,7 @@ class Flow(Base):
 class FlowExecution(Base):
     """Runtime record of a flow running for a subscriber."""
     __tablename__ = "flow_executions"
+    __table_args__ = (Index("ix_flowexec_tenant_status", "tenant_id", "status"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -328,6 +332,7 @@ class FlowExecution(Base):
 class Sequence(Base):
     """Drip campaign — timed message series."""
     __tablename__ = "sequences"
+    __table_args__ = (Index("ix_seq_tenant_status", "tenant_id", "status"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -363,14 +368,14 @@ class SequenceSubscription(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
-    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False)
-    sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=False, index=True)
+    sequence_id = Column(Integer, ForeignKey("sequences.id", ondelete="CASCADE"), nullable=False, index=True)
     current_step = Column(Integer, default=0)
     status = Column(String(20), default="active")  # active/completed/unsubscribed
     entered_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (UniqueConstraint("tenant_id", "subscriber_id", "sequence_id", name="uq_seq_sub"),)
+    __table_args__ = (Index("ix_seqsub_tenant_status", "tenant_id", "status"), UniqueConstraint("tenant_id", "subscriber_id", "sequence_id", name="uq_seq_sub"),)
 
 
 # ── Broadcasts (One-to-Many) ───────────────────────────────────────────────────
@@ -451,6 +456,7 @@ class Customer(Base):
     """CRM — customers and leads from social interactions."""
     __tablename__ = "customers"
     __table_args__ = (
+        Index("ix_customer_tenant_stage", "tenant_id", "stage"),
         Index("ix_customer_stage_contacted", "stage", "last_contacted_at"),
         UniqueConstraint('tenant_id', 'fb_user_id', name='uq_customer_tenant_fbuser'),
     )

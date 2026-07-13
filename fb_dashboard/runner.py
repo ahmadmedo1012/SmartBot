@@ -551,6 +551,23 @@ async def auth_me(current_user: User = Depends(get_current_user)):
     }
 
 
+# ── Audit Log ────────────────────────────────────────────────────────────────
+
+@app.get("/api/audit/logs")
+async def get_audit_logs(limit: int = Query(50), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    from models import AuditLog
+    rows = await db.execute(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(limit))
+    return [
+        {
+            "id": r.id, "action": r.action, "actor_id": r.actor_id,
+            "target_type": r.target_type, "target_id": r.target_id,
+            "metadata": r.metadata, "ip": r.ip,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows.scalars().all()
+    ]
+
+
 # ── Payment / Billing ────────────────────────────────────────────────────
 
 @app.post("/api/payments/topup")

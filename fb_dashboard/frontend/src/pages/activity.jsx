@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { fetchRecentActivity, fetchLogs } from "@/lib/api"
+import { fetchRecentActivity, fetchLogs, fetchAuditLogs } from "@/lib/api"
 
 function relativeTime(iso) {
   if (!iso) return ""
@@ -32,7 +32,8 @@ export function Activity() {
     Promise.all([
       fetchRecentActivity(25).catch(() => []),
       fetchLogs(25).catch(() => []),
-    ]).then(([recent, logs]) => {
+      fetchAuditLogs(25).catch(() => []),
+    ]).then(([recent, logs, auditLogs]) => {
       const merged = [
         ...(recent || []).map(a => ({ ...a, _src: "activity" })),
         ...(logs || []).map(l => ({
@@ -41,6 +42,13 @@ export function Activity() {
           text: l.message,
           time: l.created_at,
           _src: "log",
+        })),
+        ...(auditLogs || []).map(a => ({
+          type: "log",
+          level: "INFO",
+          text: `[${a.action}] ${a.target_type} ${a.target_id || ""}`.trim(),
+          time: a.created_at,
+          _src: "audit",
         })),
       ]
       merged.sort((a, b) => ((b.time || "") > (a.time || "") ? 1 : -1))

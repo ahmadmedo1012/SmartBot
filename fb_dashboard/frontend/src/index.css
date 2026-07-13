@@ -97,6 +97,9 @@
   --background-radial-alt: radial-gradient(ellipse 60% 40% at 20% 50%, #bc47000a, transparent 60%), radial-gradient(ellipse 40% 50% at 80% 50%, #bc470008, transparent 50%);
   --dot-grid: radial-gradient(circle, color-mix(in oklch, var(--fg) 6%, transparent) 0.75px, transparent 0.75px);
   --dot-grid-size: 20px 20px;
+  /* ── Orange border/ring utilities matching Smart Menu ── */
+  --border-orange: #bc4700;
+  --ring-orange: #bc4700;
 
   /* ── Surface hierarchy ── */
   --surface-raised: oklch(6% 0.003 30);
@@ -264,7 +267,7 @@ button, a, select, input, textarea {
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-block-end: 24px; }
 .stat-card { padding: var(--space-md) var(--space-lg); transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
 .stat-card-active { border: 2px solid var(--accent); }
-@media (prefers-reduced-motion: no-preference) { .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); } }
+@media (prefers-reduced-motion: no-preference) { .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px oklch(0 0 0 / 0.08), 0 0 24px #bc470026; } }
 .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-block-end: 4px; }
 .stat-value { font: 700 26px/1 var(--font-dsp); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .stat-change { font-size: 11px; margin-block-start: 6px; display: flex; align-items: center; gap: 4px; }
@@ -431,6 +434,9 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .orange-ring { outline-color:#bc4700; }
 .bg-orange-soft { background-color:#bc47001a; }
 .text-orange { color:#bc4700; }
+.border-orange { border-color:#bc4700; }
+.border-orange-soft { border-color:#bc470026; }
+.border-orange-light { border-color:#bc470014; }
 .bg-grid-pattern { background-image: radial-gradient(circle, color-mix(in oklch, var(--border) 35%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
 .loading-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: var(--bg); z-index: 100; }
 .loading-logo { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0))); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-glow); position: relative; }
@@ -457,8 +463,8 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .login-glow-primary { background: radial-gradient(ellipse, color-mix(in oklch, var(--fg) 10%, transparent), transparent 60%); }
 .overlay-backdrop { position: fixed; inset: 0; background: color-mix(in oklch, oklch(0% 0 0) 40%, transparent); backdrop-filter: blur(4px); animation: fade-in 0.2s ease-out; }
 .glass-liquid { background: linear-gradient(135deg, color-mix(in oklch, var(--surface) 50%, transparent), color-mix(in oklch, var(--surface) 25%, transparent)); backdrop-filter: blur(24px) saturate(1.4); border: 1px solid color-mix(in oklch, var(--border) 12%, transparent); box-shadow: 0 8px 32px color-mix(in oklch, oklch(0% 0 0) 6%, transparent), inset 0 1px 0 color-mix(in oklch, var(--surface) 60%, transparent); }
-.card-premium { transition: transform .35s var(--ease), box-shadow .35s var(--ease); }
-.card-premium:hover { transform: translateY(-2px) scale(1.005); box-shadow: 0 20px 60px color-mix(in oklch, oklch(0% 0 0) 8%, transparent), 0 0 0 1px color-mix(in oklch, var(--accent) 15%, transparent); }
+.card-premium { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.card-premium:hover { transform: translateY(-2px) scale(1.005); box-shadow: 0 20px 60px oklch(0 0 0 / 0.08), 0 0 0 1px #bc470026; }
 .shimmer-line { background: linear-gradient(90deg, var(--border) 0%, color-mix(in oklch, var(--muted) 12%, transparent) 40%, var(--border) 80%); background-size: 200% 100%; border-radius: var(--radius-sm); }
 
 /* ─── Design enhancements ─── */
@@ -494,9 +500,9 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .card-glow { box-shadow:var(--shadow-glow); }
 .card-glow-strong { box-shadow:var(--shadow-glow-strong); }
 .card-hover-lift { transition:transform var(--duration-fast,0.2s) var(--ease-smooth),box-shadow var(--duration-fast,0.2s) var(--ease-smooth); }
-.card-hover-lift:hover { transform:translateY(-2px);box-shadow:var(--shadow-lg),0 0 30px var(--shadow-glow); }
+.card-hover-lift:hover { transform:translateY(-2px);box-shadow:0 16px 48px oklch(0 0 0 / 0.08),0 0 30px #bc470033; }
 .card-hover-glow { transition:border-color var(--duration-fast,0.2s) var(--ease-smooth),box-shadow var(--duration-fast,0.2s) var(--ease-smooth); }
-.card-hover-glow:hover { border-color:color-mix(in oklch,var(--accent) 30%,transparent);box-shadow:0 0 24px var(--accent-soft); }
+.card-hover-glow:hover { border-color:#bc47004d;box-shadow:0 0 24px #bc470033; }
 
 /* ── Status indicator enhancements ── */
 .status-indicator { display:inline-flex;align-items:center;gap:6px;font-size:12px; }
@@ -563,8 +569,8 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 
 /* ── SmartLink utility classes ── */
 .gradient-text { background-image: linear-gradient(135deg, var(--accent), oklch(0.58 0.16 40), oklch(0.62 0.14 45)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.glass-card { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); transition: transform 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth); }
-.glass-card:hover { transform: translateY(-1px); border-color: color-mix(in oklch, var(--accent) 20%, transparent); box-shadow: var(--glass-shadow-lg), 0 0 16px var(--accent-soft); }
+.glass-card { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); transition: transform .2s var(--ease-smooth), border-color .2s var(--ease-smooth), box-shadow .2s var(--ease-smooth); }
+.glass-card:hover { transform: translateY(-1px); border-color: #bc47004d; box-shadow: var(--glass-shadow-lg), 0 0 20px #bc470033; }
 .section-padding { padding-top: 7rem; padding-bottom: 7rem; }
 @media (width <= 768px) { .section-padding { padding-top: 4.5rem; padding-bottom: 4.5rem; } }
 

@@ -542,6 +542,11 @@ export function fetchCrmCustomers(params = {}) {
 }
 
 // ── Diagnostics ──
+// ---- Audit Log ----
+export function fetchAuditLogs(limit = 50) {
+  return api(`/api/audit/logs?limit=${limit}`);
+}
+
 export function fetchDiagnosticsStatus() {
   return api("/api/diagnostics/status");
 }

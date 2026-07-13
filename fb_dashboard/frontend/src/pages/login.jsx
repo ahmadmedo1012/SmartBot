@@ -46,6 +46,32 @@ export function Login({ onAuth }) {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  // Redirect already-authenticated users
+  useEffect(() => {
+    fetch("/api/me")
+      .then(r => r.json())
+      .then(d => {
+        if (d.authenticated) {
+          window.location.replace("/dashboard")
+        } else {
+          setCheckingAuth(false)
+        }
+      })
+      .catch(() => setCheckingAuth(false))
+  }, [])
+
+  if (checkingAuth) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{background:"var(--bg)"}}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{background:"var(--accent)"}} />
+          <span style={{fontSize:"14px",color:"var(--muted)"}}>جاري التحميل...</span>
+        </div>
+      </div>
+    )
+  }
 
   const validate = () => {
     const errs = {}

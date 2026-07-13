@@ -83,7 +83,11 @@
   --header-h: 64px;
   --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px;
   --space-md: 16px; --space-lg: 24px; --space-xl: 32px; --space-2xl: 48px;
-  --skeleton: oklch(92% 0.005 240);
+  --skeleton: oklch(92% 0.005 30);
+  --spotlight: oklch(1 0 0 / 0.3);
+  --grid-line: color-mix(in oklch, var(--accent) 10%, transparent);
+  --grid-fill: color-mix(in oklch, var(--accent) 4%, transparent);
+  --duration-fast: 0.2s; --duration-base: 0.4s; --duration-slow: 0.7s; --duration-xl: 1.2s;
   --warning: var(--warn);
   --warning-soft: var(--warn-soft);
   --text: var(--fg);
@@ -475,10 +479,10 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .data-table tbody tr:hover { background: var(--accent-soft); }
 .icon-premium { display: flex; align-items: center; justify-content: center; border-radius: 14px; position: relative; overflow: hidden; }
 .icon-premium::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(135deg, rgba(255,255,255,.2), transparent 60%); pointer-events: none; }
-.login-bg { background: linear-gradient(135deg, oklch(22% 0.02 240), oklch(18% 0.02 250)); }
-html[data-theme="dark"] .login-bg { background: linear-gradient(135deg, oklch(12% 0.01 240), oklch(8% 0.01 250)); }
-.login-bg-light { background: linear-gradient(135deg, oklch(97.5% 0.003 240), oklch(92% 0.06 55)); }
-html[data-theme="dark"] .login-bg-light { background: linear-gradient(135deg, oklch(16% 0.01 240), oklch(12% 0.01 250)); }
+.login-bg { background: linear-gradient(135deg, oklch(22% 0.02 30), oklch(18% 0.02 30)); }
+html[data-theme="dark"] .login-bg { background: linear-gradient(135deg, oklch(12% 0.01 30), oklch(8% 0.01 30)); }
+.login-bg-light { background: linear-gradient(135deg, oklch(97.5% 0.003 30), oklch(92% 0.06 55)); }
+html[data-theme="dark"] .login-bg-light { background: linear-gradient(135deg, oklch(16% 0.01 30), oklch(12% 0.01 30)); }
 .login-glow-accent { background: radial-gradient(ellipse, color-mix(in oklch, var(--accent) 12%, transparent), transparent 60%); }
 .login-glow-primary { background: radial-gradient(ellipse, color-mix(in oklch, var(--fg) 10%, transparent), transparent 60%); }
 .overlay-backdrop { position: fixed; inset: 0; background: color-mix(in oklch, oklch(0% 0 0) 40%, transparent); backdrop-filter: blur(4px); animation: fade-in 0.2s ease-out; }

@@ -420,6 +420,12 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; transform: none; }
 .btn-primary:disabled { background: var(--border); color: var(--muted); }
 
+/* ── pol: micro-interactions ── */
+.magnetic-btn { transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s var(--ease); will-change:transform }
+.magnetic-btn:hover { transform:translateY(-2px) }
+.magnetic-btn:active { transform:scale(.97) translateY(0) }
+@media (prefers-reduced-motion:reduce) { .magnetic-btn { transition:none } .magnetic-btn:hover { transform:none } .magnetic-btn:active { transform:none } }
+
 /* ponytail: removed .card-border-accent — left-border accent card is an AI tell */
 
 /* ─── Skeleton card (inline replacement) ─── */

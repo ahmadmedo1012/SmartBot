@@ -25,7 +25,7 @@ export function Leads() {
           <h1 className="gradient-text">العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {[1,2,3].map(i => <div key={i} className="stat-card glass glass-card card-premium card-hover-lift" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       </section>
@@ -43,7 +43,7 @@ export function Leads() {
           <h1 className="gradient-text">العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           <div className="stat-card glass glass-card card-premium card-hover-lift"><div className="stat-label">إجمالي</div><div className="stat-value">{total}</div></div>
           <div className="stat-card glass glass-card card-premium card-hover-lift"><div className="stat-label">جديد هذا الأسبوع</div><div className="stat-value" style={{color:"var(--accent)"}}>{newThisWeek}</div></div>
           <div className="stat-card glass glass-card card-premium card-hover-lift"><div className="stat-label">تم التحويل</div><div className="stat-value" style={{color:"var(--success)"}}>{converted}</div></div>

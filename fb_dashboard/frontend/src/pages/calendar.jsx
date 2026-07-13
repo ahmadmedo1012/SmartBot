@@ -226,7 +226,7 @@ export function ContentCalendar({ role }) {
         </div>
       </div>
 
-      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
         {summaryLoading ? (
           [1,2,3,4].map(i => <div key={i} className="stat-card glass-card" style={{height:60,background:"var(--skeleton)"}} />)
         ) : (

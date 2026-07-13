@@ -83,7 +83,7 @@ function FacebookTab() {
   if (isLoading) return <div className="stat-card glass glass-card skel-card" style={{height:80}} />
   if (isError) return <ErrorState onRetry={() => refetch()} />
   return (
-    <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+    <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))"}}>
       <div className="card glass glass-card card-premium card-hover-lift card-inset">
         <div className="cc-header card-header-flush">
           <div className="cc-title">
@@ -259,7 +259,7 @@ export function Settings({ role }) {
 
       {tab === "bot" && (
         <div className="flex-col" style={{gap:16}}>
-          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))"}}>
             <div className="card glass glass-card card-premium card-hover-lift card-inset">
               <div className="cc-header card-header-flush">
                 <div className="cc-title">
@@ -414,7 +414,7 @@ export function Settings({ role }) {
       )}
 
       {tab === "theme" && (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))"}}>
           <div className="card glass glass-card card-premium card-hover-lift card-inset">
             <div className="cc-header card-header-flush">
               <div className="cc-title">
@@ -424,7 +424,7 @@ export function Settings({ role }) {
             </div>
             <div className="fld">
               <p style={{fontSize:12,color:"var(--muted)",marginBlockEnd:8}}>اختر نمط العرض:</p>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))",gap:12}}>
                 <button onClick={() => { document.documentElement.style.colorScheme = "light"; document.documentElement.removeAttribute("data-theme"); localStorage.setItem("theme", "light") }}
                   style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:16,borderRadius:8,border:"2px solid var(--border)",cursor:"pointer",background:"var(--bg)"}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -451,7 +451,7 @@ export function Settings({ role }) {
                   <div style={{width:12,height:12,borderRadius:"50%",background:"var(--accent)"}} />
                   <div style={{height:8,width:80,background:"var(--skeleton)",borderRadius:4}} />
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:6}}>
                   {[1,2,3,4].map(i => <div key={i} style={{height:32,borderRadius:4,background:"var(--skeleton)"}} />)}
                 </div>
                 <div style={{height:12,width:120,borderRadius:4,background:"var(--skeleton)"}} />
@@ -473,11 +473,11 @@ export function Settings({ role }) {
               </div>
             </div>
             {sysStatsLoading ? (
-              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
                 {[1,2,3,4,5,6].map(i => <div key={i} className="stat-card glass skel-card" style={{height:60}} />)}
               </div>
             ) : (
-              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+              <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
                 {systemStats.map(s => (
                   <div key={s.label} className="stat-card glass card-inset">
                     <div className="stat-label">{s.label}</div>

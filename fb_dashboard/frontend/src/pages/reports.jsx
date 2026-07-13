@@ -80,7 +80,7 @@ export function Reports() {
         </button>
       </div>
 
-      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
         {[
           { label: "إجمالي الردود", value: analytics?.total_replies || 0 },
           { label: "ردود اليوم", value: analytics?.today_replies || 0 },
@@ -94,7 +94,7 @@ export function Reports() {
         ))}
       </div>
 
-      <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
+      <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))"}}>
         <div className="card glass-card card-premium card-hover-lift" style={{padding:16}}>
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title" style={{fontSize:13}}>

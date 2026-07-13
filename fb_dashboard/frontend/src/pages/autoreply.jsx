@@ -30,11 +30,11 @@ export function Autoreply() {
       </div>
 
       {rulesLoading ? (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {[1,2,3].map(i => <div key={i} className="stat-card glass card-premium" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           <div className="stat-card glass card-premium">
             <div className="stat-label">مفعلة</div>
             <div className="stat-value" style={{color:"var(--success)"}}>{enabledCount}</div>

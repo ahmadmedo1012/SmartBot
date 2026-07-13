@@ -126,11 +126,11 @@ export function Team({ role }) {
       </div>
 
       {summaryLoading ? (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {[1,2,3,4].map(i => <div key={i} className="stat-card glass glass-card" style={{height:72,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {[
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "إجمالي الأعضاء", value: summary.total ?? totalMembers, color: "var(--accent)" },
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 12l-4-4m4 4l4-4"/><path d="M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>, label: "مدير", value: summary.admin ?? 0, color: "var(--warning)" },

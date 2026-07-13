@@ -18,7 +18,7 @@ export function Marketing() {
       </div>
 
       {isLoading ? (
-        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
           {[1,2,3].map(i => <div key={i} className="stat-card glass glass-card card-premium card-hover-lift" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       ) : error ? (
@@ -27,7 +27,7 @@ export function Marketing() {
         </div>
       ) : (
         <>
-          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
             <div className="stat-card glass glass-card card-premium card-hover-lift">
               <div className="stat-label">معجبين الصفحة</div>
               <div className="stat-value" style={{color:"var(--accent)"}}>{overview?.fan_count?.toLocaleString() || "—"}</div>

@@ -267,7 +267,7 @@ function BroadcastDetail({ broadcastId, onBack }) {
       </div>
       <div className="page-header reveal-blur"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
 
-      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+      <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))"}}>
         <div className="stat-card glass-card card-premium card-hover-lift reveal-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--success)"}}>{b.sent_count || 0}</div>
           <div className="stat-label">تم الإرسال</div>

@@ -9,7 +9,7 @@ export function LandingFooter({ onNavigate }) {
           {/* Column 1 — Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBlockEnd: 12 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg, var(--accent), oklch(0.42 0.14 38))", display: "grid", placeItems: "center", color: "var(--accent-fg)", fontWeight: 800, fontSize: 16, boxShadow: "var(--shadow-glow)" }}>S</div>
+              <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 32, height: 32, borderRadius: 10, objectFit: "contain", boxShadow: "var(--shadow-glow)" }} />
               <span style={{ fontWeight: 700, fontSize: 15, color: "var(--fg)" }}>SmartBot</span>
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.7, marginBlockEnd: 16, maxWidth: 280 }}>

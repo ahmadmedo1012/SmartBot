@@ -38,7 +38,7 @@ export function LandingHeader({ onNavigate }) {
       <nav style={{ maxWidth: 1220, margin: "0 auto", padding: "0 24px", height: "100%", display: "flex", alignItems: "center", gap: 24 }}>
         {/* Logo */}
         <a href="#" onClick={(e) => { e.preventDefault(); onNavigate && onNavigate("landing") }} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg, var(--accent), oklch(0.42 0.14 38))", display: "grid", placeItems: "center", color: "var(--accent-fg)", fontWeight: 800, fontSize: 16, boxShadow: "var(--shadow-glow)" }}>S</div>
+          <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 32, height: 32, borderRadius: 10, objectFit: "contain", boxShadow: "var(--shadow-glow)" }} />
           <span style={{ fontWeight: 700, fontSize: 15, color: "var(--fg)", letterSpacing: "-.01em" }}>SmartBot</span>
         </a>
 

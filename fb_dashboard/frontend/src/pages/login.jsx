@@ -129,7 +129,7 @@ export function Login({ onAuth }) {
             {/* Logo */}
             <div className="text-center mb-6">
               <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden bg-accent card-glow-strong" style={{background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", boxShadow: "var(--shadow-glow)"}}>
-                <img src="/static/favicon.png" alt="SmartBot" className="w-12 h-12 object-contain" />
+                <img src="/static/brand-icon.png" alt="SmartBot" className="w-12 h-12 object-contain" />
               </div>
               <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>
               <div className="flex items-center justify-center gap-2 mt-2">

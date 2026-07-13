@@ -109,7 +109,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
         <div className="sidebar-header" style={{ position: "relative", overflow: "hidden" }}>
           <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", boxShadow:"var(--shadow-glow-strong)"}}>
-            <img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
+            <img src="/static/brand-icon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
           </div>
           <div className="sidebar-title">
             <span className="shiny-text" style={{fontSize:"15px",fontWeight:700}}>SmartBot</span>

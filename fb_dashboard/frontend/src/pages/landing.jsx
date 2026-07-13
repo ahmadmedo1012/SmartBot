@@ -479,7 +479,19 @@ function CTASection({ onGetStarted }) {
   )
 }
 
+function useScrollReveal() {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal-up, .reveal-stagger, .reveal-scale")
+    const obs = new IntersectionObserver((entries) => {
+      for (const e of entries) { if (e.isIntersecting) { e.target.classList.add("visible"); obs.unobserve(e.target) } }
+    }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" })
+    for (const el of els) obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+}
+
 export function Landing({ onGetStarted, onNavigate: navigateProp }) {
+  useScrollReveal()
   useEffect(() => { document.title = "SmartBot - منصة إدارة فيسبوك" }, [])
 
   return (

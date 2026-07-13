@@ -630,16 +630,14 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .section-padding { padding-top: 7rem; padding-bottom: 7rem; }
 @media (width <= 768px) { .section-padding { padding-top: 4.5rem; padding-bottom: 4.5rem; } }
 
-@media (prefers-reduced-motion: no-preference) {
-  .reveal-up { animation:reveal-up .3s cubic-bezier(0.16,1,0.3,1) both }
-  .reveal-scale { animation:reveal-scale .25s cubic-bezier(0.16,1,0.3,1) both }
-  .reveal-stagger > *:nth-child(1) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both }
-  .reveal-stagger > *:nth-child(2) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:60ms }
-  .reveal-stagger > *:nth-child(3) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:120ms }
-  .reveal-stagger > *:nth-child(4) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:180ms }
-  .reveal-stagger > *:nth-child(5) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:240ms }
-  .reveal-stagger > *:nth-child(6) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:300ms }
-}
+.reveal-up.visible,
+.reveal-scale.visible,
+.reveal-stagger.visible > *:nth-child(1) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both }
+.reveal-stagger.visible > *:nth-child(2) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:60ms }
+.reveal-stagger.visible > *:nth-child(3) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:120ms }
+.reveal-stagger.visible > *:nth-child(4) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:180ms }
+.reveal-stagger.visible > *:nth-child(5) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:240ms }
+.reveal-stagger.visible > *:nth-child(6) { animation:reveal-blur .35s cubic-bezier(0.16,1,0.3,1) both; animation-delay:300ms }
 
 .shiny-text { background-size: 200% auto; background-image: linear-gradient(135deg, var(--accent) 0%, oklch(0.62 0.14 45) 30%, var(--fg) 50%, oklch(0.62 0.14 45) 70%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shine 4s linear infinite; }
 

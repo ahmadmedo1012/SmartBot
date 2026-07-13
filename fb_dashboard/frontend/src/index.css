@@ -130,6 +130,15 @@
   --border-orange: #c84e00;
   --ring-orange: #c84e00;
 
+  /* ── Z-index layer registry (Smart Menu parity) ── */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-nav: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+
   /* ── Surface hierarchy ── */
   --surface-raised: oklch(6% 0.003 30);
   --surface-sunken: oklch(0% 0 0);
@@ -290,6 +299,7 @@ button, a, select, input, textarea {
 
 .glass { background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(12px); border: 1px solid color-mix(in oklch, var(--border) 50%, transparent); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .glass-solid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.glass-strong { background:var(--glass-bg-strong); backdrop-filter:blur(24px) saturate(1.5); -webkit-backdrop-filter:blur(24px) saturate(1.5); border:1px solid oklch(0.55 0.19 45 / 0.15); box-shadow:var(--glass-shadow-lg); }
 
 .card { padding: 20px; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
 @media (prefers-reduced-motion: no-preference) {
@@ -505,8 +515,8 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .login-glow-primary { background: radial-gradient(ellipse, color-mix(in oklch, var(--fg) 10%, transparent), transparent 60%); }
 .overlay-backdrop { position: fixed; inset: 0; background: color-mix(in oklch, oklch(0% 0 0) 40%, transparent); backdrop-filter: blur(4px); animation: fade-in 0.2s ease-out; }
 .glass-liquid { background: linear-gradient(135deg, color-mix(in oklch, var(--surface) 50%, transparent), color-mix(in oklch, var(--surface) 25%, transparent)); backdrop-filter: blur(24px) saturate(1.4); border: 1px solid color-mix(in oklch, var(--border) 12%, transparent); box-shadow: 0 8px 32px color-mix(in oklch, oklch(0% 0 0) 6%, transparent), inset 0 1px 0 color-mix(in oklch, var(--surface) 60%, transparent); }
-.card-premium { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
-.card-premium:hover { transform: translateY(-2px) scale(1.005); box-shadow: 0 20px 60px oklch(0 0 0 / 0.08), 0 0 0 1px #c84e0026; }
+.card-premium { min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); transform:translateZ(0); transition:all .3s var(--ease); }
+.card-premium:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg), var(--shadow-glow); border-color:var(--accent); }
 .shimmer-line { background: linear-gradient(90deg, var(--border) 0%, color-mix(in oklch, var(--muted) 12%, transparent) 40%, var(--border) 80%); background-size: 200% 100%; border-radius: var(--radius-sm); }
 
 /* ─── Design enhancements ─── */
@@ -528,6 +538,24 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 @keyframes staggerIn { to{opacity:1;transform:translateY(0)} }
 @media (prefers-reduced-motion:reduce) { .stagger-children>*,.reveal-up,.reveal-scale,.reveal-card,.reveal-blur,.shiny-text,.chart-bar-grow,.activity-enter,.login-card-enter,.login-logo-enter,.login-fade-in,.animate-blob-1,.animate-blob-2,.animate-blob-3,.notif-shake,.notif-badge,.pageIn { animation:none!important;opacity:1!important;transform:none!important;filter:blur(0)!important } }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+@keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
+@keyframes magnetic-float { 0%,100% { transform:translateY(0) scale(1) } 50% { transform:translateY(-10px) scale(1.02) } }
+@keyframes breath { 0%,100% { opacity:0.6 } 50% { opacity:0.3 } }
+@keyframes pulse-glow { 0%,100% { box-shadow:0 0 8px oklch(0.55 0.19 45 / 0.15) } 50% { box-shadow:0 0 25px oklch(0.55 0.19 45 / 0.35) } }
+@keyframes hero-glow-pulse { 0%,100% { opacity:0.6; transform:scale(1) } 50% { opacity:1; transform:scale(1.05) } }
+@keyframes marquee { 0% { transform:translateX(0) } 100% { transform:translateX(-50%) } }
+@keyframes ring-drain { from{stroke-dashoffset:0} to{stroke-dashoffset:251.327} }
+@keyframes confetti { 0%{transform:translateY(0) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+@keyframes confetti-fall { 0%{transform:translateY(0) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+.animate-float { animation:float 3s var(--ease-smooth) infinite }
+.animate-float-delayed { animation:float 3.5s var(--ease-smooth) infinite 1s }
+.animate-magnetic-float { animation:magnetic-float 4s var(--ease-smooth) infinite }
+.animate-breath { animation:breath 1.5s ease-in-out infinite }
+.animate-pulse-glow { animation:pulse-glow 2.5s ease-in-out infinite }
+.animate-hero-glow-pulse { animation:hero-glow-pulse 4s var(--ease-smooth) infinite }
+.animate-marquee { will-change:transform;transform:translateZ(0);animation:marquee 30s linear infinite }
+.animate-ring-drain { animation:ring-drain 30s linear forwards }
+.animate-confetti { animation:confetti ease-in forwards }
 
 /* ── Shimmer bar uses nav-shine keyframe (defined above in motion section) ── */
 @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }

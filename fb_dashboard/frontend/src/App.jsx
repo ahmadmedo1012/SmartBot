@@ -108,6 +108,7 @@ function AppInner() {
   if (authLoading) {
     return (
       <div className="loading-screen">
+        <div className="grain-overlay" />
         <div className="relative flex flex-col items-center gap-6">
           <div className="loading-logo">
             <div className="loading-ring" />
@@ -152,6 +153,7 @@ function AppInner() {
           role={role}
           onLogout={handleLogout}
         >
+          <div className="grain-overlay" />
           <main className="content">
             <ErrorBoundary key={page}>
               <Suspense fallback={<PageLoader />}>

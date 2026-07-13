@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react"
+import { useMotionValue, useSpring, useTransform } from "framer-motion"
 import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star } from "lucide-react"
 import { LandingHeader } from "@/components/LandingHeader"
 import { LandingFooter } from "@/components/LandingFooter"
@@ -42,35 +43,33 @@ const testimonials = [
 const clients = ["مقهى الواحة", "مطعم الأصيل", "بيتزا روما", "SOHO", "مخبز النخبة", "صيدلية الشفاء", "متجر الريف", "استوديو أضواء"]
 
 function AnimatedCounter({ value, label, suffix = "" }) {
-  const [count, setCount] = useState(0)
   const ref = useRef(null)
-  const counted = useRef(false)
+  const [display, setDisplay] = useState(0)
+  const count = useMotionValue(0)
+  const spring = useSpring(count, { stiffness: 80, damping: 20 })
+  const rounded = useTransform(spring, v => Math.floor(v))
+
+  useEffect(() => {
+    const unsub = rounded.on("change", setDisplay)
+    return () => unsub()
+  }, [rounded])
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !counted.current) {
-        counted.current = true
-        const duration = 1500
-        const steps = 30
-        const stepVal = value / steps
-        let current = 0
-        const interval = setInterval(() => {
-          current += stepVal
-          if (current >= value) { setCount(value); clearInterval(interval) }
-          else setCount(Math.floor(current))
-        }, duration / steps)
-      }
+      if (!entry.isIntersecting) return
+      count.set(value)
+      obs.unobserve(el)
     }, { threshold: 0.5 })
     obs.observe(el)
     return () => obs.disconnect()
-  }, [value])
+  }, [value, count])
 
   return (
     <div ref={ref} className="text-center">
       <div className="text-5xl font-extrabold" style={{ color: "var(--accent)", fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
-        {count}{suffix}
+        {display}{suffix}
       </div>
       <div className="text-sm mt-2" style={{ color: "var(--muted)" }}>{label}</div>
     </div>

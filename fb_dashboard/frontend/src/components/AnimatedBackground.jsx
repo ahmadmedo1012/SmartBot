@@ -13,6 +13,8 @@ function resolveAccent() {
 export function AnimatedBackground() {
   const canvasRef = useRef(null)
   useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (reduced) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")

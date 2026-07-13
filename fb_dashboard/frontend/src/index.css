@@ -252,7 +252,7 @@ button, a, select, input, textarea {
 
 .main { margin-inline-start: var(--sidebar-w, 240px); flex: 1; display: flex; flex-direction: column; height: 100dvh; background-image: radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in oklch, var(--accent) 6%, transparent), transparent 70%); }
 @media (max-width:1024px) { .main { background-image: none; } }
-.header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; }
+.header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; will-change: transform; }
 .page-title { font: 600 14px/1 var(--font-dsp); color: var(--muted); }
 .header-left { display: flex; align-items: center; gap: 12px; margin-inline-start: auto; }
 .hamburger { display: none; background: none; border: 0; font-size: 22px; cursor: pointer; padding: 4px; color: var(--fg); }

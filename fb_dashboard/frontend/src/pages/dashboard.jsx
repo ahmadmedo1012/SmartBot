@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
 import { format } from "date-fns"
@@ -12,26 +12,34 @@ const statCardVariant = {
 }
 
 function AnimatedStat({ value, suffix = "" }) {
-  const [display, setDisplay] = useState(0)
   const ref = useRef(null)
+  const prefersReducedMotion = useReducedMotion()
+  const [display, setDisplay] = useState(0)
+  const count = useMotionValue(0)
+  const spring = useSpring(count, { stiffness: prefersReducedMotion ? 0 : 80, damping: 18, mass: 0.8 })
+  const rounded = useTransform(spring, v => Math.floor(v))
+
+  useEffect(() => {
+    const unsub = rounded.on("change", setDisplay)
+    return () => unsub()
+  }, [rounded])
 
   useEffect(() => {
     const el = ref.current; if (!el) return
-    const intervalId = { current: null }
     const obs = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting || intervalId.current) return
-      const steps = 30, step = value / steps
-      let cur = 0
-      intervalId.current = setInterval(() => { cur += step; if (cur >= value) { setDisplay(value); clearInterval(intervalId.current); intervalId.current = null } else setDisplay(Math.floor(cur)) }, 25)
+      if (!entry.isIntersecting) return
+      count.set(value)
+      obs.unobserve(el)
     }, { threshold: 0.5 })
     obs.observe(el)
-    return () => { obs.disconnect(); if (intervalId.current) clearInterval(intervalId.current) }
-  }, [value])
+    return () => obs.disconnect()
+  }, [value, count])
 
-  const n = display
-  if (n >= 1000000) return <span ref={ref}>{(n / 1000000).toFixed(1)}M{suffix}</span>
-  if (n >= 1000) return <span ref={ref}>{(n / 1000).toFixed(1)}k{suffix}</span>
-  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>
+  const n = display >= 1000000 ? (display / 1000000).toFixed(1) + "M" + suffix
+     : display >= 1000 ? (display / 1000).toFixed(1) + "k" + suffix
+     : display.toLocaleString() + suffix
+
+  return <span ref={ref}>{n}</span>
 }
 
 function LoadingSkeleton() {

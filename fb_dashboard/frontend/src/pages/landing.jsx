@@ -133,7 +133,7 @@ function HeroSection({ onGetStarted }) {
                 <div>
                   <div className="flex items-center gap-0.5 mb-0.5">
                     {[1,2,3,4,5].map(s => (
-                      <Star key={s} className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                      <Star key={s} className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} fill="var(--muted)" />
                     ))}
                   </div>
                   <span className="text-xs" style={{ color: "var(--muted)" }}>أكثر من ٥٠٠ صفحة تثق فينا</span>
@@ -236,7 +236,7 @@ function FeaturesSection() {
       <div className="relative z-10 max-w-6xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            مميزات <span style={{ color: "var(--accent)" }}>SmartBot</span>
+            مميزات <span style={{ color: "var(--fg)" }}>SmartBot</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية
@@ -248,7 +248,7 @@ function FeaturesSection() {
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
                 style={{ background: "color-mix(in oklch, var(--accent) 12%, transparent)" }}>
-                <f.icon className="w-7 h-7" style={{ color: "var(--accent)" }} />
+                <f.icon className="w-7 h-7" style={{ color: "var(--muted)" }} />
               </div>
               <h3 className="text-lg font-bold mb-3" style={{ color: "var(--fg)" }}>{f.title}</h3>
               <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{f.desc}</p>
@@ -266,7 +266,7 @@ function HowItWorksSection() {
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            كيف يعمل <span style={{ color: "var(--accent)" }}>SmartBot</span>
+            كيف يعمل <span style={{ color: "var(--fg)" }}>SmartBot</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             ثلاث خطوات فقط لبدء أتمتة ردودك
@@ -313,7 +313,7 @@ function TestimonialsSection() {
               style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div className="flex gap-1 mb-4">
                 {[1,2,3,4,5].map(s => (
-                  <Star key={s} className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />
+                  <Star key={s} className="w-4 h-4" style={{ color: "var(--muted)" }} fill="var(--muted)" />
                 ))}
               </div>
               <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>"{t.text}"</p>
@@ -360,7 +360,7 @@ function PricingSection() {
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            خطط <span style={{ color: "var(--accent)" }}>الأسعار</span>
+            خطط <span style={{ color: "var(--fg)" }}>الأسعار</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             اختر الخطة المناسبة لاحتياجاتك
@@ -421,7 +421,7 @@ function FaqSection() {
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            أسئلة <span style={{ color: "var(--accent)" }}>شائعة</span>
+            أسئلة <span style={{ color: "var(--fg)" }}>شائعة</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             أهم الأسئلة عن SmartBot
@@ -469,7 +469,7 @@ function CTASection({ onGetStarted }) {
           حسّن إدارة صفحات فيسبوك وزد تفاعلك اليوم
         </p>
         <button className="btn text-base px-10 py-3 font-bold magnetic-btn"
-          style={{ background: "var(--accent-fg)", color: "var(--accent)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)", borderRadius: "var(--radius-lg)" }}
+          style={{ background: "var(--accent)", color: "var(--accent-fg)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)", borderRadius: "var(--radius-lg)" }}
           onClick={onGetStarted}>
           ابدأ الآن مجاناً
         </button>

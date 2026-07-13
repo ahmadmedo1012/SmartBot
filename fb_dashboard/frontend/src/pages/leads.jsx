@@ -19,9 +19,9 @@ export function Leads() {
 
   if (loading) {
     return (
-      <section className="page active" dir="rtl" style={{position:"relative"}}>
+      <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header">
+        <div className="page-header reveal-blur">
           <h1>العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
@@ -37,9 +37,9 @@ export function Leads() {
 
   if (customers.length === 0) {
     return (
-      <section className="page active" dir="rtl" style={{position:"relative"}}>
+      <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header">
+        <div className="page-header reveal-blur">
           <h1>العملاء المتوقعون</h1>
           <p>قائمة العملاء المحتملين من الصفحات</p>
         </div>
@@ -54,9 +54,9 @@ export function Leads() {
   }
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>العملاء المتوقعون</h1>
         <p>قائمة العملاء المحتملين من الصفحات</p>
       </div>
@@ -70,7 +70,7 @@ export function Leads() {
           <thead><tr><th>الاسم</th><th>الهاتف</th><th>المصدر</th><th>الحالة</th></tr></thead>
           <tbody>
             {customers.map((c) => (
-              <tr key={c.id || c.phone || c.name}>
+              <tr key={c.id || c.phone || c.name} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
                 <td data-label="الاسم">{c.name}</td>
                 <td data-label="الهاتف">{c.phone}</td>
                 <td data-label="المصدر">{c.source}</td>

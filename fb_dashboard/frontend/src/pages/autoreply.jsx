@@ -22,9 +22,9 @@ export function Autoreply() {
   const todayReplies = 0 // ponytail: from bot status if available
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>الردود التلقائية</h1>
         <p>إعدادات الرد الآلي للرسائل والتعليقات</p>
       </div>
@@ -72,7 +72,7 @@ export function Autoreply() {
           </div>
         ) : (
           rules.map(r => (
-            <div className="activity-item" key={r.id}>
+            <div className="activity-item" key={r.id} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
               <label className="toggle">
                 <input type="checkbox" checked={r.enabled} onChange={() => toggleMut.mutate(r.id)} />
                 <span className="tgl-track" />

@@ -101,7 +101,7 @@ function ReplyDialog({ comment, open, onOpenChange }) {
           <textarea className="fld" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="اكتب ردك..." style={{marginBlockEnd:12}} />
           <div className="qactions" style={{justifyContent:"flex-end"}}>
             <button className="btn btn-outline" onClick={() => onOpenChange(false)}>إلغاء</button>
-            <button className="btn btn-primary" onClick={() => replyMut.mutate()} disabled={!message.trim() || replyMut.isPending}>
+            <button className="btn btn-primary" onClick={() => replyMut.mutate()} disabled={!message.trim() || replyMut.isPending} style={{boxShadow:"var(--shadow-glow)"}}>
               {replyMut.isPending ? "جاري..." : (
                 <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 إرسال</>
@@ -154,9 +154,9 @@ export function Comments({ role }) {
   }, [confirmAction])
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>مركز التعليقات</h1>
         <p>جميع التعليقات من فيسبوك — رد بذكاء وتحكم بسرعة</p>
       </div>

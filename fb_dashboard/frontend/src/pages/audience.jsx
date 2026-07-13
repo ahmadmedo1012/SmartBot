@@ -27,9 +27,9 @@ export function Audience() {
 
   if (loading) {
     return (
-      <section className="page active" dir="rtl" style={{position:"relative"}}>
+      <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
         <div className="mesh-bg"></div>
-        <div className="page-header">
+        <div className="page-header reveal-blur">
           <h1>الجمهور</h1>
           <p>قاعدة متابعيك – إدارة الجمهور</p>
         </div>
@@ -50,9 +50,9 @@ export function Audience() {
   }
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>الجمهور</h1>
         <p>قاعدة متابعيك – إدارة الجمهور</p>
       </div>
@@ -76,7 +76,7 @@ export function Audience() {
         {subs.length === 0 ? (
           <p className="empty-state">لا يوجد مشتركون بعد</p>
         ) : subs.map((sub) => (
-          <div className="person-row" key={sub.id || sub.name}>
+          <div className="person-row" key={sub.id || sub.name} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
             <div className="person-avatar" style={{ background: sub.avatar_color || "var(--accent)" }} />
             <div className="person-info">
               <div className="p-name">{sub.name}</div>

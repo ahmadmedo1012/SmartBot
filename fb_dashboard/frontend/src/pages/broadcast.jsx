@@ -87,9 +87,9 @@ function Composer({ onBack, queryClient }) {
   const steps = [{ label: "معلومات أساسية" }, { label: "تصفية الجمهور" }, { label: "الرسالة" }, { label: "مراجعة" }]
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative", animation: "pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header"><h1>بث جماعي جديد</h1></div>
+      <div className="page-header" style={{ animation: "reveal-blur 0.5s cubic-bezier(0.16,1,0.3,1) both" }}><h1>بث جماعي جديد</h1></div>
 
       <div style={{display:"flex",alignItems:"center",gap:8,marginBlockEnd:20}}>
         {steps.map((s, i) => {
@@ -97,7 +97,7 @@ function Composer({ onBack, queryClient }) {
           return (
             <div key={i} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
               <button onClick={() => done && setStep(i)}
-                style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"none",fontWeight:600,
+                style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"none",fontWeight:600,boxShadow: active ? "var(--shadow-glow)" : "none",
                   background: active ? "var(--accent)" : done ? "var(--accent-soft)" : "var(--skeleton)",
                   color: active || done ? "#fff" : "var(--muted)",cursor: done ? "pointer" : "default"}}>
                 {s.label}

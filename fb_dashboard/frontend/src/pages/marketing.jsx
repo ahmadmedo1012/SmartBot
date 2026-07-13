@@ -10,9 +10,9 @@ export function Marketing() {
   })
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>التسويق</h1>
         <p>بيانات التحليلات والتسويق من الصفحة المتصلة</p>
       </div>
@@ -56,7 +56,7 @@ export function Marketing() {
                 </div>
               </div>
               {overview.top_rules.map((r, i) => (
-                <div key={r.rule_id} className="activity-item">
+                <div key={r.rule_id} className="activity-item" style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
                   <div className="activity-dot" style={{background:["var(--accent)","var(--info)","var(--success)","var(--warn)","var(--danger)"][i%5]}} />
                   <div className="activity-text"><strong style={{fontWeight:600}}>القاعدة #{r.rule_id}</strong> — {r.count} رد</div>
                 </div>

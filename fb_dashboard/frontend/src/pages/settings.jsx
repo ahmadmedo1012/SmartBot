@@ -253,7 +253,7 @@ export function Settings({ role }) {
 
       <div className="qactions" style={{gap:4,marginBlockEnd:16,flexWrap:"wrap"}}>
         {tabItems.map(t => (
-          <button key={t.value} className={`btn ${tab === t.value ? "btn-primary" : "btn-outline"}`} style={{padding:"6px 14px",fontSize:12}} onClick={() => setTab(t.value)}>{t.label}</button>
+          <button key={t.value} className={`btn ${tab === t.value ? "btn-primary" : "btn-outline"}`} style={{padding:"6px 14px",fontSize:12,boxShadow: tab === t.value ? "var(--shadow-glow)" : "none"}} onClick={() => setTab(t.value)}>{t.label}</button>
         ))}
       </div>
 

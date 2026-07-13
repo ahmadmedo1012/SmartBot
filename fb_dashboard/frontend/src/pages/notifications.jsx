@@ -30,9 +30,9 @@ export function Notifications() {
   const { notifications, markAllRead } = useNotifications()
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
+      <div className="page-header reveal-blur">
         <h1>الإشعارات</h1>
         <p>آخر الإشعارات والتنبيهات</p>
       </div>
@@ -54,7 +54,7 @@ export function Notifications() {
         ) : (
           <div className="activity-list">
             {notifications.map(n => (
-              <div className="activity-item" key={n.id}>
+              <div className="activity-item" key={n.id} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
                 <div className="activity-dot" style={{ background: TYPE_COLORS[n.type] || "var(--info)" }} />
                 <div className="activity-text">
                   <strong style={{ fontWeight: 600 }}>

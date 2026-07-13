@@ -61,7 +61,8 @@ function CalendarCell({ day, currentMonth, count, isSelected, onSelect, loading 
         background:selected ? "var(--accent-soft)" : "transparent",
         outline:selected ? "2px solid var(--accent)" : today ? "1px solid var(--accent)" : "none",
         color:inMonth ? "var(--text)" : "var(--muted)",
-        transition:"background 0.2s, outline 0.2s",
+        transition:"background 0.2s, outline 0.2s, box-shadow 0.2s",
+        boxShadow: selected ? "var(--shadow-glow)" : "none",
       }}
     >
       <span style={{
@@ -69,6 +70,7 @@ function CalendarCell({ day, currentMonth, count, isSelected, onSelect, loading 
         borderRadius:"50%",fontSize:12,fontWeight:500,
         background:today && !selected ? "var(--accent)" : "transparent",
         color:today && !selected ? "#fff" : "inherit",
+        boxShadow:today && !selected ? "var(--shadow-glow)" : "none",
       }}>
         {format(day, "d")}
       </span>
@@ -203,9 +205,9 @@ export function ContentCalendar({ role }) {
   const isLoadingInitial = monthLoading && monthPosts.length === 0
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative"}}>
+    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+      <div className="page-header reveal-blur" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <h1>التقويم</h1>
           <p>عرض وإدارة المنشورات المجدولة</p>
@@ -216,7 +218,7 @@ export function ContentCalendar({ role }) {
             اليوم
           </button>
           {canEdit && (
-            <button className="btn btn-primary" style={{fontSize:12}} onClick={handleOpenCreate}>
+            <button className="btn btn-primary" style={{fontSize:12,boxShadow:"var(--shadow-glow)"}} onClick={handleOpenCreate}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               منشور جديد
             </button>
@@ -345,7 +347,7 @@ export function ContentCalendar({ role }) {
                   {PLATFORM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
-              <button className="btn btn-primary" type="submit" style={{width:"100%"}} disabled={!formData.message.trim() || createMut.isPending || updateMut.isPending}>
+              <button className="btn btn-primary" type="submit" style={{width:"100%",boxShadow:"var(--shadow-glow)"}} disabled={!formData.message.trim() || createMut.isPending || updateMut.isPending}>
                 {(createMut.isPending || updateMut.isPending) ? "جاري..." : editingPost ? (
                   <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>تحديث</>
                 ) : formData.scheduled_at ? (
@@ -367,7 +369,7 @@ export function ContentCalendar({ role }) {
               <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:16}}>هل أنت متأكد من حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء.</p>
               <div className="qactions" style={{justifyContent:"flex-end"}}>
                 <button className="btn btn-outline" onClick={() => setDeleteTarget(null)}>إلغاء</button>
-                <button className="btn btn-primary" style={{background:"var(--danger)",borderColor:"var(--danger)"}} onClick={() => deleteMut.mutate(deleteTarget)} disabled={deleteMut.isPending}>
+                <button className="btn btn-primary" style={{background:"var(--danger)",borderColor:"var(--danger)",boxShadow:"var(--shadow-glow)"}} onClick={() => deleteMut.mutate(deleteTarget)} disabled={deleteMut.isPending}>
                   {deleteMut.isPending ? "جاري..." : "حذف"}
                 </button>
               </div>

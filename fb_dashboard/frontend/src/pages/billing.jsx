@@ -52,10 +52,10 @@ export function Billing() {
   const currentPlan = user?.plan || "free"
 
   return (
-    <section className="page active" dir="rtl">
-      <div className="page-header">
+    <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
+      <div className="page-header reveal-blur">
         <h1>الفواتير والاشتراك</h1>
-        <p>إدارة رصيدك وخطط الاشتراك</p>
+        <p>إدارة خطتك واشتراكاتك</p>
       </div>
 
       {/* Balance Card */}
@@ -78,12 +78,12 @@ export function Billing() {
       {/* Topup Section */}
       <div className="row-2" style={{ marginBottom: 24 }}>
         <div className="card glass">
-          <div className="card-title">شحن الرصيد</div>
+          <div className="cc-header"><div className="cc-title">شحن الرصيد</div></div>
 
           <p className="text-muted-md mb-12">اختر المبلغ:</p>
           <div className="qactions" style={{ marginBottom: 16 }}>
             {QUICK_AMOUNTS.map((a) => (
-              <button key={a} className={`btn ${amount === a ? "btn-primary" : "btn-outline"}`} onClick={() => { setAmount(a); setPaymentResult(null) }}>
+              <button key={a} className={`btn ${amount === a ? "btn-primary" : "btn-outline"}`} style={amount === a ? {boxShadow:"var(--shadow-glow)"} : undefined} onClick={() => { setAmount(a); setPaymentResult(null) }}>
                 {a} د.ل
               </button>
             ))}
@@ -105,7 +105,7 @@ export function Billing() {
                 <label>رقم الهاتف</label>
                 <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0912345678" />
               </div>
-              <button className="btn btn-primary" disabled={!phone || phone.length < 7 || topupMut.isPending} onClick={topupMut.mutate} style={{ alignSelf: "flex-start" }}>
+              <button className="btn btn-primary" disabled={!phone || phone.length < 7 || topupMut.isPending} onClick={topupMut.mutate} style={{ alignSelf: "flex-start", boxShadow: "var(--shadow-glow)" }}>
                 {topupMut.isPending ? "جاري..." : "طلب الدفع"}
               </button>
             </div>
@@ -125,7 +125,7 @@ export function Billing() {
                   <label>رقم الحوالة</label>
                   <input value={confirmRef} onChange={(e) => setConfirmRef(e.target.value)} placeholder="أدخل رقم الحوالة" />
                 </div>
-                <button className="btn btn-primary btn-sm" disabled={!confirmRef || confirmMut.isPending} onClick={() => confirmMut.mutate()}>
+                <button className="btn btn-primary btn-sm" disabled={!confirmRef || confirmMut.isPending} onClick={() => confirmMut.mutate()} style={{boxShadow:"var(--shadow-glow)"}}>
                   {confirmMut.isPending ? "جاري..." : "تأكيد الدفع"}
                 </button>
               </div>
@@ -135,7 +135,7 @@ export function Billing() {
 
         {/* Plan Info */}
         <div className="card glass">
-          <div className="card-title">الاشتراك الحالي</div>
+          <div className="cc-header"><div className="cc-title">الاشتراك الحالي</div></div>
           <div style={{ marginBottom: 16 }}>
             <span className="badge badge-a" style={{ fontSize: 13, padding: "4px 14px" }}>
               {PLANS.find(p => p.key === currentPlan)?.label || "مجاني"}
@@ -166,7 +166,7 @@ export function Billing() {
 
       {/* Payment History */}
       <div className="card glass" style={{ marginBottom: 24 }}>
-        <div className="card-title">سجل الدفعات</div>
+        <div className="cc-header"><div className="cc-title">سجل الدفعات</div></div>
         {!history?.length ? (
           <div className="empty-state" role="status"><p>لا توجد دفعات سابقة</p></div>
         ) : (
@@ -185,7 +185,7 @@ export function Billing() {
               </thead>
               <tbody>
                 {history.map((p) => (
-                  <tr key={p.payment_id}>
+                  <tr key={p.payment_id} style={{transition:"background .15s var(--ease), border-color .15s var(--ease)"}}>
                     <td data-label="المعرف"><code className="code-inline">{p.payment_id}</code></td>
                     <td data-label="المبلغ" style={{ fontWeight: 600 }}>{p.amount} د.ل</td>
                     <td data-label="المزود">{p.provider === "liyana" ? "ليبيانا" : "مدار"}</td>

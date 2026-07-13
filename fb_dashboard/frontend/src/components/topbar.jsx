@@ -122,7 +122,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                   {item.label}
                   {item.badge && parseInt(item.badge) > 0 && <span className="nav-badge">{item.badge}</span>}
                   {currentPage === item.key && (
-                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineStart:0,insetBlock:"6px",width:"3px",background:"var(--accent)",borderRadius:"0 2px 2px 0",boxShadow:"0 0 8px #c53c004d"}} />
+                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineStart:0,insetBlock:"6px",width:"3px",background:"var(--primary)",borderRadius:"0 2px 2px 0",boxShadow:"0 0 8px oklch(0.55 0.19 45 / 0.4)"}} />
                   )}
                 </a>
               ))}
@@ -204,7 +204,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                 <NavIcon name={item.icon} />
                 <span className="text-[10px] font-medium leading-tight">{item.label}</span>
                 {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full" style={{ background: "var(--accent)" }} />
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full" style={{ background: "var(--primary)" }} />
                 )}
               </button>
             )

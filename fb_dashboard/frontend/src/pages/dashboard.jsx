@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect, useRef } from "react"
 import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
+import { Clock, Calendar, Users, Grid, TrendingUp, Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
 

@@ -121,7 +121,7 @@ export function Login({ onAuth }) {
 
       <div className="login-card-enter relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5">
         <AnimatedGradientBorder>
-          <div className="relative rounded-2xl p-6 sm:p-8 glass-card card-hover-glow">
+          <div className="relative rounded-2xl p-6 sm:p-8 glass-strong card-premium" style={{background:"var(--glass-bg-strong)"}}>
             {/* Logo */}
             <div className="text-center mb-6">
               <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden bg-accent card-glow-strong" style={{background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", boxShadow: "var(--shadow-glow)"}}>
@@ -147,7 +147,7 @@ export function Login({ onAuth }) {
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setFieldErrors((p) => ({...p, username: ""})) }}
                   required
-                  className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm transition-all"
+                  className="peer w-full h-11 pr-10 pl-3 rounded-xl text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder={isRegister ? "اسم المستخدم" : "اسم المستخدم أو البريد الإلكتروني"}
                   autoComplete="username"

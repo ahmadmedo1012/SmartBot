@@ -146,9 +146,9 @@ function HeroSection({ onGetStarted }) {
                 <svg viewBox="0 0 480 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="لوحة تحكم SmartBot">
                   <rect width="480" height="360" rx="16" fill="url(#dbg)" />
                   <defs>
-                    <linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#141216"/><stop offset="100%" stopColor="#0d0c0e"/></linearGradient>
-                    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#c84e00"/><stop offset="100%" stopColor="#9a3a00"/></linearGradient>
-                    <linearGradient id="acg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c84e00" stopOpacity="0.2"/><stop offset="100%" stopColor="#c84e00" stopOpacity="0"/></linearGradient>
+                    <linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="oklch(0.08 0.003 30)"/><stop offset="100%" stopColor="oklch(0.05 0.002 30)"/></linearGradient>
+                    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="oklch(0.55 0.19 45)"/><stop offset="100%" stopColor="oklch(0.42 0.18 40)"/></linearGradient>
+                    <linearGradient id="acg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="oklch(0.55 0.19 45 / 0.2)"/><stop offset="100%" stopColor="oklch(0.55 0.19 45 / 0)"/></linearGradient>
                   </defs>
                   {/* Top bar */}
                   <rect x="16" y="12" width="448" height="40" rx="10" fill="#1a181d" />

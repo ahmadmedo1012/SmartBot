@@ -142,7 +142,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
           <button type="button" onClick={()=>onNavigate&&onNavigate("landing")} onKeyDown={(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onNavigate&&onNavigate("landing")}}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:12,fontSize:13,fontWeight:500,color:"var(--muted)",cursor:"pointer",transition:"all .2s",background:"none",border:0,width:"100%",fontFamily:"inherit"}} onMouseEnter={e=>{e.currentTarget.style.background="color-mix(in oklch,var(--accent) 10%,transparent)";e.currentTarget.style.color="var(--fg)"}} onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 17 10 12 15 7"/><line x1="8" y1="12" x2="20" y2="12"/></svg>
             العودة للموقع
-          </span>
+          </button>
         </div>
       </aside>
 

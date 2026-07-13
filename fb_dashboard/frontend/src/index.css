@@ -97,6 +97,9 @@
   /* ── Primary accent (matches Smart Menu oklch) ── */
   --primary: oklch(0.55 0.19 45);
   --primary-foreground: oklch(0.98 0 0);
+  --orange: oklch(0.55 0.19 45);
+  --orange-foreground: oklch(0.98 0 0);
+  --orange-muted: oklch(0.55 0.19 45 / 0.15);
   /* ── Smart Menu gradients ── */
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.12), oklch(0.52 0.19 45 / 0.06));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.06) 50%, transparent 100%);
@@ -223,9 +226,12 @@
   }
   ::-webkit-scrollbar { width: 4px; height: 4px }
   ::-webkit-scrollbar-track { background: transparent }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px }
-  ::-webkit-scrollbar-thumb:hover { background: var(--muted) }
-  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  ::-webkit-scrollbar-thumb { background: oklch(0.35 0.005 0); border-radius: 99px }
+  ::-webkit-scrollbar-thumb:hover { background: var(--orange) }
+  * { scrollbar-width: thin; scrollbar-color: oklch(0.35 0.005 0) transparent; }
+  .light * { scrollbar-width: thin; scrollbar-color: oklch(0.75 0.005 0) transparent; }
+  .light ::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+  .light ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
   *:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px }
   ::selection { background: oklch(0.55 0.19 45 / 0.25); }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-dsp); line-height: 1.3; letter-spacing: -.02em; text-wrap: pretty; }
@@ -301,10 +307,10 @@ button, a, select, input, textarea {
 .page-header h1 { font: 700 24px/1.2 var(--font-dsp); letter-spacing: -.02em; margin-block-end: 4px; }
 .page-header p { color: var(--muted); font-size: 14px; }
 
-.glass { background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3); border: 1px solid color-mix(in oklch, var(--border) 50%, transparent); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.glass { background: color-mix(in oklch, var(--surface) 70%, transparent); backdrop-filter: blur(32px) saturate(1.4); -webkit-backdrop-filter: blur(32px) saturate(1.4); border: 1px solid color-mix(in oklch, var(--border) 50%, transparent); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .glass-solid { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
-.glass-strong { background:var(--glass-bg-strong); backdrop-filter:blur(24px) saturate(1.5); -webkit-backdrop-filter:blur(24px) saturate(1.5); border:1px solid oklch(0.55 0.19 45 / 0.15); box-shadow:var(--glass-shadow-lg); }
-.card-premium { background: var(--card, var(--surface)); border: 1px solid var(--border); border-radius: var(--radius-md); transform: translateZ(0); transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1); }
+.glass-strong { background:var(--glass-bg-strong); backdrop-filter:blur(32px) saturate(1.5); -webkit-backdrop-filter:blur(32px) saturate(1.5); border:1px solid oklch(0.55 0.19 45 / 0.15); box-shadow:var(--glass-shadow-lg); }
+.card-premium { min-width:0; background: var(--card, var(--surface)); border: 1px solid var(--border); border-radius: var(--radius-md); transform: translateZ(0); transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1); }
 .card-premium:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg), var(--shadow-glow); border-color: var(--accent); }
 
 .card { padding: 20px; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
@@ -741,6 +747,9 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
   --spotlight: oklch(0 0 0 / 0.04);
   --primary: oklch(0.48 0.19 45);
   --primary-foreground: oklch(0.98 0 0);
+  --orange: oklch(0.55 0.19 45);
+  --orange-foreground: oklch(0.98 0 0);
+  --orange-muted: oklch(0.55 0.19 45 / 0.12);
   --warning-foreground: oklch(0.1 0 0);
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.08), oklch(0.52 0.19 45 / 0.04));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(0 0 0 / 0.04) 50%, transparent 100%);

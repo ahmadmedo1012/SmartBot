@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send, Search } from "lucide-react"
+import { ActionSearchBar } from "@/components/action-search-bar"
+import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send } from "lucide-react"
 
 const iconMap = {
   dashboard: LayoutDashboard, messages: MessageCircle, comments: MessageSquare,
@@ -160,11 +161,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
           </button>
           <h2 className="page-title hidden sm:block" id="pageTitle">{pageTitles[currentPage] || currentPage}</h2>
           <div className="header-left">
-            <div className="header-search" role="button" tabIndex="0" aria-label="بحث"
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("search") }}}>
-              <span><Search size={18} strokeWidth={1.8} /></span>
-              <span>بحث سريع...</span>
-            </div>
+            <ActionSearchBar onNavigate={onNavigate} currentPage={currentPage} />
             <div
               className="notif-btn"
               onClick={() => onNavigate("notifications")}

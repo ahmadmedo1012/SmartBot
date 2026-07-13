@@ -1,9 +1,33 @@
 import { useQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import { useAdaptiveInterval } from "@/hooks/use-refresh-engine"
 import { fetchDashboardBundle } from "@/lib/api"
 import { format } from "date-fns"
 import { arSA } from "date-fns/locale"
+
+function AnimatedStat({ value, suffix = "" }) {
+  const [display, setDisplay] = useState(0)
+  const ref = useRef(null)
+  const counted = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current; if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !counted.current) {
+        counted.current = true
+        const steps = 30, step = value / steps
+        let cur = 0
+        const interval = setInterval(() => { cur += step; if (cur >= value) { setDisplay(value); clearInterval(interval) } else setDisplay(Math.floor(cur)) }, 25)
+      }
+    }, { threshold: 0.5 })
+    obs.observe(el); return () => obs.disconnect()
+  }, [value])
+
+  const n = display
+  if (n >= 1000000) return <span ref={ref}>{(n / 1000000).toFixed(1)}M{suffix}</span>
+  if (n >= 1000) return <span ref={ref}>{(n / 1000).toFixed(1)}k{suffix}</span>
+  return <span ref={ref}>{n.toLocaleString()}{suffix}</span>
+}
 
 function LoadingSkeleton() {
   return (
@@ -50,13 +74,6 @@ const statIcons = {
   today: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M4 1v4"/><path d="M18 1v4"/><path d="M2 9h20"/></svg>,
   fans: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
   rules: <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="4" height="4" rx="1"/><rect x="9" y="16" width="4" height="4" rx="1"/><rect x="2" y="9" width="4" height="4" rx="1"/><rect x="16" y="9" width="4" height="4" rx="1"/></svg>,
-}
-
-function formatNum(n) {
-  if (n == null) return "0"
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + "M"
-  if (n >= 1000) return (n / 1000).toFixed(1) + "k"
-  return n.toLocaleString()
 }
 
 export function Dashboard(_p) {
@@ -111,7 +128,7 @@ export function Dashboard(_p) {
         <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
           <div className="stat-icon" data-color="">{statIcons.total}</div>
           <div className="stat-label">آخر 7 أيام</div>
-          <div className="stat-value">{formatNum(stats?.total_replies)}</div>
+          <div className="stat-value"><AnimatedStat value={stats?.total_replies || 0} /></div>
           {stats?.week_trend !== undefined && (
             <div className={`stat-change ${stats.week_trend >= 0 ? "stat-up" : "stat-down"}`}>
               <span className="status-dot" style={{background: stats.week_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
@@ -122,7 +139,7 @@ export function Dashboard(_p) {
         <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.08s both"}}>
           <div className="stat-icon" data-color="success">{statIcons.today}</div>
           <div className="stat-label">ردود اليوم</div>
-          <div className="stat-value">{formatNum(stats?.today_replies)}</div>
+          <div className="stat-value"><AnimatedStat value={stats?.today_replies || 0} /></div>
           {stats?.today_trend !== undefined && (
             <div className={`stat-change ${stats.today_trend >= 0 ? "stat-up" : "stat-down"}`}>
               <span className="status-dot" style={{background: stats.today_trend >= 0 ? "var(--success)" : "var(--danger)"}} />
@@ -133,12 +150,12 @@ export function Dashboard(_p) {
         <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.16s both"}}>
           <div className="stat-icon" data-color="danger">{statIcons.fans}</div>
           <div className="stat-label">المتابعون</div>
-          <div className="stat-value">{formatNum(stats?.fan_count)}</div>
+          <div className="stat-value"><AnimatedStat value={stats?.fan_count || 0} /></div>
         </div>
         <div className="stat-card glass-card card-premium card-hover-glow" style={{animation: "reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) 0.24s both"}}>
           <div className="stat-icon" data-color="warn">{statIcons.rules}</div>
           <div className="stat-label">القواعد النشطة</div>
-          <div className="stat-value">{activeRules}</div>
+          <div className="stat-value"><AnimatedStat value={activeRules} /></div>
           {botStatus?.running !== undefined && (
             <div className={`stat-change ${botStatus.running ? "stat-up" : "stat-down"}`}>
               {botStatus.running ? "● نشط" : "● متوقف"}
@@ -182,7 +199,7 @@ export function Dashboard(_p) {
         {chartData.length >= 2 ? (<>
           <div className="chart-line" style={{ marginTop: "var(--space-md)" }}>
             {chartData.map((d, i) => (
-              <div key={i} className="cl-bar" style={{ height: `${Math.max((d.count / maxCount) * 100, 4)}%` }}>
+              <div key={i} className="cl-bar chart-bar-grow" style={{ height: `${Math.max((d.count / maxCount) * 100, 4)}%`, animationDelay: `${i * 40}ms` }}>
                 <span className="cl-label">{d.label}</span>
               </div>
             ))}
@@ -209,7 +226,7 @@ export function Dashboard(_p) {
           {activities?.length > 0 ? (
             <div className="activity-list" style={{ marginTop: "4px" }}>
               {activities.slice(0, 5).map((a, i) => (
-                <div key={i} className="activity-item">
+                <div key={i} className="activity-item activity-enter">
                   <span className="activity-dot"
                     style={{ background: a.type === "reply" ? "var(--accent)" : "var(--muted)" }} />
                   <div>

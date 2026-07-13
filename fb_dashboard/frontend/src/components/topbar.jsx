@@ -1,4 +1,14 @@
 import { useState, useEffect } from "react"
+import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send, Search, Loader2 } from "lucide-react"
+
+const iconMap = {
+  dashboard: LayoutDashboard, messages: MessageCircle, comments: MessageSquare,
+  posts: FileText, scheduled: Calendar, analytics: BarChart3, audience: Users,
+  leads: UserPlus, ads: Megaphone, marketing: TrendingUp, reports: FileBarChart,
+  pages: Globe, team: Users2, autoreply: Reply, activity: Activity,
+  notifications: Bell, tools: Wrench, billing: CreditCard, support: Headphones,
+  settings: Settings, broadcast: Send,
+}
 
 const sidebarSections = [
   { label: "الرئيسية", items: [

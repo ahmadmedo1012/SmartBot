@@ -201,7 +201,8 @@ button, a, select, input, textarea {
 .app-shell { display: flex; height: 100dvh; }
 .sidebar {
   position: fixed; inset-block: 0; inset-inline-start: 0;
-  width: var(--sidebar-w, 260px); background: var(--surface);
+  width: var(--sidebar-w, 240px); background: color-mix(in oklch, var(--surface) 80%, transparent);
+  backdrop-filter: blur(32px) saturate(1.4); -webkit-backdrop-filter: blur(32px) saturate(1.4);
   border-inline-end: 1px solid var(--border);
   display: flex; flex-direction: column; z-index: 60;
 }
@@ -213,7 +214,7 @@ button, a, select, input, textarea {
 .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
 .nav-section { font: 500 11px/1 var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 14px 12px 5px; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); color: var(--fg); text-decoration: none; cursor: pointer; font-size: 13.5px; font-weight: 500; transition: background .12s, color .12s; position: relative; width: 100%; border: 0; background: none; text-align: start; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; color: var(--fg); text-decoration: none; cursor: pointer; font-size: 13.5px; font-weight: 500; transition: background .12s, color .12s; position: relative; width: 100%; border: 0; background: none; text-align: start; }
 .nav-item:hover { background: color-mix(in oklch, var(--border) 30%, transparent); }
 .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 20%, transparent), 0 0 16px #c53c001a; }
 .nav-item.active::after { content: ""; position: absolute; inset-inline-start: 0; inset-block: 5px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; box-shadow: 0 0 8px #c53c004d; }
@@ -222,7 +223,7 @@ button, a, select, input, textarea {
 .nav-item .nav-icon svg { display: block; }
 .nav-item .nav-badge { margin-inline-start: auto; background: var(--accent); color: var(--accent-fg); font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: var(--radius-pill); line-height: 1.6; animation: badgePop .35s var(--ease); }
 
-.main { margin-inline-start: var(--sidebar-w, 260px); flex: 1; display: flex; flex-direction: column; height: 100dvh; }
+.main { margin-inline-start: var(--sidebar-w, 240px); flex: 1; display: flex; flex-direction: column; height: 100dvh; }
 .header { min-height: var(--header-h); display: flex; align-items: center; padding: 0 24px; gap: 16px; background: color-mix(in oklch, var(--surface) 60%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-block-end: 1px solid var(--border); position: sticky; inset-block-start: 0; z-index: 40; }
 .header.is-scrolled { background: color-mix(in oklch, var(--surface) 30%, transparent); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-block-end-color: color-mix(in oklch, var(--accent) 15%, transparent); box-shadow: 0 1px 0 color-mix(in oklch, var(--accent) 8%, transparent); }
 .header-page-title { font: 600 16px/1 var(--font-dsp); }
@@ -544,7 +545,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .table-wrap table { font-size: 12px; }
 
 @media (max-width: 1024px) {
-  .sidebar { width: 280px; position: fixed; inset-inline-start: calc(-1 * 280px); top: 0; height: 100vh; transition: inset-inline-start .3s var(--ease); z-index: 60; }
+  .sidebar { width: 280px; position: fixed; inset-inline-start: calc(-1 * 280px); background: var(--surface); backdrop-filter: none; top: 0; height: 100vh; transition: inset-inline-start .3s var(--ease); z-index: 60; }
   .sidebar.open { inset-inline-start: 0; }
   .main { margin-inline-start: 0; }
   .hamburger { display: block; }

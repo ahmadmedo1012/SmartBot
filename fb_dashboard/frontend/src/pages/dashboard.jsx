@@ -8,19 +8,18 @@ import { arSA } from "date-fns/locale"
 function AnimatedStat({ value, suffix = "" }) {
   const [display, setDisplay] = useState(0)
   const ref = useRef(null)
-  const counted = useRef(false)
 
   useEffect(() => {
     const el = ref.current; if (!el) return
+    const intervalId = { current: null }
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !counted.current) {
-        counted.current = true
-        const steps = 30, step = value / steps
-        let cur = 0
-        const interval = setInterval(() => { cur += step; if (cur >= value) { setDisplay(value); clearInterval(interval) } else setDisplay(Math.floor(cur)) }, 25)
-      }
+      if (!entry.isIntersecting || intervalId.current) return
+      const steps = 30, step = value / steps
+      let cur = 0
+      intervalId.current = setInterval(() => { cur += step; if (cur >= value) { setDisplay(value); clearInterval(intervalId.current); intervalId.current = null } else setDisplay(Math.floor(cur)) }, 25)
     }, { threshold: 0.5 })
-    obs.observe(el); return () => obs.disconnect()
+    obs.observe(el)
+    return () => { obs.disconnect(); if (intervalId.current) clearInterval(intervalId.current) }
   }, [value])
 
   const n = display

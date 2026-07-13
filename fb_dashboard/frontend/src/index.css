@@ -126,7 +126,6 @@
 @keyframes notif-shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} 75%{transform:rotate(-4deg)} }
 @keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
 @keyframes breathe-glow { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:.7;transform:scale(1.02)} }
-@keyframes shimmer-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 @keyframes nav-shine { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
 @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
@@ -470,7 +469,7 @@ html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(el
 @media (prefers-reduced-motion:reduce) { .stagger-children>*,.reveal-up,.reveal-scale,.reveal-card,.reveal-blur,.shiny-text,.chart-bar-grow,.activity-enter,.login-card-enter,.login-logo-enter,.login-fade-in,.animate-blob-1,.animate-blob-2,.animate-blob-3,.notif-shake,.notif-badge,.pageIn { animation:none!important;opacity:1!important;transform:none!important;filter:blur(0)!important } }
 @keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
 
-@keyframes nav-shine { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+/* ── Shimmer bar uses nav-shine keyframe (defined above in motion section) ── */
 @keyframes glow-pulse { 0%,100%{box-shadow:0 0 12px var(--accent-soft)} 50%{box-shadow:0 0 24px var(--accent-soft)} }
 @keyframes shimmer-wave { 0%{background-position:-200% center} 100%{background-position:200% center} }
 .shimmer-bar { position:absolute;bottom:0;left:0;width:100%;height:1px;overflow:hidden;pointer-events:none; }

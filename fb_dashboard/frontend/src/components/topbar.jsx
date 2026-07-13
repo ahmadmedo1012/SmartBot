@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { LayoutDashboard, MessageCircle, MessageSquare, FileText, Calendar, BarChart3, Users, Users2, Megaphone, TrendingUp, FileBarChart, Globe, UserPlus, Bell, Settings, Wrench, CreditCard, Headphones, Activity, Reply, Send, Search } from "lucide-react"
 
 const iconMap = {
   dashboard: LayoutDashboard, messages: MessageCircle, comments: MessageSquare,
@@ -59,8 +59,10 @@ const mobileNav = [
 export function Topbar({ currentPage, onNavigate, username, children, notifCount = 0 }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [hideHeader, setHideHeader] = useState(false)
+  const lastY = useRef(0)
 
-  // IntersectionObserver for scroll-state — avoids style recalc per scroll frame
+  // IntersectionObserver for scroll-state + hide-on-scroll-down
   useEffect(() => {
     const sentinel = document.createElement("div")
     sentinel.style.position = "absolute"
@@ -74,7 +76,13 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       { rootMargin: "-20px 0px 0px 0px" }
     )
     obs.observe(sentinel)
-    return () => { obs.disconnect(); sentinel.remove() }
+    const onScroll = () => {
+      const y = window.scrollY
+      if (y > 80) setHideHeader(y > lastY.current)
+      lastY.current = y
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => { obs.disconnect(); sentinel.remove(); window.removeEventListener("scroll", onScroll) }
   }, [])
 
   const handleNav = (key) => {
@@ -134,7 +142,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       <div className="main">
         {/* header */}
         <header className={`header ${scrolled ? "is-scrolled" : ""}`} style={{
-          transition: "background .35s var(--ease-smooth), backdrop-filter .35s var(--ease-smooth), border-color .35s var(--ease-smooth)",
+          transition: "background .35s var(--ease-smooth), backdrop-filter .35s var(--ease-smooth), border-color .35s var(--ease-smooth), transform .35s var(--ease-smooth)",
+          transform: hideHeader ? "translateY(-100%)" : "translateY(0)",
         }}>
           <button
             className="hamburger"
@@ -152,7 +161,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
           <div className="header-left">
             <div className="header-search" role="button" tabIndex="0" aria-label="بحث"
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("search") }}}>
-              <span><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="5"/><path d="M11.5 11.5l4 4"/></svg></span>
+              <span><Search size={18} strokeWidth={1.8} /></span>
               <span>بحث سريع...</span>
             </div>
             <div
@@ -163,7 +172,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
               tabIndex="0"
               aria-label="الإشعارات"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 14H4l1.5-5a4.5 4.5 0 0 1 8.9 0L16 14z"/><path d="M8.5 16a1.5 1.5 0 0 0 3 0"/></svg>
+              <Bell size={20} strokeWidth={1.8} />
               {notifCount > 0 && <span className="notif-dot"></span>}
             </div>
             <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"

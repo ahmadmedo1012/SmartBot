@@ -46,10 +46,10 @@ export function Analytics() {
   }
 
   return (
-    <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
+    <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1 className="gradient-text">التحليلات</h1>
+        <h1>التحليلات</h1>
         <p>بيانات وإحصائيات الأداء</p>
       </div>
 

@@ -45,7 +45,7 @@ const FILTERS = [
   { value: "needs_reply", label: "بحاجة رد" },
 ]
 
-const TAG_COLORS = ["#6366f1", "#f59e0b", "#ef4444", "#22c55e", "#ec4899", "#14b8a6", "#f97316", "#8b5cf6"]
+const TAG_COLORS = ["#c84e00", "#f59e0b", "#ef4444", "#22c55e", "#ec4899", "#14b8a6", "#f97316", "#3b82f6"]
 
 function ConvItem({ conv, selectedId, onSelect }) {
   const hasUnread = conv.unread_count > 0
@@ -109,7 +109,7 @@ export function Messages({ role }) {
   const [replyText, setReplyText] = useState("")
   const [showTagDialog, setShowTagDialog] = useState(false)
   const [newTagName, setNewTagName] = useState("")
-  const [newTagColor, setNewTagColor] = useState("#6366f1")
+  const [newTagColor, setNewTagColor] = useState("#c84e00")
   const [showTemplates, setShowTemplates] = useState(false)
   const [optimisticMessages, setOptimisticMessages] = useState([])
   const replyInputRef = useRef(null)

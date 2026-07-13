@@ -250,7 +250,7 @@ class Subscriber(Base):
     last_interaction_at = Column(DateTime, nullable=True)
     last_comment_text = Column(Text, default="")
     reply_count = Column(Integer, default=0)
-    custom_data = Column(JSON, default={})
+    custom_data = Column(JSON, default=dict)
     created_at = Column(DateTime, default=utcnow)
 
     tags = relationship("Tag", secondary="subscriber_tags", lazy="selectin", back_populates="subscribers")
@@ -314,12 +314,12 @@ class FlowExecution(Base):
     flow_id = Column(Integer, ForeignKey("flows.id"), nullable=False, index=True)
     subscriber_id = Column(Integer, ForeignKey("subscribers.id"), nullable=True, index=True)
     trigger_type = Column(String(50), default="")
-    trigger_data = Column(JSON, default={})
+    trigger_data = Column(JSON, default=dict)
     current_node_id = Column(String(100), default="")
     status = Column(String(20), default="active")  # active/completed/failed/expired
     started_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
-    error_log = Column(JSON, default={})
+    error_log = Column(JSON, default=dict)
 
 
 # ── Sequences (Drip Campaigns) ─────────────────────────────────────────────────
@@ -353,7 +353,7 @@ class SequenceStep(Base):
     delay_hours = Column(Integer, default=0)
     message_template = Column(Text, default="")
     message_type = Column(String(20), default="text")  # text/image/carrier
-    action_on_complete = Column(JSON, default={})
+    action_on_complete = Column(JSON, default=dict)
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -384,8 +384,8 @@ class Broadcast(Base):
     tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(200), nullable=False)
     message_template = Column(Text, default="")
-    platform_filter = Column(JSON, default={})
-    segment_filters = Column(JSON, default={})
+    platform_filter = Column(JSON, default=dict)
+    segment_filters = Column(JSON, default=dict)
     status = Column(String(20), default="draft")  # draft/sending/sent/cancelled/partial
     total_recipients = Column(Integer, default=0)
     sent_count = Column(Integer, default=0)
@@ -467,7 +467,7 @@ class Customer(Base):
     total_interactions = Column(Integer, default=0)
     last_intent = Column(String(50), default="")
     interested_in = Column(String(200), default="")  # product/category interested
-    custom_fields = Column(JSON, default={})
+    custom_fields = Column(JSON, default=dict)
     first_seen_at = Column(DateTime, default=utcnow)
     last_contacted_at = Column(DateTime, nullable=True)
     converted_at = Column(DateTime, nullable=True)

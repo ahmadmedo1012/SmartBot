@@ -26,7 +26,7 @@ function timeAgo(date) {
 const ACT_COLORS = {
   reply: { bg: "var(--accent-soft)", color: "var(--accent)" },
   comment: { bg: "var(--info-soft)", color: "var(--info)" },
-  mention: { bg: "#f0f0ff", color: "#8b5cf6" },
+  mention: { bg: "color-mix(in oklch, var(--info) 15%, transparent)", color: "var(--info)" },
   login: { bg: "var(--accent-soft)", color: "var(--accent)" },
   edit: { bg: "var(--warning-soft)", color: "var(--warning)" },
   remove: { bg: "var(--danger-soft)", color: "var(--danger)" },

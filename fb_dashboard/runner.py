@@ -18,6 +18,7 @@ from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body,
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_, update
@@ -348,6 +349,13 @@ async def validation_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=422, content={"detail": "؛ ".join(msgs) or "بيانات غير صالحة"})
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://smartbot.vercel.app", "http://localhost:5173", "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.middleware("http")(dedup_middleware)
 
 # Register logs API router
@@ -381,6 +389,7 @@ async def _run_bot_loop():
                 fb = await get_tenant_fb_client(tenant.id)
                 if not fb:
                     continue
+                BotEngine.reset_instance()
                 engine = get_bot_engine(fb, tenant_id=tenant.id)
                 await engine.cycle()
         except Exception as e:
@@ -425,7 +434,7 @@ async def get_tenant_fb_client(tenant_id: int) -> FBClient | None:
 async def login(username: str = Form(...), password: str = Form(...), request: Request = None, db=Depends(get_db)):
     ip = request.client.host if request and request.client else "unknown"
     from _rate_limit import check_rate_limit
-    if not await check_rate_limit(db, f"login:{ip}:{username}", max_attempts=10, window_seconds=60):
+    if not await check_rate_limit(db, f"login:{ip}", max_attempts=10, window_seconds=60):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
     user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
     user = user.scalar_one_or_none()
@@ -3297,6 +3306,10 @@ async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(requ
 
 @app.post("/api/commerce/shopify/webhook/{topic:path}")
 async def shopify_webhook(topic: str, request: Request):
+    if not getattr(commerce_engine, 'shopify', None):
+        raise HTTPException(503, "Shopify not configured")
+    if not await commerce_engine.shopify.verify_webhook(request):
+        raise HTTPException(401, "Invalid HMAC signature")
     body = await request.json()
     ctx = await commerce_engine.shopify.handle_webhook(topic, body)
     return ctx
@@ -3569,7 +3582,7 @@ async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin")
         raise HTTPException(400, "يجب أن تكون المدة بين 10 و3600 ثانية")
     from bot import BotEngine
     eng = BotEngine._instance
-    if eng: eng.cooldown.adjust_window(seconds)
+    if eng: eng.cooldown.adjust_window("global", seconds)
     return {"ok": True, "cooldown_seconds": seconds}
 
 

@@ -99,10 +99,10 @@ export function Login({ onAuth }) {
 
       <div className="login-card-enter relative z-10 w-full max-w-sm mx-auto p-4 sm:p-5">
         <AnimatedGradientBorder>
-          <div className="relative rounded-2xl p-6 sm:p-8 glass-card">
+          <div className="relative rounded-2xl p-6 sm:p-8 glass-card card-hover-glow">
             {/* Logo */}
             <div className="text-center mb-6">
-              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden bg-accent" style={{background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", boxShadow: "var(--shadow-glow)"}}>
+              <div className="login-logo-enter w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center overflow-hidden bg-accent card-glow-strong" style={{background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))", boxShadow: "var(--shadow-glow)"}}>
                 <img src="/static/favicon.png" alt="SmartBot" className="w-12 h-12 object-contain" />
               </div>
               <h1 className="text-3xl font-bold text-gradient-premium">SmartBot</h1>

@@ -17,7 +17,7 @@ function LoadingSkeleton() {
           </div>
         ))}
       </div>
-      <div className="content-card glass">
+      <div className="content-card glass card-premium">
         {[1, 2, 3].map((i) => (
           <div key={i} className="post-card">
             <div className="skeleton" style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0 }} />
@@ -36,7 +36,7 @@ function ErrorState({ message, onRetry }) {
   return (
     <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
       <div className="page-header reveal-blur">
-        <h1>الصفحات</h1>
+        <h1 className="gradient-text">الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>
       <div className="empty-state">
@@ -84,24 +84,24 @@ export function Pages() {
     <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>الصفحات</h1>
+        <h1 className="gradient-text">الصفحات</h1>
         <p>إدارة صفحات فيسبوك المتصلة</p>
       </div>
 
       <div className="stats-grid stagger-children" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
-        <div className="stat-card glass">
+        <div className="stat-card glass glass-card card-premium card-hover-lift">
           <div className="stat-label">حالة الاتصال</div>
           <div className="stat-value" style={{ color: connected ? "var(--success)" : "var(--danger)" }}>
             {connected ? "متصل" : "غير متصل"}
           </div>
         </div>
         {connected && (
-          <div className="stat-card glass">
+          <div className="stat-card glass glass-card card-premium card-hover-lift">
             <div className="stat-label">معرف الصفحة</div>
             <div className="stat-value" style={{ fontSize: 16 }}>{fbSettings.page_id}</div>
           </div>
         )}
-        <div className="stat-card glass">
+        <div className="stat-card glass glass-card card-premium card-hover-lift">
           <div className="stat-label">رمز الوصول</div>
           <div className="stat-value" style={{ color: hasToken ? "var(--success)" : "var(--muted)", fontSize: 16 }}>
             {hasToken ? "موجود" : "غير موجود"}
@@ -110,7 +110,7 @@ export function Pages() {
       </div>
 
       {connected ? (
-        <div className="content-card glass">
+        <div className="content-card glass card-premium">
           <div className="post-card">
             <div className="post-img" style={{ background: "var(--accent)" }} />
             <div className="post-info">
@@ -121,7 +121,7 @@ export function Pages() {
           </div>
         </div>
       ) : (
-        <div className="content-card glass">
+        <div className="content-card glass card-premium">
           <div className="empty-state" style={{ padding: "32px 0" }}>
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.3" style={{ marginBlockEnd: "var(--space-md)" }}>
               <rect x="4" y="8" width="48" height="40" rx="4" />

@@ -118,10 +118,11 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* sidebar */}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
         <div className="sidebar-header" style={{ position: "relative", overflow: "hidden" }}>
-          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", boxShadow:"var(--shadow-glow)"}}>
+          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", boxShadow:"var(--shadow-glow-strong)"}}>
             <img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
           </div>
-          <div className="sidebar-title">Smart<span style={{whiteSpace:"nowrap"}}>Bot</span>
+          <div className="sidebar-title">
+            <span className="shiny-text" style={{fontSize:"15px",fontWeight:700}}>SmartBot</span>
             <span style={{fontSize:"10px", color:"var(--muted)"}}>لوحة تحكم فيسبوك</span>
           </div>
           <div className="shimmer-bar" aria-hidden="true" style={{position:"absolute",bottom:0,left:0,width:"100%",height:"1px",overflow:"hidden",pointerEvents:"none"}} />
@@ -168,7 +169,9 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
               <path d="M4 6h14"/><path d="M4 11h14"/><path d="M4 16h14"/>
             </svg>
           </button>
-          <h2 className="header-page-title" id="pageTitle">{pageTitles[currentPage] || currentPage}</h2>
+          <h2 className="header-page-title" id="pageTitle">
+  <span className="shiny-text">{pageTitles[currentPage] || currentPage}</span>
+</h2>
           <div className="header-left">
             <div className="header-search" role="button" tabIndex="0" aria-label="بحث">
               <span><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="7.5" r="5"/><path d="M11.5 11.5l4 4"/></svg></span>
@@ -193,10 +196,12 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
         {children}
 
         {/* mobile bottom nav */}
+        {currentPage !== "landing" && currentPage !== "login" && (
         <nav
           className="md:hidden fixed bottom-0 inset-x-0 z-40 flex items-stretch border-t"
           style={{ background: "var(--surface)", borderColor: "var(--border)", paddingBottom: "env(safe-area-inset-bottom, 0px)", height: "4rem" }}
         >
+          <div className="shimmer-bar" aria-hidden="true" style={{position:"absolute",top:0,left:0,width:"100%",height:"1px",overflow:"hidden",pointerEvents:"none"}} />
           {mobileNav.map((item) => {
             const active = currentPage === item.key
             return (
@@ -215,6 +220,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
             )
           })}
         </nav>
+        )}
       </div>
     </div>
   )

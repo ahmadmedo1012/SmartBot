@@ -115,7 +115,7 @@ function ConnectFacebookStep({ onNext }) {
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBlockEnd: 4 }}>ربط صفحة فيسبوك</h2>
         <p style={{ fontSize: 13, color: "var(--muted)" }}>أدخل بيانات صفحتك لبدء استقبال التفاعلات</p>
       </div>
-      <div className="card glass card-inset" style={{ maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <div className="card glass glass-card card-premium card-hover-lift card-inset" style={{ maxWidth: 480, margin: "0 auto", width: "100%" }}>
         <div className="fld mb-8">
           <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBlockEnd: 4 }}>معرف الصفحة (Page ID)</label>
           <input type="text" className="fld" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل Page ID" style={{ width: "100%" }} dir="ltr" />
@@ -186,7 +186,7 @@ function FirstRuleStep({ onNext }) {
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBlockEnd: 4 }}>إنشاء أول قاعدة رد تلقائي</h2>
         <p style={{ fontSize: 13, color: "var(--muted)" }}>حدد كلمة مفتاحية ونص الرد التلقائي</p>
       </div>
-      <div className="card glass card-inset" style={{ maxWidth: 480, margin: "0 auto", width: "100%" }}>
+      <div className="card glass glass-card card-premium card-hover-lift card-inset" style={{ maxWidth: 480, margin: "0 auto", width: "100%" }}>
         <div className="fld mb-8">
           <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBlockEnd: 4 }}>الكلمة المفتاحية</label>
           <input type="text" className="fld" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="مثال: سعر, مرحبا, تواصل" style={{ width: "100%" }} />
@@ -239,13 +239,13 @@ export function Onboarding({ onComplete }) {
     <section className="page active" dir="rtl" style={{ position: "relative", animation: "pageIn 0.35s var(--ease)" }}>
       <div className="mesh-bg" />
       <div className="page-header reveal-blur" style={{ textAlign: "center" }}>
-        <h1>إعداد SmartBot</h1>
+        <h1 className="gradient-text">إعداد SmartBot</h1>
         <p>تجربة الإعداد السريع — دقائق قليلة وتبدأ</p>
       </div>
 
       <StepIndicator current={step} />
 
-      <div className="card glass" style={{ maxWidth: 520, margin: "0 auto", padding: 32 }}>
+      <div className="card glass glass-card card-premium card-hover-lift" style={{ maxWidth: 520, margin: "0 auto", padding: 32 }}>
         {step === 0 && <WelcomeStep onNext={() => setStep(1)} />}
         {step === 1 && <ConnectFacebookStep onNext={() => setStep(2)} />}
         {step === 2 && <FirstRuleStep onNext={() => setStep(3)} />}

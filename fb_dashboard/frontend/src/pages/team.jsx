@@ -117,7 +117,7 @@ export function Team({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>فريق العمل</h1>
+        <h1 className="gradient-text">فريق العمل</h1>
         <p>{totalMembers} عضو · {totalRoles} أدوار</p>
       </div>
 
@@ -130,14 +130,14 @@ export function Team({ role }) {
           {[1,2,3,4].map(i => <div key={i} className="stat-card glass" style={{height:72,background:"var(--skeleton)"}} />)}
         </div>
       ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(4,1fr)"}}>
           {[
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "إجمالي الأعضاء", value: summary.total ?? totalMembers, color: "var(--accent)" },
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3m0 12l-4-4m4 4l4-4"/><path d="M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>, label: "مدير", value: summary.admin ?? 0, color: "var(--warning)" },
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "محرر", value: summary.editor ?? 0, color: "var(--info)" },
             { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "مشاهد", value: summary.viewer ?? 0, color: "var(--muted)" },
           ].map(s => (
-            <div key={s.label} className="stat-card glass" style={{display:"flex",alignItems:"center",gap:12,padding:16}}>
+            <div key={s.label} className="stat-card glass card-premium card-hover-lift" style={{display:"flex",alignItems:"center",gap:12,padding:16}}>
               <div style={{width:40,height:40,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:s.color,color:"#fff",flexShrink:0}}>{s.icon}</div>
               <div><div className="stat-value" style={{fontSize:22}}>{s.value}</div><div className="stat-label">{s.label}</div></div>
             </div>
@@ -166,13 +166,13 @@ export function Team({ role }) {
           <div className="qactions" style={{marginBlockStart:12}}><InviteDialog isAdmin={isAdmin} /></div>
         </div>
       ) : (
-        <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
+        <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))"}}>
           {members.map(m => {
             const initial = (m.username || "?").charAt(0).toUpperCase()
             const gradient = `hsl(${m.id * 37 % 360}, 55%, 45%)`
             const rs = m.role === "admin" ? {bg:"var(--accent-soft)",color:"var(--accent)"} : m.role === "editor" ? {bg:"var(--info-soft)",color:"var(--info)"} : {bg:"var(--skeleton)",color:"var(--muted)"}
             return (
-              <div key={m.id} className="stat-card glass">
+              <div key={m.id} className="stat-card glass card-premium card-hover-lift">
                 <div className="person-row">
                   <div className="person-avatar" style={{background:gradient}}>{initial}</div>
                   <div className="person-info">

@@ -64,7 +64,7 @@ export function Reports() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>التقارير</h1>
+        <h1 className="gradient-text">التقارير</h1>
         <p>تحليلات متقدمة لأداء البوت والتفاعلات</p>
       </div>
 
@@ -87,7 +87,7 @@ export function Reports() {
           { label: "المتابعون", value: analytics?.fan_count || "—" },
           { label: "ذروة النشاط", value: analytics?.peak_hour != null ? `${analytics.peak_hour}:00` : "—" },
         ].map(s => (
-          <div key={s.label} className="stat-card glass" style={{textAlign:"center"}}>
+          <div key={s.label} className="stat-card glass glass-card card-premium card-hover-lift" style={{textAlign:"center",animation:"reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
             <div className="stat-value">{s.value}</div>
             <div className="stat-label">{s.label}</div>
           </div>
@@ -95,7 +95,7 @@ export function Reports() {
       </div>
 
       <div className="stats-grid" style={{gridTemplateColumns:"repeat(2,1fr)"}}>
-        <div className="card glass" style={{padding:16}}>
+        <div className="card glass-card card-premium card-hover-lift" style={{padding:16}}>
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title" style={{fontSize:13}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -115,7 +115,7 @@ export function Reports() {
            ) : <p className="empty-state" style={{padding:40}}>بيانات غير كافية</p>}
         </div>
 
-        <div className="card glass" style={{padding:16}}>
+        <div className="card glass-card card-premium card-hover-lift" style={{padding:16}}>
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title" style={{fontSize:13}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -135,7 +135,7 @@ export function Reports() {
            ) : <p className="empty-state" style={{padding:40}}>لا توجد بيانات</p>}
         </div>
 
-        <div className="card glass" style={{padding:16}}>
+        <div className="card glass-card card-premium card-hover-lift" style={{padding:16}}>
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title" style={{fontSize:13}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
@@ -165,7 +165,7 @@ export function Reports() {
           ) : <p className="empty-state" style={{padding:40}}>لا توجد بيانات مشاعر</p>}
         </div>
 
-        <div className="card glass" style={{padding:16}}>
+        <div className="card glass-card card-premium card-hover-lift" style={{padding:16}}>
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>
             <div className="cc-title" style={{fontSize:13}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>

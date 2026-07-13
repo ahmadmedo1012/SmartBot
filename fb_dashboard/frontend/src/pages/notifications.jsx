@@ -33,7 +33,7 @@ export function Notifications() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>الإشعارات</h1>
+        <h1 className="gradient-text">الإشعارات</h1>
         <p>آخر الإشعارات والتنبيهات</p>
       </div>
       <div className="qactions">
@@ -42,7 +42,7 @@ export function Notifications() {
           تحديد الكل كمقروء
         </button>
       </div>
-      <div className="content-card glass stagger-children">
+      <div className="content-card glass glass-card card-premium card-hover-lift stagger-children">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>

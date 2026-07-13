@@ -50,7 +50,7 @@ export function Posts({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>المنشورات</h1>
+        <h1 className="gradient-text">المنشورات</h1>
         <p>إدارة منشورات الصفحة</p>
       </div>
 
@@ -65,7 +65,7 @@ export function Posts({ role }) {
           style={{maxWidth:280,width:"100%"}} />
       </div>
 
-      <div className="content-card glass">
+      <div className="content-card glass-card card-premium card-hover-lift">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
@@ -76,7 +76,7 @@ export function Posts({ role }) {
 
         {isLoading ? (
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
-            {[1,2,3].map(i => <div key={i} className="stat-card glass skel-card" />)}
+            {[1,2,3].map(i => <div key={i} className="stat-card glass glass-card card-premium card-hover-lift skel-card" style={{animation:"reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}} />)}
           </div>
         ) : error ? (
           <div className="empty-state">
@@ -88,7 +88,7 @@ export function Posts({ role }) {
         ) : (
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
             {filtered.map(p => (
-              <div key={p.id} className="stat-card glass">
+              <div key={p.id} className="stat-card glass glass-card card-premium card-hover-lift" style={{animation:"reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
                 <p className="card-text">
                   {p.message || <span className="text-muted-italic">(بدون نص)</span>}
                 </p>

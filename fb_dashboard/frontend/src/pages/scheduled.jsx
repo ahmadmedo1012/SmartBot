@@ -50,7 +50,7 @@ export function ScheduledPosts({ role }) {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>المنشورات المجدولة</h1>
+        <h1 className="gradient-text">المنشورات المجدولة</h1>
         <p>إنشاء وجدولة ونشر منشورات فيسبوك</p>
       </div>
 
@@ -71,7 +71,7 @@ export function ScheduledPosts({ role }) {
         ))}
       </div>
 
-      <div className="content-card glass">
+      <div className="content-card glass-card card-premium card-hover-lift">
         <div className="cc-header">
           <div className="cc-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="15" r="2"/><path d="M12 13v2l1 1"/></svg>
@@ -92,11 +92,11 @@ export function ScheduledPosts({ role }) {
         ) : posts.length === 0 ? (
           <div className="empty-state" role="status"><p>لا توجد منشورات</p></div>
         ) : (
-          <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+          <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
             {posts.map(p => {
               const st = statusMap[p.status] || statusMap.draft
               return (
-                <div key={p.id} className="stat-card glass">
+                <div key={p.id} className="stat-card glass glass-card card-premium card-hover-lift" style={{animation:"reveal-card 0.5s cubic-bezier(0.16,1,0.3,1) both"}}>
                   <div className="card-text">{p.message}</div>
                   <span className={`badge ${st.cls}`} style={{marginBlock:"8px"}}>{st.label}</span>
                   {p.scheduled_at && (

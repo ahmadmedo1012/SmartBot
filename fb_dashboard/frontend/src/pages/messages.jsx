@@ -208,9 +208,9 @@ export function Messages({ role }) {
       <div className="mesh-bg"></div>
       <div style={{display:"flex",flex:1,overflow:"hidden",gap:0}}>
         {/* ─── LEFT: CONVERSATIONS ─── */}
-        <div className={`card glass-card`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
+        <div className={`card glass-card card-premium card-hover-lift`} style={{display:"flex",flexDirection:"column",width:selectedId ? "380px" : "100%",maxWidth:selectedId ? "100vw" : "100%",overflow:"hidden",borderRadius:0,border:"none",flexShrink:0}}>
           <div style={{padding:"16px 16px 8px",borderBottom:"1px solid var(--border)"}}>
-            <h2 style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
+            <h2 className="gradient-text" style={{fontSize:14,fontWeight:700,marginBlockEnd:8}}>المحادثات <span style={{fontSize:11,color:"var(--muted)",fontWeight:400}}>{total}</span></h2>
             <div className="fld" style={{position:"relative",marginBlockEnd:8}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:"var(--muted)",pointerEvents:"none"}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input className="fld" placeholder="بحث..." aria-label="بحث في المحادثات" value={search} onChange={e => { setSearch(e.target.value); setSelectedId(null) }} style={{width:"100%",paddingRight:32}} />
@@ -259,14 +259,14 @@ export function Messages({ role }) {
 
         {/* ─── RIGHT: CONVERSATION DETAIL ─── */}
         {!selectedId ? (
-          <div className="card glass" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:0,border:"none"}}>
+          <div className="card glass card-premium" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:0,border:"none"}}>
             <div className="empty-state">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{color:"var(--muted)",opacity:0.3,marginBlockEnd:12}}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <p>اختر محادثة</p>
             </div>
           </div>
         ) : (
-          <div className="card glass" style={{flex:1,display:"flex",flexDirection:"column",borderRadius:0,border:"none",minWidth:0}}>
+          <div className="card glass card-premium" style={{flex:1,display:"flex",flexDirection:"column",borderRadius:0,border:"none",minWidth:0}}>
             {/* Header */}
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",borderBottom:"1px solid var(--border)"}}>
               <button className="btn btn-outline" style={{padding:"4px 6px",fontSize:12}} onClick={() => setSelectedId(null)}>

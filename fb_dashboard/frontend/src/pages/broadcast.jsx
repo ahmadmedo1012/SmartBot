@@ -268,15 +268,15 @@ function BroadcastDetail({ broadcastId, onBack }) {
       <div className="page-header"><h1>{b.name}</h1><StatusBadge status={b.status} /></div>
 
       <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-        <div className="stat-card glass-card" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card card-premium card-hover-lift reveal-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--success)"}}>{b.sent_count || 0}</div>
           <div className="stat-label">تم الإرسال</div>
         </div>
-        <div className="stat-card glass-card" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card card-premium card-hover-lift reveal-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--danger)"}}>{b.failed_count || 0}</div>
           <div className="stat-label">فشل</div>
         </div>
-        <div className="stat-card glass-card" style={{textAlign:"center"}}>
+        <div className="stat-card glass-card card-premium card-hover-lift reveal-card" style={{textAlign:"center"}}>
           <div className="stat-value" style={{color:"var(--warning)"}}>{b.pending_count || 0}</div>
           <div className="stat-label">قيد الانتظار</div>
         </div>
@@ -373,8 +373,8 @@ export function Broadcast({ role }) {
   return (
     <section className="page active" dir="rtl" style={{position:"relative"}}>
       <div className="mesh-bg"></div>
-      <div className="page-header">
-        <h1>البث الجماعي</h1>
+      <div className="page-header reveal-blur">
+        <h1 className="gradient-text">البث الجماعي</h1>
         <p>{broadcasts.length} بث{broadcasts.length > 0 && ` · ${broadcasts.filter(b => b.status === "sent").length} تم`}</p>
       </div>
 
@@ -389,7 +389,7 @@ export function Broadcast({ role }) {
 
       {isLoading ? (
         <div className="stats-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
-          {[1,2,3,4].map(i => <div key={i} className="stat-card glass-card" style={{height:80,background:"var(--skeleton)"}} />)}
+          {[1,2,3,4].map(i => <div key={i} className="stat-card glass-card card-premium card-hover-lift" style={{height:80,background:"var(--skeleton)"}} />)}
         </div>
       ) : error ? (
         <div className="card glass" style={{textAlign:"center",padding:40}}>

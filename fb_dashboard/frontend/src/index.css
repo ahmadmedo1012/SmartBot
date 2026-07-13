@@ -521,6 +521,54 @@ html[data-theme="dark"] .bg-radial-glow::before { background: radial-gradient(el
 @keyframes reveal-card { 0%{opacity:0;transform:translateY(30px) scale(0.97);clip-path:inset(5% 0 10% 0)} 100%{opacity:1;transform:translateY(0) scale(1);clip-path:inset(0 0 0 0)} }
 .shimmer-bar { position:absolute;bottom:0;left:0;width:100%;height:1px;overflow:hidden;pointer-events:none; }
 .shimmer-bar::after { content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,var(--accent-soft) 20%,color-mix(in oklch,var(--accent) 30%,transparent) 40%,color-mix(in oklch,var(--accent) 20%,transparent) 60%,transparent 100%);animation:nav-shine 2s ease-in-out infinite; }
+
+/* ── Premium SmartLink/Menu card accents ── */
+.card-accent { border-block-start: 3px solid var(--accent); }
+.card-accent-glow { position:relative; }
+.card-accent-glow::after { content:'';position:absolute;inset-block-start:-1px;inset-inline:50%;transform:translateX(-50%);width:60%;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 50% 50%; }
+.card-glow { box-shadow:var(--shadow-glow); }
+.card-glow-strong { box-shadow:var(--shadow-glow-strong); }
+.card-hover-lift { transition:transform var(--duration-fast,0.2s) var(--ease-smooth),box-shadow var(--duration-fast,0.2s) var(--ease-smooth); }
+.card-hover-lift:hover { transform:translateY(-2px);box-shadow:var(--shadow-lg),0 0 30px var(--shadow-glow); }
+.card-hover-glow { transition:border-color var(--duration-fast,0.2s) var(--ease-smooth),box-shadow var(--duration-fast,0.2s) var(--ease-smooth); }
+.card-hover-glow:hover { border-color:color-mix(in oklch,var(--accent) 30%,transparent);box-shadow:0 0 24px var(--accent-soft); }
+
+/* ── Status indicator enhancements ── */
+.status-indicator { display:inline-flex;align-items:center;gap:6px;font-size:12px; }
+.status-dot-accent { width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px color-mix(in oklch,var(--accent) 50%,transparent); }
+.status-dot-success { width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 6px color-mix(in oklch,var(--success) 50%,transparent); }
+.status-dot-danger { width:8px;height:8px;border-radius:50%;background:var(--danger);box-shadow:0 0 6px color-mix(in oklch,var(--danger) 50%,transparent); }
+.status-dot-warn { width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 6px color-mix(in oklch,var(--warn) 50%,transparent); }
+
+/* ── Premium table enhancements ── */
+.data-table-sm { font-size:12px; }
+.data-table-sm th { font-size:10px;letter-spacing:0.06em;text-transform:uppercase; }
+.data-table-sm td { font-size:12px; }
+
+/* ── Icon container for premium pages ── */
+.icon-box { display:grid;place-items:center;border-radius:var(--radius-md);flex-shrink:0; }
+.icon-box-sm { width:32px;height:32px; }
+.icon-box-md { width:40px;height:40px; }
+.icon-box-lg { width:48px;height:48px; }
+.icon-box-accent { background:var(--accent-soft);color:var(--accent); }
+.icon-box-success { background:var(--success-soft);color:var(--success); }
+.icon-box-danger { background:var(--danger-soft);color:var(--danger); }
+.icon-box-warn { background:var(--warn-soft);color:var(--warn); }
+.icon-box-info { background:var(--info-soft);color:var(--info); }
+
+/* ── Premium page header variant ── */
+.page-header-premium { position:relative;padding-block-end:var(--space-lg);margin-block-end:var(--space-lg); }
+.page-header-premium::after { content:'';position:absolute;bottom:0;inset-inline-start:0;width:60px;height:3px;background:linear-gradient(90deg,var(--accent),transparent);border-radius:2px; }
+
+/* ── Floating action glow for primary buttons ── */
+.btn-glow { position:relative; }
+.btn-glow::before { content:'';position:absolute;inset:0;border-radius:inherit;background:var(--accent);opacity:0;filter:blur(12px);transition:opacity var(--duration-fast,0.2s) var(--ease);z-index:-1; }
+.btn-glow:hover::before { opacity:0.4; }
+
+/* ── Content card list item with accent ── */
+.list-item-accent { display:flex;align-items:center;gap:12px;padding:12px 0;border-block-end:1px solid var(--border);transition:background var(--duration-fast,0.15s) var(--ease); }
+.list-item-accent:last-child { border-block-end:none; }
+.list-item-accent:hover { background:color-mix(in oklch,var(--border) 20%,transparent);margin-inline:-8px;padding-inline:8px;border-radius:var(--radius-sm); }
 .table-wrap table { font-size: 12px; }
 
 @media (max-width: 1024px) {

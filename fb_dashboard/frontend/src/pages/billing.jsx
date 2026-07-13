@@ -53,13 +53,14 @@ export function Billing() {
 
   return (
     <section className="page active" dir="rtl" style={{animation:"pageIn 0.35s var(--ease)"}}>
+      <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>الفواتير والاشتراك</h1>
+        <h1 className="gradient-text">الفواتير والاشتراك</h1>
         <p>إدارة خطتك واشتراكاتك</p>
       </div>
 
       {/* Balance Card */}
-      <div className="stat-card glass" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <div className="stat-card glass glass-card card-premium card-hover-lift" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <div className="stat-label">الرصيد الحالي</div>
           {balLoading ? (
@@ -76,8 +77,8 @@ export function Billing() {
       </div>
 
       {/* Topup Section */}
-      <div className="row-2" style={{ marginBottom: 24 }}>
-        <div className="card glass">
+      <div className="row-2 stagger-children" style={{ marginBottom: 24 }}>
+        <div className="card glass glass-card card-premium card-hover-lift">
           <div className="cc-header"><div className="cc-title">شحن الرصيد</div></div>
 
           <p className="text-muted-md mb-12">اختر المبلغ:</p>
@@ -134,7 +135,7 @@ export function Billing() {
         </div>
 
         {/* Plan Info */}
-        <div className="card glass">
+        <div className="card glass glass-card card-premium card-hover-lift">
           <div className="cc-header"><div className="cc-title">الاشتراك الحالي</div></div>
           <div style={{ marginBottom: 16 }}>
             <span className="badge badge-a" style={{ fontSize: 13, padding: "4px 14px" }}>
@@ -165,7 +166,7 @@ export function Billing() {
       </div>
 
       {/* Payment History */}
-      <div className="card glass" style={{ marginBottom: 24 }}>
+      <div className="card glass glass-card card-premium card-hover-lift stagger-children" style={{ marginBottom: 24 }}>
         <div className="cc-header"><div className="cc-title">سجل الدفعات</div></div>
         {!history?.length ? (
           <div className="empty-state" role="status"><p>لا توجد دفعات سابقة</p></div>

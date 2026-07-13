@@ -13,37 +13,37 @@ export function Marketing() {
     <section className="page active" dir="rtl" style={{position:"relative",animation:"pageIn 0.35s var(--ease)"}}>
       <div className="mesh-bg"></div>
       <div className="page-header reveal-blur">
-        <h1>التسويق</h1>
+        <h1 className="gradient-text">التسويق</h1>
         <p>بيانات التحليلات والتسويق من الصفحة المتصلة</p>
       </div>
 
       {isLoading ? (
         <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-          {[1,2,3].map(i => <div key={i} className="stat-card glass" style={{height:100,background:"var(--skeleton)"}} />)}
+          {[1,2,3].map(i => <div key={i} className="stat-card glass glass-card card-premium card-hover-lift" style={{height:100,background:"var(--skeleton)"}} />)}
         </div>
       ) : error ? (
-        <div className="content-card glass" style={{textAlign:"center",padding:40}}>
+        <div className="content-card glass glass-card card-premium card-hover-lift" style={{textAlign:"center",padding:40}}>
           <p style={{color:"var(--muted)"}}>فشل تحميل بيانات التسويق — تأكد من اتصال الصفحة بفيسبوك</p>
         </div>
       ) : (
         <>
           <div className="stats-grid stagger-children" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
-            <div className="stat-card glass">
+            <div className="stat-card glass glass-card card-premium card-hover-lift">
               <div className="stat-label">معجبين الصفحة</div>
               <div className="stat-value" style={{color:"var(--accent)"}}>{overview?.fan_count?.toLocaleString() || "—"}</div>
             </div>
-            <div className="stat-card glass">
+            <div className="stat-card glass glass-card card-premium card-hover-lift">
               <div className="stat-label">ردود (آخر 30 يوم)</div>
               <div className="stat-value" style={{color:"var(--success)"}}>{overview?.total_replies?.toLocaleString() || 0}</div>
             </div>
-            <div className="stat-card glass">
+            <div className="stat-card glass glass-card card-premium card-hover-lift">
               <div className="stat-label">ردود اليوم</div>
               <div className="stat-value" style={{color:"var(--info)"}}>{overview?.today_replies || 0}</div>
             </div>
           </div>
 
           {overview?.top_rules?.length > 0 && (
-            <div className="content-card glass stagger-children" style={{marginBlockStart:16}}>
+            <div className="content-card glass glass-card card-premium card-hover-lift stagger-children" style={{marginBlockStart:16}}>
               <div className="cc-header">
                 <div className="cc-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -65,7 +65,7 @@ export function Marketing() {
           )}
 
           {overview?.peak_hour != null && (
-            <div className="content-card glass" style={{marginBlockStart:16}}>
+            <div className="content-card glass glass-card card-premium card-hover-lift" style={{marginBlockStart:16}}>
               <div className="cc-header">
                 <div className="cc-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

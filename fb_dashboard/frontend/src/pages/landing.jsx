@@ -93,7 +93,7 @@ function HeroSection({ onGetStarted }) {
             <div className="space-y-8">
               <div className="flex items-center gap-3" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) both" }}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl magnetic-btn"
-                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
+                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xl tracking-tight" style={{ color: "var(--fg)" }}>SmartBot</span>
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>v2</span>
@@ -123,7 +123,7 @@ function HeroSection({ onGetStarted }) {
               <div className="flex items-center gap-4 pt-2" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both" }}>
                 <div className="flex -space-x-2" style={{ direction: "ltr" }}>
                   {[1,2,3,4].map(i => (
-                    <div key={i} className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "var(--bg)", background: "linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", color: "var(--accent-fg)" }}>
+                    <div key={i} className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "var(--bg)", background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)" }}>
                       {["أ", "س", "م", "ن"][i-1]}
                     </div>
                   ))}
@@ -146,19 +146,19 @@ function HeroSection({ onGetStarted }) {
                   <rect width="480" height="360" rx="16" fill="url(#dbg)" />
                   <defs>
                     <linearGradient id="dbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#141216"/><stop offset="100%" stopColor="#0d0c0e"/></linearGradient>
-                    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff8b1a"/><stop offset="100%" stopColor="#e67800"/></linearGradient>
-                    <linearGradient id="acg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff8b1a" stopOpacity="0.2"/><stop offset="100%" stopColor="#ff8b1a" stopOpacity="0"/></linearGradient>
+                    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#bc4700"/><stop offset="100%" stopColor="#9a3a00"/></linearGradient>
+                    <linearGradient id="acg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#bc4700" stopOpacity="0.2"/><stop offset="100%" stopColor="#bc4700" stopOpacity="0"/></linearGradient>
                   </defs>
                   {/* Top bar */}
                   <rect x="16" y="12" width="448" height="40" rx="10" fill="#1a181d" />
-                  <text x="44" y="37" fill="#ff8b1a" fontSize="11" fontWeight="700" fontFamily="system-ui">SmartBot</text>
-                  <rect x="340" y="22" width="20" height="20" rx="6" fill="#ff8b1a" opacity="0.15"/>
-                  <rect x="370" y="22" width="20" height="20" rx="6" fill="#ff8b1a" opacity="0.15"/>
-                  <rect x="400" y="22" width="20" height="20" rx="6" fill="#ff8b1a" opacity="0.15"/>
-                  <circle cx="434" cy="32" r="10" fill="#ff8b1a" opacity="0.2"/>
+                  <text x="44" y="37" fill="#bc4700" fontSize="11" fontWeight="700" fontFamily="system-ui">SmartBot</text>
+                  <rect x="340" y="22" width="20" height="20" rx="6" fill="#bc4700" opacity="0.15"/>
+                  <rect x="370" y="22" width="20" height="20" rx="6" fill="#bc4700" opacity="0.15"/>
+                  <rect x="400" y="22" width="20" height="20" rx="6" fill="#bc4700" opacity="0.15"/>
+                  <circle cx="434" cy="32" r="10" fill="#bc4700" opacity="0.2"/>
                   {/* Stat cards */}
                   <rect x="16" y="64" width="108" height="72" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
-                  <rect x="26" y="72" width="22" height="22" rx="6" fill="#ff8b1a" opacity="0.15"/>
+                  <rect x="26" y="72" width="22" height="22" rx="6" fill="#bc4700" opacity="0.15"/>
                   <text x="55" y="87" fill="#888" fontSize="8" fontFamily="system-ui">آخر 7 أيام</text>
                   <text x="26" y="118" fill="#f0e6d3" fontSize="20" fontWeight="800" fontFamily="system-ui">١٬٢٨٤</text>
                   <rect x="136" y="64" width="108" height="72" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
@@ -176,26 +176,26 @@ function HeroSection({ onGetStarted }) {
                   {/* Chart area */}
                   <rect x="16" y="148" width="292" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="28" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">النشاط اليومي</text>
-                  <rect x="36" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="36" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="58" y="160" width="16" height="64" rx="3" fill="url(#acg)" /><rect x="58" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="80" y="190" width="16" height="34" rx="3" fill="url(#acg)" /><rect x="80" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="102" y="170" width="16" height="54" rx="3" fill="url(#acg)" /><rect x="102" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="124" y="150" width="16" height="74" rx="3" fill="url(#acg)" /><rect x="124" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="146" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="146" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
-                  <rect x="168" y="200" width="16" height="24" rx="3" fill="url(#acg)" /><rect x="168" y="224" width="16" height="2" rx="1" fill="#ff8b1a" />
+                  <rect x="36" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="36" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="58" y="160" width="16" height="64" rx="3" fill="url(#acg)" /><rect x="58" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="80" y="190" width="16" height="34" rx="3" fill="url(#acg)" /><rect x="80" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="102" y="170" width="16" height="54" rx="3" fill="url(#acg)" /><rect x="102" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="124" y="150" width="16" height="74" rx="3" fill="url(#acg)" /><rect x="124" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="146" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="146" y="224" width="16" height="2" rx="1" fill="#bc4700" />
+                  <rect x="168" y="200" width="16" height="24" rx="3" fill="url(#acg)" /><rect x="168" y="224" width="16" height="2" rx="1" fill="#bc4700" />
                   {/* Side panel */}
                   <rect x="320" y="148" width="144" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="332" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">آخر النشاطات</text>
-                  <circle cx="340" cy="187" r="3" fill="#ff8b1a"/>
+                  <circle cx="340" cy="187" r="3" fill="#bc4700"/>
                   <text x="350" y="190" fill="#aaa" fontSize="8" fontFamily="system-ui">رد تلقائي جديد</text>
                   <circle cx="340" cy="205" r="3" fill="#666"/>
                   <text x="350" y="208" fill="#aaa" fontSize="8" fontFamily="system-ui">تحديث التحليلات</text>
-                  <circle cx="340" cy="223" r="3" fill="#ff8b1a"/>
+                  <circle cx="340" cy="223" r="3" fill="#bc4700"/>
                   <text x="350" y="226" fill="#aaa" fontSize="8" fontFamily="system-ui">تمت جدولة منشور</text>
                   <circle cx="340" cy="241" r="3" fill="#666"/>
                   <text x="350" y="244" fill="#aaa" fontSize="8" fontFamily="system-ui">إضافة متابع جديد</text>
                   {/* Bottom actions */}
-                  <rect x="16" y="288" width="88" height="32" rx="8" fill="#ff8b1a"/>
+                  <rect x="16" y="288" width="88" height="32" rx="8" fill="#bc4700"/>
                   <text x="34" y="308" fill="#fff" fontSize="10" fontWeight="700" fontFamily="system-ui">تحديث</text>
                   <rect x="114" y="288" width="88" height="32" rx="8" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="132" y="308" fill="#ccc" fontSize="10" fontFamily="system-ui">تصدير</text>

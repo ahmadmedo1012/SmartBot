@@ -118,7 +118,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* sidebar */}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar">
         <div className="sidebar-header" style={{ position: "relative", overflow: "hidden" }}>
-          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.68 0.19 45))", boxShadow:"var(--shadow-glow-strong)"}}>
+          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", boxShadow:"var(--shadow-glow-strong)"}}>
             <img src="/static/favicon.png" alt="SmartBot" className="w-5 h-5 object-contain" />
           </div>
           <div className="sidebar-title">
@@ -152,11 +152,8 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* main area */}
       <div className="main">
         {/* header */}
-        <header className="header" style={{
-          background: scrolled ? "color-mix(in oklch, var(--surface) 70%, transparent)" : "var(--surface)",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderBlockEnd: scrolled ? "1px solid var(--border)" : "1px solid transparent",
-          transition: "background .3s var(--ease), backdrop-filter .3s var(--ease), border-color .3s var(--ease)",
+        <header className={`header ${scrolled ? "is-scrolled" : ""}`} style={{
+          transition: "background .35s var(--ease-smooth), backdrop-filter .35s var(--ease-smooth), border-color .35s var(--ease-smooth)",
         }}>
           {scrolled && <div className="shimmer-bar" aria-hidden="true" />}
           <button

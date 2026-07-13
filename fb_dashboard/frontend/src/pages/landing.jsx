@@ -372,7 +372,7 @@ function PricingSection() {
               className="rounded-2xl p-8 flex flex-col card-premium"
               style={{
                 background: p.highlight
-                  ? "linear-gradient(135deg, oklch(0.085 0.004 30), oklch(0.12 0.005 30))"
+                  ? "linear-gradient(135deg, var(--surface), oklch(0.12 0.005 30))"
                   : "var(--surface)",
                 border: p.highlight ? "1px solid var(--accent)" : "1px solid var(--border)",
                 transform: p.highlight ? "scale(1.05)" : "none",
@@ -458,7 +458,7 @@ function FaqSection() {
 function CTASection({ onGetStarted }) {
   return (
     <section className="relative py-28 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.48 0.16 40), oklch(0.42 0.14 38))" }} />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))" }} />
       <div className="absolute inset-0 opacity-20" aria-hidden="true"
         style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 0%, transparent 50%), radial-gradient(circle at 70% 50%, white 0%, transparent 50%)" }} />
       <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">

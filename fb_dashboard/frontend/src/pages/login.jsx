@@ -12,7 +12,7 @@ function AnimatedBg() {
       <div className="animate-blob-2 absolute -bottom-32 left-0 w-[550px] h-[550px]"
         style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 70%)' }} />
       <div className="animate-blob-3 absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
-        style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, oklch(70% 0.15 190) 6%, transparent), transparent 60%)' }} />
+        style={{ background: 'radial-gradient(ellipse, color-mix(in oklch, var(--accent) 10%, transparent), transparent 60%)' }} />
     </div>
   )
 }

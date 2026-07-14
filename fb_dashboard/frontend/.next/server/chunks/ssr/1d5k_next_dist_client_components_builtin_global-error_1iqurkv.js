@@ -1,0 +1,3 @@
+module.exports=[37344,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(88335);a.n(d("[project]/Downloads/SmartBot/fb_dashboard/frontend/node_modules/next/dist/client/components/builtin/global-error.js <module evaluation>"))},43990,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(88335);a.n(d("[project]/Downloads/SmartBot/fb_dashboard/frontend/node_modules/next/dist/client/components/builtin/global-error.js"))},65051,a=>{"use strict";a.i(37344);var b=a.i(43990);a.n(b)},18879,a=>{a.n(a.i(65051))}];
+
+//# sourceMappingURL=1d5k_next_dist_client_components_builtin_global-error_1iqurkv.js.map

@@ -3,7 +3,10 @@
     { "source": "/(.*)", "destination": "/api/index.py" }
   ],
   "functions": {
-    "api/index.py": { "maxDuration": 10 }
+    "api/index.py": {
+      "maxDuration": 10,
+      "includeFiles": "fb_dashboard/static/**"
+    }
   },
   "buildCommand": null
 }

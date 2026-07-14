@@ -23,12 +23,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_, update
 
 from api_cache import APICache
-from telegram_bot import notify_admins_new_payment, send_message, edit_keyboard, edit_message, answer_callback
+from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, send_message, edit_keyboard, edit_message, answer_callback
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote, BlacklistedToken
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
+from models import SubscriptionPlan, SubscriptionPayment, UsageCounter, SystemConfig
 from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
 from ws_manager import ws_manager
@@ -37,6 +38,7 @@ from sequence_engine import SequenceEngine, SequenceScheduler
 from broadcast_engine import BroadcastEngine
 from subscriber_engine import SubscriberEngine, TagEngine
 from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
+from models import UsageCounter
 from analytics_engine import AnalyticsEngine
 from report_engine import ReportEngine, REPORT_DIR
 from pdf_reports_engine import PdfReportsEngine, BrandingConfig
@@ -207,6 +209,69 @@ async def _seed_dm_templates(db):
     log.info("DM templates seeded from JSON")
 
 
+async def _seed_subscription_plans(db):
+    """Seed default subscription plans. Idempotent — skips if plans exist."""
+    existing = await db.scalar(select(func.count(SubscriptionPlan.id))) or 0
+    if existing > 0:
+        return
+    plans = [
+        SubscriptionPlan(
+            name="Free", name_ar="مجاني", price=0, period_days=30,
+            max_replies=100, max_pages=1, max_rules=5, max_team=0,
+            has_dm=False, has_ai=False, has_broadcast=False,
+            has_scheduling=False, has_reports=False, has_flows=False,
+            has_offers=False, has_sequences=False, has_analytics_advanced=False,
+            sort_order=1, is_active=True,
+            features=["ردود تلقائية (100/شهر)", "صفحة فيسبوك واحدة", "5 قواعد رد", "إحصائيات أساسية"],
+        ),
+        SubscriptionPlan(
+            name="Basic", name_ar="أساسي", price=19, period_days=30,
+            max_replies=2000, max_pages=1, max_rules=20, max_team=1,
+            has_dm=True, has_ai=True, has_broadcast=False,
+            has_scheduling=False, has_reports=True, has_flows=False,
+            has_offers=False, has_sequences=False, has_analytics_advanced=False,
+            sort_order=2, is_active=True,
+            features=["2,000 رد/شهر", "صفحة فيسبوك واحدة", "20 قاعدة رد", "رد خاص على التعليقات",
+                      "ردود ذكية بالذكاء الاصطناعي", "تقارير أسبوعية", "دعم فوري"],
+        ),
+        SubscriptionPlan(
+            name="Premium", name_ar="مميز", price=29, period_days=30,
+            max_replies=10000, max_pages=2, max_rules=50, max_team=2,
+            has_dm=True, has_ai=True, has_broadcast=True,
+            has_scheduling=True, has_reports=True, has_flows=True,
+            has_offers=True, has_sequences=False, has_analytics_advanced=True,
+            sort_order=3, is_active=True,
+            features=["10,000 رد/شهر", "صفحتين فيسبوك", "50 قاعدة رد", "رد خاص + ذكاء اصطناعي",
+                      "بث جماعي للرسائل", "جدولة المنشورات", "تقارير PDF",
+                      "محرك العروض الترويجية", "تحليلات متقدمة", "فريق حتى 2"],
+        ),
+        SubscriptionPlan(
+            name="Pro", name_ar="احترافي", price=129, period_days=30,
+            max_replies=50000, max_pages=5, max_rules=100, max_team=5,
+            has_dm=True, has_ai=True, has_broadcast=True,
+            has_scheduling=True, has_reports=True, has_flows=True,
+            has_offers=True, has_sequences=True, has_analytics_advanced=True,
+            sort_order=4, is_active=True,
+            features=["50,000 رد/شهر", "5 صفحات فيسبوك", "100 قاعدة رد", "جميع الميزات المتقدمة",
+                      "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم فني ممتاز"],
+        ),
+        SubscriptionPlan(
+            name="Enterprise", name_ar="مؤسسي", price=299, period_days=30,
+            max_replies=999999, max_pages=999, max_rules=999, max_team=999,
+            has_dm=True, has_ai=True, has_broadcast=True,
+            has_scheduling=True, has_reports=True, has_flows=True,
+            has_offers=True, has_sequences=True, has_analytics_advanced=True,
+            sort_order=5, is_active=True,
+            features=["ردود غير محدودة", "صفحات غير محدودة", "قواعد غير محدودة",
+                      "جميع الميزات بدون استثناء", "فريق غير محدود", "دعم 24/7"],
+        ),
+    ]
+    for p in plans:
+        db.add(p)
+    await db.commit()
+    log.info(f"Seeded {len(plans)} subscription plans")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -253,6 +318,16 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE conversation_notes ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE conversation_assignees ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
                 "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
+                # Subscription system migration
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_id INTEGER",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'UNPAID'",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_start TIMESTAMP",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_end TIMESTAMP",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(200) DEFAULT ''",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'UNPAID'",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_id INTEGER",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(100)",
                 # ponytail: amount column migration — Integer→Numeric; safe on both SQLite and PG
                 "ALTER TABLE payment_requests ADD COLUMN IF NOT EXISTS amount_numeric NUMERIC(10,3)",
             ]:
@@ -266,6 +341,14 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
             await _seed_dm_templates(session)
+            await _seed_subscription_plans(session)
+            # Migrate existing tenants: set FREE plan if no plan_id assigned
+            result = await session.execute(select(Tenant).where(Tenant.plan_id == None))
+            for t in result.scalars().all():
+                t.plan_id = 1  # Free plan
+                t.subscription_status = "FREE"
+            if result:
+                await session.commit()
 
         # Bot runs via background loop locally, Vercel Cron on serverless
         if settings.START_BOT and not _IS_VERCEL:
@@ -313,6 +396,36 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
+
+
+@app.get("/api/plans")
+async def list_plans(db=Depends(get_db)):
+    """List active subscription plans. Public—no auth required."""
+    result = await db.execute(
+        select(SubscriptionPlan).where(SubscriptionPlan.is_active == True).order_by(SubscriptionPlan.sort_order)
+    )
+    plans = result.scalars().all()
+    return [{
+        "id": p.id,
+        "name": p.name,
+        "name_ar": p.name_ar,
+        "price": float(p.price),
+        "period_days": p.period_days,
+        "max_replies": p.max_replies,
+        "max_pages": p.max_pages,
+        "max_rules": p.max_rules,
+        "max_team": p.max_team,
+        "has_dm": p.has_dm,
+        "has_ai": p.has_ai,
+        "has_broadcast": p.has_broadcast,
+        "has_scheduling": p.has_scheduling,
+        "has_reports": p.has_reports,
+        "has_flows": p.has_flows,
+        "has_offers": p.has_offers,
+        "has_sequences": p.has_sequences,
+        "has_analytics_advanced": p.has_analytics_advanced,
+        "features": p.features,
+    } for p in plans]
 
 
 @app.post("/api/repair")
@@ -660,9 +773,9 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         return {"ok": True}
     data = cq.get("data", "")
     colon = data.find(":")
-    if colon == -1 or not data.startswith("pay_"):
+    if colon == -1 or not (data.startswith("pay_") or data.startswith("sub_")):
         return {"ok": True}
-    action = data[:colon]  # pay_app or pay_rej
+    action = data[:colon]
     payment_id = int(data[colon + 1:])
     from_id = cq.get("from", {}).get("id")
     # Verify admin
@@ -671,7 +784,40 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         await answer_callback(cq["id"], "عذراً، لا تمتلك الصلاحية", True)
         return {"ok": True}
     async with AsyncSessionLocal() as db:
-        # Race-safe: atomic UPDATE only if status=pending
+        msg = cq.get("message", {})
+        # Handle subscription payment (sub_ prefix)
+        if data.startswith("sub_"):
+            new_status = "verified" if action == "sub_app" else "cancelled"
+            sp = await db.get(SubscriptionPayment, payment_id)
+            if not sp or sp.status != "pending":
+                await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
+                return {"ok": True}
+            sp.status = new_status
+            if new_status == "verified":
+                # Activate plan for tenant
+                tenant = await db.get(Tenant, sp.tenant_id)
+                if tenant:
+                    plan = await db.get(SubscriptionPlan, sp.plan_id)
+                    if plan:
+                        tenant.plan_id = sp.plan_id
+                        tenant.subscription_status = "PAID"
+                        tenant.plan_start = utcnow()
+                        tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
+                        tenant.plan = plan.name.lower()
+                if sp.user_id:
+                    user = await db.get(User, sp.user_id)
+                    if user:
+                        user.plan_id = sp.plan_id
+                        user.subscription_status = "PAID"
+            await db.commit()
+            msg_text = f"✅ *تم تأكيد الاشتراك* #{payment_id}\nالباقة: {sp.plan_name}\nالمستخدم: {sp.extra_data.get('username','')}"
+            if msg.get("chat") and msg.get("message_id"):
+                await edit_message(msg["chat"]["id"], msg["message_id"], msg_text)
+                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
+            await answer_callback(cq["id"], "✅ تم تأكيد الاشتراك")
+            return {"ok": True}
+
+        # Legacy payment handling (pay_ prefix)
         new_status = "confirmed" if action == "pay_app" else "cancelled"
         result = await db.execute(
             update(PaymentRequest)
@@ -713,6 +859,188 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 await edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}
+
+
+# ── Subscription API ─────────────────────────────────────────────────────
+
+@app.get("/api/config")
+async def public_config(db=Depends(get_db)):
+    """Public platform config — payment provider phone numbers etc."""
+    rows = await db.execute(select(SystemConfig))
+    config = {}
+    for r in rows.scalars().all():
+        if not r.is_secret:
+            config[r.key] = r.value
+    return config
+
+
+@app.post("/api/subscriptions/validate")
+async def validate_subscription(body: dict = Body(...), db=Depends(get_db)):
+    """Pre-flight: check username + slug uniqueness."""
+    username = body.get("username", "")
+    if len(username) < 3:
+        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
+    existing_user = await db.execute(select(User).where(User.username == username))
+    if existing_user.scalar_one_or_none():
+        return {"valid": False, "error": "اسم المستخدم موجود مسبقاً"}
+    return {"valid": True}
+
+
+@app.post("/api/subscriptions")
+async def create_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Create payment request for new subscription. Notifies Telegram admins."""
+    phone = body.get("phone", "")
+    amount = body.get("amount", 0)
+    provider = body.get("provider", "libyana")
+    plan_id = body.get("plan_id", 0)
+
+    if not phone or len(phone) < 7:
+        raise HTTPException(400, "رقم الهاتف غير صالح")
+    plan = await db.get(SubscriptionPlan, plan_id)
+    if not plan or not plan.is_active:
+        raise HTTPException(400, "الباقة غير موجودة")
+    if float(amount) != float(plan.price):
+        raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
+    if provider not in ("libyana", "madar"):
+        raise HTTPException(400, "مزود الدفع غير صالح")
+
+    existing_pending = await db.execute(
+        select(SubscriptionPayment).where(
+            SubscriptionPayment.user_id == current_user.id,
+            SubscriptionPayment.status == "pending"
+        )
+    )
+    if existing_pending.scalar_one_or_none():
+        raise HTTPException(400, "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه")
+
+    sp = SubscriptionPayment(
+        user_id=current_user.id,
+        tenant_id=current_user._tenant_id,
+        phone=phone,
+        amount=amount,
+        provider=provider,
+        plan_id=plan_id,
+        plan_name=plan.name_ar,
+        status="pending",
+        extra_data={"username": current_user.username},
+    )
+    db.add(sp)
+    await db.commit()
+    await db.refresh(sp)
+
+    # Notify Telegram admins
+    asyncio.create_task(
+        notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone, plan.name_ar)
+    )
+
+    return {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع"}
+
+
+@app.get("/api/subscriptions/status")
+async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Poll payment status — used by frontend instead of SSE."""
+    sp = await db.get(SubscriptionPayment, payment_id)
+    if not sp or sp.user_id != current_user.id:
+        raise HTTPException(404, "الدفعة غير موجودة")
+    return {"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name}
+
+
+@app.post("/api/subscriptions/upgrade")
+async def upgrade_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Upgrade existing subscription to higher plan."""
+    plan_id = body.get("plan_id", 0)
+    phone = body.get("phone", "")
+    provider = body.get("provider", "libyana")
+
+    new_plan = await db.get(SubscriptionPlan, plan_id)
+    if not new_plan or not new_plan.is_active:
+        raise HTTPException(400, "الباقة غير موجودة")
+
+    tenant = await db.get(Tenant, current_user._tenant_id)
+    if not tenant:
+        raise HTTPException(400, "الحساب غير موجود")
+    if tenant.plan_id and tenant.plan_id >= plan_id:
+        raise HTTPException(400, "هذه الباقة أقل أو تساوي باقتك الحالية")
+
+    existing_pending = await db.execute(
+        select(SubscriptionPayment).where(
+            SubscriptionPayment.user_id == current_user.id,
+            SubscriptionPayment.status == "pending"
+        )
+    )
+    if existing_pending.scalar_one_or_none():
+        raise HTTPException(400, "لديك طلب ترقية معلق")
+
+    sp = SubscriptionPayment(
+        user_id=current_user.id,
+        tenant_id=current_user._tenant_id,
+        phone=phone,
+        amount=float(new_plan.price),
+        provider=provider,
+        plan_id=plan_id,
+        plan_name=new_plan.name_ar,
+        status="pending",
+        extra_data={"username": current_user.username, "upgrade": True},
+        upgraded_from=tenant.plan_id,
+    )
+    db.add(sp)
+    await db.commit()
+    await db.refresh(sp)
+
+    asyncio.create_task(
+        notify_admins_new_subscription(sp.id, current_user.username, float(new_plan.price), provider, phone, new_plan.name_ar)
+    )
+
+    return {"payment_id": sp.id, "status": "pending"}
+
+
+@app.get("/api/admin/subscriptions")
+async def admin_list_subscriptions(status: str = Query("pending"), page: int = Query(1, ge=1), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    """Admin: list subscription payments with filtering."""
+    q = select(SubscriptionPayment)
+    if status != "all":
+        q = q.where(SubscriptionPayment.status == status)
+    q = q.order_by(desc(SubscriptionPayment.created_at)).offset((page - 1) * 20).limit(20)
+    rows = await db.execute(q)
+    return [{
+        "id": sp.id, "user_id": sp.user_id, "tenant_id": sp.tenant_id,
+        "phone": sp.phone, "amount": float(sp.amount), "provider": sp.provider,
+        "plan_id": sp.plan_id, "plan_name": sp.plan_name, "status": sp.status,
+        "metadata": sp.extra_data,
+        "created_at": sp.created_at.isoformat() if sp.created_at else None,
+    } for sp in rows.scalars().all()]
+
+
+@app.post("/api/admin/subscriptions")
+async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    """Admin: approve or reject a subscription payment."""
+    payment_id = body.get("id", 0)
+    decision = body.get("status", "")  # "verified" or "cancelled"
+    sp = await db.get(SubscriptionPayment, payment_id)
+    if not sp or sp.status != "pending":
+        raise HTTPException(400, "الدفعة غير موجودة أو تمت معالجتها")
+    sp.status = decision
+    if decision == "verified":
+        tenant = await db.get(Tenant, sp.tenant_id)
+        if tenant:
+            plan = await db.get(SubscriptionPlan, sp.plan_id)
+            if plan:
+                tenant.plan_id = sp.plan_id
+                tenant.subscription_status = "PAID"
+                tenant.plan_start = utcnow()
+                tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
+                tenant.plan = plan.name.lower()
+        if sp.user_id:
+            user = await db.get(User, sp.user_id)
+            if user:
+                user.subscription_status = "PAID"
+    else:
+        if sp.user_id:
+            user = await db.get(User, sp.user_id)
+            if user:
+                user.subscription_status = "REJECTED"
+    await db.commit()
+    return {"ok": True, "status": decision}
 
 
 @app.post("/api/telegram/test")
@@ -911,7 +1239,18 @@ async def test_facebook_connection(
 
 @app.get("/healthz")
 async def healthz():
-    return {"ok": True}
+    checks = {"ok": True}
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+        async with AsyncSessionLocal() as session:
+            plan_count = await session.scalar(select(func.count(SubscriptionPlan.id))) or 0
+            checks["plans"] = plan_count
+    except Exception as e:
+        checks["database"] = str(e)[:200]
+        checks["ok"] = False
+    return checks
 
 
 @app.get("/api/env")
@@ -970,21 +1309,15 @@ async def debug(_=Depends(get_current_user)):
 
 
 # ── SPA index.html: serve for all non-API, non-static routes ────────────────
-_SPA_TEMPLATE: str | None = None
-
 def _get_spa() -> str:
-    global _SPA_TEMPLATE
-    if _SPA_TEMPLATE is None:
-        static_index = STATIC_DIR / "index.html"
-        if static_index.exists():
-            _SPA_TEMPLATE = static_index.read_text(encoding="utf-8")
-        else:
-            html_path = TEMPLATES_DIR / "index.html"
-            if html_path.exists():
-                _SPA_TEMPLATE = html_path.read_text(encoding="utf-8")
-            else:
-                _SPA_TEMPLATE = "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
-    return _SPA_TEMPLATE
+    """Read SPA HTML fresh each call — avoids stale cached assets on deploy."""
+    static_index = STATIC_DIR / "index.html"
+    if static_index.exists():
+        return static_index.read_text(encoding="utf-8")
+    html_path = TEMPLATES_DIR / "index.html"
+    if html_path.exists():
+        return html_path.read_text(encoding="utf-8")
+    return "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -5,7 +5,7 @@ import { X } from "lucide-react"
 
 const landingLinks = [
   { href: "pricing", label: "الخطط والأسعار" },
-  { href: "features", label: "المميزات" },
+  { href: "demo", label: "تجربة البوت" },
   { href: "login", label: "تسجيل الدخول" },
 ]
 

@@ -6,6 +6,8 @@ log = logging.getLogger("fb-config")
 class Settings(BaseSettings):
     # DATABASE_URL is optional - defaults to SQLite if not set
     DATABASE_URL: str = ""
+    # Pooled DATABASE_URL for Neon (with pgbouncer) — avoids connection limit exhaustion
+    DATABASE_POOLED_URL: str = ""
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
     SECRET_KEY: str = "smartbot-fallback-dev-key-change-in-production"
@@ -17,12 +19,12 @@ class Settings(BaseSettings):
 
     @property
     def async_database_url(self) -> str:
-        url = self.DATABASE_URL
+        url = self.DATABASE_POOLED_URL or self.DATABASE_URL
         if not url:
             return "sqlite+aiosqlite:///data.db"
         if url.startswith("sqlite"):
             return url
-        # strip query params (sslmode=require etc.) - asyncpg handles SSL automatically
+        # strip query params — asyncpg handles SSL automatically
         clean = url.split("?")[0]
         return clean.replace("postgresql://", "postgresql+asyncpg://", 1)
 

@@ -1,5 +1,5 @@
 from _utils import utcnow
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric, BigInteger
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -65,11 +65,17 @@ class BotState(Base):
 
 
 class Tenant(Base):
+    """Multi-tenant organization — each tenant is a Facebook page account."""
     __tablename__ = "tenants"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), default="")
-    plan = Column(String(50), default="free")  # free, basic, pro, enterprise
+    plan = Column(String(50), default="free")  # legacy: free/basic/pro/enterprise
+    # subscription fields (new)
+    plan_id = Column(Integer, nullable=True)  # FK → subscription_plans.id
+    subscription_status = Column(String(20), default="UNPAID")  # UNPAID/PAID/REJECTED/FREE
+    plan_start = Column(DateTime, nullable=True)
+    plan_end = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utcnow)
 
@@ -449,6 +455,85 @@ class BrandConfig(Base):
     website = Column(String(200), default="https://smart-menu-sigma.vercel.app")
     whatsapp = Column(String(50), default="+218910089975")
     projects = Column(JSON, default=list)  # ["Smart Menu", "Smart Bot", "Smart POS", ...]
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+# ── Subscription System ──────────────────────────────────────────────────────
+
+
+class SubscriptionPlan(Base):
+    """Pricing tiers — DB-driven, matching Smart-Menu model."""
+    __tablename__ = "subscription_plans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), unique=True, nullable=False)  # Free, Basic, Premium, Pro, Enterprise
+    name_ar = Column(String(100), nullable=False)            # مجاني, أساسي, مميز, احترافي, مؤسسي
+    price = Column(Numeric(10, 2), default=0)
+    period_days = Column(Integer, default=30)
+    # Limits
+    max_replies = Column(Integer, default=100)       # monthly auto-reply limit
+    max_pages = Column(Integer, default=1)            # Facebook pages count
+    max_rules = Column(Integer, default=5)            # auto-reply rules
+    max_team = Column(Integer, default=0)             # team members (0 = none)
+    # Feature flags
+    has_dm = Column(Boolean, default=False)            # private reply to comments
+    has_ai = Column(Boolean, default=False)            # AI-powered replies
+    has_broadcast = Column(Boolean, default=False)     # mass messaging
+    has_scheduling = Column(Boolean, default=False)    # post scheduling
+    has_reports = Column(Boolean, default=False)       # PDF reports
+    has_flows = Column(Boolean, default=False)         # visual flows
+    has_offers = Column(Boolean, default=False)        # offer engine
+    has_sequences = Column(Boolean, default=False)     # drip campaigns
+    has_analytics_advanced = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    features = Column(JSON, default=list)  # feature checklist for UI
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class SubscriptionPayment(Base):
+    """Payment transaction with Telegram admin approval."""
+    __tablename__ = "subscription_payments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=True)              # FK → users.id (nullable for pre-registration)
+    tenant_id = Column(Integer, nullable=True)             # FK → tenants.id
+    phone = Column(String(50), nullable=False)             # payer phone number
+    amount = Column(Numeric(10, 2), nullable=False)
+    provider = Column(String(20), default="libyana")       # libyana, madar
+    plan_id = Column(Integer, nullable=False)              # FK → subscription_plans.id
+    plan_name = Column(String(100), default="")            # snapshot at time of payment
+    status = Column(String(20), default="pending")         # pending, verified, cancelled
+    extra_data = Column(JSON, default=dict)                # extra data (receipt ref, temp username/slug)
+    upgraded_from = Column(Integer, nullable=True)         # plan_id upgrading FROM (for upgrades)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class UsageCounter(Base):
+    """Monthly usage tracking per tenant for plan enforcement."""
+    __tablename__ = "usage_counters"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    metric = Column(String(50), nullable=False)           # replies_used, dms_used, broadcasts_used
+    period_start = Column(DateTime, nullable=False)        # start of current billing period
+    current_value = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    __table_args__ = (UniqueConstraint("tenant_id", "metric", "period_start", name="uq_usage_tenant_metric_period"),)
+
+
+class SystemConfig(Base):
+    """Admin-configurable platform settings (payment details, limits, etc.)."""
+    __tablename__ = "system_config"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(Text, nullable=False)
+    category = Column(String(50), default="general")
+    is_secret = Column(Boolean, default=False)
+    description = Column(String(300), default="")
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 

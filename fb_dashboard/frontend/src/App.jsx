@@ -112,6 +112,22 @@ function AppInner() {
   if (page === "landing") {
     return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} onNavigate={navigate} />
   }
+  if (page === "demo") {
+    const DemoDashboard = lazy(() => import("@/pages/demo").then(m => ({ default: m.DemoDashboard })))
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+        <DemoDashboard onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} onNavigate={navigate} />
+      </Suspense>
+    )
+  }
+  if (page === "subscribe" || page === "pricing") {
+    const Subscribe = lazy(() => import("@/pages/subscribe").then(m => ({ default: m.Subscribe })))
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+        <Subscribe onAuth={handleLogin} onNavigate={navigate} />
+      </Suspense>
+    )
+  }
 
   // Loading state only for protected pages
   if (authLoading && !auth) {
@@ -182,7 +198,7 @@ function App() {
 }
 
 const pageNames = {
-  dashboard: "لوحة البيانات", messages: "الرسائل", comments: "التعليقات",
+  demo: "تجربة البوت", admin: "إدارة الاشتراكات", dashboard: "لوحة البيانات", messages: "الرسائل", comments: "التعليقات",
   posts: "المنشورات", scheduled: "المجدول", analytics: "التحليلات",
   audience: "الجمهور", leads: "العملاء المتوقعون", ads: "الإعلانات",
   broadcast: "البث الجماعي", marketing: "التسويق", reports: "التقارير",

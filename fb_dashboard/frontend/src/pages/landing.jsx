@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react"
 import { useMotionValue, useSpring, useTransform } from "framer-motion"
-import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star, Sparkles, Crown, Rocket } from "lucide-react"
+import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, Sparkles, ChevronDown, Star, ArrowLeft, Globe, Users } from "lucide-react"
+import { BlurOrbs } from "@/components/BlurOrbs"
+import { PlanCard } from "@/components/PlanCard"
+import { AnnualToggle } from "@/components/AnnualToggle"
 import { LandingHeader } from "@/components/LandingHeader"
 import { LandingFooter } from "@/components/LandingFooter"
 import FloatingWhatsApp from "@/components/FloatingWhatsApp"
-
 
 const features = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
@@ -13,18 +15,14 @@ const features = [
   { icon: Calendar, title: "جدولة المنشورات", desc: "إنشاء وجدولة المنشورات مسبقاً مع تقويم محتوى مرئي" },
   { icon: Target, title: "استهداف الجمهور", desc: "تحليل الجمهور واستهداف الفئات المناسبة لزيادة الوصول" },
   { icon: ShieldCheck, title: "أمان وتشفير", desc: "حماية متقدمة للبيانات والاتصالات وفق أعلى معايير الأمان" },
+  { icon: Globe, title: "دعم متعدد اللغات", desc: 'دعم كامل للغة العربية والإنجليزية مع ردود ذكية بلغة العميل' },
+  { icon: Users, title: "إدارة فريق كامل", desc: "إضافة أعضاء فريقك بصلاحيات مختلفة لإدارة الصفحات معاً" },
 ]
 
-const plans = [
-  { name: "مجاني", icon: Sparkles, gradient: "from-gray-400 to-gray-500", badgeClass: "", price: 0, yearly: 0, pages: "صفحة واحدة", replies: "100 رد/شهر", reports: "تقارير أساسية", support: "دعم مجتمعي", cta: "ابدأ مجاناً", badge: null, highlight: false, popular: false },
-  { name: "أساسي", icon: Crown, gradient: "from-orange to-orange/80", badgeClass: "bg-[var(--orange)] text-white", price: 49, yearly: 449, pages: "3 صفحات", replies: "ردود غير محدودة", reports: "تقارير تفصيلية", support: "دعم عبر البريد", cta: "اشتراك الآن", badge: "الأكثر شعبية", highlight: true, popular: true },
-  { name: "احترافي", icon: Rocket, gradient: "from-orange to-orange/80", badgeClass: "bg-gradient-to-r from-orange to-orange/80 text-white", price: 129, yearly: 1199, pages: "10 صفحات", replies: "ردود غير محدودة", reports: "تقارير PDF مخصصة", support: "دعم فني ممتاز", cta: "تواصل معنا", badge: "الأفضل قيمة", highlight: false, popular: false },
-]
-
-const steps = [
-  { num: "١", title: "اتصل بصفحتك", desc: "اربط صفحة فيسبوك بخطوات بسيطة وآمنة" },
-  { num: "٢", title: "هيئ قواعد الرد", desc: "حدد الكلمات المفتاحية والردود التلقائية التي تناسبك" },
-  { num: "٣", title: "راقب الأداء", desc: "تابع الإحصائيات والتقارير وحسّن أداء صفحاتك" },
+const howItWorks = [
+  { num: "١", title: "اربط صفحتك", desc: "اربط صفحة فيسبوك بخطوات بسيطة وآمنة مع دليل تفاعلي خطوة بخطوة" },
+  { num: "٢", title: "هيئ قواعد الرد", desc: "حدد الكلمات المفتاحية والردود التلقائية التي تناسب نشاطك التجاري" },
+  { num: "٣", title: "راقب الأداء", desc: "تابع الإحصائيات والتقارير وحسّن أداء صفحاتك من لوحة تحكم متكاملة" },
 ]
 
 const faqs = [
@@ -33,15 +31,8 @@ const faqs = [
   { q: "كم صفحة يمكنني ربطها؟", a: "يمكنك ربط صفحة واحدة في الخطة المجانية، وحتى 10 صفحات في الخطة الاحترافية." },
   { q: "هل تدعم اللغة العربية كاملاً؟", a: "نعم، الواجهة كاملة بالعربية مع دعم كامل للردود والتعليقات العربية." },
   { q: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", a: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود غير المحدودة، اختر الخطة الأساسية أو الاحترافية." },
+  { q: "هل يمكنني تجربة البوت قبل الشراء؟", a: "نعم! يمكنك تجربة لوحة التحكم التجريبية ببيانات وهمية لترى كل الميزات قبل الاشتراك." },
 ]
-
-const testimonials = [
-  { name: "أحمد السالمي", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
-  { name: "سارة النفاتي", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
-  { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
-]
-
-const clients = ["متجر أضواء الإلكتروني", "أكاديمية التعليم الذكي", "وكالة تسويق 360", "منصة متجر الإلكتروني", "مكتب المحاماة الرقمي", "عيادة النور التخصصية", "معرض الأثاث العصري", "نادي اللياقة البدنية"]
 
 function AnimatedCounter({ value, label, suffix = "" }) {
   const ref = useRef(null)
@@ -80,70 +71,60 @@ function AnimatedCounter({ value, label, suffix = "" }) {
 function HeroSection({ onGetStarted }) {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden" dir="rtl">
-      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ background: "var(--muted-bg)" }}>
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: "linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
-        <div className="bg-radial-glow" />
-        {/* ponytail: removed blob animations — caused perf stuttering, Smart Menu uses static radial instead */}
-      </div>
+      <BlurOrbs />
+      <div className="absolute inset-0 z-0" aria-hidden="true" style={{ backgroundImage: "radial-gradient(circle, color-mix(in oklch, var(--fg) 6%, transparent) 0.75px, transparent 0.75px)", backgroundSize: "20px 20px", opacity: 0.5 }} />
 
       <div className="relative z-10 w-full pt-32 pb-24">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
-              <div className="flex items-center gap-3" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) both" }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl magnetic-btn"
-                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)", boxShadow: "var(--shadow-glow)" }}>S</div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xl tracking-tight" style={{ color: "var(--fg)" }}>SmartBot</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "color-mix(in oklch, var(--success) 15%, transparent)", color: "var(--success)" }}>نشط</span>
-                </div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border" style={{ borderColor: "color-mix(in oklch, var(--accent) 20%, transparent)", background: "color-mix(in oklch, var(--accent) 5%, transparent)", padding: "4px 14px 4px 10px", fontSize: 11, fontWeight: 500, color: "var(--accent)", animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) both" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--accent)", display: "inline-block", animation: "pulse-dot 1.4s ease-in-out infinite" }} />
+                أكثر من ٥٠٠ صفحة تثق فينا
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tighter" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both" }}>
-                <span >إدارة تفاعل فيسبوك</span>
-                <br />بذكاء واحترافية
+                <span>إدارة تفاعل فيسبوك</span>
+                <br />
+                <span style={{ color: "var(--accent)" }}>بذكاء واحترافية</span>
               </h1>
 
-              <div className="mx-auto my-4 w-16 h-px rounded-full" style={{ background: "linear-gradient(to right, transparent, var(--accent), transparent)" }} />
+              <div className="w-16 h-0.5 rounded-full" style={{ background: "linear-gradient(to left, transparent, var(--accent), transparent)" }} />
 
               <p className="text-lg md:text-xl leading-relaxed max-w-lg" style={{ color: "var(--muted)", animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.2s both" }}>
                 أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا لإدارة تفاعلك بذكاء
               </p>
 
               <div className="flex flex-wrap gap-4" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.3s both" }}>
-                <button className="btn btn-primary text-base px-10 py-3.5 magnetic-btn" onClick={onGetStarted}
-                  style={{borderRadius: "var(--radius-lg)", fontSize: "15px", fontWeight: 700, boxShadow: "var(--shadow-glow)"}}>
-                  ابدأ الآن مجاناً
+                <button className="btn btn-primary magnetic-btn" onClick={onGetStarted}
+                  style={{ borderRadius: "var(--radius-lg)", fontSize: 15, fontWeight: 700, padding: "12px 32px", boxShadow: "var(--shadow-glow)" }}>
+                  ابدأ الآن مجاناً <ArrowLeft className="size-4" />
                 </button>
-                <button className="btn btn-outline text-base px-10 py-3.5 magnetic-btn" style={{borderRadius: "var(--radius-lg)", fontSize: "15px"}}>
-                  اعرف المزيد
-                  <ChevronDown className="w-4 h-4" />
+                <button className="btn btn-outline" onClick={() => window.location.hash = "#demo"}
+                  style={{ borderRadius: "var(--radius-lg)", fontSize: 15, padding: "12px 32px" }}>
+                  جرب البوت الآن
                 </button>
               </div>
 
               <div className="flex items-center gap-4 pt-2" style={{ animation: "reveal-blur 0.7s cubic-bezier(0.16,1,0.3,1) 0.4s both" }}>
-                <div className="flex -space-x-2" style={{ direction: "ltr" }}>
+                <div className="flex" style={{ direction: "ltr" }}>
                   {[1,2,3,4].map(i => (
-                    <div key={i} className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "var(--bg)", background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)" }}>
+                    <div key={i} className="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold" style={{ borderColor: "var(--bg)", marginInlineEnd: i < 4 ? -8 : 0, background: "linear-gradient(135deg, var(--accent), oklch(0.52 0.16 40))", color: "var(--accent-fg)" }}>
                       {["أ", "س", "م", "ن"][i-1]}
                     </div>
                   ))}
                 </div>
                 <div>
                   <div className="flex items-center gap-0.5 mb-0.5">
-                    {[1,2,3,4,5].map(s => (
-                      <Star key={s} className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} fill="var(--muted)" />
-                    ))}
+                    {[1,2,3,4,5].map(s => <Star key={s} className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} fill="var(--muted)" />)}
                   </div>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>أكثر من ٥٠٠ صفحة تثق فينا</span>
+                  <span className="text-xs" style={{ color: "var(--muted)" }}>موثوق من آلاف المداراء</span>
                 </div>
               </div>
             </div>
 
             <div className="hidden lg:flex items-center justify-center w-full" style={{ animation: "reveal-scale 0.7s cubic-bezier(0.16,1,0.3,1) 0.15s both" }}>
-              <div className="glass-card rounded-3xl overflow-hidden w-full max-w-lg"
-                style={{boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)", border: "1px solid var(--glass-border)"}}>
+              <div className="glass-card rounded-3xl overflow-hidden w-full max-w-lg" style={{ boxShadow: "var(--glass-shadow-lg), var(--shadow-glow)", border: "1px solid var(--glass-border)" }}>
                 <svg viewBox="0 0 480 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto" role="img" aria-label="لوحة تحكم SmartBot">
                   <rect width="480" height="360" rx="16" fill="url(#dbg)" />
                   <defs>
@@ -151,14 +132,12 @@ function HeroSection({ onGetStarted }) {
                     <linearGradient id="ac" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="oklch(0.55 0.19 45)"/><stop offset="100%" stopColor="oklch(0.42 0.18 40)"/></linearGradient>
                     <linearGradient id="acg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="oklch(0.55 0.19 45 / 0.2)"/><stop offset="100%" stopColor="oklch(0.55 0.19 45 / 0)"/></linearGradient>
                   </defs>
-                  {/* Top bar */}
                   <rect x="16" y="12" width="448" height="40" rx="10" fill="#1a181d" />
                   <text x="44" y="37" fill="var(--accent)" fontSize="11" fontWeight="700" fontFamily="system-ui">SmartBot</text>
                   <rect x="340" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
                   <rect x="370" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
                   <rect x="400" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
                   <circle cx="434" cy="32" r="10" fill="var(--accent)" opacity="0.2"/>
-                  {/* Stat cards */}
                   <rect x="16" y="64" width="108" height="72" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <rect x="26" y="72" width="22" height="22" rx="6" fill="var(--accent)" opacity="0.15"/>
                   <text x="55" y="87" fill="#888" fontSize="8" fontFamily="system-ui">آخر 7 أيام</text>
@@ -175,7 +154,6 @@ function HeroSection({ onGetStarted }) {
                   <rect x="386" y="72" width="22" height="22" rx="6" fill="#eab308" opacity="0.15"/>
                   <text x="415" y="87" fill="#888" fontSize="8" fontFamily="system-ui">قواعد</text>
                   <text x="386" y="118" fill="#f0e6d3" fontSize="20" fontWeight="800" fontFamily="system-ui">٣</text>
-                  {/* Chart area */}
                   <rect x="16" y="148" width="292" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="28" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">النشاط اليومي</text>
                   <rect x="36" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="36" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
@@ -185,7 +163,6 @@ function HeroSection({ onGetStarted }) {
                   <rect x="124" y="150" width="16" height="74" rx="3" fill="url(#acg)" /><rect x="124" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
                   <rect x="146" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="146" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
                   <rect x="168" y="200" width="16" height="24" rx="3" fill="url(#acg)" /><rect x="168" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
-                  {/* Side panel */}
                   <rect x="320" y="148" width="144" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="332" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">آخر النشاطات</text>
                   <circle cx="340" cy="187" r="3" fill="var(--accent)"/>
@@ -196,12 +173,10 @@ function HeroSection({ onGetStarted }) {
                   <text x="350" y="226" fill="#aaa" fontSize="8" fontFamily="system-ui">تمت جدولة منشور</text>
                   <circle cx="340" cy="241" r="3" fill="#666"/>
                   <text x="350" y="244" fill="#aaa" fontSize="8" fontFamily="system-ui">إضافة متابع جديد</text>
-                  {/* Bottom actions */}
                   <rect x="16" y="288" width="88" height="32" rx="8" fill="var(--accent)"/>
                   <text x="34" y="308" fill="#fff" fontSize="10" fontWeight="700" fontFamily="system-ui">تحديث</text>
                   <rect x="114" y="288" width="88" height="32" rx="8" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="132" y="308" fill="#ccc" fontSize="10" fontFamily="system-ui">تصدير</text>
-                  {/* Glow dot */}
                   <circle cx="24" cy="348" r="4" fill="#22c55e"/><text x="34" y="352" fill="#666" fontSize="8" fontFamily="system-ui">البوت نشط</text>
                   <text x="430" y="352" fill="#444" fontSize="8" fontFamily="system-ui">آخر تحديث: الآن</text>
                 </svg>
@@ -216,7 +191,7 @@ function HeroSection({ onGetStarted }) {
 
 function StatsSection() {
   return (
-    <section className="relative py-16" dir="rtl" style={{background: "var(--muted-bg)"}}>
+    <section className="relative py-16" dir="rtl" style={{ background: "var(--muted-bg)" }}>
       <div className="max-w-5xl mx-auto px-6 reveal-stagger">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <AnimatedCounter value={500} suffix="+" label="صفحة نشطة" />
@@ -232,25 +207,35 @@ function StatsSection() {
 function FeaturesSection() {
   return (
     <section className="relative py-24 section-padding" dir="rtl">
-      <div className="bg-radial-glow" />
+      <BlurOrbs />
       <div className="relative z-10 max-w-6xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
+          <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium mb-4" style={{ borderColor: "color-mix(in oklch, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+            <Sparkles className="size-3" /> إليك ما يمكنك تحقيقه معنا
+          </div>
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            مميزات <span style={{ color: "var(--fg)" }}>SmartBot</span>
+            ميزات متكاملة <span style={{ color: "var(--accent)" }}>لإدارة صفحاتك</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية
           </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 reveal-stagger">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 reveal-stagger">
           {features.map((f, i) => (
-            <div key={i} className="glass-card rounded-2xl p-8 text-center card-premium"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                style={{ background: "color-mix(in oklch, var(--accent) 12%, transparent)" }}>
-                <f.icon className="w-7 h-7" style={{ color: "var(--muted)" }} />
+            <div key={i} className="group rounded-sm p-4 md:p-6 lg:p-8 transition-colors duration-300"
+              style={{ background: "var(--card)", border: "1px solid", borderColor: i === 0 ? "color-mix(in oklch, var(--accent) 30%, transparent)" : "color-mix(in oklch, var(--border) 50%, transparent)", minWidth: 0 }}>
+              <div className="relative">
+                {i === 0 && (
+                  <span style={{ position: "absolute", top: -12, insetInlineEnd: -12, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "var(--accent)", color: "var(--accent-fg)" }}>
+                    الأكثر طلباً
+                  </span>
+                )}
+                <div className="size-10 sm:size-12 rounded-sm flex items-center justify-center mb-4 transition-colors duration-300"
+                  style={{ background: i === 0 ? "color-mix(in oklch, var(--accent) 15%, transparent)" : "color-mix(in oklch, var(--accent) 10%, transparent)" }}>
+                  <f.icon className="size-5 sm:size-6" style={{ color: "var(--accent)" }} />
+                </div>
               </div>
-              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--fg)" }}>{f.title}</h3>
+              <h3 className="text-base sm:text-lg font-medium mb-2">{f.title}</h3>
               <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{f.desc}</p>
             </div>
           ))}
@@ -266,20 +251,20 @@ function HowItWorksSection() {
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            كيف يعمل <span style={{ color: "var(--fg)" }}>SmartBot</span>
+            كيف يعمل <span style={{ color: "var(--accent)" }}>SmartBot</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             ثلاث خطوات فقط لبدء أتمتة ردودك
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 reveal-stagger">
-          {steps.map((s, i) => (
+          {howItWorks.map((s, i) => (
             <div key={i} className="text-center">
               <div className="relative w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold"
                 style={{ background: "linear-gradient(135deg, color-mix(in oklch, var(--accent) 15%, transparent), transparent)", color: "var(--accent)" }}>
                 <span>{s.num}</span>
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-0.5" style={{background: "var(--accent-soft)"}} />
+                {i < howItWorks.length - 1 && (
+                  <div className="hidden md:block absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-0.5" style={{ background: "var(--accent-soft)" }} />
                 )}
               </div>
               <div className="glass-card rounded-2xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -295,13 +280,19 @@ function HowItWorksSection() {
 }
 
 function TestimonialsSection() {
+  const testimonials = [
+    { name: "أحمد السالمي", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
+    { name: "سارة النفاتي", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
+    { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
+  ]
+
   return (
     <section className="relative py-24 section-padding" dir="rtl">
-      <div className="bg-radial-glow" />
+      <BlurOrbs />
       <div className="relative z-10 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            ماذا يقول عملاؤنا
+            ماذا يقول <span style={{ color: "var(--accent)" }}>عملاؤنا</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
             آراء حقيقية من مدراء الصفحات الذين يستخدمون SmartBot
@@ -309,17 +300,13 @@ function TestimonialsSection() {
         </div>
         <div className="grid md:grid-cols-3 gap-6 reveal-stagger">
           {testimonials.map((t, i) => (
-            <div key={i} className="glass-card rounded-2xl p-6 card-premium"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={i} className="rounded-sm p-6" style={{ background: "var(--card)", border: "1px solid color-mix(in oklch, var(--border) 50%, transparent)" }}>
               <div className="flex gap-1 mb-4">
-                {[1,2,3,4,5].map(s => (
-                  <Star key={s} className="w-4 h-4" style={{ color: "var(--muted)" }} fill="var(--muted)" />
-                ))}
+                {[1,2,3,4,5].map(s => <Star key={s} className="w-4 h-4" style={{ color: "var(--accent)" }} fill="var(--accent)" />)}
               </div>
               <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--muted)" }}>"{t.text}"</p>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.42 0.14 38))", color: "var(--accent-fg)" }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "linear-gradient(135deg, var(--accent), oklch(0.42 0.14 38))", color: "var(--accent-fg)" }}>
                   {t.name.charAt(0)}
                 </div>
                 <div>
@@ -335,15 +322,15 @@ function TestimonialsSection() {
   )
 }
 
-function ClientsSection() {
+function ClientLogos() {
+  const clients = ["متجر أضواء الإلكتروني", "أكاديمية التعليم الذكي", "وكالة تسويق 360", "منصة متجر الإلكتروني"]
   return (
-    <section className="relative py-16" dir="rtl" style={{background: "var(--muted-bg)"}}>
+    <section className="relative py-16" dir="rtl" style={{ background: "var(--muted-bg)" }}>
       <div className="max-w-6xl mx-auto px-6">
         <p className="text-center text-sm mb-8" style={{ color: "var(--muted)" }}>موثوق من قبل آلاف المداراء والمتاجر</p>
         <div className="flex flex-wrap justify-center gap-8 gap-y-6 reveal-stagger">
           {clients.map((c, i) => (
-            <span key={i} className="text-base font-bold px-4 py-2 rounded-xl"
-              style={{ color: "color-mix(in oklch, var(--muted) 50%, transparent)", background: "color-mix(in oklch, var(--border) 20%, transparent)" }}>
+            <span key={i} className="text-base font-bold px-4 py-2 rounded-xl" style={{ color: "color-mix(in oklch, var(--muted) 50%, transparent)", background: "color-mix(in oklch, var(--border) 20%, transparent)" }}>
               {c}
             </span>
           ))}
@@ -355,96 +342,42 @@ function ClientsSection() {
 
 function PricingSection() {
   const [annual, setAnnual] = useState(false)
+  const [plans, setPlans] = useState(null)
+
+  useEffect(() => {
+    fetch("/api/plans").then(r => r.json()).then(setPlans).catch(() => {})
+  }, [])
+
+  const defaultPlans = [
+    { id: 1, name: "Free", name_ar: "مجاني", price: 0, max_replies: 100, max_pages: 1, max_rules: 5, features: ["ردود تلقائية (100/شهر)", "صفحة فيسبوك واحدة", "5 قواعد رد", "إحصائيات أساسية"] },
+    { id: 2, name: "Basic", name_ar: "أساسي", price: 19, max_replies: 2000, max_pages: 1, max_rules: 20, features: ["2,000 رد/شهر", "رد خاص + ذكاء اصطناعي", "تقارير أسبوعية", "دعم فوري"] },
+    { id: 3, name: "Premium", name_ar: "مميز", price: 29, max_replies: 10000, max_pages: 2, max_rules: 50, features: ["10,000 رد/شهر", "صفحتين + بث جماعي", "جدولة + تقارير PDF", "محرك العروض", "تحليلات متقدمة"] },
+    { id: 4, name: "Pro", name_ar: "احترافي", price: 129, max_replies: 50000, max_pages: 5, max_rules: 100, features: ["50,000 رد/شهر", "5 صفحات + كل الميزات", "حملات تسلسلية", "فريق حتى 5", "دعم ممتاز"] },
+    { id: 5, name: "Enterprise", name_ar: "مؤسسي", price: 299, max_replies: 999999, max_pages: 999, max_rules: 999, features: ["غير محدود", "كل الميزات", "فريق غير محدود", "دعم 24/7"] },
+  ]
+
+  const displayPlans = plans || defaultPlans
+
   return (
-    <section className="relative py-24 section-padding" dir="rtl">
-      <div className="bg-radial-glow" />
-      <div className="relative z-10 max-w-5xl mx-auto px-6">
+    <section className="relative py-24 section-padding" dir="rtl" id="pricing">
+      <BlurOrbs />
+      <div className="relative z-10 max-w-6xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
+          <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium mb-4" style={{ borderColor: "color-mix(in oklch, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+            <Sparkles className="size-3" /> خطط مرنة تناسب الجميع
+          </div>
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            خطط <span style={{ color: "var(--fg)" }}>الأسعار</span>
+            خطط <span style={{ color: "var(--accent)" }}>الأسعار</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto mb-8" style={{ color: "var(--muted)" }}>
             اختر الخطة المناسبة لاحتياجاتك
           </p>
-          {/* Monthly/Yearly toggle */}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="text-sm font-medium" style={{ color: !annual ? "var(--fg)" : "var(--muted)" }}>شهري</span>
-            <button
-              onClick={() => setAnnual(!annual)}
-              className="relative w-14 h-7 rounded-full transition-all duration-300"
-              style={{ background: annual ? "var(--accent)" : "var(--border)" }}>
-              <div className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-all duration-300 shadow-sm"
-                style={{ left: annual ? "calc(100% - 26px)" : "2px" }} />
-            </button>
-            <span className="text-sm font-medium" style={{ color: annual ? "var(--fg)" : "var(--muted)" }}>
-              سنوي
-              <span className="mr-1.5 text-xs px-1.5 py-0.5 rounded-full" style={{ background: "color-mix(in oklch, var(--success) 20%, transparent)", color: "var(--success)" }}>وفر شهرين</span>
-            </span>
-          </div>
+          <AnnualToggle annual={annual} onChange={setAnnual} />
         </div>
-        <div className="grid md:grid-cols-3 gap-6 reveal-stagger">
-          {plans.map((p, i) => {
-            const isPopular = p.popular
-            const showPrice = p.price === 0 ? "0" : annual ? String(p.yearly) : String(p.price)
-            const showLabel = p.price === 0 ? "" : annual ? "د.ل/سنوياً" : "د.ل/شهر"
-            return (
-            <div key={i}
-              className="rounded-2xl p-8 flex flex-col card-premium relative"
-              style={{
-                background: isPopular
-                  ? "linear-gradient(135deg, var(--surface), oklch(0.12 0.005 30))"
-                  : "var(--surface)",
-                border: isPopular ? "1px solid var(--accent)" : "1px solid var(--border)",
-                boxShadow: isPopular ? "var(--shadow-glow)" : "var(--shadow-sm)",
-              }}>
-              {p.badge && (
-                <div className="text-center mb-4">
-                  <span className="text-xs px-3 py-1 rounded-full font-bold"
-                    style={{background: isPopular ? "var(--accent)" : "color-mix(in oklch, var(--accent) 60%, transparent)", color: "var(--accent-fg)"}}>{p.badge}</span>
-                </div>
-              )}
-              <div className="text-center mb-6">
-                <div className="flex justify-center mb-3">
-                  <div className="size-11 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg"
-                    style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, black))", boxShadow: "0 0 20px var(--accent-glow)" }}>
-                    <p.icon className="size-5" style={{color:"var(--accent-fg)"}} />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold mb-1" style={{ color: "var(--fg)" }}>{p.name}</h3>
-                <div className="mt-4">
-                  <span className="text-5xl font-extrabold" style={{ color: "var(--accent)" }}>{showPrice}</span>
-                  {showLabel && <span className="text-sm mr-1" style={{ color: "var(--muted)" }}>{showLabel}</span>}
-                </div>
-              </div>
-              {/* Data row */}
-              <div className="grid grid-cols-3 gap-2 mb-6 p-3 rounded-xl" style={{ background: "var(--muted-bg)" }}>
-                {[
-                  { label: "الصفحات", val: p.pages },
-                  { label: "الردود", val: p.replies },
-                  { label: "التقارير", val: p.reports },
-                ].map((d, j) => (
-                  <div key={j} className="text-center">
-                    <div className="text-xs font-bold" style={{ color: "var(--accent)" }}>{d.val}</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>{d.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex-1 space-y-3 mb-8">
-                {[p.support].map((item, j) => (
-                  <div key={j} className="flex items-center gap-3 text-sm" style={{ color: "var(--muted)" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <button className={`btn w-full py-3 ${isPopular ? "btn-primary" : "btn-outline"}`}
-                style={{borderRadius: "var(--radius-lg)", fontSize: "14px"}}>
-                {p.cta}
-              </button>
-            </div>
-          )})}
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 reveal-stagger">
+          {displayPlans.map((p, i) => (
+            <PlanCard key={p.id} plan={p} index={i} annual={annual} />
+          ))}
         </div>
       </div>
     </section>
@@ -459,33 +392,24 @@ function FaqSection() {
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-center mb-16 reveal-up">
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
-            أسئلة <span style={{ color: "var(--fg)" }}>شائعة</span>
+            أسئلة <span style={{ color: "var(--accent)" }}>شائعة</span>
           </h2>
           <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
-            أهم الأسئلة عن SmartBot
+            إجابات سريعة لأكثر الأسئلة تردداً
           </p>
         </div>
-        <div className="space-y-3 reveal-stagger">
+        <div className="max-w-2xl mx-auto space-y-2">
           {faqs.map((faq, i) => (
-            <div key={i}
-              className="rounded-2xl overflow-hidden card-premium"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <button
-                onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full flex items-center justify-between p-5 text-right"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--fg)", fontSize: "14px", fontWeight: 600 }}
-                aria-expanded={openIndex === i}
-              >
-                <span>{faq.q}</span>
-                <ChevronDown className="w-5 h-5 shrink-0 mr-4"
-                  style={{ transform: openIndex === i ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s var(--ease)" }} />
-              </button>
-              {openIndex === i && (
-                <div className="px-5 pb-5">
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{faq.a}</p>
-                </div>
-              )}
-            </div>
+            <details key={i} className="group rounded-sm overflow-hidden transition-all duration-200" style={{ border: "1px solid", borderColor: openIndex === i ? "color-mix(in oklch, var(--border) 60%, transparent)" : "color-mix(in oklch, var(--border) 40%, transparent)", background: "var(--card)" }}
+              onToggle={(e) => setOpenIndex(e.target.open ? i : null)}>
+              <summary className="flex items-center justify-between cursor-pointer text-sm sm:text-base font-medium list-none px-4 sm:px-5 py-3 sm:py-4" style={{ color: "var(--fg)" }}>
+                {faq.q}
+                <ChevronDown className="size-3 shrink-0 ms-2 transition-transform duration-300" style={{ color: "color-mix(in oklch, var(--muted) 50%, transparent)" }} />
+              </summary>
+              <div className="px-4 sm:px-5 pb-3 sm:pb-4">
+                <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{faq.a}</p>
+              </div>
+            </details>
           ))}
         </div>
       </div>
@@ -495,22 +419,33 @@ function FaqSection() {
 
 function CTASection({ onGetStarted }) {
   return (
-    <section className="relative py-28 overflow-hidden" dir="rtl">
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0)))" }} />
-      <div className="absolute inset-0 opacity-20" aria-hidden="true"
-        style={{ backgroundImage: "radial-gradient(circle at 30% 50%, white 0%, transparent 50%), radial-gradient(circle at 70% 50%, white 0%, transparent 50%)" }} />
+    <section className="relative py-28 overflow-hidden" dir="rtl" style={{ borderTop: "1px solid color-mix(in oklch, var(--accent) 10%, transparent)" }}>
+      <BlurOrbs />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vmin] h-[60vmin] rounded-full pointer-events-none z-0" style={{ border: "1px solid color-mix(in oklch, var(--accent) 10%, transparent)" }} />
+
       <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-        <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--accent-fg)" }}>
-          استعد لتطوير أعمالك
+        <div className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium mb-4" style={{ borderColor: "color-mix(in oklch, var(--accent) 20%, transparent)", color: "var(--accent)" }}>
+          <Sparkles className="size-3" /> جهّز صفحتك للانطلاق
+        </div>
+        <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)" }}>
+          استعد <span style={{ color: "var(--accent)" }}>لتطوير أعمالك</span>
         </h2>
-        <p className="text-lg mb-8 opacity-90" style={{ color: "var(--accent-fg)" }}>
-          حسّن إدارة صفحات فيسبوك وزد تفاعلك اليوم
+        <p className="text-lg mb-8" style={{ color: "var(--muted)" }}>
+          حسّن إدارة صفحات فيسبوك وزد تفاعلك اليوم — انضم إلى <strong style={{ color: "var(--fg)" }}>أكثر من ٥٠٠ صفحة</strong> تثق في SmartBot
         </p>
-        <button className="btn text-base px-10 py-3 font-bold magnetic-btn"
-          style={{ background: "var(--accent)", color: "var(--accent-fg)", boxShadow: "0 8px 32px oklch(0 0 0 / .2)", borderRadius: "var(--radius-lg)" }}
-          onClick={onGetStarted}>
-          ابدأ الآن مجاناً
-        </button>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <button className="btn btn-primary magnetic-btn" onClick={onGetStarted}
+            style={{ borderRadius: "var(--radius-lg)", fontSize: 15, fontWeight: 700, padding: "12px 32px", boxShadow: "var(--shadow-glow)" }}>
+            ابدأ الآن مجاناً <ArrowLeft className="size-4" />
+          </button>
+          <button className="btn btn-outline" onClick={() => window.location.hash = "#pricing"}
+            style={{ borderRadius: "var(--radius-lg)", fontSize: 15, padding: "12px 32px" }}>
+            عرض الخطط
+          </button>
+        </div>
+        <p className="text-xs mt-6" style={{ color: "color-mix(in oklch, var(--muted) 60%, transparent)" }}>
+          مجاناً بدون بطاقة ائتمان · إلغاء في أي وقت · دعم فني متكامل
+        </p>
       </div>
     </section>
   )
@@ -518,7 +453,7 @@ function CTASection({ onGetStarted }) {
 
 function useScrollReveal() {
   useEffect(() => {
-    const els = document.querySelectorAll(".reveal-up, .reveal-stagger, .reveal-scale")
+    const els = document.querySelectorAll(".reveal-up, .reveal-stagger, .reveal-scale, .reveal-card")
     const obs = new IntersectionObserver((entries) => {
       for (const e of entries) { if (e.isIntersecting) { e.target.classList.add("visible"); obs.unobserve(e.target) } }
     }, { threshold: 0.1, rootMargin: "0px 0px -40px 0px" })
@@ -540,7 +475,7 @@ export function Landing({ onGetStarted, onNavigate: navigateProp }) {
         <FeaturesSection />
         <HowItWorksSection />
         <TestimonialsSection />
-        <ClientsSection />
+        <ClientLogos />
         <PricingSection />
         <FaqSection />
         <CTASection onGetStarted={onGetStarted} />

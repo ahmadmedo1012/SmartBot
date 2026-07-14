@@ -10,7 +10,7 @@ const iconMap = {
   leads: UserPlus, ads: Megaphone, marketing: TrendingUp, reports: FileBarChart,
   pages: Globe, team: Users2, autoreply: Reply, activity: Activity,
   notifications: Bell, tools: Wrench, billing: CreditCard, support: Headphones,
-  settings: Settings, broadcast: Send,
+  settings: Settings, admin: Settings, broadcast: Send,
 }
 
 const sidebarSections = [
@@ -38,6 +38,10 @@ const sidebarSections = [
     { key: "calendar", label: "تقويم المحتوى", icon: "scheduled" },
     { key: "autoreply", label: "الردود التلقائية", icon: "autoreply" },
     { key: "activity", label: "سجل النشاطات", icon: "activity" },
+  ]},
+  { label: "المشرف", items: [
+    { key: "admin", label: "الاشتراكات", icon: "settings" },
+    { key: "settings", label: "الإعدادات", icon: "settings" },
   ]},
   { label: "أخرى", items: [
     { key: "notifications", label: "الإشعارات", icon: "notifications", badge: "0" },

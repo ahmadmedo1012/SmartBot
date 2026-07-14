@@ -561,3 +561,23 @@ export function postDemoTestComment(commentText) {
   fd.append("comment_text", commentText);
   return api("/api/diagnostics/demo-test-comment", { method: "POST", body: fd });
 }
+
+// ── Subscription Plans ──
+export function fetchPlans() {
+  return api("/api/plans");
+}
+export function fetchPublicConfig() {
+  return api("/api/config");
+}
+export function createSubscription(data) {
+  return api("/api/subscriptions", { method: "POST", body: JSON.stringify(data) });
+}
+export function pollSubscriptionStatus(paymentId) {
+  return api(`/api/subscriptions/status?payment_id=${paymentId}`);
+}
+export function upgradeSubscription(data) {
+  return api("/api/subscriptions/upgrade", { method: "POST", body: JSON.stringify(data) });
+}
+export function validateSubscription(data) {
+  return api("/api/subscriptions/validate", { method: "POST", body: JSON.stringify(data) });
+}

@@ -63,3 +63,21 @@ async def notify_admins_new_payment(payment_id: int, username: str, amount: int,
     ]
     for aid in ADMIN_IDS:
         await send_message(aid, msg, buttons)
+
+
+async def notify_admins_new_subscription(payment_id: int, username: str, amount: float, provider: str, phone: str, plan_name: str = ""):
+    """Notify admins about a new subscription payment."""
+    msg = (
+        f"📋 *طلب اشتراك جديد* #{payment_id}\n"
+        f"• المستخدم: {username}\n"
+        f"• الباقة: {plan_name}\n"
+        f"• المبلغ: {amount} د.ل\n"
+        f"• المزود: {provider}\n"
+        f"• الهاتف: {phone}"
+    )
+    buttons = [
+        [{"text": "🟢 موافقة على التفعيل", "callback_data": f"sub_app:{payment_id}"}],
+        [{"text": "🔴 رفض الطلب", "callback_data": f"sub_rej:{payment_id}"}],
+    ]
+    for aid in ADMIN_IDS:
+        await send_message(aid, msg, buttons)

@@ -67,6 +67,7 @@ function ConnectFacebookStep({ onNext }) {
   const [connected, setConnected] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showToken, setShowToken] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   const handleSave = async () => {
     if (!pageId.trim() || !accessToken.trim()) {
@@ -143,6 +144,34 @@ function ConnectFacebookStep({ onNext }) {
             تم الاتصال بنجاح
           </p>
         )}
+      <div style={{ textAlign: "center", marginTop: 8 }}>
+        <button className="btn btn-sm btn-outline" style={{ fontSize: 11, color: "var(--muted)" }} onClick={() => setShowGuide(!showGuide)}>
+          {showGuide ? "إخفاء الدليل" : "📋 دليل استخراج البيانات خطوة بخطوة"}
+        </button>
+      </div>
+
+      {showGuide && (
+        <div className="card-inset" style={{ background: "var(--accent-soft)", borderRadius: "var(--radius-md)", fontSize: 12, lineHeight: 2 }}>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>كيف تحصل على Page ID و Access Token:</p>
+          <ol style={{ paddingInlineStart: 20, margin: 0 }}>
+            <li>اذهب إلى <code className="code-inline">developers.facebook.com</code></li>
+            <li>سجل الدخول ← "My Apps" ← "Create App"</li>
+            <li>اختر "Business" ← اسم التطبيق ← "Create"</li>
+            <li>من القائمة اليسرى: "Tools" → "Graph API Explorer"</li>
+            <li>في Graph API Explorer:<br />
+              — التطبيق: اختر التطبيق الجديد<br />
+              — User or Page: اختر صفحتك (أو اضغط "Get Page Token")<br />
+              — permissions: تأكد من <code className="code-inline">pages_manage_posts</code>, <code className="code-inline">pages_read_engagement</code>, <code className="code-inline">pages_manage_metadata</code></li>
+            <li>اضغط "Generate Access Token" ← وافق على الصلاحيات</li>
+            <li>انسخ الـ Token (يبدأ بـ EAA...) ← الصقه في الحقل</li>
+            <li>الـ Page ID: من URL صفحتك ← <code className="code-inline">facebook.com/&lt;رقم الصفحة&gt;</code></li>
+          </ol>
+          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "8px 0" }} />
+          <p style={{ color: "var(--warn)", fontSize: 11 }}>
+            ⚠️ الـ Token ينتهي بعد ساعتين. للاستخدام المستمر، يجب تحويله إلى <strong>Long-Lived Token</strong> أو استخدام <strong>Page Access Token</strong> الدائم من "Page Settings" ← "Page Access Tokens".
+          </p>
+        </div>
+      )}
       </div>
       <button className="btn btn-primary" style={{ fontSize: 13, alignSelf: "center", padding: "8px 28px", opacity: connected ? 1 : 0.5, boxShadow: "var(--shadow-glow)" }} disabled={!connected} onClick={onNext}>
         التالي

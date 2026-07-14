@@ -22,11 +22,12 @@ from typing import Any
 from datetime import datetime, timedelta, timezone
 from _utils import utcnow
 
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func, cast, Date, desc
 from sqlalchemy.exc import IntegrityError
 
 from database import AsyncSessionLocal
 from models import Rule, Reply, BotLog, Offer, BotState, Customer
+from models import Tenant, SubscriptionPlan, UsageCounter
 from fb_client import FBClient
 from config import settings
 
@@ -690,6 +691,34 @@ class BotEngine:
 
         async with AsyncSessionLocal() as session:
             try:
+                # ── Plan enforcement: skip if tenant subscription expired ──
+                plan_ok = True
+                tenant = await session.get(Tenant, self._tenant_id)
+                if tenant and tenant.subscription_status == "UNPAID":
+                    self._mon.warn("tenant unpaid — skipping cycle")
+                    return
+                if tenant and tenant.plan_end and utcnow() > tenant.plan_end:
+                    tenant.subscription_status = "UNPAID"
+                    await session.commit()
+                    self._mon.warn("tenant plan expired — skipping cycle")
+                    return
+                # Self-healing usage counter reset
+                if tenant and tenant.plan_start:
+                    from _utils import utcnow
+                    period_start = tenant.plan_start
+                    counters = await session.execute(
+                        select(UsageCounter).where(
+                            UsageCounter.tenant_id == self._tenant_id,
+                            UsageCounter.period_start < period_start,
+                            UsageCounter.period_start < period_start,
+                        )
+                    )
+                    for c in counters.scalars().all():
+                        c.period_start = period_start
+                        c.current_value = 0
+                    if counters:
+                        await session.commit()
+
                 # Load rules from cache
                 rules = await self._rule_cache.get_rules()
                 if not rules:
@@ -719,6 +748,27 @@ class BotEngine:
 
                 if total_replied:
                     self._mon.info(f"↳ Cycle #{self._cycle}: {total_replied} reply(ies) sent")
+
+                    # Increment usage counter (atomic)
+                    try:
+                        from _utils import utcnow
+                        counter = await session.execute(
+                            select(UsageCounter).where(
+                                UsageCounter.tenant_id == self._tenant_id,
+                                UsageCounter.metric == "replies_used",
+                            ).order_by(desc(UsageCounter.period_start)).limit(1)
+                        )
+                        uc = counter.scalar_one_or_none()
+                        if uc:
+                            uc.current_value = (uc.current_value or 0) + total_replied
+                        else:
+                            session.add(UsageCounter(
+                                tenant_id=self._tenant_id, metric="replies_used",
+                                period_start=utcnow(), current_value=total_replied,
+                            ))
+                        await session.commit()
+                    except Exception:
+                        pass
 
                     # Auto-invalidate rule cache after reply (new data may affect matching)
                     # ponytail: aggressive invalidation — optimize when cycle >1000

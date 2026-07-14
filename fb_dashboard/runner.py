@@ -6,12 +6,11 @@ import logging
 import os
 import re
 import secrets
-import time
 from datetime import datetime, timedelta, timezone
 from _utils import utcnow
 from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Any
+# ponytail: Any unused but preserved for type annotation patterns
 
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
@@ -199,7 +198,7 @@ async def _seed_dm_templates(db):
     json_rules = {r.get("name", ""): r.get("dm_template", "") for r in data.get("rules", [])}
     if not json_rules:
         return
-    from models import Rule
+    # ponytail: local imports — already at module level, kept for clarity
     result = await db.execute(select(Rule))
     for rule in result.scalars().all():
         if not rule.dm_template and rule.name in json_rules:
@@ -3636,7 +3635,7 @@ async def rule_categories(_=Depends(get_current_user)):
 @app.get("/api/brand")
 async def get_brand(db=Depends(get_db), _=Depends(get_current_user)):
     """Smart Link brand info and copyright."""
-    from models import BrandConfig
+    # ponytail: BrandConfig at module level
     brand = await db.execute(select(BrandConfig).limit(1))
     brand = brand.scalar_one_or_none()
     if not brand:
@@ -3669,7 +3668,7 @@ async def update_brand(
     whatsapp: str = Form(""), projects: str = Form(""),
     db=Depends(get_db), _=Depends(require_role("admin")),
 ):
-    from models import BrandConfig
+    # ponytail: BrandConfig at module level
     brand = await db.execute(select(BrandConfig).limit(1))
     brand = brand.scalar_one_or_none()
     if not brand:
@@ -3693,7 +3692,7 @@ async def crm_list(
     page: int = Query(1), per_page: int = Query(25),
     db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
-    from models import Customer
+    # ponytail: Customer at module level
     _tid = current_user._tenant_id
     stmt = select(Customer).where(Customer.tenant_id == _tid)
     if stage:
@@ -3728,7 +3727,7 @@ async def crm_create(
     interested_in: str = Form(""),
     db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
-    from models import Customer
+    # ponytail: Customer at module level
     existing = await db.execute(select(Customer).where(Customer.fb_user_id == fb_user_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "العميل موجود بالفعل")
@@ -3745,7 +3744,7 @@ async def crm_update(
     stage: str = Form(""), notes: str = Form(""), interested_in: str = Form(""),
     db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
-    from models import Customer
+    # ponytail: Customer at module level
     c = (await db.execute(
         select(Customer).where(Customer.id == customer_id, Customer.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
@@ -3764,7 +3763,7 @@ async def crm_update(
 
 @app.get("/api/alerts")
 async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from models import BotAlert
+    # ponytail: BotAlert at module level
     stmt = select(BotAlert).where(BotAlert.tenant_id == current_user._tenant_id, BotAlert.resolved == resolved).order_by(desc(BotAlert.created_at)).limit(20)
     rows = await db.execute(stmt)
     return [{
@@ -3780,7 +3779,7 @@ async def create_alert(
     message: str = Form(...), db=Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    from models import BotAlert
+    # ponytail: BotAlert at module level
     alert = BotAlert(alert_type=alert_type, severity=severity, message=message, tenant_id=current_user._tenant_id)
     db.add(alert)
     await db.commit()
@@ -3797,7 +3796,7 @@ async def create_alert(
 
 @app.post("/api/alerts/{alert_id}/resolve")
 async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    from models import BotAlert
+    # ponytail: BotAlert at module level
     a = (await db.execute(
         select(BotAlert).where(BotAlert.id == alert_id, BotAlert.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()

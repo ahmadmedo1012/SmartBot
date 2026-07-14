@@ -603,7 +603,7 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .empty-state-icon svg { width: 1.75rem; height: 1.75rem; color: var(--muted); opacity: 0.5; }
 @keyframes staggerIn { to{opacity:1;transform:translateY(0)} }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0s!important;transition-duration:0s!important } }
-@keyframes livePulse { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
+@keyframes livePulseShadow { 0%{box-shadow:0 0 0 0 color-mix(in oklch,var(--success),transparent 60%)} 70%{box-shadow:0 0 0 6px transparent} 100%{box-shadow:0 0 0 0 transparent} }
 @keyframes float { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-8px) } }
 @keyframes magnetic-float { 0%,100% { transform:translateY(0) scale(1) } 50% { transform:translateY(-10px) scale(1.02) } }
 @keyframes breath { 0%,100% { opacity:0.6 } 50% { opacity:0.3 } }

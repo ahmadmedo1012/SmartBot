@@ -40,9 +40,9 @@ const faqs = [
 ]
 
 const testimonials = [
-  { name: "أحمد السالمي", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
-  { name: "سارة النفاتي", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
-  { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
+  { name: "أحمد السالمي", role: "صاحب صفحة - طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
+  { name: "سارة النفاتي", role: "مديرة تسويق - بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
+  { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني - مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
 ]
 
 export default function HomePage() {
@@ -64,7 +64,7 @@ export default function HomePage() {
                   أكثر من ٥٠٠ صفحة تثق فينا
                 </motion.div>
                 <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.1 }}
-                  className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] tracking-tighter">
+                  className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tighter font-heading">
                   إدارة تفاعل فيسبوك<br />
                   <span className="text-orange">بذكاء واحترافية</span>
                 </motion.h1>

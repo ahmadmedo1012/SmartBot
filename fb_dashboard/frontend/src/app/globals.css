@@ -285,6 +285,8 @@
 .text-balance { text-wrap: balance; }
 .gpu-layer { transform: translateZ(0); backface-visibility: hidden; }
 
+.font-heading { font-family: var(--font-heading); }
+
 /* RTL utilities */
 [dir="rtl"] { --font-sans: var(--font-arabic); font-family: var(--font-arabic); }
 .rtl\:rotate-180 { rotate: y 180deg; }

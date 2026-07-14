@@ -25,9 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/static/fonts/fonts.css" />
+        <link rel="preload" href="/fonts/noto-naskh-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/noto-sans-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/readex-pro.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body className={`${cairo.variable} min-h-screen flex flex-col antialiased overflow-x-hidden`}
-        style={{ background: "var(--background)" }}>
+        style={{ background: "var(--background-radial), var(--background)" }}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

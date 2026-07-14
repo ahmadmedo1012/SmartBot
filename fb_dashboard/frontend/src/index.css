@@ -6,7 +6,9 @@
 @theme {
   --font-sans: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
   --font-dsp: "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-heading: "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
   --font-body: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-arabic: "Noto Naskh Arabic", "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
   --font-mono: "Noto Naskh Arabic", "Courier New", monospace;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -177,6 +179,8 @@
 @keyframes livePulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
 @keyframes pulse-ring { 0%{box-shadow:0 0 0 0 oklch(0.55 0.19 45 / 0.3)} 100%{box-shadow:0 0 0 8px oklch(0.55 0.19 45 / 0)} }
 @keyframes shimmer-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(200%)} }
+.delay-100 { animation-delay: 100ms; } .delay-200 { animation-delay: 200ms; } .delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; } .delay-500 { animation-delay: 500ms; }
 @keyframes count-up { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
 @keyframes reveal-blur { 0%{opacity:0;transform:translateY(18px);filter:blur(4px)} 100%{opacity:1;transform:translateY(0);filter:blur(0)} }
 @keyframes reveal-scale { 0%{opacity:0;transform:scale(0.94)} 100%{opacity:1;transform:scale(1)} }
@@ -238,7 +242,13 @@
   *:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px }
   ::selection { background: oklch(0.55 0.19 45 / 0.25); }
   h1, h2, h3, h4, h5, h6 { font-family: var(--font-dsp); line-height: 1.2; letter-spacing: -.02em; font-weight: 600; text-wrap: pretty; }
-  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5 { font-family: var(--font-dsp); letter-spacing: 0; }
+  [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5 { font-family: var(--font-heading); letter-spacing: 0; }
+  h1, h2 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
+  h3, h4, h5 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+  p, li, .body-text { font-family: var(--font-sans); font-weight: 500; line-height: 1.5; }
+  [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
+  a { color: var(--fg); text-decoration: none; transition: color 0.2s ease; }
+  a:hover { color: var(--accent); }
   h1 { font: 700 24px/1.2 var(--font-dsp); }
   h2 { font-size: 1.125rem; font-weight: 600 }
   h3 { font-size: .9375rem; font-weight: 600 }

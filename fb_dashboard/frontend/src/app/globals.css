@@ -6,7 +6,7 @@
 @theme inline {
   --font-sans: "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
   --font-mono: "Noto Naskh Arabic", "Courier New", monospace;
-  --font-arabic: "Noto Naskh Arabic", "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-arabic: "Cairo", "Noto Sans Arabic", "Noto Naskh Arabic", system-ui, sans-serif;
   --font-heading: "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
 
   --color-background: var(--background);

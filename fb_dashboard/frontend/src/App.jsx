@@ -65,7 +65,7 @@ function AppInner() {
   const [auth, setAuth] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [page, setPage] = useState(() => {
-    const hash = window.location.hash.replace("#", "") || "dashboard"
+    const hash = window.location.hash.replace("#", "") || "landing"
     return hash
   })
 
@@ -79,22 +79,18 @@ function AppInner() {
   // Listen for hash changes (browser back/forward)
   useEffect(() => {
     const onHashChange = () => {
-      const hash = window.location.hash.replace("#", "") || "dashboard"
+      const hash = window.location.hash.replace("#", "") || "landing"
       setPage(hash)
     }
     window.addEventListener("hashchange", onHashChange)
     return () => window.removeEventListener("hashchange", onHashChange)
   }, [])
 
+  // Auth check in background — Landing shows immediately regardless
   useEffect(() => {
     fetchMe()
       .then((u) => setAuth(u))
-      .catch(() => {
-        setAuth(null)
-        // Show landing page on root, login otherwise
-        if (window.location.hash === "#login") setPage("login")
-        else setPage("landing")
-      })
+      .catch(() => setAuth(null))
       .finally(() => setAuthLoading(false))
   }, [])
 
@@ -112,7 +108,13 @@ function AppInner() {
     setAuth(null)
   }, [])
 
-  if (authLoading) {
+  // Public pages — render immediately, no auth required
+  if (page === "landing") {
+    return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} onNavigate={navigate} />
+  }
+
+  // Loading state only for protected pages
+  if (authLoading && !auth) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[var(--bg)]">
         <div className="grain-overlay" />
@@ -128,9 +130,6 @@ function AppInner() {
   }
 
   if (!auth) {
-    if (page === "landing") {
-      return <Landing onGetStarted={() => { window.location.hash = "#login"; setPage("login") }} onNavigate={navigate} />
-    }
     const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>

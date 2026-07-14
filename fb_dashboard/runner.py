@@ -369,7 +369,17 @@ app.middleware("http")(dedup_middleware)
 app.include_router(logs_router)
 
 if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    try:
+        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    except Exception as e:
+        log.error(f"StaticFiles mount failed: {e}")
+# ponytail: Vercel includeFiles bundles fb_dashboard/static/** but the Python
+# function may see files at a different path. Log diagnostic on startup.
+log.info(f"STATIC_DIR={STATIC_DIR} exists={STATIC_DIR.exists()}")
+_assets = sorted(STATIC_DIR.glob("assets/index-*.js")) if STATIC_DIR.exists() else []
+log.info(f"Static index.js files: {[a.name for a in _assets]}")
+if not _assets and STATIC_DIR.exists():
+    log.warning(f"STATIC_DIR contents: {list(STATIC_DIR.iterdir())[:10]}")
 # Mobile app - serve from mobile/dist/
 _app_mobile_dir = Path(__file__).resolve().parent.parent / "mobile" / "dist"
 if _app_mobile_dir.is_dir():

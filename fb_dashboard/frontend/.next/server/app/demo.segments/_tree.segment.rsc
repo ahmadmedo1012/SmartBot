@@ -5,4 +5,4 @@
 :HL["/static/fonts/noto-naskh-arabic.woff2","font",{"crossOrigin":"anonymous","type":"font/woff2"}]
 :HL["/static/fonts/noto-sans-arabic.woff2","font",{"crossOrigin":"anonymous","type":"font/woff2"}]
 :HL["/static/fonts/readex-pro.woff2","font",{"crossOrigin":"anonymous","type":"font/woff2"}]
-0:{"tree":{"name":"","param":null,"prefetchHints":24,"slots":{"children":{"name":"demo","param":null,"prefetchHints":4,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"82Rufk3Dsi7c_CYab-TIR"}
+0:{"tree":{"name":"","param":null,"prefetchHints":24,"slots":{"children":{"name":"demo","param":null,"prefetchHints":4,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"7KlbKli8EA8Uayt4F-chX"}

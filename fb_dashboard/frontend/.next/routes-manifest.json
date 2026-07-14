@@ -83,6 +83,12 @@
       "namedRegex": "^/pricing(?:/)?$"
     },
     {
+      "page": "/sitemap.xml",
+      "regex": "^/sitemap\\.xml(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sitemap\\.xml(?:/)?$"
+    },
+    {
       "page": "/subscribe",
       "regex": "^/subscribe(?:/)?$",
       "routeKeys": {},

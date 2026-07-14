@@ -13,11 +13,31 @@ const cairo = Cairo({
   display: "swap",
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+
 export const metadata: Metadata = {
-  title: "SmartBot - منصة إدارة فيسبوك",
-  description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"),
-  icons: { icon: "/static/brand-icon.png" },
+  title: { default: "SmartBot - منصة إدارة فيسبوك", template: "%s | SmartBot" },
+  description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك - المنصة الأولى في ليبيا",
+  metadataBase: new URL(siteUrl),
+  icons: { icon: "/static/brand-icon.png", apple: "/static/brand-icon.png" },
+  manifest: "/manifest.json",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "ar_LY",
+    siteName: "SmartBot",
+    title: "SmartBot - منصة إدارة فيسبوك",
+    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    url: "/",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SmartBot" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SmartBot - منصة إدارة فيسبوك",
+    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    images: ["/og-image.png"],
+  },
+  robots: { index: true, follow: true },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +48,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/static/fonts/noto-naskh-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/static/fonts/noto-sans-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/static/fonts/readex-pro.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "SmartBot",
+            url: siteUrl,
+            logo: `${siteUrl}/static/brand-icon.png`,
+            description: "منصة إدارة تفاعل فيسبوك الذكية",
+            areaServed: "LY",
+          }),
+        }} />
       </head>
       <body className={`${cairo.variable} min-h-screen flex flex-col antialiased overflow-x-hidden`}
         style={{ background: "var(--background-radial), var(--background)" }}>

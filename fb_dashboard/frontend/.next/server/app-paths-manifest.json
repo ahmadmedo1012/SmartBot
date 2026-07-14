@@ -7,5 +7,6 @@
   "/login/page": "app/login/page.js",
   "/page": "app/page.js",
   "/pricing/page": "app/pricing/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
   "/subscribe/page": "app/subscribe/page.js"
 }

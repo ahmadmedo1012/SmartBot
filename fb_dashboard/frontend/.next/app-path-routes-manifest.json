@@ -7,5 +7,6 @@
   "/login/page": "/login",
   "/page": "/",
   "/pricing/page": "/pricing",
+  "/sitemap.xml/route": "/sitemap.xml",
   "/subscribe/page": "/subscribe"
 }

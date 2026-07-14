@@ -15,9 +15,9 @@ import { LogIn, Eye, EyeOff, ArrowRight } from "lucide-react"
 function FloatingShapes() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute -top-20 -right-20 h-72 w-72 animate-spin-slow rounded-full bg-gradient-to-br from-orange/15 to-orange/5 blur-3xl" style={{ animationDuration: "20s" }} />
-      <div className="absolute -bottom-32 -left-32 h-96 w-96 animate-spin-slow rounded-full bg-gradient-to-tr from-orange/10 to-orange/5 blur-3xl" style={{ animationDuration: "25s" }} />
-      <div className="absolute left-1/3 top-1/4 h-48 w-48 animate-float-delayed rounded-full bg-gradient-to-b from-orange/15 to-transparent blur-2xl" style={{ animationDelay: "1s", animationDuration: "8s" }} />
+      <div className="absolute -top-20 -right-20 h-72 w-72 animate-spin-slow rounded-full bg-gradient-to-br from-orange/15 to-orange/5 blur-3xl duration-[20s]" />
+      <div className="absolute -bottom-32 -left-32 h-96 w-96 animate-spin-slow rounded-full bg-gradient-to-tr from-orange/10 to-orange/5 blur-3xl duration-[25s]" />
+      <div className="absolute left-1/3 top-1/4 h-48 w-48 animate-float-delayed rounded-full bg-gradient-to-b from-orange/15 to-transparent blur-2xl delay-[1s] duration-[8s]" />
     </div>
   )
 }

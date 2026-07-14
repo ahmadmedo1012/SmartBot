@@ -14,7 +14,7 @@ import { fadeUp, stagger } from "@/lib/motion"
 import {
   Bot, MessageCircle, BarChart3, Users, Activity, TrendingUp, Clock,
   Sparkles, ArrowLeft, ChevronLeft, LayoutDashboard, Settings, Shield,
-  CheckCircle, XCircle, Mail, Star, HelpCircle
+  CheckCircle, XCircle
 } from "lucide-react"
 
 const mockStats = {
@@ -57,8 +57,8 @@ export default function DemoPage() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 right-0 z-50 h-full w-64 border-l border-border bg-card transition-transform md:translate-x-0 md:static md:z-auto",
-        sidebarOpen ? "translate-x-0" : "translate-x-full"
+        "fixed top-0 start-0 z-50 h-full w-64 border-s border-border bg-card transition-transform md:translate-x-0 md:static md:z-auto",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex items-center gap-2 p-4 border-b border-border">
           <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">S</div>

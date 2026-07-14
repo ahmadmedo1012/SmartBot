@@ -3,14 +3,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { CheckCircle, XCircle, RefreshCw, Filter, Search, Shield, AlertTriangle } from "lucide-react"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle } from "lucide-react"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import { fadeUp } from "@/lib/motion"
 import { csrfFetch } from "@/lib/csrf-client"
 

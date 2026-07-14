@@ -14,7 +14,7 @@ import { fadeUp, stagger, springGentle } from "@/lib/motion"
 import { csrfFetch } from "@/lib/csrf-client"
 import {
   Sparkles, Check, Crown, Star, Bot, BarChart3, MessageCircle, Calendar,
-  Target, ShieldCheck, Globe, Users, ChevronDown, HelpCircle, ArrowLeft
+  Target, ShieldCheck, Globe, Users, ChevronDown
 } from "lucide-react"
 
 interface Plan {

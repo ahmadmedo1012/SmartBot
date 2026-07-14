@@ -126,7 +126,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
                   {item.label}
                   {item.badge && parseInt(item.badge) > 0 && <span className="nav-badge">{item.badge}</span>}
                   {currentPage === item.key && (
-                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineEnd:0,insetBlock:"6px",width:"3px",background:"linear-gradient(to bottom, var(--primary), oklch(0.48 0.19 45))",borderRadius:"2px 0 0 2px",boxShadow:"0 0 8px oklch(0.55 0.19 45 / 0.3)"}} />
+                    <motion.span layoutId="nav-active-indicator" style={{position:"absolute",insetInlineEnd:0,insetBlock:"6px",width:"3px",background:"var(--accent)",borderRadius:"2px 0 0 2px",boxShadow:"0 0 8px color-mix(in oklch, var(--accent) 30%, transparent)"}} />
                   )}
                 </a>
               ))}

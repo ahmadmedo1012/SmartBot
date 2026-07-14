@@ -149,41 +149,51 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* main area */}
       <div className="main">
         {/* header */}
-        <header className="header" style={{
-          transition: "transform .35s var(--ease-smooth), background .35s",
+        <header style={{
+          position:"sticky",top:0,zIndex:30,
+          borderBlockEnd:"1px solid color-mix(in oklch, var(--border) 30%, transparent)",
+          background:"color-mix(in oklch, var(--bg) 70%, transparent)",
+          backdropFilter:"blur(32px)", WebkitBackdropFilter:"blur(32px)",
+          transition:"transform .3s ease",
           transform: hideHeader ? "translateY(-100%)" : "translateY(0)",
         }}>
-          <button
-            className="hamburger"
-            id="hamburger"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="القائمة"
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M4 6h14"/><path d="M4 11h14"/><path d="M4 16h14"/>
-            </svg>
-          </button>
-          <h2 className="page-title hidden sm:block" id="pageTitle">{pageTitles[currentPage] || currentPage}</h2>
-          <div style={{ flex: 1, maxWidth: 384, marginInline: 24, display: "flex", justifyContent: "center" }}>
-            <ActionSearchBar onNavigate={onNavigate} currentPage={currentPage} />
-          </div>
-          <div className="header-left">
-            <div
-              className="notif-btn"
-              onClick={() => onNavigate("notifications")}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("notifications") }}}
-              role="button"
-              tabIndex="0"
-              aria-label="الإشعارات"
-            >
-              <Bell size={20} strokeWidth={1.8} />
-              {notifCount > 0 && <span className="notif-dot"></span>}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,height:56,padding:"0 16px",margin:"0 auto",maxWidth:"100%"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <button
+                className="hamburger"
+                id="hamburger"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="القائمة"
+                style={{display:"flex",alignItems:"center",justifyContent:"center",width:36,height:36,borderRadius:8,color:"var(--muted)",background:"none",border:0,cursor:"pointer",transition:"all .2s"}}
+                onMouseEnter={e => {e.currentTarget.style.background="color-mix(in oklch, var(--accent) 15%, transparent)";e.currentTarget.style.color="var(--accent)"}}
+                onMouseLeave={e => {e.currentTarget.style.background="none";e.currentTarget.style.color="var(--muted)"}}
+              >
+                <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M4 6h14"/><path d="M4 11h14"/><path d="M4 16h14"/>
+                </svg>
+              </button>
+              <h2 className="page-title hidden sm:block" id="pageTitle" style={{fontSize:14,fontWeight:600,color:"var(--muted)"}}>{pageTitles[currentPage] || currentPage}</h2>
             </div>
-            <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
-              onClick={() => onNavigate("settings")}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("settings") }}}>{avatarLetter}</div>
-            <ThemeToggle />
-            <span style={{display:"inline-flex",alignItems:"center",gap:"4px",fontSize:"11px",color:"var(--muted)",marginInlineStart:"4px"}}><span style={{width:"7px",height:"7px",borderRadius:"50%",background:"var(--success)",animation:"livePulse 2s ease-in-out 3",flexShrink:0}}></span>مباشر</span>
+            <div style={{flex:1,maxWidth:384,display:"flex",justifyContent:"center"}}>
+              <ActionSearchBar onNavigate={onNavigate} currentPage={currentPage} />
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div
+                className="notif-btn"
+                onClick={() => onNavigate("notifications")}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("notifications") }}}
+                role="button"
+                tabIndex="0"
+                aria-label="الإشعارات"
+              >
+                <Bell size={20} strokeWidth={1.8} />
+                {notifCount > 0 && <span className="notif-dot"></span>}
+              </div>
+              <div className="avatar" role="button" tabIndex="0" aria-label="الملف الشخصي"
+                onClick={() => onNavigate("settings")}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate("settings") }}}>{avatarLetter}</div>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 

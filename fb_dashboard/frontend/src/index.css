@@ -159,6 +159,7 @@
 }
 
 /* ── Motion: GSAP-performance — tiered timing, transform/opacity, reduced-motion ── */
+/* ponytail: shimmer uses background-position (layout-triggering). Use transform + pseudo for perf. */
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 @keyframes fade-in { from{opacity:0} to{opacity:1} }
 @keyframes scale-in { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }

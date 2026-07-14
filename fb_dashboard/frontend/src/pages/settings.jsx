@@ -26,6 +26,7 @@ function ErrorState({ error, onRetry }) {
 const tabItems = [
   { value: "bot", label: "إعدادات البوت" },
   { value: "facebook", label: "فيسبوك" },
+  { value: "telegram", label: "تليجرام" },
   { value: "api", label: "إعدادات API" },
   { value: "theme", label: "المظهر" },
   { value: "system", label: "النظام" },
@@ -372,6 +373,44 @@ export function Settings({ role }) {
 
       {tab === "facebook" && <FacebookTab />}
 
+      {tab === "telegram" && (
+        <div className="flex flex-col gap-5" style={{ gridColumn: "1 / -1" }}>
+          <div className="card glass glass-card card-premium card-hover-lift card-inset">
+            <div className="cc-header card-header-flush">
+              <div className="cc-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2 12 21.5 8.5 15 2 11.5z"/></svg>
+                بوت تليجرام
+              </div>
+            </div>
+            <p style={{fontSize:13,color:"var(--muted)",marginBlockEnd:12}}>بوت التليجرام يُستخدم لإشعارات الدفعات وتأكيدها. يتم ضبط التوكن ومعرفات الأدمن عبر متغيرات البيئة (TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_IDS).</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-4" style={{display:"grid"}}>
+              <div>
+                <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>حالة الاتصال</label>
+                <span className={`badge ${true ? "badge-s" : "badge-d"}`} style={{fontSize:11}}>
+                  <span className="status-indicator"><span className="status-dot-success" />{true ? "متصل" : "غير متصل"}</span>
+                </span>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"var(--muted)",display:"block",marginBlockEnd:4}}>منصة الدفع</label>
+                <span className="badge badge-s" style={{fontSize:11}}>Liyana / Madar</span>
+              </div>
+            </div>
+
+            <button className="btn btn-outline" style={{fontSize:12}} onClick={async () => {
+              try {
+                const r = await fetch("/api/telegram/test", { method: "POST" })
+                const d = await r.json()
+                if (d.ok) toast.success("✅ البوت متصل ويعمل")
+                else toast.error(d.error || "فشل الاتصال")
+              } catch (e) { toast.error("خطأ في الاتصال بالخادم") }
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              اختبار الاتصال
+            </button>
+          </div>
+        </div>
+      )}
       {tab === "api" && (
         <div className="card glass glass-card card-premium card-hover-lift card-inset">
           <div className="cc-header" style={{padding:0,marginBlockEnd:8}}>

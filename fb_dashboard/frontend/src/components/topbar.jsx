@@ -97,7 +97,7 @@ export function Topbar({ currentPage, onNavigate, username, children, notifCount
       {/* sidebar */}
       <aside className={`sidebar ${drawerOpen ? "open" : ""}`} id="sidebar" style={{ background: "color-mix(in oklch, var(--surface) 80%, transparent)", backdropFilter: "blur(32px)", WebkitBackdropFilter: "blur(32px)", borderInlineEnd: "1px solid color-mix(in oklch, var(--border) 20%, transparent)" }}>
         <div className="sidebar-header" style={{ position: "relative", overflow: "hidden", borderBlockEnd: "1px solid color-mix(in oklch, var(--border) 20%, transparent)" }}>
-          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--primary), oklch(0.48 0.19 45))", boxShadow:"0 4px 10px oklch(0.55 0.19 45 / 0.25)"}}
+          <div className="sidebar-logo" style={{background:"linear-gradient(135deg, var(--primary), var(--accent))", boxShadow:"0 4px 10px color-mix(in oklch, var(--accent) 25%, transparent)"}}
             onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left)/r.width - 0.5; const y = (e.clientY - r.top)/r.height - 0.5; e.currentTarget.style.transform = `translate(${x*6}px, ${y*6}px) scale(1.05)` }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'translate(0,0) scale(1)'; e.currentTarget.style.transition = 'transform 0.3s ease'; setTimeout(() => e.currentTarget.style.transition = '', 300) }}>
             <img src="/static/brand-icon.png" alt="SmartBot" className="w-5 h-5 object-contain" />

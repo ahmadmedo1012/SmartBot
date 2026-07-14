@@ -453,7 +453,7 @@ async def login(username: str = Form(...), password: str = Form(...), request: R
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=False, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
 
@@ -510,7 +510,7 @@ async def register(request: Request, username: str = Form(...), email: str = For
 
     token = make_token(username, tenant.id)
     resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=False, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
 
@@ -703,6 +703,26 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 await edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}
+
+
+@app.post("/api/telegram/test")
+async def telegram_test(current_user: User = Depends(get_current_user)):
+    """Test Telegram bot connection."""
+    from telegram_bot import BOT_TOKEN
+    if not BOT_TOKEN:
+        return {"ok": False, "error": "TELEGRAM_BOT_TOKEN غير مضبوط — اضبطه في متغيرات البيئة"}
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getMe")
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("ok"):
+                    bot_user = data["result"]
+                    return {"ok": True, "bot_name": bot_user.get("first_name", ""), "bot_username": bot_user.get("username", "")}
+            return {"ok": False, "error": f"فشل الاتصال: {r.text[:200]}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
 
 
 @app.get("/api/users")

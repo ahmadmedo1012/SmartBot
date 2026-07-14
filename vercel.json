@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/static/(.*)", "destination": "/static/$1" },
     { "source": "/(.*)", "destination": "/api/index.py" }
   ],
   "functions": {
@@ -8,5 +9,19 @@
       "includeFiles": "fb_dashboard/static/**"
     }
   },
-  "buildCommand": null
+  "buildCommand": null,
+  "headers": [
+    {
+      "source": "/static/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
 }

@@ -15,9 +15,9 @@ const features = [
 ]
 
 const plans = [
-  { name: "مجاني", price: "0", label: "د.ل", pages: "صفحة واحدة", replies: "100 رد/شهر", support: "دعم مجتمعي", cta: "ابدأ مجاناً", highlight: false },
-  { name: "أساسي", price: "49", label: "د.ل/شهر", pages: "3 صفحات", replies: "ردود غير محدودة", support: "دعم عبر البريد", cta: "اشتراك الآن", highlight: true },
-  { name: "احترافي", price: "129", label: "د.ل/شهر", pages: "10 صفحات", replies: "ردود غير محدودة", support: "دعم فني + تقارير PDF", cta: "تواصل معنا", highlight: false },
+  { name: "مجاني", price: 0, yearly: 0, pages: "صفحة واحدة", replies: "100 رد/شهر", reports: "تقارير أساسية", support: "دعم مجتمعي", cta: "ابدأ مجاناً", badge: null, highlight: false, popular: false },
+  { name: "أساسي", price: 49, yearly: 449, pages: "3 صفحات", replies: "ردود غير محدودة", reports: "تقارير تفصيلية", support: "دعم عبر البريد", cta: "اشتراك الآن", badge: "الأكثر شعبية", highlight: true, popular: true },
+  { name: "احترافي", price: 129, yearly: 1199, pages: "10 صفحات", replies: "ردود غير محدودة", reports: "تقارير PDF مخصصة", support: "دعم فني ممتاز", cta: "تواصل معنا", badge: "الأفضل قيمة", highlight: false, popular: false },
 ]
 
 const steps = [
@@ -40,7 +40,7 @@ const testimonials = [
   { name: "محمد التواتي", role: "صاحب متجر — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
 ]
 
-const clients = ["مقهى الواحة", "مطعم الأصيل", "بيتزا روما", "SOHO", "مخبز النخبة", "صيدلية الشفاء", "متجر الريف", "استوديو أضواء"]
+const clients = ["متجر أضواء الإلكتروني", "أكاديمية التعليم الذكي", "وكالة تسويق 360", "منصة متجر الإلكتروني", "مكتب المحاماة الرقمي", "عيادة النور التخصصية", "معرض الأثاث العصري", "نادي اللياقة البدنية"]
 
 function AnimatedCounter({ value, label, suffix = "" }) {
   const ref = useRef(null)
@@ -353,6 +353,7 @@ function ClientsSection() {
 }
 
 function PricingSection() {
+  const [annual, setAnnual] = useState(false)
   return (
     <section className="relative py-24 section-padding" dir="rtl">
       <div className="bg-radial-glow" />
@@ -361,37 +362,68 @@ function PricingSection() {
           <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "var(--fg)", letterSpacing: "-0.02em" }}>
             خطط <span style={{ color: "var(--fg)" }}>الأسعار</span>
           </h2>
-          <p className="text-base max-w-2xl mx-auto" style={{ color: "var(--muted)" }}>
+          <p className="text-base max-w-2xl mx-auto mb-8" style={{ color: "var(--muted)" }}>
             اختر الخطة المناسبة لاحتياجاتك
           </p>
+          {/* Monthly/Yearly toggle */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <span className="text-sm font-medium" style={{ color: !annual ? "var(--fg)" : "var(--muted)" }}>شهري</span>
+            <button
+              onClick={() => setAnnual(!annual)}
+              className="relative w-14 h-7 rounded-full transition-all duration-300"
+              style={{ background: annual ? "var(--accent)" : "var(--border)" }}>
+              <div className="absolute top-0.5 w-6 h-6 rounded-full bg-white transition-all duration-300 shadow-sm"
+                style={{ left: annual ? "calc(100% - 26px)" : "2px" }} />
+            </button>
+            <span className="text-sm font-medium" style={{ color: annual ? "var(--fg)" : "var(--muted)" }}>
+              سنوي
+              <span className="mr-1.5 text-xs px-1.5 py-0.5 rounded-full" style={{ background: "color-mix(in oklch, var(--success) 20%, transparent)", color: "var(--success)" }}>وفر شهرين</span>
+            </span>
+          </div>
         </div>
         <div className="grid md:grid-cols-3 gap-6 reveal-stagger">
-          {plans.map((p, i) => (
+          {plans.map((p, i) => {
+            const isPopular = p.popular
+            const showPrice = p.price === 0 ? "0" : annual ? String(p.yearly) : String(p.price)
+            const showLabel = p.price === 0 ? "" : annual ? "د.ل/سنوياً" : "د.ل/شهر"
+            return (
             <div key={i}
-              className="rounded-2xl p-8 flex flex-col card-premium"
+              className="rounded-2xl p-8 flex flex-col card-premium relative"
               style={{
-                background: p.highlight
+                background: isPopular
                   ? "linear-gradient(135deg, var(--surface), oklch(0.12 0.005 30))"
                   : "var(--surface)",
-                border: p.highlight ? "1px solid var(--accent)" : "1px solid var(--border)",
-                transform: p.highlight ? "scale(1.05)" : "none",
-                boxShadow: p.highlight ? "var(--shadow-glow)" : "var(--shadow-sm)",
+                border: isPopular ? "1px solid var(--accent)" : "1px solid var(--border)",
+                boxShadow: isPopular ? "var(--shadow-glow)" : "var(--shadow-sm)",
               }}>
-              {p.highlight && (
+              {p.badge && (
                 <div className="text-center mb-4">
                   <span className="text-xs px-3 py-1 rounded-full font-bold"
-                    style={{background: "var(--accent)", color: "var(--accent-fg)"}}>الأكثر طلباً</span>
+                    style={{background: isPopular ? "var(--accent)" : "color-mix(in oklch, var(--accent) 60%, transparent)", color: "var(--accent-fg)"}}>{p.badge}</span>
                 </div>
               )}
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold mb-1" style={{ color: "var(--fg)" }}>{p.name}</h3>
                 <div className="mt-4">
-                  <span className="text-5xl font-extrabold" style={{ color: "var(--accent)" }}>{p.price}</span>
-                  <span className="text-sm mr-1" style={{ color: "var(--muted)" }}>{p.label}</span>
+                  <span className="text-5xl font-extrabold" style={{ color: "var(--accent)" }}>{showPrice}</span>
+                  {showLabel && <span className="text-sm mr-1" style={{ color: "var(--muted)" }}>{showLabel}</span>}
                 </div>
               </div>
-              <div className="flex-1 space-y-4 mb-8">
-                {[p.pages, p.replies, p.support].map((item, j) => (
+              {/* Data row */}
+              <div className="grid grid-cols-3 gap-2 mb-6 p-3 rounded-xl" style={{ background: "var(--muted-bg)" }}>
+                {[
+                  { label: "الصفحات", val: p.pages },
+                  { label: "الردود", val: p.replies },
+                  { label: "التقارير", val: p.reports },
+                ].map((d, j) => (
+                  <div key={j} className="text-center">
+                    <div className="text-xs font-bold" style={{ color: "var(--accent)" }}>{d.val}</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>{d.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex-1 space-y-3 mb-8">
+                {[p.support].map((item, j) => (
                   <div key={j} className="flex items-center gap-3 text-sm" style={{ color: "var(--muted)" }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
@@ -400,12 +432,12 @@ function PricingSection() {
                   </div>
                 ))}
               </div>
-              <button className={`btn w-full py-3 ${p.highlight ? "btn-primary" : "btn-outline"}`}
+              <button className={`btn w-full py-3 ${isPopular ? "btn-primary" : "btn-outline"}`}
                 style={{borderRadius: "var(--radius-lg)", fontSize: "14px"}}>
                 {p.cta}
               </button>
             </div>
-          ))}
+          )})}
         </div>
       </div>
     </section>

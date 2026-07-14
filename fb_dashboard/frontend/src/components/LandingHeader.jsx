@@ -153,11 +153,11 @@ export function LandingHeader({ onNavigate }) {
           transition: "transform .5s var(--ease-smooth), background .5s var(--ease-smooth), border-color .5s var(--ease-smooth)",
           transform: visible ? "translateY(0)" : "translateY(-100%)",
           background: scrolled
-            ? "color-mix(in oklch, var(--surface) 70%, transparent)"
+            ? "color-mix(in oklch, var(--bg) 80%, transparent)"
             : "transparent",
           backdropFilter: scrolled ? "blur(32px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
-          borderBlockEnd: scrolled ? "1px solid color-mix(in oklch, var(--accent) 15%, transparent)" : "1px solid transparent",
+          borderBlockEnd: scrolled ? "1px solid color-mix(in oklch, var(--border) 30%, transparent)" : "1px solid transparent",
           boxShadow: scrolled ? "var(--shadow-md)" : "none",
         }}
       >

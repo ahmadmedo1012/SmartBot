@@ -152,14 +152,14 @@ function HeroSection({ onGetStarted }) {
                   </defs>
                   {/* Top bar */}
                   <rect x="16" y="12" width="448" height="40" rx="10" fill="#1a181d" />
-                  <text x="44" y="37" fill="#c84e00" fontSize="11" fontWeight="700" fontFamily="system-ui">SmartBot</text>
-                  <rect x="340" y="22" width="20" height="20" rx="6" fill="#c84e00" opacity="0.15"/>
-                  <rect x="370" y="22" width="20" height="20" rx="6" fill="#c84e00" opacity="0.15"/>
-                  <rect x="400" y="22" width="20" height="20" rx="6" fill="#c84e00" opacity="0.15"/>
-                  <circle cx="434" cy="32" r="10" fill="#c84e00" opacity="0.2"/>
+                  <text x="44" y="37" fill="var(--accent)" fontSize="11" fontWeight="700" fontFamily="system-ui">SmartBot</text>
+                  <rect x="340" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
+                  <rect x="370" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
+                  <rect x="400" y="22" width="20" height="20" rx="6" fill="var(--accent)" opacity="0.15"/>
+                  <circle cx="434" cy="32" r="10" fill="var(--accent)" opacity="0.2"/>
                   {/* Stat cards */}
                   <rect x="16" y="64" width="108" height="72" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
-                  <rect x="26" y="72" width="22" height="22" rx="6" fill="#c84e00" opacity="0.15"/>
+                  <rect x="26" y="72" width="22" height="22" rx="6" fill="var(--accent)" opacity="0.15"/>
                   <text x="55" y="87" fill="#888" fontSize="8" fontFamily="system-ui">آخر 7 أيام</text>
                   <text x="26" y="118" fill="#f0e6d3" fontSize="20" fontWeight="800" fontFamily="system-ui">١٬٢٨٤</text>
                   <rect x="136" y="64" width="108" height="72" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
@@ -177,26 +177,26 @@ function HeroSection({ onGetStarted }) {
                   {/* Chart area */}
                   <rect x="16" y="148" width="292" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="28" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">النشاط اليومي</text>
-                  <rect x="36" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="36" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="58" y="160" width="16" height="64" rx="3" fill="url(#acg)" /><rect x="58" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="80" y="190" width="16" height="34" rx="3" fill="url(#acg)" /><rect x="80" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="102" y="170" width="16" height="54" rx="3" fill="url(#acg)" /><rect x="102" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="124" y="150" width="16" height="74" rx="3" fill="url(#acg)" /><rect x="124" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="146" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="146" y="224" width="16" height="2" rx="1" fill="#c84e00" />
-                  <rect x="168" y="200" width="16" height="24" rx="3" fill="url(#acg)" /><rect x="168" y="224" width="16" height="2" rx="1" fill="#c84e00" />
+                  <rect x="36" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="36" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="58" y="160" width="16" height="64" rx="3" fill="url(#acg)" /><rect x="58" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="80" y="190" width="16" height="34" rx="3" fill="url(#acg)" /><rect x="80" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="102" y="170" width="16" height="54" rx="3" fill="url(#acg)" /><rect x="102" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="124" y="150" width="16" height="74" rx="3" fill="url(#acg)" /><rect x="124" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="146" y="180" width="16" height="44" rx="3" fill="url(#acg)" /><rect x="146" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
+                  <rect x="168" y="200" width="16" height="24" rx="3" fill="url(#acg)" /><rect x="168" y="224" width="16" height="2" rx="1" fill="var(--accent)" />
                   {/* Side panel */}
                   <rect x="320" y="148" width="144" height="128" rx="10" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="332" y="168" fill="#f0e6d3" fontSize="10" fontWeight="600" fontFamily="system-ui">آخر النشاطات</text>
-                  <circle cx="340" cy="187" r="3" fill="#c84e00"/>
+                  <circle cx="340" cy="187" r="3" fill="var(--accent)"/>
                   <text x="350" y="190" fill="#aaa" fontSize="8" fontFamily="system-ui">رد تلقائي جديد</text>
                   <circle cx="340" cy="205" r="3" fill="#666"/>
                   <text x="350" y="208" fill="#aaa" fontSize="8" fontFamily="system-ui">تحديث التحليلات</text>
-                  <circle cx="340" cy="223" r="3" fill="#c84e00"/>
+                  <circle cx="340" cy="223" r="3" fill="var(--accent)"/>
                   <text x="350" y="226" fill="#aaa" fontSize="8" fontFamily="system-ui">تمت جدولة منشور</text>
                   <circle cx="340" cy="241" r="3" fill="#666"/>
                   <text x="350" y="244" fill="#aaa" fontSize="8" fontFamily="system-ui">إضافة متابع جديد</text>
                   {/* Bottom actions */}
-                  <rect x="16" y="288" width="88" height="32" rx="8" fill="#c84e00"/>
+                  <rect x="16" y="288" width="88" height="32" rx="8" fill="var(--accent)"/>
                   <text x="34" y="308" fill="#fff" fontSize="10" fontWeight="700" fontFamily="system-ui">تحديث</text>
                   <rect x="114" y="288" width="88" height="32" rx="8" fill="#1a181d" stroke="#27252a" strokeWidth="1"/>
                   <text x="132" y="308" fill="#ccc" fontSize="10" fontFamily="system-ui">تصدير</text>

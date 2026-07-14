@@ -82,10 +82,11 @@
   --muted: oklch(48% 0.01 30);
   --muted-bg: oklch(0.14 0.005 0);
   --border: oklch(0.22 0.005 0);
-  --accent: oklch(0.68 0.19 45);
-  --accent-soft: oklch(0.68 0.19 45 / 0.15);
+	  /* 🔻 المصدر الوحيد للون البرتقالي */
+  --accent: oklch(0.55 0.19 45);
+  --accent-soft: oklch(0.55 0.19 45 / 0.15);
   --accent-fg: oklch(98% 0 0);
-  --accent-glow: 0 0 30px oklch(0.68 0.19 45 / 0.2);
+	  --accent-glow: 0 0 25px oklch(0.55 0.19 45 / 0.3);
   --success: oklch(62% 0.18 145);
   --success-soft: oklch(92% 0.08 150 / 0.4);
   --warn: oklch(72% 0.16 80);
@@ -97,11 +98,9 @@
   --warn-fg: oklch(40% 0.10 75);
   --warning-foreground: oklch(0.1 0 0);
   /* ── Primary accent (matches Smart Menu oklch) ── */
-  --primary: oklch(0.55 0.19 45);
+  --primary: var(--accent);
   --primary-foreground: oklch(0.98 0 0);
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.15);
+  --orange: var(--accent);
   /* ── Smart Menu gradients ── */
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.12), oklch(0.52 0.19 45 / 0.06));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.06) 50%, transparent 100%);
@@ -125,9 +124,7 @@
   --dot-grid: radial-gradient(circle, color-mix(in oklch, var(--fg) 6%, transparent) 0.75px, transparent 0.75px);
   --dot-grid-size: 20px 20px;
   /* ── Orange border/ring utilities matching Smart Menu ── */
-  --border-orange: oklch(0.55 0.19 45);
-  --ring: oklch(0.55 0.19 45);
-  --ring-orange: oklch(0.55 0.19 45);
+  --ring: var(--accent);
 
   /* ── Z-index layer registry (Smart Menu parity) ── */
   --z-dropdown: 10;
@@ -271,7 +268,7 @@ button, a, select, input, textarea {
   display: flex; flex-direction: column; z-index: 60;
 }
 .sidebar-header { position:relative; display: flex; align-items: center; gap: 12px; padding: 16px 20px; min-height: 72px; border-block-end: 1px solid color-mix(in oklch, var(--border) 20%, transparent); overflow: hidden; }
-.sidebar-logo { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), oklch(0.48 0.19 45)); border-radius: var(--radius-md); display: grid; place-items: center; color: var(--primary-foreground); font-weight: 800; font-size: 18px; flex-shrink: 0; box-shadow: 0 4px 10px oklch(0.55 0.19 45 / 0.25); }
+.sidebar-logo { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--accent) 85%, transparent)); border-radius: var(--radius-md); display: grid; place-items: center; color: var(--primary-foreground); font-weight: 800; font-size: 18px; flex-shrink: 0; box-shadow: 0 4px 10px var(--accent) / 0.25; }
 .sidebar-title { font: 700 15px/1.2 var(--font-dsp); color: var(--fg); }
 .sidebar-title span { font: 400 11px/1 var(--font-body); color: var(--muted); margin-block-start: 2px; }
 .sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
@@ -341,7 +338,7 @@ button, a, select, input, textarea {
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-block-end: 24px; }
 .stat-card { padding: var(--space-md) var(--space-lg); transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
 .stat-card-active { border: 2px solid var(--accent); }
-@media (prefers-reduced-motion: no-preference) { .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px oklch(0 0 0 / 0.08), 0 0 24px oklch(0.68 0.19 45 / 0.15); } }
+@media (prefers-reduced-motion: no-preference) { .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px oklch(0 0 0 / 0.08), 0 0 24px color-mix(in oklch, var(--accent) 15%, transparent); } }
 .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-block-end: 4px; }
 .stat-value { font: 700 26px/1 var(--font-dsp); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .stat-change { font-size: 11px; margin-block-start: 6px; display: flex; align-items: center; gap: 4px; }
@@ -519,12 +516,12 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
 .status-dot-accent { background: var(--accent); box-shadow: 0 0 6px color-mix(in oklch, var(--accent) 50%, transparent); }
 .text-gradient-accent { background: linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, oklch(0% 0 0))); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .text-gradient-premium { background: linear-gradient(135deg, var(--fg), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.orange-ring { outline-color: oklch(0.55 0.19 45); }
+.orange-ring { outline-color: var(--accent); }
 .bg-orange-soft { background-color: oklch(0.55 0.19 45 / 0.1); }
-.text-orange { color: oklch(0.55 0.19 45); }
-.border-orange { border-color: oklch(0.55 0.19 45); }
-.border-orange-soft { border-color: oklch(0.55 0.19 45 / 0.15); }
-.border-orange-light { border-color: oklch(0.55 0.19 45 / 0.08); }
+.text-orange { color: var(--accent); }
+	.border-orange { border-color: var(--accent); }
+	.border-orange-soft { border-color: color-mix(in oklch, var(--accent) 15%, transparent); }
+	.border-orange-light { border-color: color-mix(in oklch, var(--accent) 8%, transparent); }
 .bg-grid-pattern { background-image: radial-gradient(circle, color-mix(in oklch, var(--border) 35%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
 .grain-overlay { position:fixed; inset:0; z-index:60; pointer-events:none }
 .grain-overlay::before { content:''; position:absolute; inset:0; opacity:0.035; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size:256px 256px }
@@ -766,11 +763,9 @@ tr:hover td { background: color-mix(in oklch, var(--border) 25%, transparent); }
   --shadow-xl: 0 24px 60px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.06);
   --skeleton: var(--muted-bg);
   --spotlight: oklch(0 0 0 / 0.04);
-  --primary: oklch(0.48 0.19 45);
+  --primary: var(--accent);
   --primary-foreground: oklch(0.98 0 0);
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.12);
+  --orange: var(--accent);
   --warning-foreground: oklch(0.1 0 0);
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.08), oklch(0.52 0.19 45 / 0.04));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(0 0 0 / 0.04) 50%, transparent 100%);

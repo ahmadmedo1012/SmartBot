@@ -1,15 +1,18 @@
 import { MessageCircle } from "lucide-react"
 
 const QUICK_LINKS = [
-  { key: "pricing", label: "الخطط" },
+  { key: "pricing", label: "الخطط والأسعار" },
+  { key: "demo", label: "منيو تجريبي" },
   { key: "login", label: "تسجيل الدخول" },
+  { key: "subscribe", label: "اشترك الآن" },
 ]
 
 const SERVICES = [
-  "ردود تلقائية",
-  "تحليلات وأداء",
-  "جدولة منشورات",
-  "إدارة العملاء",
+  "منيو إلكتروني",
+  "طلب عبر واتساب",
+  "برنامج ولاء",
+  "إحصائيات وتحليلات",
+  "QR كود مخصص",
 ]
 
 function SocialIcon({ children, href, label }) {
@@ -29,11 +32,17 @@ function SocialIcon({ children, href, label }) {
 
 export function LandingFooter({ onNavigate }) {
   return (
-  <footer dir="rtl" style={{ borderBlockStart: "1px solid color-mix(in oklch, var(--border) 50%, transparent)", paddingBlock: "64px 40px" }}>
+    <footer dir="rtl" style={{
+      borderBlockStart: "1px solid color-mix(in oklch, var(--border) 50%, transparent)",
+      paddingBlockStart: 48,
+      paddingBlockEnd: 32,
+    }}
+      className="sm:pt-16 sm:pb-10 pt-12 pb-8"
+    >
       <div style={{ maxWidth: 1220, margin: "0 auto", padding: "0 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px 32px", marginBlockEnd: 40 }}
-          className="sm:grid-cols-4">
-
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8"
+          style={{ marginBlockEnd: 40 }}
+        >
           {/* Column 1 — Brand */}
           <div className="col-span-2 sm:col-span-1">
             <img src="/static/brand-icon.png" alt="SmartBot" style={{ width: 28, height: 28, borderRadius: 8, marginBlockEnd: 12 }} />
@@ -88,7 +97,6 @@ export function LandingFooter({ onNavigate }) {
               <span style={{ fontSize: 13, color: "var(--muted)", cursor: "default", width: "fit-content" }}>دعم فني 24/7</span>
             </div>
           </div>
-
         </div>
 
         {/* Bottom bar */}

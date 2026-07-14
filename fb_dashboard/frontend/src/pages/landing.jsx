@@ -3,6 +3,7 @@ import { useMotionValue, useSpring, useTransform } from "framer-motion"
 import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star, Sparkles, Crown, Rocket } from "lucide-react"
 import { LandingHeader } from "@/components/LandingHeader"
 import { LandingFooter } from "@/components/LandingFooter"
+import FloatingWhatsApp from "@/components/FloatingWhatsApp"
 
 
 const features = [
@@ -545,6 +546,7 @@ export function Landing({ onGetStarted, onNavigate: navigateProp }) {
         <CTASection onGetStarted={onGetStarted} />
       </div>
       <LandingFooter onNavigate={navigateProp} />
+      <FloatingWhatsApp />
     </div>
   )
 }

@@ -15,7 +15,7 @@ function HamburgerButton({ open, onClick }) {
       onClick={onClick}
       className="lg:hidden"
       style={{
-        position: "relative", width: 44, height: 44, borderRadius: 10,
+        position: "relative", width: 44, height: 44, borderRadius: 8,
         border: "1px solid var(--border)", background: "transparent",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer", transition: "all .2s",
@@ -123,7 +123,7 @@ function MobileMenu({ open, onClose, onNavigate }) {
               position: "fixed", insetInline: 0, top: 0, zIndex: 50,
               margin: "16px", borderRadius: 16,
               background: "var(--surface)",
-              border: "1px solid color-mix(in oklch, var(--border) 50%, transparent)",
+              border: "1px solid color-mix(in oklch, var(--border) 10%, transparent)",
               boxShadow: "var(--shadow-xl)", overflow: "hidden",
               transformOrigin: "top center",
             }}
@@ -198,13 +198,14 @@ export function LandingHeader({ onNavigate }) {
           background: scrolled
             ? "color-mix(in oklch, var(--bg) 80%, transparent)"
             : "transparent",
-          backdropFilter: scrolled ? "blur(32px)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(32px)" : "none",
+          backdropFilter: scrolled ? "blur(24px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(24px)" : "none",
           borderBlockEnd: scrolled ? "1px solid color-mix(in oklch, var(--border) 30%, transparent)" : "1px solid transparent",
           boxShadow: scrolled ? "var(--shadow-md)" : "none",
         }}
       >
-        <nav style={{ maxWidth: 1220, margin: "0 auto", padding: "0 24px", height: "100%", display: "flex", alignItems: "center", gap: 24 }}>
+        <style>{`@media (min-width:640px){.landing-nav{padding:0 24px}}@media (min-width:1024px){.landing-nav{padding:0 40px}}`}</style>
+        <nav className="landing-nav" style={{ maxWidth: 1220, margin: "0 auto", padding: "0 16px", height: "100%", display: "flex", alignItems: "center", gap: 24 }}>
           {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
@@ -216,7 +217,7 @@ export function LandingHeader({ onNavigate }) {
 
           {/* Tubelight Nav (Desktop) */}
           <div className="hidden lg:flex" style={{ alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", borderRadius: 9999, background: "color-mix(in oklch, var(--surface) 60%, transparent)", backdropFilter: "blur(8px)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", padding: 3, boxShadow: scrolled ? "var(--shadow-sm)" : "none" }}>
+            <div style={{ display: "flex", alignItems: "center", borderRadius: 9999, background: "color-mix(in oklch, var(--surface) 60%, transparent)", backdropFilter: "blur(8px)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", padding: 4, boxShadow: scrolled ? "var(--shadow-sm)" : "none" }}>
               {landingLinks.map((link, i) => {
                 const linkActive = isActive(link.href)
                 return (
@@ -225,10 +226,10 @@ export function LandingHeader({ onNavigate }) {
                     <span
                       onClick={() => onNavigate && onNavigate(link.href)}
                       style={{
-                        position: "relative", zIndex: 10, padding: "6px 16px", fontSize: 13, fontWeight: 500,
+                        position: "relative", zIndex: 10, fontSize: 13, fontWeight: 500,
                         color: linkActive ? "#fff" : "color-mix(in oklch, var(--fg) 70%, transparent)",
                         cursor: "pointer", borderRadius: 9999, transition: "color .2s",
-                        whiteSpace: "nowrap",
+                        whiteSpace: "nowrap", padding: "8px 16px",
                       }}
                     >
                       {link.label}
@@ -238,7 +239,7 @@ export function LandingHeader({ onNavigate }) {
                           style={{
                             position: "absolute", inset: 0, zIndex: -10, borderRadius: 9999,
                             background: "var(--accent)",
-                            boxShadow: "0 0 18px 3px rgba(200,78,0,0.35), 0 0 6px rgba(200,78,0,0.15)",
+                            boxShadow: "0 0 18px 3px rgba(251,146,60,0.35), 0 0 6px rgba(251,146,60,0.15)",
                           }}
                           transition={{ type: "spring", stiffness: 420, damping: 28 }}
                         />

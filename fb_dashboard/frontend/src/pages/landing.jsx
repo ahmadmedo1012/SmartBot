@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { useMotionValue, useSpring, useTransform } from "framer-motion"
-import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star } from "lucide-react"
+import { Bot, BarChart3, MessageCircle, Calendar, Target, ShieldCheck, ChevronDown, Star, Sparkles, Crown, Rocket } from "lucide-react"
 import { LandingHeader } from "@/components/LandingHeader"
 import { LandingFooter } from "@/components/LandingFooter"
 
@@ -15,9 +15,9 @@ const features = [
 ]
 
 const plans = [
-  { name: "مجاني", price: 0, yearly: 0, pages: "صفحة واحدة", replies: "100 رد/شهر", reports: "تقارير أساسية", support: "دعم مجتمعي", cta: "ابدأ مجاناً", badge: null, highlight: false, popular: false },
-  { name: "أساسي", price: 49, yearly: 449, pages: "3 صفحات", replies: "ردود غير محدودة", reports: "تقارير تفصيلية", support: "دعم عبر البريد", cta: "اشتراك الآن", badge: "الأكثر شعبية", highlight: true, popular: true },
-  { name: "احترافي", price: 129, yearly: 1199, pages: "10 صفحات", replies: "ردود غير محدودة", reports: "تقارير PDF مخصصة", support: "دعم فني ممتاز", cta: "تواصل معنا", badge: "الأفضل قيمة", highlight: false, popular: false },
+  { name: "مجاني", icon: Sparkles, gradient: "from-gray-400 to-gray-500", badgeClass: "", price: 0, yearly: 0, pages: "صفحة واحدة", replies: "100 رد/شهر", reports: "تقارير أساسية", support: "دعم مجتمعي", cta: "ابدأ مجاناً", badge: null, highlight: false, popular: false },
+  { name: "أساسي", icon: Crown, gradient: "from-orange to-orange/80", badgeClass: "bg-[var(--orange)] text-white", price: 49, yearly: 449, pages: "3 صفحات", replies: "ردود غير محدودة", reports: "تقارير تفصيلية", support: "دعم عبر البريد", cta: "اشتراك الآن", badge: "الأكثر شعبية", highlight: true, popular: true },
+  { name: "احترافي", icon: Rocket, gradient: "from-orange to-orange/80", badgeClass: "bg-gradient-to-r from-orange to-orange/80 text-white", price: 129, yearly: 1199, pages: "10 صفحات", replies: "ردود غير محدودة", reports: "تقارير PDF مخصصة", support: "دعم فني ممتاز", cta: "تواصل معنا", badge: "الأفضل قيمة", highlight: false, popular: false },
 ]
 
 const steps = [
@@ -35,9 +35,9 @@ const faqs = [
 ]
 
 const testimonials = [
-  { name: "أحمد المقريف", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
-  { name: "سارة بن غربية", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
-  { name: "محمد التواتي", role: "صاحب متجر — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
+  { name: "أحمد السالمي", role: "صاحب صفحة — طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
+  { name: "سارة النفاتي", role: "مديرة تسويق — بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
+  { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني — مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
 ]
 
 const clients = ["متجر أضواء الإلكتروني", "أكاديمية التعليم الذكي", "وكالة تسويق 360", "منصة متجر الإلكتروني", "مكتب المحاماة الرقمي", "عيادة النور التخصصية", "معرض الأثاث العصري", "نادي اللياقة البدنية"]
@@ -403,6 +403,12 @@ function PricingSection() {
                 </div>
               )}
               <div className="text-center mb-6">
+                <div className="flex justify-center mb-3">
+                  <div className="size-11 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-lg"
+                    style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, black))", boxShadow: "0 0 20px var(--accent-glow)" }}>
+                    <p.icon className="size-5" style={{color:"var(--accent-fg)"}} />
+                  </div>
+                </div>
                 <h3 className="text-xl font-bold mb-1" style={{ color: "var(--fg)" }}>{p.name}</h3>
                 <div className="mt-4">
                   <span className="text-5xl font-extrabold" style={{ color: "var(--accent)" }}>{showPrice}</span>

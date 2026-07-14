@@ -53,6 +53,49 @@ const mobileLinkVariants = {
 
 function MobileMenu({ open, onClose, onNavigate }) {
   const panelRef = useRef(null)
+  const previousFocusRef = useRef(null)
+
+  useEffect(() => {
+    if (open) {
+      previousFocusRef.current = document.activeElement
+      const raf = requestAnimationFrame(() => {
+        const panel = panelRef.current
+        if (panel) {
+          const focusable = panel.querySelector('button, [href], [tabindex]:not([tabindex="-1"])')
+          if (focusable) focusable.focus()
+        }
+      })
+      return () => cancelAnimationFrame(raf)
+    } else {
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === "function") {
+        previousFocusRef.current.focus()
+      }
+    }
+  }, [open])
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === "Escape") { onClose(); return }
+    if (e.key !== "Tab") return
+    const panel = panelRef.current
+    if (!panel) return
+    const focusable = panel.querySelectorAll("button, [href], [tabindex]:not([tabindex=\"-1\"])")
+    if (focusable.length === 0) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus() }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+  }, [onClose])
+
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel || !open) return
+    panel.addEventListener("keydown", handleKeyDown)
+    return () => panel.removeEventListener("keydown", handleKeyDown)
+  }, [open, handleKeyDown])
+
   return (
     <AnimatePresence>
       {open && (

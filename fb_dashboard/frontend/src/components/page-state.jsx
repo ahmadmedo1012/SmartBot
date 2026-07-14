@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 
 const icons = {
   empty: <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" style={{ opacity: 0.3 }}><rect x="6" y="10" width="36" height="28" rx="3"/><path d="M6 18h36"/><circle cx="14" cy="14" r="2"/><circle cx="20" cy="14" r="2"/></svg>,
@@ -7,12 +7,13 @@ const icons = {
 }
 
 export function PageState({ state, title, message, action }) {
-  const prefersReducedMotion = useReducedMotion()
-
+  /* ponytail: skip framer for simple fade — CSS animation cheaper than JS-driven opacity */
   return (
     <motion.div
-      initial={prefersReducedMotion ? {} : { opacity: 0 }}
+      style={{ willChange: "opacity" }}
+      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
       className="page active"
       dir="rtl"
     >

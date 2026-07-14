@@ -9,7 +9,7 @@ import { arSA } from "date-fns/locale"
 
 const statCardVariant = {
   hidden: { opacity: 0, y: 12 },
-  visible: (i) => ({ opacity: 1, y: 0, transition: { type: "spring", stiffness: 240, damping: 22, mass: 0.6, delay: i * 0.05 } }),
+  visible: (i) => ({ opacity: 1, y: 0, transition: { type: "spring", stiffness: 180, damping: 20, mass: 0.4, delay: i * 0.04 } }),
 }
 
 function AnimatedStat({ value, suffix = "" }) {
@@ -17,7 +17,7 @@ function AnimatedStat({ value, suffix = "" }) {
   const prefersReducedMotion = useReducedMotion()
   const [display, setDisplay] = useState(0)
   const count = useMotionValue(0)
-  const spring = useSpring(count, { stiffness: prefersReducedMotion ? 0 : 80, damping: 18, mass: 0.8 })
+  const spring = useSpring(count, { stiffness: prefersReducedMotion ? 0 : 60, damping: 16, mass: 0.5 })
   const rounded = useTransform(spring, v => Math.floor(v))
 
   useEffect(() => {

@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
@@ -104,7 +103,7 @@ export default function HomePage() {
                     ))}
                   </div>
                   <div>
-                    <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className="size-3.5 fill-muted text-muted" />)}</div>
+                    <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className="size-3.5 fill-orange/40 text-orange/50" />)}</div>
                     <span className="text-xs text-muted-foreground">موثوق من آلاف المداراء</span>
                   </div>
                 </motion.div>

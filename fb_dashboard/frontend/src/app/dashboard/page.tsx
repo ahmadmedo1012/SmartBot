@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, MessageCircle, Settings, ChevronLeft } from "lucide-react"
 
@@ -93,6 +93,15 @@ export default function DashboardPage() {
   const recentReplies = Array.isArray(replies?.data) ? replies.data : Array.isArray(replies) ? replies : []
   const rulesList = Array.isArray(rules) ? rules : []
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    document.title = "لوحة البيانات | SmartBot"
+    const meta = document.createElement("meta")
+    meta.name = "robots"
+    meta.content = "noindex, nofollow"
+    document.head.appendChild(meta)
+    return () => meta.remove()
+  }, [])
 
   if (statsError && !statsLoading) {
     return <ErrorState message={(statsError as Error)?.message} onRetry={() => refetchStats()} />

@@ -11,6 +11,7 @@ const cairo = Cairo({
   subsets: ["arabic", "latin"],
   variable: "--font-cairo",
   display: "swap",
+  adjustFontFallback: false,
 })
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
@@ -29,13 +30,6 @@ export const metadata: Metadata = {
     title: "SmartBot - منصة إدارة فيسبوك",
     description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
     url: "/",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SmartBot" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "SmartBot - منصة إدارة فيسبوك",
-    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
-    images: ["/og-image.png"],
   },
   robots: { index: true, follow: true },
 }

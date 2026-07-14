@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
@@ -47,6 +47,7 @@ export default function DemoPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const maxCount = Math.max(...mockStats.active_hours, 1)
+  useEffect(() => { document.title = "تجربة حية | SmartBot" }, [])
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -98,7 +99,7 @@ export default function DemoPage() {
               <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
                 <ArrowLeft className="size-4" /> العودة
               </Button>
-              <Badge variant="warning">تجربة — بيانات وهمية</Badge>
+              <Badge variant="warning">تجربة - بيانات وهمية</Badge>
             </div>
             <div className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-green-500" />

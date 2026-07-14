@@ -45,6 +45,15 @@ export default function AdminPage() {
   const [roleLoading, setRoleLoading] = useState(true)
 
   useEffect(() => {
+    document.title = "الإدارة | SmartBot"
+    const meta = document.createElement("meta")
+    meta.name = "robots"
+    meta.content = "noindex, nofollow"
+    document.head.appendChild(meta)
+    return () => meta.remove()
+  }, [])
+
+  useEffect(() => {
     csrfFetch("/api/me")
       .then((r) => r.json())
       .then((d) => { setRole(d.role || null); setRoleLoading(false) })
@@ -147,7 +156,7 @@ export default function AdminPage() {
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
                       </td>
                       <td className="p-3 text-muted-foreground text-xs">
-                        {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-SA") : "—"}
+                        {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-SA") : "-"}
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-2">

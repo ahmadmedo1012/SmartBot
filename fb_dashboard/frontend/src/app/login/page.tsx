@@ -38,6 +38,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
 
+  useEffect(() => { document.title = "تسجيل الدخول | SmartBot" }, [])
+
   useEffect(() => {
     fetch("/api/me")
       .then(r => r.json())

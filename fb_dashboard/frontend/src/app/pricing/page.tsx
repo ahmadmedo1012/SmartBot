@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { fadeUp, stagger, springGentle } from "@/lib/motion"
+import { fadeUp, stagger } from "@/lib/motion"
 import { csrfFetch } from "@/lib/csrf-client"
 import {
   Sparkles, Check, Crown, Star, Bot, BarChart3, MessageCircle, Calendar,
@@ -53,6 +53,7 @@ export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+  useEffect(() => { document.title = "الخطط والأسعار | SmartBot" }, [])
 
   useEffect(() => {
     csrfFetch("/api/plans")
@@ -114,7 +115,7 @@ export default function PricingPage() {
                     <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-muted/50 rounded-lg text-center text-sm">
                       <div><span className="font-bold text-orange-500">{plan.max_replies >= 999999 ? "∞" : plan.max_replies}</span><p className="text-xs text-muted-foreground">ردود</p></div>
                       <div><span className="font-bold text-orange-500">{plan.max_pages >= 999 ? "∞" : plan.max_pages}</span><p className="text-xs text-muted-foreground">صفحات</p></div>
-                      <div><span className="font-bold text-orange-500">{plan.max_rules || "—"}</span><p className="text-xs text-muted-foreground">قواعد</p></div>
+                      <div><span className="font-bold text-orange-500">{plan.max_rules || "-"}</span><p className="text-xs text-muted-foreground">قواعد</p></div>
                     </div>
                     <ul className="space-y-2 mb-6 flex-1">
                       {plan.features.slice(0, 5).map((f, j) => (

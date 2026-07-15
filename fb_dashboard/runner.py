@@ -8,21 +8,21 @@ import logging
 import os
 import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from _utils import utcnow
 from pathlib import Path
 from contextlib import asynccontextmanager
 # ponytail: Any unused but preserved for type annotation patterns
 
 import jwt
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_, update
+from sqlalchemy import select, func, desc, cast, Date, text, or_, update
 
 from _lazy import lazy
 from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, send_message, edit_keyboard, edit_message, answer_callback
@@ -33,7 +33,7 @@ from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, Conversati
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
 from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from models import SubscriptionPlan, SubscriptionPayment, UsageCounter, SystemConfig
-from bot import BotEngine, IntentAwareMatcher
+from bot import BotEngine
 from ws_manager import ws_manager
 from event_bus import event_bus
 from logs_api import logs_router

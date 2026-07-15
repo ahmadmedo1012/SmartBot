@@ -83,6 +83,11 @@ def upgrade() -> None:
     _add_if_missing("payment_requests",
         sa.Column("amount_numeric", sa.Numeric(10, 3)))
 
+    # ── missing tenant_id on tables added after initial schema ──
+    for tbl in ("subscription_payments", "usage_counters", "payment_requests"):
+        _add_if_missing(tbl,
+            sa.Column("tenant_id", sa.Integer, nullable=False, server_default="0"))
+
 
 def downgrade() -> None:
     # ponytail: no downgrade — reversing column adds risks data loss

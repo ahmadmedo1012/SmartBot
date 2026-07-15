@@ -445,7 +445,7 @@ class ConversationAssignee(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     conversation_id = Column(String(100), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     assigned_at = Column(DateTime, default=utcnow)
 
 

@@ -27,7 +27,7 @@ class ConnectionManager:
             return
         msg = json.dumps({"event": event, "data": data}, ensure_ascii=False, default=str)
         dead = set()
-        for ws in self._connections:
+        for ws in self._connections.copy():
             try:
                 await ws.send_text(msg)
             except Exception:

@@ -5,7 +5,7 @@ import { useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, LogOut, ChevronLeft } from "lucide-react"
+import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, LogOut, ChevronLeft, MessageCircle} from "lucide-react"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"

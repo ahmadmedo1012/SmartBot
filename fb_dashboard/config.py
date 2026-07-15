@@ -48,3 +48,7 @@ if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and n
 # ponytail: CRON_SECRET required in production (non-DEBUG)
 if not settings.DEBUG and not os.environ.get("CRON_SECRET"):
     raise RuntimeError("CRITICAL: CRON_SECRET env var is required in production")
+
+# ponytail: FERNET_KEY required in production — prevents key reuse across JWT + encryption
+if not settings.DEBUG and not settings.FERNET_KEY:
+    raise RuntimeError("CRITICAL: FERNET_KEY env var is required in production — set a separate key from SECRET_KEY")

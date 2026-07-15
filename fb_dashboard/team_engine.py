@@ -86,7 +86,9 @@ class TeamEngine:
         for e in (await session.execute(evt_stmt)).scalars().all():
             meta = {}
             try: meta = json.loads(e.metadata_json or "{}")
-            except Exception: pass
+            except Exception:
+                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
+                meta = {}
             activities.append({
                 "type": "event",
                 "user": meta.get("user", "system"),
@@ -126,7 +128,9 @@ class TeamEngine:
         for e in rows.scalars().all():
             meta = {}
             try: meta = json.loads(e.metadata_json or "{}")
-            except Exception: pass
+            except Exception:
+                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
+                meta = {}
             items.append({
                 "id": e.id,
                 "event_type": e.event_type,

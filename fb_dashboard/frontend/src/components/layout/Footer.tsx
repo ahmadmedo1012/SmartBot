@@ -14,9 +14,7 @@ const QUICK_LINKS = [
 const SERVICES = [
   { href: "https://menu.smart-link.ly", label: "منيو إلكتروني" },
   { href: "https://menu.smart-link.ly/menu/al-waha-cafe", label: "طلب عبر واتساب" },
-  { label: "برنامج ولاء" },
-  { label: "إحصائيات وتحليلات" },
-  { label: "QR كود مخصص" },
+  { href: "/dashboard", label: "إحصائيات وتحليلات" },
 ]
 
 export function Footer({ className }: FooterProps) {

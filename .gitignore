@@ -30,3 +30,8 @@ dist/
 mypy_cache/
 .pytest_cache/
 .claude-flow/
+
+# Build artifacts
+.next/
+tsconfig.tsbuildinfo
+*.tsbuildinfo

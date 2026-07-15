@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
+import AuthGuard from "../dashboard/AuthGuard"
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <AuthGuard>{children}</AuthGuard>
 }

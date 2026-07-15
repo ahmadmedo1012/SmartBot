@@ -1596,6 +1596,10 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
     return
 
 
+WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
+WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
+
+
 @app.get("/webhook")
 async def webhook_verify(
     hub_mode: str = Query("", alias="hub.mode"),

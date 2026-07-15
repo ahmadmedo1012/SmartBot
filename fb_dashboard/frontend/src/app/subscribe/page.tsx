@@ -60,7 +60,7 @@ export default function SubscribePage() {
     try {
       const res = await csrfFetch("/api/subscriptions", {
         method: "POST",
-        body: JSON.stringify({ plan_id: selectedPlan.id, phone: form.phone, name: form.name, email: form.email }),
+        body: JSON.stringify({ plan_id: selectedPlan.id, phone: form.phone, name: form.name, email: form.email, amount: selectedPlan.price }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error || "فشل إنشاء الاشتراك"); return }

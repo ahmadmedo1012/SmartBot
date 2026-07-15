@@ -7,11 +7,11 @@ import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, LogOut, ChevronLeft, MessageCircle} from "lucide-react"
 
+import { cn } from "@/lib/utils"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import { fadeUp, stagger, springGentle } from "@/lib/motion"
 import { csrfFetch } from "@/lib/csrf-client"
 

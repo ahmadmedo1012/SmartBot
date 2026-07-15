@@ -59,7 +59,8 @@ function RegisterForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.detail || "فشل إنشاء الحساب")
+        setFormError(data.detail || data.error || "فشل إنشاء الحساب")
+        toast.error(data.detail || data.error || "فشل إنشاء الحساب")
         return
       }
       toast.success("تم إنشاء الحساب بنجاح")

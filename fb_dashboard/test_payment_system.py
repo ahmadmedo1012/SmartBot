@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Self-check: payment modules — PaymentRequest model, telegram_bot, payment API."""
 import sys, os, hashlib, json
 sys.path.insert(0, os.path.dirname(__file__))

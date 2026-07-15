@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Sequence Engine -- Time-based drip campaign scheduler.
 Manages multi-step message sequences sent over days/weeks.
 """

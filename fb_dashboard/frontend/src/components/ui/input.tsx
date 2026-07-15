@@ -11,6 +11,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, id, ...props }, ref) => {
+    const errorId = id ? `${id}-error` : undefined
     return (
       <div className="space-y-1">
         {label && <Label htmlFor={id}>{label}</Label>}
@@ -23,9 +24,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           ref={ref}
+          aria-describedby={error ? errorId : undefined}
           {...props}
         />
-        {error && <p className="text-xs text-destructive">{error}</p>}
+        {error && <p id={errorId} className="text-xs text-destructive">{error}</p>}
       </div>
     )
   }

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Subscriber Engine — Manage subscribers, tags, segments across platforms."""
 import logging
 from datetime import datetime, timezone

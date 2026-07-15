@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Enhanced FB Client — connection pooling + exponential backoff retry.
 Full API: posts, comments, conversations, ads, insights, messaging.

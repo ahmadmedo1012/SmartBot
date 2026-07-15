@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Enhanced intent classifier v3 — Smart Link brand awareness, subscription intents,
 Libyan dialect coverage, sales pipeline classification.

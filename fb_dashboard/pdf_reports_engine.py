@@ -1,3 +1,4 @@
+from __future__ import annotations
 """PDF Reports Engine -- White-label client-ready PDF reports (weasyprint).
 Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 """

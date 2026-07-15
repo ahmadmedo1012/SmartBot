@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Self-check for bot core logic: RuleMatcher, TemplateRenderer, IntentClassifier, TextNormalizer."""
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))

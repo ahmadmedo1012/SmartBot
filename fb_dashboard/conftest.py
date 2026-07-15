@@ -1,3 +1,4 @@
+from __future__ import annotations
 """pytest config: inject dummy env vars + asyncio mode so tests can import."""
 import os
 

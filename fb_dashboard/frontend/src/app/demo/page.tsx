@@ -47,7 +47,7 @@ export default function DemoPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const maxCount = Math.max(...mockStats.active_hours, 1)
-  useEffect(() => { document.title = "تجربة حية | SmartBot" }, [])
+  // title handled by layout.tsx
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">

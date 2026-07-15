@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Bot Logic QA — scenario-based regression and edge case suite.
 Tests the rebuilt bot.py components independently of FB API.

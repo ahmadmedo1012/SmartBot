@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Subscription payment resolution — plan activation and tenant update."""
 from _utils import utcnow
 from datetime import timedelta

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Team Collaboration Engine — Approvals, notes, activity tracking.
 Enterprise team features matching Hootsuite + Respond.io.
 """

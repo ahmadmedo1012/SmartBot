@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Telegram admin notifications for payment approvals."""
 import os, logging, asyncio
 from typing import Any

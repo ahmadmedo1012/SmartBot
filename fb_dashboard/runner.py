@@ -1,5 +1,7 @@
+from __future__ import annotations
 import asyncio
 import hashlib
+import time
 import hmac
 import json
 import logging
@@ -15,42 +17,41 @@ from contextlib import asynccontextmanager
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_, update
 
-from api_cache import APICache
+from _lazy import lazy
 from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, send_message, edit_keyboard, edit_message, answer_callback
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote, BlacklistedToken
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
+from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
+from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from models import SubscriptionPlan, SubscriptionPayment, UsageCounter, SystemConfig
-from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
 from ws_manager import ws_manager
-from flow_engine import FlowEngine
-from sequence_engine import SequenceEngine, SequenceScheduler
-from broadcast_engine import BroadcastEngine
-from subscriber_engine import SubscriberEngine, TagEngine
-from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
-from models import UsageCounter
-from analytics_engine import AnalyticsEngine
-from report_engine import ReportEngine, REPORT_DIR
-from pdf_reports_engine import PdfReportsEngine, BrandingConfig
-from inbox_engine import InboxEngine
-from content_calendar import ContentCalendarEngine, CalendarScheduler
-from team_engine import TeamEngine
-from commerce_engine import CommerceEngine
-from publisher_engine import PublisherEngine
 from event_bus import event_bus
 from logs_api import logs_router
-from agent_engine import get_agent
 from _crypto import encrypt_token, decrypt_token
+from routers import auth as auth_router
+from routers import payments as payments_router
+from routers import users as users_router
+from routers import rules as rules_router
+from routers import replies as replies_router
+from routers import webhooks as webhooks_router
+from routers import analytics as analytics_router
+from routers import inbox as inbox_router
+from routers import bot as bot_router
+from routers import diagnostics as diagnostics_router
+from routers import ai as ai_router
+from routers import flows as flows_router
+from routers import sequences as sequences_router
+from routers import broadcasts as broadcasts_router
 
 # Lazy AI import — graceful if no API key configured
 _ai_service = None
@@ -73,27 +74,31 @@ STATIC_DIR = BASE_DIR / "static"
 PARENT_DIR = BASE_DIR.parent
 
 _post_cursors: dict[int, str] = {}  # ponytail: page->after cursor; single-session only, resets on restart
-fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
 _bot_task: asyncio.Task | None = None
-flow_engine = FlowEngine(fb)
-sequence_engine = SequenceEngine(fb)
-broadcast_engine = BroadcastEngine(fb)
-subscriber_engine = SubscriberEngine()
-tag_engine = TagEngine()
-analytics_engine = AnalyticsEngine()
-report_engine = ReportEngine(analytics_engine)
-pdf_engine = PdfReportsEngine()
-inbox_engine = InboxEngine(fb)
-content_calendar_engine = ContentCalendarEngine(fb)
-team_engine = TeamEngine()
-commerce_engine = CommerceEngine()
-_publisher = PublisherEngine()
-api_cache = APICache()
+
+# ── Lazy engine proxies: zero-cost at import, constructed on first use ──
+fb = lazy(lambda: __import__('fb_client', fromlist=['FBClient']).FBClient(
+    settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID))
+sequence_engine = lazy(lambda: __import__('sequence_engine', fromlist=['SequenceEngine']).SequenceEngine(fb))
+broadcast_engine = lazy(lambda: __import__('broadcast_engine', fromlist=['BroadcastEngine']).BroadcastEngine(fb))
+subscriber_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['SubscriberEngine']).SubscriberEngine())
+tag_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['TagEngine']).TagEngine())
+analytics_engine = lazy(lambda: __import__('analytics_engine', fromlist=['AnalyticsEngine']).AnalyticsEngine())
+report_engine = lazy(lambda: __import__('report_engine', fromlist=['ReportEngine']).ReportEngine(analytics_engine))
+pdf_engine = lazy(lambda: __import__('pdf_reports_engine', fromlist=['PdfReportsEngine']).PdfReportsEngine())
+content_calendar_engine = lazy(lambda: __import__('content_calendar', fromlist=['ContentCalendarEngine']).ContentCalendarEngine(fb))
+team_engine = lazy(lambda: __import__('team_engine', fromlist=['TeamEngine']).TeamEngine())
+commerce_engine = lazy(lambda: __import__('commerce_engine', fromlist=['CommerceEngine']).CommerceEngine())
+_publisher = lazy(lambda: __import__('publisher_engine', fromlist=['PublisherEngine']).PublisherEngine())
+api_cache = lazy(lambda: __import__('api_cache', fromlist=['APICache']).APICache())
 
 
 # ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
-_dedup_locks: dict[str, asyncio.Lock] = {}
+MAX_LOCKS = 1000
+LOCK_TTL = 300  # seconds (5 min)
+_dedup_locks: dict[str, tuple[asyncio.Lock, float]] = {}
 _dedup_lock = asyncio.Lock()
+_dedup_ops = 0
 
 
 async def dedup_middleware(request: Request, call_next):
@@ -105,73 +110,45 @@ async def dedup_middleware(request: Request, call_next):
 
     async with _dedup_lock:
         if key not in _dedup_locks:
-            _dedup_locks[key] = asyncio.Lock()
-        lock = _dedup_locks[key]
+            _dedup_locks[key] = (asyncio.Lock(), time.time())
+        lock = _dedup_locks[key][0]
 
     async with lock:
         # ponytail: second concurrent caller will re-execute but hit the APICache if decorated
-        # Remove lock entry after a brief delay to avoid unbounded growth
         response = await call_next(request)
 
     async with _dedup_lock:
         if key in _dedup_locks:
             del _dedup_locks[key]
+        _maybe_evict()
 
     return response
+
+
+def _maybe_evict():
+    """Every 50 calls, purge expired entries; if still over limit, evict oldest."""
+    global _dedup_ops
+    _dedup_ops += 1
+    if _dedup_ops < 50:
+        return
+    _dedup_ops = 0
+    now = time.time()
+    stale = [k for k, (_, ts) in _dedup_locks.items() if now - ts > LOCK_TTL]
+    for k in stale:
+        del _dedup_locks[k]
+    # ponytail: LRU via sorted insertion order; if throughput matters replace with OrderedDict
+    while len(_dedup_locks) > MAX_LOCKS:
+        oldest = min(_dedup_locks, key=lambda k: _dedup_locks[k][1])
+        del _dedup_locks[oldest]
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
 # ponytail: detect Vercel to skip long-running background tasks
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 
-
-def make_token(username: str, tenant_id: int = 0) -> str:
-    jti = secrets.token_hex(16)
-    return jwt.encode(
-        {"sub": username, "tid": tenant_id, "jti": jti, "exp": utcnow() + ACCESS_TOKEN_EXPIRE},
-        settings.SECRET_KEY,
-        algorithm=ALGORITHM,
-    )
-
-
-async def get_current_user(request: Request, db=Depends(get_db)):
-    token = request.cookies.get("token")
-    if not token:
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
-    # Check blacklist
-    jti = payload.get("jti", "")
-    if jti:
-        blacklisted = await db.execute(select(BlacklistedToken).where(BlacklistedToken.jti == jti))
-        if blacklisted.scalar_one_or_none():
-            raise HTTPException(401, "Token revoked")
-    user = await db.execute(select(User).where(User.username == payload["sub"]))
-    user = user.scalar_one_or_none()
-    if not user:
-        raise HTTPException(401, "User not found")
-    if user.tenant_id:
-        tenant = await db.get(Tenant, user.tenant_id)
-        if not tenant or not tenant.is_active:
-            raise HTTPException(403, "Tenant account is inactive or deleted")
-    user._tenant_id = user.tenant_id or 0  # JWT tid is advisory only — authoritative source is DB
-    return user
-
-
-ROLE_HIERARCHY = {"admin": 3, "editor": 2, "viewer": 1}
-
-
-def require_role(min_role: str):
-    async def checker(current_user: User = Depends(get_current_user)):
-        if ROLE_HIERARCHY.get(current_user.role, 0) < ROLE_HIERARCHY.get(min_role, 0):
-            raise HTTPException(403, "Insufficient permissions")
-        return current_user
-    return checker
-
+# Import shared auth primitives from extracted router
+from routers.auth import get_current_user, require_role, make_token, ACCESS_TOKEN_EXPIRE, ALGORITHM, ROLE_HIERARCHY
 
 async def seed_admin(db):
     """Seed initial admin user from env vars if no users exist."""
@@ -280,61 +257,6 @@ async def lifespan(app: FastAPI):
             raise RuntimeError("SECRET_KEY is default — set SECRET_KEY env var for production")
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            # Migration: add missing columns (safe — IF NOT EXISTS equivalent via try/except)
-            for col_sql in [
-                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 999",
-                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS bot_type VARCHAR(20) DEFAULT 'reply'",
-                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS dm_template TEXT DEFAULT ''",
-                "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS platform VARCHAR(20) DEFAULT 'facebook'",
-                "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEFAULT ''",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(200) DEFAULT ''",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(100) DEFAULT ''",
-                "ALTER TABLE rules ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE replies ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE bot_logs ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE bot_state ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE reply_templates ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE ai_suggestions ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE conversation_tags ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE conversation_labels ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE bot_alerts ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE offers ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE offer_claims ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE subscribers ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE tags ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE subscriber_tags ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE flows ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE flow_executions ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE sequences ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE sequence_steps ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE sequence_subscriptions ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE broadcast_recipients ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE conversation_notes ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE conversation_assignees ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                "ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS tenant_id INTEGER NOT NULL DEFAULT 0",
-                # Subscription system migration
-                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_id INTEGER",
-                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'UNPAID'",
-                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_start TIMESTAMP",
-                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS plan_end TIMESTAMP",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(200) DEFAULT ''",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'UNPAID'",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_id INTEGER",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(100)",
-                # ponytail: amount column migration — Integer→Numeric; safe on both SQLite and PG
-                "ALTER TABLE payment_requests ADD COLUMN IF NOT EXISTS amount_numeric NUMERIC(10,3)",
-            ]:
-                try:
-                    await conn.execute(text(col_sql))
-                except Exception:
-                    pass  # column already exists
             await conn.commit()
         log.info("DB tables ready")
 
@@ -356,8 +278,10 @@ async def lifespan(app: FastAPI):
             _bot_task = asyncio.create_task(_run_bot_loop())
             log.info("Bot started in background")
         if not _IS_VERCEL:
+            from sequence_engine import SequenceScheduler
             _seq_scheduler = SequenceScheduler(sequence_engine)
             asyncio.create_task(_seq_scheduler.start())
+            from content_calendar import CalendarScheduler
             _calendar_scheduler = CalendarScheduler(content_calendar_engine)
             asyncio.create_task(_calendar_scheduler.start())
 
@@ -391,13 +315,19 @@ async def lifespan(app: FastAPI):
     if not _IS_VERCEL:
         if _bot_task:
             _bot_task.cancel()
-        await fb.close()
+        # fb is lazy — only close if actually initialized
+        r = object.__getattribute__(fb, '_v')
+        if r is not None:
+            await r.close()
+        from redis_cache import disconnect as rdisconnect
+        await rdisconnect()
         await engine.dispose()
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 
 
+@api_cache.cached(ttl=3600)
 @app.get("/api/plans")
 async def list_plans(db=Depends(get_db)):
     """List active subscription plans. Public—no auth required."""
@@ -434,14 +364,6 @@ async def repair(current_user: User = Depends(require_role("admin"))):
     try:
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            for col_sql in [
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'free'",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE",
-            ]:
-                try:
-                    await conn.execute(text(col_sql))
-                except Exception:
-                    pass
             await conn.commit()
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
@@ -471,15 +393,29 @@ async def global_500_handler(request: Request, exc: Exception):
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://smartbot.vercel.app", "http://localhost:5173", "http://localhost:8000"],
+    allow_origins=["https://bot.smart-link.ly", "http://localhost:5173", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.middleware("http")(dedup_middleware)
 
-# Register logs API router
+# Register routers
 app.include_router(logs_router)
+app.include_router(auth_router.router)
+app.include_router(payments_router.router)
+app.include_router(users_router.router)
+app.include_router(rules_router.router)
+app.include_router(replies_router.router)
+app.include_router(webhooks_router.router)
+app.include_router(analytics_router.router)
+app.include_router(inbox_router.router)
+app.include_router(bot_router.router)
+app.include_router(diagnostics_router.router)
+app.include_router(ai_router.router)
+app.include_router(flows_router.router)
+app.include_router(sequences_router.router)
+app.include_router(broadcasts_router.router)
 
 if STATIC_DIR.exists():
     try:
@@ -560,198 +496,10 @@ async def get_tenant_fb_client(tenant_id: int) -> FBClient | None:
 
 
 
-@app.post("/api/login")
-async def login(username: str = Form(...), password: str = Form(...), request: Request = None, db=Depends(get_db)):
-    ip = request.client.host if request and request.client else "unknown"
-    from _rate_limit import check_rate_limit
-    if not await check_rate_limit(db, f"login:{ip}", max_attempts=10, window_seconds=60):
-        raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
-    user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
-    user = user.scalar_one_or_none()
-    from _hash import verify_password
-    if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(401, "Invalid credentials")
-    token = make_token(username, user.tenant_id)
-    from _audit import log_audit
-    await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
-    await db.commit()
-    resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
-    return resp
-
-
-@app.post("/api/logout")
-async def logout(request: Request, db=Depends(get_db)):
-    token = request.cookies.get("token")
-    if token:
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            jti = payload.get("jti", "")
-            exp = payload.get("exp")
-            if jti and exp:
-                db.add(BlacklistedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, tz=timezone.utc)))
-                await db.commit()
-        except Exception:
-            pass
-    resp = JSONResponse({"ok": True})
-    resp.delete_cookie("token")
-    return resp
-
-
-@app.post("/api/register")
-async def register(request: Request, username: str = Form(...), email: str = Form(...), password: str = Form(...), db=Depends(get_db)):
-    """Register a new user. Creates both a User and a Tenant."""
-    ip = request.client.host if request.client else "unknown"
-    from _rate_limit import check_rate_limit
-    if not await check_rate_limit(db, f"register:{ip}", max_attempts=5, window_seconds=300):
-        raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
-
-    if len(username) < 3:
-        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
-    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
-        raise HTTPException(400, "البريد الإلكتروني غير صالح")
-
-    existing = await db.execute(select(User).where(or_(User.username == username, User.email == email)))
-    if existing.scalar_one_or_none():
-        raise HTTPException(400, "اسم المستخدم أو البريد موجود مسبقاً")
-    if len(password) < 6:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
-
-    tenant = Tenant(name=username)
-    db.add(tenant)
-    await db.flush()
-
-    from _hash import hash_password
-    pw_hash = hash_password(password)
-    user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
-    db.add(user)
-    await db.flush()
-
-    from _audit import log_audit
-    await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
-    await db.commit()
-
-    token = make_token(username, tenant.id)
-    resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax", max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
-    return resp
-
-
 # ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
 
 
-@app.get("/api/me")
-@app.get("/api/auth/me")
-async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
-    plan = "free"
-    if current_user.tenant_id:
-        tenant = await db.get(Tenant, current_user.tenant_id)
-        if tenant:
-            plan = tenant.plan or "free"
-    return {
-        "authenticated": True,
-        "role": current_user.role,
-        "username": current_user.username,
-        "tenant_id": current_user.tenant_id,
-        "email": current_user.email,
-        "plan": plan,
-    }
-
-
-# ── Audit Log ────────────────────────────────────────────────────────────────
-
-@app.get("/api/audit/logs")
-async def get_audit_logs(limit: int = Query(50), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    from models import AuditLog
-    rows = await db.execute(
-        select(AuditLog)
-        .where(AuditLog.tenant_id == current_user._tenant_id)
-        .order_by(desc(AuditLog.created_at)).limit(limit)
-    )
-    return [
-        {
-            "id": r.id, "action": r.action, "actor_id": r.actor_id,
-            "target_type": r.target_type, "target_id": r.target_id,
-            "metadata": r.data, "ip": r.ip,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        }
-        for r in rows.scalars().all()
-    ]
-
-
-# ── Payment / Billing ────────────────────────────────────────────────────
-
-@app.post("/api/payments/topup")
-async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    amount = body.get("amount", 0)
-    provider = body.get("provider", "")
-    phone = body.get("phone", "")
-    if amount < 1 or amount > 10000:
-        raise HTTPException(400, "المبلغ غير صالح (1-10000)")
-    if provider not in ("liyana", "madar"):
-        raise HTTPException(400, "مزود الدفع غير صالح")
-    if not phone or len(phone) < 7:
-        raise HTTPException(400, "رقم الهاتف غير صالح")
-    pr = PaymentRequest(
-        tenant_id=current_user._tenant_id,
-        username=current_user.username,
-        amount=amount,
-        provider=provider,
-        phone=phone,
-        status="pending",
-    )
-    db.add(pr)
-    await db.commit()
-    await db.refresh(pr)
-    # Notify Telegram admins
-    asyncio.create_task(
-        notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
-    )
-    instructions = (
-        f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
-        f"— بعد الإرسال، انتظر موافقة الأدمن"
-    )
-    return {"payment_id": pr.id, "instructions": instructions}
-
-@app.post("/api/payments/confirm")
-async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """User submits transfer reference — marks pending for admin approval."""
-    pid = body.get("payment_id", 0)
-    ref = body.get("reference", "")
-    if not pid or not ref:
-        raise HTTPException(400, "معرف الدفع ورقم الحوالة مطلوبان")
-    pr = await db.get(PaymentRequest, int(pid))
-    if not pr or pr.tenant_id != current_user._tenant_id:
-        raise HTTPException(404, "الدفعة غير موجودة")
-    if pr.status != "pending":
-        raise HTTPException(400, "الدفعة تم تأكيدها مسبقاً")
-    pr.reference = ref
-    pr.note = "انتظار موافقة الأدمن"
-    await db.commit()
-    return {"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"}
-
-@app.get("/api/payments/balance")
-async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    existing = await db.execute(
-        select(BotState).where(BotState.tenant_id == current_user._tenant_id, BotState.key == "balance")
-    )
-    bs = existing.scalar_one_or_none()
-    balance = int(bs.value) if bs and bs.value else 0
-    return {"balance": balance, "currency": "LYD"}
-
-@app.get("/api/payments/history")
-async def payment_history(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = await db.execute(
-        select(PaymentRequest)
-        .where(PaymentRequest.tenant_id == current_user._tenant_id)
-        .order_by(desc(PaymentRequest.created_at))
-    )
-    return [
-        {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
-         "phone": r.phone, "reference": r.reference, "status": r.status,
-         "note": r.note, "created_at": r.created_at.isoformat() if r.created_at else None}
-        for r in rows.scalars().all()
-    ]
+# Extracted to routers/payments.py
 
 
 # ── Telegram Payment Webhook ────────────────────────────────────────────
@@ -861,7 +609,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
     return {"ok": True}
 
 
-# ── Subscription API ─────────────────────────────────────────────────────
+# Extracted to routers/payments.py (validate, subscriptions, upgrade, status, admin)
 
 @app.get("/api/config")
 async def public_config(db=Depends(get_db)):
@@ -872,175 +620,6 @@ async def public_config(db=Depends(get_db)):
         if not r.is_secret:
             config[r.key] = r.value
     return config
-
-
-@app.post("/api/subscriptions/validate")
-async def validate_subscription(body: dict = Body(...), db=Depends(get_db)):
-    """Pre-flight: check username + slug uniqueness."""
-    username = body.get("username", "")
-    if len(username) < 3:
-        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
-    existing_user = await db.execute(select(User).where(User.username == username))
-    if existing_user.scalar_one_or_none():
-        return {"valid": False, "error": "اسم المستخدم موجود مسبقاً"}
-    return {"valid": True}
-
-
-@app.post("/api/subscriptions")
-async def create_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Create payment request for new subscription. Notifies Telegram admins."""
-    phone = body.get("phone", "")
-    amount = body.get("amount", 0)
-    provider = body.get("provider", "libyana")
-    plan_id = body.get("plan_id", 0)
-
-    if not phone or len(phone) < 7:
-        raise HTTPException(400, "رقم الهاتف غير صالح")
-    plan = await db.get(SubscriptionPlan, plan_id)
-    if not plan or not plan.is_active:
-        raise HTTPException(400, "الباقة غير موجودة")
-    if float(amount) != float(plan.price):
-        raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
-    if provider not in ("libyana", "madar"):
-        raise HTTPException(400, "مزود الدفع غير صالح")
-
-    existing_pending = await db.execute(
-        select(SubscriptionPayment).where(
-            SubscriptionPayment.user_id == current_user.id,
-            SubscriptionPayment.status == "pending"
-        )
-    )
-    if existing_pending.scalar_one_or_none():
-        raise HTTPException(400, "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه")
-
-    sp = SubscriptionPayment(
-        user_id=current_user.id,
-        tenant_id=current_user._tenant_id,
-        phone=phone,
-        amount=amount,
-        provider=provider,
-        plan_id=plan_id,
-        plan_name=plan.name_ar,
-        status="pending",
-        extra_data={"username": current_user.username},
-    )
-    db.add(sp)
-    await db.commit()
-    await db.refresh(sp)
-
-    # Notify Telegram admins
-    asyncio.create_task(
-        notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone, plan.name_ar)
-    )
-
-    return {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع"}
-
-
-@app.get("/api/subscriptions/status")
-async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Poll payment status — used by frontend instead of SSE."""
-    sp = await db.get(SubscriptionPayment, payment_id)
-    if not sp or sp.user_id != current_user.id:
-        raise HTTPException(404, "الدفعة غير موجودة")
-    return {"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name}
-
-
-@app.post("/api/subscriptions/upgrade")
-async def upgrade_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Upgrade existing subscription to higher plan."""
-    plan_id = body.get("plan_id", 0)
-    phone = body.get("phone", "")
-    provider = body.get("provider", "libyana")
-
-    new_plan = await db.get(SubscriptionPlan, plan_id)
-    if not new_plan or not new_plan.is_active:
-        raise HTTPException(400, "الباقة غير موجودة")
-
-    tenant = await db.get(Tenant, current_user._tenant_id)
-    if not tenant:
-        raise HTTPException(400, "الحساب غير موجود")
-    if tenant.plan_id and tenant.plan_id >= plan_id:
-        raise HTTPException(400, "هذه الباقة أقل أو تساوي باقتك الحالية")
-
-    existing_pending = await db.execute(
-        select(SubscriptionPayment).where(
-            SubscriptionPayment.user_id == current_user.id,
-            SubscriptionPayment.status == "pending"
-        )
-    )
-    if existing_pending.scalar_one_or_none():
-        raise HTTPException(400, "لديك طلب ترقية معلق")
-
-    sp = SubscriptionPayment(
-        user_id=current_user.id,
-        tenant_id=current_user._tenant_id,
-        phone=phone,
-        amount=float(new_plan.price),
-        provider=provider,
-        plan_id=plan_id,
-        plan_name=new_plan.name_ar,
-        status="pending",
-        extra_data={"username": current_user.username, "upgrade": True},
-        upgraded_from=tenant.plan_id,
-    )
-    db.add(sp)
-    await db.commit()
-    await db.refresh(sp)
-
-    asyncio.create_task(
-        notify_admins_new_subscription(sp.id, current_user.username, float(new_plan.price), provider, phone, new_plan.name_ar)
-    )
-
-    return {"payment_id": sp.id, "status": "pending"}
-
-
-@app.get("/api/admin/subscriptions")
-async def admin_list_subscriptions(status: str = Query("pending"), page: int = Query(1, ge=1), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: list subscription payments with filtering."""
-    q = select(SubscriptionPayment)
-    if status != "all":
-        q = q.where(SubscriptionPayment.status == status)
-    q = q.order_by(desc(SubscriptionPayment.created_at)).offset((page - 1) * 20).limit(20)
-    rows = await db.execute(q)
-    return [{
-        "id": sp.id, "user_id": sp.user_id, "tenant_id": sp.tenant_id,
-        "phone": sp.phone, "amount": float(sp.amount), "provider": sp.provider,
-        "plan_id": sp.plan_id, "plan_name": sp.plan_name, "status": sp.status,
-        "metadata": sp.extra_data,
-        "created_at": sp.created_at.isoformat() if sp.created_at else None,
-    } for sp in rows.scalars().all()]
-
-
-@app.post("/api/admin/subscriptions")
-async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: approve or reject a subscription payment."""
-    payment_id = body.get("id", 0)
-    decision = body.get("status", "")  # "verified" or "cancelled"
-    sp = await db.get(SubscriptionPayment, payment_id)
-    if not sp or sp.status != "pending":
-        raise HTTPException(400, "الدفعة غير موجودة أو تمت معالجتها")
-    sp.status = decision
-    if decision == "verified":
-        tenant = await db.get(Tenant, sp.tenant_id)
-        if tenant:
-            plan = await db.get(SubscriptionPlan, sp.plan_id)
-            if plan:
-                tenant.plan_id = sp.plan_id
-                tenant.subscription_status = "PAID"
-                tenant.plan_start = utcnow()
-                tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
-                tenant.plan = plan.name.lower()
-        if sp.user_id:
-            user = await db.get(User, sp.user_id)
-            if user:
-                user.subscription_status = "PAID"
-    else:
-        if sp.user_id:
-            user = await db.get(User, sp.user_id)
-            if user:
-                user.subscription_status = "REJECTED"
-    await db.commit()
-    return {"ok": True, "status": decision}
 
 
 @app.post("/api/telegram/test")
@@ -1063,58 +642,7 @@ async def telegram_test(current_user: User = Depends(get_current_user)):
         return {"ok": False, "error": str(e)[:200]}
 
 
-@app.get("/api/users")
-async def list_users(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    rows = await db.execute(
-        select(User).where(User.tenant_id == current_user._tenant_id).order_by(User.id)
-    )
-    return [{"id": u.id, "username": u.username, "role": u.role, "created_at": u.created_at.isoformat() if u.created_at else None}
-            for u in rows.scalars().all()]
-
-
-@app.post("/api/users")
-async def create_user(username: str = Form(...), password: str = Form(...), role: str = Form("viewer"),
-                      db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    existing = await db.execute(select(User).where(User.username == username, User.tenant_id == current_user._tenant_id))
-    if existing.scalar_one_or_none():
-        raise HTTPException(400, "Username exists")
-    from _hash import hash_password
-    pw_hash = hash_password(password)
-    user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
-    return {"id": user.id}
-
-
-@app.put("/api/users/{user_id}")
-async def update_user(user_id: int, role: str = Form(...), password: str = Form(""),
-                      db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = (await db.execute(
-        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not user:
-        raise HTTPException(404, "User not found")
-    user.role = role
-    if password:
-        from _hash import hash_password
-        user.password_hash = hash_password(password)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/users/{user_id}")
-async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    user = (await db.execute(
-        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.id == current_user.id:
-        raise HTTPException(400, "Cannot delete yourself")
-    await db.delete(user)
-    await db.commit()
-    return {"ok": True}
+# Extracted to routers/users.py
 
 
 
@@ -1292,32 +820,28 @@ async def get_system_stats(db=Depends(get_db), _=Depends(get_current_user)):
     return {"version": version, "reply_count": reply_count, "rule_count": rule_count, "user_count": user_count, "db_size": db_size}
 
 
-@app.get("/api/debug")
-async def debug(_=Depends(get_current_user)):
-    return {
-        "has_secret_key": bool(settings.SECRET_KEY),
-        "has_db_url": bool(settings.DATABASE_URL),
-        "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
-        "has_fb_page": bool(settings.FACEBOOK_PAGE_ID),
-        "debug_mode": settings.DEBUG,
-        "bot_interval": settings.BOT_INTERVAL_SECONDS,
-        "start_bot": settings.START_BOT,
-        "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",
-        "python_version": __import__("sys").version,
-    }
+# Extracted to routers/diagnostics.py
 
+# ── SPA index.html: cached in memory, refreshed on VERSION change ──
+_spa_html: str | None = None
+_spa_mtime: float = 0
 
-
-# ── SPA index.html: serve for all non-API, non-static routes ────────────────
 def _get_spa() -> str:
-    """Read SPA HTML fresh each call — avoids stale cached assets on deploy."""
+    """Cached SPA HTML — re-reads only if file mtime changes (deploy = new build)."""
+    global _spa_html, _spa_mtime
     static_index = STATIC_DIR / "index.html"
-    if static_index.exists():
-        return static_index.read_text(encoding="utf-8")
     html_path = TEMPLATES_DIR / "index.html"
-    if html_path.exists():
-        return html_path.read_text(encoding="utf-8")
-    return "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
+    src = static_index if static_index.exists() else (html_path if html_path.exists() else None)
+    if not src:
+        return "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
+    try:
+        mtime = src.stat().st_mtime
+        if _spa_html is None or mtime > _spa_mtime:
+            _spa_html = src.read_text(encoding="utf-8")
+            _spa_mtime = mtime
+    except Exception:
+        pass
+    return _spa_html or src.read_text(encoding="utf-8")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1325,15 +849,21 @@ async def dashboard_page():
     return HTMLResponse(_get_spa())
 
 
-# ── Static file caching headers ────────────────────────────────────────────────
+# ── Static file & API caching headers ─────────────────────────────────────
+_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env", "/api/debug")
+
+
 @app.middleware("http")
 async def static_cache_middleware(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/static/") and "?" in request.url.path:
-        # ponytail: hashed assets (vite-style), immutable
+    # ponytail: vite hashed assets under /static/assets/, immutable
+    if request.url.path.startswith("/static/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     elif request.url.path in ("/", "/index.html"):
         response.headers["Cache-Control"] = "no-cache"
+    # API GET responses that don't need real-time freshness
+    elif request.method == "GET" and any(request.url.path.startswith(p) for p in _CACHEABLE_API_PREFIXES):
+        response.headers["Cache-Control"] = "public, max-age=60"
     return response
 
 
@@ -1445,16 +975,13 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         activities.sort(key=lambda a: a.get("time", ""), reverse=True)
         activities = activities[:8]
 
-        # Recent replies — last 5
-        recent_replies_data = await db.execute(
-            select(Reply).where(Reply.tenant_id == _tid).order_by(desc(Reply.created_at)).limit(5)
-        )
+        # Recent replies — last 5 (reuse from activities data)
         recent_replies = [{
             "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
             "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
             "rule_id": r.rule_id,
             "created_at": r.created_at.isoformat() if r.created_at else None,
-        } for r in recent_replies_data.scalars().all()]
+        } for r in recent_replies_rows.scalars().all()[:5]]
 
         return {
             "stats": {
@@ -1523,164 +1050,9 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
 
 # Protected by get_current_user — roles enforced in frontend hiding (DELETE/POST require editor+)
 
-@app.get("/api/rules")
-async def list_rules(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    _tid = current_user._tenant_id
-    rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid).order_by(Rule.id))
-    rules = rows.scalars().all()
-    counts_stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id)
-    counts = {row[0]: row[1] for row in (await db.execute(counts_stmt))}
-    return [{
-        "id": r.id, "name": r.name, "keywords": r.keywords,
-        "reply_template": r.reply_template,
-        "dm_template": r.dm_template or "",
-        "enabled": r.enabled, "description": r.description,
-        "bot_type": "reply",
-        "priority": getattr(r, "priority", 999),
-        "replies_count": counts.get(r.id, 0),
-    } for r in rules]
+# Extracted to routers/rules.py
 
-
-@app.post("/api/rules")
-async def create_rule(
-    name: str = Form(...), keywords: str = Form(...),
-    reply_template: str = Form(...), description: str = Form(""),
-    bot_type: str = Form("reply"), dm_template: str = Form(""),
-    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
-):
-    kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
-    rule = Rule(name=name, keywords=kw_list, reply_template=reply_template,
-                description=description, dm_template=dm_template)
-    rule.tenant_id = current_user._tenant_id
-    db.add(rule)
-    await db.commit()
-    await db.refresh(rule)
-    return {"id": rule.id}
-
-
-@app.put("/api/rules/{rule_id}")
-async def update_rule(
-    rule_id: int, name: str = Form(...), keywords: str = Form(...),
-    reply_template: str = Form(...), description: str = Form(""),
-    dm_template: str = Form(""),
-    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
-):
-    rule = (await db.execute(
-        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not rule:
-        raise HTTPException(404, "Rule not found")
-    rule.name = name
-    rule.keywords = [k.strip() for k in keywords.split(",") if k.strip()]
-    rule.reply_template = reply_template
-    rule.dm_template = dm_template
-    rule.description = description
-    await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/rules/{rule_id}")
-async def delete_rule(rule_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    rule = (await db.execute(
-        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not rule:
-        raise HTTPException(404, "Rule not found")
-    await db.delete(rule)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/rules/{rule_id}/toggle")
-async def toggle_rule(rule_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    rule = (await db.execute(
-        select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not rule:
-        raise HTTPException(404, "Rule not found")
-    rule.enabled = not rule.enabled
-    await db.commit()
-    return {"enabled": rule.enabled}
-
-
-
-@app.get("/api/replies")
-async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id: int = Query(None), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    _tid = current_user._tenant_id
-    offset = (page - 1) * per_page
-    stmt = select(Reply).where(Reply.tenant_id == _tid)
-    if rule_id:
-        stmt = stmt.where(Reply.rule_id == rule_id)
-        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.rule_id == rule_id))
-    else:
-        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid))
-    rows = await db.execute(
-        stmt.order_by(desc(Reply.created_at)).offset(offset).limit(per_page)
-    )
-    return {
-        "total": total, "page": page, "per_page": per_page,
-        "items": [{
-            "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
-            "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
-            "rule_id": r.rule_id,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        } for r in rows.scalars().all()]
-    }
-
-
-@app.get("/api/comments")
-async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    _tid = current_user._tenant_id
-    all_comments = await fb.get_recent_comments(limit)
-    # Pre‑fetch replied_at for all known fb_comment_ids
-    fb_ids = [c["id"] for c in all_comments if c.get("id")]
-    replied_map = {}
-    if fb_ids:
-        rows = await db.execute(
-            select(Reply.fb_comment_id, Reply.reply_text, Reply.created_at)
-            .where(Reply.tenant_id == _tid, Reply.fb_comment_id.in_(fb_ids))
-        )
-        for r in rows:
-            replied_map[r.fb_comment_id] = {
-                "replied_at": r.created_at.isoformat() if r.created_at else None,
-                "reply_text": r.reply_text,
-            }
-    items = []
-    for c in all_comments:
-        from_data = c.get("from", {}) or {}
-        cid = c.get("id", "")
-        extra = replied_map.get(cid, {})
-        items.append({
-            "id": cid,
-            "message": c.get("message", ""),
-            "from_name": from_data.get("name", ""),
-            "from_id": from_data.get("id", ""),
-            "created_time": c.get("created_time", ""),
-            "post_id": c.get("_post_id", ""),
-            "post_message": c.get("_post_message", ""),
-            "replied_at": extra.get("replied_at"),
-            "reply_text": extra.get("reply_text"),
-        })
-    items.sort(key=lambda x: x.get("created_time", ""), reverse=True)
-    items = items[:limit]
-    return {"items": items}
-
-
-@app.post("/api/comments/{comment_id}/hide")
-async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
-    result = await fb.hide_comment(comment_id)
-    if not result:
-        raise HTTPException(400, "Failed to hide comment")
-    return {"ok": True}
-
-
-@app.delete("/api/comments/{comment_id}")
-async def delete_api_comment(comment_id: str, _=Depends(require_role("editor"))):
-    result = await fb.delete_comment(comment_id)
-    if not result:
-        raise HTTPException(400, "Failed to delete comment")
-    return {"ok": True}
-
+# Extracted to routers/replies.py
 
 @app.get("/api/stats/hourly")
 async def get_hourly_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -1741,42 +1113,6 @@ async def publish_post(message: str = Form(...), _=Depends(require_role("editor"
     return result or {"error": "Failed to post"}
 
 
-
-@app.post("/api/replies/{comment_id}/reply")
-async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends(get_db),
-                           current_user: User = Depends(require_role("editor"))):
-    result = await fb.reply_to_comment(comment_id, message)
-    if not result:
-        raise HTTPException(400, "Failed to send reply")
-    # Fetch original comment context from FB for accurate recording
-    commenter_name = "[يدوي]"
-    comment_text = message
-    try:
-        comment_data = await fb._get(comment_id, {"fields": "from{name},message,parent"})
-        if comment_data:
-            from_data = comment_data.get("from", {}) or {}
-            commenter_name = from_data.get("name", commenter_name)
-            comment_text = comment_data.get("message", comment_text)
-    except Exception:
-        pass  # ponytail: non-critical enrichment; keep placeholders on failure
-    reply = Reply(
-        commenter_name=commenter_name,
-        comment_text=comment_text,
-        reply_text=message,
-        fb_comment_id=comment_id,
-        fb_post_id="",
-        rule_id=None,
-        tenant_id=current_user._tenant_id,
-    )
-    db.add(reply)
-    await db.commit()
-    log.info(f"Manual reply: user={current_user.username} comment={comment_id} reply_id={reply.id}")
-    await ws_manager.broadcast("new_reply")
-    await ws_manager.broadcast("notification")
-    return {"ok": True, "reply_id": reply.id}
-
-
-
 @app.get("/api/messages")
 async def list_conversations(_=Depends(get_current_user)):
     convos = await fb.get_conversations(25)
@@ -1832,639 +1168,17 @@ async def list_ads(account_id: str, _=Depends(require_role("editor"))):
 
 
 
-@app.get("/api/bot/status")
-async def bot_status(_=Depends(get_current_user)):
-    # On Vercel, bot runs as short-lived cycles triggered by dashboard.
-    # running=true means a cycle is currently executing — not needed for normal UX.
-    return {
-        "running": _IS_VERCEL or (_bot_task is not None and not _bot_task.done()),
-        "interval": settings.BOT_INTERVAL_SECONDS,
-        "mode": "vercel-on-demand" if _IS_VERCEL else "background-loop",
-    }
-
-
-@app.post("/api/bot/restart")
-async def restart_bot(_=Depends(require_role("admin"))):
-    global _bot_task
-    if _bot_task:
-        _bot_task.cancel()
-    _bot_task = asyncio.create_task(_run_bot_loop())
-    asyncio.create_task(ws_manager.broadcast("notification", {
-        "type": "bot_started", "title": "تم تشغيل البوت",
-        "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
-    }))
-    return {"ok": True}
-
-
-@app.post("/api/bot/stop")
-async def stop_bot(_=Depends(require_role("admin"))):
-    global _bot_task
-    if _bot_task and not _bot_task.done():
-        _bot_task.cancel()
-        _bot_task = None
-    asyncio.create_task(ws_manager.broadcast("notification", {
-        "type": "bot_stopped", "title": "تم إيقاف البوت",
-        "message": "تم إيقاف البوت يدوياً", "link": "/settings",
-    }))
-    return {"ok": True}
-
-
-@app.post("/api/bot/interval")
-async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("admin"))):
-    if interval < 3 or interval > 3600:
-        raise HTTPException(400, "Interval must be between 3 and 3600 seconds")
-    settings.BOT_INTERVAL_SECONDS = interval
-    return {"ok": True, "interval": interval}
-
-
-_cron_lock = asyncio.Lock()
-
-@app.get("/api/cron/bot-cycle")
-async def cron_bot_cycle(request: Request, token: str = Query("")):
-    """Cron-job.org: runs one bot cycle per active tenant. Auth via CRON_SECRET env var (header Bearer or ?token=)."""
-    secret = os.getenv("CRON_SECRET")
-    auth_header = request.headers.get("authorization", "")
-    valid = bool(secret) and (auth_header == f"Bearer {secret}" or token == secret)
-    if not valid:
-        raise HTTPException(403, "Unauthorized cron")
-    async with _cron_lock:
-        try:
-            async with AsyncSessionLocal() as db:
-                tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
-            results = []
-            for tenant in tenants.scalars().all():
-                # ponytail: balance check — skip tenant if balance ≤ 0 (BotState key="balance")
-                async with AsyncSessionLocal() as db2:
-                    bs = await db2.execute(
-                        select(BotState).where(BotState.tenant_id == tenant.id, BotState.key == "balance")
-                    )
-                    bs = bs.scalar_one_or_none()
-                    balance = int(bs.value) if bs and bs.value else 0
-                if balance <= 0:
-                    results.append({"tenant_id": tenant.id, "status": "skipped", "reason": "no_balance"})
-                    continue
-                fb_cli = await get_tenant_fb_client(tenant.id)
-                if not fb_cli:
-                    continue
-                engine = get_bot_engine(fb_cli, tenant_id=tenant.id)
-                await engine.cycle()
-                results.append({"tenant_id": tenant.id, "status": "ok"})
-            return {"ok": True, "tenants_processed": len(results)}
-        except Exception as e:
-            log.error(f"Cron bot cycle error: {e}")
-            return {"ok": False, "error": str(e)[:200]}
-
-
-
-@app.get("/api/logs")
-async def get_logs(limit: int = Query(50), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = await db.execute(
-        select(BotLog).where(BotLog.tenant_id == current_user._tenant_id).order_by(desc(BotLog.created_at)).limit(limit)
-    )
-    return [{
-        "level": r.level, "message": r.message,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
-    } for r in rows.scalars().all()]
-
-
-@app.post("/api/logs/clear")
-async def clear_logs(payload: dict = None, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    _tid = current_user._tenant_id
-    days = (payload or {}).get("days", 30)
-    cutoff = utcnow() - timedelta(days=days)
-    result = await db.execute(select(func.count(BotLog.id)).where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
-    count = result.scalar() or 0
-    await db.execute(BotLog.__table__.delete().where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
-    await db.commit()
-    return {"deleted": count}
-
-
-# ponytail: WEBHOOK globals — defined early, used by /api/webhook/check and /webhook endpoints
-WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
-WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
-if not WEBHOOK_APP_SECRET:
-    log.warning("FACEBOOK_APP_SECRET not set — webhook HMAC verification disabled")
-
-
-@app.get("/api/webhook/events")
-async def get_webhook_events(limit: int = Query(20), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = await db.execute(
-        select(BotLog).where(BotLog.tenant_id == current_user._tenant_id, BotLog.message.contains("webhook")).order_by(desc(BotLog.created_at)).limit(limit)
-    )
-    return [{
-        "id": r.id, "level": r.level, "message": r.message,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
-    } for r in rows.scalars().all()]
-
-
-
-@app.get("/api/webhook/check")
-async def check_webhook(_=Depends(get_current_user)):
-    """Check if webhook is properly configured."""
-    webhook_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or ""
-    if webhook_url and not webhook_url.startswith("http"):
-        webhook_url = "https://" + webhook_url
-    webhook_url += "/webhook"
-    if not webhook_url.startswith("http"):
-        webhook_url = "https://smartbot-6lxo.onrender.com/webhook"
-    return {
-        "configured": bool(WEBHOOK_APP_SECRET),
-        "verify_token": "***" if WEBHOOK_VERIFY_TOKEN else "",
-        "webhook_url": webhook_url,
-        "instructions": [
-            "1. Go to https://developers.facebook.com/apps",
-            "2. Select your app -> Webhooks -> Page",
-            "3. Set Callback URL to: " + webhook_url,
-            "4. Set Verify Token in your Facebook app settings",
-            "5. Subscribe to 'feed' field",
-            "6. After setup, POST /api/webhook/test to verify",
-        ],
-    }
-
-
-@app.get("/api/webhook/test")
-async def test_facebook_comment_flow(_=Depends(get_current_user)):
-    """Simulate a test comment flow — fetches latest posts and tries to reply."""
-    try:
-        engine = get_bot_engine()
-        await engine.cycle()
-        return {"ok": True, "message": "Bot cycle completed successfully"}
-    except Exception as e:
-        return {"ok": False, "error": str(e)[:300]}
-
-
-@app.post("/api/webhook/test")
-async def trigger_bot_cycle(_=Depends(require_role("admin"))):
-    """Trigger an immediate bot cycle to check for new comments."""
-    asyncio.create_task(_run_single_cycle())
-    return {"ok": True, "message": "Bot cycle triggered — check /api/logs for results"}
-
-
-async def _run_single_cycle():
-    try:
-        engine = get_bot_engine()
-        await engine.cycle()
-    except Exception as e:
-        log.error(f"Forced cycle error: {e}")
-
-
-@app.post("/api/bot/trigger")
-async def trigger_manual_reply(_=Depends(require_role("admin"))):
-    """Force one bot cycle NOW — useful after commenting on Facebook."""
-    asyncio.create_task(_run_single_cycle())
-    return {"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"}
+# Extracted to routers/bot.py
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # :: PROFESSIONAL FEATURES ::
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── AI Powered Replies ────────────────────────────────────────────────────────
+# Extracted to routers/ai.py
 
-@app.post("/api/ai/suggest")
-async def ai_suggest_replies(
-    comment_text: str = Form(...), commenter_name: str = Form(""), page_context: str = Form(""),
-    _=Depends(get_current_user),
-):
-    """Generate 3 AI-powered reply suggestions for a comment."""
-    ai = get_ai()
-    if not ai.available:
-        raise HTTPException(400, "AI غير مفعل — قم بتعيين OPENAI_API_KEY أو GEMINI_API_KEY في المتغيرات")
-    t0 = __import__("time").time()
-    result = await ai.suggest_replies(comment_text, commenter_name, page_context)
-    latency = int((__import__("time").time() - t0) * 1000)
-    return {"suggestions": result.get("suggestions", []), "intent": result.get("intent", ""),
-            "sentiment": result.get("sentiment", ""), "confidence": result.get("confidence", 0), "latency_ms": latency}
 
-
-@app.post("/api/ai/analyze")
-async def ai_analyze_tone(comment_text: str = Form(...), _=Depends(get_current_user)):
-    """Analyze comment tone, sentiment, urgency."""
-    ai = get_ai()
-    if not ai.available:
-        raise HTTPException(400, "AI غير مفعل")
-    result = await ai.analyze_tone(comment_text)
-    return result
-
-
-@app.post("/api/ai/generate-reply")
-async def ai_generate_reply(
-    comment_text: str = Form(...), commenter_name: str = Form(""),
-    tone: str = Form(""), keywords: str = Form(""), _=Depends(require_role("editor")),
-):
-    """Generate one auto-reply with keyword context."""
-    ai = get_ai()
-    if not ai.available:
-        raise HTTPException(400, "AI غير مفعل")
-    kw_list = [k.strip() for k in keywords.split(",") if k.strip()] if keywords else None
-    reply = await ai.generate_reply(comment_text, commenter_name, tone, kw_list)
-    return {"reply": reply or ""}
-
-
-@app.post("/api/ai/analyze-image")
-async def ai_analyze_image(data: dict = Body(...), _: User = Depends(require_role("editor"))):
-    ai = get_ai()
-    if not ai.available:
-        return {"analysis": ""}
-    text = data.get("text", "")
-    prompt = f"حلل هذا الطلب: {text}\n\nماذا يحتوي؟ قدم وصف مختصر بالعربية"
-    try:
-        if ai._provider == "openai" and ai._openai_client:
-            r = await ai._openai_client.chat.completions.create(
-                model=ai._openai_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=100, temperature=0.3,
-            )
-            return {"analysis": (r.choices[0].message.content or "").strip()[:100]}
-        elif ai._provider == "gemini" and ai._google_module:
-            model = ai._google_module.GenerativeModel(ai._model)
-            r = await model.generate_content_async(prompt)
-            return {"analysis": (r.text or "").strip()[:100]}
-    except Exception:
-        pass
-    return {"analysis": ""}
-
-
-@app.get("/api/ai/status")
-async def ai_status(_=Depends(get_current_user)):
-    """Check AI provider status."""
-    ai = get_ai()
-    return {"available": ai.available, "provider": ai.provider_name}
-
-
-@app.post("/api/agent/interpret")
-async def agent_interpret(
-    text: str = Form(...),
-    image: UploadFile | None = File(None),
-    has_image: str = Form(""),
-    db=Depends(get_db),
-    current_user: User = Depends(require_role("editor")),
-):
-    """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
-    agent = get_agent()
-
-    # Handle image upload — compress with Pillow before save
-    image_url = ""
-    if image and has_image == "true":
-        import secrets
-        from pathlib import PurePosixPath
-
-        allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-        if image.content_type not in allowed_types:
-            raise HTTPException(400, f"Unsupported file type: {image.content_type}")
-
-        img_data = await image.read()
-        if len(img_data) > 10 * 1024 * 1024:
-            raise HTTPException(400, "Image too large — max 10 MB")
-
-        ext = PurePosixPath(image.filename or "photo.jpg").suffix or ".jpg"
-        img_filename = f"agent_{secrets.token_hex(8)}{ext}"
-        img_path = STATIC_DIR / "uploads" / img_filename
-        img_path.parent.mkdir(parents=True, exist_ok=True)
-        img_path.write_bytes(img_data)
-        image_url = f"/static/uploads/{img_filename}"
-
-    try:
-        result = await agent.process(text, image_url=image_url, username=current_user.username, db=db)
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        log.error(f"agent.process failed: {e}\n{tb}")
-        return {"action": "error", "params": {}, "response_ar": f"خطأ: {str(e)[:200]}",
-                "data": {}, "success": False}
-
-    # Broadcast via event_bus → SSE reaches all dashboard clients
-    asyncio.create_task(event_bus.emit("agent_message", {
-        "role": "agent", "text": result.get("response_ar", ""),
-        "action": result.get("action", "unknown"),
-        "success": result.get("success", False),
-    }))
-
-    return {
-        "action": result.get("action", "unknown"),
-        "params": result.get("params", {}),
-        "response_ar": result.get("response_ar", ""),
-        "data": result.get("data", {}),
-        "success": result.get("success", False),
-    }
-
-
-# ── Agent Memory Endpoints ─────────────────────────────────────────────
-
-@app.get("/api/agent/memory")
-async def agent_get_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
-    """View current agent session history + user memory."""
-    import agent_memory as amem
-    session = await amem.get_session(db, current_user.username)
-    user = await amem.get_user_memory(db, current_user.username)
-    return {"session": session[-10:], "user_memory": user}
-
-
-@app.post("/api/agent/memory/clear")
-async def agent_clear_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
-    """Reset session history (keeps user memory/preferences)."""
-    import agent_memory as amem
-    await amem.clear_session(db, current_user.username)
-    return {"ok": True, "message": "تم مسح الذاكرة المؤقتة ✅"}
-
-
-# ── Smart Inbox (Professional Conversations) ─────────────────────────────────
-
-@app.get("/api/inbox/conversations")
-async def inbox_list(
-    status: str = Query("all"), tag: str = Query(""), search: str = Query(""),
-    page: int = Query(1), per_page: int = Query(25), _=Depends(get_current_user),
-):
-    """Professional inbox: list conversations with filters, tags, search."""
-    convos = await fb.get_conversations(50)
-    items = []
-    for c in convos:
-        items.append({
-            "id": c["id"], "subject": c.get("subject", "بدون موضوع"),
-            "senders": c.get("senders", {}).get("data", []),
-            "message_count": c.get("message_count", 0),
-            "unread_count": c.get("unread_count", 0),
-            "updated_time": c.get("updated_time", ""),
-            "tags": [],  # populated below
-        })
-
-    # Load tags from DB for all conversation IDs
-    if items:
-        async with AsyncSessionLocal() as s:
-            ids = [it["id"] for it in items]
-            lbls = await s.execute(
-                select(ConversationLabel, ConversationTag)
-                .join(ConversationTag, ConversationLabel.tag_id == ConversationTag.id)
-                .where(ConversationLabel.conversation_id.in_(ids))
-            )
-            tag_map: dict[str, list] = {}
-            for lbl, tag in lbls:
-                tag_map.setdefault(lbl.conversation_id, []).append({"id": tag.id, "name": tag.name, "color": tag.color})
-            for it in items:
-                it["tags"] = tag_map.get(it["id"], [])
-
-    # Server-side search filter
-    if search:
-        sl = search.lower()
-        items = [it for it in items if sl in it["subject"].lower()
-                 or any(sl in (s.get("name", "") or "").lower() for s in it["senders"])]
-
-    # Tag filter
-    if tag:
-        items = [it for it in items if any(t["name"] == tag for t in it["tags"])]
-
-    # Status filter
-    if status == "unread":
-        items = [it for it in items if it["unread_count"] > 0]
-    elif status == "read":
-        items = [it for it in items if it["unread_count"] == 0]
-    elif status == "needs_reply":
-        items = [it for it in items if it["unread_count"] > 0 and it["message_count"] > 0]
-
-    total = len(items)
-    offset = (page - 1) * per_page
-    paged = items[offset:offset + per_page]
-    return {"items": paged, "total": total, "page": page, "per_page": per_page}
-
-
-@app.get("/api/inbox/conversations/{conversation_id}")
-async def inbox_messages(conversation_id: str, _=Depends(get_current_user)):
-    """Get full conversation messages with AI analysis hints."""
-    messages = await fb.get_conversation_messages(conversation_id)
-    return [{
-        "id": m["id"], "message": m.get("message", ""),
-        "from": m.get("from", {}),
-        "created_time": m.get("created_time", ""),
-    } for m in messages]
-
-
-@app.post("/api/inbox/conversations/{conversation_id}/reply")
-async def inbox_reply(
-    conversation_id: str, message: str = Form(...),
-    _=Depends(require_role("editor")),
-):
-    """Send a reply in a conversation. Tries Messenger first, falls back to private_reply."""
-    # Try Messenger conversation reply
-    result = await fb.send_conversation_message(conversation_id, message)
-    if result:
-        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
-        return {"ok": True}
-
-    # Fallback: try private_reply (works for ANY comment, no prior conversation needed)
-    result = await fb.send_private_reply(conversation_id, message)
-    if result and not result.get("_error"):
-        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
-        return {"ok": True}
-
-    raise HTTPException(400, "لم يتم الرد — راجع سجل الخادم لتفاصيل خطأ فيسبوك")
-
-
-@app.post("/api/debug/fb-reply")
-async def debug_fb_reply(
-    conversation_id: str = Form(...), message: str = Form("اهلا"),
-    _=Depends(require_role("admin")),
-):
-    """Debug endpoint that shows raw Facebook API response."""
-    import httpx
-    async with httpx.AsyncClient(timeout=15) as client:
-        page_id = settings.FACEBOOK_PAGE_ID
-        tok = settings.FACEBOOK_ACCESS_TOKEN
-
-        # ── Get the conversation to find real user ID ──
-        conv = await client.get(
-            f"https://graph.facebook.com/v22.0/{conversation_id}",
-            params={"access_token": tok, "fields": "senders{id,name},messages.limit(1){from{id,name}}"},
-        )
-        conv_data = conv.json() if conv.status_code == 200 else {}
-        senders = (conv_data.get("senders", {}) or {}).get("data", [])
-        user_id = None
-        for s in senders:
-            sid = str(s.get("id", ""))
-            if sid != str(page_id):
-                user_id = sid
-                break
-
-        # ── Method 1: direct conv message ──
-        d = {"access_token": tok, "message": message}
-        r1 = await client.post(f"https://graph.facebook.com/v22.0/{conversation_id}/messages", data=d)
-        m1 = {"status": r1.status_code, "body": r1.text[:500]}
-
-        # ── Method 2: RESPONSE type (correct for replying to existing thread) ──
-        r2 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
-            "access_token": tok,
-            "recipient": json.dumps({"id": user_id or conversation_id.replace("t_", "")}),
-            "message": json.dumps({"text": message}),
-            "messaging_type": "RESPONSE",
-        })
-        m2 = {"status": r2.status_code, "body": r2.text[:500]}
-
-        # ── Method 3: UPDATE type ──
-        r3 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
-            "access_token": tok,
-            "recipient": json.dumps({"id": user_id or conversation_id.replace("t_", "")}),
-            "message": json.dumps({"text": message}),
-            "messaging_type": "UPDATE",
-        })
-        m3 = {"status": r3.status_code, "body": r3.text[:500]}
-
-        # ── Method 4: explicit conversation sender ID ──
-        r4 = None
-        msg_senders = (conv_data.get("messages", {}) or {}).get("data", [])
-        if msg_senders:
-            from_id = str((msg_senders[0].get("from", {}) or {}).get("id", ""))
-            if from_id and from_id != str(page_id):
-                r4 = await client.post(f"https://graph.facebook.com/v22.0/{page_id}/messages", data={
-                    "access_token": tok,
-                    "recipient": json.dumps({"id": from_id}),
-                    "message": json.dumps({"text": message}),
-                    "messaging_type": "RESPONSE",
-                })
-                r4 = {"status": r4.status_code, "body": r4.text[:500]}
-        else:
-            r4 = {"status": "skip", "body": "no messages found"}
-
-        # ── Method 5: token permissions check ──
-        r5 = await client.get(f"https://graph.facebook.com/v22.0/{page_id}", params={
-            "access_token": tok,
-            "fields": "access_token,id,name",
-        })
-
-        return {
-            "found_user_id": user_id,
-            "conv_data": {"status": conv.status_code, "data": conv_data},
-            "methods": {
-                "1_direct_conv": m1,
-                "2_response_with_uid": m2,
-                "3_update": m3,
-                "4_msg_sender_id": r4,
-            },
-            "page_id": page_id,
-            "page_info": {"status": r5.status_code, "body": r5.text[:500]},
-        }
-
-
-@app.get("/api/inbox/tags")
-async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """List all conversation tags."""
-    rows = await db.execute(select(ConversationTag).where(ConversationTag.tenant_id == current_user._tenant_id))
-    return [{"id": t.id, "name": t.name, "color": t.color} for t in rows.scalars().all()]
-
-
-@app.post("/api/inbox/tags")
-async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
-                           db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Create a new tag."""
-    existing = await db.execute(select(ConversationTag).where(ConversationTag.name == name))
-    if existing.scalar_one_or_none():
-        raise HTTPException(400, "اسم الوسم موجود مسبقاً")
-    tag = ConversationTag(name=name, color=color, tenant_id=current_user._tenant_id)
-    db.add(tag)
-    await db.commit()
-    await db.refresh(tag)
-    return {"id": tag.id, "name": tag.name, "color": tag.color}
-
-
-@app.delete("/api/inbox/tags/{tag_id}")
-async def inbox_delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    tag = (await db.execute(
-        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not tag:
-        raise HTTPException(404, "الوسم غير موجود")
-    await db.execute(ConversationLabel.__table__.delete().where(ConversationLabel.tag_id == tag_id))
-    await db.delete(tag)
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/inbox/conversations/{conv_id}/tags")
-async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
-                           db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Assign a tag to a conversation."""
-    tag = (await db.execute(
-        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not tag:
-        raise HTTPException(404, "الوسم غير موجود")
-    existing = await db.execute(
-        select(ConversationLabel).where(
-            and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id))
-    )
-    if not existing.scalar_one_or_none():
-        db.add(ConversationLabel(conversation_id=conv_id, tag_id=tag_id))
-        await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/inbox/conversations/{conv_id}/tags/{tag_id}")
-async def inbox_remove_tag(conv_id: str, tag_id: int,
-                           db=Depends(get_db), _=Depends(require_role("editor"))):
-    await db.execute(
-        ConversationLabel.__table__.delete().where(
-            and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id))
-    )
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/inbox/conversations/{conv_id}/assign")
-async def inbox_assign_user(conv_id: str, user_id: int = Form(...),
-                             db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Assign a user to a conversation."""
-    user = (await db.execute(
-        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not user:
-        raise HTTPException(404, "المستخدم غير موجود")
-    await inbox_engine.assign_user(conv_id, user_id, db)
-    _track_event("conversation_assigned", {"conv_id": conv_id, "user_id": user_id})
-    return {"ok": True}
-
-
-@app.post("/api/inbox/conversations/{conv_id}/unassign")
-async def inbox_unassign_user(conv_id: str, user_id: int = Form(...),
-                               db=Depends(get_db), _=Depends(require_role("editor"))):
-    """Remove user assignment from a conversation."""
-    ok = await inbox_engine.unassign_user(conv_id, user_id, db)
-    if not ok:
-        raise HTTPException(404, "التعيين غير موجود")
-    return {"ok": True}
-
-
-@app.get("/api/inbox/conversations/{conv_id}/assignee")
-async def inbox_get_assignee(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
-    """Get the assigned user for a conversation."""
-    result = await inbox_engine.get_assignee(conv_id, db)
-    return result or {"user_id": None, "username": "", "assigned_at": None}
-
-
-@app.get("/api/inbox/conversations/{conv_id}/notes")
-async def inbox_list_notes(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
-    """Get all notes for a conversation."""
-    return await inbox_engine.get_notes(conv_id, db)
-
-
-@app.post("/api/inbox/conversations/{conv_id}/notes")
-async def inbox_create_note(conv_id: str, content: str = Form(...),
-                             db=Depends(get_db), current_user=Depends(require_role("editor"))):
-    """Add a note to a conversation."""
-    note = await inbox_engine.add_note(conv_id, content, current_user.username, db)
-    return note
-
-
-@app.delete("/api/inbox/notes/{note_id}")
-async def inbox_delete_note(note_id: int, db=Depends(get_db),
-                             current_user: User = Depends(require_role("editor"))):
-    """Delete a note."""
-    note = (await db.execute(
-        select(ConversationNote).where(ConversationNote.id == note_id, ConversationNote.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not note:
-        raise HTTPException(404, "الملاحظة غير موجودة")
-    if current_user.role != "admin" and note.created_by != current_user.username:
-        raise HTTPException(403, "ليس لديك صلاحية حذف هذه الملاحظة")
-    ok = await inbox_engine.delete_note(note_id, db)
-    return {"ok": ok}
+# Extracted to routers/inbox.py
 
 
 # ── Reply Templates (Quick Replies) ──────────────────────────────────────────
@@ -2592,145 +1306,6 @@ async def delete_scheduled_post(post_id: int, db=Depends(get_db),
     await db.commit()
     return {"ok": True}
 
-
-# ── Advanced Analytics ───────────────────────────────────────────────────────
-
-@app.get("/api/analytics/overview")
-async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Aggregated analytics overview."""
-    _tid = current_user._tenant_id
-    cutoff = utcnow() - timedelta(days=days)
-
-    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)) or 0
-    today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == utcnow().date())
-    ) or 0
-
-    # Daily breakdown
-    daily_rows = await db.execute(
-        select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
-        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(cast(Reply.created_at, Date)).order_by(cast(Reply.created_at, Date))
-    )
-    daily = {str(row[0]): row[1] for row in daily_rows if row[0]}
-
-    # Hourly heatmap data
-    hourly_rows = await db.execute(
-        select(func.extract("hour", Reply.created_at).label("h"),
-               cast(Reply.created_at, Date).label("d"),
-               func.count(Reply.id).label("cnt"))
-        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(text("h"), cast(Reply.created_at, Date))
-    )
-    heatmap = {}
-    for row in hourly_rows:
-        h = int(row.h); d = str(row.d)
-        if d not in heatmap: heatmap[d] = {}
-        heatmap[d][h] = row.cnt
-
-    # Top rules
-    top_rules_rows = await db.execute(
-        select(Reply.rule_id, func.count(Reply.id).label("cnt"))
-        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(Reply.rule_id).order_by(desc("cnt")).limit(10)
-    )
-    top_rules = [{"rule_id": int(r[0]), "count": r[1]} for r in top_rules_rows if r[0] is not None]
-
-    # Sentiment distribution (from AI suggestions if available)
-    sentiment = {}
-    try:
-        sent_rows = await db.execute(
-            select(AISuggestion.sentiment, func.count(AISuggestion.id))
-            .where(AISuggestion.tenant_id == _tid, AISuggestion.created_at >= cutoff)
-            .group_by(AISuggestion.sentiment)
-        )
-        sentiment = {row[0]: row[1] for row in sent_rows}
-    except Exception:
-        pass
-
-    # Peak hour
-    peak_hour_rows = await db.execute(
-        select(func.extract("hour", Reply.created_at).label("h"),
-               func.count(Reply.id).label("cnt"))
-        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(text("h")).order_by(desc("cnt")).limit(1)
-    )
-    peak_hour = peak_hour_rows.first()
-    peak = int(peak_hour.h) if peak_hour else None
-
-    fan_count = 0
-    try: fan_count = await fb.get_page_fan_count()
-    except Exception: pass
-
-    return {
-        "total_replies": total_replies,
-        "today_replies": today_replies,
-        "daily_breakdown": daily,
-        "hourly_heatmap": heatmap,
-        "top_rules": top_rules,
-        "sentiment_distribution": sentiment,
-        "peak_hour": peak,
-        "fan_count": fan_count,
-        "date_range_days": days,
-    }
-
-
-@app.get("/api/analytics/export")
-async def analytics_export(format: str = Query("csv"), days: int = Query(30),
-                           db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Export replies as CSV or JSON."""
-    _tid = current_user._tenant_id
-    cutoff = utcnow() - timedelta(days=days)
-    rows = await db.execute(
-        select(Reply).where(Reply.tenant_id == _tid, Reply.created_at >= cutoff).order_by(desc(Reply.created_at))
-    )
-    items = [{
-        "id": r.id, "commenter": r.commenter_name, "comment": r.comment_text,
-        "reply": r.reply_text, "rule_id": r.rule_id,
-        "fb_comment_id": r.fb_comment_id, "created_at": r.created_at.isoformat() if r.created_at else None,
-    } for r in rows.scalars().all()]
-
-    if format == "json":
-        return JSONResponse(items)
-
-    # CSV
-    import csv, io
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["id", "commenter", "comment", "reply", "rule_id", "fb_comment_id", "created_at"])
-    for it in items:
-        w.writerow([it["id"], it["commenter"], it["comment"], it["reply"], it["rule_id"], it["fb_comment_id"], it["created_at"]])
-    return Response(content=buf.getvalue(), media_type="text/csv",
-                    headers={"Content-Disposition": f"attachment; filename=replies-export-{utcnow().date()}.csv"})
-
-
-@app.get("/api/analytics/scheduler-check")
-async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Check and publish overdue scheduled posts."""
-    _tid = current_user._tenant_id
-    now = utcnow()
-    due = await db.execute(
-        select(ScheduledPost).where(
-            ScheduledPost.tenant_id == _tid,
-            ScheduledPost.status == "scheduled",
-            ScheduledPost.scheduled_at <= now,
-        )
-    )
-    published = 0
-    for post in due.scalars().all():
-        platform = getattr(post, "platform", "facebook") or "facebook"
-        if platform == "facebook":
-            result = await fb.post_to_page(post.message)
-        else:
-            _publisher.load_credentials(db, tenant_id=_tid)
-            result = await _publisher.publish_to_platform(platform, post.message, post.image_url)
-        if result:
-            post.status = "published"
-            post.fb_post_id = result.get("post_id", "")
-            post.published_at = now
-            published += 1
-    await db.commit()
-    return {"published": published}
 
 
 # ── Dashboard Widgets ────────────────────────────────────────────────────────
@@ -3029,7 +1604,7 @@ async def webhook_verify(
 ):
     """Facebook subscription verification."""
     if hub_mode == "subscribe" and hub_token == WEBHOOK_VERIFY_TOKEN:
-        return int(hub_challenge)
+        return PlainTextResponse(hub_challenge)
     raise HTTPException(403, "Verification failed")
 
 
@@ -3100,113 +1675,7 @@ async def _process_webhook_comment(comment: dict, post_id: str):
 # :: SMART ARMY FEATURES ::
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# ── FLOWS API ─────────────────────────────────────────────────────────────────
-
-@app.get("/api/flows")
-async def list_flows(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = await db.execute(select(Flow).where(Flow.tenant_id == current_user._tenant_id).order_by(Flow.created_at.desc()))
-    return [{
-        "id": f.id, "name": f.name, "description": f.description,
-        "status": f.status, "version": f.version, "total_replies": f.total_replies,
-        "created_at": f.created_at.isoformat() if f.created_at else None,
-        "updated_at": f.updated_at.isoformat() if f.updated_at else None,
-    } for f in rows.scalars().all()]
-
-
-@app.post("/api/flows")
-async def create_flow(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    flow = Flow(
-        name=body["name"],
-        description=body.get("description", ""),
-        nodes=body.get("nodes", []),
-        edges=body.get("edges", []),
-        tenant_id=current_user._tenant_id,
-    )
-    db.add(flow)
-    await db.commit()
-    await db.refresh(flow)
-    return {"id": flow.id}
-
-
-@app.get("/api/flows/{flow_id}")
-async def get_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    flow = (await db.execute(
-        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not flow:
-        raise HTTPException(404, "Flow not found")
-    return {
-        "id": flow.id, "name": flow.name, "description": flow.description,
-        "nodes": flow.nodes, "edges": flow.edges,
-        "status": flow.status, "version": flow.version,
-        "total_replies": flow.total_replies,
-        "created_by": flow.created_by,
-        "last_triggered_at": flow.last_triggered_at.isoformat() if flow.last_triggered_at else None,
-        "created_at": flow.created_at.isoformat() if flow.created_at else None,
-        "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
-    }
-
-
-@app.put("/api/flows/{flow_id}")
-async def update_flow(flow_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    flow = (await db.execute(
-        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not flow:
-        raise HTTPException(404, "Flow not found")
-    body = await request.json()
-    for key in ("name", "description", "nodes", "edges", "status"):
-        if key in body:
-            setattr(flow, key, body[key])
-    await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/flows/{flow_id}")
-async def delete_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    flow = (await db.execute(
-        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not flow:
-        raise HTTPException(404, "Flow not found")
-    await db.execute(FlowExecution.__table__.delete().where(FlowExecution.flow_id == flow_id))
-    await db.delete(flow)
-    await db.commit()
-    return {"ok": True}
-
-
-ST_CYCLE = {"draft": "active", "active": "paused", "paused": "active"}
-
-@app.post("/api/flows/{flow_id}/toggle")
-async def toggle_flow(flow_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    flow = (await db.execute(
-        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not flow:
-        raise HTTPException(404, "Flow not found")
-    flow.status = ST_CYCLE.get(flow.status, "active")
-    await db.commit()
-    return {"status": flow.status}
-
-
-@app.post("/api/flows/{flow_id}/test")
-async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
-    body = await request.json()
-    flow = (await db.execute(
-        select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not flow:
-        raise HTTPException(404, "Flow not found")
-    from flow_engine import FlowContext
-    ctx = FlowContext(
-        from_id=body.get("from_id", "test_123"),
-        from_name=body.get("from_name", "Test"),
-        text=body.get("text", ""),
-        trigger_type="manual",
-    )
-    result = await flow_engine.execute(flow_id, ctx, db)
-    return result
+# Extracted to routers/flows.py
 
 
 # ── SUBSCRIBERS API ───────────────────────────────────────────────────────────
@@ -3272,232 +1741,14 @@ async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depen
     return {"ok": True}
 
 
-# ── SEQUENCES API ─────────────────────────────────────────────────────────────
-
-@app.get("/api/sequences")
-async def list_sequences(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await sequence_engine.list_sequences(db, tenant_id=current_user._tenant_id)
+# Extracted to routers/sequences.py
 
 
-@app.post("/api/sequences")
-async def create_sequence(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    seq_id = await sequence_engine.create_sequence(
-        name=body["name"],
-        description=body.get("description", ""),
-        created_by=body.get("created_by", ""),
-        session=db,
-        tenant_id=current_user._tenant_id,
-    )
-    await db.commit()
-    await db.refresh(await db.get(Sequence, seq_id))
-    return {"id": seq_id}
+# Extracted to routers/broadcasts.py
 
 
-@app.get("/api/sequences/{seq_id}")
-async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    seq = await sequence_engine.get_sequence(seq_id, db, tenant_id=current_user._tenant_id)
-    if not seq:
-        raise HTTPException(404, "Sequence not found")
-    return seq
 
-
-@app.put("/api/sequences/{seq_id}")
-async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    ok = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(404, "Sequence not found")
-    await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/sequences/{seq_id}")
-async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(404, "Sequence not found")
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/sequences/{seq_id}/steps")
-async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    step_id = await sequence_engine.add_step(seq_id, body, db, tenant_id=current_user._tenant_id)
-    await db.commit()
-    return {"id": step_id}
-
-
-@app.put("/api/sequences/steps/{step_id}")
-async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    ok = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(404, "Step not found")
-    await db.commit()
-    return {"ok": True}
-
-
-@app.delete("/api/sequences/steps/{step_id}")
-async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(404, "Step not found")
-    await db.commit()
-    return {"ok": True}
-
-
-@app.post("/api/sequences/{seq_id}/subscribe/{sub_id}")
-async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await sequence_engine.subscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
-    await db.commit()
-    return {"ok": ok}
-
-
-@app.post("/api/sequences/{seq_id}/unsubscribe/{sub_id}")
-async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await sequence_engine.unsubscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
-    await db.commit()
-    return {"ok": ok}
-
-
-# ── BROADCASTS API ────────────────────────────────────────────────────────────
-
-@app.get("/api/broadcasts")
-async def list_broadcasts(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id)
-
-
-@app.post("/api/broadcasts")
-async def create_broadcast(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    bcast_id = await broadcast_engine.create_broadcast(
-        name=body["name"],
-        message_template=body.get("message_template", ""),
-        platform_filter=body.get("platform_filter", {}),
-        segment_filters=body.get("segment_filters", {}),
-        created_by="",
-        session=db,
-        tenant_id=current_user._tenant_id,
-    )
-    return {"id": bcast_id}
-
-
-@app.get("/api/broadcasts/{bcast_id}")
-async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    bcast = await broadcast_engine.get_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
-    if not bcast:
-        raise HTTPException(404, "Broadcast not found")
-    return bcast
-
-
-@app.put("/api/broadcasts/{bcast_id}")
-async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    ok = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(404, "Broadcast not found")
-    return {"ok": True}
-
-
-@app.post("/api/broadcasts/{bcast_id}/send")
-async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    bcast = (await db.execute(
-        select(Broadcast).where(Broadcast.id == bcast_id, Broadcast.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not bcast:
-        raise HTTPException(404, "Broadcast not found")
-    if bcast.status != "draft":
-        raise HTTPException(400, "Only draft broadcasts can be sent")
-    bc_id = bcast_id
-    async def _send():
-        async with AsyncSessionLocal() as s:
-            await broadcast_engine.send_broadcast(bc_id, s)
-    asyncio.create_task(_send())
-    return {"ok": True, "message": "Broadcast sending started"}
-
-
-@app.post("/api/broadcasts/{bcast_id}/cancel")
-async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    ok = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
-        raise HTTPException(400, "Broadcast not found or not cancellable")
-    return {"ok": True}
-
-
-@app.post("/api/broadcasts/estimate")
-async def estimate_broadcast_audience(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    result = await broadcast_engine.estimate_audience(
-        segment_filters=body.get("segment_filters", {}),
-        platform_filter=body.get("platform_filter", {}),
-        session=db,
-        tenant_id=current_user._tenant_id,
-    )
-    return {"count": result["count"]}
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# :: PHASE 2 — NEW ENGINES ::
-# ═══════════════════════════════════════════════════════════════════════════════
-
-# ── Analytics ──────────────────────────────────────────────────────────────────
-
-@app.get("/api/analytics/dashboard")
-async def analytics_dashboard(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_dashboard_overview(days, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/daily-trend")
-async def analytics_daily_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_daily_trend(days, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/hourly-heatmap")
-async def analytics_hourly_heatmap(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_hourly_heatmap(days, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/top-rules")
-async def analytics_top_rules(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_top_rules(days, limit, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/sentiment-trend")
-async def analytics_sentiment_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_sentiment_trend(days, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/peak-hour")
-async def analytics_peak_hour(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    peak = await analytics_engine.get_peak_hour(days, db, tenant_id=current_user._tenant_id)
-    return {"peak_hour": peak}
-
-
-@app.get("/api/analytics/top-commenters")
-async def analytics_top_commenters(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_top_commenters(days, limit, db, tenant_id=current_user._tenant_id)
-
-
-@app.get("/api/analytics/period-comparison")
-async def analytics_period_comparison(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await analytics_engine.get_period_comparison(days, db, tenant_id=current_user._tenant_id)
-
-
-# ── Inbox ──────────────────────────────────────────────────────────────────────
-
-@app.get("/api/inbox/stats")
-async def inbox_stats(db=Depends(get_db), _=Depends(get_current_user)):
-    return await inbox_engine.get_conversation_stats(db)
-
-
-@app.get("/api/inbox/all")
-async def inbox_all(search: str = Query(""), db=Depends(get_db), _=Depends(get_current_user)):
-    conversations = await inbox_engine.fetch_all_conversations(db)
-    if search:
-        conversations = await inbox_engine.search_conversations(search, conversations)
-    return {"items": conversations}
+# Extracted to routers/inbox.py
 
 
 # ── Content Calendar ───────────────────────────────────────────────────────────
@@ -3724,6 +1975,7 @@ async def generate_pdf_report(request: Request, _=Depends(require_role("editor")
     rtype = body.get("type", "monthly")
     days = body.get("days", 30)
     b = body.get("branding", {})
+    from pdf_reports_engine import BrandingConfig
     branding = BrandingConfig(
         logo_url=b.get("logo_url", ""),
         company_name=b.get("company_name", "SmartBot"),
@@ -3854,74 +2106,7 @@ async def broadcast_notification(
     return {"ok": True}
 
 
-# ── Diagnostics & Admin Endpoints ─────────────────────────────
-
-
-@app.get("/api/diagnostics/status")
-async def diagnostic_status(_=Depends(get_current_user)):
-    from diagnostics import get_diagnostics
-    from monitor import get_logger
-    d = get_diagnostics()
-    l = get_logger()
-    return {"system": d.get_system_info(), "cycles": d.get_cycle_stats(),
-            "errors": {"recent": d.get_recent_errors(10), "rate_pct": d.get_error_rate()},
-            "logs": l.get_stats()}
-
-
-@app.get("/api/diagnostics/cycle-stats")
-async def diagnostic_cycles(_=Depends(get_current_user)):
-    from diagnostics import get_diagnostics
-    return get_diagnostics().get_cycle_stats()
-
-
-@app.get("/api/diagnostics/recent-errors")
-async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user)):
-    from diagnostics import get_diagnostics
-    return {"errors": get_diagnostics().get_recent_errors(limit)}
-
-
-@app.get("/api/diagnostics/logs")
-async def diagnostic_logs(level: str = Query(""), module: str = Query(""),
-                          since: str = Query(""), limit: int = Query(50),
-                          _=Depends(get_current_user)):
-    from monitor import get_logger
-    return {"logs": get_logger().get_buffer(level or None, module=module or None,
-                                            since=since or None, limit=limit)}
-
-
-@app.get("/api/diagnostics/stats")
-async def diagnostic_stats(_=Depends(get_current_user)):
-    from monitor import get_logger
-    return get_logger().get_stats()
-
-
-@app.get("/api/diagnostics/events")
-async def diagnostic_events(limit: int = Query(100), _=Depends(get_current_user)):
-    from monitor import get_logger
-    return {"events": get_logger().get_buffer(limit=limit)}
-
-
-@app.get("/api/diagnostics/permissions")
-async def diagnostic_permissions(_=Depends(get_current_user)):
-    from fb_client import FBClient
-    from config import settings
-    if not settings.FACEBOOK_ACCESS_TOKEN:
-        return {"has_token": False}
-    fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
-    debug = await fb._get("debug_token", {"input_token": settings.FACEBOOK_ACCESS_TOKEN})
-    perms = []
-    if debug and "data" in debug:
-        perms = (debug["data"].get("scopes", []) or debug["data"].get("granular_scopes", []))
-    return {"has_token": True, "permissions": perms}
-
-
-@app.post("/api/diagnostics/demo-test-comment")
-async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(require_role("admin"))):
-    from enhanced_intent import EnhancedIntentClassifier
-    from bot import TextNormalizer
-    classification = EnhancedIntentClassifier.classify(comment_text)
-    normalized = TextNormalizer.normalize_for_matching(comment_text)
-    return {"original": comment_text, "normalized": normalized, "classification": classification}
+# Extracted to routers/diagnostics.py
 
 
 @app.delete("/api/admin/tenants/{tenant_id}")

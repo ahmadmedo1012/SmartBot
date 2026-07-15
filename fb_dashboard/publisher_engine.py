@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Publisher Engine — Multi-platform content publishing.
 Schedule and publish to Facebook, X (Twitter), LinkedIn, Instagram.
 """

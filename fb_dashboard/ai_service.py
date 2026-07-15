@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 AI Service — Smart Reply Engine for SmartBot.
 Supports Gemini & OpenAI providers.

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -38,6 +38,7 @@ export default function SubscribePage() {
   const [countdown, setCountdown] = useState(180)
   const [polling, setPolling] = useState(false)
   const [loading, setLoading] = useState(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     csrfFetch("/api/plans")
@@ -53,6 +54,7 @@ export default function SubscribePage() {
 
   const handleFormSubmit = useCallback(async () => {
     if (!form.phone) { toast.error("يرجى إدخال رقم الهاتف"); return }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { toast.error("البريد الإلكتروني غير صالح"); return }
     if (!selectedPlan) return
     setLoading(true)
     try {
@@ -76,15 +78,16 @@ export default function SubscribePage() {
     setStep("waiting")
     setPolling(true)
     const pid = paymentInfo.payment_id
-    const interval = setInterval(async () => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(async () => {
       try {
         const r = await csrfFetch(`/api/subscriptions/status?payment_id=${pid}`)
         const d = await r.json()
         if (d.status === "verified") {
-          clearInterval(interval); setPolling(false); setStep("success")
+          if (intervalRef.current) clearInterval(intervalRef.current); intervalRef.current = null; setPolling(false); setStep("success")
           toast.success("تم تفعيل اشتراكك بنجاح")
         } else if (d.status === "cancelled") {
-          clearInterval(interval); setPolling(false); setStep("rejected")
+          if (intervalRef.current) clearInterval(intervalRef.current); intervalRef.current = null; setPolling(false); setStep("rejected")
           toast.error("تم رفض طلب الدفع")
         }
       } catch { /* retry */ }

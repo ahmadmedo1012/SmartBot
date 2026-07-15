@@ -1,3 +1,4 @@
+from __future__ import annotations
 from _utils import utcnow
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric, BigInteger
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -9,7 +10,10 @@ class Base(DeclarativeBase):
 
 class Rule(Base):
     __tablename__ = "rules"
-    __table_args__ = (Index("ix_rule_tenant_id", "tenant_id", "id"),)
+    __table_args__ = (
+        Index("ix_rule_tenant_id", "tenant_id", "id"),
+        Index("ix_rule_tenant_enabled", "tenant_id", "enabled"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -29,6 +33,7 @@ class Reply(Base):
     __tablename__ = "replies"
     __table_args__ = (
         Index("ix_reply_rule_created", "rule_id", "created_at"),
+        Index("ix_reply_post_created", "fb_post_id", "created_at"),
         UniqueConstraint('tenant_id', 'fb_comment_id', name='uq_reply_tenant_comment'),
     )
 
@@ -176,6 +181,7 @@ class ScheduledPost(Base):
 class AnalyticsEvent(Base):
     """Track granular analytics events."""
     __tablename__ = "analytics_events"
+    __table_args__ = (Index("ix_analytics_tenant_type_ts", "tenant_id", "event_type", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)

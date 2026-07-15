@@ -1,3 +1,4 @@
+from __future__ import annotations
 """In-process pub/sub event bus for cross-module broadcasting (WS + SSE)."""
 import logging
 from collections import defaultdict

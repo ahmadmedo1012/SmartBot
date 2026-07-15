@@ -8,10 +8,9 @@ import { Providers } from "./providers"
 import "./globals.css"
 
 const cairo = Cairo({
-  subsets: ["arabic", "latin"],
+  subsets: ["latin"], /* ponytail: arabic subset triggers Next.js font subset bug - fonts served via static/fonts/fonts.css */
   variable: "--font-cairo",
   display: "swap",
-  adjustFontFallback: false,
 })
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
@@ -21,27 +20,18 @@ export const metadata: Metadata = {
   description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك - المنصة الأولى في ليبيا",
   metadataBase: new URL(siteUrl),
   icons: { icon: "/static/brand-icon.png", apple: "/static/brand-icon.png" },
-  manifest: "/manifest.json",
-  alternates: { canonical: "/" },
   openGraph: {
-    type: "website",
-    locale: "ar_LY",
-    siteName: "SmartBot",
-    title: "SmartBot - منصة إدارة فيسبوك",
-    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
-    url: "/",
+    type: "website", locale: "ar_LY", siteName: "SmartBot",
   },
   robots: { index: true, follow: true },
+  alternates: { canonical: `${siteUrl}/` },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="/static/fonts/fonts.css" />
-        <link rel="preload" href="/static/fonts/noto-naskh-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link rel="preload" href="/static/fonts/noto-sans-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link rel="preload" href="/static/fonts/readex-pro.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="stylesheet" href="/fonts/fonts.css" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",

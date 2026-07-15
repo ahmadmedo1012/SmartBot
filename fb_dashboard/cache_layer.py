@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 TTL-based cache and connection management for SmartBot.
 Reduces DB load and FB API calls on hot paths.

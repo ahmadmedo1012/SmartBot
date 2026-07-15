@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Conversation context engine for SmartBot.
 Tracks user interaction history across comments within sessions.

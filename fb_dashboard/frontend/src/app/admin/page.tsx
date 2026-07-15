@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle } from "lucide-react"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowLeft } from "lucide-react"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { fadeUp } from "@/lib/motion"
 import { csrfFetch } from "@/lib/csrf-client"
+import Link from "next/link"
 
 interface Payment {
   id: number
@@ -30,10 +31,10 @@ const STATUS_FILTERS = [
   { key: "all", label: "الكل", variant: "outline" as const },
 ]
 
-const statusConfig: Record<string, { label: string; variant: "warning" | "success" | "danger" }> = {
+const statusConfig: Record<string, { label: string; variant: "warning" | "success" | "destructive" }> = {
   pending: { label: "قيد الانتظار", variant: "warning" },
   verified: { label: "مؤكد", variant: "success" },
-  cancelled: { label: "ملغي", variant: "danger" },
+  cancelled: { label: "ملغي", variant: "destructive" },
 }
 
 export default function AdminPage() {
@@ -45,7 +46,6 @@ export default function AdminPage() {
   const [roleLoading, setRoleLoading] = useState(true)
 
   useEffect(() => {
-    document.title = "الإدارة | SmartBot"
     const meta = document.createElement("meta")
     meta.name = "robots"
     meta.content = "noindex, nofollow"
@@ -111,6 +111,10 @@ export default function AdminPage() {
     <SectionContainer className="min-h-screen py-8">
       <SectionHeader title="إدارة الاشتراكات" description="مراجعة وإدارة طلبات الاشتراك" />
 
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+        <ArrowLeft className="size-4" /> العودة للوحة التحكم
+      </Link>
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
@@ -148,17 +152,17 @@ export default function AdminPage() {
                   {payments.map((p) => (
                     <motion.tr key={p.id} variants={fadeUp} custom={0} initial="hidden" animate="visible"
                       className="border-b border-border hover:bg-muted/30 transition-colors">
-                      <td className="p-3 font-medium">{p.username}</td>
-                      <td className="p-3">{p.plan}</td>
-                      <td className="p-3">{p.amount} د.ل</td>
-                      <td className="p-3 text-muted-foreground" dir="ltr">{p.phone}</td>
-                      <td className="p-3">
+                      <td className="p-3 font-medium" data-label="المستخدم">{p.username}</td>
+                      <td className="p-3" data-label="الخطة">{p.plan}</td>
+                      <td className="p-3" data-label="المبلغ">{p.amount} د.ل</td>
+                      <td className="p-3 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
+                      <td className="p-3" data-label="الحالة">
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
                       </td>
-                      <td className="p-3 text-muted-foreground text-xs">
+                      <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
                         {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-SA") : "-"}
                       </td>
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center" data-label="إجراءات">
                         <div className="flex items-center justify-center gap-2">
                           {p.status === "pending" && (
                             <>
@@ -166,7 +170,7 @@ export default function AdminPage() {
                                 onClick={() => handleAction(p.id, "verified")}>
                                 <CheckCircle className="size-4" /> قبول
                               </Button>
-                              <Button variant="danger" size="sm" loading={actionId === p.id}
+                              <Button variant="destructive" size="sm" loading={actionId === p.id}
                                 onClick={() => handleAction(p.id, "cancelled")}>
                                  <XCircle className="size-4" /> رفض
                               </Button>

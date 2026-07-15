@@ -1,6 +1,6 @@
 import type { NextConfig } from "next"
 
-const API_HOST = process.env.NEXT_PUBLIC_API_HOST || "https://bot.smart-link.ly"
+const API_HOST = process.env.NEXT_PUBLIC_API_HOST || "https://api.bot.smart-link.ly"
 
 const nextConfig: NextConfig = {
   async rewrites() {

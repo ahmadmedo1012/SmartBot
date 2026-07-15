@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Structured logging and diagnostics for SmartBot.
 JSON-formatted logs, health metrics, performance tracking.

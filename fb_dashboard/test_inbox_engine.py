@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Tests for InboxEngine — fetch_all_conversations normalization, message routing."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock

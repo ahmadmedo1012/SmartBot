@@ -1,24 +1,32 @@
 {
-  "rewrites": [
-    { "source": "/static/(.*)", "destination": "/static/$1" },
-    { "source": "/(.*)", "destination": "/api/index.py" }
-  ],
-  "functions": {
-    "api/index.py": { "maxDuration": 10 }
-  },
-  "buildCommand": null,
+  "framework": "fastapi",
+  "regions": ["iad1"],
+  "cleanUrls": true,
   "headers": [
     {
-      "source": "/static/assets/(.*)\\.(js|css|png|svg|woff2)",
+      "source": "/static/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/static/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30,
+      "memory": 512,
+      "excludeFiles": "{__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,*.md,*.db,botlogo.png,alembic/**}"
+    }
+  }
 }

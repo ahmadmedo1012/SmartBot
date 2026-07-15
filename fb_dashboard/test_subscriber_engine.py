@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Tests for SubscriberEngine — get_or_create, search, add/remove_tag."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock, PropertyMock

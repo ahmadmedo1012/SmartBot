@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Analytics Engine — Advanced metrics, reporting, and insights."""
 import json
 import logging
@@ -42,32 +43,26 @@ class AnalyticsEngine:
     # ------------------------------------------------------------------
 
     async def get_dashboard_overview(self, days: int, session, tenant_id: int = 0) -> dict:
-        """High-level KPIs for the dashboard hero cards.
-
-        Returns total / today replies, active rules, subscriber count,
-        and a percentage change versus the identical-length window
-        immediately before ``days``.
-        """
+        """High-level KPIs — single aggregation query instead of 6 separate COUNTs."""
         now = utcnow()
         cutoff = self._cutoff(days)
         prior_cutoff = self._cutoff(days * 2)
+        today = now.date()
 
-        total_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
-            )
-            or 0
+        # Single aggregation: total, today, prior period, unique commenters
+        row = await session.execute(
+            select(
+                func.count(Reply.id).filter(Reply.created_at >= cutoff).label("total_replies"),
+                func.count(Reply.id).filter(cast(Reply.created_at, Date) == today).label("today_replies"),
+                func.count(Reply.id).filter(
+                    Reply.created_at >= prior_cutoff, Reply.created_at < cutoff
+                ).label("prior_replies"),
+                func.count(func.distinct(Reply.commenter_name)).filter(
+                    Reply.commenter_name != "", Reply.created_at >= cutoff
+                ).label("unique_commenters"),
+            ).where(Reply.tenant_id == tenant_id)
         )
-
-        today_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(
-                    Reply.tenant_id == tenant_id,
-                    cast(Reply.created_at, Date) == now.date()
-                )
-            )
-            or 0
-        )
+        r = row.one()
 
         active_rules = (
             await session.scalar(
@@ -75,44 +70,19 @@ class AnalyticsEngine:
             )
             or 0
         )
-
         total_subs = (
             await session.scalar(select(func.count(Subscriber.id)).where(Subscriber.tenant_id == tenant_id)) or 0
         )
 
-        unique_commenters = (
-            await session.scalar(
-                select(func.count(func.distinct(Reply.commenter_name))).where(
-                    and_(
-                        Reply.tenant_id == tenant_id,
-                        Reply.commenter_name != "",
-                        Reply.created_at >= cutoff,
-                    )
-                )
-            )
-            or 0
-        )
-
-        # Prior period comparison
-        prior_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(
-                    and_(
-                        Reply.tenant_id == tenant_id,
-                        Reply.created_at >= prior_cutoff,
-                        Reply.created_at < cutoff,
-                    )
-                )
-            )
-            or 0
-        )
+        total_replies = r.total_replies or 0
+        prior_replies = r.prior_replies or 0
 
         return {
             "total_replies": total_replies,
-            "today_replies": today_replies,
+            "today_replies": r.today_replies or 0,
             "active_rules": active_rules,
             "total_subscribers": total_subs,
-            "unique_commenters": unique_commenters,
+            "unique_commenters": r.unique_commenters or 0,
             "prior_replies": prior_replies,
             "change_pct": self._pct_change(total_replies, prior_replies),
             "period_days": days,

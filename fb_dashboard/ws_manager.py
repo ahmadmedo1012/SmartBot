@@ -1,3 +1,4 @@
+from __future__ import annotations
 """WebSocket manager for real-time dashboard updates."""
 import json, logging, os
 from typing import Any

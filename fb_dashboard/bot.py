@@ -1,3 +1,4 @@
+from __future__ import annotations
 """SmartBot — auto-reply engine (v2).
 Architecture: SharedEngine → Pipeline → IntentMatcher → ResponseComposer.
 Flow:

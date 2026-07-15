@@ -1,3 +1,4 @@
+from __future__ import annotations
 from cryptography.fernet import Fernet, InvalidToken
 import base64, hashlib
 from config import settings

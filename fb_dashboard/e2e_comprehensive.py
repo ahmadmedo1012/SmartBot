@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """Comprehensive E2E test for SmartBot dashboard at localhost:8000.
 
 Tests: auth, all nav pages, buttons, modals, forms, console errors.

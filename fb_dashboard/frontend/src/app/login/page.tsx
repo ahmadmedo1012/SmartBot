@@ -1,16 +1,15 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { csrfFetch } from "@/lib/csrf-client"
-import { premiumToast } from "@/lib/premium-toast"
+import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
-import { LogIn, Eye, EyeOff, ArrowRight } from "lucide-react"
+import { LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react"
 
 function FloatingShapes() {
   return (
@@ -28,17 +27,16 @@ function safeRedirect(value: string | null) {
 }
 
 function LoginForm() {
-  const searchParams = useSearchParams()
-  const rawRedirect = searchParams.get("redirect")
-  const redirect = safeRedirect(rawRedirect) || "/dashboard"
+  const [rawRedirect] = useState<string | null>(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null
+  )
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
-
-  useEffect(() => { document.title = "تسجيل الدخول | SmartBot" }, [])
+  const [formError, setFormError] = useState("")
 
   useEffect(() => {
     fetch("/api/me")
@@ -66,6 +64,9 @@ function LoginForm() {
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
+    setFormError("")
+    if (!username.trim()) { setFormError("يرجى إدخال اسم المستخدم"); return }
+    if (!password.trim()) { setFormError("يرجى إدخال كلمة المرور"); return }
     setLoading(true)
     try {
       const res = await csrfFetch("/api/login", {
@@ -75,14 +76,14 @@ function LoginForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        premiumToast("error", data.detail || "فشل تسجيل الدخول")
+        toast.error(data.detail || "فشل تسجيل الدخول")
         return
       }
-      premiumToast("success", "تم تسجيل الدخول بنجاح")
+      toast.success("تم تسجيل الدخول بنجاح")
       const target = data.role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard"
       setTimeout(() => window.location.replace(target), 150)
     } catch {
-      premiumToast("error", "خطأ في الاتصال بالخادم")
+      toast.error("خطأ في الاتصال بالخادم")
     } finally {
       setLoading(false)
     }
@@ -96,14 +97,14 @@ function LoginForm() {
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
-            <ArrowRight className="size-3.5" />
+            <ArrowLeft className="size-3.5" />
             العودة للرئيسية
           </Button>
         </Link>
         <ThemeToggle />
       </div>
 
-      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-orange via-orange/80 to-orange/60" />
+      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--orange)] via-[var(--orange)]/80 to-[var(--orange)]/60" />
 
       <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-orange/20 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         <CardHeader className="pb-2 pt-8 text-center">
@@ -118,7 +119,7 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
-              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_rgba(251,146,60,0.1)]">
+              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_color-mix(in_oklch,_var(--orange)_10%,_transparent)]">
                 <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -127,7 +128,7 @@ function LoginForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_rgba(251,146,60,0.1)]">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_color-mix(in_oklch,_var(--orange)_10%,_transparent)]">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -139,6 +140,7 @@ function LoginForm() {
               </div>
             </div>
 
+            {formError && <p className="text-xs text-destructive text-center">{formError}</p>}
             <Button type="submit" className="mt-2 h-10 w-full rounded-xl text-base font-semibold" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جاري تسجيل الدخول...</span>
@@ -156,16 +158,5 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-orange-muted/20 to-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-10 animate-pulse rounded-full bg-orange/40" />
-          <span className="animate-breath text-sm text-muted-foreground">جاري التحميل...</span>
-        </div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
-  )
+  return <LoginForm />
 }

@@ -53,7 +53,7 @@ export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
-  useEffect(() => { document.title = "الخطط والأسعار | SmartBot" }, [])
+  // title handled by layout.tsx
 
   useEffect(() => {
     csrfFetch("/api/plans")
@@ -69,7 +69,7 @@ export default function PricingPage() {
         <SectionContainer>
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2">
-              <div className="size-7 rounded-md bg-orange-500 flex items-center justify-center text-white font-bold text-xs">S</div>
+              <div className="size-7 rounded-md bg-orange flex items-center justify-center text-white font-bold text-xs">S</div>
               <span className="font-bold text-sm">SmartBot</span>
             </div>
             <div className="flex items-center gap-2">
@@ -95,15 +95,15 @@ export default function PricingPage() {
             const isPopular = i === 1
             return (
               <motion.div key={plan.id} variants={fadeUp} custom={i}>
-                <Card className={cn("relative h-full flex flex-col", isPopular && "border-orange-500 shadow-lg shadow-orange-500/10")}>
+                <Card className={cn("relative h-full flex flex-col", isPopular && "border-orange shadow-lg shadow-orange/10")}>
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <Badge variant="default" className="text-xs">الأكثر شعبية</Badge>
                     </div>
                   )}
                   <CardHeader className="text-center">
-                    <div className="mx-auto size-10 rounded-lg bg-orange-500/10 flex items-center justify-center mb-2">
-                      <Icon className="size-5 text-orange-500" />
+                    <div className="mx-auto size-10 rounded-lg bg-orange/10 flex items-center justify-center mb-2">
+                      <Icon className="size-5 text-orange" />
                     </div>
                     <CardTitle>{plan.name_ar || plan.name}</CardTitle>
                     <CardDescription>

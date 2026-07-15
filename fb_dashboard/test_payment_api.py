@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Integration test: payment API endpoints via TestClient."""
 import sys, os, json
 sys.path.insert(0, os.path.dirname(__file__))

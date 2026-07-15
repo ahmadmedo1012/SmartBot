@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Content Calendar — Visual multi-platform scheduling engine.
 Schedule, approve, and publish content across Facebook, Instagram, WhatsApp.
 """

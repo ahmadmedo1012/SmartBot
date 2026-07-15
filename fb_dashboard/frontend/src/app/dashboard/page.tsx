@@ -54,8 +54,8 @@ function StatCard({ icon: Icon, label, value, trend, color }: {
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className={cn("size-8 rounded-lg flex items-center justify-center", color ? `${color}/10` : "bg-muted")}>
-            <Icon className={cn("size-4", color || "text-muted-foreground")} />
+          <div className={cn("size-8 rounded-lg flex items-center justify-center", color ? `bg-${color}/10` : "bg-muted")}>
+            <Icon className={cn("size-4", color ? `text-${color}` : "text-muted-foreground")} />
           </div>
         </div>
         <p className="text-2xl font-bold">{typeof value === "number" ? value.toLocaleString() : value}</p>
@@ -95,7 +95,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    document.title = "لوحة البيانات | SmartBot"
+    // title handled by layout.tsx metadata
     const meta = document.createElement("meta")
     meta.name = "robots"
     meta.content = "noindex, nofollow"
@@ -122,12 +122,12 @@ export default function DashboardPage() {
         sidebarOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="flex items-center gap-2 p-4 border-b border-border">
-          <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">S</div>
+          <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
           <p className="font-bold text-sm">SmartBot</p>
         </div>
         <nav className="p-3 space-y-1">
           <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">عام</div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-orange-500 text-white text-sm font-medium">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-orange text-orange-foreground text-sm font-medium">
             <LayoutDashboard className="size-4" /> لوحة البيانات
           </div>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted text-sm cursor-pointer transition-colors">
@@ -163,10 +163,10 @@ export default function DashboardPage() {
           <motion.div variants={stagger} initial="hidden" animate="visible">
             {/* Stats grid */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
-              <StatCard icon={Clock} label="آخر 7 أيام" value={stats?.total_replies || 0} trend={stats?.trend?.week} color="text-orange-500" />
-              <StatCard icon={Calendar} label="ردود اليوم" value={stats?.today_replies || 0} trend={stats?.trend?.today} color="text-blue-500" />
-              <StatCard icon={Users} label="المتابعون" value={stats?.fan_count || 0} color="text-green-500" />
-              <StatCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.is_active !== false).length} color="text-yellow-500" />
+              <StatCard icon={Clock} label="آخر 7 أيام" value={stats?.total_replies || 0} trend={stats?.trend?.week} color="orange" />
+              <StatCard icon={Calendar} label="ردود اليوم" value={stats?.today_replies || 0} trend={stats?.trend?.today} color="blue" />
+              <StatCard icon={Users} label="المتابعون" value={stats?.fan_count || 0} color="green" />
+              <StatCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.is_active !== false).length} color="yellow" />
             </div>
 
             {/* Activity chart */}
@@ -174,7 +174,7 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="size-4 text-orange-500" /> النشاط اليومي
+                    <TrendingUp className="size-4 text-orange" /> النشاط اليومي
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <MessageCircle className="size-4 text-orange-500" /> آخر الردود
+                      <MessageCircle className="size-4 text-orange" /> آخر الردود
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -205,7 +205,7 @@ export default function DashboardPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{r.commenter_name || r.commenter}</p>
                           <p className="text-xs text-muted-foreground truncate">{r.comment_text || r.text}</p>
-                          <p className="text-xs text-orange-500 truncate">{r.reply_text || r.reply}</p>
+                          <p className="text-xs text-orange truncate">{r.reply_text || r.reply}</p>
                         </div>
                       </div>
                     )) : (
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Activity className="size-4 text-orange-500" /> قواعد الرد
+                      <Activity className="size-4 text-orange" /> قواعد الرد
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -272,7 +272,7 @@ function ChartBars({ data }: { data: Record<string, number> }) {
         {entries.map(([d, v], i) => (
           <div key={d} className="flex-1 flex flex-col items-end justify-end h-full">
             <div
-              className="w-full rounded-t bg-orange-500/70 hover:bg-orange-500 transition-colors min-h-[2px]"
+              className="w-full rounded-t bg-orange/70 hover:bg-orange transition-colors min-h-[2px]"
               style={{ height: `${(v / max) * 100}%` }}
             />
           </div>

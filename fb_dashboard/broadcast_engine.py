@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Broadcast Engine — Segmented mass messaging engine.
 Sends bulk messages to filtered subscriber segments with rate limiting.
 """

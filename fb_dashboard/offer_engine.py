@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Smart offer engine — selects best offer based on user context.
 """

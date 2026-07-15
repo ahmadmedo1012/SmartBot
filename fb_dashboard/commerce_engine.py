@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Commerce Engine — E-commerce integration for Shopify.
 Connects store data to SmartBot flows for abandoned cart recovery,
 order confirmations, product recommendations.

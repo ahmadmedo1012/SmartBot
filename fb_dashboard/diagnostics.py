@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Diagnostics and health monitoring for SmartBot.
 Provides API endpoints for system health, performance metrics,

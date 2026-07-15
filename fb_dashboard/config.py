@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os, logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     FERNET_KEY: str = ""
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
+    REDIS_URL: str = ""
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
 

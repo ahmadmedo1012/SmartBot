@@ -1,3 +1,4 @@
+from __future__ import annotations
 """DB-backed rate limiter — works across Vercel serverless instances."""
 from datetime import datetime, timedelta
 from sqlalchemy import select, func, delete

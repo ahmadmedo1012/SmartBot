@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Logs API router — structured log endpoints."""
 import json
 import asyncio

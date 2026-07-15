@@ -107,7 +107,7 @@ async def logout(request: Request, db=Depends(get_db)):
         except Exception:
             pass
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie("token")
+    resp.delete_cookie("token", httponly=True, secure=True, samesite="lax")
     return resp
 
 

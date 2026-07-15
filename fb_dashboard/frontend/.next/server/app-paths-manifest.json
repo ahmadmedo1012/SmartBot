@@ -5,6 +5,7 @@
   "/dashboard/page": "app/dashboard/page.js",
   "/demo/page": "app/demo/page.js",
   "/login/page": "app/login/page.js",
+  "/opengraph-image/route": "app/opengraph-image/route.js",
   "/page": "app/page.js",
   "/pricing/page": "app/pricing/page.js",
   "/sitemap.xml/route": "app/sitemap.xml/route.js",

@@ -5,6 +5,7 @@
   "/dashboard/page": "/dashboard",
   "/demo/page": "/demo",
   "/login/page": "/login",
+  "/opengraph-image/route": "/opengraph-image",
   "/page": "/",
   "/pricing/page": "/pricing",
   "/sitemap.xml/route": "/sitemap.xml",

@@ -44,7 +44,7 @@
     "remotePatterns": [
       {
         "protocol": "https",
-        "hostname": "^(?:^(?:bot\\.smart\\-link\\.ly)$)$",
+        "hostname": "^(?:^(?:api\\.bot\\.smart\\-link\\.ly)$)$",
         "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
       }
     ],

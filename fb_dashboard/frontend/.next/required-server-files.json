@@ -66,7 +66,7 @@
       "remotePatterns": [
         {
           "protocol": "https",
-          "hostname": "bot.smart-link.ly"
+          "hostname": "api.bot.smart-link.ly"
         }
       ],
       "qualities": [
@@ -317,11 +317,11 @@
       "afterFiles": [
         {
           "source": "/api/:path*",
-          "destination": "https://bot.smart-link.ly/api/:path*"
+          "destination": "https://api.bot.smart-link.ly/api/:path*"
         },
         {
           "source": "/static/:path*",
-          "destination": "https://bot.smart-link.ly/static/:path*"
+          "destination": "https://api.bot.smart-link.ly/static/:path*"
         }
       ],
       "fallback": []

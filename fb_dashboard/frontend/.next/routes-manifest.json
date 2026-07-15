@@ -21,12 +21,12 @@
     "afterFiles": [
       {
         "source": "/api/:path*",
-        "destination": "https://bot.smart-link.ly/api/:path*",
+        "destination": "https://api.bot.smart-link.ly/api/:path*",
         "regex": "^/api(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
       },
       {
         "source": "/static/:path*",
-        "destination": "https://bot.smart-link.ly/static/:path*",
+        "destination": "https://api.bot.smart-link.ly/static/:path*",
         "regex": "^/static(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
       }
     ],
@@ -75,6 +75,12 @@
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/opengraph-image",
+      "regex": "^/opengraph\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/opengraph\\-image(?:/)?$"
     },
     {
       "page": "/pricing",

@@ -83,7 +83,7 @@ async def login(username: str = Form(...), password: str = Form(...),
     user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
     user = user.scalar_one_or_none()
     if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(401, "Invalid credentials")
+        raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
     token = make_token(username, user.tenant_id)
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()

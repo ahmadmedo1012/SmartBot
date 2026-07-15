@@ -76,7 +76,9 @@ function LoginForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.detail || "فشل تسجيل الدخول")
+        const msg = data.detail || "فشل تسجيل الدخول"
+        setFormError(msg)
+        toast.error(msg)
         return
       }
       toast.success("تم تسجيل الدخول بنجاح")
@@ -150,7 +152,12 @@ function LoginForm() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground/60">SmartBot - منصة إدارة التفاعل الذكية</p>
+          <div className="mt-6 text-center">
+            <Link href="/register" className="text-xs text-orange/80 hover:text-orange/60 transition-colors">
+              ليس لديك حساب؟ إنشاء حساب جديد
+            </Link>
+          </div>
+          <p className="mt-4 text-center text-xs text-muted-foreground/60">SmartBot - منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
     </div>

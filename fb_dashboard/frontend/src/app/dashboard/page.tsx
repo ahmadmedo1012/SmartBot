@@ -2,8 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, MessageCircle, Settings, ChevronLeft } from "lucide-react"
+import { toast } from "sonner"
+import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, LogOut, ChevronLeft } from "lucide-react"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
@@ -80,6 +82,16 @@ export default function DashboardPage() {
     refetchInterval: 15000,
   })
 
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await csrfFetch("/api/logout", { method: "POST" })
+      toast.success("تم تسجيل الخروج")
+      router.push("/login")
+    } catch { /* ignore */ }
+  }
+
   const { data: replies, isLoading: repliesLoading } = useQuery({
     queryKey: ["dashboard-replies"],
     queryFn: () => csrfFetch("/api/replies?page=1&per_page=5").then((r) => r.json()),
@@ -118,27 +130,25 @@ export default function DashboardPage() {
 
       {/* Simplified Sidebar */}
       <aside className={cn(
-        "fixed top-0 right-0 z-50 h-full w-60 border-l border-border bg-card transition-transform md:-translate-x-0 md:static md:z-auto",
+        "fixed top-0 right-0 z-50 h-full w-60 border-l border-border bg-card transition-transform md:-translate-x-0 md:static md:z-auto flex flex-col",
         sidebarOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="flex items-center gap-2 p-4 border-b border-border">
           <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
           <p className="font-bold text-sm">SmartBot</p>
         </div>
-        <nav className="p-3 space-y-1">
+        <nav className="p-3 space-y-1 flex-1">
           <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">عام</div>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-orange text-orange-foreground text-sm font-medium">
             <LayoutDashboard className="size-4" /> لوحة البيانات
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted text-sm cursor-pointer transition-colors">
-            <MessageCircle className="size-4" /> الرسائل
-            <Badge variant="info" className="mr-auto text-[10px]">{recentReplies.length}</Badge>
-          </div>
-          <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-4">الإدارة</div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted text-sm cursor-pointer transition-colors">
-            <Settings className="size-4" /> الإعدادات
-          </div>
         </nav>
+        <div className="p-3 border-t border-border">
+          <button onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+            <LogOut className="size-4" /> تسجيل الخروج
+          </button>
+        </div>
       </aside>
 
       {/* Main */}

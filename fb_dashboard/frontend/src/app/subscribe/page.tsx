@@ -150,7 +150,7 @@ export default function SubscribePage() {
                       </li>
                     ))}
                   </ul>
-                  <Button className="w-full">{plan.price === 0 ? "ابدأ مجاناً" : "اختيار"}</Button>
+                  <Button className="w-full" onClick={() => handleSelectPlan(plan)}>{plan.price === 0 ? "ابدأ مجاناً" : "اختيار"}</Button>
                 </CardContent>
               </Card>
             ))}

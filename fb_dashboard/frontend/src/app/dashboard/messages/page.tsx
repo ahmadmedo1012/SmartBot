@@ -37,7 +37,7 @@ const FILTERS = [
 function ConvItem({ conv, selectedId, onSelect }: {
   conv: any; selectedId: string | null; onSelect: (id: string) => void
 }) {
-  const hasUnread = conv.unread_count > 0
+  const hasUnread = Number(conv.unread_count) > 0
   const selected = selectedId === conv.id
   return (
     <button
@@ -64,7 +64,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
           </p>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-[11px] text-muted-foreground">{conv.message_count} رسالة</span>
-            {hasUnread > 0 && (
+            {hasUnread && (
               <Badge variant="info" className="text-[10px] h-4 min-w-[18px] px-1 rounded-full">
                 {conv.unread_count}
               </Badge>

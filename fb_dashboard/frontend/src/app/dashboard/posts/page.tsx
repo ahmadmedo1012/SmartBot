@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { Newspaper, Send, Trash2 } from "lucide-react"
+import { Newspaper, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 

@@ -2,7 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Settings, User, Shield, Mail } from "lucide-react"
+import { Settings, User, Shield, Mail , AlertCircle, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function SettingsPage() {

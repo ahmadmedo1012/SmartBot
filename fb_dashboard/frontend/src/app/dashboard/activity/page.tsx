@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { Activity } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+
 
 export default function ActivityPage() {
   const { data: logs = [], isLoading } = useQuery({

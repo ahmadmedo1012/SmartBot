@@ -9,12 +9,13 @@ import { SectionHeader } from "@/components/ui/SectionHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+
 import { cn } from "@/lib/utils"
 import { fadeUp, stagger } from "@/lib/motion"
 import {
-  Bot, MessageCircle, BarChart3, Users, Activity, TrendingUp, Clock,
+  Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
   Sparkles, ArrowLeft, ChevronLeft, LayoutDashboard, Settings, Shield,
-  CheckCircle, XCircle
+  CheckCircle,
 } from "lucide-react"
 
 const mockStats = {

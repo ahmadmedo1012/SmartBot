@@ -2,11 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Users, Activity } from "lucide-react"
+import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function AudiencePage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(r => r.json()),
     refetchInterval: 60000,
@@ -27,6 +28,13 @@ export default function AudiencePage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {isError ? (
+          <div className="text-center py-16">
+            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <h2 className="text-sm font-bold mb-1">فشل تحميل بيانات الجمهور</h2>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          </div>
+        ) : (<>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
@@ -78,6 +86,8 @@ export default function AudiencePage() {
             )}
           </CardContent>
         </Card>
+      </>
+      )}
       </div>
     </div>
   )

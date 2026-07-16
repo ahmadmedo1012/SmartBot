@@ -2,7 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Users2, Shield, User, Bot } from "lucide-react"
+import { Users2, Shield, User, Bot , AlertCircle, RefreshCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function TeamPage() {

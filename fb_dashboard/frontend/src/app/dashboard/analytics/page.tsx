@@ -3,12 +3,13 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import {
-  BarChart3, MessageSquare, Activity, Clock, Users,
+  BarChart3, MessageSquare, Activity, Clock, Users, AlertCircle, RefreshCw,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function AnalyticsPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(r => r.json()),
     refetchInterval: 60000,
@@ -39,7 +40,13 @@ export default function AnalyticsPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {isError ? (
+          <div className="text-center py-16">
+            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <h2 className="text-sm font-bold mb-1">فشل تحميل التحليلات</h2>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          </div>
+        ) : (<><div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((s, i) => (
             <Card key={i}>
               <CardContent className="p-4">
@@ -117,6 +124,8 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+      </>
+      )}
       </div>
     </div>
   )

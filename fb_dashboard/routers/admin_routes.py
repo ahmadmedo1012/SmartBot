@@ -45,7 +45,7 @@ async def repair(current_user: User = Depends(require_role("admin"))):
             await seed_admin(session)
         return {"ok": True, "message": "DB repaired"}
     except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/api/admin/tenants/{tenant_id}")

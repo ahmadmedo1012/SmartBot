@@ -1,19 +1,47 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import { usePathname } from "next/navigation"
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+export default function AuthGuard({
+  children,
+  requiredRole,
+}: {
+  children: React.ReactNode
+  requiredRole?: string
+}) {
   const [authorized, setAuthorized] = useState(false)
+  const pathname = usePathname()
+  const attempts = useRef(0)
 
   useEffect(() => {
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.authenticated) setAuthorized(true)
-        else window.location.replace("/login")
-      })
-      .catch(() => window.location.replace("/login"))
-  }, [])
+    const check = () => {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 5000)
+
+      fetch("/api/me", { signal: ctrl.signal })
+        .then((r) => {
+          clearTimeout(timer)
+          if (!r.ok) throw new Error(r.statusText)
+          return r.json()
+        })
+        .then((d) => {
+          if (!d.authenticated) return void window.location.replace("/login")
+          if (requiredRole && d.role !== requiredRole)
+            return void window.location.replace("/dashboard")
+          setAuthorized(true)
+        })
+        .catch(() => {
+          if (attempts.current < 1) {
+            attempts.current++
+            check()
+          } else {
+            window.location.replace("/login")
+          }
+        })
+    }
+    check()
+  }, [pathname, requiredRole])
 
   if (!authorized) {
     return (

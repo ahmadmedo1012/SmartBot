@@ -105,7 +105,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         }
     except Exception as e:
         log.error(f"dashboard_bundle error: {e}", exc_info=True)
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/api/stats")

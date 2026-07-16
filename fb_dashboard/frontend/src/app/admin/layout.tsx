@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 import AuthGuard from "../dashboard/AuthGuard"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGuard>{children}</AuthGuard>
+  return <AuthGuard requiredRole="admin">{children}</AuthGuard>
 }

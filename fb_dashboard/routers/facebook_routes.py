@@ -188,7 +188,9 @@ async def delete_post(post_id: str, _=Depends(require_role("editor"))):
 @router.post("/api/publish")
 async def publish_post(message: str = Form(...), _=Depends(require_role("editor"))):
     result = await fb.post_to_page(message)
-    return result or {"error": "Failed to post"}
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to post")
+    return result
 
 
 @router.get("/api/messages")

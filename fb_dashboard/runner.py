@@ -455,8 +455,12 @@ _ALLOW_UNVERIFIED = os.getenv("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true"
 async def telegram_webhook(request: Request, body: dict = Body(...)):
     """Handle Telegram callback queries for payment approve/reject."""
     # Webhook secret check — Telegram sends via x-telegram-bot-api-secret-token
-    if _TG_SECRET and not _ALLOW_UNVERIFIED:
-        if request.headers.get("x-telegram-bot-api-secret-token", "") != _TG_SECRET:
+    if not _ALLOW_UNVERIFIED:
+        token = request.headers.get("x-telegram-bot-api-secret-token", "")
+        if not _TG_SECRET:
+            log.warning("TELEGRAM_WEBHOOK_SECRET not set — rejecting unverified request")
+            raise HTTPException(403, "Forbidden")
+        if token != _TG_SECRET:
             raise HTTPException(403, "Forbidden")
     cq = (body or {}).get("callback_query")
     if not cq:
@@ -755,13 +759,15 @@ async def webhook_receive(request: Request):
     body = await request.body()
 
     # Validate signature if app secret configured
-    if WEBHOOK_APP_SECRET:
-        sig = request.headers.get("x-hub-signature-256", "")
-        expected = "sha256=" + hmac.new(
-            WEBHOOK_APP_SECRET.encode(), body, hashlib.sha256
-        ).hexdigest()
-        if not hmac.compare_digest(sig, expected):
-            raise HTTPException(401, "Invalid signature")
+    if not WEBHOOK_APP_SECRET:
+        log.warning("FACEBOOK_APP_SECRET not set — rejecting unverified webhook")
+        raise HTTPException(401, "Invalid signature")
+    sig = request.headers.get("x-hub-signature-256", "")
+    expected = "sha256=" + hmac.new(
+        WEBHOOK_APP_SECRET.encode(), body, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        raise HTTPException(401, "Invalid signature")
 
     data = json.loads(body)
     log.debug(f"Webhook received: {json.dumps(data, ensure_ascii=False)[:500]}")

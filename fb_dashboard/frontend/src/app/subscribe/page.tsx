@@ -64,7 +64,7 @@ export default function SubscribePage() {
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error || "فشل إنشاء الاشتراك"); return }
-      setPaymentInfo({ provider: data.provider, ussd: data.ussd, payment_id: data.payment_id })
+      setPaymentInfo({ provider: data.provider || "الخدمة", ussd: data.ussd || data.message || "أرسل المبلغ وانتظر تأكيد الأدمن", payment_id: data.payment_id })
       setCountdown(180)
       setStep("payment")
     } catch {

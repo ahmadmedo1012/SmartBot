@@ -84,7 +84,7 @@ async def login(username: str = Form(...), password: str = Form(...),
     user = user.scalar_one_or_none()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
-    token = make_token(username, user.tenant_id)
+    token = make_token(user.username, user.tenant_id)
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})

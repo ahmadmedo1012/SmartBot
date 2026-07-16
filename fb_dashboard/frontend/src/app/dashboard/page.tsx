@@ -2,10 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useMemo } from "react"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { toast } from "sonner"
-import { TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, LogOut } from "lucide-react"
+import { TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -124,16 +122,6 @@ export default function DashboardPage() {
     refetchInterval: 15000,
   })
 
-  const router = useRouter()
-
-  const handleLogout = async () => {
-    try {
-      await apiFetch("/api/logout", { method: "POST" })
-      toast.success("تم تسجيل الخروج")
-      router.push("/login")
-    } catch { /* ignore */ }
-  }
-
   const recentReplies = bundle?.recent_replies || []
   const rulesList = bundle?.rules || []
   const stats = bundle?.stats || {}
@@ -145,29 +133,7 @@ export default function DashboardPage() {
   if (isLoading && !bundle) return <LoadingSkeleton />
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* Sidebar */}
-      <aside className="fixed top-0 right-0 z-50 h-full w-60 border-l border-border bg-card flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-border">
-          <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
-          <p className="font-bold text-sm">SmartBot</p>
-        </div>
-        <nav className="p-3 space-y-1 flex-1">
-          <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">عام</div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-orange text-orange-foreground text-sm font-medium">
-            <LayoutDashboard className="size-4" /> لوحة البيانات
-          </div>
-        </nav>
-        <div className="p-3 border-t border-border">
-          <button onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-            <LogOut className="size-4" /> تسجيل الخروج
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <div className="md:pr-60">
+    <>
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 h-14">
@@ -277,7 +243,6 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         </SectionContainer>
-      </div>
-    </div>
+    </>
   )
 }

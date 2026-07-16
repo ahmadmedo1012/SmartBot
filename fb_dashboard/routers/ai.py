@@ -68,7 +68,7 @@ async def ai_analyze_image(data: dict = Body(...), _=Depends(require_role("edito
     from _services import get_ai
     ai = get_ai()
     if not ai.available:
-        return {"analysis": ""}
+        raise HTTPException(status_code=503, detail="AI provider is not available")
     text = data.get("text", "")
     prompt = f"حلل هذا الطلب: {text}\n\nماذا يحتوي؟ قدم وصف مختصر بالعربية"
     try:

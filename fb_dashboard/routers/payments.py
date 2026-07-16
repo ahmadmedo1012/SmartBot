@@ -150,7 +150,7 @@ async def create_subscription(body: dict = Body(...), db=Depends(get_db), curren
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone, plan.name_ar)
     )
 
-    return {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع"}
+    return {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع", "provider": provider, "ussd": f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الأدمن"}
 
 
 @router.get("/api/subscriptions/status")

@@ -6,7 +6,7 @@ from config import settings
 from database import get_db
 from models import BotAlert, Reply, Rule, User
 from routers.auth import get_current_user, require_role
-from _services import fb, _bot_task
+from _services import fb
 
 router = APIRouter(prefix="", tags=["health"])
 
@@ -63,7 +63,8 @@ async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_
         issues.append({"type": "no_rules", "severity": "critical", "message": "لا توجد قواعد رد — البوت لن يعمل"})
 
     # 4. Check bot running
-    running = _bot_task is not None and not _bot_task.done()
+    from runner import _bot_task as _bt
+    running = _bt is not None and not _bt.done()
 
     return {
         "status": "ok" if not issues else "warning",

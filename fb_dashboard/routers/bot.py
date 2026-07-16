@@ -29,7 +29,7 @@ _cron_lock = asyncio.Lock()
 
 async def _run_single_cycle():
     try:
-        from runner import get_bot_engine
+        from _services import get_bot_engine
         engine = get_bot_engine()
         await engine.cycle()
     except Exception as e:
@@ -109,11 +109,11 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
             if balances.get(tenant.id, 0) <= 0:
                 results.append({"tenant_id": tenant.id, "status": "skipped", "reason": "no_balance"})
                 continue
-            from runner import get_tenant_fb_client
+            from _services import get_tenant_fb_client
             fb_cli = await get_tenant_fb_client(tenant.id)
             if not fb_cli:
                 continue
-            from runner import get_bot_engine
+            from _services import get_bot_engine
             engine = get_bot_engine(fb_cli, tenant_id=tenant.id)
             try:
                 await engine.cycle()

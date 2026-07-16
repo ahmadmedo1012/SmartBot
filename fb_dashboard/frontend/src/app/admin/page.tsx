@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { fadeUp } from "@/lib/motion"
-import { csrfFetch } from "@/lib/csrf-client"
+import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 
 interface Payment {
@@ -54,7 +54,7 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    csrfFetch("/api/me")
+    apiFetch("/api/me")
       .then((r) => r.json())
       .then((d) => { setRole(d.role || null); setRoleLoading(false) })
       .catch(() => { setRole(null); setRoleLoading(false) })
@@ -63,7 +63,7 @@ export default function AdminPage() {
   const fetchPayments = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await csrfFetch(`/api/admin/subscriptions?status=${filter}`)
+      const r = await apiFetch(`/api/admin/subscriptions?status=${filter}`)
       if (r.ok) setPayments(await r.json())
     } catch { /* ignore */ }
     setLoading(false)
@@ -74,7 +74,7 @@ export default function AdminPage() {
   const handleAction = useCallback(async (id: number, status: string) => {
     setActionId(id)
     try {
-      const r = await csrfFetch("/api/admin/subscriptions", {
+      const r = await apiFetch("/api/admin/subscriptions", {
         method: "POST",
         body: JSON.stringify({ id, status }),
       })

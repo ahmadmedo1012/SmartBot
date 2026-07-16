@@ -101,6 +101,12 @@ class User(Base):
     reset_token = Column(String(100), default="")
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="viewer")  # admin, editor, viewer
+    # Orphan columns in DB (added by migration 001) — synced to model for schema consistency
+    name = Column(String(200), default="")
+    subscription_status = Column(String(20), default="UNPAID")
+    plan_id = Column(Integer, nullable=True)
+    last_login_at = Column(DateTime, nullable=True)
+    telegram_chat_id = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
 

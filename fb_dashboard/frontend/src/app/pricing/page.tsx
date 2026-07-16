@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { fadeUp, stagger } from "@/lib/motion"
-import { csrfFetch } from "@/lib/csrf-client"
+import { apiFetch } from "@/lib/csrf-client"
 import {
   Sparkles, Check, Crown, Star, Bot, BarChart3, MessageCircle, Calendar,
   Target, ShieldCheck, Globe, Users, ChevronDown
@@ -56,7 +56,7 @@ export default function PricingPage() {
   // title handled by layout.tsx
 
   useEffect(() => {
-    csrfFetch("/api/plans")
+    apiFetch("/api/plans")
       .then((r) => r.json())
       .then(setPlans)
       .catch(() => {})

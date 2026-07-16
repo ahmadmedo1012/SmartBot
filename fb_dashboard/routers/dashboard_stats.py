@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, func, desc, cast, Date, text
 
 from _utils import utcnow
@@ -10,7 +11,7 @@ from config import settings
 from database import get_db
 from models import Reply, Rule, BotLog, User
 from routers.auth import get_current_user, require_role
-from _services import fb, get_ai, _bot_task, _get_trend_data, _track_event
+from _services import fb, get_ai, _get_trend_data, _track_event
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["dashboard"])
@@ -55,7 +56,8 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         rules_count = len(all_rules)
         active_rules_count = sum(1 for r in all_rules if r.enabled)
 
-        running = _bot_task is not None and not _bot_task.done()
+        from runner import _bot_task as _bt
+        running = _bt is not None and not _bt.done()
         ai = get_ai()
 
         recent_replies_rows = await db.execute(
@@ -103,7 +105,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         }
     except Exception as e:
         log.error(f"dashboard_bundle error: {e}", exc_info=True)
-        return {"error": str(e)}, 500
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @router.get("/api/stats")

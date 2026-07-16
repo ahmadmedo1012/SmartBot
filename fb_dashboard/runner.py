@@ -71,17 +71,8 @@ from routers import team_routes as team_router
 from routers import templates_routes as templates_router
 from routers import widgets_routes as widgets_router
 
-# Lazy AI import — graceful if no API key configured
-_ai_service = None
-
-def get_ai():
-    global _ai_service
-    if _ai_service is None:
-        from ai_service import AIService
-        _ai_service = AIService()
-        if not _ai_service.available:
-            log.info("AI Service: no provider configured (set OPENAI_API_KEY or GEMINI_API_KEY)")
-    return _ai_service
+# Lazy AI import — single source of truth in _services.py
+from _services import get_ai
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")
@@ -93,21 +84,10 @@ PARENT_DIR = BASE_DIR.parent
 
 _bot_task: asyncio.Task | None = None
 
-# ── Lazy engine proxies: zero-cost at import, constructed on first use ──
-fb = lazy(lambda: __import__('fb_client', fromlist=['FBClient']).FBClient(
-    settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID))
-sequence_engine = lazy(lambda: __import__('sequence_engine', fromlist=['SequenceEngine']).SequenceEngine(fb))
-broadcast_engine = lazy(lambda: __import__('broadcast_engine', fromlist=['BroadcastEngine']).BroadcastEngine(fb))
-subscriber_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['SubscriberEngine']).SubscriberEngine())
-tag_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['TagEngine']).TagEngine())
-analytics_engine = lazy(lambda: __import__('analytics_engine', fromlist=['AnalyticsEngine']).AnalyticsEngine())
-report_engine = lazy(lambda: __import__('report_engine', fromlist=['ReportEngine']).ReportEngine(analytics_engine))
-pdf_engine = lazy(lambda: __import__('pdf_reports_engine', fromlist=['PdfReportsEngine']).PdfReportsEngine())
-content_calendar_engine = lazy(lambda: __import__('content_calendar', fromlist=['ContentCalendarEngine']).ContentCalendarEngine(fb))
-team_engine = lazy(lambda: __import__('team_engine', fromlist=['TeamEngine']).TeamEngine())
-commerce_engine = lazy(lambda: __import__('commerce_engine', fromlist=['CommerceEngine']).CommerceEngine())
-_publisher = lazy(lambda: __import__('publisher_engine', fromlist=['PublisherEngine']).PublisherEngine())
-api_cache = lazy(lambda: __import__('api_cache', fromlist=['APICache']).APICache())
+# ── Engine proxies: single source of truth in _services.py ──
+from _services import (fb, sequence_engine, broadcast_engine, subscriber_engine,
+    tag_engine, analytics_engine, report_engine, pdf_engine,
+    content_calendar_engine, team_engine, commerce_engine, _publisher, api_cache)
 
 
 # ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
@@ -453,36 +433,8 @@ async def _run_bot_loop():
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
 
 
-_bot_engine_singleton: BotEngine | None = None
-
-def get_bot_engine(fb_client: FBClient | None = None, tenant_id: int = 0) -> BotEngine:
-    global _bot_engine_singleton
-    if fb_client is not None:
-        _bot_engine_singleton = BotEngine(fb_client, tenant_id=tenant_id)
-        return _bot_engine_singleton
-    if _bot_engine_singleton is None:
-        _bot_engine_singleton = BotEngine(None)
-    return _bot_engine_singleton
-
-
-async def get_tenant_fb_client(tenant_id: int) -> FBClient | None:
-    """Create a per-tenant FBClient using stored encrypted credentials."""
-    async with AsyncSessionLocal() as db:
-        row = await db.execute(
-            select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == "fb_page_id")
-        )
-        page_id_bs = row.scalar_one_or_none()
-        row = await db.execute(
-            select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == "fb_access_token")
-        )
-        token_bs = row.scalar_one_or_none()
-    if not page_id_bs or not token_bs or not token_bs.value:
-        return None
-    try:
-        token = decrypt_token(token_bs.value)
-    except Exception:
-        return None
-    return FBClient(token, page_id_bs.value or "")
+# Bot engine — single source of truth in _services.py
+from _services import get_bot_engine, get_tenant_fb_client
 
 
 

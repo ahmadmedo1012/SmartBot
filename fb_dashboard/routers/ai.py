@@ -26,7 +26,7 @@ async def ai_suggest_replies(
     _=Depends(get_current_user),
 ):
     """Generate 3 AI-powered reply suggestions for a comment."""
-    from runner import get_ai
+    from _services import get_ai
     ai = get_ai()
     if not ai.available:
         raise HTTPException(400, "AI غير مفعل — قم بتعيين OPENAI_API_KEY أو GEMINI_API_KEY في المتغيرات")
@@ -40,7 +40,7 @@ async def ai_suggest_replies(
 @router.post("/api/ai/analyze")
 async def ai_analyze_tone(comment_text: str = Form(...), _=Depends(get_current_user)):
     """Analyze comment tone, sentiment, urgency."""
-    from runner import get_ai
+    from _services import get_ai
     ai = get_ai()
     if not ai.available:
         raise HTTPException(400, "AI غير مفعل")
@@ -54,7 +54,7 @@ async def ai_generate_reply(
     tone: str = Form(""), keywords: str = Form(""), _=Depends(require_role("editor")),
 ):
     """Generate one auto-reply with keyword context."""
-    from runner import get_ai
+    from _services import get_ai
     ai = get_ai()
     if not ai.available:
         raise HTTPException(400, "AI غير مفعل")
@@ -65,7 +65,7 @@ async def ai_generate_reply(
 
 @router.post("/api/ai/analyze-image")
 async def ai_analyze_image(data: dict = Body(...), _=Depends(require_role("editor"))):
-    from runner import get_ai
+    from _services import get_ai
     ai = get_ai()
     if not ai.available:
         return {"analysis": ""}
@@ -91,7 +91,7 @@ async def ai_analyze_image(data: dict = Body(...), _=Depends(require_role("edito
 @router.get("/api/ai/status")
 async def ai_status(_=Depends(get_current_user)):
     """Check AI provider status."""
-    from runner import get_ai
+    from _services import get_ai
     ai = get_ai()
     return {"available": ai.available, "provider": ai.provider_name}
 

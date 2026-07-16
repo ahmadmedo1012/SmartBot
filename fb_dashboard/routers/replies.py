@@ -39,7 +39,7 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
 
 @router.get("/api/comments")
 async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from runner import fb as _fb
+    from _services import fb as _fb
     _tid = current_user._tenant_id
     all_comments = await _fb.get_recent_comments(limit)
     fb_ids = [c["id"] for c in all_comments if c.get("id")]
@@ -77,7 +77,7 @@ async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user
 
 @router.post("/api/comments/{comment_id}/hide")
 async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
-    from runner import fb as _fb
+    from _services import fb as _fb
     result = await _fb.hide_comment(comment_id)
     if not result:
         raise HTTPException(400, "Failed to hide comment")
@@ -86,7 +86,7 @@ async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
 
 @router.delete("/api/comments/{comment_id}")
 async def delete_api_comment(comment_id: str, _=Depends(require_role("editor"))):
-    from runner import fb as _fb
+    from _services import fb as _fb
     result = await _fb.delete_comment(comment_id)
     if not result:
         raise HTTPException(400, "Failed to delete comment")
@@ -96,7 +96,7 @@ async def delete_api_comment(comment_id: str, _=Depends(require_role("editor")))
 @router.post("/api/replies/{comment_id}/reply")
 async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends(get_db),
                            current_user: User = Depends(require_role("editor"))):
-    from runner import fb as _fb
+    from _services import fb as _fb
     result = await _fb.reply_to_comment(comment_id, message)
     if not result:
         raise HTTPException(400, "Failed to send reply")

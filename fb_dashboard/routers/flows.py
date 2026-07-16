@@ -108,7 +108,7 @@ async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depend
     )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "Flow not found")
-    from runner import flow_engine
+    from _services import flow_engine
     from flow_engine import FlowContext
     ctx = FlowContext(
         from_id=body.get("from_id", "test_123"),

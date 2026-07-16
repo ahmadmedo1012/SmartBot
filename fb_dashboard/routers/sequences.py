@@ -14,13 +14,13 @@ router = APIRouter(tags=["sequences"])
 
 @router.get("/api/sequences")
 async def list_sequences(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from runner import sequence_engine
+    from _services import sequence_engine
     return await sequence_engine.list_sequences(db, tenant_id=current_user._tenant_id)
 
 
 @router.post("/api/sequences")
 async def create_sequence(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     body = await request.json()
     seq_id = await sequence_engine.create_sequence(
         name=body["name"],
@@ -36,7 +36,7 @@ async def create_sequence(request: Request, db=Depends(get_db), current_user: Us
 
 @router.get("/api/sequences/{seq_id}")
 async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from runner import sequence_engine
+    from _services import sequence_engine
     seq = await sequence_engine.get_sequence(seq_id, db, tenant_id=current_user._tenant_id)
     if not seq:
         raise HTTPException(404, "Sequence not found")
@@ -45,7 +45,7 @@ async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Dep
 
 @router.put("/api/sequences/{seq_id}")
 async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     body = await request.json()
     ok = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
@@ -56,7 +56,7 @@ async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), cur
 
 @router.delete("/api/sequences/{seq_id}")
 async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     ok = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Sequence not found")
@@ -66,7 +66,7 @@ async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = 
 
 @router.post("/api/sequences/{seq_id}/steps")
 async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     body = await request.json()
     step_id = await sequence_engine.add_step(seq_id, body, db, tenant_id=current_user._tenant_id)
     await db.commit()
@@ -75,7 +75,7 @@ async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), c
 
 @router.put("/api/sequences/steps/{step_id}")
 async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     body = await request.json()
     ok = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
@@ -86,7 +86,7 @@ async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db
 
 @router.delete("/api/sequences/steps/{step_id}")
 async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     ok = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Step not found")
@@ -96,7 +96,7 @@ async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: U
 
 @router.post("/api/sequences/{seq_id}/subscribe/{sub_id}")
 async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     ok = await sequence_engine.subscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
     await db.commit()
     return {"ok": ok}
@@ -104,7 +104,7 @@ async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), cu
 
 @router.post("/api/sequences/{seq_id}/unsubscribe/{sub_id}")
 async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import sequence_engine
+    from _services import sequence_engine
     ok = await sequence_engine.unsubscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
     await db.commit()
     return {"ok": ok}

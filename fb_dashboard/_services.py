@@ -30,7 +30,6 @@ ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 
 _post_cursors: dict[int, str] = {}
-_bot_task: asyncio.Task | None = None
 
 # Lazy engine proxies
 fb = lazy(lambda: __import__('fb_client', fromlist=['FBClient']).FBClient(
@@ -47,6 +46,7 @@ team_engine = lazy(lambda: __import__('team_engine', fromlist=['TeamEngine']).Te
 commerce_engine = lazy(lambda: __import__('commerce_engine', fromlist=['CommerceEngine']).CommerceEngine())
 _publisher = lazy(lambda: __import__('publisher_engine', fromlist=['PublisherEngine']).PublisherEngine())
 api_cache = lazy(lambda: __import__('api_cache', fromlist=['APICache']).APICache())
+flow_engine = lazy(lambda: __import__('flow_engine', fromlist=['FlowEngine']).FlowEngine(fb))
 
 # AI service
 _ai_service = None

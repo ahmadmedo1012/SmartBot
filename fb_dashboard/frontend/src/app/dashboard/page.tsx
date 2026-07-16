@@ -1,19 +1,18 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Clock, Calendar, Users, Bot, TrendingUp, Activity, AlertCircle, RefreshCw, LayoutDashboard, LogOut, ChevronLeft, MessageCircle} from "lucide-react"
+import { TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle, LayoutDashboard, LogOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { fadeUp, stagger, springGentle } from "@/lib/motion"
-import { csrfFetch } from "@/lib/csrf-client"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { fadeUp, stagger } from "@/lib/motion"
+import { apiFetch } from "@/lib/csrf-client"
 
 // ── Skeleton ──
 function LoadingSkeleton() {
@@ -48,16 +47,31 @@ function ErrorState({ message, onRetry }: { message?: string; onRetry: () => voi
   )
 }
 
+const STAT_COLORS: Record<string, { bg: string; text: string }> = {
+  orange: { bg: "bg-orange-500/10", text: "text-orange-500" },
+  blue: { bg: "bg-blue-500/10", text: "text-blue-500" },
+  green: { bg: "bg-green-500/10", text: "text-green-500" },
+  yellow: { bg: "bg-yellow-500/10", text: "text-yellow-500" },
+  purple: { bg: "bg-purple-500/10", text: "text-purple-500" },
+  red: { bg: "bg-red-500/10", text: "text-red-500" },
+  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-500" },
+  amber: { bg: "bg-amber-500/10", text: "text-amber-500" },
+  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-500" },
+  cyan: { bg: "bg-cyan-500/10", text: "text-cyan-500" },
+  rose: { bg: "bg-rose-500/10", text: "text-rose-500" },
+}
+
 // ── Stats card ──
 function StatCard({ icon: Icon, label, value, trend, color }: {
   icon: any; label: string; value: number | string; trend?: number; color?: string
 }) {
+  const c = color ? STAT_COLORS[color] : undefined
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className={cn("size-8 rounded-lg flex items-center justify-center", color ? `bg-${color}/10` : "bg-muted")}>
-            <Icon className={cn("size-4", color ? `text-${color}` : "text-muted-foreground")} />
+          <div className={cn("size-8 rounded-lg flex items-center justify-center", c?.bg || "bg-muted")}>
+            <Icon className={cn("size-4", c?.text || "text-muted-foreground")} />
           </div>
         </div>
         <p className="text-2xl font-bold">{typeof value === "number" ? value.toLocaleString() : value}</p>
@@ -74,11 +88,39 @@ function StatCard({ icon: Icon, label, value, trend, color }: {
   )
 }
 
+// ── Bar Chart ──
+function ChartBars({ data }: { data: Record<string, number> }) {
+  const entries = useMemo(() => Object.entries(data).slice(-24), [data])
+  const max = Math.max(...entries.map(([, v]) => v), 1)
+  return (
+    <div>
+      <div className="flex items-end gap-1 h-32">
+        {entries.map(([d, v]) => (
+          <div key={d} className="flex-1 flex flex-col items-end justify-end h-full">
+            <div
+              className="w-full rounded-t bg-orange/70 hover:bg-orange transition-colors min-h-[2px]"
+              style={{ height: `${(v / max) * 100}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
+        {entries.length > 0 && (
+          <>
+            <span>{entries[0]?.[0]?.slice(5) || ""}</span>
+            <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Dashboard ──
 export default function DashboardPage() {
-  const { data: stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: () => csrfFetch("/api/stats").then((r) => r.json()),
+  const { data: bundle, isLoading, error, refetch } = useQuery({
+    queryKey: ["dashboard-bundle"],
+    queryFn: () => apiFetch("/api/dashboard/bundle").then((r) => r.json()),
     refetchInterval: 15000,
   })
 
@@ -86,53 +128,26 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await csrfFetch("/api/logout", { method: "POST" })
+      await apiFetch("/api/logout", { method: "POST" })
       toast.success("تم تسجيل الخروج")
       router.push("/login")
     } catch { /* ignore */ }
   }
 
-  const { data: replies, isLoading: repliesLoading } = useQuery({
-    queryKey: ["dashboard-replies"],
-    queryFn: () => csrfFetch("/api/replies?page=1&per_page=5").then((r) => r.json()),
-  })
+  const recentReplies = bundle?.recent_replies || []
+  const rulesList = bundle?.rules || []
+  const stats = bundle?.stats || {}
 
-  const { data: rules, isLoading: rulesLoading } = useQuery({
-    queryKey: ["dashboard-rules"],
-    queryFn: () => csrfFetch("/api/rules").then((r) => r.json()),
-  })
-
-  const recentReplies = Array.isArray(replies?.data) ? replies.data : Array.isArray(replies) ? replies : []
-  const rulesList = Array.isArray(rules) ? rules : []
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  useEffect(() => {
-    // title handled by layout.tsx metadata
-    const meta = document.createElement("meta")
-    meta.name = "robots"
-    meta.content = "noindex, nofollow"
-    document.head.appendChild(meta)
-    return () => meta.remove()
-  }, [])
-
-  if (statsError && !statsLoading) {
-    return <ErrorState message={(statsError as Error)?.message} onRetry={() => refetchStats()} />
+  if (error && !isLoading) {
+    return <ErrorState message={(error as Error)?.message} onRetry={() => refetch()} />
   }
 
-  if (statsLoading && !stats) return <LoadingSkeleton />
+  if (isLoading && !bundle) return <LoadingSkeleton />
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      {/* Simplified Sidebar */}
-      <aside className={cn(
-        "fixed top-0 right-0 z-50 h-full w-60 border-l border-border bg-card transition-transform md:-translate-x-0 md:static md:z-auto flex flex-col",
-        sidebarOpen ? "translate-x-0" : "translate-x-full"
-      )}>
+      {/* Sidebar */}
+      <aside className="fixed top-0 right-0 z-50 h-full w-60 border-l border-border bg-card flex flex-col">
         <div className="flex items-center gap-2 p-4 border-b border-border">
           <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
           <p className="font-bold text-sm">SmartBot</p>
@@ -156,12 +171,7 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 h-14">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
-                <ChevronLeft className="size-5" />
-              </Button>
-              <h1 className="font-bold">لوحة البيانات</h1>
-            </div>
+            <h1 className="font-bold">لوحة البيانات</h1>
             <div className="flex items-center gap-2">
               <span className="size-2 rounded-full bg-green-500" />
               <span className="text-sm text-green-600">نشط</span>
@@ -173,10 +183,10 @@ export default function DashboardPage() {
           <motion.div variants={stagger} initial="hidden" animate="visible">
             {/* Stats grid */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
-              <StatCard icon={Clock} label="آخر 7 أيام" value={stats?.total_replies || 0} trend={stats?.trend?.week} color="orange" />
-              <StatCard icon={Calendar} label="ردود اليوم" value={stats?.today_replies || 0} trend={stats?.trend?.today} color="blue" />
-              <StatCard icon={Users} label="المتابعون" value={stats?.fan_count || 0} color="green" />
-              <StatCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.is_active !== false).length} color="yellow" />
+              <StatCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0} trend={stats?.trend?.week} color="orange" />
+              <StatCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0} trend={stats?.trend?.today} color="blue" />
+              <StatCard icon={MessageCircle} label="المتابعون" value={stats?.fan_count || 0} color="green" />
+              <StatCard icon={RefreshCw} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length} color="yellow" />
             </div>
 
             {/* Activity chart */}
@@ -249,9 +259,9 @@ export default function DashboardPage() {
                               <td className="p-3 font-medium">{r.name}</td>
                               <td className="p-3 text-center text-muted-foreground">{r.keywords || "—"}</td>
                               <td className="p-3 text-center">
-                                <span className={cn("inline-flex items-center gap-1 text-xs", r.is_active !== false ? "text-green-600" : "text-muted-foreground")}>
-                                  <span className={cn("size-1.5 rounded-full", r.is_active !== false ? "bg-green-500" : "bg-muted-foreground")} />
-                                  {r.is_active !== false ? "نشط" : "متوقف"}
+                                <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-green-600" : "text-muted-foreground")}>
+                                  <span className={cn("size-1.5 rounded-full", r.enabled !== false ? "bg-green-500" : "bg-muted-foreground")} />
+                                  {r.enabled !== false ? "نشط" : "متوقف"}
                                 </span>
                               </td>
                             </tr>
@@ -267,34 +277,6 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         </SectionContainer>
-      </div>
-    </div>
-  )
-}
-
-// ── Bar Chart ──
-function ChartBars({ data }: { data: Record<string, number> }) {
-  const entries = useMemo(() => Object.entries(data).slice(-24), [data])
-  const max = Math.max(...entries.map(([, v]) => v), 1)
-  return (
-    <div>
-      <div className="flex items-end gap-1 h-32">
-        {entries.map(([d, v], i) => (
-          <div key={d} className="flex-1 flex flex-col items-end justify-end h-full">
-            <div
-              className="w-full rounded-t bg-orange/70 hover:bg-orange transition-colors min-h-[2px]"
-              style={{ height: `${(v / max) * 100}%` }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
-        {entries.length > 0 && (
-          <>
-            <span>{entries[0]?.[0]?.slice(5) || ""}</span>
-            <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
-          </>
-        )}
       </div>
     </div>
   )

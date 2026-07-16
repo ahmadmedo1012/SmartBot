@@ -15,7 +15,6 @@ from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, Conversati
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
 from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from routers.auth import get_current_user, require_role
-from _services import _bot_task
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["admin"])

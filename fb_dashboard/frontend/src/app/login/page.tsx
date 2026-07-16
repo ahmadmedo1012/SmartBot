@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { csrfFetch } from "@/lib/csrf-client"
+import { apiFetch } from "@/lib/csrf-client"
 import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
@@ -69,7 +69,7 @@ function LoginForm() {
     if (!password.trim()) { setFormError("يرجى إدخال كلمة المرور"); return }
     setLoading(true)
     try {
-      const res = await csrfFetch("/api/login", {
+      const res = await apiFetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ username, password }).toString(),

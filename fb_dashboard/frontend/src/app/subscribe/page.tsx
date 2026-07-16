@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { springGentle } from "@/lib/motion"
-import { csrfFetch } from "@/lib/csrf-client"
+import { apiFetch } from "@/lib/csrf-client"
 
 interface Plan {
   id: string
@@ -41,7 +41,7 @@ export default function SubscribePage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    csrfFetch("/api/plans")
+    apiFetch("/api/plans")
       .then((r) => r.json())
       .then(setPlans)
       .catch(() => toast.error("فشل تحميل الخطط"))
@@ -58,7 +58,7 @@ export default function SubscribePage() {
     if (!selectedPlan) return
     setLoading(true)
     try {
-      const res = await csrfFetch("/api/subscriptions", {
+      const res = await apiFetch("/api/subscriptions", {
         method: "POST",
         body: JSON.stringify({ plan_id: selectedPlan.id, phone: form.phone, name: form.name, email: form.email, amount: selectedPlan.price }),
       })
@@ -81,7 +81,7 @@ export default function SubscribePage() {
     if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(async () => {
       try {
-        const r = await csrfFetch(`/api/subscriptions/status?payment_id=${pid}`)
+        const r = await apiFetch(`/api/subscriptions/status?payment_id=${pid}`)
         const d = await r.json()
         if (d.status === "verified") {
           if (intervalRef.current) clearInterval(intervalRef.current); intervalRef.current = null; setPolling(false); setStep("success")

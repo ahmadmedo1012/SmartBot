@@ -15,13 +15,13 @@ router = APIRouter(tags=["broadcasts"])
 
 @router.get("/api/broadcasts")
 async def list_broadcasts(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     return await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id)
 
 
 @router.post("/api/broadcasts")
 async def create_broadcast(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     body = await request.json()
     bcast_id = await broadcast_engine.create_broadcast(
         name=body["name"],
@@ -37,7 +37,7 @@ async def create_broadcast(request: Request, db=Depends(get_db), current_user: U
 
 @router.get("/api/broadcasts/{bcast_id}")
 async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     bcast = await broadcast_engine.get_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not bcast:
         raise HTTPException(404, "Broadcast not found")
@@ -46,7 +46,7 @@ async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = 
 
 @router.put("/api/broadcasts/{bcast_id}")
 async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     body = await request.json()
     ok = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
@@ -56,7 +56,7 @@ async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), 
 
 @router.post("/api/broadcasts/{bcast_id}/send")
 async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     bcast = (await db.execute(
         select(Broadcast).where(Broadcast.id == bcast_id, Broadcast.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
@@ -74,7 +74,7 @@ async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User =
 
 @router.post("/api/broadcasts/{bcast_id}/cancel")
 async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     ok = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(400, "Broadcast not found or not cancellable")
@@ -83,7 +83,7 @@ async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User
 
 @router.post("/api/broadcasts/estimate")
 async def estimate_broadcast_audience(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    from runner import broadcast_engine
+    from _services import broadcast_engine
     body = await request.json()
     result = await broadcast_engine.estimate_audience(
         segment_filters=body.get("segment_filters", {}),

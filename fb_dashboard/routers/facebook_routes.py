@@ -52,6 +52,7 @@ async def update_facebook_settings(
     body = await request.json()
     page_id = body.get("page_id", "").strip()
     access_token = body.get("access_token", "").strip()
+    subscribe = body.get("subscribe_webhook", True)
     tenant_id = current_user.tenant_id or 0
 
     if page_id:
@@ -66,6 +67,7 @@ async def update_facebook_settings(
         else:
             db.add(BotState(tenant_id=tenant_id, key="fb_page_id", value=page_id))
 
+    webhook_result = None
     if access_token:
         encrypted = encrypt_token(access_token)
         existing = await db.execute(
@@ -82,9 +84,17 @@ async def update_facebook_settings(
                     tenant_id=tenant_id, key="fb_access_token", value=encrypted
                 )
             )
+        # Auto-subscribe webhook after saving valid token
+        if subscribe and page_id:
+            try:
+                from fb_client import FBClient
+                tmp = FBClient(access_token, page_id)
+                webhook_result = await tmp.subscribe_page_webhooks()
+            except Exception as e:
+                webhook_result = {"error": str(e)[:200]}
 
     await db.commit()
-    return {"ok": True}
+    return {"ok": True, "webhook": webhook_result or "skipped"}
 
 
 @router.post("/api/facebook/test")
@@ -122,7 +132,15 @@ async def test_facebook_connection(
 
         tmp = FBClient(token, page_id)
         fan_count = await tmp.get_page_fan_count()
-        return {"connected": True, "fan_count": fan_count}
+        # Check token scopes
+        scope_check = await tmp.check_token_scopes()
+        result = {"connected": True, "fan_count": fan_count, "scopes": scope_check}
+        if scope_check.get("missing"):
+            result["warning"] = (
+                f"التوكن ينقصه الصلاحيات التالية: {'، '.join(scope_check['missing'])}. "
+                "قد لا تعمل بعض ميزات البوت بشكل كامل."
+            )
+        return result
     except Exception as e:
         return {"connected": False, "fan_count": 0, "error": str(e)[:200]}
 

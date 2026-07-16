@@ -134,7 +134,7 @@ export default function DashboardPage() {
   if (isLoading && !bundle) return <LoadingSkeleton />
 
   return (
-    <>
+    <div className="min-h-screen bg-background" dir="rtl">
         {/* Header */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 h-14">
@@ -244,6 +244,6 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         </SectionContainer>
-    </>
+    </div>
   )
 }

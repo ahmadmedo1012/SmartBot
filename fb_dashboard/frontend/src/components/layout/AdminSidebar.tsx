@@ -35,26 +35,26 @@ const defaultNavSections: NavSection[] = [
     label: "عام",
     items: [
       { icon: LayoutDashboard, label: "لوحة البيانات", href: "/dashboard", active: true },
-      { icon: MessageCircle, label: "الرسائل", href: "/messages", badge: 12 },
-      { icon: Calendar, label: "التقويم", href: "/calendar" },
-      { icon: BarChart3, label: "التقارير", href: "/reports" },
+      { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages", badge: 12 },
+      { icon: Calendar, label: "التقويم", href: "/dashboard/calendar" },
+      { icon: BarChart3, label: "التقارير", href: "/dashboard/reports" },
     ],
   },
   {
     label: "الإدارة",
     items: [
-      { icon: Users, label: "الجمهور", href: "/audience" },
-      { icon: Activity, label: "النشاطات", href: "/activity" },
-      { icon: Target, label: "الإعلانات", href: "/ads" },
-      { icon: Bot, label: "الردود التلقائية", href: "/autoreply" },
-      { icon: Clock, label: "جدولة", href: "/scheduled" },
+      { icon: Users, label: "الجمهور", href: "/dashboard/audience" },
+      { icon: Activity, label: "النشاطات", href: "/dashboard/activity" },
+      { icon: Target, label: "الإعلانات", href: "/dashboard/ads" },
+      { icon: Bot, label: "الردود التلقائية", href: "/dashboard/autoreply" },
+      { icon: Clock, label: "جدولة", href: "/dashboard/scheduled" },
     ],
   },
   {
     label: "أخرى",
     items: [
-      { icon: Settings, label: "الإعدادات", href: "/settings" },
-      { icon: HelpCircle, label: "المساعدة", href: "/support" },
+      { icon: Settings, label: "الإعدادات", href: "/dashboard/settings" },
+      { icon: HelpCircle, label: "المساعدة", href: "/dashboard/support" },
     ],
   },
 ]

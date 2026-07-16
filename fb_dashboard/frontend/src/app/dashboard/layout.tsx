@@ -10,7 +10,12 @@ export const metadata: Metadata = {
 }
 
 import DashboardShell from "./DashboardShell"
+import AuthGuard from "./AuthGuard"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <DashboardShell>{children}</DashboardShell>
+  return (
+    <AuthGuard>
+      <DashboardShell>{children}</DashboardShell>
+    </AuthGuard>
+  )
 }

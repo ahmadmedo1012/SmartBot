@@ -85,7 +85,7 @@ function LoginForm() {
       }
       toast.success("تم تسجيل الدخول بنجاح")
       const role = data.data?.user?.role || data.role
-      const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard"
+      const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : (safeRedirect(rawRedirect) || "/dashboard")
       setTimeout(() => window.location.replace(target), 150)
     } catch {
       toast.error("خطأ في الاتصال بالخادم")

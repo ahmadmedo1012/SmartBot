@@ -345,7 +345,7 @@ async def global_500_handler(request: Request, exc: Exception):
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://bot.smart-link.ly", "http://localhost:5173", "http://localhost:8000"],
+    allow_origins=["https://bot.smart-link.ly", "https://api.smart-link.ly", "http://localhost:5173", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -387,7 +387,8 @@ async def csrf_origin_check(request: Request, call_next):
     return await call_next(request)
 
 
-# Register routers
+# ⚠️ Register routers — ALL routes MUST be registered here, BEFORE the SPA catch-all at line ~870.
+# Adding routes after that line will be shadowed by the catch-all returning 404.
 app.include_router(logs_router)
 app.include_router(auth_router.router)
 app.include_router(payments_router.router)

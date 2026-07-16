@@ -119,7 +119,8 @@ export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-bundle"],
     queryFn: () => apiFetch("/api/dashboard/bundle").then((r) => r.json()),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   })
 
   const recentReplies = bundle?.recent_replies || []

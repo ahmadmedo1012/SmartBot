@@ -40,22 +40,22 @@ def make_token(username: str, tenant_id: int = 0) -> str:
 async def get_current_user(request: Request, db=Depends(get_db)):
     token = request.cookies.get("token")
     if not token:
-        raise HTTPException(401, "Not authenticated")
+        raise HTTPException(401, "غير مصرح به")
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
+        raise HTTPException(401, "انتهت صلاحية الجلسة")
     except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(401, "رمز غير صالح")
     jti = payload.get("jti", "")
     if jti:
         blacklisted = await db.execute(select(BlacklistedToken).where(BlacklistedToken.jti == jti))
         if blacklisted.scalar_one_or_none():
-            raise HTTPException(401, "Token revoked")
+            raise HTTPException(401, "تم إلغاء الجلسة")
     user = await db.execute(select(User).where(User.username == payload["sub"]))
     user = user.scalar_one_or_none()
     if not user:
-        raise HTTPException(401, "User not found")
+        raise HTTPException(401, "المستخدم غير موجود")
     if user.tenant_id:
         tenant = await db.get(Tenant, user.tenant_id)
         if not tenant or not tenant.is_active:
@@ -70,7 +70,7 @@ ROLE_HIERARCHY = {"admin": 3, "editor": 2, "viewer": 1}
 def require_role(min_role: str):
     async def checker(current_user: User = Depends(get_current_user)):
         if ROLE_HIERARCHY.get(current_user.role, 0) < ROLE_HIERARCHY.get(min_role, 0):
-            raise HTTPException(403, "Insufficient permissions")
+            raise HTTPException(403, "صلاحيات غير كافية")
         return current_user
     return checker
 

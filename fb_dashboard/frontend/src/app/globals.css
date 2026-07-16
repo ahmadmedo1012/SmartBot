@@ -18,6 +18,8 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -34,8 +36,6 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-orange: var(--orange);
-  --color-orange-foreground: var(--orange-foreground);
-  --color-orange-muted: var(--orange-muted);
   --color-overlay: var(--overlay);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
@@ -52,6 +52,12 @@
   --shadow-glass-lg: var(--glass-shadow-lg);
 }
 
+/* ═══════════════════════════════════════════════════════
+   !! ACCENT — SINGLE SOURCE OF TRUTH !!
+   --accent and --accent-fg are THE authoritative orange
+   tokens. Every other orange/primary/ring variable MUST
+   be derived from them, NEVER set independently.
+   ═══════════════════════════════════════════════════════ */
 :root {
   --z-dropdown: 10;
   --z-sticky: 20;
@@ -78,18 +84,27 @@
   --popover: oklch(0.11 0.003 0);
   --popover-foreground: oklch(0.93 0.005 0);
 
-  --primary: oklch(0.55 0.19 45);
-  --primary-foreground: oklch(0.98 0 0);
+  /* ── ACCENT (single source) ── */
+  --accent: oklch(0.55 0.19 45);
+  --accent-foreground: oklch(0.55 0.19 45);
+  --accent-soft: oklch(0.55 0.19 45 / 0.15);
+  --accent-fg: oklch(0.98 0 0);
+
+  /* ── DERIVED from --accent (do NOT set independently) ── */
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --orange: var(--accent);
+  --orange-foreground: var(--accent-fg);
+  --orange-muted: var(--accent-soft);
+  --ring: var(--accent);
+
   --secondary: oklch(0.14 0.005 0);
   --secondary-foreground: oklch(0.72 0.005 0);
   --muted: oklch(0.14 0.005 0);
   --muted-foreground: oklch(0.5 0.01 0);
-  --accent: oklch(0.55 0.19 45 / 0.15);
-  --accent-foreground: oklch(0.55 0.19 45);
   --destructive: oklch(0.6 0.22 25);
   --border: oklch(0.22 0.005 0);
   --input: oklch(0.22 0.005 0);
-  --ring: oklch(0.55 0.19 45);
 
   --success: oklch(0.62 0.18 145);
   --success-foreground: oklch(0.98 0 0);
@@ -97,10 +112,6 @@
   --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.55 0.14 240);
   --info-foreground: oklch(0.98 0 0);
-
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.15);
   --overlay: oklch(0 0 0 / 0.55);
 
   --grid-line: oklch(0.55 0.19 45 / 0.12);
@@ -135,31 +146,40 @@
   --card-foreground: oklch(0.11 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.11 0 0);
-  --primary: oklch(0.48 0.19 45);
-  --primary-foreground: oklch(0.98 0 0);
+
+  /* ── ACCENT (single source) ── */
+  --accent: oklch(0.48 0.19 45);
+  --accent-foreground: oklch(0.48 0.19 45);
+  --accent-soft: oklch(0.55 0.19 45 / 0.12);
+  --accent-fg: oklch(0.98 0 0);
+
+  /* ── DERIVED from --accent ── */
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-fg);
+  --orange: var(--accent);
+  --orange-foreground: var(--accent-fg);
+  --orange-muted: var(--accent-soft);
+  --ring: var(--accent);
+
   --secondary: oklch(0.92 0.005 0);
   --secondary-foreground: oklch(0.2 0 0);
   --muted: oklch(0.94 0.003 0);
   --muted-foreground: oklch(0.52 0.01 0);
-  --accent: oklch(0.55 0.19 45 / 0.12);
-  --accent-foreground: oklch(0.55 0.19 45);
   --destructive: oklch(0.58 0.2 25);
   --border: oklch(0.85 0.005 0);
   --input: oklch(0.85 0.005 0);
-  --ring: oklch(0.55 0.19 45);
+
   --success: oklch(0.62 0.18 145);
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.7 0.16 80);
   --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.55 0.14 240);
   --info-foreground: oklch(0.98 0 0);
+  --overlay: oklch(0 0 0 / 0.25);
+
   --grid-line: oklch(0.55 0.19 45 / 0.08);
   --grid-fill: oklch(0.55 0.19 45 / 0.04);
   --grid-square: oklch(0.55 0.19 45 / 0.08);
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.12);
-  --overlay: oklch(0 0 0 / 0.25);
   --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.08), oklch(0.52 0.19 45 / 0.04));
   --glass-bg: oklch(1 0 0 / 0.6);
   --glass-bg-strong: oklch(1 0 0 / 0.8);

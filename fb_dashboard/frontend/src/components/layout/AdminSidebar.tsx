@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { fadeUp, stagger } from "@/lib/motion"
+import { fadeUp, stagger, springHover } from "@/lib/motion"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
@@ -128,9 +128,9 @@ export function AdminSidebar({
                 return (
                   <motion.div
                     key={ii}
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    whileHover={{ x: 3 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={springHover}
                     onClick={() => onNavigate?.(item.href || "#")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",

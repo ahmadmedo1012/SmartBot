@@ -42,8 +42,10 @@ function LoginForm() {
     fetch("/api/me")
       .then(r => r.json())
       .then(d => {
-        if (d.authenticated) {
-          window.location.replace(d.role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard")
+        const data = d.data || d
+        if (data.authenticated || d.authenticated) {
+          const role = data.role || d.role
+          window.location.replace(role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard")
         } else {
           setCheckingAuth(false)
         }
@@ -82,7 +84,8 @@ function LoginForm() {
         return
       }
       toast.success("تم تسجيل الدخول بنجاح")
-      const target = data.role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard"
+      const role = data.data?.user?.role || data.role
+      const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard"
       setTimeout(() => window.location.replace(target), 150)
     } catch {
       toast.error("خطأ في الاتصال بالخادم")

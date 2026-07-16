@@ -26,8 +26,10 @@ export default function AuthGuard({
           return r.json()
         })
         .then((d) => {
-          if (!d.authenticated) return void window.location.replace("/login")
-          if (requiredRole && d.role !== requiredRole)
+          const data = d.data || d
+          if (!(data.authenticated || d.authenticated)) return void window.location.replace("/login")
+          const role = data.role || d.role
+          if (requiredRole && role !== requiredRole)
             return void window.location.replace("/dashboard")
           setAuthorized(true)
         })

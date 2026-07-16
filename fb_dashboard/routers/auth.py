@@ -28,9 +28,11 @@ ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
 def make_token(username: str, tenant_id: int = 0) -> str:
     jti = secrets.token_hex(16)
+    now = datetime.now(timezone.utc)
     return jwt.encode(
         {"sub": username, "tid": tenant_id, "jti": jti,
-         "exp": datetime.now(timezone.utc) + ACCESS_TOKEN_EXPIRE},
+         "iat": now, "nbf": now,
+         "exp": now + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY, algorithm=ALGORITHM,
     )
 
@@ -87,8 +89,9 @@ async def login(username: str = Form(...), password: str = Form(...),
     token = make_token(user.username, user.tenant_id)
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
-    resp = JSONResponse({"ok": True, "role": user.role, "username": user.username})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax",
+    secure = not getattr(settings, 'DEBUG', False)
+    resp = JSONResponse({"success": True, "data": {"user": {"role": user.role, "username": user.username}}})
+    resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
@@ -106,8 +109,9 @@ async def logout(request: Request, db=Depends(get_db)):
                 await db.commit()
         except Exception:
             pass
-    resp = JSONResponse({"ok": True})
-    resp.delete_cookie("token", httponly=True, secure=True, samesite="lax")
+    secure = not getattr(settings, 'DEBUG', False)
+    resp = JSONResponse({"success": True})
+    resp.delete_cookie("token", httponly=True, secure=secure, samesite="lax")
     return resp
 
 
@@ -137,8 +141,9 @@ async def register(request: Request, username: str = Form(...), email: str = For
     await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
     await db.commit()
     token = make_token(username, tenant.id)
-    resp = JSONResponse({"ok": True, "username": username, "tenant_id": tenant.id})
-    resp.set_cookie(key="token", value=token, httponly=True, secure=True, samesite="lax",
+    secure = not getattr(settings, 'DEBUG', False)
+    resp = JSONResponse({"success": True, "data": {"user": {"username": username, "tenant_id": tenant.id}}})
+    resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
 
@@ -151,10 +156,10 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
         tenant = await db.get(Tenant, current_user.tenant_id)
         if tenant:
             plan = tenant.plan or "free"
-    return {
-        "authenticated": True, "role": current_user.role, "username": current_user.username,
+    return {"success": True, "authenticated": True, "data": {
+        "role": current_user.role, "username": current_user.username,
         "tenant_id": current_user.tenant_id, "email": current_user.email, "plan": plan,
-    }
+    }}
 
 
 @router.get("/api/audit/logs")

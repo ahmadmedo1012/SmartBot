@@ -352,6 +352,41 @@ app.add_middleware(
 )
 app.middleware("http")(dedup_middleware)
 
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Rate-limit mutating POST/PUT/DELETE endpoints (excludes login/register which have per-IP limits, webhooks)."""
+    if request.method in ("POST", "PUT", "DELETE"):
+        path = request.url.path
+        if not any(p in path for p in ("/login", "/register", "/webhook", "/telegram")):
+            ip = request.client.host if request.client else "unknown"
+            from _rate_limit import check_rate_limit
+            from database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                if not await check_rate_limit(db, f"mutate:{ip}", max_attempts=30, window_seconds=60):
+                    return JSONResponse(status_code=429, content={"detail": "محاولات كثيرة جداً — حاول بعد 60 ثانية"})
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def csrf_origin_check(request: Request, call_next):
+    """Validate Origin/Referer on state-changing requests to /api/*."""
+    if request.method in ("POST", "PUT", "DELETE") and request.url.path.startswith("/api/"):
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        if origin and "localhost" not in origin:
+            allowed = ["https://bot.smart-link.ly", "https://api.smart-link.ly"]
+            if not any(a in origin for a in allowed):
+                return JSONResponse(status_code=403, content={"detail": "Invalid origin"})
+        elif referer and "localhost" not in referer:
+            allowed = ["bot.smart-link.ly", "api.smart-link.ly"]
+            from urllib.parse import urlparse
+            host = urlparse(referer).hostname or ""
+            if not any(a in host for a in allowed):
+                return JSONResponse(status_code=403, content={"detail": "Invalid referer"})
+    return await call_next(request)
+
+
 # Register routers
 app.include_router(logs_router)
 app.include_router(auth_router.router)

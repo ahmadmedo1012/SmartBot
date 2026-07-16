@@ -219,13 +219,18 @@ async def admin_list_subscriptions(status: str = Query("pending"), page: int = Q
         q = q.where(SubscriptionPayment.status == status)
     q = q.order_by(desc(SubscriptionPayment.created_at)).offset((page - 1) * 20).limit(20)
     rows = await db.execute(q)
-    return [{
-        "id": sp.id, "user_id": sp.user_id, "tenant_id": sp.tenant_id,
-        "phone": sp.phone, "amount": float(sp.amount), "provider": sp.provider,
-        "plan_id": sp.plan_id, "plan_name": sp.plan_name, "status": sp.status,
-        "metadata": sp.extra_data,
-        "created_at": sp.created_at.isoformat() if sp.created_at else None,
-    } for sp in rows.scalars().all()]
+    result = []
+    for sp in rows.scalars().all():
+        username = (sp.extra_data or {}).get("username", f"user_{sp.user_id}")
+        result.append({
+            "id": sp.id, "user_id": sp.user_id, "username": username,
+            "tenant_id": sp.tenant_id,
+            "phone": sp.phone, "amount": float(sp.amount), "provider": sp.provider,
+            "plan_id": sp.plan_id, "plan": sp.plan_name, "status": sp.status,
+            "metadata": sp.extra_data,
+            "created_at": sp.created_at.isoformat() if sp.created_at else None,
+        })
+    return result
 
 
 @router.post("/api/admin/subscriptions")

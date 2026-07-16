@@ -75,6 +75,7 @@ export default function SubscribePage() {
 
   const handleConfirmPayment = useCallback(async () => {
     if (!paymentInfo) return
+    setLoading(true)
     setStep("waiting")
     setPolling(true)
     const pid = paymentInfo.payment_id
@@ -94,11 +95,32 @@ export default function SubscribePage() {
     }, 3000)
   }, [paymentInfo])
 
+  const handleRetry = useCallback(() => {
+    setPaymentInfo(null)
+    setStep("payment")
+    setCountdown(180)
+  }, [])
+
   useEffect(() => {
-    if (step !== "waiting" || countdown <= 0) return
+    if (step !== "waiting" || countdown <= 0) {
+      if (step === "waiting" && countdown <= 0) {
+        if (intervalRef.current) clearInterval(intervalRef.current); intervalRef.current = null
+        setPolling(false)
+        setStep("rejected")
+        toast.error("انتهت مهلة انتظار الدفع")
+      }
+      return
+    }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000)
     return () => clearTimeout(t)
   }, [step, countdown])
+
+  // cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [])
 
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
@@ -253,7 +275,7 @@ export default function SubscribePage() {
                 <CardDescription>لم يتم تأكيد الدفع بعد، يرجى المحاولة مرة أخرى</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-center">
-                <Button onClick={() => setStep("payment")}>إعادة المحاولة</Button>
+                <Button onClick={handleRetry}>إعادة المحاولة</Button>
                 <Button variant="outline" onClick={() => { setStep("select"); setSelectedPlan(null) }}>
                   اختيار خطة أخرى
                 </Button>

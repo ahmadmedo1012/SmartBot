@@ -46,7 +46,7 @@ function ErrorState({ message, onRetry }: { message?: string; onRetry: () => voi
 }
 
 const STAT_COLORS: Record<string, { bg: string; text: string }> = {
-  orange: { bg: "bg-orange-500/10", text: "text-orange-500" },
+  orange: { bg: "bg-orange/10", text: "text-orange" },
   blue: { bg: "bg-blue-500/10", text: "text-blue-500" },
   green: { bg: "bg-green-500/10", text: "text-green-500" },
   yellow: { bg: "bg-yellow-500/10", text: "text-yellow-500" },

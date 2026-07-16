@@ -35,3 +35,4 @@ mypy_cache/
 .next/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+fb_dashboard/frontend/.next/

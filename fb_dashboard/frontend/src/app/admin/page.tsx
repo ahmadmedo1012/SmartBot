@@ -56,7 +56,7 @@ export default function AdminPage() {
   useEffect(() => {
     apiFetch("/api/me")
       .then((r) => r.json())
-      .then((d) => { setRole(d.role || null); setRoleLoading(false) })
+      .then((d) => { const data = d.data || d; setRole(data.role || null); setRoleLoading(false) })
       .catch(() => { setRole(null); setRoleLoading(false) })
   }, [])
 

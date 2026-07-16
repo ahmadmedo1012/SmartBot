@@ -125,7 +125,7 @@ export default function PricingPage() {
                       ))}
                     </ul>
                     <Button className="w-full" variant={isPopular ? "primary" : "outline"}
-                      onClick={() => router.push("/subscribe")}>
+                      onClick={() => router.push("/subscribe?plan=" + plan.id)}>
                       {plan.price === 0 ? "ابدأ مجاناً" : "اشتراك الآن"}
                     </Button>
                   </CardContent>

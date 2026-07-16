@@ -1,6 +1,9 @@
 "use client"
 
+"use client"
+
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -18,7 +21,6 @@ interface NavItem {
   label: string
   href?: string
   badge?: number | string
-  active?: boolean
 }
 
 interface AdminSidebarProps {
@@ -26,15 +28,22 @@ interface AdminSidebarProps {
   logo?: string
   title?: string
   onNavigate?: (href: string) => void
+  onLogout?: () => void
   onSubscribe?: () => void
   className?: string
+}
+
+function isActiveItem(href: string | undefined, pathname: string): boolean {
+  if (!href) return false
+  if (href === "/dashboard") return pathname === "/dashboard"
+  return pathname.startsWith(href)
 }
 
 const defaultNavSections: NavSection[] = [
   {
     label: "عام",
     items: [
-      { icon: LayoutDashboard, label: "لوحة البيانات", href: "/dashboard", active: true },
+      { icon: LayoutDashboard, label: "لوحة البيانات", href: "/dashboard" },
       { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages", badge: 12 },
       { icon: Calendar, label: "التقويم", href: "/dashboard/calendar" },
       { icon: BarChart3, label: "التقارير", href: "/dashboard/reports" },
@@ -64,9 +73,12 @@ export function AdminSidebar({
   logo = "S",
   title = "SmartBot",
   onNavigate,
+  onLogout,
   onSubscribe,
   className,
 }: AdminSidebarProps) {
+  const pathname = usePathname()
+
   return (
     <aside className={cn("flex flex-col h-full bg-card border-l border-border", className)}>
       {/* Logo */}
@@ -88,32 +100,35 @@ export function AdminSidebar({
               {section.label}
             </p>
             <div className="space-y-0.5">
-              {section.items.map((item, ii) => (
-                <div
-                  key={ii}
-                  onClick={() => onNavigate?.(item.href || "#")}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",
-                    item.active
-                      ? "bg-orange text-orange-foreground font-medium shadow-sm shadow-orange/20"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="size-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                  {item.badge !== undefined && (
-                    <Badge
-                      variant={item.active ? "outline" : "info"}
-                      className={cn(
-                        "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center",
-                        item.active && "border-white/30 text-white"
-                      )}
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
-                </div>
-              ))}
+              {section.items.map((item, ii) => {
+                const active = isActiveItem(item.href, pathname)
+                return (
+                  <div
+                    key={ii}
+                    onClick={() => onNavigate?.(item.href || "#")}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",
+                      active
+                        ? "bg-orange text-orange-foreground font-medium shadow-sm shadow-orange/20"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="size-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                    {item.badge !== undefined && (
+                      <Badge
+                        variant={active ? "outline" : "info"}
+                        className={cn(
+                          "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center",
+                          active && "border-white/30 text-white"
+                        )}
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ))}
@@ -129,7 +144,10 @@ export function AdminSidebar({
             <Sparkles className="size-4" /> اشتراك
           </button>
         )}
-        <button className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
           <LogOut className="size-4" /> تسجيل الخروج
         </button>
       </div>

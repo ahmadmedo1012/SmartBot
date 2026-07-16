@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
+import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { fadeUp, stagger } from "@/lib/motion"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
@@ -114,9 +116,9 @@ export function AdminSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-6">
+      <motion.nav variants={stagger} initial="hidden" animate="visible" className="flex-1 overflow-y-auto p-3 space-y-6">
         {navSections.map((section, si) => (
-          <div key={si}>
+          <motion.div key={si} variants={fadeUp}>
             <p className="px-3 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
               {section.label}
             </p>
@@ -124,8 +126,11 @@ export function AdminSidebar({
               {section.items.map((item, ii) => {
                 const active = isActiveItem(item.href, pathname)
                 return (
-                  <div
+                  <motion.div
                     key={ii}
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                     onClick={() => onNavigate?.(item.href || "#")}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",
@@ -147,13 +152,13 @@ export function AdminSidebar({
                         {item.badge}
                       </Badge>
                     )}
-                  </div>
+                  </motion.div>
                 )
               })}
             </div>
-          </div>
+          </motion.div>
         ))}
-      </nav>
+      </motion.nav>
 
       {/* Bottom */}
       <div className="p-3 border-t border-border space-y-2">

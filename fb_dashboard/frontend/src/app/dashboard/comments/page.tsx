@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { MessageSquare, Reply } from "lucide-react"
+import { MessageSquare, Reply, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,20 +21,25 @@ function timeAgo(dateStr: string) {
 }
 
 export default function CommentsPage() {
-  const [filter] = useState("all")
   const [replyText, setReplyText] = useState<Record<string, string>>({})
   const queryClient = useQueryClient()
 
-  const { data = { items: [], total: 0 }, isLoading } = useQuery({
-    queryKey: ["comments", filter],
-    queryFn: () => apiFetch("/api/bot/recent-comments").then(r => r.json()).catch(() => ({ items: [], total: 0 })),
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["comments"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/comments?limit=30")
+      if (!res.ok) throw new Error(`فشل تحميل التعليقات (${res.status})`)
+      const json = await res.json()
+      return (json.items || []) as any[]
+    },
     refetchInterval: 20000,
+    retry: 1,
   })
-  const comments = Array.isArray(data) ? data : (data.items || [])
+  const comments = data ?? []
 
   const replyMut = useMutation({
     mutationFn: ({ commentId, message }: { commentId: string; message: string }) =>
-      apiFetch(`/api/bot/comments/${commentId}/reply`, {
+      apiFetch(`/api/replies/${commentId}/reply`, {
         method: "POST", body: new URLSearchParams({ message }),
       }),
     onSuccess: () => {
@@ -69,6 +74,13 @@ export default function CommentsPage() {
               </CardContent></Card>
             ))}
           </div>
+        ) : isError ? (
+          <div className="text-center py-16">
+            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <h2 className="text-sm font-bold mb-1">فشل تحميل التعليقات</h2>
+            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال بالخادم"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          </div>
         ) : comments.length === 0 ? (
           <div className="text-center py-16">
             <MessageSquare className="size-12 mx-auto mb-3 text-muted-foreground/30" />
@@ -81,26 +93,26 @@ export default function CommentsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="size-9 rounded-full bg-orange/10 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-orange">{c.author?.[0] || "?"}</span>
+                      <span className="text-xs font-bold text-orange">{c.from_name?.[0] || "?"}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">{c.author}</span>
+                        <span className="text-sm font-medium">{c.from_name}</span>
                         <span className="text-[11px] text-muted-foreground">{timeAgo(c.created_time)}</span>
-                        {c.auto_replied && (
-                          <Badge variant="info" className="text-[10px]">آلي</Badge>
+                        {c.reply_text && (
+                          <Badge variant="info" className="text-[10px]">مردود</Badge>
                         )}
                       </div>
                       <p className="text-sm mb-2">{c.message}</p>
 
-                      {c.reply && (
+                      {c.reply_text && (
                         <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-r-2 border-orange">
                           <p className="text-[11px] text-muted-foreground mb-1">الرد:</p>
-                          <p>{c.reply}</p>
+                          <p>{c.reply_text}</p>
                         </div>
                       )}
 
-                      {!c.auto_replied && (
+                      {!c.reply_text && (
                         <div className="mt-2 flex gap-2">
                           <input
                             value={replyText[c.id] || ""}

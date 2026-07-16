@@ -14,9 +14,8 @@ import { LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react"
 function FloatingShapes() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute -top-20 -right-20 h-72 w-72 animate-spin-slow rounded-full bg-gradient-to-br from-orange/15 to-orange/5 blur-3xl duration-[20s]" />
-      <div className="absolute -bottom-32 -left-32 h-96 w-96 animate-spin-slow rounded-full bg-gradient-to-tr from-orange/10 to-orange/5 blur-3xl duration-[25s]" />
-      <div className="absolute left-1/3 top-1/4 h-48 w-48 animate-float-delayed rounded-full bg-gradient-to-b from-orange/15 to-transparent blur-2xl delay-[1s] duration-[8s]" />
+      <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full border border-border/30" />
+      <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full border border-border/20" />
     </div>
   )
 }
@@ -111,7 +110,7 @@ function LoginForm() {
 
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--orange)] via-[var(--orange)]/80 to-[var(--orange)]/60" />
 
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-orange/20 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/50 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             <img src="/static/brand-icon.png" alt="الربط الذكي" className="size-full object-contain" />
@@ -124,7 +123,7 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
-              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_color-mix(in_oklch,_var(--orange)_10%,_transparent)]">
+              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:ring-2 focus-within:ring-orange/30">
                 <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -133,7 +132,7 @@ function LoginForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:shadow-[0_0_0_3px_color-mix(in_oklch,_var(--orange)_10%,_transparent)]">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:ring-2 focus-within:ring-orange/30">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />

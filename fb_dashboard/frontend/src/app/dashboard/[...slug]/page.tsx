@@ -147,8 +147,8 @@ export default function SubDashboardPage() {
     <div className="flex-1 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-9 rounded-lg bg-orange/10 flex items-center justify-center">
-            <config.icon className="size-4 text-orange" />
+          <div className="size-7 flex items-center justify-center">
+            <config.icon className="size-4 text-muted-foreground" />
           </div>
           <div>
             <h1 className="font-bold text-sm">{config.title}</h1>
@@ -161,7 +161,7 @@ export default function SubDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <config.icon className="size-4 text-orange" />
+              <config.icon className="size-4 text-muted-foreground" />
               {config.title}
             </CardTitle>
           </CardHeader>

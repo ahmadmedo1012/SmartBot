@@ -36,3 +36,4 @@ mypy_cache/
 tsconfig.tsbuildinfo
 *.tsbuildinfo
 fb_dashboard/frontend/.next/
+__pycache__/

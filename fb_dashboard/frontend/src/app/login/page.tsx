@@ -39,7 +39,7 @@ function LoginForm() {
   const [formError, setFormError] = useState("")
 
   useEffect(() => {
-    fetch("/api/me")
+    apiFetch("/api/me")
       .then(r => r.json())
       .then(d => {
         const data = d.data || d

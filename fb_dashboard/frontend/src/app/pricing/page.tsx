@@ -107,20 +107,20 @@ export default function PricingPage() {
                     </div>
                     <CardTitle>{plan.name_ar || plan.name}</CardTitle>
                     <CardDescription>
-                      <span className="text-3xl font-bold text-foreground">{plan.price}</span>
+                      <span className="text-3xl font-bold text-foreground">{plan.price === 0 ? "مجاني" : plan.price}</span>
                       <span className="text-sm text-muted-foreground mr-1">د.ل/شهر</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col">
                     <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-muted/50 rounded-lg text-center text-sm">
-                      <div><span className="font-bold text-orange-500">{plan.max_replies >= 999999 ? "∞" : plan.max_replies}</span><p className="text-xs text-muted-foreground">ردود</p></div>
-                      <div><span className="font-bold text-orange-500">{plan.max_pages >= 999 ? "∞" : plan.max_pages}</span><p className="text-xs text-muted-foreground">صفحات</p></div>
-                      <div><span className="font-bold text-orange-500">{plan.max_rules || "-"}</span><p className="text-xs text-muted-foreground">قواعد</p></div>
+                      <div><span className="font-bold text-orange">{plan.max_replies >= 999999 ? "∞" : plan.max_replies}</span><p className="text-xs text-muted-foreground">ردود</p></div>
+                      <div><span className="font-bold text-orange">{plan.max_pages >= 999 ? "∞" : plan.max_pages}</span><p className="text-xs text-muted-foreground">صفحات</p></div>
+                      <div><span className="font-bold text-orange">{plan.max_rules || "-"}</span><p className="text-xs text-muted-foreground">قواعد</p></div>
                     </div>
                     <ul className="space-y-2 mb-6 flex-1">
                       {plan.features.slice(0, 5).map((f, j) => (
                         <li key={j} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Check className="size-4 text-orange-500 shrink-0" /> {f}
+                          <Check className="size-4 text-orange shrink-0" /> {f}
                         </li>
                       ))}
                     </ul>
@@ -146,8 +146,8 @@ export default function PricingPage() {
               <motion.div key={i} variants={fadeUp} custom={i}>
                 <Card className="h-full">
                   <CardContent className="p-6 text-center space-y-2">
-                    <div className="mx-auto size-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                      <f.icon className="size-5 text-orange-500" />
+                    <div className="mx-auto size-10 rounded-lg bg-orange/10 flex items-center justify-center">
+                      <f.icon className="size-5 text-orange" />
                     </div>
                     <CardTitle className="text-sm">{f.title}</CardTitle>
                     <CardDescription className="text-xs">{f.desc}</CardDescription>
@@ -183,9 +183,9 @@ export default function PricingPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="border-t border-border bg-orange-500/5 py-16">
+      <section className="border-t border-border bg-orange/5 py-16">
         <SectionContainer className="text-center space-y-4">
-          <Sparkles className="size-12 text-orange-500 mx-auto" />
+          <Sparkles className="size-12 text-orange mx-auto" />
           <SectionHeader title="استعد لتنمية صفحتك" description="انضم إلى مئات المستخدمين الذين يثقون في SmartBot" />
           <div className="flex items-center justify-center gap-3">
             <Button size="lg" onClick={() => router.push("/subscribe")}>ابدأ الآن</Button>

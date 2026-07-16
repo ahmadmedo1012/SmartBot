@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function SettingsPage() {
-  const { data: user, isLoading } = useQuery({
+  const { data: raw, isLoading } = useQuery({
     queryKey: ["current-user"],
     queryFn: () => apiFetch("/api/me").then(r => r.json()),
   })
+  const user = raw?.data || raw
 
   return (
     <div className="flex-1 flex flex-col">

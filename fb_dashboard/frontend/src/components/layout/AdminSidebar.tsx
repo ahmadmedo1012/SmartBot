@@ -1,14 +1,14 @@
 "use client"
 
-"use client"
-
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import {
-  LayoutDashboard, MessageCircle, Calendar, BarChart3, Users, Clock,
-  Activity, Target, Settings, HelpCircle, LogOut, Bot, Sparkles,
+  LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
+  BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
+  FileText, Users2, Calendar, Bot, Activity, Bell, Wrench, CreditCard,
+  HelpCircle, Settings, LogOut, Sparkles,
 } from "lucide-react"
 
 interface NavSection {
@@ -41,29 +41,50 @@ function isActiveItem(href: string | undefined, pathname: string): boolean {
 
 const defaultNavSections: NavSection[] = [
   {
-    label: "عام",
+    label: "الرئيسية",
     items: [
       { icon: LayoutDashboard, label: "لوحة البيانات", href: "/dashboard" },
-      { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages", badge: 12 },
-      { icon: Calendar, label: "التقويم", href: "/dashboard/calendar" },
-      { icon: BarChart3, label: "التقارير", href: "/dashboard/reports" },
+      { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages" },
+      { icon: MessageSquare, label: "التعليقات", href: "/dashboard/comments" },
+      { icon: Newspaper, label: "المنشورات", href: "/dashboard/posts" },
+      { icon: Clock, label: "المجدول", href: "/dashboard/scheduled" },
+    ],
+  },
+  {
+    label: "التحليل",
+    items: [
+      { icon: BarChart3, label: "التحليلات", href: "/dashboard/analytics" },
+      { icon: Users, label: "الجمهور", href: "/dashboard/audience" },
+      { icon: UserPlus, label: "العملاء المتوقعون", href: "/dashboard/leads" },
+    ],
+  },
+  {
+    label: "الأعمال",
+    items: [
+      { icon: Target, label: "الإعلانات", href: "/dashboard/ads" },
+      { icon: Radio, label: "البث الجماعي", href: "/dashboard/broadcast" },
+      { icon: Megaphone, label: "التسويق", href: "/dashboard/marketing" },
+      { icon: FileBarChart, label: "التقارير", href: "/dashboard/reports" },
     ],
   },
   {
     label: "الإدارة",
     items: [
-      { icon: Users, label: "الجمهور", href: "/dashboard/audience" },
-      { icon: Activity, label: "النشاطات", href: "/dashboard/activity" },
-      { icon: Target, label: "الإعلانات", href: "/dashboard/ads" },
+      { icon: FileText, label: "الصفحات", href: "/dashboard/pages" },
+      { icon: Users2, label: "الفريق", href: "/dashboard/team" },
+      { icon: Calendar, label: "تقويم المحتوى", href: "/dashboard/calendar" },
       { icon: Bot, label: "الردود التلقائية", href: "/dashboard/autoreply" },
-      { icon: Clock, label: "جدولة", href: "/dashboard/scheduled" },
+      { icon: Activity, label: "سجل النشاطات", href: "/dashboard/activity" },
     ],
   },
   {
     label: "أخرى",
     items: [
+      { icon: Bell, label: "الإشعارات", href: "/dashboard/notifications" },
+      { icon: Wrench, label: "الأدوات", href: "/dashboard/tools" },
+      { icon: CreditCard, label: "الفواتير", href: "/dashboard/billing" },
+      { icon: HelpCircle, label: "الدعم", href: "/dashboard/support" },
       { icon: Settings, label: "الإعدادات", href: "/dashboard/settings" },
-      { icon: HelpCircle, label: "المساعدة", href: "/dashboard/support" },
     ],
   },
 ]

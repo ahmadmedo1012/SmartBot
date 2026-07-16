@@ -873,8 +873,6 @@ async def spa_catch_all(path: str):
     # Don't catch API, static, or Next.js-managed paths
     if path.startswith(("api/", "static/", "healthz", "webhook", "favicon",
                          "login", "register", "dashboard", "admin",
-                         "pricing", "subscribe", "demo", "_next", "connect",
-                         "login", "register", "dashboard", "admin",
                          "pricing", "subscribe", "demo", "_next", "connect")):
         return HTMLResponse("", status_code=404)
     return HTMLResponse(_get_spa())

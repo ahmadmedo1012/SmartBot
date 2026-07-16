@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { MessageCircle } from "lucide-react"
@@ -18,6 +21,9 @@ const SERVICES = [
 ]
 
 export function Footer({ className }: FooterProps) {
+  const [year, setYear] = useState(2026)
+  useEffect(() => { setYear(new Date().getFullYear()) }, [])
+
   return (
     <footer className={cn("border-t border-border/50 pt-12 sm:pt-16 pb-8 sm:pb-10", className)}>
       <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
@@ -70,7 +76,7 @@ export function Footer({ className }: FooterProps) {
         </div>
 
         <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <span>© 2026 الربط الذكي | SmartBot. جميع الحقوق محفوظة.</span>
+          <span>© {year} الربط الذكي | SmartBot. جميع الحقوق محفوظة.</span>
           <div className="flex gap-4">
             <span className="hover:text-foreground cursor-pointer">شروط الاستخدام</span>
             <span className="hover:text-foreground cursor-pointer">سياسة الخصوصية</span>

@@ -60,6 +60,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* Grain overlay */}
             <div className="grain-overlay" aria-hidden="true" />
+            {/* Grid pattern overlay */}
+            <div className="fixed inset-0 z-0 pointer-events-none opacity-30" aria-hidden="true"
+              style={{ backgroundImage: "linear-gradient(color-mix(in oklch, var(--orange) 6%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--orange) 6%, transparent) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
 
             <main id="main-content" className="flex-1 flex flex-col">
               {children}

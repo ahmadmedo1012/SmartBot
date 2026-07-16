@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-import AuthGuard from "./AuthGuard"
+import DashboardShell from "./DashboardShell"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGuard>{children}</AuthGuard>
+  return <DashboardShell>{children}</DashboardShell>
 }

@@ -66,15 +66,16 @@ export default function HomePage() {
       {/* Hero */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
         <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[70vmin]" color="orange/10" />
-        <div className="absolute inset-0 z-0 opacity-50" style={{ backgroundImage: "radial-gradient(circle, color-mix(in oklch, var(--foreground) 6%, transparent) 0.75px, transparent 0.75px)", backgroundSize: "20px 20px" }} />
+        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: "linear-gradient(color-mix(in oklch, var(--orange) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--orange) 8%, transparent) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="relative z-10 w-full pt-32 pb-24">
           <div className="max-w-6xl mx-auto px-6">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
                 <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.05 }}
-                  className="eyebrow">
+                  className="eyebrow relative overflow-hidden">
                   <span className="size-1.5 rounded-full bg-orange animate-pulse-dot" />
                   أكثر من ٥٠٠ صفحة تثق فينا
+                  <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,transparent 0%,oklch(1 0 0 / 0.12) 50%,transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 3s ease-in-out infinite" }} />
                 </motion.div>
                 <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.1 }}
                   className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tighter font-heading">
@@ -127,6 +128,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Section divider */}
+      <div className="w-px h-16 mx-auto bg-gradient-to-b from-transparent via-orange/20 to-transparent" aria-hidden="true" />
+
       {/* Features */}
       <SectionContainer>
         <SectionHeader eyebrow="إليك ما يمكنك تحقيقه معنا" title="ميزات متكاملة لإدارة صفحاتك" subtitle="كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية" />
@@ -146,19 +150,24 @@ export default function HomePage() {
         </div>
       </SectionContainer>
 
+      {/* Section divider */}
+      <div className="w-px h-16 mx-auto bg-gradient-to-b from-transparent via-orange/20 to-transparent" aria-hidden="true" />
+
       {/* How it works */}
       <section className="relative py-24 bg-card/50">
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <SectionHeader title="كيف يعمل SmartBot" subtitle="ثلاث خطوات فقط لبدء أتمتة ردودك" />
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connector line between steps */}
+            <div className="hidden md:block absolute top-10 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-0.5 bg-gradient-to-r from-orange/20 via-orange/40 to-orange/20" aria-hidden="true" />
             {steps.map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="relative size-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold text-orange"
+              <div key={i} className="text-center relative">
+                <div className="relative size-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold"
                   style={{ background: "linear-gradient(135deg, color-mix(in oklch, var(--orange) 15%, transparent), transparent)" }}>
-                  <span>{s.num}</span>
-                  {i < steps.length - 1 && <div className="hidden md:block absolute -left-4 top-1/2 -translate-y-1/2 w-8 h-0.5 bg-orange/30" />}
+                  <span className="text-orange relative z-10">{s.num}</span>
+                  <div className="absolute inset-0 rounded-full" style={{ boxShadow: "0 0 25px oklch(0.55 0.19 45 / 0.3)" }} />
                 </div>
-                <div className="glass-card rounded-sm p-6">
+                <div className="glass-card rounded-sm p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                   <h3 className="text-xl font-bold mb-3">{s.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
                 </div>
@@ -189,6 +198,9 @@ export default function HomePage() {
           ))}
         </div>
       </SectionContainer>
+
+      {/* Section divider */}
+      <div className="w-px h-16 mx-auto bg-gradient-to-b from-transparent via-orange/20 to-transparent" aria-hidden="true" />
 
       {/* FAQ */}
       <section className="relative py-24 bg-card/50">
@@ -228,7 +240,7 @@ export default function HomePage() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             transition={{ ...springSnappy, delay: 0.4 }} className="flex gap-4 justify-center flex-wrap">
             <Link href="/subscribe">
-              <Button size="lg">ابدأ مجاناً <ArrowRight className="size-4" /></Button>
+              <Button size="lg">ابدأ مجاناً <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full leading-none ms-1 rtl:me-1 tracking-wider">مجاناً</span> <ArrowRight className="size-4" /></Button>
             </Link>
             <Link href="/pricing">
               <Button variant="outline" size="lg">عرض الخطط</Button>

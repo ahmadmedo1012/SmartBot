@@ -71,7 +71,7 @@ export function AdminSidebar({
     <aside className={cn("flex flex-col h-full bg-card border-l border-border", className)}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 p-4 border-b border-border">
-        <div className="size-9 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+        <div className="size-9 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm shrink-0">
           {logo}
         </div>
         <div>
@@ -95,7 +95,7 @@ export function AdminSidebar({
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",
                     item.active
-                      ? "bg-orange-500 text-white font-medium shadow-sm shadow-orange-500/20"
+                      ? "bg-orange text-orange-foreground font-medium shadow-sm shadow-orange/20"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
@@ -124,7 +124,7 @@ export function AdminSidebar({
         {onSubscribe && (
           <button
             onClick={onSubscribe}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-orange text-orange-foreground text-sm font-medium hover:brightness-110 transition-all"
           >
             <Sparkles className="size-4" /> اشتراك
           </button>

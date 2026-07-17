@@ -24,7 +24,7 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
     phone = body.get("phone", "")
     if amount < 1 or amount > 10000:
         raise HTTPException(400, "المبلغ غير صالح (1-10000)")
-    if provider not in ("libyana", "madar"):
+    if provider not in ("liyana", "madar"):
         raise HTTPException(400, "مزود الدفع غير صالح")
     if not phone or len(phone) < 7:
         raise HTTPException(400, "رقم الهاتف غير صالح")
@@ -119,7 +119,7 @@ async def create_subscription(body: dict = Body(...), db=Depends(get_db), curren
         raise HTTPException(400, "الباقة غير موجودة")
     if float(amount) != float(plan.price):
         raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
-    if provider not in ("libyana", "madar"):
+    if provider not in ("liyana", "madar"):
         raise HTTPException(400, "مزود الدفع غير صالح")
 
     existing_pending = await db.execute(

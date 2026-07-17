@@ -75,7 +75,7 @@ async def healthz():
 
 
 @router.get("/api/env")
-async def get_env():
+async def get_env(_=Depends(get_current_user)):
     version = "2.0.0"
     vf = BASE_DIR / "VERSION"
     if vf.exists():

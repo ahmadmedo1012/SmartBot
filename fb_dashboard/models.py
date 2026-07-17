@@ -507,13 +507,17 @@ class SubscriptionPlan(Base):
 class SubscriptionPayment(Base):
     """Payment transaction with Telegram admin approval."""
     __tablename__ = "subscription_payments"
+    __table_args__ = (
+        Index("ix_sub_payment_user_pending", "user_id", unique=True,
+              postgresql_where=text("status = 'pending'")),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, nullable=True)              # FK → users.id (nullable for pre-registration)
     tenant_id = Column(Integer, nullable=True)             # FK → tenants.id
     phone = Column(String(50), nullable=False)             # payer phone number
     amount = Column(Numeric(10, 2), nullable=False)
-    provider = Column(String(20), default="libyana")       # libyana, madar
+    provider = Column(String(20), default="liyana")        # liyana, madar
     plan_id = Column(Integer, nullable=False)              # FK → subscription_plans.id
     plan_name = Column(String(100), default="")            # snapshot at time of payment
     status = Column(String(20), default="pending")         # pending, verified, cancelled

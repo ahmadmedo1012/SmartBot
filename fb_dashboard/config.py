@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DATABASE_POOLED_URL: str = ""
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
-    SECRET_KEY: str = "smartbot-fallback-dev-key-change-in-production"
+    SECRET_KEY: str = ""
     FERNET_KEY: str = ""
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
@@ -41,9 +41,9 @@ TELEGRAM_ADMIN_IDS: list[int] = [int(x) for x in os.environ.get("TELEGRAM_ADMIN_
 
 settings = Settings()
 
-# ponytail: fail-fast — refuse default SECRET_KEY in production
-if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
-    raise RuntimeError("CRITICAL: SECRET_KEY is the default — set SECRET_KEY env var for production")
+# ponytail: fail-fast — refuse empty SECRET_KEY in production
+if not settings.SECRET_KEY and not settings.DEBUG:
+    raise RuntimeError("CRITICAL: SECRET_KEY is empty — set SECRET_KEY env var for production")
 
 # ponytail: CRON_SECRET required in production (non-DEBUG)
 if not settings.DEBUG and not os.environ.get("CRON_SECRET"):

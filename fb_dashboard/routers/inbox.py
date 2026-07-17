@@ -6,44 +6,35 @@ import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, Form
 from sqlalchemy import select, func, and_
 
-from _lazy import lazy
 from config import settings
 from database import get_db, AsyncSessionLocal
 from models import ConversationLabel, ConversationNote, ConversationTag, User, AnalyticsEvent
 from routers.auth import get_current_user, require_role
+from _services import get_tenant_fb_client, _track_event
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])
 
-# ── Lazy engine proxies ──
-fb = lazy(lambda: __import__('fb_client', fromlist=['FBClient']).FBClient(
-    settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID))
-inbox_engine = lazy(lambda: __import__('inbox_engine', fromlist=['InboxEngine']).InboxEngine(fb))
+# ponytail: per-tenant fb client cache — dict[tenant_id, FBClient].
+# Evict on token refresh. Replace with Redis-backed registry when multi-worker.
+_tenant_fb_cache: dict[int, object] = {}
 
-
-def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int = 0):
-    """Async-fire AnalyticsEvent (non-blocking)."""
-    async def _write():
-        try:
-            async with AsyncSessionLocal() as s:
-                ev = AnalyticsEvent(event_type=event_type, metadata_json=json.dumps(metadata or {}, ensure_ascii=False))
-                if tenant_id:
-                    ev.tenant_id = tenant_id
-                s.add(ev)
-                await s.commit()
-        except Exception:
-            pass
-    import asyncio
-    asyncio.create_task(_write())
-    return
+def _get_inbox_fb(tenant_id: int):
+    if tenant_id not in _tenant_fb_cache:
+        fb = get_tenant_fb_client(tenant_id)
+        if fb is None:
+            raise HTTPException(500, "لم يتم إعداد فيسبوك بعد")
+        _tenant_fb_cache[tenant_id] = fb
+    return _tenant_fb_cache[tenant_id]
 
 
 @router.get("/api/inbox/conversations")
 async def inbox_list(
     status: str = Query("all"), tag: str = Query(""), search: str = Query(""),
-    page: int = Query(1), per_page: int = Query(25), _=Depends(get_current_user),
+    page: int = Query(1), per_page: int = Query(25), current_user: User = Depends(get_current_user),
 ):
     """Professional inbox: list conversations with filters, tags, search."""
+    fb = _get_inbox_fb(current_user._tenant_id)
     convos = await fb.get_conversations(50)
     items = []
     for c in convos:
@@ -96,8 +87,9 @@ async def inbox_list(
 
 
 @router.get("/api/inbox/conversations/{conversation_id}")
-async def inbox_messages(conversation_id: str, _=Depends(get_current_user)):
+async def inbox_messages(conversation_id: str, current_user: User = Depends(get_current_user)):
     """Get full conversation messages with AI analysis hints."""
+    fb = _get_inbox_fb(current_user._tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
     return [{
         "id": m["id"], "message": m.get("message", ""),
@@ -109,19 +101,20 @@ async def inbox_messages(conversation_id: str, _=Depends(get_current_user)):
 @router.post("/api/inbox/conversations/{conversation_id}/reply")
 async def inbox_reply(
     conversation_id: str, message: str = Form(...),
-    _=Depends(require_role("editor")),
+    current_user: User = Depends(require_role("editor")),
 ):
     """Send a reply in a conversation. Tries Messenger first, falls back to private_reply."""
+    fb = _get_inbox_fb(current_user._tenant_id)
     # Try Messenger conversation reply
     result = await fb.send_conversation_message(conversation_id, message)
     if result:
-        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
+        _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
         return {"ok": True}
 
     # Fallback: try private_reply (works for ANY comment, no prior conversation needed)
     result = await fb.send_private_reply(conversation_id, message)
     if result and not result.get("_error"):
-        _track_event("inbox_reply_sent", {"conversation_id": conversation_id})
+        _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
         return {"ok": True}
 
     raise HTTPException(400, "لم يتم الرد — راجع سجل الخادم لتفاصيل خطأ فيسبوك")
@@ -189,76 +182,3 @@ async def inbox_remove_tag(conv_id: str, tag_id: int,
     )
     await db.commit()
     return {"ok": True}
-
-
-@router.post("/api/inbox/conversations/{conv_id}/assign")
-async def inbox_assign_user(conv_id: str, user_id: int = Form(...),
-                             db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Assign a user to a conversation."""
-    user = (await db.execute(
-        select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not user:
-        raise HTTPException(404, "المستخدم غير موجود")
-    await inbox_engine.assign_user(conv_id, user_id, db)
-    _track_event("conversation_assigned", {"conv_id": conv_id, "user_id": user_id})
-    return {"ok": True}
-
-
-@router.post("/api/inbox/conversations/{conv_id}/unassign")
-async def inbox_unassign_user(conv_id: str, user_id: int = Form(...),
-                               db=Depends(get_db), _=Depends(require_role("editor"))):
-    """Remove user assignment from a conversation."""
-    ok = await inbox_engine.unassign_user(conv_id, user_id, db)
-    if not ok:
-        raise HTTPException(404, "التعيين غير موجود")
-    return {"ok": True}
-
-
-@router.get("/api/inbox/conversations/{conv_id}/assignee")
-async def inbox_get_assignee(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
-    """Get the assigned user for a conversation."""
-    result = await inbox_engine.get_assignee(conv_id, db)
-    return result or {"user_id": None, "username": "", "assigned_at": None}
-
-
-@router.get("/api/inbox/conversations/{conv_id}/notes")
-async def inbox_list_notes(conv_id: str, db=Depends(get_db), _=Depends(get_current_user)):
-    """Get all notes for a conversation."""
-    return await inbox_engine.get_notes(conv_id, db)
-
-
-@router.post("/api/inbox/conversations/{conv_id}/notes")
-async def inbox_create_note(conv_id: str, content: str = Form(...),
-                             db=Depends(get_db), current_user=Depends(require_role("editor"))):
-    """Add a note to a conversation."""
-    note = await inbox_engine.add_note(conv_id, content, current_user.username, db)
-    return note
-
-
-@router.delete("/api/inbox/notes/{note_id}")
-async def inbox_delete_note(note_id: int, db=Depends(get_db),
-                             current_user: User = Depends(require_role("editor"))):
-    """Delete a note."""
-    note = (await db.execute(
-        select(ConversationNote).where(ConversationNote.id == note_id, ConversationNote.tenant_id == current_user._tenant_id)
-    )).scalar_one_or_none()
-    if not note:
-        raise HTTPException(404, "الملاحظة غير موجودة")
-    if current_user.role != "admin" and note.created_by != current_user.username:
-        raise HTTPException(403, "ليس لديك صلاحية حذف هذه الملاحظة")
-    ok = await inbox_engine.delete_note(note_id, db)
-    return {"ok": ok}
-
-
-@router.get("/api/inbox/stats")
-async def inbox_stats(db=Depends(get_db), _=Depends(get_current_user)):
-    return await inbox_engine.get_conversation_stats(db)
-
-
-@router.get("/api/inbox/all")
-async def inbox_all(search: str = Query(""), db=Depends(get_db), _=Depends(get_current_user)):
-    conversations = await inbox_engine.fetch_all_conversations(db)
-    if search:
-        conversations = await inbox_engine.search_conversations(search, conversations)
-    return {"items": conversations}

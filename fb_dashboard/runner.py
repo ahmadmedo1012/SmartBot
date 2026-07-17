@@ -839,12 +839,24 @@ async def webhook_receive(request: Request):
 
 
 async def _process_webhook_comment(comment: dict, post_id: str):
-    """Process a single webhook comment using shared singleton engine."""
+    """Process a single webhook comment — dispatches by page_id for multi-tenant."""
     try:
+        # Lookup tenant from page_id embedded in the post_id or comment metadata
+        page_id = comment.get("page_id") or comment.get("from", {}).get("id", "")
+        if page_id:
+            async with AsyncSessionLocal() as db:
+                row = await db.execute(
+                    select(BotState).where(BotState.key == "fb_page_id", BotState.value == page_id)
+                )
+                bs = row.scalar_one_or_none()
+            if bs:
+                fb_client = await get_tenant_fb_client(bs.tenant_id)
+                if fb_client:
+                    await BotEngine(fb_client, tenant_id=bs.tenant_id).process_single_comment(comment, post_id)
+                    _track_event("webhook_comment_processed", {"comment_id": comment.get("id",""), "tenant_id": bs.tenant_id})
+                    return
+        # Fallback: unscoped singleton (legacy single-tenant mode)
         engine = get_bot_engine()
-        # ponytail: webhook has no tenant context — uses global singleton engine.
-        # In multi-tenant mode, webhook must dispatch by page_id → lookup tenant.
-        # For now this only works for the deployment's single Facebook page.
         if not engine._tenant_id:
             await engine.process_single_comment(comment, post_id)
         else:

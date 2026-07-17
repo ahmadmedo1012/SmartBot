@@ -22,6 +22,7 @@
       ]
     }
   ],
+  "pythonVersion": "3.12",
   "functions": {
     "api/index.py": {
       "maxDuration": 30,

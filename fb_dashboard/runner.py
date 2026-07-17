@@ -273,6 +273,12 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE rules ADD COLUMN IF NOT EXISTS dm_template TEXT DEFAULT ''",
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS platform VARCHAR(20) DEFAULT 'facebook'",
                 "ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEFAULT ''",
+                # New tables for multi-tenant subscription system
+                "CREATE TABLE IF NOT EXISTS tenants (id SERIAL PRIMARY KEY, company_name VARCHAR(200) DEFAULT '', contact_email VARCHAR(200) DEFAULT '', contact_phone VARCHAR(50) DEFAULT '', stripe_customer_id VARCHAR(100) UNIQUE DEFAULT '', subscription_status VARCHAR(20) DEFAULT 'trial', subscription_plan_id INTEGER, subscription_started_at TIMESTAMP, subscription_ends_at TIMESTAMP, fb_page_id VARCHAR(100) DEFAULT '', fb_access_token VARCHAR(500) DEFAULT '', is_active BOOLEAN DEFAULT TRUE, settings_json TEXT DEFAULT '{}', created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())",
+                "CREATE TABLE IF NOT EXISTS subscription_plans (id SERIAL PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, description TEXT DEFAULT '', price_monthly INTEGER DEFAULT 0, price_yearly INTEGER DEFAULT 0, stripe_price_id_monthly VARCHAR(100) DEFAULT '', stripe_price_id_yearly VARCHAR(100) DEFAULT '', max_replies INTEGER DEFAULT 0, max_rules INTEGER DEFAULT 10, max_users INTEGER DEFAULT 1, max_sequences INTEGER DEFAULT 0, features JSON DEFAULT '[]', is_public BOOLEAN DEFAULT TRUE, sort_order INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT NOW())",
+                "CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, tenant_id INTEGER NOT NULL, plan_id INTEGER, amount INTEGER NOT NULL, currency VARCHAR(3) DEFAULT 'usd', interval VARCHAR(10) DEFAULT 'monthly', stripe_payment_intent_id VARCHAR(100) DEFAULT '', stripe_invoice_id VARCHAR(100) DEFAULT '', status VARCHAR(20) DEFAULT 'pending', receipt_url VARCHAR(500) DEFAULT '', created_at TIMESTAMP DEFAULT NOW())",
+                # Add tenant_id column to users
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER",
             ]:
                 try:
                     await conn.execute(text(col_sql))

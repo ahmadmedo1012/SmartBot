@@ -279,9 +279,26 @@ async def lifespan(app: FastAPI):
                 "CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, tenant_id INTEGER NOT NULL, plan_id INTEGER, amount INTEGER NOT NULL, currency VARCHAR(3) DEFAULT 'usd', interval VARCHAR(10) DEFAULT 'monthly', stripe_payment_intent_id VARCHAR(100) DEFAULT '', stripe_invoice_id VARCHAR(100) DEFAULT '', status VARCHAR(20) DEFAULT 'pending', receipt_url VARCHAR(500) DEFAULT '', created_at TIMESTAMP DEFAULT NOW())",
                 # Add tenant_id column to users
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER",
-                # Fix: ensure new columns exist on subscription_plans (Postgres compat)
+                # Fix: ensure all subscription_plans columns exist (Postgres compat)
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_monthly INTEGER DEFAULT 0",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_yearly INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_monthly VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_yearly VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_replies INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_rules INTEGER DEFAULT 10",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 1",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_sequences INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS features JSON DEFAULT '[]'",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
+                # Tenant columns
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_email VARCHAR(200) DEFAULT ''",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50) DEFAULT ''",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(100) UNIQUE DEFAULT ''",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_plan_id INTEGER",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings_json TEXT DEFAULT '{}'",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_monthly VARCHAR(100) DEFAULT ''",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_yearly VARCHAR(100) DEFAULT ''",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_replies INTEGER DEFAULT 0",

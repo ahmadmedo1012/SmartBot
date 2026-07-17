@@ -219,8 +219,7 @@ async def _seed_dm_templates(db):
 
 async def _seed_subscription_plans(db):
     """Always clear and reseed subscription plans to fix stale data."""
-    # Always clear and reseed to fix stale plans
-    await db.execute(SubscriptionPlan.__table__.delete())
+    await db.execute(text("DELETE FROM subscription_plans"))
     plans = [
         SubscriptionPlan(name="مجاني", description="بوت ردود تلقائي لصفحة فيسبوك واحدة",
                          price_monthly=0, price_yearly=0,
@@ -310,7 +309,10 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
             await _seed_dm_templates(session)
-            await _seed_subscription_plans(session)
+            try:
+                await _seed_subscription_plans(session)
+            except Exception as e:
+                log.warning(f"Seed subscription plans skipped (non-fatal): {e}")
 
         # Bot runs via background loop locally, Vercel Cron on serverless
         if settings.START_BOT and not _IS_VERCEL:

@@ -279,6 +279,15 @@ async def lifespan(app: FastAPI):
                 "CREATE TABLE IF NOT EXISTS payments (id SERIAL PRIMARY KEY, tenant_id INTEGER NOT NULL, plan_id INTEGER, amount INTEGER NOT NULL, currency VARCHAR(3) DEFAULT 'usd', interval VARCHAR(10) DEFAULT 'monthly', stripe_payment_intent_id VARCHAR(100) DEFAULT '', stripe_invoice_id VARCHAR(100) DEFAULT '', status VARCHAR(20) DEFAULT 'pending', receipt_url VARCHAR(500) DEFAULT '', created_at TIMESTAMP DEFAULT NOW())",
                 # Add tenant_id column to users
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INTEGER",
+                # Fix: ensure new columns exist on subscription_plans (Postgres compat)
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_yearly INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_monthly VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_yearly VARCHAR(100) DEFAULT ''",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_replies INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_rules INTEGER DEFAULT 10",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 1",
+                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS features JSON DEFAULT '[]'",
             ]:
                 try:
                     await conn.execute(text(col_sql))

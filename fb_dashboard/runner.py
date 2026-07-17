@@ -9,34 +9,34 @@ from datetime import datetime, timedelta, timezone
 from _utils import utcnow
 from pathlib import Path
 from contextlib import asynccontextmanager
-from typing import Any
+# ponytail: typing.Any not used
 
 import bcrypt
 import jwt
 from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, desc, asc, cast, Date, text, or_, and_
+from sqlalchemy import select, func, desc, cast, Date, text, or_, and_
 
 from api_cache import APICache
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote, Tenant, SubscriptionPlan, Payment
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
+from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, BrandConfig, Customer
 from fb_client import FBClient
-from bot import BotEngine, IntentAwareMatcher
+from bot import BotEngine
 from ws_manager import ws_manager
 from flow_engine import FlowEngine
 from sequence_engine import SequenceEngine, SequenceScheduler
 from broadcast_engine import BroadcastEngine
 from subscriber_engine import SubscriberEngine, TagEngine
-from models import Flow, FlowExecution, Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule
+from models import Flow, FlowExecution, Sequence, Broadcast, ReportSchedule
 from analytics_engine import AnalyticsEngine
-from report_engine import ReportEngine, REPORT_DIR
+from report_engine import ReportEngine
 from pdf_reports_engine import PdfReportsEngine, BrandingConfig
 from inbox_engine import InboxEngine
 from content_calendar import ContentCalendarEngine, CalendarScheduler
@@ -97,10 +97,13 @@ _login_last_cleanup: float = 0
 def _check_login_rate(ip: str) -> bool:
     global _login_last_cleanup
     now = time.time()
-    # periodic full cleanup to prevent unbounded growth
+    # periodic cleanup: prune stale entries per-IP instead of clear()
     if now - _login_last_cleanup > _LOGIN_CLEANUP_EVERY:
         cutoff = now - _LOGIN_RATE_WINDOW
-        _login_attempts.clear()
+        for ip_addr in list(_login_attempts):
+            _login_attempts[ip_addr] = [t for t in _login_attempts[ip_addr] if t >= cutoff]
+            if not _login_attempts[ip_addr]:
+                del _login_attempts[ip_addr]
         _login_last_cleanup = now
     attempts = _login_attempts.get(ip, [])
     # prune old entries
@@ -109,6 +112,22 @@ def _check_login_rate(ip: str) -> bool:
         return False
     attempts.append(now)
     _login_attempts[ip] = attempts
+    return True
+
+
+# ── Register rate limiter: 3 attempts per 60s per IP ──
+_register_attempts: dict[str, list[float]] = {}
+_REGISTER_RATE_LIMIT = 3
+_REGISTER_RATE_WINDOW = 60
+
+
+def _check_register_rate(ip: str) -> bool:
+    now = time.time()
+    attempts = [t for t in _register_attempts.get(ip, []) if now - t < _REGISTER_RATE_WINDOW]
+    if len(attempts) >= _REGISTER_RATE_LIMIT:
+        return False
+    attempts.append(now)
+    _register_attempts[ip] = attempts
     return True
 
 
@@ -218,8 +237,10 @@ async def _seed_dm_templates(db):
 
 
 async def _seed_subscription_plans(db):
-    """Always clear and reseed subscription plans to fix stale data."""
-    await db.execute(text("DELETE FROM subscription_plans"))
+    """Seed subscription plans if none exist."""
+    count = await db.scalar(select(func.count(SubscriptionPlan.id))) or 0
+    if count > 0:
+        return
     plans = [
         SubscriptionPlan(name="مجاني", description="بوت ردود تلقائي لصفحة فيسبوك واحدة",
                          price_monthly=0, price_yearly=0,
@@ -272,8 +293,6 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_monthly INTEGER DEFAULT 0",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS price_yearly INTEGER DEFAULT 0",
-                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_monthly VARCHAR(100) DEFAULT ''",
-                "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS stripe_price_id_yearly VARCHAR(100) DEFAULT ''",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_replies INTEGER DEFAULT 0",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_rules INTEGER DEFAULT 10",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 1",
@@ -287,7 +306,6 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_name VARCHAR(200) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_email VARCHAR(200) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50) DEFAULT ''",
-                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(100) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'trial'",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_plan_id INTEGER",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMP",
@@ -496,10 +514,17 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
 async def register(
     username: str = Form(...), password: str = Form(...),
     email: str = Form(""), company_name: str = Form(""),
-    db=Depends(get_db),
+    request: Request = None, db=Depends(get_db),
 ):
+    ip = request.client.host if request and request.client else "unknown"
+    if not _check_register_rate(ip):
+        raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
+    if len(username) < 3:
+        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
     if len(password) < 6:
         raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    if email and not __import__("re").match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        raise HTTPException(400, "البريد الإلكتروني غير صالح")
     existing = await db.execute(select(User).where(User.username == username))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم المستخدم موجود بالفعل")

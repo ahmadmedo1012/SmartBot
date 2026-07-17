@@ -12,18 +12,27 @@ export function Register() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
+
+  const validate = () => {
+    const errs = {}
+    if (username.trim().length > 0 && username.trim().length < 3) {
+      errs.username = "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errs.email = "صيغة البريد الإلكتروني غير صحيحة"
+    }
+    if (password && password.length < 6) {
+      errs.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+    }
+    setFieldErrors(errs)
+    return !Object.keys(errs).length
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
-    if (!username.trim() || !password.trim()) {
-      setError("يرجى ملء جميع الحقول المطلوبة")
-      return
-    }
-    if (password.length < 6) {
-      setError("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
-      return
-    }
+    if (!validate()) return
     setLoading(true)
     try {
       await apiRegister(username, password, email, companyName)
@@ -47,7 +56,8 @@ export function Register() {
               <p style={{ fontSize: "14px", color: "var(--muted)", marginBottom: 20 }}>
                 يمكنك الآن تسجيل الدخول والبدء في استخدام SmartBot.
               </p>
-              <a href="/login" className="btn btn-primary" style={{ display: "inline-flex", padding: "12px 32px", borderRadius: 12, fontSize: 14 }}>
+              <a href="/login" className="btn btn-primary" style={{ display: "inline-flex", padding: "12px 32px", borderRadius: 12, fontSize: 14 }}
+                onClick={(e) => { e.preventDefault(); window.location.href = "/login"; }}>
                 تسجيل الدخول
               </a>
             </div>
@@ -75,13 +85,16 @@ export function Register() {
                 <input
                   id="reg-username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => { setUsername(e.target.value); setFieldErrors((p) => ({...p, username: ""})) }}
                   required
                   className="peer w-full h-11 pr-4 pl-3 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder="اسم المستخدم *"
                   autoComplete="username"
                 />
+                {fieldErrors.username && (
+                  <p style={{ fontSize: "12px", color: "var(--danger)", paddingRight: 4, marginTop: 4 }}>{fieldErrors.username}</p>
+                )}
               </div>
 
               {/* Email */}
@@ -90,12 +103,15 @@ export function Register() {
                   id="reg-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({...p, email: ""})) }}
                   className="peer w-full h-11 pr-4 pl-3 rounded-xl text-sm transition-all"
                   style={{ background: "color-mix(in oklch, var(--bg) 50%, transparent)", border: "1px solid color-mix(in oklch, var(--border) 40%, transparent)", color: "var(--fg)" }}
                   placeholder="البريد الإلكتروني"
                   autoComplete="email"
                 />
+                {fieldErrors.email && (
+                  <p style={{ fontSize: "12px", color: "var(--danger)", paddingRight: 4, marginTop: 4 }}>{fieldErrors.email}</p>
+                )}
               </div>
 
               {/* Company */}
@@ -117,7 +133,7 @@ export function Register() {
                   id="reg-password"
                   type={showPw ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({...p, password: ""})) }}
                   required
                   minLength={6}
                   className="peer w-full h-11 pr-4 pl-10 rounded-xl text-sm transition-all"
@@ -138,6 +154,9 @@ export function Register() {
                     }
                   </svg>
                 </button>
+                {fieldErrors.password && (
+                  <p style={{ fontSize: "12px", color: "var(--danger)", paddingRight: 4, marginTop: 4 }}>{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* Error */}
@@ -162,7 +181,8 @@ export function Register() {
 
             <p className="text-center" style={{ fontSize: "13px", marginTop: 20, color: "var(--muted)" }}>
               لديك حساب بالفعل؟{" "}
-              <a href="/login" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>
+              <a href="/login" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}
+                onClick={(e) => { e.preventDefault(); window.location.href = "/login"; }}>
                 تسجيل الدخول
               </a>
             </p>

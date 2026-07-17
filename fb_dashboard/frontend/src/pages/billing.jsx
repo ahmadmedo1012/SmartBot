@@ -17,7 +17,6 @@ function PlanCard({ plan, selecting, onSelect, isCurrent }) {
       style={{
         border: isCurrent ? "1.5px solid var(--accent)" : "1px solid var(--border)",
         transition: "all .2s",
-        opacity: plan.price_monthly === 0 ? 1 : undefined,
       }}
     >
       {isCurrent && (
@@ -218,13 +217,6 @@ export function Billing() {
                     }}>
                       {p.status === "completed" ? "مكتمل" : p.status === "pending" ? "قيد الانتظار" : p.status === "failed" ? "فشل" : p.status}
                     </span>
-                  </td>
-                  <td data-label="الإيصال">
-                    {p.receipt_url ? (
-                      <a href={p.receipt_url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontSize: 12 }}>
-                        عرض الإيصال
-                      </a>
-                    ) : "—"}
                   </td>
                 </tr>
               ))}

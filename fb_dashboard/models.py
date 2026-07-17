@@ -438,8 +438,7 @@ class Tenant(Base):
     company_name = Column(String(200), default="")
     contact_email = Column(String(200), default="")
     contact_phone = Column(String(50), default="")
-    stripe_customer_id = Column(String(100), default="", unique=True)
-    subscription_status = Column(String(20), default="trial")  # trial, active, past_due, canceled, expired
+    subscription_status = Column(String(20), default="trial")  # Valid values: trial, active, past_due, canceled, expired
     subscription_plan_id = Column(Integer, nullable=True)
     subscription_started_at = Column(DateTime, nullable=True)
     subscription_ends_at = Column(DateTime, nullable=True)
@@ -460,8 +459,6 @@ class SubscriptionPlan(Base):
     description = Column(Text, default="")
     price_monthly = Column(Integer, default=0)  # price in cents
     price_yearly = Column(Integer, default=0)
-    stripe_price_id_monthly = Column(String(100), default="")
-    stripe_price_id_yearly = Column(String(100), default="")
     max_replies = Column(Integer, default=0)  # 0 = unlimited
     max_rules = Column(Integer, default=10)
     max_users = Column(Integer, default=1)
@@ -482,8 +479,5 @@ class Payment(Base):
     amount = Column(Integer, nullable=False)  # cents
     currency = Column(String(3), default="usd")
     interval = Column(String(10), default="monthly")  # monthly, yearly
-    stripe_payment_intent_id = Column(String(100), default="")
-    stripe_invoice_id = Column(String(100), default="")
     status = Column(String(20), default="pending")  # pending, completed, failed, refunded
-    receipt_url = Column(String(500), default="")
     created_at = Column(DateTime, default=utcnow)

@@ -131,7 +131,14 @@ export default function SubDashboardPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: [slug],
     queryFn: config
-      ? () => apiFetch(config.apiUrl).then((r) => r.ok ? r.json().catch(() => ({})) : {})
+      ? () => {
+          let url = config.apiUrl
+          if (slug === 'scheduled') {
+            const now = new Date()
+            url += `?year=${now.getFullYear()}&month=${now.getMonth() + 1}`
+          }
+          return apiFetch(url).then((r) => r.json().catch(() => ({})))
+        }
       : () => Promise.resolve(null),
     enabled: !!config,
   })

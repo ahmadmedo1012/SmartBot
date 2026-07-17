@@ -12,6 +12,11 @@ export default function AudiencePage() {
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(r => r.json()),
     refetchInterval: 60000,
   })
+  const topQuery = useQuery({
+    queryKey: ["top-commenters"],
+    queryFn: () => apiFetch("/api/analytics/top-commenters?limit=5").then(r => r.json()),
+    refetchInterval: 60000,
+  })
 
   return (
     <div className="flex-1 flex flex-col">
@@ -72,9 +77,9 @@ export default function AudiencePage() {
               <div className="space-y-2">
                 {[1,2,3,4,5].map(i => <div key={i} className="h-5 bg-muted rounded animate-pulse" />)}
               </div>
-            ) : data?.top_commenters?.length > 0 ? (
+            ) : topQuery.data?.length > 0 ? (
               <div className="space-y-2">
-                {data.top_commenters.map((c: any, i: number) => (
+                {topQuery.data.map((c: any, i: number) => (
                   <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                     <span>{c.name || `معلق #${c.commenter_id}`}</span>
                     <span className="text-muted-foreground">{c.count} تعليق</span>

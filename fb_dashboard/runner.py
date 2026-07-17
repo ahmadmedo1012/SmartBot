@@ -284,6 +284,9 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS features JSON DEFAULT '[]'",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE",
                 "ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0",
+                "ALTER TABLE subscription_plans DROP COLUMN IF EXISTS name_ar",
+                "ALTER TABLE subscription_plans DROP COLUMN IF EXISTS name_en",
+                "ALTER TABLE subscription_plans DROP COLUMN IF EXISTS slug",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS company_name VARCHAR(200) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_email VARCHAR(200) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(50) DEFAULT ''",
@@ -3154,8 +3157,11 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
 @app.post("/api/admin/reseed-plans")
 async def admin_reseed_plans(db=Depends(get_db), _=Depends(require_role("admin"))):
     """Force reseed subscription plans — clear old data, seed Arabic plans."""
-    await _seed_subscription_plans(db)
-    return {"ok": True, "message": "Subscription plans reseeded"}
+    try:
+        await _seed_subscription_plans(db)
+        return {"ok": True, "message": "تم تحديث خطط الأسعار ✅"}
+    except Exception as e:
+        raise HTTPException(500, f"Reseed failed: {e}")
 @app.post("/api/admin/cooldown")
 async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin"))):
     if seconds < 10 or seconds > 3600:

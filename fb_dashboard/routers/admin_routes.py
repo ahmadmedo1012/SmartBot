@@ -88,9 +88,9 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
 async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin"))):
     if seconds < 10 or seconds > 3600:
         raise HTTPException(400, "يجب أن تكون المدة بين 10 و3600 ثانية")
-    from bot import BotEngine
-    eng = BotEngine._instance
-    if eng: eng.cooldown.adjust_window("global", seconds)
+    from _services import get_bot_engine
+    eng = get_bot_engine(tenant_id=_._tenant_id)
+    eng.cooldown.adjust_window("global", seconds)
     return {"ok": True, "cooldown_seconds": seconds}
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from _utils import utcnow
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric, BigInteger
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, JSON, ForeignKey, UniqueConstraint, Index, Numeric, BigInteger, text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 

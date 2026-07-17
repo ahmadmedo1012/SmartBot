@@ -8,9 +8,9 @@ os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("SECRET_KEY", "alembic-runner")
 
 # Add fb_dashboard to sys.path so imports work
+# NOTE: NOT inserting _project_root — its alembic/ dir shadows pip's alembic package
 _project_root = dirname(dirname(abspath(__file__)))
 sys.path.insert(0, join(_project_root, 'fb_dashboard'))
-sys.path.insert(0, _project_root)
 
 from alembic import context
 from sqlalchemy import pool

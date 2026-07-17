@@ -30,8 +30,7 @@ _cron_lock = asyncio.Lock()
 async def _run_single_cycle():
     try:
         from _services import get_bot_engine
-        engine = get_bot_engine()
-        await engine.cycle()
+        await get_bot_engine().cycle()
     except Exception as e:
         log.error(f"Forced cycle error: {e}")
 

@@ -298,6 +298,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS fb_access_token VARCHAR(500) DEFAULT ''",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE",
                 "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS settings_json TEXT DEFAULT '{}'",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
+                "ALTER TABLE tenants ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
             ]:
                 try:
                     await conn.execute(text(col_sql))

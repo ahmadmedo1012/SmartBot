@@ -493,16 +493,20 @@ async def register(
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم المستخدم موجود بالفعل")
     # Create tenant + user in transaction
-    tenant = Tenant(company_name=company_name or "", contact_email=email,
-                    subscription_status="trial")
-    db.add(tenant)
-    await db.flush()
-    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    user = User(tenant_id=tenant.id, username=username, password_hash=pw_hash, role="tenant_admin")
-    db.add(user)
-    await db.commit()
-    log.info(f"Registered tenant={tenant.id} user={username}")
-    return {"ok": True, "tenant_id": tenant.id}
+    try:
+        tenant = Tenant(company_name=company_name or "", contact_email=email,
+                        subscription_status="trial")
+        db.add(tenant)
+        await db.flush()
+        pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        user = User(tenant_id=tenant.id, username=username, password_hash=pw_hash, role="tenant_admin")
+        db.add(user)
+        await db.commit()
+        log.info(f"Registered tenant={tenant.id} user={username}")
+        return {"ok": True, "tenant_id": tenant.id}
+    except Exception as e:
+        log.error(f"Register error: {e}", exc_info=True)
+        raise HTTPException(500, str(e)[:200])
 
 
 @app.get("/api/plans")

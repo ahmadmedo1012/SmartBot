@@ -95,6 +95,30 @@ function AppInner() {
   }, [])
 
   if (authLoading) {
+    // Show public pages immediately without waiting for auth
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/'
+    const publicPages = ['/', '', '/landing', '/pricing', '/subscribe', '/demo', '/register', '/login']
+
+    if (currentPath !== '/login' && publicPages.includes(currentPath)) {
+      const publicLoaders = {
+        '/': () => import("@/pages/landing").then(m => ({ default: m.Landing })),
+        '': () => import("@/pages/landing").then(m => ({ default: m.Landing })),
+        '/landing': () => import("@/pages/landing").then(m => ({ default: m.Landing })),
+        '/pricing': () => import("@/pages/pricing").then(m => ({ default: m.Pricing })),
+        '/subscribe': () => import("@/pages/subscribe").then(m => ({ default: m.Subscribe })),
+        '/demo': () => import("@/pages/demo").then(m => ({ default: m.Demo })),
+        '/register': () => import("@/pages/register").then(m => ({ default: m.Register })),
+      }
+      if (publicLoaders[currentPath]) {
+        const PublicPage = lazy(publicLoaders[currentPath])
+        return (
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+            <PublicPage />
+          </Suspense>
+        )
+      }
+    }
+
     return (
       <div className="loading-screen">
         <div className="relative flex flex-col items-center gap-6">

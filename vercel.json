@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/healthz", "destination": "/api/index.py" },
-    { "source": "/webhook", "destination": "/api/index.py" }
+    { "source": "/(.*)", "destination": "/api/index.py" }
   ],
   "functions": {
     "api/index.py": { "maxDuration": 30 }

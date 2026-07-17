@@ -499,8 +499,8 @@ async def debug(_=Depends(get_current_user)):
 
 
 
-@app.get("/", response_class=HTMLResponse)
-async def dashboard_page(request: Request):
+def _serve_spa() -> HTMLResponse:
+    """Return the SPA index.html for any non-API route (React Router handles client-side routing)."""
     static_index = STATIC_DIR / "index.html"
     if static_index.exists():
         return HTMLResponse(static_index.read_text(encoding="utf-8"))
@@ -508,6 +508,11 @@ async def dashboard_page(request: Request):
     if html_path.exists():
         return HTMLResponse(html_path.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>SmartBot Dashboard</h1><p>Loading...</p>")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def dashboard_page(request: Request):
+    return _serve_spa()
 
 
 # ── Static file caching headers ────────────────────────────────────────────────
@@ -3176,3 +3181,9 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_rol
     await db.commit()
     return {"ok": True}
 
+
+# ── SPA catch-all: must be LAST — serves index.html for all non-API routes ──────
+@app.get("/{full_path:path}", response_class=HTMLResponse)
+async def spa_fallback(full_path: str, request: Request):
+    """Catch-all for React Router: /login, /dashboard/*, /connect, etc. → index.html."""
+    return _serve_spa()

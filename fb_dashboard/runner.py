@@ -247,6 +247,19 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
             await conn.commit()
         log.info("DB tables ready")
+        # Run pending Alembic migrations atop the created schema
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "alembic", "upgrade", "head",
+                cwd=Path(__file__).resolve().parent.parent,
+                env={**os.environ, "SECRET_KEY": os.environ.get("SECRET_KEY", "alembic-runner"), "DEBUG": "true"},
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            await asyncio.wait_for(proc.communicate(), timeout=30)
+            if proc.returncode != 0:
+                log.warning(f"Alembic exit code {proc.returncode} (non-fatal)")
+        except Exception as e:
+            log.warning(f"Alembic upgrade skipped: {e}")
 
         async with AsyncSessionLocal() as session:
             await seed_admin(session)

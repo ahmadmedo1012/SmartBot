@@ -3151,6 +3151,11 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
     return {"ok": True, "priority": rule.priority}
 
 
+@app.post("/api/admin/reseed-plans")
+async def admin_reseed_plans(db=Depends(get_db), _=Depends(require_role("admin"))):
+    """Force reseed subscription plans — clear old data, seed Arabic plans."""
+    await _seed_subscription_plans(db)
+    return {"ok": True, "message": "Subscription plans reseeded"}
 @app.post("/api/admin/cooldown")
 async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin"))):
     if seconds < 10 or seconds > 3600:

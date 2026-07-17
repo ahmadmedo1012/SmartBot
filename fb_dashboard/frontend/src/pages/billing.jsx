@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { fetchPlans, fetchSubscription, createCheckoutSession, fetchBillingPortal, fetchPaymentHistory } from "@/lib/api"
+import { fetchPlans, fetchSubscription, createCheckoutSession, fetchPaymentHistory } from "@/lib/api"
 
 function PageLoader() {
   return (
@@ -102,7 +102,7 @@ export function Billing() {
   const handleSelectPlan = async (planId) => {
     setSelecting(planId)
     try {
-      const result = await createCheckoutSession(planId, "monthly")
+      const result = await createCheckoutSession(planId)
       if (result.url) {
         window.location.href = result.url
       } else if (result.mock) {
@@ -114,13 +114,6 @@ export function Billing() {
     } finally {
       setSelecting(null)
     }
-  }
-
-  const handleBillingPortal = async () => {
-    try {
-      const result = await fetchBillingPortal()
-      if (result.url) window.location.href = result.url
-    } catch {}
   }
 
   if (plansLoading || subLoading) return <PageLoader />
@@ -167,11 +160,6 @@ export function Billing() {
               </div>
             )}
           </div>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <button onClick={handleBillingPortal} className="btn btn-secondary" style={{ fontSize: 12, padding: "6px 16px" }}>
-            إدارة وسائل الدفع
-          </button>
         </div>
       </div>
 

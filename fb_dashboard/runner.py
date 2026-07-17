@@ -556,7 +556,7 @@ async def get_subscription(current_user: User = Depends(get_current_user), db=De
 
 
 @app.post("/api/tenant/checkout")
-async def create_checkout(
+async def activate_plan(
     data: dict = Body(...),
     current_user: User = Depends(get_current_user),
     db=Depends(get_db),
@@ -564,56 +564,16 @@ async def create_checkout(
     if not current_user.tenant_id:
         raise HTTPException(400, "No tenant associated")
     plan_id = data.get("plan_id")
-    interval = data.get("interval", "monthly")
     plan = await db.get(SubscriptionPlan, plan_id)
     if not plan:
         raise HTTPException(404, "Plan not found")
     tenant = await db.get(Tenant, current_user.tenant_id)
-    if not settings.STRIPE_SECRET_KEY:
-        # ponytail: mock checkout when Stripe not configured — mark as active directly
-        tenant.subscription_plan_id = plan_id
-        tenant.subscription_status = "active"
-        tenant.subscription_started_at = utcnow()
-        tenant.subscription_ends_at = utcnow() + timedelta(days=30 if interval == "monthly" else 365)
-        await db.commit()
-        return {"url": "", "mock": True, "message": "تم تفعيل الاشتراك (وضع تجريبي)"}
-    import stripe as stripe_lib
-    stripe_lib.api_key = settings.STRIPE_SECRET_KEY
-    price_id = plan.stripe_price_id_monthly if interval == "monthly" else plan.stripe_price_id_yearly
-    if not tenant.stripe_customer_id:
-        customer = stripe_lib.Customer.create(
-            email=tenant.contact_email or current_user.username,
-            metadata={"tenant_id": str(tenant.id)},
-        )
-        tenant.stripe_customer_id = customer.id
-        await db.commit()
-    checkout = stripe_lib.checkout.Session.create(
-        customer=tenant.stripe_customer_id,
-        mode="subscription",
-        line_items=[{"price": price_id, "quantity": 1}],
-        success_url="https://api.smart-link.ly/billing?success=1",
-        cancel_url="https://api.smart-link.ly/billing?canceled=1",
-        metadata={"tenant_id": str(tenant.id), "plan_id": str(plan_id)},
-    )
-    return {"url": checkout.url, "session_id": checkout.id}
-
-
-@app.post("/api/tenant/billing-portal")
-async def billing_portal(
-    current_user: User = Depends(get_current_user), db=Depends(get_db),
-):
-    if not current_user.tenant_id:
-        raise HTTPException(400, "No tenant associated")
-    tenant = await db.get(Tenant, current_user.tenant_id)
-    if not tenant or not tenant.stripe_customer_id or not settings.STRIPE_SECRET_KEY:
-        return {"url": ""}
-    import stripe as stripe_lib
-    stripe_lib.api_key = settings.STRIPE_SECRET_KEY
-    session = stripe_lib.billing_portal.Session.create(
-        customer=tenant.stripe_customer_id,
-        return_url="https://api.smart-link.ly/billing",
-    )
-    return {"url": session.url}
+    tenant.subscription_plan_id = plan_id
+    tenant.subscription_status = "active"
+    tenant.subscription_started_at = utcnow()
+    tenant.subscription_ends_at = utcnow() + timedelta(days=30)
+    await db.commit()
+    return {"ok": True, "message": f"تم تفعيل خطة {plan.name} بنجاح ✅"}
 
 
 @app.get("/api/tenant/payments")
@@ -629,58 +589,8 @@ async def payment_history(
     return [{
         "id": p.id, "amount": p.amount, "currency": p.currency,
         "interval": p.interval, "status": p.status,
-        "receipt_url": p.receipt_url,
         "created_at": p.created_at.isoformat() if p.created_at else None,
     } for p in rows.scalars().all()]
-
-
-@app.post("/api/stripe/webhook")
-async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig = request.headers.get("stripe-signature", "")
-    if settings.STRIPE_WEBHOOK_SECRET and settings.STRIPE_SECRET_KEY:
-        import stripe as stripe_lib
-        stripe_lib.api_key = settings.STRIPE_SECRET_KEY
-        try:
-            event = stripe_lib.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
-        except stripe_lib.error.SignatureVerificationError:
-            raise HTTPException(400, "Invalid signature")
-    else:
-        # ponytail: no webhook secret — parse raw for development
-        event = json.loads(payload)
-    if event.get("type") == "checkout.session.completed":
-        sess = event["data"]["object"]
-        tenant_id = int(sess.get("metadata", {}).get("tenant_id", 0))
-        plan_id = int(sess.get("metadata", {}).get("plan_id", 0))
-        if tenant_id:
-            async with AsyncSessionLocal() as s:
-                tenant = await s.get(Tenant, tenant_id)
-                if tenant:
-                    tenant.subscription_status = "active"
-                    tenant.subscription_plan_id = plan_id or tenant.subscription_plan_id
-                    tenant.subscription_started_at = utcnow()
-                    tenant.subscription_ends_at = utcnow() + timedelta(days=30)
-                    await s.commit()
-                pmt = Payment(
-                    tenant_id=tenant_id, plan_id=plan_id,
-                    amount=sess.get("amount_total", 0) or 0,
-                    stripe_payment_intent_id=sess.get("payment_intent", "") or "",
-                    stripe_invoice_id=sess.get("invoice", "") or "",
-                    status="completed",
-                    receipt_url=sess.get("receipt_url", "") or "",
-                )
-                s.add(pmt)
-                await s.commit()
-    elif event.get("type") == "invoice.payment_failed":
-        cust_id = event["data"]["object"].get("customer", "")
-        async with AsyncSessionLocal() as s:
-            tenant = await s.execute(select(Tenant).where(Tenant.stripe_customer_id == cust_id))
-            tenant = tenant.scalar_one_or_none()
-            if tenant:
-                tenant.subscription_status = "past_due"
-                await s.commit()
-    return {"ok": True}
-
 
 
 @app.get("/api/facebook/settings")

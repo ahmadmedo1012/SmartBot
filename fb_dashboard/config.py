@@ -13,9 +13,6 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_PUBLISHABLE_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
 
     @property
     def async_database_url(self) -> str:

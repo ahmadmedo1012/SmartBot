@@ -297,12 +297,8 @@ export function fetchSubscription() {
   return api("/api/tenant/subscription");
 }
 
-export function createCheckoutSession(planId, interval) {
-  return api("/api/tenant/checkout", { method: "POST", body: JSON.stringify({ plan_id: planId, interval: interval }) });
-}
-
-export function fetchBillingPortal() {
-  return api("/api/tenant/billing-portal", { method: "POST" });
+export function createCheckoutSession(planId) {
+  return api("/api/tenant/checkout", { method: "POST", body: JSON.stringify({ plan_id: planId }) });
 }
 
 export function fetchPaymentHistory() {

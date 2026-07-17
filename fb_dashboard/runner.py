@@ -6,38 +6,31 @@ import hmac
 import json
 import logging
 import os
-import re
-import secrets
 from datetime import datetime, timedelta
 from _utils import utcnow
 from pathlib import Path
 from contextlib import asynccontextmanager
-# ponytail: Any unused but preserved for type annotation patterns
 
 import jwt
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, Form, Body, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Depends, Query, HTTPException, Body, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, desc, cast, Date, text, or_, update
+from sqlalchemy import select, func, cast, Date, update
 
-from _lazy import lazy
-from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, send_message, edit_keyboard, edit_message, answer_callback
+from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, edit_keyboard, edit_message, answer_callback
 
 from config import settings
-from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote, BlacklistedToken
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
-from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
-from models import SubscriptionPlan, SubscriptionPayment, UsageCounter, SystemConfig
+from database import engine, AsyncSessionLocal
+from models import Base, Rule, Reply, BotState, Tenant, User, BlacklistedToken
+from models import AnalyticsEvent, SubscriptionPlan, SubscriptionPayment, PaymentRequest, UsageCounter
 from bot import BotEngine
 from ws_manager import ws_manager
 from event_bus import event_bus
 from logs_api import logs_router
-from _crypto import encrypt_token, decrypt_token
 from routers import auth as auth_router
 from routers import payments as payments_router
 from routers import users as users_router
@@ -72,8 +65,6 @@ from routers import templates_routes as templates_router
 from routers import widgets_routes as widgets_router
 
 # Lazy AI import — single source of truth in _services.py
-from _services import get_ai
-
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")
 
@@ -469,20 +460,12 @@ async def _run_bot_loop():
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
 
 
-# Bot engine — single source of truth in _services.py
 from _services import get_bot_engine, get_tenant_fb_client
 
 
 
-# ponytail: /api/pricing removed — dead endpoint, hardcoded plans in landing.jsx
-
-
-# Extracted to routers/payments.py
-
 
 # ── Telegram Payment Webhook ────────────────────────────────────────────
-
-
 _TG_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
 _ALLOW_UNVERIFIED = os.getenv("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true"
 
@@ -603,7 +586,6 @@ _spa_html: str | None = None
 _spa_mtime: float = 0
 
 def _get_spa() -> str:
-    """Cached SPA HTML — re-reads only if file mtime changes (deploy = new build)."""
     global _spa_html, _spa_mtime
     static_index = STATIC_DIR / "index.html"
     html_path = TEMPLATES_DIR / "index.html"
@@ -643,22 +625,6 @@ async def static_cache_middleware(request: Request, call_next):
     return response
 
 
-# Protected by get_current_user — roles enforced in frontend hiding (DELETE/POST require editor+)
-
-# Extracted to routers/rules.py
-
-# Extracted to routers/replies.py
-
-# Extracted to routers/bot.py
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# :: PROFESSIONAL FEATURES ::
-# ═══════════════════════════════════════════════════════════════════════════════
-
-# Extracted to routers/ai.py
-
-# Extracted to routers/inbox.py
 
 
 # ── WebSocket Real-Time Updates ─────────────────────────────────────────────
@@ -773,7 +739,7 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
     return
 
 
-WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
+WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
 WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
 
 
@@ -864,19 +830,6 @@ async def _process_webhook_comment(comment: dict, post_id: str):
         _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# :: SMART ARMY FEATURES ::
-# ═══════════════════════════════════════════════════════════════════════════════
-
-# Extracted to routers/flows.py
-
-# Extracted to routers/sequences.py
-
-# Extracted to routers/broadcasts.py
-
-# Extracted to routers/inbox.py
 
 
 # ── SPA catch-all: serve index.html for any unmatched browser route ──────────

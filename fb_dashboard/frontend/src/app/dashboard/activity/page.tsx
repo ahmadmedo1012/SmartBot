@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Activity } from "lucide-react"
+import { Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 
 export default function ActivityPage() {
-  const { data: logs = [], isLoading } = useQuery({
+  const { data: logs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["activity-logs"],
     queryFn: () => apiFetch("/api/logs?limit=100").then(r => r.json()),
     refetchInterval: 15000,
@@ -31,7 +32,13 @@ export default function ActivityPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <Card>
           <CardContent className="p-0">
-            {isLoading ? (
+            {isError ? (
+              <div className="p-8 text-center">
+                <AlertCircle className="size-8 mx-auto mb-2 text-red-500/50" />
+                <p className="text-sm text-muted-foreground mb-3">فشل تحميل النشاطات</p>
+                <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+              </div>
+            ) : isLoading ? (
               <div className="p-4 space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-8 bg-muted rounded animate-pulse" />)}</div>
             ) : logItems.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">لا توجد نشاطات بعد</div>

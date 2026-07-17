@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { CalendarDays } from "lucide-react"
+import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 export default function CalendarPage() {
   const now = new Date()
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: posts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["calendar", now.getFullYear(), now.getMonth() + 1],
     queryFn: () => apiFetch(`/api/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`).then(r => r.json()),
     refetchInterval: 60000,
@@ -30,7 +31,13 @@ export default function CalendarPage() {
         <Card>
           <CardContent className="p-4">
             <h3 className="font-bold text-sm mb-3">{now.toLocaleDateString("ar-LY", { year: "numeric", month: "long" })}</h3>
-            {isLoading ? (
+            {isError ? (
+              <div className="text-center py-8">
+                <AlertCircle className="size-8 mx-auto mb-2 text-red-500/50" />
+                <p className="text-sm text-muted-foreground mb-3">فشل تحميل التقويم</p>
+                <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+              </div>
+            ) : isLoading ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}</div>
             ) : posts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">لا توجد منشورات في هذا الشهر</p>

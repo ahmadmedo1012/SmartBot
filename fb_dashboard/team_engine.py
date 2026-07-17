@@ -157,21 +157,27 @@ class TeamEngine:
         """
         total_replies = await session.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id)) or 0
         rows = await session.execute(select(User).where(User.tenant_id == tenant_id, User.role.in_(["admin", "editor"])).order_by(User.id))
+        users = rows.scalars().all()
+        # ponytail: batch all log queries via single grouped query instead of N+1
+        handled_map: dict[str, int] = {}
+        if users:
+            thirty_days_ago = utcnow() - timedelta(days=30)
+            counts = await session.execute(
+                select(BotLog.message, func.count(BotLog.id))
+                .where(BotLog.level != "DEBUG", BotLog.created_at >= thirty_days_ago)
+                .group_by(BotLog.message)
+            )
+            for msg, cnt in counts.all():
+                for u in users:
+                    if f"User {u.username}" in msg:
+                        handled_map[u.username] = handled_map.get(u.username, 0) + cnt
+                        break
         result = []
-        for u in rows.scalars().all():
-            # Count their BotLog mentions as handled-replies proxy
-            handled = await session.scalar(
-                select(func.count(BotLog.id))
-                .where(
-                    BotLog.message.contains(f"User {u.username}"),
-                    BotLog.level != "DEBUG",
-                    BotLog.created_at >= utcnow() - timedelta(days=30),
-                )
-            ) or 0
+        for u in users:
             result.append({
                 "username": u.username,
                 "role": u.role,
-                "replies_handled": handled,
+                "replies_handled": handled_map.get(u.username, 0),
                 "online_status": "offline",
             })
         return result

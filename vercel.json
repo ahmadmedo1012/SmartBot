@@ -24,10 +24,10 @@
   ],
   "pythonVersion": "3.12",
   "functions": {
-    "api/index.py": {
+    "api/*.py": {
       "maxDuration": 30,
       "memory": 512,
-      "excludeFiles": "{__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png,alembic/**}"
+      "excludeFiles": "{__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
     }
   }
 }

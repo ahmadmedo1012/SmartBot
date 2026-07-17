@@ -290,7 +290,10 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
             await _seed_dm_templates(session)
-            await _seed_subscription_plans(session)
+            try:
+                await _seed_subscription_plans(session)
+            except Exception as e:
+                log.warning(f"Seed plans skipped (non-fatal): {e}")
 
         # Bot runs via background loop locally, Vercel Cron on serverless
         if settings.START_BOT and not _IS_VERCEL:
@@ -496,17 +499,21 @@ async def register(
 
 @app.get("/api/plans")
 async def list_plans(db=Depends(get_db)):
-    rows = await db.execute(
-        select(SubscriptionPlan).where(SubscriptionPlan.is_public == True).order_by(SubscriptionPlan.sort_order)
-    )
-    return [{
-        "id": p.id, "name": p.name, "description": p.description,
-        "price_monthly": p.price_monthly, "price_yearly": p.price_yearly,
-        "stripe_price_id_monthly": p.stripe_price_id_monthly,
-        "stripe_price_id_yearly": p.stripe_price_id_yearly,
-        "max_replies": p.max_replies, "max_rules": p.max_rules, "max_users": p.max_users,
-        "features": p.features or [],
-    } for p in rows.scalars().all()]
+    try:
+        rows = await db.execute(
+            select(SubscriptionPlan).where(SubscriptionPlan.is_public == True).order_by(SubscriptionPlan.sort_order)
+        )
+        return [{
+            "id": p.id, "name": p.name, "description": p.description,
+            "price_monthly": p.price_monthly, "price_yearly": p.price_yearly,
+            "stripe_price_id_monthly": p.stripe_price_id_monthly,
+            "stripe_price_id_yearly": p.stripe_price_id_yearly,
+            "max_replies": p.max_replies, "max_rules": p.max_rules, "max_users": p.max_users,
+            "features": p.features or [],
+        } for p in rows.scalars().all()]
+    except Exception as e:
+        log.error(f"/api/plans error: {e}", exc_info=True)
+        raise HTTPException(500, str(e)[:200])
 
 
 @app.get("/api/tenant/subscription")

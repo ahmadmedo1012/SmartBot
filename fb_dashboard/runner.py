@@ -3185,5 +3185,9 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), _=Depends(require_rol
 # ── SPA catch-all: must be LAST — serves index.html for all non-API routes ──────
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def spa_fallback(full_path: str, request: Request):
-    """Catch-all for React Router: /login, /dashboard/*, /connect, etc. → index.html."""
+    """Catch-all for React Router: /login, /dashboard/*, /connect, etc. → index.html.
+    Any /api/* path not matched above returns 404 (not HTML).
+    """
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
     return _serve_spa()

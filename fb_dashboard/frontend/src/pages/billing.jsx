@@ -102,12 +102,8 @@ export function Billing() {
     setSelecting(planId)
     try {
       const result = await createCheckoutSession(planId)
-      if (result.url) {
-        window.location.href = result.url
-      } else if (result.mock) {
-        alert(result.message || "تم تفعيل الاشتراك بنجاح ✅")
-        window.location.reload()
-      }
+      alert(result.message || "تم تفعيل الاشتراك بنجاح ✅")
+      window.location.reload()
     } catch (err) {
       alert("فشل تفعيل الاشتراك: " + err.message)
     } finally {

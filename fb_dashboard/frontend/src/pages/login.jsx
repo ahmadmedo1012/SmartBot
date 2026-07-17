@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { login } from "@/lib/api"
 
-function AnimatedBg() {
+export function AnimatedBg() {
   return (
     <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <div className="absolute inset-0 opacity-[0.03]"
@@ -16,7 +16,7 @@ function AnimatedBg() {
   )
 }
 
-function AnimatedGradientBorder({ children }) {
+export function AnimatedGradientBorder({ children }) {
   return (
     <div className="relative group">
       <div className="absolute -inset-[1px] rounded-2xl opacity-75 group-hover:opacity-100 transition-opacity duration-700"
@@ -164,6 +164,14 @@ export function Login({ onAuth }) {
                 ) : "تسجيل الدخول"}
               </button>
             </form>
+
+            <p className="login-fade-in text-center" style={{ fontSize: "13px", marginTop: 20, color: "var(--muted)" }}>
+              ليس لديك حساب؟{" "}
+              <a href="/register" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}
+                onClick={(e) => { e.preventDefault(); window.location.href = "/register"; }}>
+                إنشاء حساب جديد
+              </a>
+            </p>
           </div>
         </AnimatedGradientBorder>
 

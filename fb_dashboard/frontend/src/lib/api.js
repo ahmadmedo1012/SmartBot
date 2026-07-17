@@ -271,12 +271,42 @@ export function login(username, password) {
   return api("/api/login", { method: "POST", body: fd });
 }
 
+export function register(username, password, email = "", companyName = "") {
+  const fd = new FormData();
+  fd.append("username", username);
+  fd.append("password", password);
+  if (email) fd.append("email", email);
+  if (companyName) fd.append("company_name", companyName);
+  return api("/api/register", { method: "POST", body: fd });
+}
+
 export function logout() {
   return api("/api/logout", { method: "POST" });
 }
 
 export function fetchMe() {
   return api("/api/me");
+}
+
+// ---- Registration & Subscription ----
+export function fetchPlans() {
+  return api("/api/plans");
+}
+
+export function fetchSubscription() {
+  return api("/api/tenant/subscription");
+}
+
+export function createCheckoutSession(planId, interval) {
+  return api("/api/tenant/checkout", { method: "POST", body: JSON.stringify({ plan_id: planId, interval: interval }) });
+}
+
+export function fetchBillingPortal() {
+  return api("/api/tenant/billing-portal", { method: "POST" });
+}
+
+export function fetchPaymentHistory() {
+  return api("/api/tenant/payments");
 }
 
 // ---- Users ----

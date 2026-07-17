@@ -25,7 +25,7 @@ from api_cache import APICache
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote
+from models import Base, Rule, Reply, BotLog, BotState, User, ConversationNote, Tenant, SubscriptionPlan, Payment
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer
 from fb_client import FBClient
 from bot import BotEngine, IntentAwareMatcher
@@ -217,6 +217,47 @@ async def _seed_dm_templates(db):
     log.info("DM templates seeded from JSON")
 
 
+async def _seed_subscription_plans(db):
+    """Seed default subscription plans if none exist."""
+    count = await db.scalar(select(func.count(SubscriptionPlan.id))) or 0
+    if count > 0:
+        return
+    plans = [
+        SubscriptionPlan(name="مجاني", description="بوت ردود تلقائي لصفحة فيسبوك واحدة",
+                         price_monthly=0, price_yearly=0,
+                         max_replies=100, max_rules=3, max_users=1, max_sequences=0,
+                         features=["ردود تلقائية", "قواعد رد (3)", "100 رد/شهر", "لوحة تحكم أساسية"],
+                         sort_order=1),
+        SubscriptionPlan(name="المبتدئ", description="لمزيد من التحكم والردود",
+                         price_monthly=1999, price_yearly=19990,
+                         stripe_price_id_monthly="", stripe_price_id_yearly="",
+                         max_replies=500, max_rules=10, max_users=2, max_sequences=1,
+                         features=["ردود تلقائية ذكية", "قواعد رد (10)", "500 رد/شهر",
+                                   "لوحة تحكم كاملة", "التسلسلات البريدية", "دعم فني"],
+                         sort_order=2),
+        SubscriptionPlan(name="المحترف", description="لمتطلبات الأعمال المتقدمة",
+                         price_monthly=4999, price_yearly=49990,
+                         stripe_price_id_monthly="", stripe_price_id_yearly="",
+                         max_replies=3000, max_rules=50, max_users=5, max_sequences=5,
+                         features=["ردود ذكية بالذكاء الاصطناعي", "قواعد رد غير محدودة",
+                                   "3000 رد/شهر", "تحليلات متقدمة", "بث جماعي",
+                                   "فريق متعدد", "تقارير PDF", "إعدادات مخصصة", "دعم فني أولوية"],
+                         sort_order=3),
+        SubscriptionPlan(name="المؤسسات", description="حلول متكاملة للشركات الكبرى",
+                         price_monthly=14999, price_yearly=149990,
+                         stripe_price_id_monthly="", stripe_price_id_yearly="",
+                         max_replies=0, max_rules=999, max_users=20, max_sequences=999,
+                         features=["غير محدود ردود", "غير محدود قواعد", "غير محدود تسلسلات",
+                                   "صفحات متعددة", "فريق غير محدود", "CRM متكامل",
+                                   "تكامل التجارة الإلكترونية", "مدير حساب مخصص", "دعم VIP"],
+                         sort_order=4),
+    ]
+    for plan in plans:
+        db.add(plan)
+    await db.commit()
+    log.info(f"Seeded {len(plans)} subscription plans")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -243,6 +284,7 @@ async def lifespan(app: FastAPI):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
             await _seed_dm_templates(session)
+            await _seed_subscription_plans(session)
 
         # Bot runs via background loop locally, Vercel Cron on serverless
         if settings.START_BOT and not _IS_VERCEL:
@@ -416,6 +458,197 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
         raise HTTPException(400, "Cannot delete yourself")
     await db.delete(user)
     await db.commit()
+    return {"ok": True}
+
+
+# ── Tenant / Registration / Subscription / Billing ─────────────────────────
+
+
+@app.post("/api/register")
+async def register(
+    username: str = Form(...), password: str = Form(...),
+    email: str = Form(""), company_name: str = Form(""),
+    db=Depends(get_db),
+):
+    if len(password) < 6:
+        raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    existing = await db.execute(select(User).where(User.username == username))
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, "اسم المستخدم موجود بالفعل")
+    # Create tenant + user in transaction
+    tenant = Tenant(company_name=company_name or "", contact_email=email,
+                    subscription_status="trial")
+    db.add(tenant)
+    await db.flush()
+    pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = User(tenant_id=tenant.id, username=username, password_hash=pw_hash, role="tenant_admin")
+    db.add(user)
+    await db.commit()
+    log.info(f"Registered tenant={tenant.id} user={username}")
+    return {"ok": True, "tenant_id": tenant.id}
+
+
+@app.get("/api/plans")
+async def list_plans(db=Depends(get_db)):
+    rows = await db.execute(
+        select(SubscriptionPlan).where(SubscriptionPlan.is_public == True).order_by(SubscriptionPlan.sort_order)
+    )
+    return [{
+        "id": p.id, "name": p.name, "description": p.description,
+        "price_monthly": p.price_monthly, "price_yearly": p.price_yearly,
+        "stripe_price_id_monthly": p.stripe_price_id_monthly,
+        "stripe_price_id_yearly": p.stripe_price_id_yearly,
+        "max_replies": p.max_replies, "max_rules": p.max_rules, "max_users": p.max_users,
+        "features": p.features or [],
+    } for p in rows.scalars().all()]
+
+
+@app.get("/api/tenant/subscription")
+async def get_subscription(current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    if not current_user.tenant_id:
+        raise HTTPException(400, "No tenant associated")
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant not found")
+    plan = None
+    if tenant.subscription_plan_id:
+        plan_row = await db.get(SubscriptionPlan, tenant.subscription_plan_id)
+        if plan_row:
+            plan = {"id": plan_row.id, "name": plan_row.name}
+    return {
+        "tenant_id": tenant.id,
+        "company_name": tenant.company_name,
+        "subscription_status": tenant.subscription_status,
+        "plan": plan,
+        "started_at": tenant.subscription_started_at.isoformat() if tenant.subscription_started_at else None,
+        "ends_at": tenant.subscription_ends_at.isoformat() if tenant.subscription_ends_at else None,
+    }
+
+
+@app.post("/api/tenant/checkout")
+async def create_checkout(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    if not current_user.tenant_id:
+        raise HTTPException(400, "No tenant associated")
+    plan_id = data.get("plan_id")
+    interval = data.get("interval", "monthly")
+    plan = await db.get(SubscriptionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not settings.STRIPE_SECRET_KEY:
+        # ponytail: mock checkout when Stripe not configured — mark as active directly
+        tenant.subscription_plan_id = plan_id
+        tenant.subscription_status = "active"
+        tenant.subscription_started_at = utcnow()
+        tenant.subscription_ends_at = utcnow() + timedelta(days=30 if interval == "monthly" else 365)
+        await db.commit()
+        return {"url": "", "mock": True, "message": "تم تفعيل الاشتراك (وضع تجريبي)"}
+    import stripe as stripe_lib
+    stripe_lib.api_key = settings.STRIPE_SECRET_KEY
+    price_id = plan.stripe_price_id_monthly if interval == "monthly" else plan.stripe_price_id_yearly
+    if not tenant.stripe_customer_id:
+        customer = stripe_lib.Customer.create(
+            email=tenant.contact_email or current_user.username,
+            metadata={"tenant_id": str(tenant.id)},
+        )
+        tenant.stripe_customer_id = customer.id
+        await db.commit()
+    checkout = stripe_lib.checkout.Session.create(
+        customer=tenant.stripe_customer_id,
+        mode="subscription",
+        line_items=[{"price": price_id, "quantity": 1}],
+        success_url="https://api.smart-link.ly/billing?success=1",
+        cancel_url="https://api.smart-link.ly/billing?canceled=1",
+        metadata={"tenant_id": str(tenant.id), "plan_id": str(plan_id)},
+    )
+    return {"url": checkout.url, "session_id": checkout.id}
+
+
+@app.post("/api/tenant/billing-portal")
+async def billing_portal(
+    current_user: User = Depends(get_current_user), db=Depends(get_db),
+):
+    if not current_user.tenant_id:
+        raise HTTPException(400, "No tenant associated")
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not tenant or not tenant.stripe_customer_id or not settings.STRIPE_SECRET_KEY:
+        return {"url": ""}
+    import stripe as stripe_lib
+    stripe_lib.api_key = settings.STRIPE_SECRET_KEY
+    session = stripe_lib.billing_portal.Session.create(
+        customer=tenant.stripe_customer_id,
+        return_url="https://api.smart-link.ly/billing",
+    )
+    return {"url": session.url}
+
+
+@app.get("/api/tenant/payments")
+async def payment_history(
+    current_user: User = Depends(get_current_user), db=Depends(get_db),
+):
+    if not current_user.tenant_id:
+        return []
+    rows = await db.execute(
+        select(Payment).where(Payment.tenant_id == current_user.tenant_id)
+        .order_by(Payment.created_at.desc()).limit(20)
+    )
+    return [{
+        "id": p.id, "amount": p.amount, "currency": p.currency,
+        "interval": p.interval, "status": p.status,
+        "receipt_url": p.receipt_url,
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+    } for p in rows.scalars().all()]
+
+
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    if settings.STRIPE_WEBHOOK_SECRET and settings.STRIPE_SECRET_KEY:
+        import stripe as stripe_lib
+        stripe_lib.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            event = stripe_lib.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
+        except stripe_lib.error.SignatureVerificationError:
+            raise HTTPException(400, "Invalid signature")
+    else:
+        # ponytail: no webhook secret — parse raw for development
+        event = json.loads(payload)
+    if event.get("type") == "checkout.session.completed":
+        sess = event["data"]["object"]
+        tenant_id = int(sess.get("metadata", {}).get("tenant_id", 0))
+        plan_id = int(sess.get("metadata", {}).get("plan_id", 0))
+        if tenant_id:
+            async with AsyncSessionLocal() as s:
+                tenant = await s.get(Tenant, tenant_id)
+                if tenant:
+                    tenant.subscription_status = "active"
+                    tenant.subscription_plan_id = plan_id or tenant.subscription_plan_id
+                    tenant.subscription_started_at = utcnow()
+                    tenant.subscription_ends_at = utcnow() + timedelta(days=30)
+                    await s.commit()
+                pmt = Payment(
+                    tenant_id=tenant_id, plan_id=plan_id,
+                    amount=sess.get("amount_total", 0) or 0,
+                    stripe_payment_intent_id=sess.get("payment_intent", "") or "",
+                    stripe_invoice_id=sess.get("invoice", "") or "",
+                    status="completed",
+                    receipt_url=sess.get("receipt_url", "") or "",
+                )
+                s.add(pmt)
+                await s.commit()
+    elif event.get("type") == "invoice.payment_failed":
+        cust_id = event["data"]["object"].get("customer", "")
+        async with AsyncSessionLocal() as s:
+            tenant = await s.execute(select(Tenant).where(Tenant.stripe_customer_id == cust_id))
+            tenant = tenant.scalar_one_or_none()
+            if tenant:
+                tenant.subscription_status = "past_due"
+                await s.commit()
     return {"ok": True}
 
 

@@ -9,7 +9,7 @@ import { RefreshProvider } from "@/hooks/use-refresh-engine"
 import { fetchMe, logout as apiLogout } from "@/lib/api"
 import { Dashboard } from "@/pages/dashboard"
 
-const PAGES_GLOB = import.meta.glob("./pages/[a-cef-z]*.jsx", { eager: false })
+const PAGES_GLOB = import.meta.glob("./pages/[abcef-z]*.jsx", { eager: false })
 // ponytail: dashboard excluded from glob — statically imported as default fallback
 const EXPORT_OVERRIDES = { scheduled: "ScheduledPosts", calendar: "ContentCalendar" }
 
@@ -109,6 +109,15 @@ function AppInner() {
 
   if (!auth) {
     const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/'
+    if (currentPath === '/register') {
+      const Register = lazy(() => import("@/pages/register").then(m => ({ default: m.Register })))
+      return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+          <Register />
+        </Suspense>
+      )
+    }
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
         <Login onAuth={handleLogin} />

@@ -57,9 +57,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=True)  # NULL for super-admin
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), default="viewer")  # admin, editor, viewer
+    role = Column(String(20), default="viewer")  # admin, editor, viewer, tenant_admin
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -423,4 +424,66 @@ class ReportSchedule(Base):
     enabled = Column(Boolean, default=True)
     schedule = Column(String(50), default="monthly")  # daily, weekly, monthly
     last_sent = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+# ── TENANT / SUBSCRIPTION / PAYMENT ──────────────────────────────────────────
+
+
+class Tenant(Base):
+    """A customer account (multi-tenant support)."""
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    company_name = Column(String(200), default="")
+    contact_email = Column(String(200), default="")
+    contact_phone = Column(String(50), default="")
+    stripe_customer_id = Column(String(100), default="", unique=True)
+    subscription_status = Column(String(20), default="trial")  # trial, active, past_due, canceled, expired
+    subscription_plan_id = Column(Integer, nullable=True)
+    subscription_started_at = Column(DateTime, nullable=True)
+    subscription_ends_at = Column(DateTime, nullable=True)
+    fb_page_id = Column(String(100), default="")
+    fb_access_token = Column(String(500), default="")
+    is_active = Column(Boolean, default=True)
+    settings_json = Column(Text, default="{}")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class SubscriptionPlan(Base):
+    """Available subscription plans."""
+    __tablename__ = "subscription_plans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, default="")
+    price_monthly = Column(Integer, default=0)  # price in cents
+    price_yearly = Column(Integer, default=0)
+    stripe_price_id_monthly = Column(String(100), default="")
+    stripe_price_id_yearly = Column(String(100), default="")
+    max_replies = Column(Integer, default=0)  # 0 = unlimited
+    max_rules = Column(Integer, default=10)
+    max_users = Column(Integer, default=1)
+    max_sequences = Column(Integer, default=0)
+    features = Column(JSON, default=list)
+    is_public = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class Payment(Base):
+    """Payment transaction record."""
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, index=True)
+    plan_id = Column(Integer, nullable=True)
+    amount = Column(Integer, nullable=False)  # cents
+    currency = Column(String(3), default="usd")
+    interval = Column(String(10), default="monthly")  # monthly, yearly
+    stripe_payment_intent_id = Column(String(100), default="")
+    stripe_invoice_id = Column(String(100), default="")
+    status = Column(String(20), default="pending")  # pending, completed, failed, refunded
+    receipt_url = Column(String(500), default="")
     created_at = Column(DateTime, default=utcnow)

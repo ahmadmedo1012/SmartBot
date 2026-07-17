@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
 
     @property
     def async_database_url(self) -> str:
@@ -33,7 +36,3 @@ settings = Settings()
 # ponytail: fail-fast — refuse default SECRET_KEY in production
 if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
     raise RuntimeError("CRITICAL: SECRET_KEY is the default — set SECRET_KEY env var for production")
-
-# ponytail: CRON_SECRET required in production (non-DEBUG)
-if not settings.DEBUG and not os.environ.get("CRON_SECRET"):
-    raise RuntimeError("CRITICAL: CRON_SECRET env var is required in production")

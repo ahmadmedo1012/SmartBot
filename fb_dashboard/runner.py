@@ -218,10 +218,9 @@ async def _seed_dm_templates(db):
 
 
 async def _seed_subscription_plans(db):
-    """Seed default subscription plans if none exist."""
-    count = await db.scalar(select(func.count(SubscriptionPlan.id))) or 0
-    if count > 0:
-        return
+    """Always clear and reseed subscription plans to fix stale data."""
+    # Always clear and reseed to fix stale plans
+    await db.execute(SubscriptionPlan.__table__.delete())
     plans = [
         SubscriptionPlan(name="مجاني", description="بوت ردود تلقائي لصفحة فيسبوك واحدة",
                          price_monthly=0, price_yearly=0,

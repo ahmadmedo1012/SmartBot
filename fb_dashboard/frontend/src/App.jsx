@@ -71,6 +71,15 @@ function AppInner() {
       .finally(() => setAuthLoading(false))
   }, [])
 
+  // Sync page to current URL path when user is authenticated
+  useEffect(() => {
+    if (!auth) return
+    const p = window.location.pathname.replace(/^\//, '') || 'dashboard'
+    if (p !== 'login' && p !== 'register' && pages[p] && p !== page) {
+      setPage(p)
+    }
+  }, [auth])
+
   useEffect(() => {
     document.querySelector(".content")?.scrollTo({ top: 0 })
   }, [page])

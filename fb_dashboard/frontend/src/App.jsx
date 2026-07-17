@@ -117,16 +117,36 @@ function AppInner() {
   }
 
   if (!auth) {
-    const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/'
-    if (currentPath === '/register') {
-      const Register = lazy(() => import("@/pages/register").then(m => ({ default: m.Register })))
+    const publicPages = { register: true, pricing: true, subscribe: true, demo: true }
+    const pageKey = currentPath.replace(/^\//, '') || ''
+
+    if (publicPages[pageKey]) {
+      const pageLoaders = {
+        register: () => import("@/pages/register").then(m => ({ default: m.Register })),
+        pricing: () => import("@/pages/pricing").then(m => ({ default: m.Pricing })),
+        subscribe: () => import("@/pages/subscribe").then(m => ({ default: m.Subscribe })),
+        demo: () => import("@/pages/demo").then(m => ({ default: m.Demo })),
+      }
+      const PageComp = lazy(pageLoaders[pageKey])
       return (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
-          <Register />
+          <PageComp />
         </Suspense>
       )
     }
+
+    // Landing page at root, login page for /login
+    if (currentPath === '/' || currentPath === '' || currentPath === '/landing') {
+      const Landing = lazy(() => import("@/pages/landing").then(m => ({ default: m.Landing })))
+      return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
+          <Landing />
+        </Suspense>
+      )
+    }
+
+    const Login = lazy(() => import("@/pages/login").then(m => ({ default: m.Login })))
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg)]"><div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>}>
         <Login onAuth={handleLogin} />

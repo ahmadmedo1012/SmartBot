@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   icons: { icon: "/static/brand-icon.png", apple: "/static/brand-icon.png" },
   openGraph: {
     type: "website", locale: "ar_LY", siteName: "SmartBot",
+    images: [{ url: "/static/brand-icon.png", width: 512, height: 512 }],
   },
   robots: { index: true, follow: true },
   alternates: { canonical: `${siteUrl}/` },

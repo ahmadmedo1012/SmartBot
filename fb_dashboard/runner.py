@@ -574,13 +574,6 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
     return {"ok": True}
 
 
-# Extracted to routers/payments.py
-
-# Extracted to routers/users.py
-
-# Extracted to routers/diagnostics.py
-
-
 # ── SPA index.html: cached in memory, refreshed on VERSION change ──
 _spa_html: str | None = None
 _spa_mtime: float = 0
@@ -721,22 +714,8 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
-# ── Analytics Events (internal) ──────────────────────────────────────────────
-
-def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int = 0):
-    """Async-fire AnalyticsEvent (non-blocking)."""
-    async def _write():
-        try:
-            async with AsyncSessionLocal() as s:
-                ev = AnalyticsEvent(event_type=event_type, metadata_json=json.dumps(metadata or {}, ensure_ascii=False))
-                if tenant_id:
-                    ev.tenant_id = tenant_id
-                s.add(ev)
-                await s.commit()
-        except Exception:
-            pass
-    asyncio.create_task(_write())
-    return
+# ── Analytics Events (internal) — shared from _services to avoid duplication
+from _services import _track_event
 
 
 WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")

@@ -1,33 +1,22 @@
 """Shared state & helpers extracted from runner.py for router modules."""
 from __future__ import annotations
 import asyncio
-import hashlib
-import hmac
 import json
 import logging
 import os
-import secrets
 from datetime import datetime, timedelta
-from pathlib import Path
 
-import jwt
-from sqlalchemy import select, func, desc, cast, Date, text
+from sqlalchemy import select, func
 
 from _utils import utcnow
 from _lazy import lazy
 from config import settings
-from database import engine, AsyncSessionLocal
+from database import AsyncSessionLocal
 from bot import BotEngine
-from ws_manager import ws_manager
-from event_bus import event_bus
-from _crypto import encrypt_token, decrypt_token
+from _crypto import decrypt_token
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")
-
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
-_IS_VERCEL = bool(os.getenv("VERCEL"))
 
 _post_cursors: dict[int, str] = {}
 
@@ -138,5 +127,5 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
     return
 
 # Webhook constants
-WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
+WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
 WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")

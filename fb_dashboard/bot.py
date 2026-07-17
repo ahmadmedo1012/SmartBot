@@ -32,17 +32,20 @@ from models import Tenant, SubscriptionPlan, UsageCounter
 from fb_client import FBClient
 from config import settings
 
-# ── Lazy imports for new modules (graceful if not yet installed) ──
+# ── Per-tenant engine registries (instead of module-level singletons) ──
 try:
     from ws_manager import ws_manager
 except ImportError:
     ws_manager = None  # ponytail: WS disabled when module absent (e.g. some tests)
 _enhanced_intent = None
 _cache_layer = None
-_context_engine = None
-_offer_engine = None
-_diagnostics = None
 _monitor = None
+
+# ponytail: per-tenant state dicts. Replace with Redis-backed registry when multi-worker.
+_tenant_context_engines: dict[int, object] = {}
+_tenant_offer_engines: dict[int, object] = {}
+_tenant_diag_engines: dict[int, object] = {}
+_lock = __import__('threading').RLock()
 
 def _get_ei():
     global _enhanced_intent
@@ -57,26 +60,29 @@ def _get_cache():
         import cache_layer as _cache_layer
     return _cache_layer
 
-def _get_ctx():
-    global _context_engine
-    if _context_engine is None:
-        from context_engine import ContextEngine
-        _context_engine = ContextEngine(ttl_seconds=3600)
-    return _context_engine
+def _get_ctx(tenant_id: int = 0):
+    global _tenant_context_engines
+    with _lock:
+        if tenant_id not in _tenant_context_engines:
+            from context_engine import ContextEngine
+            _tenant_context_engines[tenant_id] = ContextEngine(ttl_seconds=3600)
+        return _tenant_context_engines[tenant_id]
 
-def _get_offer():
-    global _offer_engine
-    if _offer_engine is None:
-        from offer_engine import OfferEngine
-        _offer_engine = OfferEngine()
-    return _offer_engine
+def _get_offer(tenant_id: int = 0):
+    global _tenant_offer_engines
+    with _lock:
+        if tenant_id not in _tenant_offer_engines:
+            from offer_engine import OfferEngine
+            _tenant_offer_engines[tenant_id] = OfferEngine()
+        return _tenant_offer_engines[tenant_id]
 
-def _get_diag():
-    global _diagnostics
-    if _diagnostics is None:
-        from diagnostics import get_diagnostics
-        _diagnostics = get_diagnostics()
-    return _diagnostics
+def _get_diag(tenant_id: int = 0):
+    global _tenant_diag_engines
+    with _lock:
+        if tenant_id not in _tenant_diag_engines:
+            from diagnostics import DiagnosticsEngine
+            _tenant_diag_engines[tenant_id] = DiagnosticsEngine()
+        return _tenant_diag_engines[tenant_id]
 
 def _get_monitor():
     global _monitor
@@ -336,7 +342,7 @@ class ReplyPipeline:
         self.cooldown = cooldown
         self._tenant_id = tenant_id
         self._mon = _get_monitor()
-        self._diag = _get_diag()
+        self._diag = _get_diag(self._tenant_id)
 
     async def process(self, session, raw_comment: dict, post_id: str,
                       matcher: IntentAwareMatcher) -> bool:
@@ -370,7 +376,7 @@ class ReplyPipeline:
         # Stage 2b: Get user context (new vs returning)
         user_ctx = None
         try:
-            ctx_engine = _get_ctx()
+            ctx_engine = _get_ctx(self._tenant_id)
             user_ctx = ctx_engine.get(ctx.from_id)
         except Exception:
             pass
@@ -435,7 +441,7 @@ class ReplyPipeline:
         try:
             # Check if EnhancedIntentClassifier returned sales info
             if intent in ("price_inquiry", "order", "subscription", "contact", "question"):
-                o_engine = _get_offer()
+                o_engine = _get_offer(self._tenant_id)
                 # New users get welcome offers
                 if user_ctx and user_ctx.is_new():
                     offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome", tenant_id=self._tenant_id)
@@ -549,7 +555,7 @@ class ReplyPipeline:
 
         # Stage 10: Update context + auto-create CRM lead
         try:
-            ctx_engine = _get_ctx()
+            ctx_engine = _get_ctx(self._tenant_id)
             uc = ctx_engine.get(ctx.from_id)
             uc.add_comment(ctx.text, intent, rule_id)
             uc.add_reply(reply)
@@ -642,10 +648,26 @@ class BotEngine:
 
     def __init__(self, fb: FBClient | None = None, tenant_id: int = 0):
         if hasattr(self, '_initialized'):
-            if fb is not None:
+            if fb is not None and self._tenant_id != tenant_id:
+                # Full re-init for different tenant — reset all state
+                self._initialized = False
+                # avoid recursion since __init__ called again
+                object.__setattr__(self, '_initialized', True)
                 self.fb = fb
                 self._tenant_id = tenant_id
-                # ponytail: reset caches so next cycle loads per-tenant rules
+                self.cooldown = CooldownManager(default_cooldown_sec=60)
+                self._cycle = 0
+                self._post_reply_count = {}
+                self._last_rate_reset = time.time()
+                self._mon = _get_monitor()
+                self._diag = _get_diag(tenant_id)
+                self._dedup_engine = None
+                self._rule_cache = None
+                self._dm_map_cache = None
+                self._dm_map_loaded_at = 0.0
+            elif fb is not None:
+                self.fb = fb
+                self._tenant_id = tenant_id
                 self._rule_cache = None
                 self._dm_map_cache = None
                 self._dm_map_loaded_at = 0
@@ -658,7 +680,7 @@ class BotEngine:
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
         self._mon = _get_monitor()
-        self._diag = _get_diag()
+        self._diag = _get_diag(self._tenant_id)
         self._dedup_engine = None
         self._rule_cache = None
         self._dm_map_cache = None
@@ -808,7 +830,7 @@ class BotEngine:
 
                 # Heartbeat every 10 cycles
                 if self._cycle % 10 == 0:
-                    ctx = _get_ctx()
+                    ctx = _get_ctx(self._tenant_id)
                     self._mon.info(
                         f"💓 Heartbeat #{self._cycle}: {len(posts)} posts / {len(rules)} rules / "
                         f"{total_replied} replied / {ctx.active_users} active users / "

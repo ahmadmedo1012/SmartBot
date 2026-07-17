@@ -49,17 +49,25 @@ def get_ai():
             log.info("AI Service: no provider configured (set OPENAI_API_KEY or GEMINI_API_KEY)")
     return _ai_service
 
-# Bot engine helpers
-_bot_engine_singleton: BotEngine | None = None
+# Bot engine — per-tenant dict registry (same pattern as _get_ctx/_get_offer)
+_bot_engines: dict[int, BotEngine] = {}
+_bot_engine_lock = __import__('threading').RLock()
 
 def get_bot_engine(fb_client=None, tenant_id: int = 0) -> BotEngine:
-    global _bot_engine_singleton
-    if fb_client is not None:
-        _bot_engine_singleton = BotEngine(fb_client, tenant_id=tenant_id)
-        return _bot_engine_singleton
-    if _bot_engine_singleton is None:
-        _bot_engine_singleton = BotEngine(None)
-    return _bot_engine_singleton
+    global _bot_engines
+    with _bot_engine_lock:
+        if fb_client is not None:
+            _bot_engines[tenant_id] = BotEngine(fb_client, tenant_id=tenant_id)
+            return _bot_engines[tenant_id]
+        if tenant_id not in _bot_engines:
+            _bot_engines[tenant_id] = BotEngine(None, tenant_id=tenant_id)
+        return _bot_engines[tenant_id]
+
+def reset_bot_engines():
+    """Reset all BotEngine instances (used during test teardown / tenant deactivation)."""
+    global _bot_engines
+    with _bot_engine_lock:
+        _bot_engines.clear()
 
 async def get_tenant_fb_client(tenant_id: int):
     async with AsyncSessionLocal() as db:

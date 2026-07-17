@@ -247,17 +247,17 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
             await conn.commit()
         log.info("DB tables ready")
-        # Run pending Alembic migrations atop the created schema
+        # Run pending Alembic migrations via to_thread (no subprocess)
         try:
-            proc = await asyncio.create_subprocess_exec(
-                "alembic", "upgrade", "head",
-                cwd=Path(__file__).resolve().parent.parent,
-                env={**os.environ, "SECRET_KEY": os.environ.get("SECRET_KEY", "alembic-runner"), "DEBUG": "true"},
-                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            _alembic_root = Path(__file__).resolve().parent.parent
+            _cfg = __import__("alembic.config", fromlist=["Config"]).Config(
+                str(_alembic_root / "alembic.ini")
             )
-            await asyncio.wait_for(proc.communicate(), timeout=30)
-            if proc.returncode != 0:
-                log.warning(f"Alembic exit code {proc.returncode} (non-fatal)")
+            _cfg.set_main_option("script_location", str(_alembic_root / "alembic"))
+            # command.upgrade calls env.py which uses asyncio.run() internally —
+            # safe in non-main thread (Python 3.12+), avoids subprocess spawn
+            await asyncio.to_thread(__import__("alembic.command").upgrade, _cfg, "head")
+            log.info("Alembic migrations applied")
         except Exception as e:
             log.warning(f"Alembic upgrade skipped: {e}")
 
@@ -465,7 +465,6 @@ async def _run_bot_loop():
                 fb = await get_tenant_fb_client(tenant.id)
                 if not fb:
                     continue
-                BotEngine.reset_instance()
                 engine = get_bot_engine(fb, tenant_id=tenant.id)
                 await engine.cycle()
         except Exception as e:

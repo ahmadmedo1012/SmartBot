@@ -626,53 +626,13 @@ class ReplyPipeline:
         )
 
 # -------------------------------------------------------------------
-# Shared BotEngine (v2 — singleton pattern with cache, context, diag)
+# BotEngine — per-tenant engine (dict[tenant_id] registry in _services)
 # -------------------------------------------------------------------
 
 class BotEngine:
-    """
-    Singleton-pattern engine shared across webhook and polling.
-    Caches: rules, dedup set. Shared: cooldown, context, diagnostics.
-    """
-
-    _instance = None
-
-    @classmethod
-    def reset_instance(cls):
-        cls._instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    """Per-tenant auto-reply engine. Each tenant gets its own instance."""
 
     def __init__(self, fb: FBClient | None = None, tenant_id: int = 0):
-        if hasattr(self, '_initialized'):
-            if fb is not None and self._tenant_id != tenant_id:
-                # Full re-init for different tenant — reset all state
-                self._initialized = False
-                # avoid recursion since __init__ called again
-                object.__setattr__(self, '_initialized', True)
-                self.fb = fb
-                self._tenant_id = tenant_id
-                self.cooldown = CooldownManager(default_cooldown_sec=60)
-                self._cycle = 0
-                self._post_reply_count = {}
-                self._last_rate_reset = time.time()
-                self._mon = _get_monitor()
-                self._diag = _get_diag(tenant_id)
-                self._dedup_engine = None
-                self._rule_cache = None
-                self._dm_map_cache = None
-                self._dm_map_loaded_at = 0.0
-            elif fb is not None:
-                self.fb = fb
-                self._tenant_id = tenant_id
-                self._rule_cache = None
-                self._dm_map_cache = None
-                self._dm_map_loaded_at = 0
-            return
-        self._initialized = True
         self.fb = fb
         self._tenant_id = tenant_id
         self.cooldown = CooldownManager(default_cooldown_sec=60)
@@ -680,7 +640,7 @@ class BotEngine:
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
         self._mon = _get_monitor()
-        self._diag = _get_diag(self._tenant_id)
+        self._diag = _get_diag(tenant_id)
         self._dedup_engine = None
         self._rule_cache = None
         self._dm_map_cache = None

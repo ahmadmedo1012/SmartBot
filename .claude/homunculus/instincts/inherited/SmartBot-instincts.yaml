@@ -1,0 +1,315 @@
+# Instincts generated from https://github.com/ahmadmedo1012/SmartBot
+# Generated: 2026-07-18T13:00:13.873Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: SmartBot-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/ahmadmedo1012/SmartBot
+---
+
+# SmartBot Commit Length
+
+## Action
+
+Write moderate-length commit messages (~70 characters)
+
+## Evidence
+
+- Average commit message length: 70 chars
+- Based on 1 commits
+
+---
+id: SmartBot-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ahmadmedo1012/SmartBot
+---
+
+# SmartBot Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: SmartBot-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ahmadmedo1012/SmartBot
+---
+
+# SmartBot Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: SmartBot-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/ahmadmedo1012/SmartBot
+---
+
+# SmartBot Export Style
+
+## Action
+
+Prefer default exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: default
+
+---
+id: SmartBot-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/ahmadmedo1012/SmartBot
+---
+
+# SmartBot Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: 
+
+---
+id: smartbot-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct File Naming
+
+## Action
+
+Name the file using camelCase
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+
+---
+id: smartbot-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Function Naming
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: smartbot-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: smartbot-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: smartbot-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Import Style
+
+## Action
+
+Use alias import style
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: smartbot-instinct-export-style
+trigger: "When exporting modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Export Style
+
+## Action
+
+Use default export style
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: smartbot-instinct-error-handling
+trigger: "When handling errors in code"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Error Handling
+
+## Action
+
+Use try-catch blocks for error handling
+
+## Evidence
+
+- Pattern in errorHandling.style
+
+---
+id: smartbot-instinct-git-commit-prefix
+trigger: "When restoring previous code states in git"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Git Commit Prefix
+
+## Action
+
+Prefix commit messages with 'restore:'
+
+## Evidence
+
+- Seen in commit 'restore: recover SmartBot baseline at 9b10d782 before force-push reset'
+
+---
+id: smartbot-instinct-git-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Git Commit Length
+
+## Action
+
+Keep the commit message concise, around 70 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: smartbot-instinct-test-location
+trigger: "When adding new tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Test Location
+
+## Action
+
+Place tests in mixed locations (not strictly separated from source files)
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+
+---
+id: smartbot-instinct-module-organization
+trigger: "When organizing new modules"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: ahmadmedo1012/SmartBot
+---
+
+# Smartbot Instinct Module Organization
+
+## Action
+
+Organize modules by type
+
+## Evidence
+
+- Pattern in architecture.moduleOrganization
+

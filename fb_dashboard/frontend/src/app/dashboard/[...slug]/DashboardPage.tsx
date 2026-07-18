@@ -45,11 +45,11 @@ const PAGE_CONFIG: Record<string, {
 }> = {
   messages: {
     title: "الرسائل", desc: "صندوق الوارد الموحد", icon: MessageCircle,
-    apiKey: "messages", apiUrl: "/api/messages",
+    apiKey: "messages", apiUrl: "/api/inbox/conversations",
   },
   inbox: {
     title: "صندوق الوارد", desc: "المحادثات والرسائل", icon: Mail,
-    apiKey: "inbox", apiUrl: "/api/messages",
+    apiKey: "inbox", apiUrl: "/api/inbox/conversations",
   },
   calendar: {
     title: "التقويم", desc: "جدولة المنشورات", icon: Calendar,
@@ -65,7 +65,7 @@ const PAGE_CONFIG: Record<string, {
   },
   activity: {
     title: "النشاطات", desc: "سجل النشاط", icon: Activity,
-    apiKey: "activity", apiUrl: "/api/audit/logs",
+    apiKey: "activity", apiUrl: "/api/logs",
   },
   ads: {
     title: "الإعلانات", desc: "إدارة الإعلانات", icon: Target,
@@ -73,11 +73,11 @@ const PAGE_CONFIG: Record<string, {
   },
   autoreply: {
     title: "الردود التلقائية", desc: "قواعد الرد الذكية", icon: Bot,
-    apiKey: "autoreply", apiUrl: "/api/admin/rules-categories",
+    apiKey: "autoreply", apiUrl: "/api/rules",
   },
   scheduled: {
     title: "جدولة", desc: "المنشورات المجدولة", icon: Clock,
-    apiKey: "scheduled", apiUrl: "/api/calendar/month-summary",
+    apiKey: "scheduled", apiUrl: "/api/scheduled-posts",
   },
   settings: {
     title: "الإعدادات", desc: "إعدادات الحساب", icon: Settings,

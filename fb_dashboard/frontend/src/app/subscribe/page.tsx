@@ -140,7 +140,7 @@ export default function SubscribePage() {
           </div>
           <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
             {plans.map((plan, i) => (
-              <Card key={plan.id} hover className="relative flex flex-col cursor-pointer"
+              <Card key={plan.id} className="relative flex flex-col cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 onClick={() => handleSelectPlan(plan)}>
                 {i === 1 && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">

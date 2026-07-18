@@ -830,6 +830,6 @@ async def _process_webhook_comment(comment: dict, post_id: str):
 async def spa_catch_all(path: str):
     # Serve SPA for all browser routes — the Next.js static export handles
     # client-side routing. Only reject true API/system paths that need real handlers.
-    if path.startswith(("api/", "static/", "healthz", "webhook", "ws")):
+    if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
         return HTMLResponse("", status_code=404)
     return HTMLResponse(_get_spa())

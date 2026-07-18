@@ -201,3 +201,41 @@ async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
         } for r in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
     }}
+
+
+@router.post("/api/admin/reset-password")
+async def admin_reset_password(body: dict = Body(None), request: Request = None, db=Depends(get_db),
+                                current_user: User = Depends(require_role("admin"))):
+    if not body or "user_id" not in body or "new_password" not in body:
+        raise HTTPException(400, "user_id and new_password are required")
+    user_id = body["user_id"]
+    new_password = body["new_password"]
+    if len(new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    user.password_hash = hash_password(new_password)
+    await db.commit()
+    ip = request.client.host if request and request.client else "unknown"
+    await log_audit(db, "update", actor_id=current_user.id, target_type="user", target_id=user_id, ip=ip)
+    return {"success": True, "data": {"updated": True}}
+
+
+@router.get("/api/users")
+async def list_users(page: int = 1, page_size: int = 50, db=Depends(get_db),
+                     current_user: User = Depends(require_role("admin"))):
+    offset = (page - 1) * page_size
+    total = await db.scalar(select(func.count(User.id)).where(User.tenant_id == current_user._tenant_id)) or 0
+    rows = await db.execute(
+        select(User).where(User.tenant_id == current_user._tenant_id)
+        .order_by(desc(User.created_at)).offset(offset).limit(page_size)
+    )
+    return {"success": True, "data": {
+        "items": [{
+            "id": u.id, "username": u.username, "name": u.email or u.username,
+            "role": u.role, "email": u.email, "phone": u.phone or "",
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        } for u in rows.scalars().all()],
+        "total": total, "page": page, "page_size": page_size,
+    }}

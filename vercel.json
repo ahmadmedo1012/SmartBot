@@ -1,4 +1,7 @@
 {
+  "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build && rm -rf ../../fb_dashboard/static && cp -r out ../../fb_dashboard/static",
+  "outputDirectory": ".",
+  "installCommand": "pip install -r requirements.txt",
   "framework": "fastapi",
   "regions": ["iad1"],
   "cleanUrls": true,
@@ -6,19 +9,13 @@
     {
       "source": "/static/assets/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {
       "source": "/static/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
     }
   ],
@@ -26,7 +23,11 @@
     "api/*.py": {
       "maxDuration": 30,
       "memory": 512,
-      "excludeFiles": "{__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
+      "includeFiles": "fb_dashboard/**",
+      "excludeFiles": "{fb_dashboard/frontend/node_modules/**,__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.py" }
+  ]
 }

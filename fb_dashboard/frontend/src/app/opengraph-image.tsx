@@ -1,4 +1,5 @@
 export const contentType = "image/png"
+export const dynamic = "force-static"
 
 export default function OGImage() {
   // Return a pxiel PNG to avoid Satori font subset bug with Arabic fonts

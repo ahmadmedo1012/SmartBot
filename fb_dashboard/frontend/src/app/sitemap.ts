@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next"
 
+export const dynamic = "force-static"
+
 const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export default function sitemap(): MetadataRoute.Sitemap {

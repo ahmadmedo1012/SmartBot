@@ -3,23 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm text-sm font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "group/button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 select-none cursor-pointer active:scale-[0.97]",
   {
     variants: {
       variant: {
-        primary: "bg-[var(--orange)] text-[var(--orange-foreground)] shadow-lg shadow-orange/20 hover:brightness-110",
-        outline: "border border-border bg-transparent hover:bg-card text-foreground",
-        ghost: "hover:bg-card text-foreground",
-        destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
+        orange: "bg-orange text-orange-foreground hover:brightness-110 shadow-lg shadow-orange/20 hover:shadow-xl hover:shadow-orange/25 border-0",
+        outline: "border-border bg-transparent text-foreground hover:bg-foreground/5 hover:border-foreground/30",
+        ghost: "bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 border-transparent",
+        destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",
       },
       size: {
-        sm: "h-8 px-3 text-xs",
-        default: "h-10 px-4 py-2",
-        lg: "h-11 px-8 text-base",
-        icon: "h-10 w-10",
+        sm: "h-8 gap-1.5 px-3.5 text-xs",
+        default: "h-10 gap-2 px-5 text-sm",
+        lg: "h-12 gap-2.5 px-7 text-sm sm:text-base",
+        icon: "size-8",
       },
     },
-    defaultVariants: { variant: "primary", size: "default" },
+    defaultVariants: { variant: "orange", size: "default" },
   }
 )
 

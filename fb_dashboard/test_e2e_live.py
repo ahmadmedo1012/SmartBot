@@ -1,3 +1,4 @@
+from __future__ import annotations
 """End-to-end live test against actual Facebook Graph API.
 Usage: FACEBOOK_ACCESS_TOKEN=xxx FACEBOOK_PAGE_ID=xxx uv run python3 test_e2e_live.py
 """

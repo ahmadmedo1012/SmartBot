@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Unit tests for TTLCache and RuleCache.
 """
@@ -56,11 +57,11 @@ async def test_concurrent_access():
 
 async def test_dedup_cache():
     cache = ReplyDedupCache(initial={"c1", "c2"}, ttl=30)
-    assert cache.is_dup("c1")
-    assert cache.is_dup("c2")
-    assert not cache.is_dup("c3")
-    cache.mark("c3")
-    assert cache.is_dup("c3")
+    assert await cache.is_dup("c1")
+    assert await cache.is_dup("c2")
+    assert not await cache.is_dup("c3")
+    await cache.mark("c3")
+    assert await cache.is_dup("c3")
     print("✓ test_dedup_cache")
 
 

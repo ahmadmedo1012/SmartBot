@@ -1,0 +1,22 @@
+uid=24_0 RootWebArea "تسجيل الدخول | SmartBot" url="https://bot.smart-link.ly/login"
+  uid=24_1 link "تخطي إلى المحتوى" url="https://bot.smart-link.ly/login#main-content"
+    uid=24_2 StaticText "تخطي إلى المحتوى"
+  uid=24_3 main
+    uid=24_4 link "العودة للرئيسية" url="https://bot.smart-link.ly/"
+      uid=24_5 button "العودة للرئيسية"
+    uid=24_6 button "الوضع النهاري"
+    uid=24_7 image "الربط الذكي" url="https://bot.smart-link.ly/static/brand-icon.png"
+    uid=24_8 StaticText "SmartBot"
+    uid=24_9 StaticText "لوحة التحكم الذكية"
+    uid=24_10 form
+      uid=24_11 StaticText "اسم المستخدم أو البريد الإلكتروني"
+      uid=24_12 textbox "اسم المستخدم أو البريد الإلكتروني" focusable focused required
+      uid=24_13 StaticText "كلمة المرور"
+      uid=24_14 textbox "كلمة المرور" required
+      uid=24_15 button "إظهار كلمة المرور"
+      uid=24_16 button "تسجيل الدخول"
+    uid=24_17 link "ليس لديك حساب؟ إنشاء حساب جديد" url="https://bot.smart-link.ly/register"
+      uid=24_18 StaticText "ليس لديك حساب؟ إنشاء حساب جديد"
+    uid=24_19 StaticText "SmartBot - منصة إدارة التفاعل الذكية"
+  uid=24_20 region "Notifications alt+T" live="polite" relevant="additions text"
+  uid=24_21 alert atomic live="assertive" relevant="additions text"

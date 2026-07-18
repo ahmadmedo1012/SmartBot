@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Flow Engine — Visual bot flow execution engine.
 Executes ManyChat-style JSON graphs (nodes + edges) against Facebook comments.
 

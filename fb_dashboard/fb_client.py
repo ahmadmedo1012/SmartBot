@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Enhanced FB Client — connection pooling + exponential backoff retry.
 Full API: posts, comments, conversations, ads, insights, messaging.
@@ -138,7 +139,8 @@ class FBClient:
 
     async def get_post_detail(self, post_id: str) -> dict | None:
         fields = "id,message,created_time,permalink_url,comments.limit(10){id,message,from{name,id},created_time}"
-        return await self._get(f"{post_id}", {"fields": fields})
+        r = await self._get(f"{post_id}", {"fields": fields})
+        return r or {"id": post_id, "error": "failed"}
 
     # ── Comments ──────────────────────────────────────────────────
 
@@ -272,6 +274,38 @@ class FBClient:
 
     def get_commenter_id(self, comment: dict) -> str:
         return str(comment.get("from", {}).get("id", ""))
+
+    # ── Webhook subscription ─────────────────────────────────────────
+
+    async def subscribe_page_webhooks(self) -> dict | None:
+        """Subscribe page to Facebook real-time webhooks (feed, messages, etc).
+        Must be called AFTER save of valid page_id + access_token.
+        POST /{page-id}/subscribed_apps?subscribed_fields=...
+        """
+        result = await self._post(f"{self.page_id}/subscribed_apps", {
+            "subscribed_fields": "feed,messages,conversations,message_deliveries,message_reads,message_echoes,mention,comment_mentions,post_mentions",
+        })
+        if result and result.get("success") is not None:
+            log.info(f"Webhook subscribed for page {self.page_id}: success={result.get('success')}")
+        elif result and result.get("_error"):
+            log.warning(f"Webhook subscribe failed for page {self.page_id}: {result.get('body','')[:200]}")
+        else:
+            log.warning(f"Webhook subscribe returned unexpected: {str(result)[:200]}")
+        return result
+
+    async def check_token_scopes(self) -> dict:
+        """Check which Facebook permissions the current token has.
+        Returns {scopes: [...], missing: [...]}.
+        """
+        r = await self._get("me/permissions")
+        if not r or not r.get("data"):
+            return {"scopes": [], "missing": [
+                "pages_messaging", "pages_manage_metadata", "pages_read_engagement"]}
+
+        granted = [p["permission"] for p in r["data"] if p.get("status") == "granted"]
+        required = {"pages_messaging", "pages_manage_metadata", "pages_read_engagement"}
+        missing = [s for s in required if s not in granted]
+        return {"scopes": granted, "missing": missing}
 
     # ── Lifecycle ─────────────────────────────────────────────────
 

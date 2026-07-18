@@ -1,3 +1,4 @@
+from __future__ import annotations
 """In-process pub/sub event bus for cross-module broadcasting (WS + SSE)."""
 import logging
 from collections import defaultdict
@@ -11,7 +12,9 @@ class EventBus:
         self._subscribers: dict[str, list[Callable]] = defaultdict(list)
 
     def subscribe(self, event: str, callback: Callable):
-        self._subscribers[event].append(callback)
+        # ponytail: callback ref prevents GC of enclosing scope — add weakref if subscriber lifecycle mismatches
+        if callback not in self._subscribers[event]:
+            self._subscribers[event].append(callback)
 
     def unsubscribe(self, event: str, callback: Callable):
         try:
@@ -20,7 +23,7 @@ class EventBus:
             pass
 
     async def emit(self, event: str, data: Any = None):
-        for cb in self._subscribers.get(event, []):
+        for cb in list(self._subscribers.get(event, [])):
             try:
                 await cb(data)
             except Exception:

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Broadcast Engine — Segmented mass messaging engine.
 Sends bulk messages to filtered subscriber segments with rate limiting.
 """
@@ -26,6 +27,7 @@ class BroadcastEngine:
         self, name: str, message_template: str,
         platform_filter: dict, segment_filters: dict,
         created_by: str, session,
+        tenant_id: int = 0,
     ) -> int:
         bc = Broadcast(
             name=name,
@@ -34,6 +36,7 @@ class BroadcastEngine:
             segment_filters=json.dumps(segment_filters),
             status="draft",
             created_by=created_by,
+            tenant_id=tenant_id,
         )
         session.add(bc)
         await session.commit()
@@ -41,9 +44,9 @@ class BroadcastEngine:
         log.info(f"Created broadcast #{bc.id}: {name}")
         return bc.id
 
-    async def list_broadcasts(self, session) -> list[dict]:
+    async def list_broadcasts(self, session, tenant_id: int = 0) -> list[dict]:
         q = await session.execute(
-            select(Broadcast).order_by(desc(Broadcast.created_at))
+            select(Broadcast).where(Broadcast.tenant_id == tenant_id).order_by(desc(Broadcast.created_at))
         )
         rows = q.scalars().all()
         return [
@@ -62,10 +65,11 @@ class BroadcastEngine:
             for b in rows
         ]
 
-    async def get_broadcast(self, broadcast_id: int, session) -> dict | None:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def get_broadcast(self, broadcast_id: int, session, tenant_id: int = 0) -> dict | None:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b:
             return None
@@ -103,10 +107,11 @@ class BroadcastEngine:
             counts[status] = cnt
         return counts
 
-    async def update_broadcast(self, broadcast_id: int, data: dict, session) -> bool:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def update_broadcast(self, broadcast_id: int, data: dict, session, tenant_id: int = 0) -> bool:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b:
             return False
@@ -118,8 +123,8 @@ class BroadcastEngine:
         log.info(f"Updated broadcast #{broadcast_id}")
         return True
 
-    async def estimate_audience(self, segment_filters: dict, platform_filter: dict, session) -> dict:
-        q = select(func.count(Subscriber.id)).where(Subscriber.status == "active")
+    async def estimate_audience(self, segment_filters: dict, platform_filter: dict, session, tenant_id: int = 0) -> dict:
+        q = select(func.count(Subscriber.id)).where(Subscriber.status == "active", Subscriber.tenant_id == tenant_id)
 
         # Platform filter
         platform = platform_filter.get("platform", "all")
@@ -356,10 +361,11 @@ class BroadcastEngine:
             await session.commit()
             return False
 
-    async def cancel_broadcast(self, broadcast_id: int, session) -> bool:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
+    async def cancel_broadcast(self, broadcast_id: int, session, tenant_id: int = 0) -> bool:
+        stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
+        if tenant_id:
+            stmt = stmt.where(Broadcast.tenant_id == tenant_id)
+        q = await session.execute(stmt)
         b = q.scalar_one_or_none()
         if not b or b.status not in ("draft", "sending"):
             return False

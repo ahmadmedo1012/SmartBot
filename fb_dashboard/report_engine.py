@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Report Engine -- White-label PDF report generator.
 Generates client-ready analytics reports matching Metricool/Hootsuite quality.
 """

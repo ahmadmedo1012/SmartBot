@@ -1,3 +1,4 @@
+from __future__ import annotations
 """WebSocket manager for real-time dashboard updates."""
 import json, logging, os
 from typing import Any
@@ -26,7 +27,7 @@ class ConnectionManager:
             return
         msg = json.dumps({"event": event, "data": data}, ensure_ascii=False, default=str)
         dead = set()
-        for ws in self._connections:
+        for ws in self._connections.copy():
             try:
                 await ws.send_text(msg)
             except Exception:

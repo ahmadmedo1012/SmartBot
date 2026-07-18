@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Team Collaboration Engine — Approvals, notes, activity tracking.
 Enterprise team features matching Hootsuite + Respond.io.
 """
@@ -18,9 +19,9 @@ log = logging.getLogger("fb-team")
 class TeamEngine:
     """Team collaboration features — approval workflows, internal notes, activity log."""
 
-    async def get_team_members(self, session) -> list[dict]:
+    async def get_team_members(self, session, tenant_id: int = 0) -> list[dict]:
         """List all users with stats: replies count (via BotLog mentions), last active."""
-        rows = await session.execute(select(User).order_by(User.id))
+        rows = await session.execute(select(User).where(User.tenant_id == tenant_id).order_by(User.id))
         users = rows.scalars().all()
         result = []
         for u in users:
@@ -48,13 +49,13 @@ class TeamEngine:
             })
         return result
 
-    async def get_team_activity(self, days: int, session) -> list[dict]:
+    async def get_team_activity(self, days: int, session, tenant_id: int = 0) -> list[dict]:
         """Recent team activity feed — BotLog, Replies, AnalyticsEvent combined."""
         cutoff = utcnow() - timedelta(days=days)
         activities: list[dict] = []
 
         log_stmt = select(BotLog).where(
-            BotLog.level != "DEBUG", BotLog.created_at >= cutoff
+            BotLog.tenant_id == tenant_id, BotLog.level != "DEBUG", BotLog.created_at >= cutoff
         ).order_by(desc(BotLog.created_at)).limit(50)
         # ponytail: scanning BotLog for user attribution — add explicit user_id column if per-user queries become perf-critical
         for r in (await session.execute(log_stmt)).scalars().all():
@@ -68,7 +69,7 @@ class TeamEngine:
             })
 
         reply_stmt = select(Reply).where(
-            Reply.created_at >= cutoff
+            Reply.tenant_id == tenant_id, Reply.created_at >= cutoff
         ).order_by(desc(Reply.created_at)).limit(50)
         for r in (await session.execute(reply_stmt)).scalars().all():
             activities.append({
@@ -80,12 +81,14 @@ class TeamEngine:
             })
 
         evt_stmt = select(AnalyticsEvent).where(
-            AnalyticsEvent.created_at >= cutoff
+            AnalyticsEvent.tenant_id == tenant_id, AnalyticsEvent.created_at >= cutoff
         ).order_by(desc(AnalyticsEvent.created_at)).limit(50)
         for e in (await session.execute(evt_stmt)).scalars().all():
             meta = {}
             try: meta = json.loads(e.metadata_json or "{}")
-            except Exception: pass
+            except Exception:
+                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
+                meta = {}
             activities.append({
                 "type": "event",
                 "user": meta.get("user", "system"),
@@ -125,7 +128,9 @@ class TeamEngine:
         for e in rows.scalars().all():
             meta = {}
             try: meta = json.loads(e.metadata_json or "{}")
-            except Exception: pass
+            except Exception:
+                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
+                meta = {}
             items.append({
                 "id": e.id,
                 "event_type": e.event_type,
@@ -145,28 +150,34 @@ class TeamEngine:
             counts["total"] += cnt
         return counts
 
-    async def get_team_performance(self, session) -> list[dict]:
+    async def get_team_performance(self, session, tenant_id: int = 0) -> list[dict]:
         """Team member performance metrics.
         ponytail: Reply model lacks created_by — all replies attributed to system.
         Add created_by to Reply if per-user attribution needed.
         """
-        total_replies = await session.scalar(select(func.count(Reply.id))) or 0
-        rows = await session.execute(select(User).where(User.role.in_(["admin", "editor"])).order_by(User.id))
+        total_replies = await session.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id)) or 0
+        rows = await session.execute(select(User).where(User.tenant_id == tenant_id, User.role.in_(["admin", "editor"])).order_by(User.id))
+        users = rows.scalars().all()
+        # ponytail: batch all log queries via single grouped query instead of N+1
+        handled_map: dict[str, int] = {}
+        if users:
+            thirty_days_ago = utcnow() - timedelta(days=30)
+            counts = await session.execute(
+                select(BotLog.message, func.count(BotLog.id))
+                .where(BotLog.level != "DEBUG", BotLog.created_at >= thirty_days_ago)
+                .group_by(BotLog.message)
+            )
+            for msg, cnt in counts.all():
+                for u in users:
+                    if f"User {u.username}" in msg:
+                        handled_map[u.username] = handled_map.get(u.username, 0) + cnt
+                        break
         result = []
-        for u in rows.scalars().all():
-            # Count their BotLog mentions as handled-replies proxy
-            handled = await session.scalar(
-                select(func.count(BotLog.id))
-                .where(
-                    BotLog.message.contains(f"User {u.username}"),
-                    BotLog.level != "DEBUG",
-                    BotLog.created_at >= utcnow() - timedelta(days=30),
-                )
-            ) or 0
+        for u in users:
             result.append({
                 "username": u.username,
                 "role": u.role,
-                "replies_handled": handled,
+                "replies_handled": handled_map.get(u.username, 0),
                 "online_status": "offline",
             })
         return result

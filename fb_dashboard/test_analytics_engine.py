@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Tests for AnalyticsEngine — daily trend, peak hour, overview, helpers."""
 import pytest
 from unittest.mock import AsyncMock, MagicMock

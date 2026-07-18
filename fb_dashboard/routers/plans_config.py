@@ -46,7 +46,7 @@ async def list_plans(db=Depends(get_db)):
         "features": p.features,
         "sort_order": p.sort_order,
         "is_active": p.is_active,
-    } for p in plans]
+    } for p in plans]}
 
 
 @router.get("/api/config")

@@ -4,7 +4,7 @@ from datetime import datetime
 from database import get_db
 from models import Offer, BrandConfig, Customer, BotAlert, User
 from routers.auth import get_current_user, require_role
-from _services import ws_manager
+from ws_manager import ws_manager
 from _utils import utcnow
 import asyncio
 

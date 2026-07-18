@@ -333,8 +333,8 @@ class FlowExecution(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
-    flow_id = Column(Integer, ForeignKey("flows.id"), nullable=False, index=True)
-    subscriber_id = Column(Integer, ForeignKey("subscribers.id"), nullable=True, index=True)
+    flow_id = Column(Integer, ForeignKey("flows.id", ondelete="CASCADE"), nullable=False, index=True)
+    subscriber_id = Column(Integer, ForeignKey("subscribers.id", ondelete="CASCADE"), nullable=True, index=True)
     trigger_type = Column(String(50), default="")
     trigger_data = Column(JSON, default=dict)
     current_node_id = Column(String(100), default="")
@@ -451,7 +451,7 @@ class ConversationAssignee(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     conversation_id = Column(String(100), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     assigned_at = Column(DateTime, default=utcnow)
 
 

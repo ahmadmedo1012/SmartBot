@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Commerce Engine — E-commerce integration for Shopify.
 Connects store data to SmartBot flows for abandoned cart recovery,
 order confirmations, product recommendations.
@@ -16,10 +17,10 @@ log = logging.getLogger("fb-commerce")
 class ShopifyIntegration:
     """Shopify webhook integration for e-commerce flows."""
 
-    def __init__(self, store_domain: str = "", access_token: str = ""):
+    def __init__(self, store_domain: str = "", access_token: str = "", webhook_secret: str = ""):
         self.store_domain = store_domain
         self.access_token = access_token
-        self.webhook_secret = ""
+        self.webhook_secret = webhook_secret
         self._base_url = f"https://{store_domain}" if store_domain else ""
 
     def is_configured(self) -> bool:

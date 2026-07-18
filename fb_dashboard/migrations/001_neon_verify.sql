@@ -14,3 +14,10 @@ ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS fb_post_id VARCHAR(100) DEF
 
 -- Add image_url to scheduled_posts if missing (used by Facebook/Instagram media uploads)
 ALTER TABLE scheduled_posts ADD COLUMN IF NOT EXISTS image_url VARCHAR(500) DEFAULT '';
+
+-- Performance indexes
+CREATE INDEX IF NOT EXISTS ix_reply_rule_created ON replies (rule_id, created_at);
+CREATE INDEX IF NOT EXISTS ix_botlog_level_created ON bot_logs (level, created_at);
+CREATE INDEX IF NOT EXISTS ix_schedpost_status_sched ON scheduled_posts (status, scheduled_at);
+CREATE INDEX IF NOT EXISTS ix_offer_active_expires ON offers (is_active, expires_at);
+CREATE INDEX IF NOT EXISTS ix_customer_stage_contacted ON customers (stage, last_contacted_at);

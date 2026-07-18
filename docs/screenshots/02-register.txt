@@ -1,0 +1,27 @@
+uid=19_0 RootWebArea "SmartBot - منصة إدارة فيسبوك" url="https://bot.smart-link.ly/register"
+  uid=19_1 link "تخطي إلى المحتوى" url="https://bot.smart-link.ly/register#main-content"
+    uid=19_2 StaticText "تخطي إلى المحتوى"
+  uid=19_3 main
+    uid=19_4 link "العودة للرئيسية" url="https://bot.smart-link.ly/"
+      uid=19_5 button "العودة للرئيسية"
+    uid=19_6 button "الوضع النهاري"
+    uid=19_7 image "الربط الذكي" url="https://bot.smart-link.ly/static/brand-icon.png"
+    uid=19_8 StaticText "إنشاء حساب جديد"
+    uid=19_9 StaticText "انضم إلى SmartBot"
+    uid=19_10 form
+      uid=19_11 StaticText "اسم المستخدم"
+      uid=19_12 textbox "اسم المستخدم" focusable focused required
+      uid=19_13 StaticText "البريد الإلكتروني"
+      uid=19_14 textbox "البريد الإلكتروني" required
+      uid=19_15 StaticText "كلمة المرور"
+      uid=19_16 textbox "كلمة المرور" required
+      uid=19_17 button "إظهار كلمة المرور"
+      uid=19_18 StaticText "تأكيد كلمة المرور"
+      uid=19_19 textbox "تأكيد كلمة المرور" required
+      uid=19_20 button "إظهار كلمة المرور"
+      uid=19_21 button "إنشاء حساب"
+    uid=19_22 link "لديك حساب؟ تسجيل الدخول" url="https://bot.smart-link.ly/login"
+      uid=19_23 StaticText "لديك حساب؟ تسجيل الدخول"
+    uid=19_24 StaticText "SmartBot - منصة إدارة التفاعل الذكية"
+  uid=19_25 region "Notifications alt+T" live="polite" relevant="additions text"
+  uid=19_26 alert atomic live="assertive" relevant="additions text"

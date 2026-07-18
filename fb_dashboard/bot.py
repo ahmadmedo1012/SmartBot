@@ -1,3 +1,4 @@
+from __future__ import annotations
 """SmartBot — auto-reply engine (v2).
 Architecture: SharedEngine → Pipeline → IntentMatcher → ResponseComposer.
 Flow:
@@ -22,25 +23,29 @@ from typing import Any
 from datetime import datetime, timedelta, timezone
 from _utils import utcnow
 
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func, cast, Date, desc
 from sqlalchemy.exc import IntegrityError
 
 from database import AsyncSessionLocal
 from models import Rule, Reply, BotLog, Offer, BotState, Customer
+from models import Tenant, SubscriptionPlan, UsageCounter
 from fb_client import FBClient
 from config import settings
 
-# ── Lazy imports for new modules (graceful if not yet installed) ──
+# ── Per-tenant engine registries (instead of module-level singletons) ──
 try:
     from ws_manager import ws_manager
 except ImportError:
     ws_manager = None  # ponytail: WS disabled when module absent (e.g. some tests)
 _enhanced_intent = None
 _cache_layer = None
-_context_engine = None
-_offer_engine = None
-_diagnostics = None
 _monitor = None
+
+# ponytail: per-tenant state dicts. Replace with Redis-backed registry when multi-worker.
+_tenant_context_engines: dict[int, object] = {}
+_tenant_offer_engines: dict[int, object] = {}
+_tenant_diag_engines: dict[int, object] = {}
+_lock = __import__('threading').RLock()
 
 def _get_ei():
     global _enhanced_intent
@@ -55,26 +60,29 @@ def _get_cache():
         import cache_layer as _cache_layer
     return _cache_layer
 
-def _get_ctx():
-    global _context_engine
-    if _context_engine is None:
-        from context_engine import ContextEngine
-        _context_engine = ContextEngine(ttl_seconds=3600)
-    return _context_engine
+def _get_ctx(tenant_id: int = 0):
+    global _tenant_context_engines
+    with _lock:
+        if tenant_id not in _tenant_context_engines:
+            from context_engine import ContextEngine
+            _tenant_context_engines[tenant_id] = ContextEngine(ttl_seconds=3600)
+        return _tenant_context_engines[tenant_id]
 
-def _get_offer():
-    global _offer_engine
-    if _offer_engine is None:
-        from offer_engine import OfferEngine
-        _offer_engine = OfferEngine()
-    return _offer_engine
+def _get_offer(tenant_id: int = 0):
+    global _tenant_offer_engines
+    with _lock:
+        if tenant_id not in _tenant_offer_engines:
+            from offer_engine import OfferEngine
+            _tenant_offer_engines[tenant_id] = OfferEngine()
+        return _tenant_offer_engines[tenant_id]
 
-def _get_diag():
-    global _diagnostics
-    if _diagnostics is None:
-        from diagnostics import get_diagnostics
-        _diagnostics = get_diagnostics()
-    return _diagnostics
+def _get_diag(tenant_id: int = 0):
+    global _tenant_diag_engines
+    with _lock:
+        if tenant_id not in _tenant_diag_engines:
+            from diagnostics import DiagnosticsEngine
+            _tenant_diag_engines[tenant_id] = DiagnosticsEngine()
+        return _tenant_diag_engines[tenant_id]
 
 def _get_monitor():
     global _monitor
@@ -315,7 +323,11 @@ class CooldownManager:
         return False
 
     def adjust_window(self, user_id: str, seconds: int):
-        self._user_windows[user_id] = max(10, min(3600, seconds))
+        seconds = max(10, min(3600, seconds))
+        if user_id == "global":
+            self._default_sec = seconds
+        else:
+            self._user_windows[user_id] = seconds
 
 # -------------------------------------------------------------------
 # Reply Pipeline (v2 — structured stages with error boundaries)
@@ -324,12 +336,13 @@ class CooldownManager:
 class ReplyPipeline:
     """Pipeline with error boundaries per stage and diagnostics."""
 
-    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager):
+    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager, tenant_id: int = 0):
         self.fb = fb
         self.dedup = dedup_engine
         self.cooldown = cooldown
+        self._tenant_id = tenant_id
         self._mon = _get_monitor()
-        self._diag = _get_diag()
+        self._diag = _get_diag(self._tenant_id)
 
     async def process(self, session, raw_comment: dict, post_id: str,
                       matcher: IntentAwareMatcher) -> bool:
@@ -363,7 +376,7 @@ class ReplyPipeline:
         # Stage 2b: Get user context (new vs returning)
         user_ctx = None
         try:
-            ctx_engine = _get_ctx()
+            ctx_engine = _get_ctx(self._tenant_id)
             user_ctx = ctx_engine.get(ctx.from_id)
         except Exception:
             pass
@@ -428,12 +441,12 @@ class ReplyPipeline:
         try:
             # Check if EnhancedIntentClassifier returned sales info
             if intent in ("price_inquiry", "order", "subscription", "contact", "question"):
-                o_engine = _get_offer()
+                o_engine = _get_offer(self._tenant_id)
                 # New users get welcome offers
                 if user_ctx and user_ctx.is_new():
-                    offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome")
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, "welcome", tenant_id=self._tenant_id)
                 else:
-                    offer = await o_engine.get_best_offer(session, ctx.from_id, intent)
+                    offer = await o_engine.get_best_offer(session, ctx.from_id, intent, tenant_id=self._tenant_id)
                 if offer and offer.get("id"):
                     o_engine.mark_delivered(ctx.from_id, offer["id"])
                 if isinstance(classification, dict):
@@ -542,7 +555,7 @@ class ReplyPipeline:
 
         # Stage 10: Update context + auto-create CRM lead
         try:
-            ctx_engine = _get_ctx()
+            ctx_engine = _get_ctx(self._tenant_id)
             uc = ctx_engine.get(ctx.from_id)
             uc.add_comment(ctx.text, intent, rule_id)
             uc.add_reply(reply)
@@ -613,35 +626,21 @@ class ReplyPipeline:
         )
 
 # -------------------------------------------------------------------
-# Shared BotEngine (v2 — singleton pattern with cache, context, diag)
+# BotEngine — per-tenant engine (dict[tenant_id] registry in _services)
 # -------------------------------------------------------------------
 
 class BotEngine:
-    """
-    Singleton-pattern engine shared across webhook and polling.
-    Caches: rules, dedup set. Shared: cooldown, context, diagnostics.
-    """
+    """Per-tenant auto-reply engine. Each tenant gets its own instance."""
 
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self, fb: FBClient | None = None):
-        if hasattr(self, '_initialized'):
-            if fb is not None:
-                self.fb = fb
-            return
-        self._initialized = True
+    def __init__(self, fb: FBClient | None = None, tenant_id: int = 0):
         self.fb = fb
+        self._tenant_id = tenant_id
         self.cooldown = CooldownManager(default_cooldown_sec=60)
         self._cycle = 0
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
         self._mon = _get_monitor()
-        self._diag = _get_diag()
+        self._diag = _get_diag(tenant_id)
         self._dedup_engine = None
         self._rule_cache = None
         self._dm_map_cache = None
@@ -675,6 +674,34 @@ class BotEngine:
 
         async with AsyncSessionLocal() as session:
             try:
+                # ── Plan enforcement: skip if tenant subscription expired ──
+                plan_ok = True
+                tenant = await session.get(Tenant, self._tenant_id)
+                if tenant and tenant.subscription_status == "UNPAID":
+                    self._mon.warn("tenant unpaid — skipping cycle")
+                    return
+                if tenant and tenant.plan_end and utcnow() > tenant.plan_end:
+                    tenant.subscription_status = "UNPAID"
+                    await session.commit()
+                    self._mon.warn("tenant plan expired — skipping cycle")
+                    return
+                # Self-healing usage counter reset
+                if tenant and tenant.plan_start:
+                    from _utils import utcnow
+                    period_start = tenant.plan_start
+                    counters = await session.execute(
+                        select(UsageCounter).where(
+                            UsageCounter.tenant_id == self._tenant_id,
+                            UsageCounter.period_start < period_start,
+                            UsageCounter.period_start < period_start,
+                        )
+                    )
+                    for c in counters.scalars().all():
+                        c.period_start = period_start
+                        c.current_value = 0
+                    if counters:
+                        await session.commit()
+
                 # Load rules from cache
                 rules = await self._rule_cache.get_rules()
                 if not rules:
@@ -704,6 +731,27 @@ class BotEngine:
 
                 if total_replied:
                     self._mon.info(f"↳ Cycle #{self._cycle}: {total_replied} reply(ies) sent")
+
+                    # Increment usage counter (atomic)
+                    try:
+                        from _utils import utcnow
+                        counter = await session.execute(
+                            select(UsageCounter).where(
+                                UsageCounter.tenant_id == self._tenant_id,
+                                UsageCounter.metric == "replies_used",
+                            ).order_by(desc(UsageCounter.period_start)).limit(1)
+                        )
+                        uc = counter.scalar_one_or_none()
+                        if uc:
+                            uc.current_value = (uc.current_value or 0) + total_replied
+                        else:
+                            session.add(UsageCounter(
+                                tenant_id=self._tenant_id, metric="replies_used",
+                                period_start=utcnow(), current_value=total_replied,
+                            ))
+                        await session.commit()
+                    except Exception:
+                        pass
 
                     # Auto-invalidate rule cache after reply (new data may affect matching)
                     # ponytail: aggressive invalidation — optimize when cycle >1000
@@ -742,7 +790,7 @@ class BotEngine:
 
                 # Heartbeat every 10 cycles
                 if self._cycle % 10 == 0:
-                    ctx = _get_ctx()
+                    ctx = _get_ctx(self._tenant_id)
                     self._mon.info(
                         f"💓 Heartbeat #{self._cycle}: {len(posts)} posts / {len(rules)} rules / "
                         f"{total_replied} replied / {ctx.active_users} active users / "
@@ -766,7 +814,7 @@ class BotEngine:
         matcher = IntentAwareMatcher(rules, dm_map)
         replied_ids = await self._load_replied_ids(session)
         await self._dedup_engine.load(replied_ids)
-        pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown)
+        pipeline = ReplyPipeline(self.fb, self._dedup_engine, self.cooldown, tenant_id=self._tenant_id)
         return await pipeline.process(session, comment, post_id, matcher)
 
     async def process_single_comment(self, comment: dict, post_id: str):
@@ -791,6 +839,8 @@ class BotEngine:
     async def _load_rules_from_db(self) -> list[dict]:
         async with AsyncSessionLocal() as session:
             stmt = select(Rule)
+            if self._tenant_id:
+                stmt = stmt.where(Rule.tenant_id == self._tenant_id)
             result = await session.execute(stmt)
             return [
                 {
@@ -809,6 +859,8 @@ class BotEngine:
     async def _load_replied_ids(self, session) -> set[str]:
         cutoff = datetime.utcnow() - timedelta(hours=48)
         stmt = select(Reply.fb_comment_id).where(Reply.created_at >= cutoff)
+        if self._tenant_id:
+            stmt = stmt.where(Reply.tenant_id == self._tenant_id)
         result = await session.execute(stmt)
         return {row[0] for row in result}
 

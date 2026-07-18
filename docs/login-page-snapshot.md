@@ -1,0 +1,30 @@
+- generic [ref=f9e1]:
+  - link "تخطي إلى المحتوى" [ref=f9e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f9e3]:
+    - generic [ref=f9e4]:
+      - generic [ref=f9e9]:
+        - link [ref=f9e10] [cursor=pointer]:
+          - /url: /
+          - button "العودة للرئيسية" [ref=f9e11]
+        - button "الوضع النهاري" [ref=f9e12]
+      - generic [ref=f9e17]:
+        - generic [ref=f9e18]:
+          - img "الربط الذكي" [ref=f9e20]
+          - generic [ref=f9e21]: SmartBot
+          - generic [ref=f9e22]: لوحة التحكم الذكية
+        - generic [ref=f9e23]:
+          - generic [ref=f9e24]:
+            - generic [ref=f9e25]:
+              - text: اسم المستخدم أو البريد الإلكتروني
+              - textbox "اسم المستخدم أو البريد الإلكتروني" [active] [ref=f9e28]:
+                - /placeholder: اسم المستخدم
+            - generic [ref=f9e29]:
+              - text: كلمة المرور
+              - generic [ref=f9e30]:
+                - textbox "كلمة المرور" [ref=f9e32]
+                - button "إظهار كلمة المرور" [ref=f9e33]
+            - button [ref=f9e37]
+          - paragraph [ref=f9e39]: SmartBot - منصة إدارة التفاعل الذكية
+  - region "Notifications alt+T"
+  - alert [ref=f9e8]

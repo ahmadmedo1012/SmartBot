@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 DB migration: add priority and bot_type columns to rules table.
 Run: python -m migration

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Omnichannel Inbox Engine — Unified conversation management across platforms.
 Handles Messenger, Instagram, WhatsApp, Telegram conversations in one inbox.
 """

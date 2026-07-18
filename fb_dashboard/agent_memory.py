@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Agent Memory — DB-backed session + user memory for Vercel serverless.
 Stores in BotState table as JSON. Every request reads/writes from DB.

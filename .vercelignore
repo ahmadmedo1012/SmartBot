@@ -10,7 +10,5 @@
 mobile
 docs
 *.md
-*.png
-*.jpg
-*.ico
 *.db
+botlogo.png

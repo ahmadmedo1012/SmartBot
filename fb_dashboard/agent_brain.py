@@ -101,7 +101,7 @@ async def reason(text: str, context: dict | None = None) -> dict:
         ai = _get_ai()
         ctx = context or {}
     except Exception:
-        ai = _get_ai.cache = {"available": False}
+        ai = {"available": False}
         class _Fake: available = False
         ai = _Fake()
         ctx = context or {}

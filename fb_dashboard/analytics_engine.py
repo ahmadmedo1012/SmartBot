@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Analytics Engine — Advanced metrics, reporting, and insights."""
 import json
 import logging
@@ -41,104 +42,68 @@ class AnalyticsEngine:
     # Public API  (8 methods)
     # ------------------------------------------------------------------
 
-    async def get_dashboard_overview(self, days: int, session) -> dict:
-        """High-level KPIs for the dashboard hero cards.
-
-        Returns total / today replies, active rules, subscriber count,
-        and a percentage change versus the identical-length window
-        immediately before ``days``.
-        """
+    async def get_dashboard_overview(self, days: int, session, tenant_id: int = 0) -> dict:
+        """High-level KPIs — single aggregation query instead of 6 separate COUNTs."""
         now = utcnow()
         cutoff = self._cutoff(days)
         prior_cutoff = self._cutoff(days * 2)
+        today = now.date()
 
-        total_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(Reply.created_at >= cutoff)
-            )
-            or 0
+        # Single aggregation: total, today, prior period, unique commenters
+        row = await session.execute(
+            select(
+                func.count(Reply.id).filter(Reply.created_at >= cutoff).label("total_replies"),
+                func.count(Reply.id).filter(cast(Reply.created_at, Date) == today).label("today_replies"),
+                func.count(Reply.id).filter(
+                    Reply.created_at >= prior_cutoff, Reply.created_at < cutoff
+                ).label("prior_replies"),
+                func.count(func.distinct(Reply.commenter_name)).filter(
+                    Reply.commenter_name != "", Reply.created_at >= cutoff
+                ).label("unique_commenters"),
+            ).where(Reply.tenant_id == tenant_id)
         )
-
-        today_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(
-                    cast(Reply.created_at, Date) == now.date()
-                )
-            )
-            or 0
-        )
+        r = row.one()
 
         active_rules = (
             await session.scalar(
-                select(func.count(Rule.id)).where(Rule.enabled == True)
+                select(func.count(Rule.id)).where(Rule.tenant_id == tenant_id, Rule.enabled == True)
             )
             or 0
         )
-
         total_subs = (
-            await session.scalar(select(func.count(Subscriber.id))) or 0
+            await session.scalar(select(func.count(Subscriber.id)).where(Subscriber.tenant_id == tenant_id)) or 0
         )
 
-        unique_commenters = (
-            await session.scalar(
-                select(func.count(func.distinct(Reply.commenter_name))).where(
-                    and_(
-                        Reply.commenter_name != "",
-                        Reply.created_at >= cutoff,
-                    )
-                )
-            )
-            or 0
-        )
-
-        # Prior period comparison
-        prior_replies = (
-            await session.scalar(
-                select(func.count(Reply.id)).where(
-                    and_(
-                        Reply.created_at >= prior_cutoff,
-                        Reply.created_at < cutoff,
-                    )
-                )
-            )
-            or 0
-        )
+        total_replies = r.total_replies or 0
+        prior_replies = r.prior_replies or 0
 
         return {
             "total_replies": total_replies,
-            "today_replies": today_replies,
+            "today_replies": r.today_replies or 0,
             "active_rules": active_rules,
             "total_subscribers": total_subs,
-            "unique_commenters": unique_commenters,
+            "unique_commenters": r.unique_commenters or 0,
             "prior_replies": prior_replies,
             "change_pct": self._pct_change(total_replies, prior_replies),
             "period_days": days,
         }
 
-    async def get_daily_trend(self, days: int, session) -> list[dict]:
-        """Daily reply count for the last ``days``, ordered ascending.
-
-        Each entry: ``{"date": "YYYY-MM-DD", "replies": N}``.
-        Days with zero replies are absent.
-        """
+    async def get_daily_trend(self, days: int, session, tenant_id: int = 0) -> list[dict]:
+        """Daily reply count for the last ``days``, ordered ascending."""
         cutoff = self._cutoff(days)
         rows = await session.execute(
             select(
                 cast(Reply.created_at, Date).label("d"),
                 func.count(Reply.id).label("cnt"),
             )
-            .where(Reply.created_at >= cutoff)
+            .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
             .group_by(cast(Reply.created_at, Date))
             .order_by(cast(Reply.created_at, Date))
         )
         return [{"date": str(row.d), "replies": row.cnt} for row in rows]
 
-    async def get_hourly_heatmap(self, days: int, session) -> list[dict]:
-        """Hour-of-day × day-of-week heatmap cells.
-
-        Returns one row per (hour, date) bucket that has at least one reply:
-        ``{"hour": 0-23, "day": "YYYY-MM-DD", "count": N}``.
-        """
+    async def get_hourly_heatmap(self, days: int, session, tenant_id: int = 0) -> list[dict]:
+        """Hour-of-day × day-of-week heatmap cells."""
         cutoff = self._cutoff(days)
         rows = await session.execute(
             select(
@@ -146,7 +111,7 @@ class AnalyticsEngine:
                 cast(Reply.created_at, Date).label("d"),
                 func.count(Reply.id).label("cnt"),
             )
-            .where(Reply.created_at >= cutoff)
+            .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
             .group_by(text("h"), text("d"))
             .order_by(text("d"), text("h"))
         )
@@ -156,14 +121,9 @@ class AnalyticsEngine:
         ]
 
     async def get_top_rules(
-        self, days: int, limit: int, session
+        self, days: int, limit: int, session, tenant_id: int = 0
     ) -> list[dict]:
-        """Most frequently matched rules, with percentage share.
-
-        Joins ``Reply`` → ``Rule`` and aggregates by rule.
-        Returns ``{"rule_id", "name", "count", "percentage"}`` sorted
-        descending by count, capped at ``limit``.
-        """
+        """Most frequently matched rules, with percentage share."""
         cutoff = self._cutoff(days)
         rows = await session.execute(
             select(
@@ -173,7 +133,7 @@ class AnalyticsEngine:
             )
             .join(Rule, Reply.rule_id == Rule.id)
             .where(
-                and_(Reply.created_at >= cutoff, Reply.rule_id.isnot(None))
+                and_(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff, Reply.rule_id.isnot(None))
             )
             .group_by(Reply.rule_id, Rule.name)
             .order_by(desc("cnt"))
@@ -189,14 +149,9 @@ class AnalyticsEngine:
         return results
 
     async def get_sentiment_trend(
-        self, days: int, session
+        self, days: int, session, tenant_id: int = 0
     ) -> list[dict]:
-        """Sentiment distribution over time from ``AISuggestion`` rows.
-
-        Pivots sentiment values into three columns per date:
-        ``{"date", "positive", "negative", "neutral"}``.
-        Unknown sentiment values are rolled into ``neutral``.
-        """
+        """Sentiment distribution over time from ``AISuggestion`` rows."""
         cutoff = self._cutoff(days)
         rows = await session.execute(
             select(
@@ -204,7 +159,7 @@ class AnalyticsEngine:
                 AISuggestion.sentiment,
                 func.count(AISuggestion.id).label("cnt"),
             )
-            .where(AISuggestion.created_at >= cutoff)
+            .where(AISuggestion.tenant_id == tenant_id, AISuggestion.created_at >= cutoff)
             .group_by(
                 cast(AISuggestion.created_at, Date), AISuggestion.sentiment
             )
@@ -228,11 +183,8 @@ class AnalyticsEngine:
                 bucket["neutral"] += row.cnt
         return list(trend.values())
 
-    async def get_peak_hour(self, days: int, session) -> int | None:
-        """Hour (0-23) with the highest reply volume in the window.
-
-        Returns ``None`` when there is no data.
-        """
+    async def get_peak_hour(self, days: int, session, tenant_id: int = 0) -> int | None:
+        """Hour (0-23) with the highest reply volume in the window."""
         cutoff = self._cutoff(days)
         row = (
             await session.execute(
@@ -240,7 +192,7 @@ class AnalyticsEngine:
                     extract("hour", Reply.created_at).label("h"),
                     func.count(Reply.id).label("cnt"),
                 )
-                .where(Reply.created_at >= cutoff)
+                .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
                 .group_by(text("h"))
                 .order_by(desc("cnt"))
                 .limit(1)
@@ -249,14 +201,9 @@ class AnalyticsEngine:
         return int(row.h) if row else None
 
     async def get_top_commenters(
-        self, days: int, limit: int, session
+        self, days: int, limit: int, session, tenant_id: int = 0
     ) -> list[dict]:
-        """Most active commenters in the window.
-
-        Each entry: ``{"name", "count", "last_comment"}`` where
-        ``last_comment`` is an ISO-8601 string or ``None``.
-        Filters out blank names.
-        """
+        """Most active commenters in the window."""
         cutoff = self._cutoff(days)
         rows = await session.execute(
             select(
@@ -266,6 +213,7 @@ class AnalyticsEngine:
             )
             .where(
                 and_(
+                    Reply.tenant_id == tenant_id,
                     Reply.created_at >= cutoff,
                     Reply.commenter_name != "",
                 )
@@ -286,13 +234,9 @@ class AnalyticsEngine:
         ]
 
     async def get_period_comparison(
-        self, days: int, session
+        self, days: int, session, tenant_id: int = 0
     ) -> dict:
-        """Compare current period to the same-length preceding period.
-
-        Returns ``{"replies_before", "replies_now", "change_pct",
-        "period_days"}``.  Useful for "vs last month" widgets.
-        """
+        """Compare current period to the same-length preceding period."""
         now = utcnow()
         cutoff = now - timedelta(days=days)
         prior_cutoff = cutoff - timedelta(days=days)
@@ -301,6 +245,7 @@ class AnalyticsEngine:
             await session.scalar(
                 select(func.count(Reply.id)).where(
                     and_(
+                        Reply.tenant_id == tenant_id,
                         Reply.created_at >= cutoff,
                         Reply.created_at <= now,
                     )
@@ -313,6 +258,7 @@ class AnalyticsEngine:
             await session.scalar(
                 select(func.count(Reply.id)).where(
                     and_(
+                        Reply.tenant_id == tenant_id,
                         Reply.created_at >= prior_cutoff,
                         Reply.created_at < cutoff,
                     )

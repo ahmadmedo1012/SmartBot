@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Agent Tools — all capabilities as registered tools with risk classification.
 Tools are referenced by agent_brain.py for LLM orchestration.

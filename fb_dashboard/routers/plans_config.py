@@ -27,23 +27,25 @@ async def list_plans(db=Depends(get_db)):
     return [{
         "id": p.id,
         "name": p.name,
-        "name_ar": p.name_ar,
+        "nameAr": p.name_ar,
         "price": float(p.price),
-        "period_days": p.period_days,
-        "max_replies": p.max_replies,
-        "max_pages": p.max_pages,
-        "max_rules": p.max_rules,
-        "max_team": p.max_team,
-        "has_dm": p.has_dm,
-        "has_ai": p.has_ai,
-        "has_broadcast": p.has_broadcast,
-        "has_scheduling": p.has_scheduling,
-        "has_reports": p.has_reports,
-        "has_flows": p.has_flows,
-        "has_offers": p.has_offers,
-        "has_sequences": p.has_sequences,
-        "has_analytics_advanced": p.has_analytics_advanced,
+        "periodDays": p.period_days,
+        "maxReplies": p.max_replies,
+        "maxPages": p.max_pages,
+        "maxRules": p.max_rules,
+        "maxTeam": p.max_team,
+        "hasDm": p.has_dm,
+        "hasAi": p.has_ai,
+        "hasBroadcast": p.has_broadcast,
+        "hasScheduling": p.has_scheduling,
+        "hasReports": p.has_reports,
+        "hasFlows": p.has_flows,
+        "hasOffers": p.has_offers,
+        "hasSequences": p.has_sequences,
+        "hasAnalyticsAdvanced": p.has_analytics_advanced,
         "features": p.features,
+        "sortOrder": p.sort_order,
+        "isActive": p.is_active,
     } for p in plans]
 
 
@@ -71,6 +73,10 @@ async def healthz():
     except Exception as e:
         checks["database"] = str(e)[:200]
         checks["ok"] = False
+    checks["version"] = "2.0.0"
+    checks["timestamp"] = __import__('datetime').datetime.now().isoformat()
+    checks["uptime"] = None  # ponytail: track process start time if needed
+    checks["env"] = "production" if not settings.DEBUG else "development"
     return checks
 
 

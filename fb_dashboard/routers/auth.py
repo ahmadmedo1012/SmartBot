@@ -9,7 +9,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 
 import jwt
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Body, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func, desc, or_
 
@@ -76,8 +76,11 @@ def require_role(min_role: str):
 
 
 @router.post("/api/login")
-async def login(username: str = Form(...), password: str = Form(...),
-                request: Request = None, db=Depends(get_db)):
+async def login(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
+    if not body:
+        raise HTTPException(400, "JSON body required")
+    username = body.get("username", "")
+    password = body.get("password", "")
     ip = request.client.host if request and request.client else "unknown"
     from _rate_limit import check_rate_limit
     if not await check_rate_limit(db, f"login:{ip}", max_attempts=10, window_seconds=60):
@@ -90,7 +93,13 @@ async def login(username: str = Form(...), password: str = Form(...),
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse({"success": True, "data": {"user": {"role": user.role, "username": user.username}}})
+    resp = JSONResponse({"success": True, "data": {
+        "user": {
+            "id": user.id, "username": user.username, "name": user.email or user.username,
+            "role": user.role, "tenant_id": user.tenant_id,
+            "subscriptionStatus": getattr(user, 'plan', 'free'),
+        }
+    }})
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -116,8 +125,13 @@ async def logout(request: Request, db=Depends(get_db)):
 
 
 @router.post("/api/register")
-async def register(request: Request, username: str = Form(...), email: str = Form(...),
-                   password: str = Form(...), db=Depends(get_db)):
+async def register(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
+    if not body:
+        raise HTTPException(400, "JSON body required")
+    username = body.get("username", "")
+    email = body.get("email", "")
+    password = body.get("password", "")
+    name = body.get("name", username)
     ip = request.client.host if request.client else "unknown"
     from _rate_limit import check_rate_limit
     if not await check_rate_limit(db, f"register:{ip}", max_attempts=5, window_seconds=300):
@@ -135,14 +149,16 @@ async def register(request: Request, username: str = Form(...), email: str = For
     db.add(tenant)
     await db.flush()
     pw_hash = hash_password(password)
-    user = User(username=username, email=email, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
+    user = User(username=username, email=email, name=name, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
     db.add(user)
     await db.flush()
     await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
     await db.commit()
     token = make_token(username, tenant.id)
     secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse({"success": True, "data": {"user": {"username": username, "tenant_id": tenant.id}}})
+    resp = JSONResponse({"success": True, "data": {
+        "user": {"id": user.id, "username": username, "name": name, "tenant_id": tenant.id, "role": "admin"}
+    }})
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -157,21 +173,31 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
         if tenant:
             plan = tenant.plan or "free"
     return {"success": True, "authenticated": True, "data": {
-        "role": current_user.role, "username": current_user.username,
-        "tenant_id": current_user.tenant_id, "email": current_user.email, "plan": plan,
+        "user": {
+            "id": current_user.id, "username": current_user.username,
+            "name": current_user.email or current_user.username,
+            "role": current_user.role, "tenant_id": current_user.tenant_id,
+            "email": current_user.email, "plan": plan, "phone": current_user.phone or "",
+            "subscriptionStatus": plan,
+            "permissions": [],
+            "roleLabel": current_user.role,
+        }
     }}
 
 
 @router.get("/api/audit/logs")
-async def get_audit_logs(limit: int = 50, db=Depends(get_db),
+async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
                           current_user: User = Depends(require_role("admin"))):
-    rows = await db.execute(
-        select(AuditLog).where(AuditLog.tenant_id == current_user._tenant_id)
-        .order_by(desc(AuditLog.created_at)).limit(limit)
-    )
-    return [{
-        "id": r.id, "action": r.action, "actor_id": r.actor_id,
-        "target_type": r.target_type, "target_id": r.target_id,
-        "metadata": r.data, "ip": r.ip,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
-    } for r in rows.scalars().all()]
+    offset = (page - 1) * page_size
+    stmt = select(AuditLog).where(AuditLog.tenant_id == current_user._tenant_id)
+    total = await db.scalar(select(func.count(AuditLog.id)).where(AuditLog.tenant_id == current_user._tenant_id)) or 0
+    rows = await db.execute(stmt.order_by(desc(AuditLog.created_at)).offset(offset).limit(page_size))
+    return {"success": True, "data": {
+        "items": [{
+            "id": r.id, "action": r.action, "actor_id": r.actor_id,
+            "target_type": r.target_type, "target_id": r.target_id,
+            "metadata": r.data, "ip": r.ip,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        } for r in rows.scalars().all()],
+        "total": total, "page": page, "page_size": page_size,
+    }}

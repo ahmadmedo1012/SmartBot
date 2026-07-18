@@ -328,3 +328,30 @@
 
 /* GlowPool utility */
 .glow-pool { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(100px); }
+
+/* ─── Button Utilities (from Smart Menu brand) ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 9999px;
+  font: 600 13px/1 sans-serif; cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+  border: 0; text-decoration: none;
+}
+.btn-primary {
+  background: var(--primary); color: var(--primary-foreground);
+  box-shadow: 0 0 20px oklch(0.55 0.19 45 / 0.25);
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0) scale(0.97); }
+.btn-outline {
+  background: transparent; color: var(--foreground);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { border-color: var(--orange); color: var(--orange); }
+.btn-ghost {
+  background: transparent; color: var(--muted-foreground);
+}
+.btn-ghost:hover { color: var(--foreground); background: var(--accent-soft); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; transform: none; }

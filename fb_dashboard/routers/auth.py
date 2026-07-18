@@ -239,3 +239,21 @@ async def list_users(page: int = 1, page_size: int = 50, db=Depends(get_db),
         } for u in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
     }}
+
+
+@router.get("/api/admin/notification-preferences")
+async def get_notification_prefs(current_user: User = Depends(get_current_user)):
+    return {"success": True, "data": {
+        "telegramNotifyOrders": True,
+        "telegramNotifyPayments": True,
+        "telegramNotifySettings": True,
+    }}
+
+
+@router.put("/api/admin/notification-preferences")
+async def update_notification_prefs(body: dict = Body(None), current_user: User = Depends(get_current_user)):
+    return {"success": True, "data": {
+        "telegramNotifyOrders": body.get("telegramNotifyOrders", True) if body else True,
+        "telegramNotifyPayments": body.get("telegramNotifyPayments", True) if body else True,
+        "telegramNotifySettings": body.get("telegramNotifySettings", True) if body else True,
+    }}

@@ -1,5 +1,20 @@
 # SmartBot — Governance & Architecture
 
+---
+
+# Engineering Rules (قوانين هندسية صارمة)
+
+These rules are globally active (see `/home/ahmed/.claude/CLAUDE.md`). Reinforced here for project context:
+
+1. **Deep Analysis** — Full environment/requirement/code examination before any code.
+2. **Precise Planning** — Write/update plan before touching code. Plan first, code second.
+3. **Continuous Testing** — 100% verification after every step. No skip, no partial.
+4. **Multi-Agent Orchestration** — Decompose work, recruit sub-agents, verify adversarially.
+
+*Cost and time irrelevant. Perfect error-free results are the only priority.*
+
+---
+
 ## Project Identity
 SmartBot: Facebook engagement automation platform (FastAPI + Next.js 16).  
 Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu) — same cleanliness principles, different backend language.

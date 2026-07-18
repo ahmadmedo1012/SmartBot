@@ -96,6 +96,7 @@ class User(Base):
     tenant_id = Column(Integer, nullable=False, default=0)
     username = Column(String(100), nullable=False)
     email = Column(String(200), default="")
+    phone = Column(String(50), default="")
     plan = Column(String(50), default="free")
     email_verified = Column(Boolean, default=False)
     reset_token = Column(String(100), default="")
@@ -631,6 +632,7 @@ class RateLimitEntry(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(100), nullable=False, index=True)
     window_end = Column(DateTime, nullable=False)
+    count = Column(Integer, default=1, nullable=False)
     created_at = Column(DateTime, default=utcnow)
 
 

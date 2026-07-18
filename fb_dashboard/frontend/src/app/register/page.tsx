@@ -53,8 +53,8 @@ function RegisterForm() {
     try {
       const res = await apiFetch("/api/register", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ username: username.trim(), email: email.trim(), password }).toString(),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), email: email.trim(), password }),
       })
       const data = await res.json()
       if (!res.ok) {

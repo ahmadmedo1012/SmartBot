@@ -46,7 +46,7 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
         f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
         f"— بعد الإرسال، انتظر موافقة الأدمن"
     )
-    return {"success": True, "data": {"payment_id": pr.id, "instructions": instructions}}
+    return {"payment_id": pr.id, "instructions": instructions}
 
 
 @router.post("/api/payments/confirm")
@@ -64,7 +64,7 @@ async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_us
     pr.reference = ref
     pr.note = "انتظار موافقة الأدمن"
     await db.commit()
-    return {"success": True, "data": {"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"}}
+    return {"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"}
 
 
 @router.get("/api/payments/balance")
@@ -74,7 +74,7 @@ async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_c
     )
     bs = existing.scalar_one_or_none()
     balance = int(bs.value) if bs and bs.value else 0
-    return {"success": True, "data": {"balance": balance, "currency": "LYD"}}
+    return {"balance": balance, "currency": "LYD"}
 
 
 @router.get("/api/payments/history")
@@ -84,12 +84,12 @@ async def payment_history(db=Depends(get_db), current_user: User = Depends(get_c
         .where(PaymentRequest.tenant_id == current_user._tenant_id)
         .order_by(desc(PaymentRequest.created_at))
     )
-    return {"success": True, "data": [
+    return [
         {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
          "phone": r.phone, "reference": r.reference, "status": r.status,
          "note": r.note, "created_at": r.created_at.isoformat() if r.created_at else None}
         for r in rows.scalars().all()
-    ]}
+    ]
 
 
 @router.post("/api/subscriptions/validate")
@@ -100,8 +100,8 @@ async def validate_subscription(body: dict = Body(...), db=Depends(get_db)):
         raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
     existing_user = await db.execute(select(User).where(User.username == username))
     if existing_user.scalar_one_or_none():
-        return {"success": False, "data": {"valid": False, "error": "اسم المستخدم موجود مسبقاً"}}
-    return {"success": True, "data": {"valid": True}}
+        return {"valid": False, "error": "اسم المستخدم موجود مسبقاً"}
+    return {"valid": True}
 
 
 @router.post("/api/subscriptions")
@@ -150,7 +150,7 @@ async def create_subscription(body: dict = Body(...), db=Depends(get_db), curren
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone, plan.name_ar)
     )
 
-    return {"success": True, "data": {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع", "provider": provider, "ussd": f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الأدمن"}}
+    return {"payment_id": sp.id, "status": "pending", "message": "تم إنشاء طلب الدفع", "provider": provider, "ussd": f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الأدمن"}
 
 
 @router.get("/api/subscriptions/status")
@@ -159,7 +159,7 @@ async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), 
     sp = await db.get(SubscriptionPayment, payment_id)
     if not sp or sp.user_id != current_user.id:
         raise HTTPException(404, "الدفعة غير موجودة")
-    return {"success": True, "data": {"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name}}
+    return {"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name}
 
 
 @router.post("/api/subscriptions/upgrade")
@@ -208,7 +208,7 @@ async def upgrade_subscription(body: dict = Body(...), db=Depends(get_db), curre
         notify_admins_new_subscription(sp.id, current_user.username, float(new_plan.price), provider, phone, new_plan.name_ar)
     )
 
-    return {"success": True, "data": {"payment_id": sp.id, "status": "pending"}}
+    return {"payment_id": sp.id, "status": "pending"}
 
 
 @router.get("/api/admin/subscriptions")
@@ -230,7 +230,7 @@ async def admin_list_subscriptions(status: str = Query("pending"), page: int = Q
             "metadata": sp.extra_data,
             "created_at": sp.created_at.isoformat() if sp.created_at else None,
         })
-    return {"success": True, "data": result}
+    return result
 
 
 @router.post("/api/admin/subscriptions")
@@ -262,4 +262,4 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
             if user:
                 user.subscription_status = "REJECTED"
     await db.commit()
-    return {"success": True, "data": {"ok": True, "status": decision}}
+    return {"ok": True, "status": decision}

@@ -185,4 +185,4 @@ async def get_hourly_stats(db=Depends(get_db), current_user: User = Depends(get_
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(text("hour")).order_by(text("hour"))
     )
-    return [{"hour": int(r.hour), "count": r.count} for r in rows]
+    return {"success": True, "data": [{"hour": int(r.hour), "count": r.count} for r in rows]}

@@ -24,28 +24,28 @@ async def list_plans(db=Depends(get_db)):
         select(SubscriptionPlan).where(SubscriptionPlan.is_active == True).order_by(SubscriptionPlan.sort_order)
     )
     plans = result.scalars().all()
-    return [{
+    return {"success": True, "data": [{
         "id": p.id,
         "name": p.name,
-        "nameAr": p.name_ar,
+        "name_ar": p.name_ar,
         "price": float(p.price),
-        "periodDays": p.period_days,
-        "maxReplies": p.max_replies,
-        "maxPages": p.max_pages,
-        "maxRules": p.max_rules,
-        "maxTeam": p.max_team,
-        "hasDm": p.has_dm,
-        "hasAi": p.has_ai,
-        "hasBroadcast": p.has_broadcast,
-        "hasScheduling": p.has_scheduling,
-        "hasReports": p.has_reports,
-        "hasFlows": p.has_flows,
-        "hasOffers": p.has_offers,
-        "hasSequences": p.has_sequences,
-        "hasAnalyticsAdvanced": p.has_analytics_advanced,
+        "period_days": p.period_days,
+        "max_replies": p.max_replies,
+        "max_pages": p.max_pages,
+        "max_rules": p.max_rules,
+        "max_team": p.max_team,
+        "has_dm": p.has_dm,
+        "has_ai": p.has_ai,
+        "has_broadcast": p.has_broadcast,
+        "has_scheduling": p.has_scheduling,
+        "has_reports": p.has_reports,
+        "has_flows": p.has_flows,
+        "has_offers": p.has_offers,
+        "has_sequences": p.has_sequences,
+        "has_analytics_advanced": p.has_analytics_advanced,
         "features": p.features,
-        "sortOrder": p.sort_order,
-        "isActive": p.is_active,
+        "sort_order": p.sort_order,
+        "is_active": p.is_active,
     } for p in plans]
 
 
@@ -57,7 +57,7 @@ async def public_config(db=Depends(get_db)):
     for r in rows.scalars().all():
         if not r.is_secret:
             config[r.key] = r.value
-    return config
+    return {"success": True, "data": config}
 
 
 @router.get("/healthz")
@@ -75,9 +75,9 @@ async def healthz():
         checks["ok"] = False
     checks["version"] = "2.0.0"
     checks["timestamp"] = __import__('datetime').datetime.now().isoformat()
-    checks["uptime"] = None  # ponytail: track process start time if needed
+    checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
-    return checks
+    return {"success": True, "data": checks}
 
 
 @router.get("/api/env")
@@ -86,14 +86,14 @@ async def get_env(_=Depends(get_current_user)):
     vf = BASE_DIR / "VERSION"
     if vf.exists():
         version = vf.read_text().strip()
-    return {
+    return {"success": True, "data": {
         "version": version,
         "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",
         "bot_interval": settings.BOT_INTERVAL_SECONDS,
         "debug": settings.DEBUG,
         "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
         "webhook_url": (os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or "") + "/webhook",
-    }
+    }}
 
 
 @router.get("/api/system/stats")

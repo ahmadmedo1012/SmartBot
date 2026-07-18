@@ -840,11 +840,15 @@ async def _process_webhook_comment(comment: dict, post_id: str):
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
 
 
-# ── SPA catch-all: serve index.html for any unmatched browser route ──────────
+# ── SPA catch-all: serve Next.js index.html for unmatched browser routes ────
 @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
 async def spa_catch_all(path: str):
-    # Serve SPA for all browser routes — the Next.js static export handles
-    # client-side routing. Only reject true API/system paths that need real handlers.
+    # Don't catch API/system paths — let FastAPI handle or 404
     if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
         return HTMLResponse("", status_code=404)
+    # Check if the Next.js static export has a page for this path
+    path_page = STATIC_DIR / path / "index.html"
+    if path_page.exists():
+        return HTMLResponse(path_page.read_text(encoding="utf-8"))
+    # Fallback: serve the root Next.js index.html (handles client-side routing)
     return HTMLResponse(_get_spa())

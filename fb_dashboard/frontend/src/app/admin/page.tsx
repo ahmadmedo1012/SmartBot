@@ -118,7 +118,7 @@ export default function AdminPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
-          <Button key={f.key} variant={filter === f.key ? "primary" : "outline"} size="sm" onClick={() => setFilter(f.key)}>
+          <Button key={f.key} variant={filter === f.key ? "orange" : "outline"} size="sm" onClick={() => setFilter(f.key)}>
             {f.label}
           </Button>
         ))}
@@ -166,7 +166,7 @@ export default function AdminPage() {
                         <div className="flex items-center justify-center gap-2">
                           {p.status === "pending" && (
                             <>
-                              <Button variant="primary" size="sm" loading={actionId === p.id}
+                              <Button variant="orange" size="sm" loading={actionId === p.id}
                                 onClick={() => handleAction(p.id, "verified")}>
                                 <CheckCircle className="size-4" /> قبول
                               </Button>

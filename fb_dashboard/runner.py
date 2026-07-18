@@ -434,6 +434,21 @@ if STATIC_DIR.exists():
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     except Exception as e:
         log.error(f"StaticFiles mount failed: {e}")
+# Also serve Next.js static export at /_next/ — the export places files at
+# out/_next/static/ which ends up at STATIC_DIR/_next/static/ after the build command.
+_NEXT_STATIC = STATIC_DIR / "_next"
+if _NEXT_STATIC.exists():
+    try:
+        app.mount("/_next", StaticFiles(directory=str(_NEXT_STATIC)), name="next_static")
+    except Exception as e:
+        log.error(f"Next.js static mount failed: {e}")
+# Also serve /fonts/* — Next.js may reference fonts at /fonts/ or /static/fonts/
+_FONTS_DIR = STATIC_DIR / "fonts"
+if _FONTS_DIR.exists():
+    try:
+        app.mount("/fonts", StaticFiles(directory=str(_FONTS_DIR)), name="fonts")
+    except Exception as e:
+        log.error(f"Fonts mount failed: {e}")
 # ponytail: Vercel includeFiles bundles fb_dashboard/static/** but the Python
 # function may see files at a different path. Log diagnostic on startup.
 log.info(f"STATIC_DIR={STATIC_DIR} exists={STATIC_DIR.exists()}")

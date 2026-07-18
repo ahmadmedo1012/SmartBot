@@ -100,7 +100,7 @@ export function AdminSidebar({
   onSubscribe,
   className,
 }: AdminSidebarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
 
   return (
     <aside className={cn("flex flex-col h-full bg-card border-l border-border", className)}>

@@ -554,6 +554,28 @@ class SystemConfig(Base):
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+class TelegramApprover(Base):
+    """Whitelisted Telegram admin IDs for payment approval."""
+    __tablename__ = "telegram_approvers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    telegram_id = Column(String(50), unique=True, nullable=False)
+    label = Column(String(100), default="")
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class TelegramBroadcastTarget(Base):
+    """Target chat IDs for Telegram broadcast messages."""
+    __tablename__ = "telegram_broadcast_targets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    label = Column(String(100), default="")
+    chat_id = Column(String(50), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
 class Customer(Base):
     """CRM — customers and leads from social interactions."""
     __tablename__ = "customers"

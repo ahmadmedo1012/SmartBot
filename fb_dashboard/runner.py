@@ -49,6 +49,7 @@ from routers import admin_routes as admin_router
 from routers import alerts_routes as alerts_router
 from routers import brand_routes as brand_router
 from routers import calendar_routes as calendar_router
+from routers import telegram_config as telegram_router
 from routers import commerce_routes as commerce_router
 from routers import crm_routes as crm_router
 from routers import dashboard_stats as dashboard_router
@@ -412,6 +413,7 @@ app.include_router(admin_router.router)
 app.include_router(alerts_router.router)
 app.include_router(brand_router.router)
 app.include_router(calendar_router.router)
+app.include_router(telegram_router.router)
 app.include_router(commerce_router.router)
 app.include_router(crm_router.router)
 app.include_router(dashboard_router.router)

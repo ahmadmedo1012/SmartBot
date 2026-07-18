@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { fadeUp, stagger } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
-import { Sparkles, Check, Crown, Star, ChevronDown } from "lucide-react"
+import { Sparkles, Check, Crown, Star } from "lucide-react"
 
 interface Plan {
   id: string; name: string; name_ar: string; price: number
@@ -21,16 +21,10 @@ interface Plan {
 }
 
 const PLAN_ICONS = [Sparkles, Star, Crown, Crown]
-const FAQS = [
-  { q: "هل يمكنني تغيير خطتي لاحقاً؟", a: "نعم، يمكنك الترقية أو تخفيض خطتك في أي وقت." },
-  { q: "هل يوجد دعم فني؟", a: "نعم، جميع الخطط المدفوعة تتضمن دعماً فنياً." },
-  { q: "هل يمكنني إلغاء اشتراكي؟", a: "نعم، يمكنك إلغاء اشتراكك في أي وقت." },
-]
 
 export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
 
   useEffect(() => {
     apiFetch("/api/plans").then(r => r.json()).then(setPlans).catch(() => {})

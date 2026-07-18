@@ -177,7 +177,7 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             "id": current_user.id, "username": current_user.username,
             "name": current_user.email or current_user.username,
             "role": current_user.role, "tenant_id": current_user.tenant_id,
-            "email": current_user.email, "plan": plan, "phone": current_user.phone or "",
+            "email": current_user.email, "phone": current_user.phone or "",
             "subscriptionStatus": plan,
             "permissions": [],
             "roleLabel": current_user.role,

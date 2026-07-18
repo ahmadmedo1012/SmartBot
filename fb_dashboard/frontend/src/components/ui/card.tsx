@@ -1,14 +1,17 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "glass" | "elevated"; hover?: boolean }>(
-  ({ className, variant = "default", hover, ...props }, ref) => (
-    <div ref={ref} className={cn(
-      "rounded-sm border",
-      variant === "glass" ? "glass-card" : variant === "elevated" ? "card-premium" : "bg-card border-border",
-      hover && "card-premium",
-      className
-    )} {...props} />
+const cardVariants = {
+  default: "bg-card border-border",
+  outline: "bg-transparent border-border",
+  gradient: "bg-gradient-to-br from-orange/5 to-orange/10 border-orange/20",
+  glass: "glass-card border-0",
+  elevated: "bg-card border-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all",
+}
+
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { variant?: keyof typeof cardVariants }>(
+  ({ className, variant = "default", ...props }, ref) => (
+    <div ref={ref} className={cn("rounded-sm border", cardVariants[variant] || cardVariants.default, className)} {...props} />
   )
 )
 Card.displayName = "Card"

@@ -1,22 +1,25 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-interface GlowPoolProps {
-  position?: string
-  size?: string
-  color?: string
-  className?: string
-}
+type GlowPoolProps = {
+  position?: string;
+  size?: string;
+  color?: string;
+  className?: string;
+};
 
-export function GlowPool({ position = "top-0 start-0", size = "size-80 sm:size-96", color = "orange", className }: GlowPoolProps) {
-  const [colorName, opacity = "30"] = color.split("/")
-
+export function GlowPool({
+  position = "top-1/2 left-1/2",
+  size = "size-[50vmin]",
+  color = "orange/5",
+  className,
+}: GlowPoolProps) {
   return (
     <div
-      className={cn("glow-pool", position, size, className)}
-      style={{
-        background: `radial-gradient(circle, color-mix(in oklch, var(--${colorName}) ${opacity}%, transparent) 0%, transparent 70%)`,
-      }}
-      aria-hidden="true"
+      className={cn(
+        `pointer-events-none absolute ${position} -translate-x-1/2 -translate-y-1/2 ${size} rounded-full blur-[100px]`,
+        className,
+      )}
+      style={{ background: `oklch(0.55 0.19 45 / ${parseFloat(color.split("/")[1] || "0.05")})` }}
     />
-  )
+  );
 }

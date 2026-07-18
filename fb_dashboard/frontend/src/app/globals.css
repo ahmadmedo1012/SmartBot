@@ -281,6 +281,11 @@
 @keyframes pulse-dot { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
 @keyframes hero-glow-pulse { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
 @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+@keyframes confetti-fall { 0% { transform: translateY(-10px) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+@keyframes ring-drain { 0% { box-shadow: 0 0 0 0 oklch(0.55 0.19 45 / 0.4); } 70% { box-shadow: 0 0 0 20px oklch(0.55 0.19 45 / 0); } 100% { box-shadow: 0 0 0 0 oklch(0.55 0.19 45 / 0); } }
+@keyframes grain-anim { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-2%, -2%); } 20% { transform: translate(1%, -1%); } 30% { transform: translate(-1%, 2%); } 40% { transform: translate(2%, 1%); } 50% { transform: translate(-2%, 0); } 60% { transform: translate(0, -2%); } 70% { transform: translate(1%, 1%); } 80% { transform: translate(-1%, -1%); } 90% { transform: translate(2%, -2%); } }
 
 .animate-shimmer { background: linear-gradient(90deg, transparent 25%, var(--muted) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 2.5s infinite; }
 .animate-scale-in { animation: scale-in 0.5s var(--ease-out-quart) both; }

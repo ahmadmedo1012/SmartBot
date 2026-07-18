@@ -13,7 +13,7 @@ from _lazy import lazy
 from config import settings
 from database import AsyncSessionLocal
 from bot import BotEngine
-from _crypto import decrypt_token
+from _crypto import encrypt_token, decrypt_token
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")

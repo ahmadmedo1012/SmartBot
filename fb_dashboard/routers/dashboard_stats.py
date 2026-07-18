@@ -9,7 +9,7 @@ from sqlalchemy import select, func, desc, cast, Date, text
 from _utils import utcnow
 from config import settings
 from database import get_db
-from models import Reply, Rule, BotLog, User
+from models import Reply, Rule, BotLog, User, Tenant
 from routers.auth import get_current_user, require_role
 from _services import fb, get_ai, _get_trend_data, _track_event
 
@@ -141,13 +141,39 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
     except Exception:
         pass
 
-    return {
+    return {"success": True, "data": {
         "total_replies": total_replies,
         "today_replies": today_replies,
-        "fan_count": fan_count,
+        "total_fan_count": fan_count,
         "top_rule_id": int(top[0]) if top and top[0] is not None else None,
-        "chart": chart_data,
-    }
+        "reply_chart": chart_data,
+    }}
+
+
+@router.get("/api/system/stats")
+async def get_system_stats(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    total_users = await db.scalar(select(func.count(User.id))) or 0
+    total_tenants = await db.scalar(select(func.count(Tenant.id))) or 0
+    total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+    today = utcnow().date()
+    today_replies = await db.scalar(
+        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+    ) or 0
+    active_pages = await db.scalar(
+        select(func.count(Tenant.id)).where(Tenant.is_active == True)
+    ) or 0
+    return {"success": True, "data": {
+        "totalUsers": total_users,
+        "totalTenants": total_tenants,
+        "totalReplies": total_replies,
+        "todayReplies": today_replies,
+        "activePages": active_pages,
+        "totalRevenue": 0,
+        "userGrowthPct": 0,
+        "revenueTrend": [],
+        "recentSignups": [],
+        "recentLogins": [],
+    }}
 
 
 @router.get("/api/stats/hourly")

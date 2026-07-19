@@ -1,0 +1,242 @@
+- generic [active] [ref=f1e1]:
+  - link "تخطى إلى المحتوى الرئيسي" [ref=f1e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - button "العودة للأعلى"
+  - main [ref=f1e181]:
+    - generic [ref=f1e182]:
+      - navigation "الرئيسية" [ref=f1e184]:
+        - generic [ref=f1e185]:
+          - button "فتح القائمة" [ref=f1e186]
+          - link "الربط الذكي Smart Menu" [ref=f1e191] [cursor=pointer]:
+            - /url: /
+            - img "الربط الذكي" [ref=f1e192]
+            - generic [ref=f1e193]: Smart Menu
+        - button "الوضع الليلي" [ref=f1e195] [cursor=pointer]
+      - generic [ref=f1e204]:
+        - generic [ref=f1e205]: خطط تناسب جميع الأحجام
+        - heading "اختر خطتك" [level=1] [ref=f1e209]
+        - paragraph [ref=f1e210]: ابدأ برفع منيو مطعمك رقمياً واختر الخطة التي تناسب احتياجاتك
+        - generic [ref=f1e211]:
+          - button "شهري" [ref=f1e212]
+          - button "سنوي —وفر شهرين" [ref=f1e214]
+      - generic [ref=f1e217]:
+        - generic [ref=f1e219]:
+          - generic [ref=f1e225]:
+            - heading "مجاني" [level=3] [ref=f1e226]
+            - paragraph [ref=f1e227]: Free
+          - generic [ref=f1e228]: مجاني
+          - generic [ref=f1e230]:
+            - generic [ref=f1e231]:
+              - generic [ref=f1e232]: المنيو
+              - generic [ref=f1e233]: "1"
+            - generic [ref=f1e234]:
+              - generic [ref=f1e235]: الأصناف
+              - generic [ref=f1e236]: حتى 10
+            - generic [ref=f1e237]:
+              - generic [ref=f1e238]: الطلبات
+              - generic [ref=f1e239]: حتى 100
+          - generic [ref=f1e240]:
+            - generic [ref=f1e241]: منيو رقمي تفاعلي
+            - generic [ref=f1e246]: 10 أصناف
+            - generic [ref=f1e251]: طلبات واتساب
+            - generic [ref=f1e256]: إحصائيات أساسية
+          - link [ref=f1e261] [cursor=pointer]:
+            - /url: /subscribe
+            - button "ابدأ مجاناً" [ref=f1e262]
+        - generic [ref=f1e263]:
+          - generic [ref=f1e264]: الأكثر شعبية
+          - generic [ref=f1e265]:
+            - generic [ref=f1e270]:
+              - heading "أساسي" [level=3] [ref=f1e271]
+              - paragraph [ref=f1e272]: Basic
+            - generic [ref=f1e274]:
+              - generic [ref=f1e275]: "19"
+              - generic [ref=f1e276]: د.ل
+              - generic [ref=f1e277]: /الشهر
+            - generic [ref=f1e278]:
+              - generic [ref=f1e279]:
+                - generic [ref=f1e280]: المنيو
+                - generic [ref=f1e281]: "1"
+              - generic [ref=f1e282]:
+                - generic [ref=f1e283]: الأصناف
+                - generic [ref=f1e284]: حتى 50
+              - generic [ref=f1e285]:
+                - generic [ref=f1e286]: الطلبات
+                - generic [ref=f1e287]: حتى 500
+            - generic [ref=f1e288]:
+              - generic [ref=f1e289]: منيو رقمي
+              - generic [ref=f1e294]: 50 صنف
+              - generic [ref=f1e299]: طلقات غير محدودة
+              - generic [ref=f1e304]: برنامج ولاء
+              - generic [ref=f1e309]: تقرير شهري
+              - generic [ref=f1e314]: دعم فني
+            - link [ref=f1e319] [cursor=pointer]:
+              - /url: /subscribe?plan=87
+              - button "اشترك الآن" [ref=f1e320]
+        - generic [ref=f1e321]:
+          - generic [ref=f1e322]: الأفضل قيمة
+          - generic [ref=f1e323]:
+            - generic [ref=f1e328]:
+              - heading "المدفوعة" [level=3] [ref=f1e329]
+              - paragraph [ref=f1e330]: Premium
+            - generic [ref=f1e332]:
+              - generic [ref=f1e333]: "29"
+              - generic [ref=f1e334]: د.ل
+              - generic [ref=f1e335]: /الشهر
+            - generic [ref=f1e336]:
+              - generic [ref=f1e337]:
+                - generic [ref=f1e338]: المنيو
+                - generic [ref=f1e339]: غير محدود
+              - generic [ref=f1e340]:
+                - generic [ref=f1e341]: الأصناف
+                - generic [ref=f1e342]: غير محدود
+              - generic [ref=f1e343]:
+                - generic [ref=f1e344]: الطلبات
+                - generic [ref=f1e345]: غير محدود
+            - generic [ref=f1e346]:
+              - generic [ref=f1e347]: جميع ميزات المجانية
+              - generic [ref=f1e352]: أصناف غير محدودة
+              - generic [ref=f1e357]: برنامج ولاء متكامل
+              - generic [ref=f1e362]: QR كود مخصص
+              - generic [ref=f1e367]: إحصائيات متقدمة
+              - generic [ref=f1e372]: دعم فني فوري
+              - generic [ref=f1e377]: تخصيص كامل
+            - link [ref=f1e382] [cursor=pointer]:
+              - /url: /subscribe?plan=90
+              - button "اشترك الآن" [ref=f1e383]
+        - generic [ref=f1e384]:
+          - generic [ref=f1e385]: للشركات الكبرى
+          - generic [ref=f1e386]:
+            - generic [ref=f1e393]:
+              - heading "احترافي" [level=3] [ref=f1e394]
+              - paragraph [ref=f1e395]: Pro
+            - generic [ref=f1e397]:
+              - generic [ref=f1e398]: "129"
+              - generic [ref=f1e399]: د.ل
+              - generic [ref=f1e400]: /الشهر
+            - generic [ref=f1e401]:
+              - generic [ref=f1e402]:
+                - generic [ref=f1e403]: المنيو
+                - generic [ref=f1e404]: "3"
+              - generic [ref=f1e405]:
+                - generic [ref=f1e406]: الأصناف
+                - generic [ref=f1e407]: حتى 200
+              - generic [ref=f1e408]:
+                - generic [ref=f1e409]: الطلبات
+                - generic [ref=f1e410]: حتى 2000
+            - generic [ref=f1e411]:
+              - generic [ref=f1e412]: حتى 3 منيوهات
+              - generic [ref=f1e417]: 200 صنف
+              - generic [ref=f1e422]: طلبات غير محدودة
+              - generic [ref=f1e427]: ولاء متقدم
+              - generic [ref=f1e432]: إحصائيات متقدمة
+              - generic [ref=f1e437]: QR كود مخصص
+              - generic [ref=f1e442]: دعم فوري
+              - generic [ref=f1e447]: تخصيص كامل
+            - link [ref=f1e452] [cursor=pointer]:
+              - /url: /subscribe?plan=88
+              - button "اشترك الآن" [ref=f1e453]
+        - generic [ref=f1e455]:
+          - generic [ref=f1e461]:
+            - heading "شركات" [level=3] [ref=f1e462]
+            - paragraph [ref=f1e463]: Enterprise
+          - generic [ref=f1e465]:
+            - generic [ref=f1e466]: "299"
+            - generic [ref=f1e467]: د.ل
+            - generic [ref=f1e468]: /الشهر
+          - generic [ref=f1e469]:
+            - generic [ref=f1e470]:
+              - generic [ref=f1e471]: المنيو
+              - generic [ref=f1e472]: "10"
+            - generic [ref=f1e473]:
+              - generic [ref=f1e474]: الأصناف
+              - generic [ref=f1e475]: غير محدود
+            - generic [ref=f1e476]:
+              - generic [ref=f1e477]: الطلبات
+              - generic [ref=f1e478]: غير محدود
+          - generic [ref=f1e479]:
+            - generic [ref=f1e480]: منيوهات غير محدودة
+            - generic [ref=f1e485]: أصناف غير محدودة
+            - generic [ref=f1e490]: طلبات غير محدودة
+            - generic [ref=f1e495]: ولاء كامل
+            - generic [ref=f1e500]: API مخصص
+            - generic [ref=f1e505]: دعم 24/7
+          - link [ref=f1e510] [cursor=pointer]:
+            - /url: /subscribe?plan=89
+            - button "اشترك الآن" [ref=f1e511]
+      - generic [ref=f1e513]:
+        - heading "أسئلة شائعة" [level=2] [ref=f1e514]
+        - generic [ref=f1e515]:
+          - group [ref=f1e516]:
+            - generic "هل يمكنني الترقية لاحقاً؟ ▼" [ref=f1e517] [cursor=pointer]:
+              - text: هل يمكنني الترقية لاحقاً؟
+              - generic [ref=f1e518]: ▼
+          - group [ref=f1e519]:
+            - generic "هل يوجد فترة تجريبية؟ ▼" [ref=f1e520] [cursor=pointer]:
+              - text: هل يوجد فترة تجريبية؟
+              - generic [ref=f1e521]: ▼
+          - group [ref=f1e522]:
+            - generic "هل يمكنني إلغاء الاشتراك؟ ▼" [ref=f1e523] [cursor=pointer]:
+              - text: هل يمكنني إلغاء الاشتراك؟
+              - generic [ref=f1e524]: ▼
+          - group [ref=f1e525]:
+            - generic "هل تدعمون جميع أنواع المطاعم؟ ▼" [ref=f1e526] [cursor=pointer]:
+              - text: هل تدعمون جميع أنواع المطاعم؟
+              - generic [ref=f1e527]: ▼
+      - generic [ref=f1e530]:
+        - heading "مستعد لانطلاق مطعمك الرقمي؟" [level=2] [ref=f1e532]
+        - paragraph [ref=f1e533]: ابدأ الآن مجاناً بدون بطاقة ائتمان
+        - generic [ref=f1e534]:
+          - link [ref=f1e535] [cursor=pointer]:
+            - /url: /subscribe
+            - button "ابدأ الآن مجاناً" [ref=f1e536]
+          - link [ref=f1e537] [cursor=pointer]:
+            - /url: /subscribe
+            - button "جرب لوحة التحكم" [ref=f1e538]
+      - generic [ref=f1e540]:
+        - generic [ref=f1e541]:
+          - generic [ref=f1e542]:
+            - img "الربط الذكي" [ref=f1e543]
+            - paragraph [ref=f1e544]: منصة رقمية لإدارة منيو المطاعم والمقاهي واستقبال الطلبات عبر واتساب
+            - generic [ref=f1e545]:
+              - generic "قريباً" [ref=f1e546]
+              - generic "قريباً" [ref=f1e549]
+              - generic "قريباً" [ref=f1e552]
+              - link "واتساب" [ref=f1e555] [cursor=pointer]:
+                - /url: https://wa.me/218911111111
+          - generic [ref=f1e558]:
+            - heading "روابط سريعة" [level=4] [ref=f1e559]
+            - generic [ref=f1e560]:
+              - link "الخطط" [ref=f1e561] [cursor=pointer]:
+                - /url: /pricing
+              - link "منيو تجريبي" [ref=f1e562] [cursor=pointer]:
+                - /url: /menu/al-waha-cafe
+              - link "تسجيل الدخول" [ref=f1e563] [cursor=pointer]:
+                - /url: /login
+              - link "اشترك الآن" [ref=f1e564] [cursor=pointer]:
+                - /url: /subscribe
+          - generic [ref=f1e565]:
+            - heading "الخدمات" [level=4] [ref=f1e566]
+            - generic [ref=f1e567]:
+              - generic [ref=f1e568]: منيو إلكتروني
+              - generic [ref=f1e569]: طلب عبر واتساب
+              - generic [ref=f1e570]: برنامج ولاء
+              - generic [ref=f1e571]: إحصائيات وتحليلات
+              - generic [ref=f1e572]: QR كود مخصص
+          - generic [ref=f1e573]:
+            - heading "تواصل معنا" [level=4] [ref=f1e574]
+            - generic [ref=f1e575]:
+              - link "واتساب" [ref=f1e576] [cursor=pointer]:
+                - /url: https://wa.me/218911111111
+              - generic [ref=f1e577]: دعم فني 24/7
+        - generic [ref=f1e578]:
+          - paragraph [ref=f1e579]: © 2026 الربط الذكي | Smart Menu. جميع الحقوق محفوظة.
+          - generic [ref=f1e580]:
+            - link "شروط الاستخدام" [ref=f1e581] [cursor=pointer]:
+              - /url: /terms
+            - link "سياسة الخصوصية" [ref=f1e582] [cursor=pointer]:
+              - /url: /privacy
+  - link "تواصل عبر واتساب" [ref=f1e175] [cursor=pointer]:
+    - /url: https://wa.me/218910089975
+  - region "Notifications alt+T"
+  - alert [ref=f1e583]

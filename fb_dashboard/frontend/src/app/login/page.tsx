@@ -124,7 +124,7 @@ function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
               <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:ring-2 focus-within:ring-orange/30">
-                <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم"
+                <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="اسم المستخدم"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
               </div>

@@ -1,0 +1,194 @@
+- generic [active] [ref=f6e1]:
+  - link "تخطي إلى المحتوى" [ref=f6e331] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=f6e332]:
+    - generic [ref=f6e333]:
+      - navigation "الرئيسية" [ref=f6e335]:
+        - generic [ref=f6e336]:
+          - button "فتح القائمة" [ref=f6e337]
+          - link "SmartBot SmartBot" [ref=f6e342] [cursor=pointer]:
+            - /url: /
+            - img "SmartBot" [ref=f6e343]
+            - generic [ref=f6e344]: SmartBot
+        - button "الوضع الليلي" [ref=f6e346]
+      - generic [ref=f6e354]:
+        - generic [ref=f6e355]: أكثر من ٥٠٠ صفحة تثق فينا
+        - heading "إدارة تفاعل فيسبوك بذكاء واحترافية" [level=1] [ref=f6e357]: إدارة تفاعل فيسبوكبذكاء واحترافية
+        - paragraph [ref=f6e359]: أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا
+        - generic [ref=f6e360]:
+          - link [ref=f6e361] [cursor=pointer]:
+            - /url: /subscribe
+            - button "ابدأ الآن مجاناً" [ref=f6e362]
+          - link [ref=f6e363] [cursor=pointer]:
+            - /url: /demo
+            - button "جرب البوت الآن" [ref=f6e364]
+        - generic [ref=f6e365]:
+          - generic [ref=f6e366]:
+            - generic [ref=f6e367]: أ
+            - generic [ref=f6e368]: س
+            - generic [ref=f6e369]: م
+            - generic [ref=f6e370]: ن
+          - generic [ref=f6e371]: موثوق من آلاف المداراء
+      - generic [ref=f6e387]:
+        - generic [ref=f6e389]:
+          - generic [ref=f6e390]: 0+
+          - generic [ref=f6e392]: صفحة نشطة
+        - generic [ref=f6e394]:
+          - generic [ref=f6e395]: 0+
+          - generic [ref=f6e397]: رد تلقائي
+        - generic [ref=f6e399]:
+          - generic [ref=f6e400]: 0%
+          - generic [ref=f6e402]: معدل رضا
+        - generic [ref=f6e404]:
+          - generic [ref=f6e405]: 0/7
+          - generic [ref=f6e407]: دعم فني
+      - generic [ref=f6e411]:
+        - generic [ref=f6e412]:
+          - generic [ref=f6e413]: إليك ما يمكنك تحقيقه معنا
+          - heading "ميزات متكاملة لإدارة صفحاتك" [level=2] [ref=f6e415]
+          - paragraph [ref=f6e416]: كل ما تحتاجه لإدارة صفحات فيسبوك بكفاءة واحترافية
+        - generic [ref=f6e417]:
+          - generic [ref=f6e418]:
+            - generic [ref=f6e419]: الأكثر طلباً
+            - heading "ردود تلقائية ذكية" [level=3] [ref=f6e425]
+            - paragraph [ref=f6e426]: ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي
+          - generic [ref=f6e427]:
+            - heading "صندوق وارد موحد" [level=3] [ref=f6e432]
+            - paragraph [ref=f6e433]: إدارة جميع المحادثات من صفحة واحدة بواجهة بسيطة وسهلة
+          - generic [ref=f6e434]:
+            - heading "تحليلات وأداء" [level=3] [ref=f6e439]
+            - paragraph [ref=f6e440]: تقارير مفصلة عن أداء الصفحات والمنشورات ونسب التفاعل والنمو
+          - generic [ref=f6e441]:
+            - heading "جدولة المنشورات" [level=3] [ref=f6e446]
+            - paragraph [ref=f6e447]: إنشاء وجدولة المنشورات مسبقاً مع تقويم محتوى مرئي
+          - generic [ref=f6e448]:
+            - heading "استهداف الجمهور" [level=3] [ref=f6e455]
+            - paragraph [ref=f6e456]: تحليل الجمهور واستهداف الفئات المناسبة لزيادة الوصول
+          - generic [ref=f6e457]:
+            - heading "أمان وتشفير" [level=3] [ref=f6e463]
+            - paragraph [ref=f6e464]: حماية متقدمة للبيانات والاتصالات وفق أعلى معايير الأمان
+          - generic [ref=f6e465]:
+            - heading "دعم متعدد اللغات" [level=3] [ref=f6e471]
+            - paragraph [ref=f6e472]: دعم كامل للغة العربية والإنجليزية مع ردود ذكية بلغة العميل
+          - generic [ref=f6e473]:
+            - heading "إدارة فريق كامل" [level=3] [ref=f6e481]
+            - paragraph [ref=f6e482]: إضافة أعضاء فريقك بصلاحيات مختلفة لإدارة الصفحات معاً
+      - generic [ref=f6e485]:
+        - generic [ref=f6e486]:
+          - heading "كيف يعمل SmartBot" [level=2] [ref=f6e487]
+          - paragraph [ref=f6e488]: ثلاث خطوات فقط لبدء أتمتة ردودك
+        - generic [ref=f6e489]:
+          - generic [ref=f6e490]:
+            - generic [ref=f6e491]: ١
+            - heading "اربط صفحتك" [level=3] [ref=f6e496]
+            - paragraph [ref=f6e497]: اربط صفحة فيسبوك بخطوات بسيطة وآمنة مع دليل تفاعلي خطوة بخطوة
+          - generic [ref=f6e498]:
+            - generic [ref=f6e499]: ٢
+            - heading "هيئ قواعد الرد" [level=3] [ref=f6e504]
+            - paragraph [ref=f6e505]: حدد الكلمات المفتاحية والردود التلقائية التي تناسب نشاطك التجاري
+          - generic [ref=f6e506]:
+            - generic [ref=f6e507]: ٣
+            - heading "راقب الأداء" [level=3] [ref=f6e512]
+            - paragraph [ref=f6e513]: تابع الإحصائيات والتقارير وحسّن أداء صفحاتك من لوحة تحكم متكاملة
+      - generic [ref=f6e516]:
+        - generic [ref=f6e517]:
+          - heading "ماذا يقول عملاؤنا" [level=2] [ref=f6e518]
+          - paragraph [ref=f6e519]: آراء حقيقية من مدراء الصفحات الذين يستخدمون SmartBot
+        - generic [ref=f6e520]:
+          - generic [ref=f6e521]:
+            - paragraph [ref=f6e533]: "\"منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً.\""
+            - generic [ref=f6e534]:
+              - generic [ref=f6e535]: أ
+              - generic [ref=f6e536]:
+                - generic [ref=f6e537]: أحمد السالمي
+                - generic [ref=f6e538]: صاحب صفحة - طرابلس
+          - generic [ref=f6e539]:
+            - paragraph [ref=f6e551]: "\"أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً.\""
+            - generic [ref=f6e552]:
+              - generic [ref=f6e553]: س
+              - generic [ref=f6e554]:
+                - generic [ref=f6e555]: سارة النفاتي
+                - generic [ref=f6e556]: مديرة تسويق - بنغازي
+          - generic [ref=f6e557]:
+            - paragraph [ref=f6e569]: "\"البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته.\""
+            - generic [ref=f6e570]:
+              - generic [ref=f6e571]: م
+              - generic [ref=f6e572]:
+                - generic [ref=f6e573]: محمد الكيلاني
+                - generic [ref=f6e574]: صاحب متجر إلكتروني - مصراتة
+      - generic [ref=f6e577]:
+        - generic [ref=f6e578]:
+          - heading "أسئلة شائعة" [level=2] [ref=f6e579]
+          - paragraph [ref=f6e580]: إجابات سريعة لأكثر الأسئلة تردداً
+        - generic [ref=f6e581]:
+          - group [ref=f6e582]:
+            - generic "هل أحتاج صلاحيات خاصة لربط الصفحة؟" [ref=f6e583] [cursor=pointer]
+          - group [ref=f6e586]:
+            - generic "هل بياناتي آمنة؟" [ref=f6e587] [cursor=pointer]
+          - group [ref=f6e590]:
+            - generic "كم صفحة يمكنني ربطها؟" [ref=f6e591] [cursor=pointer]
+          - group [ref=f6e594]:
+            - generic "هل تدعم اللغة العربية كاملاً؟" [ref=f6e595] [cursor=pointer]
+          - group [ref=f6e598]:
+            - generic "ماذا يحدث إذا تجاوزت حد الردود الشهري؟" [ref=f6e599] [cursor=pointer]
+          - group [ref=f6e602]:
+            - generic "هل يمكنني تجربة البوت قبل الشراء؟" [ref=f6e603] [cursor=pointer]
+      - generic [ref=f6e608]:
+        - generic [ref=f6e609]:
+          - heading "جهّز صفحتك للانطلاق الرقمي" [level=2] [ref=f6e610]
+          - paragraph [ref=f6e611]:
+            - text: انطلق الآن — انضم إلى
+            - strong [ref=f6e612]: أكثر من ٥٠٠ صفحة
+            - text: تثق في SmartBot
+        - generic [ref=f6e613]:
+          - link [ref=f6e614] [cursor=pointer]:
+            - /url: /subscribe
+            - button "ابدأ مجاناً" [ref=f6e615]
+          - link [ref=f6e616] [cursor=pointer]:
+            - /url: /pricing
+            - button "عرض الخطط" [ref=f6e617]
+        - paragraph [ref=f6e618]: مجاناً بدون بطاقة ائتمان · إلغاء في أي وقت · دعم فني متكامل
+      - generic [ref=f6e620]:
+        - generic [ref=f6e621]:
+          - generic [ref=f6e622]:
+            - img "الربط الذكي" [ref=f6e623]
+            - paragraph [ref=f6e624]: منصة رقمية لإدارة صفحات فيسبوك — ردود تلقائية، تحليلات، وجدولة منشورات بذكاء
+            - generic [ref=f6e625]:
+              - generic "قريباً" [ref=f6e626]
+              - generic "قريباً" [ref=f6e629]
+              - generic "قريباً" [ref=f6e632]
+              - link "واتساب" [ref=f6e635] [cursor=pointer]:
+                - /url: https://wa.me/218910089975
+          - generic [ref=f6e638]:
+            - heading "روابط سريعة" [level=4] [ref=f6e639]
+            - generic [ref=f6e640]:
+              - link "الخطط" [ref=f6e641] [cursor=pointer]:
+                - /url: /pricing
+              - link "منيو تجريبي" [ref=f6e642] [cursor=pointer]:
+                - /url: /demo
+              - link "تسجيل الدخول" [ref=f6e643] [cursor=pointer]:
+                - /url: /login
+              - link "اشترك الآن" [ref=f6e644] [cursor=pointer]:
+                - /url: /subscribe
+          - generic [ref=f6e645]:
+            - heading "الخدمات" [level=4] [ref=f6e646]
+            - generic [ref=f6e647]:
+              - link "منيو إلكتروني" [ref=f6e648] [cursor=pointer]:
+                - /url: https://menu.smart-link.ly
+              - link "طلب عبر واتساب" [ref=f6e649] [cursor=pointer]:
+                - /url: https://menu.smart-link.ly/menu/al-waha-cafe
+              - link "إحصائيات وتحليلات" [ref=f6e650] [cursor=pointer]:
+                - /url: /dashboard
+          - generic [ref=f6e651]:
+            - heading "تواصل معنا" [level=4] [ref=f6e652]
+            - generic [ref=f6e653]:
+              - link "واتساب" [ref=f6e654] [cursor=pointer]:
+                - /url: https://wa.me/218910089975
+              - generic [ref=f6e657]: دعم فني 24/7
+        - generic [ref=f6e658]:
+          - generic [ref=f6e659]: © 2026 الربط الذكي | SmartBot. جميع الحقوق محفوظة.
+          - generic [ref=f6e660]:
+            - generic [ref=f6e661] [cursor=pointer]: شروط الاستخدام
+            - generic [ref=f6e662] [cursor=pointer]: سياسة الخصوصية
+  - region "Notifications alt+T"
+  - alert [ref=f6e663]

@@ -50,7 +50,7 @@ class AnalyticsEngine:
         today = now.date()
 
         # Single aggregation: total, today, prior period, unique commenters
-        row = await session.execute(
+        result = await session.execute(
             select(
                 func.count(Reply.id).filter(Reply.created_at >= cutoff).label("total_replies"),
                 func.count(Reply.id).filter(cast(Reply.created_at, Date) == today).label("today_replies"),
@@ -62,7 +62,7 @@ class AnalyticsEngine:
                 ).label("unique_commenters"),
             ).where(Reply.tenant_id == tenant_id)
         )
-        r = row.one()
+        r = result.one()
 
         active_rules = (
             await session.scalar(

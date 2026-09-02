@@ -14,11 +14,18 @@ def engine():
 
 
 class _Rows:
-    """SQLAlchemy-like result that supports iteration and .first()."""
+    """SQLAlchemy-like result that supports iteration, .first(), and .one()."""
     def __init__(self, rows=None):
         self._rows = rows or []
     def first(self):
         return self._rows[0] if self._rows else None
+    def one(self):
+        """Return the single row; raise if 0 or 2+ rows."""
+        if not self._rows:
+            raise Exception("No rows returned")
+        if len(self._rows) > 1:
+            raise Exception("Multiple rows returned")
+        return self._rows[0]
     def __iter__(self):
         return iter(self._rows)
 
@@ -83,7 +90,13 @@ class TestDashboardOverview:
     async def test_returns_all_kpis(self, engine):
         """Dashboard overview returns expected structure."""
         session = _mock_session()
-        session.scalar = AsyncMock(side_effect=[100, 10, 5, 200, 30, 80])
+        # session.execute returns the aggregate row from get_dashboard_overview
+        Row = namedtuple("Row", ["total_replies", "today_replies", "prior_replies", "unique_commenters"])
+        session.execute = AsyncMock(return_value=_Rows([
+            Row(total_replies=100, today_replies=10, prior_replies=80, unique_commenters=30)
+        ]))
+        # session.scalar returns: active_rules, total_subscribers
+        session.scalar = AsyncMock(side_effect=[5, 200])
 
         result = await engine.get_dashboard_overview(7, session)
         assert result["total_replies"] == 100

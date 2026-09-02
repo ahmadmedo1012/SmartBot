@@ -19,6 +19,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install ruff
       - run: ruff check fb_dashboard/
+      - run: pip install pytest pytest-asyncio
+      - run: pytest fb_dashboard/ -x --ignore=fb_dashboard/test_e2e_live.py --ignore=fb_dashboard/e2e_comprehensive.py -q
 
   frontend:
     runs-on: ubuntu-latest

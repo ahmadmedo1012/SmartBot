@@ -19,11 +19,12 @@ router = APIRouter(tags=["inbox"])
 # Evict on token refresh. Replace with Redis-backed registry when multi-worker.
 _tenant_fb_cache: dict[int, object] = {}
 
-def _get_inbox_fb(tenant_id: int):
+async def _get_inbox_fb(tenant_id: int):
+    """Resolve (and cache) the tenant's FB client. Awaited — get_tenant_fb_client is async."""
     if tenant_id not in _tenant_fb_cache:
-        fb = get_tenant_fb_client(tenant_id)
+        fb = await get_tenant_fb_client(tenant_id)
         if fb is None:
-            raise HTTPException(500, "لم يتم إعداد فيسبوك بعد")
+            raise HTTPException(400, "لم يتم إعداد فيسبوك بعد — اربط صفحتك من صفحة /connect")
         _tenant_fb_cache[tenant_id] = fb
     return _tenant_fb_cache[tenant_id]
 
@@ -34,7 +35,7 @@ async def inbox_list(
     page: int = Query(1), per_page: int = Query(25), current_user: User = Depends(get_current_user),
 ):
     """Professional inbox: list conversations with filters, tags, search."""
-    fb = _get_inbox_fb(current_user._tenant_id)
+    fb = await _get_inbox_fb(current_user._tenant_id)
     convos = await fb.get_conversations(50)
     items = []
     for c in convos:
@@ -89,7 +90,7 @@ async def inbox_list(
 @router.get("/api/inbox/conversations/{conversation_id}")
 async def inbox_messages(conversation_id: str, current_user: User = Depends(get_current_user)):
     """Get full conversation messages with AI analysis hints."""
-    fb = _get_inbox_fb(current_user._tenant_id)
+    fb = await _get_inbox_fb(current_user._tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
     return [{
         "id": m["id"], "message": m.get("message", ""),
@@ -104,7 +105,7 @@ async def inbox_reply(
     current_user: User = Depends(require_role("editor")),
 ):
     """Send a reply in a conversation. Tries Messenger first, falls back to private_reply."""
-    fb = _get_inbox_fb(current_user._tenant_id)
+    fb = await _get_inbox_fb(current_user._tenant_id)
     # Try Messenger conversation reply
     result = await fb.send_conversation_message(conversation_id, message)
     if result:

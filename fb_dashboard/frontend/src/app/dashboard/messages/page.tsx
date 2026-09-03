@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { Search, Send, Bell } from "lucide-react"
+import { Search, Send, Bell, Link2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 
 function initials(name: string) {
   if (!name) return "?"
@@ -83,11 +84,17 @@ export default function MessagesPage() {
   const [replyText, setReplyText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["inbox-conversations", filter, search],
     queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(search)}`).then(r => r.json()),
     refetchInterval: 15000,
+    retry: (failureCount, err) => {
+      // Don't retry a "page not connected" setup error
+      if (err instanceof ApiError && err.status === 400) return false
+      return failureCount < 1
+    },
   })
+  const needsSetup = isError && error instanceof ApiError && error.status === 400
   const conversations = data?.items || []
 
   const { data: messages = [], isLoading: msgLoading } = useQuery({
@@ -175,6 +182,35 @@ export default function MessagesPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : needsSetup ? (
+              <div className="p-8 text-center space-y-4">
+                <div className="size-16 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto">
+                  <Link2 className="size-8 text-orange" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold mb-1">اربط صفحتك بفيسبوك</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    لعرض الرسائل والتعليقات، اربط صفحتك أولاً برمز وصول صالح
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 items-center">
+                  <Link href="/connect">
+                    <Button size="sm" className="h-9 px-5">
+                      <Link2 className="size-3.5" /> ربط الصفحة الآن
+                    </Button>
+                  </Link>
+                  <Button size="sm" variant="ghost" onClick={() => refetch()} className="h-8 text-xs">
+                    <RefreshCw className="size-3" /> تحديث
+                  </Button>
+                </div>
+              </div>
+            ) : isError ? (
+              <div className="p-8 text-center text-sm text-muted-foreground space-y-3">
+                <p>تعذر تحميل المحادثات</p>
+                <Button size="sm" variant="outline" onClick={() => refetch()}>
+                  <RefreshCw className="size-3" /> إعادة المحاولة
+                </Button>
               </div>
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">

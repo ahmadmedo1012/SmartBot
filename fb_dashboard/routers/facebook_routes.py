@@ -94,6 +94,20 @@ async def update_facebook_settings(
                 webhook_result = {"error": str(e)[:200]}
 
     await db.commit()
+
+    # Evict cached per-tenant FB clients so new credentials take effect immediately
+    # (inbox router caches clients in _tenant_fb_cache; BotEngine registry in _services)
+    try:
+        from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
+        _inbox_fb_cache.pop(tenant_id, None)
+    except Exception:
+        pass
+    try:
+        from _services import reset_bot_engines
+        reset_bot_engines()
+    except Exception:
+        pass
+
     return {"ok": True, "webhook": webhook_result or "skipped"}
 
 

@@ -329,6 +329,36 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
 
 
+# ── Liveness/readiness probes (no DB, no auth) — for Vercel cold-start checks ──
+@app.get("/api/health", include_in_schema=False)
+async def api_health():
+    """Liveness probe — returns 200 even if DB is down. Used by uptime monitors
+    and Vercel warmup pings. Does NOT touch the database to avoid cascading
+    failures when Neon is slow or restarting.
+    """
+    return {
+        "ok": True,
+        "service": "smartbot-api",
+        "version": "2.0.0",
+        "env": "production" if not settings.DEBUG else "development",
+        "ts": __import__('datetime').datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@app.get("/api/health/ready", include_in_schema=False)
+async def api_health_ready():
+    """Readiness probe — checks DB connectivity. 200 if ready, 503 otherwise."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(__import__('sqlalchemy').text("SELECT 1"))
+        return {"ok": True, "database": "ok"}
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"ok": False, "database": str(e)[:200]},
+        )
+
+
 # ponytail: friendly 422 → readable Arabic message
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request: Request, exc: RequestValidationError):
@@ -360,16 +390,27 @@ app.middleware("http")(dedup_middleware)
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Rate-limit mutating POST/PUT/DELETE endpoints (excludes login/register which have per-IP limits, webhooks)."""
+    """Rate-limit mutating POST/PUT/DELETE endpoints (excludes login/register which have per-IP limits, webhooks).
+
+    Graceful degradation: if the DB is unavailable (e.g. Neon cold-start), the request
+    is allowed through so that health probes and critical auth flows are never blocked
+    by a failing rate-limiter.
+    """
     if request.method in ("POST", "PUT", "DELETE"):
         path = request.url.path
         if not any(p in path for p in ("/login", "/register", "/webhook", "/telegram")):
             ip = request.client.host if request.client else "unknown"
-            from _rate_limit import check_rate_limit
-            from database import AsyncSessionLocal
-            async with AsyncSessionLocal() as db:
-                if not await check_rate_limit(db, f"mutate:{ip}", max_attempts=30, window_seconds=60):
-                    return JSONResponse(status_code=429, content={"detail": "محاولات كثيرة جداً — حاول بعد 60 ثانية"})
+            try:
+                from _rate_limit import check_rate_limit
+                from database import AsyncSessionLocal
+                async with AsyncSessionLocal() as db:
+                    if not await check_rate_limit(db, f"mutate:{ip}", max_attempts=30, window_seconds=60):
+                        return JSONResponse(status_code=429, content={"detail": "محاولات كثيرة جداً — حاول بعد 60 ثانية"})
+            except Exception:
+                # Graceful degradation: allow request if rate-limit DB check fails
+                # (e.g. Neon cold-start, connection refused, SSL error)
+                import logging
+                logging.getLogger("fb-rate-limit").warning("Rate-limit check failed — allowing request through", exc_info=True)
     return await call_next(request)
 
 

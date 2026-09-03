@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     # Pooled DATABASE_URL for Neon (with pgbouncer) — avoids connection limit exhaustion
     DATABASE_POOLED_URL: str = ""
+    # When True, asyncpg connects with ssl=require (production / Neon).
+    # When False (local dev), asyncpg uses default (no SSL).
+    DATABASE_REQUIRE_SSL: bool = False
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
     SECRET_KEY: str = ""
@@ -26,9 +29,22 @@ class Settings(BaseSettings):
             return "sqlite+aiosqlite:///data.db"
         if url.startswith("sqlite"):
             return url
-        # strip query params — asyncpg handles SSL automatically
+        # asyncpg requires ssl=require explicitly when connecting to Neon
+        # (Vercel env must set DATABASE_REQUIRE_SSL=true; defaults to False
+        # for local SQLite-only dev). Query string is stripped because
+        # asyncpg doesn't honor `?sslmode=...` — pass via connect_args.
         clean = url.split("?")[0]
         return clean.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    @property
+    def db_require_ssl(self) -> bool:
+        if self.DATABASE_REQUIRE_SSL:
+            return True
+        # Auto-detect: any postgres URL on Vercel/Neon requires SSL.
+        url = self.DATABASE_POOLED_URL or self.DATABASE_URL
+        if url.startswith("postgresql") and (os.getenv("VERCEL") or os.getenv("NEON_PROJECT_ID")):
+            return True
+        return False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     # ponytail: extra="ignore" masks misspelled env vars — tighten once all vars are in Settings class

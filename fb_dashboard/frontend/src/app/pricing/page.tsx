@@ -26,6 +26,7 @@ const PLAN_ICONS = [Sparkles, Star, Crown, Crown]
 export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
+  const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
     apiFetch("/api/plans").then(r => r.json()).then(setPlans).catch(() => {})
@@ -97,6 +98,37 @@ export default function PricingPage() {
             </div>
           ))}
         </motion.div>
+
+        {/* Billing toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+          className="mt-10 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1 backdrop-blur"
+        >
+          <button
+            onClick={() => setAnnual(false)}
+            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all ${
+              !annual ? "bg-orange text-orange-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            شهري
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
+              annual ? "bg-orange text-orange-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            سنوي
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+              annual ? "bg-orange-foreground/20 text-orange-foreground" : "bg-orange/15 text-orange"
+            }`}>
+              وفّر 20%
+            </span>
+          </button>
+        </motion.div>
       </SectionContainer>
 
       <SectionContainer className="pb-24">
@@ -151,14 +183,21 @@ export default function PricingPage() {
                           <span className="text-4xl font-extrabold">مجاني</span>
                         ) : (
                           <>
-                            <span className="text-5xl font-extrabold tracking-tighter text-orange">{plan.price}</span>
+                            <span className="text-5xl font-extrabold tracking-tighter text-orange">
+                              {annual ? Math.round(plan.price * 12 * 0.8 * 100) / 100 : plan.price}
+                            </span>
                             <span className="text-base text-muted-foreground font-medium">د.ل</span>
                           </>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {plan.price === 0 ? "للأبد، بدون حدود زمنية" : "شهرياً"}
+                        {plan.price === 0 ? "للأبد، بدون حدود زمنية" : annual ? "شهرياً، تُدفع سنوياً" : "شهرياً"}
                       </div>
+                      {annual && plan.price > 0 && (
+                        <div className="text-[11px] text-success mt-0.5">
+                          يوفر {Math.round(plan.price * 12 * 0.2)} د.ل سنوياً
+                        </div>
+                      )}
                     </div>
 
                     {/* Features */}

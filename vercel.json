@@ -26,10 +26,5 @@
       "excludeFiles": "{fb_dashboard/frontend/node_modules/**,__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
     }
   },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/healthz", "destination": "/api/index.py" },
-    { "source": "/webhook", "destination": "/api/index.py" },
-    { "source": "/ws", "destination": "/api/index.py" }
-  ]
+  "rewrites": []
 }

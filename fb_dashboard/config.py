@@ -57,14 +57,18 @@ TELEGRAM_ADMIN_IDS: list[int] = [int(x) for x in os.environ.get("TELEGRAM_ADMIN_
 
 settings = Settings()
 
-# ponytail: fail-fast — refuse empty SECRET_KEY in production
-if not settings.SECRET_KEY and not settings.DEBUG:
+# ponytail: fail-fast — refuse empty SECRET_KEY on production deployments.
+# On Vercel previews (VERCEL_ENV=preview) we relax this so PR-branch URLs
+# stay bootable without copying every production env var over. DEBUG=1
+# remains the local-dev escape hatch.
+_VERCEL_ENV = os.environ.get("VERCEL_ENV", "")
+_IS_PROD = not settings.DEBUG and _VERCEL_ENV in ("", "production")
+
+if not settings.SECRET_KEY and _IS_PROD:
     raise RuntimeError("CRITICAL: SECRET_KEY is empty — set SECRET_KEY env var for production")
 
-# ponytail: CRON_SECRET required in production (non-DEBUG)
-if not settings.DEBUG and not os.environ.get("CRON_SECRET"):
+if _IS_PROD and not os.environ.get("CRON_SECRET"):
     raise RuntimeError("CRITICAL: CRON_SECRET env var is required in production")
 
-# ponytail: FERNET_KEY required in production — prevents key reuse across JWT + encryption
-if not settings.DEBUG and not settings.FERNET_KEY:
+if _IS_PROD and not settings.FERNET_KEY:
     raise RuntimeError("CRITICAL: FERNET_KEY env var is required in production — set a separate key from SECRET_KEY")

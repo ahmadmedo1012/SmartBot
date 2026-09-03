@@ -1,3 +1,5 @@
+"use client"
+
 import dynamic from "next/dynamic"
 
 const SubscribeContent = dynamic(() => import("./SubscribeContent"), { ssr: false })

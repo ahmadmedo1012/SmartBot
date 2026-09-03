@@ -17,7 +17,8 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 from bot import BotEngine
 from _services import reset_bot_engines, get_bot_engine
-from cache_layer import ReplyDedupCache, CooldownManager
+from cache_layer import ReplyDedupCache
+from bot import CooldownManager
 
 
 # ── Mock FB Client ────────────────────────────────────────────────────────────
@@ -61,6 +62,10 @@ async def test_tenant_isolation():
     assert engine_a is not engine_b, "FAILED: engines should be different instances"
     print("✓ Engine instances are distinct")
 
+    # Initialize lazy caches before tests that use them
+    await engine_a._ensure_cache()
+    await engine_b._ensure_cache()
+
     # ── Test 1: Dedup Cache Isolation ─────────────────────────────
     # Simulate tenant A replied to comment_100_1
     await engine_a._dedup_engine.mark(f"post_{tenant_a_id}_1_comment_{tenant_a_id}_1")
@@ -75,24 +80,26 @@ async def test_tenant_isolation():
     print("✓ Dedup cache is isolated per tenant")
 
     # ── Test 2: Cooldown Manager Isolation ─────────────────────────
-    # A triggers cooldown
-    await engine_a.cooldown.trigger("post_1")
-    is_cooldown_a = await engine_a.cooldown.check("post_1")
-    assert is_cooldown_a, "Tenant A should be in cooldown"
+    # is_blocked() is synchronous: first call records timestamp, second call sees it
+    is_cooldown_a_1 = engine_a.cooldown.is_blocked("post_1")
+    assert not is_cooldown_a_1, "First call should not be in cooldown"
+    is_cooldown_a_2 = engine_a.cooldown.is_blocked("post_1")
+    assert is_cooldown_a_2, "Second call within window should be in cooldown"
 
     # B should NOT be in cooldown (isolation test)
-    is_cooldown_b = await engine_b.cooldown.check("post_1")
+    is_cooldown_b = engine_b.cooldown.is_blocked("post_1")
     assert not is_cooldown_b, "Tenant B should NOT inherit tenant A's cooldown"
     print("✓ Cooldown manager is isolated per tenant")
 
     # ── Test 3: Rate Limit Isolation ───────────────────────────────
-    # Simulate A hitting rate limit
-    for i in range(6):
-        await engine_a._check_rate_limit(f"post_{tenant_a_id}_1")
+    # _check_rate_limit returns True while count < 5, False when rate-limited
+    for i in range(5):
+        rate_ok = await engine_a._check_rate_limit(f"post_{tenant_a_id}_1")
+        assert rate_ok, f"Call {i+1} should be allowed"
+        engine_a._mark_replied(f"post_{tenant_a_id}_1")
 
-    # A should be rate limited now
     rate_ok_a = await engine_a._check_rate_limit(f"post_{tenant_a_id}_1")
-    assert not rate_ok_a, "Tenant A should be rate limited"
+    assert not rate_ok_a, "Tenant A should be rate limited (6th call within 60s)"
 
     # B should NOT be rate limited (isolation test)
     rate_ok_b = await engine_b._check_rate_limit(f"post_{tenant_a_id}_1")
@@ -135,11 +142,12 @@ async def test_parallel_execution():
     async def tenant_runner(tenant_id: int):
         fb = MockFBClient(tenant_id)
         engine = BotEngine(fb, tenant_id=tenant_id)
+        await engine._ensure_cache()
 
         # Simulate parallel work
         for i in range(3):
             await engine._dedup_engine.mark(f"parallel_comment_{i}_t{tenant_id}")
-            await engine.cooldown.trigger(f"cooldown_{i}_t{tenant_id}")
+            engine.cooldown.adjust_window(f"cooldown_{i}_t{tenant_id}", 5)
             for _ in range(2):
                 engine._mark_replied(f"post_{tenant_id}_{i}")
 

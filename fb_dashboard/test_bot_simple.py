@@ -8,8 +8,11 @@ import os
 import time
 
 # Change to fb_dashboard directory for imports
-os.chdir('/home/ahmed/Downloads/SmartBot/fb_dashboard')
-sys.path.insert(0, '.')
+_dashboard = os.path.dirname(os.path.abspath(__file__))
+_root = os.path.dirname(_dashboard)
+os.chdir(_dashboard)
+sys.path.insert(0, _dashboard)
+sys.path.insert(0, _root)
 
 async def test_simple():
     from bot import BotEngine, CooldownManager

@@ -11,10 +11,23 @@ _pool_args = {"pool_pre_ping": True, "pool_recycle": 300}
 if _IS_VERCEL or _is_pg:
     _pool_args = {"poolclass": NullPool}
 
+# asyncpg needs an explicit ssl= object — query string sslmode= is stripped
+# from the URL by config.async_database_url. Build a proper SSLContext only
+# when production/Neon is detected.
+_connect_args: dict = {}
+if _is_pg:
+    _connect_args = {"timeout": 15, "statement_cache_size": 0}
+    if settings.db_require_ssl:
+        import ssl
+        _ctx = ssl.create_default_context()
+        _ctx.check_hostname = False
+        _ctx.verify_mode = ssl.CERT_NONE  # Neon uses trusted CA but no host check needed
+        _connect_args["ssl"] = _ctx
+
 engine = create_async_engine(
     settings.async_database_url,
     echo=False,
-    connect_args={"timeout": 15, "statement_cache_size": 0} if _is_pg else {},
+    connect_args=_connect_args,
     **_pool_args,
 )
 

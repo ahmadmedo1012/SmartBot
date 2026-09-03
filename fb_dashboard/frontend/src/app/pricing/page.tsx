@@ -29,7 +29,7 @@ export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
-    apiFetch("/api/plans").then(r => r.json()).then(setPlans).catch(() => {})
+    apiFetch("/api/plans").then(r => r.json()).then(d => setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))).catch(() => {})
   }, [])
 
   return (

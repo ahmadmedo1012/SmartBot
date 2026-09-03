@@ -43,7 +43,7 @@ export default function SubscribePage() {
   useEffect(() => {
     apiFetch("/api/plans")
       .then((r) => r.json())
-      .then(setPlans)
+      .then(d => setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])))
       .catch(() => toast.error("فشل تحميل الخطط"))
   }, [])
 

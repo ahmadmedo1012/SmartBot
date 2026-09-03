@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os, logging
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 log = logging.getLogger("fb-config")
 
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
     DATABASE_POOLED_URL: str = ""
     # When True, asyncpg connects with ssl=require (production / Neon).
     # When False (local dev), asyncpg uses default (no SSL).
+    # Accept empty string from Vercel as False — pydantic strict bools break on "".
     DATABASE_REQUIRE_SSL: bool = False
     FACEBOOK_ACCESS_TOKEN: str = ""
     FACEBOOK_PAGE_ID: str = ""
@@ -21,6 +23,17 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
+
+    @field_validator("DATABASE_REQUIRE_SSL", "DEBUG", "START_BOT", mode="before")
+    @classmethod
+    def _coerce_bool(cls, v):
+        if v is None or v == "":
+            return False
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.strip().lower() in ("1", "true", "yes", "on", "y", "t")
+        return bool(v)
 
     @property
     def async_database_url(self) -> str:

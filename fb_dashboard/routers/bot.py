@@ -45,13 +45,13 @@ async def bot_status(_=Depends(get_current_user)):
 
 
 @router.post("/api/bot/restart")
-async def restart_bot(_=Depends(require_role("admin"))):
+async def restart_bot(current_user: User = Depends(require_role("admin")), db=Depends(get_db)):
     global _bot_task
     if _bot_task:
         _bot_task.cancel()
     from runner import _run_bot_loop
     _bot_task = asyncio.create_task(_run_bot_loop())
-    asyncio.create_task(ws_manager.broadcast("notification", {
+    asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_started", "title": "تم تشغيل البوت",
         "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
     }))
@@ -59,12 +59,12 @@ async def restart_bot(_=Depends(require_role("admin"))):
 
 
 @router.post("/api/bot/stop")
-async def stop_bot(_=Depends(require_role("admin"))):
+async def stop_bot(current_user: User = Depends(require_role("admin"))):
     global _bot_task
     if _bot_task and not _bot_task.done():
         _bot_task.cancel()
         _bot_task = None
-    asyncio.create_task(ws_manager.broadcast("notification", {
+    asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_stopped", "title": "تم إيقاف البوت",
         "message": "تم إيقاف البوت يدوياً", "link": "/settings",
     }))

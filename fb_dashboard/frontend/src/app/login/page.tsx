@@ -110,10 +110,10 @@ function LoginForm() {
 
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--orange)] via-[var(--orange)]/80 to-[var(--orange)]/60" />
 
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/50 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
-            <img src="/static/brand-icon.png" alt="الربط الذكي" className="size-full object-contain" />
+            <img src="/static/brand-icon.png" alt="الربط الذكي" className="size-full object-contain drop-shadow-lg" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">SmartBot</CardTitle>
           <CardDescription className="text-base text-muted-foreground/80">لوحة التحكم الذكية</CardDescription>
@@ -123,7 +123,7 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
-              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:ring-2 focus-within:ring-orange/30">
+              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
                 <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="اسم المستخدم"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -132,20 +132,24 @@ function LoginForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:ring-2 focus-within:ring-orange/30">
+              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   tabIndex={-1} aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
-            {formError && <p className="text-xs text-destructive text-center">{formError}</p>}
-            <Button type="submit" className="mt-2 h-10 w-full rounded-xl text-base font-semibold" disabled={loading}>
+            {formError && (
+              <p role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
+                {formError}
+              </p>
+            )}
+            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-orange/20 hover:shadow-lg hover:shadow-orange/30" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جاري تسجيل الدخول...</span>
               ) : (
@@ -155,7 +159,7 @@ function LoginForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/register" className="text-xs text-orange/80 hover:text-orange/60 transition-colors">
+            <Link href="/register" className="text-xs text-orange/80 hover:text-orange transition-colors">
               ليس لديك حساب؟ إنشاء حساب جديد
             </Link>
           </div>

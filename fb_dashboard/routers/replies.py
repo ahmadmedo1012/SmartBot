@@ -122,6 +122,6 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     db.add(reply)
     await db.commit()
     log.info(f"Manual reply: user={current_user.username} comment={comment_id} reply_id={reply.id}")
-    await ws_manager.broadcast("new_reply")
-    await ws_manager.broadcast("notification")
+    await ws_manager.broadcast_to_tenant(current_user._tenant_id, "new_reply")
+    await ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification")
     return {"ok": True, "reply_id": reply.id}

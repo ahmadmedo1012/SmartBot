@@ -82,3 +82,15 @@ async def notify_admins_new_subscription(payment_id: int, username: str, amount:
     ]
     for aid in ADMIN_IDS:
         await send_message(aid, msg, buttons)
+
+
+async def notify_admins_support_ticket(subject: str, message: str, email: str = ""):
+    """Notify admins about a new support ticket from the platform."""
+    msg = (
+        f"🎫 *طلب دعم جديد*\n"
+        f"• الموضوع: {subject or '(بدون موضوع)'}\n"
+        f"• البريد: {email or '—'}\n"
+        f"\n{message[:800]}"
+    )
+    for aid in ADMIN_IDS:
+        await send_message(aid, msg)

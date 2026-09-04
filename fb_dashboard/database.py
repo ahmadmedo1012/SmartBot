@@ -6,7 +6,8 @@ from config import settings
 
 # Serverless-safe pool: NullPool for Neon/Postgres — avoids stale connection issues
 _IS_VERCEL = bool(os.getenv("VERCEL"))
-_is_pg = (settings.DATABASE_POOLED_URL or settings.DATABASE_URL).startswith("postgresql")
+_db_url = settings.DATABASE_POOLED_URL or settings.DATABASE_URL or ""
+_is_pg = _db_url.startswith("postgresql")
 _pool_args = {"pool_pre_ping": True, "pool_recycle": 300}
 if _IS_VERCEL or _is_pg:
     _pool_args = {"poolclass": NullPool}

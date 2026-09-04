@@ -89,16 +89,10 @@ class StructuredLogger:
         self._buffer.append(event)
         if len(self._buffer) > self._buffer_max:
             self._buffer.pop(0)
-        # Broadcast via EventBus and WebSocket (best-effort)
+        # Broadcast via EventBus (router.py registers a WS bridge for log_event)
         try:
             from event_bus import event_bus
             asyncio.create_task(event_bus.emit("log_event", event.to_dict()))
-        except Exception:
-            pass
-        try:
-            from ws_manager import ws_manager
-            if ws_manager.count:
-                asyncio.create_task(ws_manager.broadcast("log_event", event.to_dict()))
         except Exception:
             pass
         # Batch-write to BotLog every 10 events

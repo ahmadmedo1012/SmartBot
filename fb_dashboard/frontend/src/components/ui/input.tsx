@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label"
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  hint?: string
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, id, ...props }, ref) => {
+  ({ className, type, label, error, hint, id, ...props }, ref) => {
     const errorId = id ? `${id}-error` : undefined
+    const hintId = id ? `${id}-hint` : undefined
     return (
       <div className="space-y-1">
         {label && <Label htmlFor={id}>{label}</Label>}
@@ -24,9 +26,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           ref={ref}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={error ? errorId : hint ? hintId : undefined}
           {...props}
         />
+        {hint && !error && (
+          <p id={hintId} className="text-[11px] text-muted-foreground">
+            {hint}
+          </p>
+        )}
         {error && <p id={errorId} className="text-xs text-destructive">{error}</p>}
       </div>
     )

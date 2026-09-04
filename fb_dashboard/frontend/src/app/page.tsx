@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
@@ -29,6 +30,15 @@ const faqSchema = {
 }
 
 export default function HomePage() {
+  const [testimonials, setTestimonials] = useState<any[] | null>(null)
+
+  useEffect(() => {
+    fetch("/api/public/testimonials")
+      .then(r => r.json())
+      .then(d => setTestimonials(d?.data ?? []))
+      .catch(() => setTestimonials([]))
+  }, [])
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
@@ -118,7 +128,8 @@ export default function HomePage() {
       <FeaturesSection />
       <HowItWorksSection />
 
-      {/* Testimonials — polished */}
+      {/* Testimonials — only render if real data exists (never fake) */}
+      {testimonials && testimonials.length > 0 && (
       <section className="relative py-24">
         <div className="max-w-6xl mx-auto px-6">
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -167,6 +178,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       <FaqSection />
       <FinalCTASection />

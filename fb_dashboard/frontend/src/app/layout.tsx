@@ -18,14 +18,25 @@ const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 export const metadata: Metadata = {
   title: { default: "SmartBot - منصة إدارة فيسبوك", template: "%s | SmartBot" },
   description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك - المنصة الأولى في ليبيا",
+  keywords: ["SmartBot", "فيسبوك بوت", "أتمتة الردود", "تحليلات فيسبوك", "إدارة صفحات", "ليبيا", "التجارة الإلكترونية"],
+  authors: [{ name: "SmartBot Team" }],
   metadataBase: new URL(siteUrl),
   icons: { icon: "/static/brand-icon.png", apple: "/static/brand-icon.png" },
   openGraph: {
-    type: "website", locale: "ar_LY", siteName: "SmartBot",
-    images: [{ url: "/static/brand-icon.png", width: 512, height: 512 }],
+    type: "website", locale: "ar_LY", siteName: "SmartBot", url: siteUrl,
+    title: "SmartBot - منصة إدارة فيسبوك الذكية",
+    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    images: [{ url: "/static/brand-icon.png", width: 512, height: 512, alt: "SmartBot" }],
   },
-  robots: { index: true, follow: true },
+  twitter: {
+    card: "summary_large_image",
+    title: "SmartBot - منصة إدارة فيسبوك",
+    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    images: ["/static/brand-icon.png"],
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   alternates: { canonical: `${siteUrl}/` },
+  category: "technology",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,6 +44,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/fonts/fonts.css" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#f97316" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",

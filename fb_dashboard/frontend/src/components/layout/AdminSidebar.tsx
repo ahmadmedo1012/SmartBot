@@ -103,23 +103,24 @@ export function AdminSidebar({
   const pathname = usePathname() ?? ""
 
   return (
-    <aside className={cn("flex flex-col h-full bg-card border-l border-border", className)}>
+    <aside className={cn("flex flex-col h-full bg-card/95 backdrop-blur-md border-l border-border/60 shadow-sm", className)}>
       {/* Logo */}
-      <div className="flex items-center gap-2.5 p-4 border-b border-border">
-        <div className="size-9 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm shrink-0">
+      <div className="flex items-center gap-2.5 p-4 border-b border-border/60">
+        <div className="relative size-9 rounded-lg bg-gradient-to-br from-orange to-orange/70 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-orange/20 ring-1 ring-orange/30">
           {logo}
+          <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-green-500 ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
         </div>
-        <div>
-          <p className="font-bold text-sm leading-tight">{title}</p>
+        <div className="min-w-0">
+          <p className="font-bold text-sm leading-tight truncate">{title}</p>
           <p className="text-[10px] text-muted-foreground leading-tight">لوحة التحكم</p>
         </div>
       </div>
 
       {/* Nav */}
-      <motion.nav variants={stagger} initial="hidden" animate="visible" className="flex-1 overflow-y-auto p-3 space-y-6">
+      <motion.nav variants={stagger} initial="hidden" animate="visible" className="sidebar-scroll flex-1 overflow-y-auto p-3 space-y-5">
         {navSections.map((section, si) => (
           <motion.div key={si} variants={fadeUp}>
-            <p className="px-3 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+            <p className="px-3 pb-1.5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.12em]">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -132,20 +133,29 @@ export function AdminSidebar({
                     whileTap={{ scale: 0.97 }}
                     transition={springHover}
                     onClick={() => onNavigate?.(item.href || "#")}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate?.(item.href || "#") } }}
+                    tabIndex={0}
+                    role="link"
+                    aria-current={active ? "page" : undefined}
+                    aria-label={item.label}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-150",
+                      "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-200 outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-orange/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card",
                       active
-                        ? "bg-orange text-orange-foreground font-medium shadow-sm shadow-orange/20"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "bg-gradient-to-l from-orange to-orange/85 text-orange-foreground font-semibold shadow-md shadow-orange/25"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                     )}
                   >
-                    <item.icon className="size-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    {active && (
+                      <span className="absolute start-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-e-full bg-orange-foreground/90" aria-hidden="true" />
+                    )}
+                    <item.icon className={cn("size-4 shrink-0 transition-transform duration-200", !active && "group-hover:scale-110")} />
+                    <span className="truncate flex-1">{item.label}</span>
                     {item.badge !== undefined && (
                       <Badge
                         variant={active ? "outline" : "info"}
                         className={cn(
-                          "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center",
+                          "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
                           active && "border-white/30 text-white"
                         )}
                       >
@@ -161,18 +171,18 @@ export function AdminSidebar({
       </motion.nav>
 
       {/* Bottom */}
-      <div className="p-3 border-t border-border space-y-2">
+      <div className="p-3 border-t border-border/60 space-y-2 bg-card/50">
         {onSubscribe && (
           <button
             onClick={onSubscribe}
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-orange text-orange-foreground text-sm font-medium hover:brightness-110 transition-all"
+            className="group flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-gradient-to-l from-orange to-orange/85 text-orange-foreground text-sm font-semibold hover:brightness-110 hover:shadow-lg hover:shadow-orange/20 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-orange/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
-            <Sparkles className="size-4" /> اشتراك
+            <Sparkles className="size-4 transition-transform duration-200 group-hover:rotate-12" /> اشتراك
           </button>
         )}
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
         >
           <LogOut className="size-4" /> تسجيل الخروج
         </button>

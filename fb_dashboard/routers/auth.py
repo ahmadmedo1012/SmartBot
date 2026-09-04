@@ -168,10 +168,12 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
 @router.get("/api/auth/me")
 async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get_db)):
     plan = "free"
+    onboarding_completed = True
     if current_user.tenant_id:
         tenant = await db.get(Tenant, current_user.tenant_id)
         if tenant:
             plan = tenant.plan or "free"
+            onboarding_completed = bool(tenant.onboarding_completed)
     return {"success": True, "authenticated": True, "data": {
         "user": {
             "id": current_user.id, "username": current_user.username,
@@ -181,8 +183,22 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             "subscriptionStatus": plan,
             "permissions": [],
             "roleLabel": current_user.role,
+            "onboardingCompleted": onboarding_completed,
         }
     }}
+
+
+@router.post("/api/onboarding/complete")
+async def complete_onboarding(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Mark the current tenant's onboarding wizard as complete."""
+    if not current_user.tenant_id:
+        raise HTTPException(400, "لا توجد مساحة عمل مرتبطة بهذا الحساب")
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not tenant:
+        raise HTTPException(404, "المساحة غير موجودة")
+    tenant.onboarding_completed = True
+    await db.commit()
+    return {"success": True, "data": {"onboardingCompleted": True}}
 
 
 @router.get("/api/audit/logs")

@@ -1,8 +1,12 @@
 from __future__ import annotations
-"""Flow Engine — Visual bot flow execution engine.
+"""Flow Engine — Visual bot flow execution engine. [DEPRECATED — kept for future use]
+
 Executes ManyChat-style JSON graphs (nodes + edges) against Facebook comments.
 
 Node types: TRIGGER, MESSAGE, CONDITION, ACTION, DELAY, GOAL, SEQUENCE
+
+Status: dormant since Sprint 1. Production traffic uses bot.py (BotEngine).
+Do not remove; will be re-introduced when visual flow editor ships.
 """
 import asyncio
 import json
@@ -75,14 +79,17 @@ _MAX_DEPTH = 50
 class FlowEngine:
     """Executes ManyChat-style JSON graphs against Facebook comments."""
 
-    def __init__(self, fb: FBClient):
+    def __init__(self, fb: FBClient, tenant_id: int = 0):
         self.fb = fb
+        self.tenant_id = tenant_id
 
     # ── Graph loading ────────────────────────────────────────────────────────
 
     async def load_flow(self, flow_id: int, session) -> FlowGraph | None:
         """Load a flow from DB and build node/edge lookup maps."""
-        result = await session.execute(select(Flow).where(Flow.id == flow_id))
+        result = await session.execute(
+            select(Flow).where(Flow.id == flow_id, Flow.tenant_id == self.tenant_id)
+        )
         flow: Flow | None = result.scalar_one_or_none()
         if not flow:
             log.warning(f"Flow {flow_id} not found")
@@ -115,7 +122,10 @@ class FlowEngine:
                                   session=None) -> list[dict]:
         """Find active flows whose trigger nodes match the event."""
         result = await session.execute(
-            select(Flow).where(Flow.status == "active").order_by(Flow.updated_at.desc())
+            select(Flow).where(
+                Flow.tenant_id == self.tenant_id,
+                Flow.status == "active",
+            ).order_by(Flow.updated_at.desc())
         )
         flows = result.scalars().all()
         matches = []
@@ -472,7 +482,11 @@ class FlowEngine:
             stmt = (
                 select(Tag)
                 .join(SubscriberTag, Tag.id == SubscriberTag.tag_id)
-                .where(SubscriberTag.subscriber_id == subscriber_id, Tag.name == tag_name)
+                .where(
+                    Tag.tenant_id == self.tenant_id,
+                    SubscriberTag.subscriber_id == subscriber_id,
+                    Tag.name == tag_name,
+                )
             )
             result = await session.execute(stmt)
             return result.scalar_one_or_none() is not None
@@ -489,9 +503,9 @@ class FlowEngine:
             if not ctx.subscriber_id:
                 return {"action": "tag_add", "success": False, "detail": "no subscriber"}
             try:
-                tag = (await session.execute(select(Tag).where(Tag.name == value))).scalar_one_or_none()
+                tag = (await session.execute(select(Tag).where(Tag.tenant_id == self.tenant_id, Tag.name == value))).scalar_one_or_none()
                 if not tag:
-                    tag = Tag(name=value)
+                    tag = Tag(name=value, tenant_id=self.tenant_id)
                     session.add(tag)
                     await session.flush()
                 # Check dup
@@ -513,7 +527,7 @@ class FlowEngine:
             if not ctx.subscriber_id:
                 return {"action": "tag_remove", "success": False, "detail": "no subscriber"}
             try:
-                tag = (await session.execute(select(Tag).where(Tag.name == value))).scalar_one_or_none()
+                tag = (await session.execute(select(Tag).where(Tag.tenant_id == self.tenant_id, Tag.name == value))).scalar_one_or_none()
                 if tag:
                     await session.execute(
                         delete(SubscriberTag).where(

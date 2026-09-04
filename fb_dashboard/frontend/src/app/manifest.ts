@@ -1,0 +1,19 @@
+import type { MetadataRoute } from "next"
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "SmartBot - منصة إدارة فيسبوك",
+    short_name: "SmartBot",
+    description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#0a0a0a",
+    theme_color: "#f97316",
+    lang: "ar",
+    dir: "rtl",
+    icons: [
+      { src: "/static/brand-icon.png", sizes: "any", type: "image/png", purpose: "any" },
+      { src: "/static/brand-icon.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+    ],
+  }
+}

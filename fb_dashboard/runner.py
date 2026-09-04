@@ -64,6 +64,10 @@ from routers import subscribers_tags_routes as subscribers_router
 from routers import team_routes as team_router
 from routers import templates_routes as templates_router
 from routers import widgets_routes as widgets_router
+from routers import onboarding as onboarding_router
+from routers import notifications as notifications_router
+from routers import support as support_router
+from routers import marketing as marketing_router
 
 # Lazy AI import — single source of truth in _services.py
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -287,10 +291,24 @@ async def lifespan(app: FastAPI):
             _calendar_scheduler = CalendarScheduler(content_calendar_engine)
             asyncio.create_task(_calendar_scheduler.start())
 
-        # Bridge event bus → WebSocket
-        async def _ws_bridge(data):
-            await ws_manager.broadcast("stats_update", data)
+        # Bridge event bus → WebSocket (tenant-scoped)
+        async def _ws_bridge(data, tenant_id: int | None = None):
+            if tenant_id is not None:
+                await ws_manager.broadcast_to_tenant(tenant_id, "stats_update", data)
         event_bus.subscribe("stats_update", _ws_bridge)
+
+        # Bridge bot_health (cross-tenant platform health) to all WS clients
+        async def _ws_bridge_global(data, tenant_id: int | None = None):
+            # tenant_id is None for global emit — broadcast to every connected tenant
+            for conn in ws_manager._connections:
+                try:
+                    import json as _json
+                    await conn.websocket.send_text(_json.dumps(
+                        {"event": "bot_health", "data": data}, ensure_ascii=False, default=str
+                    ))
+                except Exception:
+                    pass
+        event_bus.subscribe("bot_health", _ws_bridge_global)
 
         # Health push background task (every 30s)
         async def _health_push():
@@ -302,7 +320,6 @@ async def lifespan(app: FastAPI):
                         running = _bot_task is not None and not _bot_task.done() if _bot_task else False
                         payload = {"replies_last_hour": recent, "running": running,
                                    "timestamp": utcnow().isoformat()}
-                        await ws_manager.broadcast("bot_health", payload)
                         await event_bus.emit("bot_health", payload)
                 except Exception:
                     pass
@@ -415,6 +432,32 @@ async def rate_limit_middleware(request: Request, call_next):
 
 
 @app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to every response."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    # Content-Security-Policy — restrict sources for XSS protection
+    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.facebook.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "img-src 'self' data: blob: https:; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "connect-src 'self' https: wss:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    return response
+
+@app.middleware("http")
 async def csrf_origin_check(request: Request, call_next):
     """Validate Origin/Referer on state-changing requests to /api/*."""
     if request.method in ("POST", "PUT", "DELETE") and request.url.path.startswith("/api/"):
@@ -469,6 +512,10 @@ app.include_router(subscribers_router.router)
 app.include_router(team_router.router)
 app.include_router(templates_router.router)
 app.include_router(widgets_router.router)
+app.include_router(onboarding_router.router)
+app.include_router(notifications_router.router)
+app.include_router(support_router.router)
+app.include_router(marketing_router.router)
 
 if STATIC_DIR.exists():
     try:
@@ -725,7 +772,7 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.close(code=4001, reason="Tenant inactive")
             return
         ws_tid = user.tenant_id  # authoritative from DB
-    await ws_manager.connect(ws)
+    await ws_manager.connect(ws, tenant_id=ws_tid, user_id=user.id)
     try:
         while True:
             data = await ws.receive_text()
@@ -761,13 +808,14 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
         queue: asyncio.Queue = asyncio.Queue()
         handlers = {}
         async def _make_handler(evt: str):
-            async def _h(data):
-                await queue.put({"event": evt, "data": data})
+            async def _h(data, tenant_id: int | None = None):
+                await queue.put({"event": evt, "data": data, "tenant_id": tenant_id})
             return _h
         for evt_name in ("stats_update", "bot_health", "agent_message"):
             h = await _make_handler(evt_name)
             handlers[evt_name] = h
-            event_bus.subscribe(evt_name, h)
+            # Subscribe without tenant filter (legacy) — tenant filtering happens on emit
+            event_bus.subscribe(evt_name, h, tenant_id=None)
         try:
             yield "data: {\"event\":\"connected\"}\n\n"
             while True:
@@ -779,7 +827,7 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
                     yield ": keepalive\n\n"
         finally:
             for evt_name, h in handlers.items():
-                event_bus.unsubscribe(evt_name, h)
+                event_bus.unsubscribe(evt_name, h, tenant_id=None)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -856,7 +904,6 @@ async def webhook_receive(request: Request):
 async def _process_webhook_comment(comment: dict, post_id: str):
     """Process a single webhook comment — dispatches by page_id for multi-tenant."""
     try:
-        # Lookup tenant from page_id embedded in the post_id or comment metadata
         page_id = comment.get("page_id") or comment.get("from", {}).get("id", "")
         if page_id:
             async with AsyncSessionLocal() as db:
@@ -867,10 +914,12 @@ async def _process_webhook_comment(comment: dict, post_id: str):
             if bs:
                 fb_client = await get_tenant_fb_client(bs.tenant_id)
                 if fb_client:
-                    await BotEngine(fb_client, tenant_id=bs.tenant_id).process_single_comment(comment, post_id)
+                    # Use registry — ensures dedup cache and cooldown are shared with background bot loop
+                    engine = get_bot_engine(fb_client, tenant_id=bs.tenant_id)
+                    await engine.process_single_comment(comment, post_id)
                     _track_event("webhook_comment_processed", {"comment_id": comment.get("id",""), "tenant_id": bs.tenant_id})
                     return
-        # Fallback: unscoped singleton (legacy single-tenant mode)
+        # Fallback: unscoped singleton (legacy single-tenant mode) — only if no tenant found
         engine = get_bot_engine()
         if not engine._tenant_id:
             await engine.process_single_comment(comment, post_id)

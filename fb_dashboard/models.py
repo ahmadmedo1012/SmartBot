@@ -82,6 +82,7 @@ class Tenant(Base):
     plan_start = Column(DateTime, nullable=True)
     plan_end = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
+    onboarding_completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -108,6 +109,11 @@ class User(Base):
     plan_id = Column(Integer, nullable=True)
     last_login_at = Column(DateTime, nullable=True)
     telegram_chat_id = Column(String(100), nullable=True)
+    # 2FA (TOTP) — secret is encrypted via Fernet using FERNET_KEY, backup codes hashed via bcrypt
+    twofa_enabled = Column(Boolean, default=False)
+    twofa_secret_enc = Column(String(512), default="")  # Fernet-encrypted TOTP secret
+    twofa_backup_codes_hash = Column(Text, default="")  # JSON list of bcrypt-hashed backup codes
+    twofa_verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -656,6 +662,20 @@ class RateLimitEntry(Base):
     window_end = Column(DateTime, nullable=False)
     count = Column(Integer, default=1, nullable=False)
     created_at = Column(DateTime, default=utcnow)
+
+
+class NotificationPreference(Base):
+    """Per-tenant user notification preferences. Stored as JSON dict of key->bool."""
+    __tablename__ = "notification_preferences"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_notif_pref_user"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    preferences = Column(JSON, default=dict)  # {"new_comments": true, ...}
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class ReportSchedule(Base):

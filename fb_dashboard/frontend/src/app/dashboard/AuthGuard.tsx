@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
+import OnboardingWizard from "@/app/onboarding/OnboardingWizard"
 
 export default function AuthGuard({
   children,
@@ -11,13 +12,21 @@ export default function AuthGuard({
   requiredRole?: string
 }) {
   const [authorized, setAuthorized] = useState(false)
+  const [userData, setUserData] = useState<Record<string, unknown> | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const pathname = usePathname()
   const attempts = useRef(0)
+  const onboardingChecked = useRef(false)
 
   useEffect(() => {
+    const ctrl = new AbortController()
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+
     const check = () => {
-      const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), 5000)
+      if (ctrl.signal.aborted) return
+      const timer = setTimeout(() => {
+        if (!ctrl.signal.aborted) ctrl.abort()
+      }, 5000)
 
       fetch("/api/me", { signal: ctrl.signal })
         .then((r) => {
@@ -27,22 +36,36 @@ export default function AuthGuard({
         })
         .then((d) => {
           const data = d.data || d
-          if (!(data.authenticated || d.authenticated)) return void window.location.replace("/login")
+          if (!(data.authenticated || d.authenticated)) {
+            return void (window.location.href = "/login")
+          }
           const role = data.role || d.role
-          if (requiredRole && role !== requiredRole)
-            return void window.location.replace("/dashboard")
+          if (requiredRole && role !== requiredRole) {
+            return void (window.location.href = "/dashboard")
+          }
+          setUserData(data)
+          // Check onboarding status: show wizard if not completed
+          const completed = data.onboardingCompleted ?? data.user?.onboardingCompleted ?? true
+          if (!completed && !onboardingChecked.current) {
+            onboardingChecked.current = true
+            setShowOnboarding(true)
+          }
           setAuthorized(true)
         })
         .catch(() => {
           if (attempts.current < 1) {
             attempts.current++
-            check()
+            retryTimer = setTimeout(check, 500)
           } else {
-            window.location.replace("/login")
+            window.location.href = "/login"
           }
         })
     }
     check()
+    return () => {
+      ctrl.abort()
+      if (retryTimer !== null) clearTimeout(retryTimer)
+    }
   }, [pathname, requiredRole])
 
   if (!authorized) {
@@ -56,5 +79,15 @@ export default function AuthGuard({
     )
   }
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {showOnboarding && (
+        <OnboardingWizard
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
+    </>
+  )
 }

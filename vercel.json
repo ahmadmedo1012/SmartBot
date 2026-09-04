@@ -1,14 +1,29 @@
 {
-  "buildCommand": "cd fb_dashboard/frontend && npm install && npm run build && rm -rf ../../fb_dashboard/static && cp -r out ../../fb_dashboard/static",
+  "buildCommand": "echo 'API project — no build needed (entry: api/index.py)'",
   "installCommand": "pip install -r requirements.txt",
   "framework": "fastapi",
   "regions": ["iad1"],
   "cleanUrls": true,
   "headers": [
     {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
       "source": "/static/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/static/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
     {
@@ -23,8 +38,14 @@
       "maxDuration": 30,
       "memory": 512,
       "includeFiles": "fb_dashboard/**",
-      "excludeFiles": "{fb_dashboard/frontend/node_modules/**,__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
+      "excludeFiles": "{fb_dashboard/frontend/**,fb_dashboard/static/**,__pycache__/**,**/.pytest_cache/**,tests/**,mobile/**,docs/**,e2e_artifacts/**,.playwright-mcp/**,*.md,*.db,botlogo.png}"
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-logs",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "rewrites": []
 }

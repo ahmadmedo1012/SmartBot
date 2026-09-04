@@ -85,8 +85,16 @@ async def main():
         name = fb.get_first_name(target)
         full = fb.get_full_name(target)
         uid = fb.get_commenter_id(target)
-        from bot import _render_reply
-        reply_text = _render_reply("{name} شكراً لتعليقك! 🙏 هذا رد اختبار تلقائي", name, full, "", target.get("message",""), uid)
+        from bot import TemplateRenderer
+        renderer = TemplateRenderer()
+        reply_text = renderer.render(
+            template="{name} شكراً لتعليقك! 🙏 هذا رد اختبار تلقائي",
+            name=name,
+            full_name=full,
+            first_name=name,
+            comment_text=target.get("message", ""),
+            commenter_id=uid,
+        )
         print(f"  Replying to {target['id']}:")
         print(f"    Commenter: {name} / {full} / id={uid}")
         print(f"    Reply: {reply_text}")

@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { Search, Send, Bell, Link2, RefreshCw } from "lucide-react"
+import { Search, Send, Bell, Link2, RefreshCw, MessageCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { PageHeader } from "@/components/ui/PageHeader"
 import Link from "next/link"
 
 function initials(name: string) {
@@ -43,15 +44,23 @@ function ConvItem({ conv, selectedId, onSelect }: {
   return (
     <button
       onClick={() => onSelect(conv.id)}
-      className={`w-full text-right p-3 text-sm cursor-pointer border-b border-border transition-colors
-        ${selected ? "bg-orange/10 border-r-2 border-r-orange" : "hover:bg-muted/50 border-r-2 border-r-transparent"}`}
+      aria-current={selected ? "true" : undefined}
+      className={`group w-full text-right p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
+        ${selected
+          ? "bg-gradient-to-l from-orange/15 to-orange/5 border-r-[3px] border-r-orange"
+          : "hover:bg-muted/40 border-r-[3px] border-r-transparent"}`}
     >
       <div className="flex gap-3 items-start">
-        <div
-          className="size-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-          style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 55%, 45%)`, outline: hasUnread ? "2px solid var(--orange)" : "none" }}
-        >
-          {initials(conv.senders?.[0]?.name)}
+        <div className="relative shrink-0">
+          <div
+            className="size-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-card transition-transform duration-200 group-hover:scale-105"
+            style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 55%, 45%)` }}
+          >
+            {initials(conv.senders?.[0]?.name)}
+          </div>
+          {hasUnread && (
+            <span className="absolute -top-0.5 -end-0.5 size-3 rounded-full bg-orange ring-2 ring-card animate-pulse-dot" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex justify-between gap-2 items-center">
@@ -66,9 +75,9 @@ function ConvItem({ conv, selectedId, onSelect }: {
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-[11px] text-muted-foreground">{conv.message_count} رسالة</span>
             {hasUnread && (
-              <Badge variant="info" className="text-[10px] h-4 min-w-[18px] px-1 rounded-full">
+              <span className="inline-flex items-center justify-center text-[10px] h-4 min-w-[18px] px-1.5 rounded-full bg-orange text-orange-foreground font-bold">
                 {conv.unread_count}
-              </Badge>
+              </span>
             )}
           </div>
         </div>
@@ -131,17 +140,12 @@ export default function MessagesPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Bell className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الرسائل</h1>
-            <p className="text-[11px] text-muted-foreground">صندوق الوارد الموحد</p>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        icon={<Bell className="size-4" />}
+        title="الرسائل"
+        subtitle="صندوق الوارد الموحد"
+        compact
+      />
 
       <div className="flex-1 flex" dir="rtl">
         {/* Conversations list */}
@@ -153,17 +157,20 @@ export default function MessagesPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="بحث في المحادثات..."
-                className="pr-9 h-9 text-sm"
+                className="pr-9 h-9 text-sm border-border/60 focus:border-orange/40 focus:ring-orange/20"
               />
             </div>
-            <div className="flex gap-1 overflow-x-auto pb-1">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
               {FILTERS.map(f => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`text-xs px-2.5 py-1 rounded-full whitespace-nowrap transition-colors ${
-                    filter === f.value ? "bg-orange text-orange-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={cn(
+                    "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-orange/40",
+                    filter === f.value
+                      ? "bg-gradient-to-l from-orange to-orange/80 text-orange-foreground shadow-sm shadow-orange/20 font-medium"
+                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
                 >
                   {f.label}
                 </button>
@@ -213,8 +220,16 @@ export default function MessagesPage() {
                 </Button>
               </div>
             ) : conversations.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                {search || filter !== "all" ? "لا توجد محادثات تطابق البحث" : "لا توجد محادثات بعد"}
+              <div className="p-8 text-center">
+                <div className="size-14 rounded-2xl bg-muted/40 flex items-center justify-center mx-auto mb-3">
+                  <MessageCircle className="size-7 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm font-medium mb-1">
+                  {search || filter !== "all" ? "لا توجد نتائج" : "لا توجد محادثات بعد"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {search || filter !== "all" ? "جرب كلمات بحث مختلفة" : "ستظهر المحادثات الجديدة هنا"}
+                </p>
               </div>
             ) : (
               conversations.map((conv: any) => (
@@ -228,9 +243,12 @@ export default function MessagesPage() {
         <div className="flex-1 flex flex-col">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Bell className="size-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">اختر محادثة لعرض الرسائل</p>
+              <div className="text-center max-w-sm">
+                <div className="size-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Bell className="size-9 opacity-40" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">اختر محادثة</p>
+                <p className="text-xs text-muted-foreground">اختر محادثة من القائمة لعرض الرسائل والرد عليها</p>
               </div>
             </div>
           ) : (
@@ -266,9 +284,9 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="border-t border-border p-3 bg-background/80">
+              <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">
                 <div className="flex gap-2 items-end">
-                  <Button onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending} className="shrink-0">
+                  <Button onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending} className="shrink-0 shadow-sm shadow-orange/15">
                     <Send className="size-4" />
                   </Button>
                   <div className="flex-1 relative">
@@ -277,7 +295,7 @@ export default function MessagesPage() {
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً..."
-                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange/30"
+                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
                       rows={1}
                     />
                   </div>

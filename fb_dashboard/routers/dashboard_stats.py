@@ -152,16 +152,17 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
 
 @router.get("/api/system/stats")
 async def get_system_stats(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    total_users = await db.scalar(select(func.count(User.id))) or 0
-    total_tenants = await db.scalar(select(func.count(Tenant.id))) or 0
-    total_replies = await db.scalar(select(func.count(Reply.id))) or 0
+    # Tenant-scoped: an admin only sees their own tenant's stats.
+    # Platform-wide stats require the SUPER_ADMIN role (out of scope here).
+    _tid = current_user._tenant_id or 0
+    total_users = await db.scalar(select(func.count(User.id)).where(User.tenant_id == _tid)) or 0
+    total_tenants = 1 if _tid else 0
+    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid)) or 0
     today = utcnow().date()
     today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == today)
+        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == today)
     ) or 0
-    active_pages = await db.scalar(
-        select(func.count(Tenant.id)).where(Tenant.is_active == True)
-    ) or 0
+    active_pages = 1 if _tid else 0
     return {"success": True, "data": {
         "totalUsers": total_users,
         "totalTenants": total_tenants,

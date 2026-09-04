@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Settings, User, Shield, Mail , AlertCircle, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Settings, User, Shield, Mail, Lock, KeyRound } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { LoadingState, ErrorState } from "@/components/ui/EmptyState"
 
 export default function SettingsPage() {
-  const { data: raw, isLoading } = useQuery({
+  const { data: raw, isLoading, isError, refetch } = useQuery({
     queryKey: ["current-user"],
     queryFn: () => apiFetch("/api/me").then(r => r.json()),
   })
@@ -15,47 +16,83 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Settings className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الإعدادات</h1>
-            <p className="text-[11px] text-muted-foreground">إعدادات الحساب</p>
-          </div>
-        </div>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <PageHeader
+        icon={<Settings className="size-4" />}
+        title="الإعدادات"
+        subtitle="إعدادات الحساب"
+        compact
+      />
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-3xl mx-auto w-full">
         {isLoading ? (
-          <Card><CardContent className="p-4 animate-pulse h-20" /></Card>
+          <LoadingState count={2} />
+        ) : isError ? (
+          <ErrorState onRetry={() => refetch()} />
         ) : user ? (
           <>
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-bold text-sm mb-3">معلومات الحساب</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center gap-3">
-                    <User className="size-4 text-muted-foreground" />
-                    <span>{user.username}</span>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="size-4 text-orange" /> معلومات الحساب
+                </CardTitle>
+                <CardDescription>البيانات الأساسية لحسابك في SmartBot</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
+                  <div className="size-9 rounded-lg bg-orange/10 text-orange flex items-center justify-center shrink-0">
+                    <User className="size-4" />
                   </div>
-                  {user.email && (
-                    <div className="flex items-center gap-3">
-                      <Mail className="size-4 text-muted-foreground" />
-                      <span>{user.email}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-muted-foreground">اسم المستخدم</p>
+                    <p className="font-medium truncate">{user.username}</p>
+                  </div>
+                </div>
+                {user.email && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
+                    <div className="size-9 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                      <Mail className="size-4" />
                     </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Shield className="size-4 text-muted-foreground" />
-                    <span className="capitalize">{user.role}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-muted-foreground">البريد الإلكتروني</p>
+                      <p className="font-medium truncate" dir="ltr">{user.email}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
+                  <div className="size-9 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
+                    <Shield className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-muted-foreground">الصلاحية</p>
+                    <p className="font-medium capitalize">{user.role === "admin" ? "مدير" : user.role === "owner" ? "مالك" : "مستخدم"}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lock className="size-4 text-orange" /> الأمان
+                </CardTitle>
+                <CardDescription>إعدادات المصادقة والحماية</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
+                  <div className="size-9 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                    <KeyRound className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">المصادقة الثنائية (2FA)</p>
+                    <p className="text-xs text-muted-foreground">حماية إضافية لحسابك عبر تطبيق Authenticator</p>
+                  </div>
+                  <a href="/dashboard/settings/2fa" className="text-xs text-orange hover:text-orange/80 font-medium shrink-0">
+                    إعداد ←
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
           </>
-        ) : (
-          <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">تعذر تحميل الإعدادات</CardContent></Card>
-        )}
+        ) : null}
       </div>
     </div>
   )

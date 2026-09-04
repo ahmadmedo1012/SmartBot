@@ -20,7 +20,14 @@ log = logging.getLogger("fb-webhook")
 
 router = APIRouter(tags=["webhooks"])
 
-VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "smartbot_verify_123")
+# FB_WEBHOOK_VERIFY_TOKEN is required — no fallback. If not set, reject requests.
+VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN") or ""
+if not VERIFY_TOKEN:
+    log.warning("FB_WEBHOOK_VERIFY_TOKEN not set — webhook verification DISABLED. Set it in production.")
+    _webhook_verify_enabled = False
+else:
+    _webhook_verify_enabled = True
+
 APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
 
 

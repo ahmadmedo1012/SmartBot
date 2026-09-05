@@ -32,6 +32,22 @@ export default function AdsPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* Plan §4.5: Facebook Marketing API requires app review + business
+            verification — show honest "coming soon" until approved. */}
+        <Card>
+          <CardContent className="p-4 flex items-start gap-3.5 border border-orange/25 bg-orange/[0.03]">
+            <div className="size-10 rounded-xl bg-orange/10 flex items-center justify-center shrink-0">
+              <Target className="size-5 text-orange" />
+            </div>
+            <div>
+              <p className="text-sm font-bold">إدارة الإعلانات — قريباً</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                تتطلب واجهة Facebook Marketing مراجعة التطبيق وتوثيق النشاط التجاري من فيسبوك
+                قبل التفعيل. عند اكتمال الموافقة ستظهر هنا إدارة الحملات الإعلانية كاملة.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
         {isLoading ? (
           <div className="space-y-2">{[1,2].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
         ) : isError ? (

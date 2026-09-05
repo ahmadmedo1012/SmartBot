@@ -692,3 +692,88 @@ class ReportSchedule(Base):
     schedule = Column(String(50), default="monthly")  # daily, weekly, monthly
     last_sent = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow)
+
+
+# ── Plan §4: Dashboard pages (notifications feed, support tickets, campaigns) ─
+
+class Notification(Base):
+    """In-app notification — tenant-scoped feed items (plan §4.2).
+
+    type: reply | payment | system | mention | support | marketing
+    """
+    __tablename__ = "notifications"
+    __table_args__ = (
+        Index("ix_notif_tenant_created", "tenant_id", "created_at"),
+        Index("ix_notif_tenant_unread", "tenant_id", "read"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0)
+    user_id = Column(Integer, nullable=True)   # None = broadcast to whole tenant
+    type = Column(String(20), default="system")
+    title = Column(String(200), default="")
+    body = Column(Text, default="")
+    link = Column(String(255), default="")
+    read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
+
+
+class SupportTicket(Base):
+    """Support ticket — user submits, admin replies from dashboard (plan §4.3)."""
+    __tablename__ = "support_tickets"
+    __table_args__ = (
+        Index("ix_ticket_tenant_status", "tenant_id", "status"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    user_id = Column(Integer, nullable=True)
+    email = Column(String(200), default="")
+    subject = Column(String(200), default="")
+    body = Column(Text, default="")
+    priority = Column(String(10), default="medium")  # low | medium | high | urgent
+    status = Column(String(12), default="open")      # open | pending | closed
+    created_at = Column(DateTime, default=utcnow, index=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class SupportTicketReply(Base):
+    """Reply on a support ticket — from the ticket owner or an admin."""
+    __tablename__ = "support_ticket_replies"
+    __table_args__ = (
+        Index("ix_ticket_reply_ticket", "ticket_id", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticket_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, nullable=True)
+    is_admin = Column(Boolean, default=False)
+    message = Column(Text, nullable=False, default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class MarketingCampaign(Base):
+    """Marketing campaign — audience-targeted bulk message (plan §4.4).
+
+    audience: all | active | engaged | new
+    status:   draft | scheduled | sending | sent | failed
+    """
+    __tablename__ = "marketing_campaigns"
+    __table_args__ = (
+        Index("ix_campaign_tenant_created", "tenant_id", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    user_id = Column(Integer, nullable=True)
+    name = Column(String(150), nullable=False)
+    message = Column(Text, nullable=False, default="")
+    audience = Column(String(20), default="all")
+    status = Column(String(12), default="draft")
+    scheduled_at = Column(DateTime, nullable=True)
+    sent_count = Column(Integer, default=0)
+    delivered_count = Column(Integer, default=0)
+    opened_count = Column(Integer, default=0)
+    clicked_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=utcnow, index=True)
+    sent_at = Column(DateTime, nullable=True)

@@ -422,5 +422,24 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
             user = await db.get(User, sp.user_id)
             if user:
                 user.subscription_status = "REJECTED"
+    # In-app notification (plan §4.2 — payment alerts)
+    try:
+        from routers.notifications import push_notification
+        if decision == "verified":
+            await push_notification(
+                db, sp.tenant_id,
+                title="تم تأكيد الدفع وتفعيل الاشتراك",
+                body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+            )
+        else:
+            await push_notification(
+                db, sp.tenant_id,
+                title="تم رفض طلب الدفع",
+                body=f"رُفضت دفعة بقيمة {float(sp.amount):.2f} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
+                type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+            )
+    except Exception:
+        pass
     await db.commit()
     return {"success": True, "data": {"ok": True, "status": decision}}

@@ -5,7 +5,7 @@ import { motion, useInView } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { springSnappy } from "@/lib/motion"
 import { SectionContainer } from "@/components/ui/SectionContainer"
-import { apiFetch } from "@/lib/csrf-client"
+import { usePublicStats } from "@/lib/usePublicStats"
 
 function AnimatedNumber({ value }: { value: number }) {
   const [count, setCount] = useState(0)
@@ -22,63 +22,36 @@ function AnimatedNumber({ value }: { value: number }) {
   return <span ref={ref} dir="ltr">{count.toLocaleString()}</span>
 }
 
-interface PublicStats {
-  activeTenants?: number
-  totalReplies?: number
-  totalPages?: number
-  activeUsers30d?: number
-  uptimePercent?: number
-}
-
 export default function StatsSection() {
-  const [stats, setStats] = useState<PublicStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  // Plan §3.1: numbers are REAL from /api/public/stats — never hardcoded.
+  const { stats, ready } = usePublicStats()
+  const loading = !ready
 
-  useEffect(() => {
-    const controller = new AbortController()
-    fetch("/api/public/stats", { signal: controller.signal })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.data) setStats(d.data)
-        else setError(true)
-      })
-      .catch((e: Error) => {
-        if (e.name !== "AbortError") setError(true)
-      })
-      .finally(() => setLoading(false))
-    return () => controller.abort()
-  }, [])
-
-  // Fallback for static brand claims — these are qualitative messaging, not DB metrics
+  // 24/7 support is an operational commitment, not a metric — allowed to stay.
+  // The old hardcoded satisfaction-rate figure was REMOVED per plan;
+  // uptime comes from the stats API.
   const items = [
     {
-      value: loading ? 0 : (stats?.activeTenants ?? stats?.totalPages ?? 0),
+      value: stats?.activeTenants ?? stats?.totalPages ?? 0,
       suffix: "+",
       label: "صفحة نشطة",
-      fallback: 0,
     },
     {
-      value: loading ? 0 : (stats?.totalReplies ?? 0),
+      value: stats?.totalReplies ?? 0,
       suffix: "+",
       label: "رد تلقائي",
-      fallback: 0,
     },
-    { value: 98, suffix: "%", label: "معدل رضا", fallback: 98 },
-    { value: 24, suffix: "/7", label: "دعم فني", fallback: 24 },
+    {
+      value: Math.round(stats?.uptimePercent ?? 0),
+      suffix: "%",
+      label: "جاهزية النظام",
+    },
+    {
+      value: 24,
+      suffix: "/7",
+      label: "دعم فني",
+    },
   ]
-
-  if (error) {
-    return (
-      <SectionContainer>
-        <div className="glass-strong rounded-2xl mx-auto max-w-4xl p-6 sm:p-8">
-          <div className="text-center text-xs text-muted-foreground">
-            لا يمكن تحميل الإحصائيات في الوقت الحالي
-          </div>
-        </div>
-      </SectionContainer>
-    )
-  }
 
   return (
     <SectionContainer>
@@ -100,7 +73,7 @@ export default function StatsSection() {
                         <Loader2 className="size-4 animate-spin" />
                       </span>
                     ) : (
-                      <AnimatedNumber value={item.fallback} />
+                      <AnimatedNumber value={item.value} />
                     )}
                     {item.suffix}
                   </span>

@@ -8,8 +8,17 @@ import { springDefault, springSnappy } from "@/lib/motion"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { GlowPool } from "@/components/ui/GlowPool"
+import { usePublicStats } from "@/lib/usePublicStats"
 
 export default function FinalCTASection() {
+  // Plan §3.1: real tenant count or qualitative copy — the old fixed count claim was fake
+  const { stats, ready } = usePublicStats()
+  const tenants = stats?.activeTenants ?? 0
+  const subtitle =
+    ready && tenants >= 1
+      ? <>انطلق الآن — انضم إلى <strong className="text-foreground">{tenants.toLocaleString("ar-EG")} صفحة</strong> تثق في SmartBot</>
+      : <>انطلق الآن — صفحتك التالية تستحق أتمتة حقيقية</>
+
   return (
     <SectionContainer className="border-t border-orange/10">
       <GlowPool position="top-0 start-0" size="size-80 sm:size-96" color="orange/30" />
@@ -21,7 +30,7 @@ export default function FinalCTASection() {
         <SectionHeader
           icon={<Sparkles className="size-3" />}
           title="جهّز صفحتك للانطلاق الرقمي"
-          subtitle={<>انطلق الآن — انضم إلى <strong className="text-foreground">أكثر من ٥٠٠ صفحة</strong> تثق في SmartBot</>}
+          subtitle={subtitle}
         />
 
         <motion.div

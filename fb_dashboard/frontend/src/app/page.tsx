@@ -16,6 +16,7 @@ import StatsSection from "@/components/landing/sections/StatsSection"
 import FinalCTASection from "@/components/landing/sections/FinalCTASection"
 import FaqSection from "@/components/landing/sections/FaqSection"
 import { HeroMockup } from "@/components/landing/HeroMockup"
+import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -95,6 +96,9 @@ const faqSchema = {
 
 export default function HomePage() {
   const [testimonials, setTestimonials] = useState<any[] | null>(null)
+  // Plan §3.1: trust claims must be real (activeTenants) or qualitative — never "500"
+  const { stats } = usePublicStats()
+  const heroTrust = trustCopy(stats, true)
 
   useEffect(() => {
     fetch("/api/public/testimonials")
@@ -128,7 +132,7 @@ export default function HomePage() {
                 <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.05 }}
                   className="eyebrow relative overflow-hidden">
                   <span className="size-1.5 rounded-full bg-orange animate-pulse-dot" />
-                  أكثر من ٥٠٠ صفحة تثق بنا
+                  {heroTrust}
                   <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,transparent 0%,oklch(1 0 0 / 0.12) 50%,transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 3s ease-in-out infinite" }} />
                 </motion.div>
 

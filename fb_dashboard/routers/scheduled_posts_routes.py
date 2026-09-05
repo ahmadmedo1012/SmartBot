@@ -7,7 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc
 
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from database import get_db
 from models import ReplyTemplate, ScheduledPost, User
 from routers.auth import get_current_user, require_role
@@ -27,11 +27,11 @@ async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), curr
     return ok(
         [{
         "id": p.id, "message": p.message, "image_url": p.image_url,
-        "scheduled_at": p.scheduled_at.isoformat() if p.scheduled_at else None,
+        "scheduled_at": iso_z(p.scheduled_at),
         "status": p.status, "fb_post_id": p.fb_post_id,
         "created_by": p.created_by,
-        "created_at": p.created_at.isoformat() if p.created_at else None,
-        "published_at": p.published_at.isoformat() if p.published_at else None,
+        "created_at": iso_z(p.created_at),
+        "published_at": iso_z(p.published_at),
     } for p in rows.scalars().all()]
     )
 

@@ -114,19 +114,33 @@ async def agent_interpret(
 
     image_url = ""
     if image and has_image == "true":
-        allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-        if image.content_type not in allowed_types:
-            raise HTTPException(400, f"Unsupported file type: {image.content_type}")
-
+        # SECURITY (2026-09-05): re-encode with Pillow and use a FIXED .jpg
+        # extension — the old code trusted the client content-type and the
+        # user-controlled filename extension, so "photo.png" + evil.html payload
+        # wrote an HTML file into the PUBLIC /static mount (stored XSS).
+        ctype = (image.content_type or "").lower()
+        if ctype not in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
+            raise HTTPException(400, "صيغة الصورة غير مدعومة")
         img_data = await image.read()
         if len(img_data) > 10 * 1024 * 1024:
-            raise HTTPException(400, "Image too large — max 10 MB")
-
-        ext = PurePosixPath(image.filename or "photo.jpg").suffix or ".jpg"
-        img_filename = f"agent_{secrets.token_hex(8)}{ext}"
+            raise HTTPException(400, "حجم الصورة يتجاوز 10 ميغابايت")
+        try:
+            import io
+            from PIL import Image
+            img = Image.open(io.BytesIO(img_data))
+            img.load()
+            img = img.convert("RGB")
+            if max(img.size) > 1600:
+                img.thumbnail((1600, 1600))
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85)
+            payload = buf.getvalue()
+        except Exception:
+            raise HTTPException(400, "الملف ليس صورة صالحة")
+        img_filename = f"agent_{secrets.token_hex(8)}.jpg"
         img_path = _STATIC_DIR / "uploads" / img_filename
         img_path.parent.mkdir(parents=True, exist_ok=True)
-        img_path.write_bytes(img_data)
+        img_path.write_bytes(payload)
         image_url = f"/static/uploads/{img_filename}"
 
     try:

@@ -16,7 +16,7 @@ from sqlalchemy import select, func, desc, or_
 from config import settings
 from database import get_db
 from models import User, Tenant, BlacklistedToken, AuditLog, SubscriptionPlan
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from _hash import hash_password, verify_password
 from _audit import log_audit
 
@@ -76,18 +76,48 @@ def require_role(min_role: str):
     return checker
 
 
+def is_platform_admin(user) -> bool:
+    """True for the bootstrap admin (tenant 0/None) or a delegated platform admin.
+
+    Distinguishes GLOBAL authority (bank details, telegram approvers, platform
+    users) from tenant-admin authority (own workspace). Without this split every
+    self-registered tenant owner counted as a platform admin — the root cause
+    of the 2026-09-05 cross-tenant findings.
+    """
+    if user is None:
+        return False
+    if user.tenant_id in (None, 0):
+        return True
+    return bool(getattr(user, "is_platform_admin", False))
+
+
+async def require_platform_admin(current_user: User = Depends(require_role("admin"))):
+    """Guard for GLOBAL endpoints — tenant admins get 403."""
+    if not is_platform_admin(current_user):
+        raise HTTPException(403, "هذه العملية تتطلب صلاحيات مسؤول المنصة")
+    return current_user
+
+
 @router.post("/api/login")
 async def login(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
     if not body:
         raise HTTPException(400, "JSON body required")
     username = body.get("username", "")
     password = body.get("password", "")
+    email_lookup = username if "@" in username else ""
     ip = request.client.host if request and request.client else "unknown"
     from _rate_limit import check_rate_limit
     if not await check_rate_limit(db, f"login:{ip}", max_attempts=10, window_seconds=60):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
-    user = await db.execute(select(User).where(or_(User.username == username, User.email == username)))
-    user = user.scalar_one_or_none()
+    # Two-step lookup: username first (unique per tenant), then email.
+    # The old or_() + scalar_one_or_none() raised MultipleResultsFound (500)
+    # when two tenants reuse a username or an email is shared — and username
+    # uniqueness is per-tenant, so ambiguity is a normal state, not an error.
+    user = await db.execute(select(User).where(User.username == username).limit(1))
+    user = user.scalars().first()
+    if not user and email_lookup:
+        user = await db.execute(select(User).where(User.email == email_lookup).limit(1))
+        user = user.scalars().first()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
     token = make_token(user.username, user.tenant_id)
@@ -137,15 +167,17 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     from _rate_limit import check_rate_limit
     if not await check_rate_limit(db, f"register:{ip}", max_attempts=5, window_seconds=300):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
-    if len(username) < 3:
-        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
-    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+    if len(username) < 3 or len(username) > 32 or not re.match(r'^[\w.-]+$', username):
+        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3-32 حرفاً (أحرف وأرقام و . _ - فقط)")
+    if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email) or len(email) > 200:
         raise HTTPException(400, "البريد الإلكتروني غير صالح")
-    existing = await db.execute(select(User).where(or_(User.username == username, User.email == email)))
-    if existing.scalar_one_or_none():
+    existing = await db.execute(
+        select(User).where(or_(User.username == username, User.email == email)).limit(1)
+    )
+    if existing.scalars().first():
         raise HTTPException(400, "اسم المستخدم أو البريد موجود مسبقاً")
-    if len(password) < 6:
-        raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
+    if len(password) < 8:
+        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
     tenant = Tenant(name=username)
     # Trial period (plan §2.5): register with a trial-enabled plan → TRIAL status
     # until plan_end; expiry flips it to EXPIRED_TRIAL in BotEngine (§2.6).
@@ -244,7 +276,7 @@ async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
             "id": r.id, "action": r.action, "actor_id": r.actor_id,
             "target_type": r.target_type, "target_id": r.target_id,
             "metadata": r.data, "ip": r.ip,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "created_at": iso_z(r.created_at),
         } for r in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
     }}
@@ -253,20 +285,59 @@ async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
 @router.post("/api/admin/reset-password")
 async def admin_reset_password(body: dict = Body(None), request: Request = None, db=Depends(get_db),
                                 current_user: User = Depends(require_role("admin"))):
+    """Reset a user's password. Tenant admins may only reset users in their own
+    tenant; the platform admin (tenant 0 or delegated) may reset any user.
+
+    SECURITY (2026-09-05): the old `db.get(User, user_id)` had no tenant scoping —
+    any self-registered tenant owner could reset ANY user's password, including
+    the bootstrap platform admin (full account takeover chain).
+    """
     if not body or "user_id" not in body or "new_password" not in body:
         raise HTTPException(400, "user_id and new_password are required")
     user_id = body["user_id"]
     new_password = body["new_password"]
-    if len(new_password) < 8:
-        raise HTTPException(400, "Password must be at least 8 characters")
-    user = await db.get(User, user_id)
+    if not isinstance(new_password, str) or len(new_password) < 8:
+        raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    stmt = select(User).where(User.id == int(user_id)).limit(1)
+    if not is_platform_admin(current_user):
+        stmt = stmt.where(User.tenant_id == current_user._tenant_id)
+    user = (await db.execute(stmt)).scalars().first()
     if not user:
-        raise HTTPException(404, "User not found")
+        raise HTTPException(404, "المستخدم غير موجود في مساحة عملك")
     user.password_hash = hash_password(new_password)
     await db.commit()
     ip = request.client.host if request and request.client else "unknown"
-    await log_audit(db, "update", actor_id=current_user.id, target_type="user", target_id=user_id, ip=ip)
+    await log_audit(db, "reset_password", actor_id=current_user.id, target_type="user",
+                    target_id=user_id, ip=ip, tenant_id=current_user._tenant_id)
     return {"success": True, "data": {"updated": True}}
+
+
+@router.post("/api/auth/change-password")
+async def change_password(body: dict = Body(None), request: Request = None, db=Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
+    """Self-service password change — verifies the current password first.
+
+    Previously the platform had NO way for a logged-in user to rotate their own
+    password (only admin reset), which pushed operators toward shared defaults.
+    """
+    if not body:
+        raise HTTPException(400, "JSON body required")
+    current_password = str(body.get("current_password") or "")
+    new_password = str(body.get("new_password") or "")
+    if not current_password:
+        raise HTTPException(400, "كلمة المرور الحالية مطلوبة")
+    if len(new_password) < 8:
+        raise HTTPException(400, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
+    if not verify_password(current_password, current_user.password_hash):
+        raise HTTPException(401, "كلمة المرور الحالية غير صحيحة")
+    if verify_password(new_password, current_user.password_hash):
+        raise HTTPException(400, "كلمة المرور الجديدة مطابقة للحالية")
+    current_user.password_hash = hash_password(new_password)
+    await db.commit()
+    ip = request.client.host if request and request.client else "unknown"
+    await log_audit(db, "change_password", actor_id=current_user.id, ip=ip,
+                    tenant_id=current_user._tenant_id)
+    return {"success": True, "data": {"changed": True}}
 
 
 @router.get("/api/users")
@@ -282,7 +353,7 @@ async def list_users(page: int = 1, page_size: int = 50, db=Depends(get_db),
         "items": [{
             "id": u.id, "username": u.username, "name": u.email or u.username,
             "role": u.role, "email": u.email, "phone": u.phone or "",
-            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "created_at": iso_z(u.created_at),
         } for u in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
     }}

@@ -1,7 +1,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from datetime import datetime, timedelta
 from config import settings
 from database import get_db
@@ -28,12 +28,12 @@ async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
     for r in recent_replies.scalars().all():
         activities.append({
             "type": "reply", "text": f"رد على {r.commenter_name}",
-            "detail": r.reply_text[:60], "time": r.created_at.isoformat() if r.created_at else None,
+            "detail": r.reply_text[:60], "time": iso_z(r.created_at),
         })
     for l in recent_logs.scalars().all():
         activities.append({
             "type": "log", "level": l.level, "text": l.message[:100],
-            "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
+            "detail": "", "time": iso_z(l.created_at),
         })
     activities.sort(key=lambda a: a.get("time", ""), reverse=True)
     return ok(activities[:limit])

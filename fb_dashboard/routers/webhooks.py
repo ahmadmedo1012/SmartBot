@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from config import settings
 from database import get_db
+from _utils import iso_z
 from models import BotLog
 from routers.auth import get_current_user, require_role
 from _responses import ok
@@ -49,7 +50,7 @@ async def get_webhook_events(
     return ok(
         [{
         "id": r.id, "level": r.level, "message": r.message,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "created_at": iso_z(r.created_at),
     } for r in rows.scalars().all()]
     )
 

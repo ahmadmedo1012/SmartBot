@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy import select, func, desc
 
 from database import get_db
+from _utils import iso_z
 from models import Flow, FlowExecution, User
 from routers.auth import get_current_user, require_role
 from _responses import ok
@@ -23,8 +24,8 @@ async def list_flows(db=Depends(get_db), current_user: User = Depends(get_curren
         [{
         "id": f.id, "name": f.name, "description": f.description,
         "status": f.status, "version": f.version, "total_replies": f.total_replies,
-        "created_at": f.created_at.isoformat() if f.created_at else None,
-        "updated_at": f.updated_at.isoformat() if f.updated_at else None,
+        "created_at": iso_z(f.created_at),
+        "updated_at": iso_z(f.updated_at),
     } for f in rows.scalars().all()]
     )
 
@@ -59,9 +60,9 @@ async def get_flow(flow_id: int, db=Depends(get_db), current_user: User = Depend
         "status": flow.status, "version": flow.version,
         "total_replies": flow.total_replies,
         "created_by": flow.created_by,
-        "last_triggered_at": flow.last_triggered_at.isoformat() if flow.last_triggered_at else None,
-        "created_at": flow.created_at.isoformat() if flow.created_at else None,
-        "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+        "last_triggered_at": iso_z(flow.last_triggered_at),
+        "created_at": iso_z(flow.created_at),
+        "updated_at": iso_z(flow.updated_at),
     }
     )
 

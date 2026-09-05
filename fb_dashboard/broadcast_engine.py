@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from typing import Any
 from sqlalchemy import select, and_, or_, func, desc, not_, exists
 from sqlalchemy.orm import joinedload
@@ -59,8 +59,8 @@ class BroadcastEngine:
                 "failed_count": b.failed_count,
                 "opened_count": b.opened_count,
                 "created_by": b.created_by,
-                "created_at": b.created_at.isoformat() if b.created_at else None,
-                "sent_at": b.sent_at.isoformat() if b.sent_at else None,
+                "created_at": iso_z(b.created_at),
+                "sent_at": iso_z(b.sent_at),
             }
             for b in rows
         ]
@@ -89,8 +89,8 @@ class BroadcastEngine:
             "failed_count": b.failed_count,
             "opened_count": b.opened_count,
             "created_by": b.created_by,
-            "created_at": b.created_at.isoformat() if b.created_at else None,
-            "sent_at": b.sent_at.isoformat() if b.sent_at else None,
+            "created_at": iso_z(b.created_at),
+            "sent_at": iso_z(b.sent_at),
             **rcpt_counts,
         }
 

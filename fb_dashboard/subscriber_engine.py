@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import select, or_, func, desc, and_, exists, delete
 from sqlalchemy.exc import IntegrityError
 
+from _utils import utcnow, iso_z
 from models import Subscriber, Tag, SubscriberTag, Reply, FlowExecution, SequenceSubscription
 from database import AsyncSessionLocal
 
@@ -33,7 +34,7 @@ class SubscriberEngine:
             r = await session.execute(select(Subscriber).where(Subscriber.fb_user_id == fb_user_id))
             sub = r.scalar_one_or_none()
             if sub:
-                sub.last_interaction_at = datetime.now(timezone.utc)
+                sub.last_interaction_at = utcnow()
                 if name and not sub.name:
                     sub.name = name
                     sub.first_name = name.split()[0]
@@ -45,8 +46,8 @@ class SubscriberEngine:
                     first_name=first,
                     platform=platform,
                     page_id=page_id,
-                    first_seen_at=datetime.now(timezone.utc),
-                    last_interaction_at=datetime.now(timezone.utc),
+                    first_seen_at=utcnow(),
+                    last_interaction_at=utcnow(),
                 )
                 session.add(sub)
             await session.commit()
@@ -256,7 +257,7 @@ class SubscriberEngine:
         sub = r.scalar_one_or_none()
         if sub:
             sub.reply_count = (sub.reply_count or 0) + 1
-            sub.last_interaction_at = datetime.now(timezone.utc)
+            sub.last_interaction_at = utcnow()
             await session.commit()
 
     async def get_subscriber_ids_by_tags(
@@ -389,4 +390,4 @@ class TagEngine:
 
 def _fmt_dt(dt: datetime | None) -> str | None:
     """Return ISO string or None."""
-    return dt.isoformat() if dt else None
+    return iso_z(dt)

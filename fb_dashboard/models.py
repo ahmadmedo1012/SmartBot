@@ -114,6 +114,11 @@ class User(Base):
     twofa_secret_enc = Column(String(512), default="")  # Fernet-encrypted TOTP secret
     twofa_backup_codes_hash = Column(Text, default="")  # JSON list of bcrypt-hashed backup codes
     twofa_verified_at = Column(DateTime, nullable=True)
+    # Platform admin — grants access to GLOBAL surfaces (/api/admin/config bank
+    # details, telegram approvers, platform users). Users with tenant_id 0/NULL
+    # (bootstrap admin) are implicitly platform admins; this flag delegates the
+    # role to a real tenant owner without giving them a second account.
+    is_platform_admin = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     created_at = Column(DateTime, default=utcnow)
 
 

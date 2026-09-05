@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func, desc, cast, Date, text
 
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from config import settings
 from _responses import ok
 from database import get_db
@@ -71,12 +71,12 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         for r in recent_replies_rows.scalars().all():
             activities.append({
                 "type": "reply", "text": f"رد على {r.commenter_name}",
-                "detail": r.reply_text[:60], "time": r.created_at.isoformat() if r.created_at else None,
+                "detail": r.reply_text[:60], "time": iso_z(r.created_at),
             })
         for l in recent_logs_rows.scalars().all():
             activities.append({
                 "type": "log", "level": l.level, "text": l.message[:100],
-                "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
+                "detail": "", "time": iso_z(l.created_at),
             })
         activities.sort(key=lambda a: a.get("time", ""), reverse=True)
         activities = activities[:8]
@@ -84,7 +84,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         recent_replies = [{
             "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
             "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id, "rule_id": r.rule_id,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "created_at": iso_z(r.created_at),
         } for r in recent_replies_rows.scalars().all()[:5]]
 
         return ok({
@@ -105,8 +105,8 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             "recent_replies": recent_replies,
         })
     except Exception as e:
-        log.error(f"dashboard_bundle error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("dashboard_bundle error", exc_info=True)
+        raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً")
 
 
 @router.get("/api/stats")

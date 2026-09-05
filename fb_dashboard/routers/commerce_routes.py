@@ -7,7 +7,7 @@ from sqlalchemy import select
 from database import get_db
 from _utils import utcnow
 from models import BotState, ReportSchedule, User
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_role, require_platform_admin
 
 from _services import commerce_engine
 from _responses import ok
@@ -22,7 +22,7 @@ async def commerce_status(_=Depends(get_current_user)):
 
 
 @router.post("/api/commerce/shopify/configure")
-async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(require_role("admin"))):
+async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(require_platform_admin)):
     from commerce_engine import ShopifyIntegration
     body = await request.json()
     for key, value in body.items():

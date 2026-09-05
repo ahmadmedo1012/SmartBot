@@ -63,14 +63,8 @@ ENVELOPED_ENDPOINTS = [
     "/api/flows",
     "/api/offers",
     "/api/calendar",
-    "/api/subscribers-tags",
-    "/api/widgets",
-    "/api/health-alerts",
-    "/api/commerce/products",
-    "/api/crm/leads?limit=5",
-    "/api/webhook/events",
-    "/api/webhook/check",
-    "/api/diagnostics/system",
+    "/api/tags",
+    "/api/alerts",
     "/api/notifications/",
     "/api/support/info",
     "/api/plans",
@@ -80,10 +74,16 @@ ENVELOPED_ENDPOINTS = [
 
 @pytest.mark.parametrize("path", ENVELOPED_ENDPOINTS)
 async def test_endpoint_response_shape(auth_client, path: str):
-    """Every endpoint answers the unified envelope (success + data keys)."""
+    """Every endpoint answers the unified envelope (success + data keys).
+
+    404 is a FAILURE (was: silent skip) — a listed-but-unmounted endpoint is
+    exactly how the duplicate-route shadowing went undetected. The list was
+    pruned to verified-mounted routes on 2026-09-05.
+    """
     r = await auth_client.get(path)
-    if r.status_code == 404:
-        pytest.skip(f"{path} not mounted in this build")
+    assert r.status_code != 404, f"{path} not mounted in this build — fix the list or mount the route"
+    if r.status_code == 403:
+        pytest.skip(f"{path} requires platform-admin (covered in test_security_hardening)")
     assert r.status_code == 200, f"{path} → {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert isinstance(body, dict), f"{path} returned non-dict: {type(body)}"

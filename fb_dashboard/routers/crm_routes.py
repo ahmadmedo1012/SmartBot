@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc, func, or_
 from datetime import datetime
 from database import get_db
+from _utils import iso_z
 from models import Offer, BrandConfig, Customer, BotAlert, User
 from routers.auth import get_current_user, require_role
 from _responses import ok
@@ -25,7 +26,13 @@ async def crm_list(
         stmt = stmt.where(
             or_(Customer.name.ilike(f"%{search}%"), Customer.phone.ilike(f"%{search}%"))
         )
-    total = await db.scalar(select(func.count(Customer.id)).select_from(stmt.subquery()))
+    # BUGFIX (2026-09-05): the outer count() referenced Customer.id, which
+    # pulled `customers` into the outer FROM next to the subquery → cartesian
+    # product (SAWarning) AND inflated totals (total = N×N). count(*) over the
+    # subquery alone is correct; order_by(None) is hygiene before subquery().
+    total = await db.scalar(
+        select(func.count()).select_from(stmt.order_by(None).subquery())
+    ) or 0
     rows = await db.execute(
         stmt.order_by(desc(Customer.last_contacted_at)).offset((page-1)*per_page).limit(per_page)
     )
@@ -39,8 +46,8 @@ async def crm_list(
             "interested_in": c.interested_in,
             "last_intent": c.last_intent,
             "notes": c.notes,
-            "first_seen_at": c.first_seen_at.isoformat() if c.first_seen_at else None,
-            "last_contacted_at": c.last_contacted_at.isoformat() if c.last_contacted_at else None,
+            "first_seen_at": iso_z(c.first_seen_at),
+            "last_contacted_at": iso_z(c.last_contacted_at),
         } for c in rows.scalars().all()],
     }
     )

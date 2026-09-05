@@ -18,7 +18,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, Body, HTTPException, Query
 from sqlalchemy import select, func, desc, or_
 
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from database import get_db
 from models import User, MarketingCampaign, Subscriber
 from routers.auth import get_current_user
@@ -62,10 +62,10 @@ async def list_campaigns(
         {
             "id": c.id, "name": c.name, "message": c.message, "audience": c.audience,
             "status": c.status,
-            "scheduled_at": c.scheduled_at.isoformat() if c.scheduled_at else None,
+            "scheduled_at": iso_z(c.scheduled_at),
             "sent_count": c.sent_count, "delivered_count": c.delivered_count,
             "opened_count": c.opened_count, "clicked_count": c.clicked_count,
-            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "created_at": iso_z(c.created_at),
         } for c in rows.scalars().all()
     ], "total": total}
 
@@ -207,7 +207,7 @@ async def campaign_stats(
         "id": c.id, "status": c.status, "audience": c.audience,
         "sent": c.sent_count, "delivered": c.delivered_count,
         "opened": c.opened_count, "clicked": c.clicked_count,
-        "sent_at": c.sent_at.isoformat() if c.sent_at else None,
+        "sent_at": iso_z(c.sent_at),
     }}
 
 

@@ -10,11 +10,11 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, HTTPException, Body, Request, UploadFile, File
 from sqlalchemy import select, func, desc, update
 
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from config import settings
 from database import get_db, AsyncSessionLocal
 from models import PaymentRequest, BotState, SubscriptionPlan, SubscriptionPayment, Tenant, User, SystemConfig
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_role, is_platform_admin
 from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription
 
 log = logging.getLogger("fb-api")
@@ -188,21 +188,15 @@ async def payment_history(db=Depends(get_db), current_user: User = Depends(get_c
     return {"success": True, "data": [
         {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
          "phone": r.phone, "reference": r.reference, "status": r.status,
-         "note": r.note, "created_at": r.created_at.isoformat() if r.created_at else None}
+         "note": r.note, "created_at": iso_z(r.created_at)}
         for r in rows.scalars().all()
     ]}
 
 
-@router.post("/api/subscriptions/validate")
-async def validate_subscription(body: dict = Body(...), db=Depends(get_db)):
-    """Pre-flight: check username + slug uniqueness."""
-    username = body.get("username", "")
-    if len(username) < 3:
-        raise HTTPException(400, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل")
-    existing_user = await db.execute(select(User).where(User.username == username))
-    if existing_user.scalar_one_or_none():
-        return {"success": False, "data": {"valid": False, "error": "اسم المستخدم موجود مسبقاً"}}
-    return {"success": True, "data": {"valid": True}}
+# NOTE (2026-09-05): POST /api/subscriptions/validate was REMOVED — it had no
+# frontend/test consumers and served as an unauthenticated username-enumeration
+# oracle (check availability of any username without a session). Username
+# availability is validated by /api/register's existing-duplicate check.
 
 
 @router.post("/api/subscriptions")
@@ -373,8 +367,10 @@ async def subscription_status_stream(payment_id: int = Query(...), current_user:
 
 
 @router.post("/api/subscriptions/upgrade")
-async def upgrade_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Upgrade existing subscription to higher plan. Supports liyana/madar/bank."""
+    # Same 5/min limit as create — this fan-outs Telegram admin notifications too
+    await _payment_rate_limit(request, "sub-upgrade", max_attempts=5, window=300)
     plan_id = body.get("plan_id", 0)
     phone = body.get("phone", "")
     provider = body.get("provider", "liyana")
@@ -463,17 +459,27 @@ async def admin_list_subscriptions(status: str = Query("pending"), page: int = Q
             "phone": sp.phone, "amount": float(sp.amount), "provider": sp.provider,
             "plan_id": sp.plan_id, "plan": sp.plan_name, "status": sp.status,
             "metadata": sp.extra_data,
-            "created_at": sp.created_at.isoformat() if sp.created_at else None,
+            "created_at": iso_z(sp.created_at),
         })
     return {"success": True, "data": result}
 
 
 @router.post("/api/admin/subscriptions")
 async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: approve or reject a subscription payment."""
+    """Admin: approve or reject a subscription payment.
+
+    SECURITY (2026-09-05): scoped exactly like the list endpoint — tenant admins
+    can only resolve payments belonging to their own tenant; the platform admin
+    can resolve any. `decision` is whitelisted (was accepting arbitrary strings).
+    """
     payment_id = body.get("id", 0)
-    decision = body.get("status", "")  # "verified" or "cancelled"
-    sp = await db.get(SubscriptionPayment, payment_id)
+    decision = body.get("status", "")
+    if decision not in ("verified", "cancelled"):
+        raise HTTPException(400, "القرار يجب أن يكون verified أو cancelled")
+    stmt = select(SubscriptionPayment).where(SubscriptionPayment.id == int(payment_id or 0)).limit(1)
+    if not is_platform_admin(current_user):
+        stmt = stmt.where(SubscriptionPayment.tenant_id == current_user._tenant_id)
+    sp = (await db.execute(stmt)).scalars().first()
     if not sp or sp.status != "pending":
         raise HTTPException(400, "الدفعة غير موجودة أو تمت معالجتها")
     sp.status = decision

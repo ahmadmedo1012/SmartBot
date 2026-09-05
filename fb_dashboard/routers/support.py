@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, Body, HTTPException, Query
 from sqlalchemy import select, func, desc
 
 from database import get_db
+from _utils import iso_z
 from models import User, SupportTicket, SupportTicketReply
 from routers.auth import get_current_user, require_role
 from routers.notifications import push_notification
@@ -131,8 +132,8 @@ async def list_tickets(
         {
             "id": t.id, "subject": t.subject, "priority": t.priority, "status": t.status,
             "email": t.email, "body": t.body,
-            "created_at": t.created_at.isoformat() if t.created_at else None,
-            "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+            "created_at": iso_z(t.created_at),
+            "updated_at": iso_z(t.updated_at),
         } for t in tickets
     ], "total": total}
 
@@ -156,11 +157,11 @@ async def get_ticket(
     return {"success": True, "data": {
         "id": t.id, "subject": t.subject, "body": t.body, "priority": t.priority,
         "status": t.status, "email": t.email,
-        "created_at": t.created_at.isoformat() if t.created_at else None,
+        "created_at": iso_z(t.created_at),
         "replies": [
             {
                 "id": r.id, "message": r.message, "is_admin": r.is_admin,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "created_at": iso_z(r.created_at),
             } for r in replies
         ],
     }}

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select, func, desc, cast, Date, text
 
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from database import get_db
 from models import Reply, User, AISuggestion, ScheduledPost
 from routers.auth import get_current_user, require_role
@@ -115,7 +115,7 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
     items = [{
         "id": r.id, "commenter": r.commenter_name, "comment": r.comment_text,
         "reply": r.reply_text, "rule_id": r.rule_id,
-        "fb_comment_id": r.fb_comment_id, "created_at": r.created_at.isoformat() if r.created_at else None,
+        "fb_comment_id": r.fb_comment_id, "created_at": iso_z(r.created_at),
     } for r in rows.scalars().all()]
 
     if format == "json":

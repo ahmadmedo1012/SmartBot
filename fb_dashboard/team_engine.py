@@ -5,7 +5,7 @@ Enterprise team features matching Hootsuite + Respond.io.
 import json
 import logging
 from datetime import datetime, timedelta
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from typing import Any
 from sqlalchemy import select, func, desc, or_
 from sqlalchemy.orm import selectinload
@@ -43,9 +43,9 @@ class TeamEngine:
                 "id": u.id,
                 "username": u.username,
                 "role": u.role,
-                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "created_at": iso_z(u.created_at),
                 "replies_count": log_count,
-                "last_active": last_active.isoformat() if last_active else None,
+                "last_active": iso_z(last_active),
             })
         return result
 
@@ -65,7 +65,7 @@ class TeamEngine:
                 "user": user,
                 "action": r.level,
                 "detail": r.message[:200],
-                "time": r.created_at.isoformat() if r.created_at else None,
+                "time": iso_z(r.created_at),
             })
 
         reply_stmt = select(Reply).where(
@@ -77,7 +77,7 @@ class TeamEngine:
                 "user": "system",
                 "action": "replied",
                 "detail": f"رد على {r.commenter_name}: {r.reply_text[:60]}",
-                "time": r.created_at.isoformat() if r.created_at else None,
+                "time": iso_z(r.created_at),
             })
 
         evt_stmt = select(AnalyticsEvent).where(
@@ -94,7 +94,7 @@ class TeamEngine:
                 "user": meta.get("user", "system"),
                 "action": e.event_type,
                 "detail": json.dumps(meta, ensure_ascii=False)[:100],
-                "time": e.created_at.isoformat() if e.created_at else None,
+                "time": iso_z(e.created_at),
             })
 
         activities.sort(key=lambda a: a.get("time", ""), reverse=True)
@@ -135,7 +135,7 @@ class TeamEngine:
                 "id": e.id,
                 "event_type": e.event_type,
                 "metadata": meta,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
+                "created_at": iso_z(e.created_at),
             })
         return {"items": items, "total": total, "page": page, "per_page": per_page}
 
@@ -233,7 +233,7 @@ class TeamEngine:
             notes.append({
                 "author": user,
                 "note": note_text,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "created_at": iso_z(r.created_at),
             })
         return notes
 

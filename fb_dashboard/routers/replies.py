@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Form
 from sqlalchemy import select, func, desc
 
 from database import get_db
+from _utils import iso_z
 from models import Reply, User
 from routers.auth import get_current_user, require_role
 from ws_manager import ws_manager
@@ -35,7 +36,7 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
             "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
             "reply_text": r.reply_text, "fb_comment_id": r.fb_comment_id,
             "rule_id": r.rule_id,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "created_at": iso_z(r.created_at),
         } for r in rows.scalars().all()]
     }
     )
@@ -55,7 +56,7 @@ async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user
         )
         for r in rows:
             replied_map[r.fb_comment_id] = {
-                "replied_at": r.created_at.isoformat() if r.created_at else None,
+                "replied_at": iso_z(r.created_at),
                 "reply_text": r.reply_text,
             }
     items = []

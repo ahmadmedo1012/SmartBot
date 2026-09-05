@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc, or_
 from datetime import datetime
 from database import get_db
+from _utils import iso_z
 from models import Offer, BrandConfig, Customer, BotAlert, User
 from routers.auth import get_current_user, require_role
 from _responses import ok
@@ -23,7 +24,7 @@ async def list_offers(active_only: bool = Query(False), db=Depends(get_db), curr
         "discount_type": o.discount_type, "discount_value": o.discount_value,
         "max_uses": o.max_uses, "used_count": o.used_count,
         "auto_reply_rule_id": o.auto_reply_rule_id, "is_active": o.is_active,
-        "expires_at": o.expires_at.isoformat() if o.expires_at else None,
+        "expires_at": iso_z(o.expires_at),
     } for o in rows.scalars().all()]
     )
 

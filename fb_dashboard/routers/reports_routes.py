@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request, Response
 from sqlalchemy import select
 from database import get_db
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from models import BotState, ReportSchedule, User
 from routers.auth import get_current_user, require_role
 
@@ -71,8 +71,8 @@ async def reports_list_schedules(db=Depends(get_db), current_user: User = Depend
         [{
         "id": r.id, "report_type": r.report_type, "email": r.email,
         "enabled": r.enabled, "schedule": r.schedule,
-        "last_sent": r.last_sent.isoformat() if r.last_sent else None,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "last_sent": iso_z(r.last_sent),
+        "created_at": iso_z(r.created_at),
     } for r in rows.scalars().all()]
     )
 

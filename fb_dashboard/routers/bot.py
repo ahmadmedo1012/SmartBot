@@ -5,28 +5,45 @@ import asyncio
 import os
 import json
 import logging
+import secrets
 from datetime import timedelta
-from _utils import utcnow
+from _utils import utcnow, iso_z
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Form, Request
 from sqlalchemy import select, func, desc
 
 from config import settings
 from database import get_db, AsyncSessionLocal
-from models import BotLog, BotState, Tenant
+from models import BotLog, BotState, Tenant, User
 from routers.auth import get_current_user, require_role
 
 from ws_manager import ws_manager
 from event_bus import event_bus
-from _responses import ok
+from _responses import ok, fail
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["bot"])
 
 _IS_VERCEL = bool(os.getenv("VERCEL"))
-_bot_task: asyncio.Task | None = None
 _CRON_SHARDS = 10
 _cron_lock = asyncio.Lock()
+
+
+def _get_bot_task() -> asyncio.Task | None:
+    """Single source of truth: the bot loop task lives on runner._bot_task.
+
+    BUGFIX (2026-09-05): bot.py kept its OWN _bot_task (never set by lifespan)
+    while runner's lifespan ran the real loop on runner._bot_task — so
+    /api/bot/status always reported stopped and /api/bot/stop cancelled a
+    task that was None (the real loop kept running).
+    """
+    import runner
+    return runner._bot_task
+
+
+def _set_bot_task(task: asyncio.Task | None) -> None:
+    import runner
+    runner._bot_task = task
 
 
 async def _run_single_cycle():
@@ -39,9 +56,10 @@ async def _run_single_cycle():
 
 @router.get("/api/bot/status")
 async def bot_status(_=Depends(get_current_user)):
+    _bt = _get_bot_task()
     return ok(
         {
-        "running": _IS_VERCEL or (_bot_task is not None and not _bot_task.done()),
+        "running": _IS_VERCEL or (_bt is not None and not _bt.done()),
         "interval": settings.BOT_INTERVAL_SECONDS,
         "mode": "vercel-on-demand" if _IS_VERCEL else "background-loop",
     }
@@ -50,11 +68,11 @@ async def bot_status(_=Depends(get_current_user)):
 
 @router.post("/api/bot/restart")
 async def restart_bot(current_user: User = Depends(require_role("admin")), db=Depends(get_db)):
-    global _bot_task
-    if _bot_task:
-        _bot_task.cancel()
+    _bt = _get_bot_task()
+    if _bt:
+        _bt.cancel()
     from runner import _run_bot_loop
-    _bot_task = asyncio.create_task(_run_bot_loop())
+    _set_bot_task(asyncio.create_task(_run_bot_loop()))
     asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_started", "title": "تم تشغيل البوت",
         "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
@@ -64,10 +82,10 @@ async def restart_bot(current_user: User = Depends(require_role("admin")), db=De
 
 @router.post("/api/bot/stop")
 async def stop_bot(current_user: User = Depends(require_role("admin"))):
-    global _bot_task
-    if _bot_task and not _bot_task.done():
-        _bot_task.cancel()
-        _bot_task = None
+    _bt = _get_bot_task()
+    if _bt and not _bt.done():
+        _bt.cancel()
+    _set_bot_task(None)
     asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_stopped", "title": "تم إيقاف البوت",
         "message": "تم إيقاف البوت يدوياً", "link": "/settings",
@@ -86,9 +104,13 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
 @router.get("/api/cron/bot-cycle")
 async def cron_bot_cycle(request: Request, token: str = Query("")):
     """Cron-job.org: runs one bot cycle per active tenant. Auth via CRON_SECRET."""
-    secret = os.getenv("CRON_SECRET")
+    secret = os.getenv("CRON_SECRET", "")
     auth_header = request.headers.get("authorization", "")
-    valid = bool(secret) and (auth_header == f"Bearer {secret}" or token == secret)
+    # Constant-time compare (timing-attack hygiene); empty secret never validates
+    valid = bool(secret) and (
+        secrets.compare_digest(auth_header, f"Bearer {secret}")
+        or secrets.compare_digest(token, secret)
+    )
     if not valid:
         raise HTTPException(403, "Unauthorized cron")
     raw_shard = request.headers.get("x-vercel-cron-shard", "0") if not token.isdigit() else token
@@ -126,8 +148,8 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
                 results.append({"tenant_id": tenant.id, "status": "error"})
         return ok({"ok": True, "tenants_processed": len(results), "shard": shard})
     except Exception as e:
-        log.error(f"Cron bot cycle error: {e}")
-        return ok({"ok": False, "error": str(e)[:200]})
+        log.error("Cron bot cycle error", exc_info=True)
+        return fail(f"cron cycle failed: {str(e)[:120]}")
 
 
 @router.get("/api/logs")
@@ -138,7 +160,7 @@ async def get_logs(limit: int = Query(50), db=Depends(get_db), current_user=Depe
     return ok(
         [{
         "level": r.level, "message": r.message,
-        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "created_at": iso_z(r.created_at),
     } for r in rows.scalars().all()]
     )
 

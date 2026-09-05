@@ -20,9 +20,17 @@ if _is_pg:
     _connect_args = {"timeout": 15, "statement_cache_size": 0}
     if settings.db_require_ssl:
         import ssl
-        _ctx = ssl.create_default_context()
-        _ctx.check_hostname = False
-        _ctx.verify_mode = ssl.CERT_NONE  # Neon uses trusted CA but no host check needed
+        # SECURITY (2026-09-05): full certificate verification (was:
+        # check_hostname=False + CERT_NONE — MITM between Vercel and Neon was
+        # possible). Neon presents publicly-trusted (Let's Encrypt) certs, so
+        # the default context verifies fine. Escape hatch for emergencies:
+        # DB_SSL_VERIFY=false restores the old behaviour.
+        if os.getenv("DB_SSL_VERIFY", "true").lower() not in ("false", "0", "no"):
+            _ctx = ssl.create_default_context()
+        else:
+            _ctx = ssl.create_default_context()
+            _ctx.check_hostname = False
+            _ctx.verify_mode = ssl.CERT_NONE
         _connect_args["ssl"] = _ctx
 
 engine = create_async_engine(

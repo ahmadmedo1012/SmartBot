@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc, update
 
 from database import get_db
+from _utils import iso_z
 from models import User, NotificationPreference, Notification
 from routers.auth import get_current_user
 
@@ -58,7 +59,7 @@ async def list_notifications(
         {
             "id": n.id, "type": n.type, "title": n.title, "body": n.body,
             "link": n.link, "read": n.read,
-            "created_at": n.created_at.isoformat() if n.created_at else None,
+            "created_at": iso_z(n.created_at),
         } for n in rows.scalars().all()
     ], "unread": unread}
 
@@ -91,69 +92,9 @@ async def mark_all_read(
     return {"success": True}
 
 
-# ── Preferences (settings — matches frontend contract) ──────────────────────
-
-def _default_prefs() -> dict:
-    return {
-        "new_comments": True,
-        "new_messages": True,
-        "new_leads": True,
-        "payment_alerts": True,
-        "system_updates": True,
-        "marketing_reports": True,
-        # legacy keys kept for backward compat
-        "payment_approved": True,
-        "payment_rejected": True,
-        "trial_expiry_warning": True,
-        "trial_expired": True,
-        "system_alert": True,
-    }
-
-
-async def _get_pref_row(db, user_id: int) -> NotificationPreference | None:
-    row = await db.execute(
-        select(NotificationPreference).where(NotificationPreference.user_id == user_id)
-    )
-    return row.scalar_one_or_none()
-
-
-@router.get("/settings")
-@router.get("/preferences")
-async def get_preferences(
-    db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Get notification preferences (defaults merged with stored overrides)."""
-    pref = await _get_pref_row(db, current_user.id)
-    defaults = _default_prefs()
-    if pref and pref.preferences:
-        defaults.update(pref.preferences)
-    return {"success": True, "data": {"preferences": defaults}}
-
-
-@router.put("/settings")
-@router.put("/preferences")
-async def update_preferences(
-    payload: dict,
-    db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Bulk-update notification preferences (merged with existing)."""
-    incoming = payload.get("preferences", payload)
-    if not isinstance(incoming, dict) or not incoming:
-        raise HTTPException(400, "preferences مطلوبة")
-    clean = {k: bool(v) for k, v in incoming.items() if isinstance(k, str)}
-    pref = await _get_pref_row(db, current_user.id)
-    if pref is None:
-        pref = NotificationPreference(
-            user_id=current_user.id,
-            tenant_id=current_user._tenant_id,
-            preferences=clean,
-        )
-        db.add(pref)
-    else:
-        existing = dict(pref.preferences or {})
-        existing.update(clean)
-        pref.preferences = existing
-    await db.commit()
-    return {"success": True, "data": {"preferences": clean}}
+# ── Preferences ─────────────────────────────────────────────────────────────
+# NOTE (2026-09-05): GET/PUT /api/notifications/settings previously existed
+# here AND in alerts_routes.py. FastAPI first-registration-wins meant the
+# alerts_routes copy (registered first in runner.py) always served — this copy
+# was dead code with DIVERGENT semantics (merge + legacy keys vs. strict
+# 6-key sanitisation). Removed; alerts_routes.py is the single source.

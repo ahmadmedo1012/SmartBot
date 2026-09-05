@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 
+from _utils import utcnow, iso_z
 from models import Sequence, SequenceStep, SequenceSubscription, Subscriber
 from fb_client import FBClient
 from database import AsyncSessionLocal
@@ -49,8 +50,8 @@ class SequenceEngine:
             "created_by": seq.created_by,
             "total_subscribers": seq.total_subscribers,
             "total_sent": seq.total_sent,
-            "created_at": seq.created_at.isoformat() if seq.created_at else None,
-            "updated_at": seq.updated_at.isoformat() if seq.updated_at else None,
+            "created_at": iso_z(seq.created_at),
+            "updated_at": iso_z(seq.updated_at),
             "steps": [
                 {
                     "id": s.id,
@@ -61,7 +62,7 @@ class SequenceEngine:
                     "message_template": s.message_template,
                     "message_type": s.message_type,
                     "action_on_complete": s.action_on_complete,
-                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                    "created_at": iso_z(s.created_at),
                 }
                 for s in steps
             ],
@@ -94,8 +95,8 @@ class SequenceEngine:
                 "total_subscribers": seq.total_subscribers,
                 "total_sent": seq.total_sent,
                 "subscriber_count": count_active,
-                "created_at": seq.created_at.isoformat() if seq.created_at else None,
-                "updated_at": seq.updated_at.isoformat() if seq.updated_at else None,
+                "created_at": iso_z(seq.created_at),
+                "updated_at": iso_z(seq.updated_at),
             })
         return results
 
@@ -233,7 +234,7 @@ class SequenceEngine:
         if not sub:
             return False
         sub.status = "unsubscribed"
-        sub.completed_at = datetime.now(timezone.utc)
+        sub.completed_at = utcnow()
         stmt = select(Sequence).where(Sequence.id == sequence_id)
         if tenant_id:
             stmt = stmt.where(Sequence.tenant_id == tenant_id)
@@ -261,8 +262,8 @@ class SequenceEngine:
             "sequence_id": sub.sequence_id,
             "current_step": sub.current_step,
             "status": sub.status,
-            "entered_at": sub.entered_at.isoformat() if sub.entered_at else None,
-            "completed_at": sub.completed_at.isoformat() if sub.completed_at else None,
+            "entered_at": iso_z(sub.entered_at),
+            "completed_at": iso_z(sub.completed_at),
         }
 
     async def advance(
@@ -307,12 +308,12 @@ class SequenceEngine:
             # There is a next step
             next_step = steps[current_idx + 1]
             sub.current_step = next_step.step_order
-            sub.entered_at = datetime.now(timezone.utc)
+            sub.entered_at = utcnow()
             return sub.current_step
 
         # No more steps -- mark as completed
         sub.status = "completed"
-        sub.completed_at = datetime.now(timezone.utc)
+        sub.completed_at = utcnow()
         return None
 
     async def get_due_subscriptions(self, session) -> list[dict]:
@@ -328,7 +329,7 @@ class SequenceEngine:
             )
         )
         subs = result.scalars().all()
-        now = datetime.now(timezone.utc)
+        now = utcnow()
         due: list[dict] = []
 
         for sub in subs:
@@ -458,7 +459,7 @@ class SequenceEngine:
         """
         if not template:
             return ""
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = utcnow().strftime("%Y-%m-%d")
         result = template.replace("{name}", sub_first_name or "")
         result = result.replace("{full_name}", sub_full_name or "")
         result = result.replace("{mention}", f"@[{sub_fb_id}]")

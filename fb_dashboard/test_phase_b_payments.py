@@ -93,7 +93,7 @@ async def _seed(fixture, plans=None, users=1, tenant_kwargs=None):
         db.add(t)
         await db.flush()
         u = User(username="buyer", email="buyer@test.ly", password_hash=hash_password("pass123456"),
-                 tenant_id=t.id, role="admin")
+                 tenant_id=t.id, role="admin", is_platform_admin=True)  # delegated platform admin (2026-09-05 model)
         db.add(u)
         await db.flush()
         plan_ids = [p.id for p in plan_objs]
@@ -289,6 +289,18 @@ async def test_admin_config_rejects_invalid_keys_and_non_admin():
         client.cookies.set("token", make_token("viewer1", tid))
         r = await client.post("/api/admin/config", json={
             "config": {"bank_transfer_bank_name": "لا يسمح"}})
+        assert r.status_code == 403, r.text
+        # SECURITY (2026-09-05): plain tenant admin (no platform flag) → 403 on
+        # global config — the cross-tenant bank-detail rewrite is closed.
+        async with sf() as db:
+            db.add(User(username="tenantadmin", email="ta@test.ly",
+                        password_hash="x", tenant_id=tid, role="admin"))
+            await db.commit()
+        client.cookies.set("token", make_token("tenantadmin", tid))
+        r = await client.post("/api/admin/config", json={
+            "config": {"bank_transfer_bank_name": "لا يسمح"}})
+        assert r.status_code == 403, r.text
+        r = await client.get("/api/admin/config")
         assert r.status_code == 403, r.text
     finally:
         await _teardown(fixture)

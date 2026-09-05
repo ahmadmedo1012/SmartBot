@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from database import get_db
 from models import User
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_role, require_platform_admin
 from _services import team_engine
 from _responses import ok
 
@@ -28,5 +28,5 @@ async def team_performance(db=Depends(get_db), current_user: User = Depends(requ
 
 
 @router.get("/api/team/role-summary")
-async def team_role_summary(db=Depends(get_db), _=Depends(get_current_user)):
+async def team_role_summary(db=Depends(get_db), _=Depends(require_platform_admin)):
     return ok(await team_engine.get_user_role_summary(db))

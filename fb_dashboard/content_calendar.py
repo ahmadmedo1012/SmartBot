@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta, date
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from typing import Any
 from sqlalchemy import select, func, and_, or_, desc
 
@@ -173,7 +173,7 @@ class ContentCalendarEngine:
             "id": p.id,
             "message": p.message[:100] if p.message else "",
             "image_url": p.image_url or "",
-            "scheduled_at": p.scheduled_at.isoformat() if p.scheduled_at else None,
+            "scheduled_at": iso_z(p.scheduled_at),
             "status": p.status,
             "platform": "facebook",  # ponytail: single platform; multi when model extended
             "created_by": p.created_by or "",

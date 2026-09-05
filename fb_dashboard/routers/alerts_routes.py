@@ -6,6 +6,7 @@ from models import Offer, BrandConfig, Customer, BotAlert, User, NotificationPre
 from routers.auth import get_current_user, require_role
 from ws_manager import ws_manager
 from _utils import utcnow
+from _responses import ok
 import asyncio
 
 router = APIRouter(prefix="", tags=["alerts"])
@@ -16,11 +17,11 @@ async def list_alerts(resolved: bool = Query(False), db=Depends(get_db), current
     # ponytail: BotAlert at module level
     stmt = select(BotAlert).where(BotAlert.tenant_id == current_user._tenant_id, BotAlert.resolved == resolved).order_by(desc(BotAlert.created_at)).limit(20)
     rows = await db.execute(stmt)
-    return [{
+    return ok([{
         "id": a.id, "type": a.alert_type, "severity": a.severity,
         "message": a.message, "resolved": a.resolved,
-        "created_at": a.created_at.isoformat() if a.created_at else None,
-    } for a in rows.scalars().all()]
+        "created_at": a.created_at.isoformat() + "Z" if a.created_at else None,
+    } for a in rows.scalars().all()])
 
 
 @router.post("/api/alerts")
@@ -40,7 +41,7 @@ async def create_alert(
         }))
     except Exception:
         pass
-    return {"id": alert.id}
+    return ok({"id": alert.id})
 
 
 @router.post("/api/alerts/{alert_id}/resolve")
@@ -54,7 +55,7 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = 
     a.resolved = True
     a.resolved_at = utcnow()
     await db.commit()
-    return {"ok": True}
+    return ok({"resolved": True})
 
 
 @router.post("/api/notifications/broadcast")
@@ -67,7 +68,7 @@ async def broadcast_notification(
     asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": notif_type, "title": title, "message": message, "link": link or None,
     }))
-    return {"ok": True}
+    return ok({"sent": True})
 
 
 # ── Notification preferences ────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from datetime import datetime, timedelta
 from config import settings
 from database import get_db
@@ -24,7 +24,7 @@ async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), curr
         [{
         "id": a.id, "alert_type": a.alert_type, "severity": a.severity,
         "message": a.message, "resolved": a.resolved,
-        "created_at": a.created_at.isoformat() if a.created_at else None,
+        "created_at": iso_z(a.created_at),
     } for a in rows.scalars().all()]
     )
 

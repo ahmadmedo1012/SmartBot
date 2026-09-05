@@ -21,6 +21,10 @@ ALGORITHM = "HS256"
 
 
 async def get_token_user(request: Request):
+    """DEPRECATED (2026-09-05): decodes the JWT WITHOUT checking the blacklist
+    or that the user still exists — logged-out tokens stayed valid. Kept only
+    as a compatibility alias; new endpoints use _require_user (full check).
+    """
     token = request.cookies.get("token")
     if not token:
         raise HTTPException(401, "Not authenticated")
@@ -55,12 +59,12 @@ async def stream_logs(
         since=since or None,
         limit=limit,
     )
-    return {"events": events, "total": len(events)}
+    return {"success": True, "data": {"events": events, "total": len(events)}}
 
 
 @logs_router.get("/realtime")
 async def realtime_logs(
-    _=Depends(get_token_user),
+    _=Depends(_require_user),
 ):
     """SSE endpoint streaming log events as they happen."""
     from event_bus import event_bus
@@ -94,7 +98,7 @@ async def realtime_logs(
 
 
 @logs_router.get("/stats")
-async def log_stats(_=Depends(get_token_user)):
+async def log_stats(_=Depends(_require_user)):
     """Log volume stats per level."""
     logger = get_logger()
-    return logger.get_stats()
+    return {"success": True, "data": logger.get_stats()}

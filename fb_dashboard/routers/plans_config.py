@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Body, HTTPException, Form, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, func, text, delete
 
 from _utils import utcnow
@@ -135,13 +136,17 @@ async def healthz():
             plan_count = await session.scalar(select(func.count(SubscriptionPlan.id))) or 0
             checks["plans"] = plan_count
     except Exception as e:
-        checks["database"] = str(e)[:200]
+        # 503 (was: 200 with ok=false) — uptime monitors now actually see outages.
+        # Root cause goes to server logs, not the response body.
+        checks["database"] = "unreachable"
         checks["ok"] = False
+        checks["error"] = str(e)[:120]
     checks["version"] = "2.0.0"
-    checks["timestamp"] = __import__('datetime').datetime.now().isoformat()
+    checks["timestamp"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
     checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
-    return {"success": True, "data": checks}
+    status_code = 200 if checks["ok"] else 503
+    return JSONResponse(status_code=status_code, content={"success": checks["ok"], "data": checks})
 
 
 @router.get("/api/env")
@@ -174,11 +179,24 @@ CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 @router.post("/api/cron/cleanup-logs")
 async def cleanup_old_logs(request: Request, token: str = Form("")):
-    """Delete BotLog entries older than 30 days and expired RateLimitEntry rows.
-    Vercel Cron calls this daily at 03:00 UTC via vercel.json config.
+    """Delete BotLog entries older than 30 days, expired RateLimitEntry rows and
+    expired blacklisted JWTs. Vercel Cron calls this daily at 03:00 UTC via
+    vercel.json config.
+
+    SECURITY (2026-09-05): the old `token != CRON_SECRET` with an unset secret
+    failed OPEN ("" != "" is False → unauthenticated deletes). Now an empty
+    secret never validates, comparison is constant-time, and the
+    Authorization: Bearer header (what Vercel Cron actually sends) is accepted
+    alongside the form token.
     """
-    if token != CRON_SECRET:
+    import secrets as _secrets
+    auth_header = request.headers.get("authorization", "")
+    if not CRON_SECRET or not (
+        _secrets.compare_digest(token, CRON_SECRET)
+        or _secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
+    ):
         raise HTTPException(403, "Unauthorized")
+    from models import BlacklistedToken
     async with AsyncSessionLocal() as db:
         cutoff = utcnow() - timedelta(days=30)
         deleted_logs = await db.execute(
@@ -187,11 +205,15 @@ async def cleanup_old_logs(request: Request, token: str = Form("")):
         deleted_rates = await db.execute(
             delete(RateLimitEntry).where(RateLimitEntry.window_end < utcnow())
         )
+        deleted_blacklist = await db.execute(
+            delete(BlacklistedToken).where(BlacklistedToken.expires_at < utcnow())
+        )
         await db.commit()
         return {
             "success": True,
             "data": {
                 "deleted_bot_logs": deleted_logs.rowcount,
                 "deleted_rate_limits": deleted_rates.rowcount,
+                "deleted_blacklisted_tokens": deleted_blacklist.rowcount,
             },
         }

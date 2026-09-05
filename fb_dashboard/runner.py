@@ -145,17 +145,11 @@ _IS_VERCEL = bool(os.getenv("VERCEL"))
 from routers.auth import get_current_user, require_role, make_token, ACCESS_TOKEN_EXPIRE, ALGORITHM, ROLE_HIERARCHY
 
 async def seed_admin(db):
-    """Seed initial admin user from env vars if no users exist."""
-    count = await db.scalar(select(func.count(User.id))) or 0
-    if count > 0:
-        return  # ponytail: users already exist — do not reset passwords
-    username = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
-    password = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
-    from _hash import hash_password
-    pw_hash = hash_password(password)
-    db.add(User(username=username, password_hash=pw_hash, role="admin"))
-    await db.commit()
-    log.info("Initial admin user seeded")
+    # Deprecated shim — the canonical implementation moved to _bootstrap.py
+    # (secure random default). Kept so old imports keep working; new code
+    # imports from _bootstrap directly.
+    from _bootstrap import seed_admin as _seed
+    await _seed(db)
 
 
 async def _seed_dm_templates(db):
@@ -290,6 +284,14 @@ async def lifespan(app: FastAPI):
             await seed_admin(session)
             await _seed_dm_templates(session)
             await _seed_subscription_plans(session)
+            # Purge expired blacklisted JWTs (table otherwise grows unboundedly)
+            try:
+                from _bootstrap import purge_expired_blacklist
+                purged = await purge_expired_blacklist(session)
+                if purged:
+                    log.info("Purged %d expired blacklisted tokens", purged)
+            except Exception:
+                log.warning("Blacklist purge failed", exc_info=True)
             # Migrate existing tenants: set FREE plan if no plan_id assigned
             result = await session.execute(select(Tenant).where(Tenant.plan_id == None))
             for t in result.scalars().all():
@@ -339,7 +341,7 @@ async def lifespan(app: FastAPI):
                         recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
                         running = _bot_task is not None and not _bot_task.done() if _bot_task else False
                         payload = {"replies_last_hour": recent, "running": running,
-                                   "timestamp": utcnow().isoformat()}
+                                   "timestamp": utcnow().isoformat() + "Z"}
                         await event_bus.emit("bot_health", payload)
                 except Exception:
                     pass
@@ -390,9 +392,10 @@ async def api_health_ready():
             await conn.execute(__import__('sqlalchemy').text("SELECT 1"))
         return {"ok": True, "database": "ok"}
     except Exception as e:
+        log.error("Readiness probe failed: %s", e)
         return JSONResponse(
             status_code=503,
-            content={"ok": False, "database": str(e)[:200]},
+            content={"ok": False, "database": "unreachable"},
         )
 
 
@@ -415,12 +418,17 @@ async def global_500_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "حدث خطأ داخلي — الرجاء المحاولة لاحقاً"})
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+# CORS: exact production origins only. Localhost dev origins ship ONLY in DEBUG
+# (previously they were sent to production with allow-credentials).
+_cors_origins = ["https://bot.smart-link.ly", "https://api.smart-link.ly"]
+if getattr(settings, "DEBUG", False):
+    _cors_origins += ["http://localhost:5173", "http://localhost:8000"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://bot.smart-link.ly", "https://api.smart-link.ly", "http://localhost:5173", "http://localhost:8000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Telegram-Bot-Api-Secret-Token", "X-Hub-Signature-256", "X-Vercel-Cron-Shard"],
 )
 app.middleware("http")(dedup_middleware)
 
@@ -463,10 +471,11 @@ async def security_headers(request: Request, call_next):
     # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     # Content-Security-Policy — restrict sources for XSS protection
-    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner
+    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner;
+    # 'unsafe-eval' REMOVED 2026-09-05 (dev-only need — production Next.js does not eval).
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://connect.facebook.net https://*.facebook.com; "
+        "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.facebook.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "img-src 'self' data: blob: https:; "
         "font-src 'self' data: https://fonts.gstatic.com; "
@@ -479,21 +488,47 @@ async def security_headers(request: Request, call_next):
 
 @app.middleware("http")
 async def csrf_origin_check(request: Request, call_next):
-    """Validate Origin/Referer on state-changing requests to /api/*."""
-    if request.method in ("POST", "PUT", "DELETE") and request.url.path.startswith("/api/"):
+    """Validate Origin/Referer on state-changing requests to /api/*.
+
+    SECURITY (2026-09-05): the old substring match (`"bot.smart-link.ly" in origin`)
+    was bypassable with e.g. https://bot.smart-link.ly.evil.com. Now the origin
+    host is parsed and compared EXACTLY against the allowlist.
+    """
+    from urllib.parse import urlparse
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
+        allowed_hosts = {"bot.smart-link.ly", "api.smart-link.ly"}
+        if getattr(settings, "DEBUG", False):
+            allowed_hosts |= {"localhost", "127.0.0.1"}
         origin = request.headers.get("origin", "")
         referer = request.headers.get("referer", "")
-        if origin and "localhost" not in origin:
-            allowed = ["https://bot.smart-link.ly", "https://api.smart-link.ly"]
-            if not any(a in origin for a in allowed):
+        if origin:
+            host = urlparse(origin).hostname or ""
+            if host not in allowed_hosts:
                 return JSONResponse(status_code=403, content={"detail": "Invalid origin"})
-        elif referer and "localhost" not in referer:
-            allowed = ["bot.smart-link.ly", "api.smart-link.ly"]
-            from urllib.parse import urlparse
+        elif referer:
             host = urlparse(referer).hostname or ""
-            if not any(a in host for a in allowed):
+            if host and host not in allowed_hosts:
                 return JSONResponse(status_code=403, content={"detail": "Invalid referer"})
     return await call_next(request)
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    """App-level request telemetry: method, path, status, duration.
+
+    Previously only uvicorn's access log + the 500 handler existed — no app-level
+    visibility of which endpoints get hit and how slow they are. Noisy paths
+    (static chunks, health probes) are skipped.
+    """
+    path = request.url.path
+    if path.startswith(("/_next/", "/static/", "/fonts/")) or path in ("/healthz", "/api/health"):
+        return await call_next(request)
+    import time as _time
+    start = _time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (_time.perf_counter() - start) * 1000
+    log.info("%s %s → %s (%.0fms)", request.method, path, response.status_code, duration_ms)
+    return response
 
 
 # ⚠️ Register routers — ALL routes MUST be registered here, BEFORE the SPA catch-all at line ~870.
@@ -785,7 +820,7 @@ async def static_cache_middleware(request: Request, call_next):
 async def websocket_endpoint(ws: WebSocket):
     """WebSocket endpoint for real-time dashboard data.
     Sends events: stats_update, new_reply, bot_status, alert."""
-    token = ws.query_params.get("token")
+    token = ws.query_params.get("token") or ws.cookies.get("token")
     if not token:
         await ws.close(code=4001, reason="Missing token")
         return

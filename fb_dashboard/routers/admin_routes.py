@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Form
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, desc
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
@@ -15,7 +15,7 @@ from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, Conversati
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
 from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from models import SystemConfig
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_role, require_platform_admin, is_platform_admin
 from _responses import ok
 
 log = logging.getLogger("fb-api")
@@ -45,15 +45,20 @@ _ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS
 
 
 @router.get("/api/admin/config")
-async def admin_get_config(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: read payment + support SystemConfig entries (secrets-free values only)."""
+async def admin_get_config(db=Depends(get_db), current_user: User = Depends(require_platform_admin)):
+    """Platform admin: read payment + support SystemConfig entries (secrets-free values only).
+
+    SECURITY (2026-09-05): this writes GLOBAL bank/wallet details shown on every
+    tenant's /subscribe page — a tenant admin could previously redirect all
+    platform payments to their own wallet. Now platform-admin only.
+    """
     rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_ADMIN_CONFIG_KEYS)))
     return {"success": True, "data": {r.key: r.value for r in rows.scalars().all()}}
 
 
 @router.post("/api/admin/config")
-async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: set payment + support config (bank details, wallet phones, wallet cap,
+async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: User = Depends(require_platform_admin)):
+    """Platform admin: set payment + support config (bank details, wallet phones, wallet cap,
     support contact info).
 
     Plan §2.4 — the bank details shown on /subscribe come from SystemConfig;
@@ -108,23 +113,12 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     return {"success": True, "data": {"updated": sorted(payload.keys())}}
 
 
-async def seed_admin(db):
-    """Seed initial admin user from env vars if no users exist."""
-    count = await db.scalar(select(func.count(User.id))) or 0
-    if count > 0:
-        return  # ponytail: users already exist — do not reset passwords
-    username = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
-    password = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
-    from _hash import hash_password
-    pw_hash = hash_password(password)
-    db.add(User(username=username, password_hash=pw_hash, role="admin"))
-    await db.commit()
-    log.info("Initial admin user seeded")
+from _bootstrap import seed_admin  # single source of truth (runner.py imports the same)
 
 
 @router.post("/api/repair")
-async def repair(current_user: User = Depends(require_role("admin"))):
-    """Manual DB repair: create tables, run migrations, seed admin. Admin only."""
+async def repair(current_user: User = Depends(require_platform_admin)):
+    """Manual DB repair: create tables, run migrations, seed admin. Platform admin only."""
     try:
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -133,7 +127,8 @@ async def repair(current_user: User = Depends(require_role("admin"))):
             await seed_admin(session)
         return ok({"ok": True, "message": "DB repaired"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error("DB repair failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="فشل إصلاح قاعدة البيانات — راجع سجلات الخادم")
 
 
 @router.delete("/api/admin/tenants/{tenant_id}")
@@ -207,3 +202,63 @@ async def rule_categories(_=Depends(get_current_user)):
         {"id": "neutral", "label": "محايد", "color": "gray"},
     ]}
     )
+
+
+# ── Platform user management (platform admin only) ───────────────────────────
+# Gives the operator cross-tenant visibility (who registered, which tenants are
+# test leftovers) plus delegated platform-admin promotion — previously only
+# reachable with direct DB access.
+
+@router.get("/api/admin/platform/users")
+async def platform_list_users(
+    q: str = "", page: int = 1, page_size: int = 50,
+    db=Depends(get_db), current_user: User = Depends(require_platform_admin),
+):
+    """Platform admin: paginated list of ALL users across tenants, searchable."""
+    page = max(1, page)
+    page_size = min(100, max(10, page_size))
+    stmt = select(User)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(or_(User.username.ilike(like), User.email.ilike(like)))
+    total = await db.scalar(
+        select(func.count()).select_from(stmt.order_by(None).subquery())
+    ) or 0
+    rows = await db.execute(
+        stmt.order_by(desc(User.created_at)).offset((page - 1) * page_size).limit(page_size)
+    )
+    items = []
+    for u in rows.scalars().all():
+        items.append({
+            "id": u.id, "username": u.username, "email": u.email or "",
+            "role": u.role, "tenant_id": u.tenant_id,
+            "is_platform_admin": is_platform_admin(u),
+            "delegated": bool(u.tenant_id not in (None, 0) and u.is_platform_admin),
+            "created_at": u.created_at.isoformat() + "Z" if u.created_at else None,
+        })
+    return ok({"items": items, "total": total, "page": page, "page_size": page_size})
+
+
+@router.patch("/api/admin/platform/users/{user_id}")
+async def platform_update_user(
+    user_id: int, body: dict = None, db=Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Platform admin: grant/revoke delegated platform-admin rights on a tenant user."""
+    body = body or {}
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(404, "المستخدم غير موجود")
+    if user.tenant_id in (None, 0):
+        raise HTTPException(400, "حساب الإقلاع مسؤول منصة بالضرورة — لا يمكن تعديل صلاحيته")
+    if "is_platform_admin" not in body:
+        raise HTTPException(400, "is_platform_admin مطلوب")
+    new_val = bool(body["is_platform_admin"])
+    user.is_platform_admin = new_val
+    await db.commit()
+    from _audit import log_audit
+    await log_audit(db, "platform_admin_toggle", actor_id=current_user.id,
+                    target_type="user", target_id=user.id,
+                    metadata={"is_platform_admin": new_val})
+    await db.commit()
+    return ok({"id": user.id, "username": user.username, "is_platform_admin": is_platform_admin(user)})

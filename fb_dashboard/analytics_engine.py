@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta, date
-from _utils import utcnow
+from _utils import utcnow, iso_z
 from typing import Any
 
 from sqlalchemy import select, func, cast, Date, extract, desc, and_, text
@@ -227,7 +227,7 @@ class AnalyticsEngine:
                 "name": row.commenter_name,
                 "count": row.cnt,
                 "last_comment": (
-                    row.last.isoformat() if row.last else None
+                    iso_z(row.last)
                 ),
             }
             for row in rows

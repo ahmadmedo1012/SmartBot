@@ -377,3 +377,25 @@ async def test_webhook_get_handshake():
             "hub.challenge": "x",
         })
         assert r.status_code == 403
+
+
+# ══════════════════════════════════════════════════════════════════
+# 7. Vercel entrypoint export — the deployment killer (v5 §9)
+# ══════════════════════════════════════════════════════════════════
+
+def test_vercel_entrypoint_exports_app():
+    """api/index.py MUST export `app` — Vercel's FastAPI adapter imports it
+    from that module. A ruff F401 auto-fix once removed it (looked like an
+    unused import) and every API deployment silently stopped updating.
+    This test makes that class of breakage loud."""
+    import importlib
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(root))
+    mod = importlib.import_module("api.index")
+    exported = getattr(mod, "app", None)
+    assert exported is not None, (
+        "api/index.py lost its `app` export — Vercel deployments are broken"
+    )

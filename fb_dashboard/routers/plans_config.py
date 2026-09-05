@@ -52,12 +52,30 @@ async def list_plans(db=Depends(get_db)):
 @router.get("/api/config")
 @api_cache.cached(ttl=300)  # 5min cache — payment phones change rarely
 async def public_config(db=Depends(get_db)):
-    """Public platform config — payment provider phone numbers etc."""
+    """Public platform config — payment provider phone numbers, bank details.
+
+    Merge order (plan §2.4): SystemConfig rows (set by admin via
+    POST /api/admin/config) WIN; env vars (LIBYANA_WALLET_PHONE, …) act as
+    fallbacks so a fresh deployment shows working payment instructions.
+    Never exposes rows flagged is_secret.
+    """
     rows = await db.execute(select(SystemConfig))
-    config = {}
+    config: dict = {}
     for r in rows.scalars().all():
         if not r.is_secret:
             config[r.key] = r.value
+    # env fallbacks — only for keys the admin hasn't set in DB
+    env_fallbacks = {
+        "balance_transfer_phone_2": settings.LIBYANA_WALLET_PHONE,   # ليبيانا
+        "balance_transfer_phone_1": settings.MADAR_WALLET_PHONE,     # مدار
+        "bank_transfer_bank_name": settings.BANK_TRANSFER_BANK_NAME,
+        "bank_transfer_account_number": settings.BANK_TRANSFER_ACCOUNT_NUMBER,
+        "bank_transfer_iban": settings.BANK_TRANSFER_IBAN,
+        "mobile_wallet_cap": str(settings.MOBILE_WALLET_CAP),
+    }
+    for k, v in env_fallbacks.items():
+        if v and not config.get(k):
+            config[k] = v
     return {"success": True, "data": config}
 
 

@@ -18,14 +18,25 @@ depends_on = None
 
 
 def _index_exists(bind, index_name: str) -> bool:
-    """Check if an index already exists in the public schema (PostgreSQL)."""
-    result = bind.execute(
-        sa.text(
-            "SELECT 1 FROM pg_indexes WHERE indexname = :idx AND schemaname = 'public'"
-        ),
-        {"idx": index_name},
-    )
-    return result.fetchone() is not None
+    """Check if an index already exists — dialect-aware (PostgreSQL + SQLite).
+
+    Uses SQLAlchemy Inspector so the migration chain also runs on local
+    SQLite dev DBs (pg_indexes is PostgreSQL-only and crashed there).
+    """
+    from sqlalchemy.engine.reflection import Inspector
+    try:
+        inspector = Inspector.from_engine(bind)
+        table_names = inspector.get_table_names()
+        for t in table_names:
+            try:
+                if index_name in {i["name"] for i in inspector.get_indexes(t)}:
+                    return True
+            except Exception:
+                continue
+        # partial/unique indexes may appear in constraints as well
+        return False
+    except Exception:
+        return False
 
 
 def upgrade() -> None:

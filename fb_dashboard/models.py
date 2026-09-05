@@ -489,6 +489,8 @@ class SubscriptionPlan(Base):
     name_ar = Column(String(100), nullable=False)            # مجاني, أساسي, مميز, احترافي, مؤسسي
     price = Column(Numeric(10, 2), default=0)
     period_days = Column(Integer, default=30)
+    # Trial — plan §2.5: days of free evaluation on signup (0 = no trial)
+    trial_days = Column(Integer, default=0)
     # Limits
     max_replies = Column(Integer, default=100)       # monthly auto-reply limit
     max_pages = Column(Integer, default=1)            # Facebook pages count

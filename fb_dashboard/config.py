@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     REDIS_URL: str = ""
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
+    # ── Payment providers (Libyan mobile wallets / bank transfer) — plan §2 ──
+    # Env values act as FALLBACKS for /api/config when SystemConfig rows are
+    # empty; admins override them via POST /api/admin/config (DB wins).
+    LIBYANA_WALLET_PHONE: str = ""
+    MADAR_WALLET_PHONE: str = ""
+    MOBILE_WALLET_CAP: int = 99  # LYD — above this, bank transfer is mandatory
+    BANK_TRANSFER_BANK_NAME: str = ""
+    BANK_TRANSFER_ACCOUNT_NUMBER: str = ""
+    BANK_TRANSFER_IBAN: str = ""
 
     @field_validator("DATABASE_REQUIRE_SSL", "DEBUG", "START_BOT", mode="before")
     @classmethod

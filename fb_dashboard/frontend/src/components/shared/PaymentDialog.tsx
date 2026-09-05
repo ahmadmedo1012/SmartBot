@@ -311,7 +311,7 @@ export function PaymentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm sm:max-w-md rounded-2xl p-0 gap-0 max-h-[90dvh] overflow-y-auto border-border/50 shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-br from-orange to-orange/80 text-white p-6">
+        <div className="bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-white p-6">
           <div className="flex items-center gap-2 mb-2">
             <Smartphone className="size-5" />
             <DialogTitle className="text-white text-lg font-bold">دفع الاشتراك</DialogTitle>
@@ -323,10 +323,10 @@ export function PaymentDialog({
 
         <div className="p-5 space-y-5">
           {/* Plan summary */}
-          <div className="rounded-xl bg-orange-muted/50 dark:bg-orange-muted/20 border border-orange/15 p-4">
+          <div className="rounded-xl bg-accent/50 dark:bg-accent/20 border border-accent-foreground/15 p-4">
             <div className="flex justify-between items-center">
               <span className="font-bold">{planNameAr}</span>
-              <span className="text-lg font-bold text-orange">{price} د.ل</span>
+              <span className="text-lg font-bold text-accent-foreground">{price} د.ل</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">اشتراك شهري</p>
           </div>
@@ -351,11 +351,11 @@ export function PaymentDialog({
                         disabled={opt.disabled}
                         className={cn(
                           "h-14 rounded-xl border-2 text-[13px] font-medium transition-[border-color,box-shadow,color,background-color] flex flex-col items-center justify-center gap-1",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/50",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50",
                           opt.disabled && "opacity-40 cursor-not-allowed",
                           provider === opt.id
-                            ? "border-orange bg-orange-muted/40 dark:bg-orange-muted/20 shadow-sm"
-                            : "border-border/30 hover:border-orange/30 text-muted-foreground",
+                            ? "border-accent-foreground bg-accent/40 dark:bg-accent/20 shadow-sm"
+                            : "border-border/30 hover:border-accent-foreground/30 text-muted-foreground",
                         )}
                       >
                         <Icon className="size-4" />
@@ -365,7 +365,7 @@ export function PaymentDialog({
                   })}
                 </div>
                 {requiresBank && (
-                  <p className="text-xs text-orange mt-2">
+                  <p className="text-xs text-accent-foreground mt-2">
                     المبالغ فوق 99 د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot; لإتمام الدفع
                   </p>
                 )}
@@ -395,7 +395,7 @@ export function PaymentDialog({
                   <div className="rounded-xl bg-success/10 border border-success/25 p-3">
                     <p className="text-xs font-medium text-success mb-1.5">رمز التحويل السريع</p>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-sm font-bold text-orange truncate" dir="ltr">
+                      <span className="font-mono text-sm font-bold text-accent-foreground truncate" dir="ltr">
                         {quickTransferCode}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -445,7 +445,7 @@ export function PaymentDialog({
                   {/* Bank account info card */}
                   <div className="rounded-xl bg-muted/30 border border-border/20 p-3 space-y-2.5">
                     <p className="text-xs font-medium flex items-center gap-1.5">
-                      <Landmark className="size-3.5 text-orange" />
+                      <Landmark className="size-3.5 text-accent-foreground" />
                       حوّل على الحساب البنكي التالي
                     </p>
                     {[
@@ -588,7 +588,7 @@ export function PaymentDialog({
               {provider !== "bank" && (
                 <div className="rounded-xl bg-muted/30 border border-border/20 p-3 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
-                  <span className="text-lg font-bold text-orange">{price} د.ل</span>
+                  <span className="text-lg font-bold text-accent-foreground">{price} د.ل</span>
                 </div>
               )}
 
@@ -608,13 +608,13 @@ export function PaymentDialog({
               <div className="relative size-28">
                 {/* Outer pulsing ring */}
                 <div
-                  className="absolute inset-0 rounded-full border-2 border-orange/20 animate-ping opacity-75"
+                  className="absolute inset-0 rounded-full border-2 border-accent-foreground/20 animate-ping opacity-75"
                   style={{ animationDuration: "2s" }}
                 />
                 {/* Middle ring */}
-                <div className="absolute inset-2 rounded-full border border-orange/30" />
+                <div className="absolute inset-2 rounded-full border border-accent-foreground/30" />
                 {/* Inner icon */}
-                <div className="absolute inset-4 rounded-full bg-gradient-to-br from-orange to-orange/80 flex items-center justify-center shadow-lg shadow-orange/25">
+                <div className="absolute inset-4 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/80 flex items-center justify-center shadow-lg shadow-accent-foreground/25">
                   <Smartphone className="size-8 text-white" />
                 </div>
               </div>
@@ -630,8 +630,8 @@ export function PaymentDialog({
               {/* Live status indicator */}
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/30 border border-border/20">
                 <span className="relative flex size-2">
-                  <span className="absolute inset-0 rounded-full bg-orange animate-ping opacity-75" />
-                  <span className="relative rounded-full size-2 bg-orange" />
+                  <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
+                  <span className="relative rounded-full size-2 bg-primary" />
                 </span>
                 <span className="text-[11px] text-muted-foreground">
                   {provider === "liyana" ? "بانتظار تأكيد التحويل" : "بانتظار موافقة الإدارة"}

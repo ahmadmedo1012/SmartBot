@@ -208,8 +208,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-orange/5 to-transparent" />
-        <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-orange/5 to-transparent" />
+        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-accent-foreground/5 to-transparent" />
+        <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-accent-foreground/5 to-transparent" />
       </div>
 
       <motion.div
@@ -226,7 +226,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <span className="text-xs text-muted-foreground">
               الخطوة {step + 1} من {total}
             </span>
-            <span className="text-xs font-medium text-orange">{current.subtitle}</span>
+            <span className="text-xs font-medium text-accent-foreground">{current.subtitle}</span>
           </div>
           {/* Step dots */}
           <div className="flex items-center gap-1.5 mb-3">
@@ -237,11 +237,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                 <div key={i} className="flex items-center gap-1.5 flex-1">
                   <div
                     className={`h-1 flex-1 rounded-full transition-all duration-400 ${
-                      done ? "bg-orange" : active ? "bg-orange/60" : "bg-muted"
+                      done ? "bg-primary" : active ? "bg-accent-foreground/60" : "bg-muted"
                     }`}
                   />
                   {i < STEPS.length - 1 && (
-                    <div className={`size-1.5 rounded-full shrink-0 ${i < step ? "bg-orange" : "bg-muted"}`} />
+                    <div className={`size-1.5 rounded-full shrink-0 ${i < step ? "bg-primary" : "bg-muted"}`} />
                   )}
                 </div>
               )
@@ -249,14 +249,14 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card/90 shadow-2xl shadow-orange/5 backdrop-blur-xl">
+        <div className="rounded-2xl border border-border/60 bg-card/90 shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl">
           {/* Header */}
           <div className="p-8 pb-6 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange to-orange/80 shadow-lg shadow-orange/25"
+              className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25"
             >
               <Icon className="size-8 text-white" />
             </motion.div>
@@ -333,7 +333,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       href="https://developers.facebook.com/tools/explorer/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-orange hover:underline"
+                      className="text-accent-foreground hover:underline"
                     >
                       Graph API Explorer
                     </a>{" "}
@@ -366,7 +366,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         type="button"
                         onClick={handleSuggestReply}
                         disabled={suggesting || !keyword.trim()}
-                        className="text-[11px] font-medium text-orange hover:text-orange/80 disabled:opacity-50 flex items-center gap-1"
+                        className="text-[11px] font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1"
                       >
                         {suggesting ? (
                           <Loader2 className="size-3 animate-spin" />
@@ -382,7 +382,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       onChange={(e) => setReply(e.target.value)}
                       placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل..."
                       rows={3}
-                      className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
                     <p className="text-[10px] text-muted-foreground">
                       اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
@@ -404,7 +404,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                           name: p.name_ar,
                           price: String(p.price),
                           desc: (p.features || [])[0] || "",
-                          color: p.id === plans[1]?.id ? "border-orange/40" : "border-border/40",
+                          color: p.id === plans[1]?.id ? "border-accent-foreground/40" : "border-border/40",
                         }))
                       : [
                           { name: "…", price: "…", desc: "جاري التحميل", color: "border-border/40" },
@@ -415,7 +415,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         className={`rounded-xl border-2 p-3 text-center ${plan.color}`}
                       >
                         <p className="text-xs font-bold">{plan.name}</p>
-                        <p className="text-lg font-bold text-orange">{plan.price}</p>
+                        <p className="text-lg font-bold text-accent-foreground">{plan.price}</p>
                         <p className="text-[10px] text-muted-foreground">د.ل/شهر</p>
                         <p className="text-[10px] text-muted-foreground mt-1">{plan.desc}</p>
                       </div>
@@ -458,7 +458,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         onClick={() => router.push(item.href)}
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors"
                       >
-                        <item.icon className="size-4 text-orange" />
+                        <item.icon className="size-4 text-accent-foreground" />
                         <span className="text-[10px] font-medium">{item.label}</span>
                       </button>
                     ))}
@@ -495,7 +495,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <Button
               onClick={handleNext}
               loading={loading}
-              className="gap-1.5 shadow-md shadow-orange/20"
+              className="gap-1.5 shadow-md shadow-accent-foreground/20"
             >
               {loading ? (
                 <Loader2 className="size-3 animate-spin" />

@@ -35,7 +35,7 @@ interface NotificationItem {
 
 const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string; label: string }> = {
   payment: { icon: CreditCard, color: "text-yellow-500", label: "دفع" },
-  reply: { icon: MessageSquare, color: "text-orange", label: "رد" },
+  reply: { icon: MessageSquare, color: "text-accent-foreground", label: "رد" },
   support: { icon: MessageCircle, color: "text-blue-500", label: "دعم" },
   marketing: { icon: TrendingUp, color: "text-green-500", label: "تسويق" },
   system: { icon: Rocket, color: "text-purple-500", label: "نظام" },
@@ -60,7 +60,7 @@ const TOGGLES = [
     label: "تعليقات جديدة",
     desc: "عند إضافة تعليق جديد على منشوراتك",
     icon: MessageSquare,
-    color: "text-orange",
+    color: "text-accent-foreground",
   },
   {
     key: "new_messages",
@@ -95,7 +95,7 @@ const TOGGLES = [
     label: "تقارير التسويق",
     desc: "ملخصات دورية لأداء حملاتك",
     icon: TrendingUp,
-    color: "text-orange",
+    color: "text-accent-foreground",
   },
 ]
 
@@ -193,10 +193,10 @@ export default function NotificationsPage() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-sm flex items-center gap-2">
-                <BellRing className="size-4 text-orange" />
+                <BellRing className="size-4 text-accent-foreground" />
                 الإشعارات الأخيرة
                 {unread > 0 && (
-                  <span className="text-[10px] font-bold bg-orange text-white rounded-full px-2 py-0.5 min-w-5 text-center">
+                  <span className="text-[10px] font-bold bg-primary text-white rounded-full px-2 py-0.5 min-w-5 text-center">
                     {unread}
                   </span>
                 )}
@@ -244,7 +244,7 @@ export default function NotificationsPage() {
                       key={n.id}
                       className={[
                         "transition-all cursor-pointer",
-                        n.read ? "opacity-70 border-border/40" : "border-orange/25 bg-orange/[0.02]",
+                        n.read ? "opacity-70 border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
                       ].join(" ")}
                       onClick={() => {
                         if (!n.read) markOneMutation.mutate(n.id)
@@ -252,13 +252,13 @@ export default function NotificationsPage() {
                       }}
                     >
                       <CardContent className="p-4 flex items-start gap-3.5">
-                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? "bg-muted" : "bg-orange/10"}`}>
+                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? "bg-muted" : "bg-accent-foreground/10"}`}>
                           <Icon className={`size-4.5 ${meta.color}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-bold truncate">{n.title}</p>
-                            {!n.read && <span className="size-2 rounded-full bg-orange shrink-0" />}
+                            {!n.read && <span className="size-2 rounded-full bg-primary shrink-0" />}
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                           <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.created_at)}</p>
@@ -295,7 +295,7 @@ export default function NotificationsPage() {
                   key={t.key}
                   className={[
                     "transition-all",
-                    on ? "border-orange/25" : "opacity-70 border-border/40",
+                    on ? "border-accent-foreground/25" : "opacity-70 border-border/40",
                     isPending && "opacity-60 pointer-events-none",
                   ]
                     .filter(Boolean)
@@ -312,7 +312,7 @@ export default function NotificationsPage() {
                   >
                     <div className="flex items-center gap-3.5">
                       <div
-                        className={`size-11 rounded-xl flex items-center justify-center ${on ? "bg-orange/10" : "bg-muted"}`}
+                        className={`size-11 rounded-xl flex items-center justify-center ${on ? "bg-accent-foreground/10" : "bg-muted"}`}
                       >
                         <Icon className={`size-5 ${t.color}`} />
                       </div>
@@ -323,7 +323,7 @@ export default function NotificationsPage() {
                     </div>
                     <span
                       aria-hidden="true"
-                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-orange" : "bg-muted-foreground/30"}`}
+                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-primary" : "bg-muted-foreground/30"}`}
                     >
                       <span
                         className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "start-[calc(100%-1.375rem)]" : "start-0.5"}`}

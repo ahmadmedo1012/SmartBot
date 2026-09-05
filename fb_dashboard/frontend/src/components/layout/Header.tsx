@@ -22,7 +22,7 @@ function HamburgerButton({ open, onClick }: { open: boolean; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-orange/20 transition-all duration-200 active:scale-90"
+      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-200 active:scale-90"
       aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
     >
       <span className="relative size-3.5">
@@ -108,7 +108,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
               <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
               <span className="text-sm font-medium tracking-tight text-foreground/80">SmartBot</span>
-              <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-orange/20 transition-colors active:scale-90" aria-label="إغلاق"><X className="size-4" /></button>
+              <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-90" aria-label="إغلاق"><X className="size-4" /></button>
             </div>
             <nav className="px-4 py-4 space-y-1">
               {landingLinks.map((link, i) => {
@@ -124,7 +124,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
                   >
                     <Link href={link.href} onClick={onClose}
                       aria-current={linkActive ? "page" : undefined}
-                      className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200", linkActive ? "bg-orange/15 text-orange" : "text-muted-foreground hover:bg-orange/10 hover:text-foreground")}
+                      className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200", linkActive ? "bg-accent-foreground/15 text-accent-foreground" : "text-muted-foreground hover:bg-accent-foreground/10 hover:text-foreground")}
                     >
                       {link.label}
                     </Link>
@@ -179,7 +179,7 @@ export function Header({ className }: HeaderProps) {
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
             <Link href="/" className="flex items-center gap-2 shrink-0 group">
               <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
-              <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-orange transition-colors duration-200" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
+              <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-accent-foreground transition-colors duration-200" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
             </Link>
           </div>
 
@@ -203,7 +203,7 @@ export function Header({ className }: HeaderProps) {
                       {linkActive && (
                         <motion.div
                           layoutId="tubelight"
-                          className="absolute inset-0 -z-10 rounded-full bg-orange shadow-lg"
+                          className="absolute inset-0 -z-10 rounded-full bg-primary shadow-lg"
                           style={{
                             boxShadow: "0 0 18px 3px rgba(251,146,60,0.35), 0 0 6px rgba(251,146,60,0.15)",
                             willChange: "transform, opacity",

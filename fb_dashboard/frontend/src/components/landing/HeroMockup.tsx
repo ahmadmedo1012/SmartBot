@@ -26,7 +26,7 @@ export function HeroMockup() {
       className="relative"
     >
       {/* Soft glow under the mockup */}
-      <div className="absolute -inset-12 bg-orange/10 blur-3xl rounded-[40%]" aria-hidden="true" />
+      <div className="absolute -inset-12 bg-accent-foreground/10 blur-3xl rounded-[40%]" aria-hidden="true" />
 
       {/* Floating stat card — top right */}
       <motion.div
@@ -36,12 +36,12 @@ export function HeroMockup() {
         className="absolute -top-6 -right-2 sm:right-4 z-20 glass-strong rounded-2xl p-3 sm:p-4 shadow-xl min-w-[180px]"
       >
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="size-7 rounded-lg bg-orange/15 flex items-center justify-center">
-            <TrendingUp className="size-3.5 text-orange" />
+          <div className="size-7 rounded-lg bg-accent-foreground/15 flex items-center justify-center">
+            <TrendingUp className="size-3.5 text-accent-foreground" />
           </div>
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">التفاعل</span>
         </div>
-        <div className="text-2xl font-bold text-orange leading-none mb-1">+٢٨٪</div>
+        <div className="text-2xl font-bold text-accent-foreground leading-none mb-1">+٢٨٪</div>
         <div className="text-[11px] text-muted-foreground">هذا الأسبوع</div>
       </motion.div>
 
@@ -53,18 +53,18 @@ export function HeroMockup() {
         className="absolute -bottom-4 -left-2 sm:left-2 z-20 glass-strong rounded-2xl p-3 sm:p-4 shadow-xl"
       >
         <div className="flex items-center gap-2.5">
-          <div className="size-9 rounded-xl bg-gradient-to-br from-orange to-orange/70 flex items-center justify-center shadow-md">
+          <div className="size-9 rounded-xl bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shadow-md">
             <Bot className="size-4.5 text-white" />
           </div>
           <div>
             <div className="text-[10px] text-muted-foreground font-medium">الردود الذكية</div>
-            <div className="text-sm font-bold leading-tight">١٬٢٤٧ <span className="text-orange text-xs">اليوم</span></div>
+            <div className="text-sm font-bold leading-tight">١٬٢٤٧ <span className="text-accent-foreground text-xs">اليوم</span></div>
           </div>
         </div>
       </motion.div>
 
       {/* Main mockup card — chat conversation */}
-      <div className="relative glass-strong rounded-3xl p-1 shadow-2xl shadow-orange/5">
+      <div className="relative glass-strong rounded-3xl p-1 shadow-2xl shadow-accent-foreground/5">
         <div className="rounded-[20px] bg-card/80 backdrop-blur-xl border border-border/50 overflow-hidden">
           {/* Window header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/20">
@@ -80,8 +80,8 @@ export function HeroMockup() {
               <span className="text-[10px] font-semibold text-muted-foreground">نشط الآن</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Sparkles className="size-3 text-orange" />
-              <span className="text-[10px] font-semibold text-orange">AI</span>
+              <Sparkles className="size-3 text-accent-foreground" />
+              <span className="text-[10px] font-semibold text-accent-foreground">AI</span>
             </div>
           </div>
 
@@ -96,11 +96,11 @@ export function HeroMockup() {
                 className={`flex gap-2.5 ${msg.from === "user" ? "flex-row" : "flex-row-reverse"}`}
               >
                 {msg.from === "user" ? (
-                  <div className="size-8 rounded-full bg-gradient-to-br from-orange/20 to-orange/5 border border-orange/20 flex items-center justify-center text-[11px] font-bold text-orange shrink-0">
+                  <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground/20 to-accent-foreground/5 border border-accent-foreground/20 flex items-center justify-center text-[11px] font-bold text-accent-foreground shrink-0">
                     {msg.avatar}
                   </div>
                 ) : (
-                  <div className="size-8 rounded-full bg-gradient-to-br from-orange to-orange/70 flex items-center justify-center shrink-0 shadow-md shadow-orange/20">
+                  <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0 shadow-md shadow-accent-foreground/20">
                     <Bot className="size-4 text-white" />
                   </div>
                 )}
@@ -113,7 +113,7 @@ export function HeroMockup() {
                     className={`px-3.5 py-2 rounded-2xl text-[12.5px] leading-relaxed max-w-[85%] ${
                       msg.from === "user"
                         ? "bg-muted/60 text-foreground/90 rounded-tr-sm"
-                        : "bg-gradient-to-br from-orange to-orange/85 text-white rounded-tl-sm shadow-sm"
+                        : "bg-gradient-to-br from-accent-foreground to-accent-foreground/85 text-white rounded-tl-sm shadow-sm"
                     }`}
                   >
                     {msg.text}
@@ -129,13 +129,13 @@ export function HeroMockup() {
               transition={{ delay: 2.0 }}
               className="flex gap-2.5 flex-row-reverse"
             >
-              <div className="size-8 rounded-full bg-gradient-to-br from-orange to-orange/70 flex items-center justify-center shrink-0">
+              <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0">
                 <Bot className="size-4 text-white" />
               </div>
-              <div className="bg-gradient-to-br from-orange/10 to-orange/5 border border-orange/20 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="size-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="size-1.5 rounded-full bg-orange animate-bounce" style={{ animationDelay: "300ms" }} />
+              <div className="bg-gradient-to-br from-accent-foreground/10 to-accent-foreground/5 border border-accent-foreground/20 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </motion.div>
           </div>
@@ -152,7 +152,7 @@ export function HeroMockup() {
                   className="text-center"
                 >
                   <div className="flex items-center justify-center gap-1 mb-0.5">
-                    <stat.icon className="size-3 text-orange" />
+                    <stat.icon className="size-3 text-accent-foreground" />
                     <span className="text-[9px] text-muted-foreground font-medium">{stat.label}</span>
                   </div>
                   <div className="text-sm font-bold leading-none">{stat.value}</div>

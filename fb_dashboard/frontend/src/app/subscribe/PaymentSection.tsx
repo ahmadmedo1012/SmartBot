@@ -31,7 +31,7 @@ export function ReviewSummary({
 }) {
   return (
     <div className="animate-fade-in max-w-lg mx-auto">
-      <div className="rounded-md p-5 mb-8 border-2 border-orange/30 bg-gradient-to-r from-orange-muted/80 to-white dark:from-orange-muted/20 dark:to-card">
+      <div className="rounded-md p-5 mb-8 border-2 border-accent-foreground/30 bg-gradient-to-r from-accent/80 to-white dark:from-accent/20 dark:to-card">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-lg">{currentPlan.nameAr}</p>

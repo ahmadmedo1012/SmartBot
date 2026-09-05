@@ -8,11 +8,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         orange:
-          "bg-orange text-orange-foreground hover:bg-orange/95 shadow-md shadow-orange/25 hover:shadow-xl hover:shadow-orange/40 border-0 dark:shadow-orange/35 dark:hover:shadow-orange/50",
+          "bg-primary text-primary-foreground hover:bg-primary/95 active:bg-primary/90 shadow-md shadow-accent-foreground/25 hover:shadow-xl hover:shadow-accent-foreground/40 border-0 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50",
         flame:
-          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 shadow-md shadow-orange/30 hover:shadow-2xl hover:shadow-orange/45 border-0 dark:hover:brightness-110",
+          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 shadow-md shadow-accent-foreground/30 hover:shadow-2xl hover:shadow-accent-foreground/45 border-0 dark:hover:brightness-110",
         outline:
-          "border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-orange/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-orange/35",
+          "border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35",
         ghost:
           "bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 border-transparent dark:hover:bg-foreground/15",
         destructive:

@@ -80,7 +80,7 @@ export default function AuthGuard({
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-orange border-t-transparent" />
+          <div className="size-8 animate-spin rounded-full border-2 border-accent-foreground border-t-transparent" />
           <span className="text-sm text-muted-foreground">جاري التحميل...</span>
         </div>
       </div>

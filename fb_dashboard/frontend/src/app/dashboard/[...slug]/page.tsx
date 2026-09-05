@@ -95,9 +95,9 @@ function PageNotFound({ slug }: { slug: string }) {
     <SectionContainer className="py-16">
       <div className="mx-auto max-w-md text-center">
         <div className="relative mx-auto mb-6 size-20">
-          <div className="absolute inset-0 rounded-full bg-orange-muted" />
-          <div className="absolute inset-0 m-4 rounded-full border-2 border-dashed border-orange/40 rotate-12" />
-          <HelpCircle className="absolute inset-0 m-auto size-8 text-orange" />
+          <div className="absolute inset-0 rounded-full bg-accent" />
+          <div className="absolute inset-0 m-4 rounded-full border-2 border-dashed border-accent-foreground/40 rotate-12" />
+          <HelpCircle className="absolute inset-0 m-auto size-8 text-accent-foreground" />
         </div>
         <h2 className="text-xl font-bold mb-2">هذا القسم غير متاح</h2>
         <p className="text-sm text-muted-foreground mb-1">

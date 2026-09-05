@@ -21,7 +21,7 @@ type Plan = ComparisonPlan
 // Map by plan name (not index) — survives plan reordering/adding.
 const PLAN_META: Record<string, { icon: typeof Sparkles; gradient: string; recommended?: boolean }> = {
   Free: { icon: Sparkles, gradient: "from-muted-foreground/60 to-muted-foreground/80" },
-  Basic: { icon: Star, gradient: "from-orange to-orange/80", recommended: true },
+  Basic: { icon: Star, gradient: "from-accent-foreground to-accent-foreground/80", recommended: true },
   Premium: { icon: Crown, gradient: "from-saffron to-primary" },
   Pro: { icon: Building2, gradient: "from-primary to-bloom" },
   Enterprise: { icon: Building2, gradient: "from-bloom to-primary" },
@@ -59,10 +59,10 @@ export function PlanSelector({
               onClick={() => onSelect(plan.id)}
               aria-pressed={isSelected}
               className={cn(
-                "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-300 border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-orange/60",
+                "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-300 border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
                 isSelected
-                  ? "border-orange ring-2 ring-orange/40 bg-orange-muted/50 dark:bg-orange-muted shadow-lg shadow-orange/15"
-                  : "border-border/30 hover:border-orange/30 hover:shadow-orange/5 bg-card/50",
+                  ? "border-accent-foreground ring-2 ring-accent-foreground/40 bg-accent/50 dark:bg-accent shadow-lg shadow-accent-foreground/15"
+                  : "border-border/30 hover:border-accent-foreground/30 hover:shadow-accent-foreground/5 bg-card/50",
               )}
             >
               {/* Selection check — shape + position carry the state alongside color (a11y) */}
@@ -70,7 +70,7 @@ export function PlanSelector({
                 aria-hidden={!isSelected}
                 className={cn(
                   "absolute -top-2 -end-2 size-6 rounded-full flex items-center justify-center shadow-lg transition-opacity duration-200",
-                  isSelected ? "bg-orange opacity-100" : "bg-border/60 opacity-0 pointer-events-none",
+                  isSelected ? "bg-primary opacity-100" : "bg-border/60 opacity-0 pointer-events-none",
                 )}
               >
                 <MotionCheck className="size-3.5 text-white" />

@@ -48,7 +48,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
       aria-current={selected ? "true" : undefined}
       className={`group w-full text-right p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
         ${selected
-          ? "bg-gradient-to-l from-orange/15 to-orange/5 border-r-[3px] border-r-orange"
+          ? "bg-gradient-to-l from-accent-foreground/15 to-accent-foreground/5 border-r-[3px] border-r-orange"
           : "hover:bg-muted/40 border-r-[3px] border-r-transparent"}`}
     >
       <div className="flex gap-3 items-start">
@@ -60,7 +60,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
             {initials(conv.senders?.[0]?.name)}
           </div>
           {hasUnread && (
-            <span className="absolute -top-0.5 -end-0.5 size-3 rounded-full bg-orange ring-2 ring-card animate-pulse-dot" />
+            <span className="absolute -top-0.5 -end-0.5 size-3 rounded-full bg-primary ring-2 ring-card animate-pulse-dot" />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -76,7 +76,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-[11px] text-muted-foreground">{conv.message_count} رسالة</span>
             {hasUnread && (
-              <span className="inline-flex items-center justify-center text-[10px] h-4 min-w-[18px] px-1.5 rounded-full bg-orange text-orange-foreground font-bold">
+              <span className="inline-flex items-center justify-center text-[10px] h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
                 {conv.unread_count}
               </span>
             )}
@@ -163,7 +163,7 @@ export default function MessagesPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="بحث في المحادثات..."
-                className="pr-9 h-9 text-sm border-border/60 focus:border-orange/40 focus:ring-orange/20"
+                className="pr-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
               />
             </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -172,9 +172,9 @@ export default function MessagesPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={cn(
-                    "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-orange/40",
+                    "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40",
                     filter === f.value
-                      ? "bg-gradient-to-l from-orange to-orange/80 text-orange-foreground shadow-sm shadow-orange/20 font-medium"
+                      ? "bg-gradient-to-l from-accent-foreground to-accent-foreground/80 text-primary-foreground shadow-sm shadow-accent-foreground/20 font-medium"
                       : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
@@ -198,8 +198,8 @@ export default function MessagesPage() {
               </div>
             ) : needsSetup ? (
               <div className="p-8 text-center space-y-4">
-                <div className="size-16 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto">
-                  <Link2 className="size-8 text-orange" />
+                <div className="size-16 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto">
+                  <Link2 className="size-8 text-accent-foreground" />
                 </div>
                 <div>
                   <p className="text-sm font-bold mb-1">اربط صفحتك بفيسبوك</p>
@@ -287,7 +287,7 @@ export default function MessagesPage() {
                     return (
                       <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
                         <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
-                          isPage ? "bg-muted rounded-tr-sm" : "bg-orange text-orange-foreground rounded-tl-sm"
+                          isPage ? "bg-muted rounded-tr-sm" : "bg-primary text-primary-foreground rounded-tl-sm"
                         }`}>
                           {/* v4 §4.11 — attachments/stickers are persisted now;
                               render them instead of an empty text bubble */}
@@ -306,7 +306,7 @@ export default function MessagesPage() {
                           {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
                             <p className="opacity-50">مرفق غير مدعوم</p>
                           )}
-                          <p className={`text-[10px] mt-1 ${isPage ? "text-muted-foreground" : "text-orange-foreground/70"}`}>
+                          <p className={`text-[10px] mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
                             {msg.created_time ? new Date(msg.created_time).toLocaleString("ar-LY") : ""}
                           </p>
                         </div>
@@ -319,7 +319,7 @@ export default function MessagesPage() {
 
               <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">
                 <div className="flex gap-2 items-end">
-                  <Button onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending} className="shrink-0 shadow-sm shadow-orange/15">
+                  <Button onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending} className="shrink-0 shadow-sm shadow-accent-foreground/15">
                     <Send className="size-4" />
                   </Button>
                   <div className="flex-1 relative">
@@ -328,7 +328,7 @@ export default function MessagesPage() {
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً..."
-                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
+                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}
                     />
                   </div>

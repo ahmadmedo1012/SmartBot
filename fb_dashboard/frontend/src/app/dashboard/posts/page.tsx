@@ -80,7 +80,7 @@ export default function PostsPage() {
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
               placeholder="اكتب منشوراً جديداً..."
-              className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange/30 resize-none"
+              className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex justify-end mt-3">
               <Button

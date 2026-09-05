@@ -40,15 +40,15 @@ export function EmptyState({
   action,
   secondaryAction,
   className,
-  iconClassName = "text-orange",
-  iconBgClassName = "bg-orange/10",
+  iconClassName = "text-accent-foreground",
+  iconBgClassName = "bg-accent-foreground/10",
   size = "md",
 }: EmptyStateProps) {
   const s = SIZE_MAP[size]
   return (
     <div className={cn("flex flex-col items-center justify-center text-center px-6", s.wrapper, className)}>
       {Icon || iconNode ? (
-        <div className={cn("rounded-2xl border border-orange/20 bg-orange/8 flex items-center justify-center mb-4 shadow-sm", s.iconBg, iconBgClassName)}>
+        <div className={cn("rounded-2xl border border-accent-foreground/20 bg-accent-foreground/8 flex items-center justify-center mb-4 shadow-sm", s.iconBg, iconBgClassName)}>
           {Icon ? (
             <Icon className={cn(s.icon, iconClassName)} />
           ) : (
@@ -62,7 +62,7 @@ export function EmptyState({
       )}
       {action && (
         <div className="flex gap-2 flex-wrap justify-center">
-          <Button size="sm" onClick={action.onClick} className="shadow-sm shadow-orange/15">
+          <Button size="sm" onClick={action.onClick} className="shadow-sm shadow-accent-foreground/15">
             {action.icon && <action.icon className="size-3.5" />}
             {action.label}
           </Button>

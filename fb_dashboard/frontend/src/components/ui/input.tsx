@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react"
 
 /* Smart-Menu parity (world-class launch plan v3 §6.1):
- * h-12 touch height, rounded-lg, dir=auto, focus ring glow + border-orange,
+ * h-12 touch height, rounded-lg, dir=auto, focus ring glow + border-accent-foreground,
  * optional state icons (success/warning/error) — legacy label/hint/error API
  * preserved for existing call sites. */
 
@@ -44,7 +44,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             dir="auto"
             className={cn(
-              "flex h-12 w-full min-w-0 rounded-lg border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:border-orange focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_oklch(0.55_0.19_45_/_0.12)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
+              "flex h-12 w-full min-w-0 rounded-lg border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_oklch(0.55_0.19_45_/_0.12)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
               startIcon && "ps-11",
               StateIcon && "pe-11",
               effectiveState === "error" && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",

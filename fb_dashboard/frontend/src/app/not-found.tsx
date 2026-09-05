@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="text-center max-w-md">
         <div className="mb-6">
-          <h1 className="text-7xl font-bold bg-gradient-to-br from-orange to-orange/80 bg-clip-text text-transparent">
+          <h1 className="text-7xl font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 bg-clip-text text-transparent">
             404
           </h1>
         </div>
@@ -16,7 +16,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center h-10 px-4 rounded-sm bg-orange hover:bg-orange text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center justify-center h-10 px-4 rounded-sm bg-primary hover:bg-primary text-white text-sm font-medium transition-colors"
           >
             الصفحة الرئيسية
           </Link>

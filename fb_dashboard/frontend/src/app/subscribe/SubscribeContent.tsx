@@ -117,7 +117,7 @@ export default function SubscribeContent() {
     )
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-orange-muted/20 to-background dark:via-orange-muted/10">
+    <div className="min-h-screen bg-gradient-to-b from-background via-accent/20 to-background dark:via-accent/10">
       <SectionContainer className="py-12">
         <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="size-4" /> العودة للوحة التحكم

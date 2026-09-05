@@ -36,6 +36,10 @@ interface AdminSidebarProps {
   onLogout?: () => void
   onSubscribe?: () => void
   className?: string
+  /** v4 plan §3.2 — demo mode: drive the active indicator from an external
+   * href (the public /demo page switches tabs without changing the URL).
+   * Unset → real pathname, exactly as before. */
+  activeHref?: string
 }
 function isActiveItem(href: string | undefined, pathname: string): boolean {
   if (!href) return false
@@ -101,6 +105,7 @@ export function AdminSidebar({
   onLogout,
   onSubscribe,
   className,
+  activeHref,
 }: AdminSidebarProps) {
   const pathname = usePathname() ?? ""
 
@@ -135,7 +140,7 @@ export function AdminSidebar({
             </p>
             <div className="space-y-0.5">
               {section.items.map((item, ii) => {
-                const active = isActiveItem(item.href, pathname)
+                const active = isActiveItem(item.href, activeHref ?? pathname)
                 return (
                   <motion.div
                     key={ii}
@@ -151,25 +156,25 @@ export function AdminSidebar({
                     aria-label={item.label}
                     className={cn(
                       "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow] duration-200 outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-orange/60",
+                      "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
                       /* Active/hover treatment unified with Smart-Menu NavLink:
                          soft orange tint + end-side spring indicator, not a solid fill */
                       active
-                        ? "bg-orange/12 text-foreground shadow-xs"
-                        : "text-muted-foreground hover:bg-orange/8 hover:text-foreground"
+                        ? "bg-accent-foreground/12 text-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-accent-foreground/8 hover:text-foreground"
                     )}
                   >
                     {active && (
                       <motion.span
                         layoutId="activeNavIndicator"
-                        className="absolute end-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-orange"
+                        className="absolute end-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-primary"
                         transition={{ type: "spring", stiffness: 400, damping: 28 }}
                         aria-hidden="true"
                       />
                     )}
                     <item.icon className={cn(
                       "size-4 shrink-0 transition-[color,transform,translate,scale,rotate,filter] duration-200",
-                      active && "text-orange",
+                      active && "text-accent-foreground",
                       !active && "group-hover:scale-110 group-hover:text-primary/70 group-hover:drop-shadow-sm"
                     )} />
                     <span className="truncate flex-1">{item.label}</span>
@@ -178,7 +183,7 @@ export function AdminSidebar({
                         variant={active ? "outline" : "info"}
                         className={cn(
                           "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
-                          active && "border-orange/40 text-orange"
+                          active && "border-accent-foreground/40 text-accent-foreground"
                         )}
                       >
                         {item.badge}
@@ -197,14 +202,14 @@ export function AdminSidebar({
         {onSubscribe && (
           <button
             onClick={onSubscribe}
-            className="group flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-gradient-to-l from-orange to-orange/85 text-orange-foreground text-sm font-semibold hover:brightness-110 hover:shadow-lg hover:shadow-orange/20 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-orange/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            className="group flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-gradient-to-l from-accent-foreground to-accent-foreground/85 text-primary-foreground text-sm font-semibold hover:brightness-110 hover:shadow-lg hover:shadow-accent-foreground/20 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             <Sparkles className="size-4 transition-transform duration-200 group-hover:rotate-12" /> اشتراك
           </button>
         )}
         <button
           onClick={onLogout}
-          className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-orange/60"
+          className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
         >
           <LogOut className="size-4" /> تسجيل الخروج
         </button>

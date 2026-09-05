@@ -46,7 +46,7 @@ const STATUS_STYLE: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   scheduled: "bg-blue-500/10 text-blue-500",
   sent: "bg-green-500/10 text-green-600",
-  sending: "bg-orange/10 text-orange",
+  sending: "bg-accent-foreground/10 text-accent-foreground",
   failed: "bg-red-500/10 text-red-500",
 }
 
@@ -185,8 +185,8 @@ export default function MarketingPage() {
                         onClick={() => setForm((f) => ({ ...f, audience: a.value }))}
                         className={`p-3 rounded-lg border-2 text-right transition-all ${
                           form.audience === a.value
-                            ? "border-orange bg-orange/5"
-                            : "border-border/50 hover:border-orange/30"
+                            ? "border-accent-foreground bg-accent-foreground/5"
+                            : "border-border/50 hover:border-accent-foreground/30"
                         }`}
                       >
                         <p className="text-xs font-bold flex items-center gap-1.5">

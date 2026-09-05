@@ -93,8 +93,8 @@ export default function CommentsPage() {
               <Card key={c.id}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="size-9 rounded-full bg-orange/10 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-orange">{c.from_name?.[0] || "?"}</span>
+                    <div className="size-9 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-accent-foreground">{c.from_name?.[0] || "?"}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -107,7 +107,7 @@ export default function CommentsPage() {
                       <p className="text-sm mb-2">{c.message}</p>
 
                       {c.reply_text && (
-                        <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-r-2 border-orange">
+                        <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-r-2 border-accent-foreground">
                           <p className="text-[11px] text-muted-foreground mb-1">الرد:</p>
                           <p>{c.reply_text}</p>
                         </div>
@@ -119,7 +119,7 @@ export default function CommentsPage() {
                             value={replyText[c.id] || ""}
                             onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
                             placeholder="رد سريع..."
-                            className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-orange/30"
+                            className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />
                           <Button
                             size="sm"

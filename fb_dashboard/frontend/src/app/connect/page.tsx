@@ -95,7 +95,7 @@ export default function ConnectPage() {
   if (loadingExisting) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-orange" />
+        <Loader2 className="h-8 w-8 animate-spin text-accent-foreground" />
       </div>
     )
   }
@@ -107,7 +107,7 @@ export default function ConnectPage() {
     const allOk = secretOk && messagesOk && feedOk
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-orange/20 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl">
+        <Card className="w-full max-w-md border-accent-foreground/20 bg-card/80 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
               <Check className="h-8 w-8 text-success" />
@@ -128,7 +128,7 @@ export default function ConnectPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-muted-foreground"><Webhook className="size-3.5" /> عنوان الويبهوك</span>
                   <button
-                    className="flex items-center gap-1.5 font-mono text-[11px] text-foreground hover:text-orange transition-colors"
+                    className="flex items-center gap-1.5 font-mono text-[11px] text-foreground hover:text-accent-foreground transition-colors"
                     onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); toast.success("تم نسخ عنوان الويبهوك") }}
                   >
                     {wh.webhook_url} <Copy className="size-3" />
@@ -157,7 +157,7 @@ export default function ConnectPage() {
                   </span>
                 </div>
                 {(!secretOk || !messagesOk || !feedOk) && (
-                  <div className="rounded-md bg-orange/10 border border-orange/20 p-2.5 text-[11px] leading-relaxed text-foreground/80">
+                  <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-[11px] leading-relaxed text-foreground/80">
                     سجّل في <span className="font-medium">developers.facebook.com → تطبيقك → Webhooks → Page</span> بالعنوان أعلاه،
                     واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
                     بدون ذلك لا تصل الرسائل/التعليقات لحظيًا ولن يرد البوت تلقائيًا.
@@ -181,16 +181,16 @@ export default function ConnectPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-orange-muted/20 to-background dark:from-zinc-900 dark:via-zinc-900 dark:to-background">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-accent/20 to-background dark:from-zinc-900 dark:via-zinc-900 dark:to-background">
       {/* Floating shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -right-48 -top-48 h-72 w-72 animate-float rounded-full bg-gradient-to-br from-orange/15 to-orange/5 blur-3xl" />
-        <div className="absolute -bottom-48 -left-48 h-96 w-96 animate-float-delayed rounded-full bg-gradient-to-br from-orange/10 to-orange/5 blur-3xl" style={{ animationDelay: "-2s" }} />
-        <div className="absolute left-1/3 top-1/2 h-48 w-48 animate-float rounded-full bg-gradient-to-br from-orange/15 to-transparent blur-2xl" style={{ animationDelay: "-4s" }} />
+        <div className="absolute -right-48 -top-48 h-72 w-72 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 blur-3xl" />
+        <div className="absolute -bottom-48 -left-48 h-96 w-96 animate-float-delayed rounded-full bg-gradient-to-br from-accent-foreground/10 to-accent-foreground/5 blur-3xl" style={{ animationDelay: "-2s" }} />
+        <div className="absolute left-1/3 top-1/2 h-48 w-48 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-transparent blur-2xl" style={{ animationDelay: "-4s" }} />
       </div>
 
       {/* Top gradient bar */}
-      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-orange via-orange/80 to-orange/60" />
+      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-accent-foreground via-accent-foreground/80 to-accent-foreground/60" />
 
       {/* Header */}
       <div className="fixed left-4 right-4 top-4 z-10 flex items-center justify-between">
@@ -207,9 +207,9 @@ export default function ConnectPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.2, 1] }}
         >
-          <Card className="border-orange/20 bg-card/85 shadow-2xl shadow-orange/10 backdrop-blur-2xl backdrop-saturate-150">
+          <Card className="border-accent-foreground/20 bg-card/85 shadow-2xl shadow-accent-foreground/10 backdrop-blur-2xl backdrop-saturate-150">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange to-orange/70 text-white shadow-lg shadow-orange/30">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/70 text-white shadow-lg shadow-accent-foreground/30">
                 <span className="text-3xl font-bold">f</span>
               </div>
               <CardTitle className="text-2xl">ربط صفحة فيسبوك</CardTitle>
@@ -220,16 +220,16 @@ export default function ConnectPage() {
             <CardContent className="space-y-6">
               {/* Info badges */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-orange/20 bg-orange/5 p-3 text-center transition-all duration-200 hover:border-orange/40 hover:bg-orange/10">
-                  <MessageCircle className="h-5 w-5 text-orange transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <MessageCircle className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
                   <span className="text-[11px] font-medium text-foreground/80">ردود تلقائية</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-orange/20 bg-orange/5 p-3 text-center transition-all duration-200 hover:border-orange/40 hover:bg-orange/10">
-                  <Zap className="h-5 w-5 text-orange transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <Zap className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
                   <span className="text-[11px] font-medium text-foreground/80">بوت ذكي</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-orange/20 bg-orange/5 p-3 text-center transition-all duration-200 hover:border-orange/40 hover:bg-orange/10">
-                  <Shield className="h-5 w-5 text-orange transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <Shield className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
                   <span className="text-[11px] font-medium text-foreground/80">بيانات مشفرة</span>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function ConnectPage() {
               {/* Page ID */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">معرف الصفحة (Page ID)</Label>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
                     dir="ltr"
                     placeholder="123456789012345"
@@ -253,7 +253,7 @@ export default function ConnectPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium">رمز الوصول (Access Token)</Label>
                 </div>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
                     dir="ltr"
                     type="password"
@@ -264,7 +264,7 @@ export default function ConnectPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  التوكن يحتاج الصلاحيات: <code className="text-orange/80 bg-orange/10 px-1 rounded">pages_messaging</code>, <code className="text-orange/80 bg-orange/10 px-1 rounded">pages_manage_metadata</code>, <code className="text-orange/80 bg-orange/10 px-1 rounded">pages_read_engagement</code>
+                  التوكن يحتاج الصلاحيات: <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_messaging</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_manage_metadata</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_read_engagement</code>
                 </p>
               </div>
 
@@ -307,7 +307,7 @@ export default function ConnectPage() {
                   )}
                 </Button>
                 <Button
-                  className="flex-1 h-12 rounded-xl shadow-lg shadow-orange/25 hover:shadow-orange/40"
+                  className="flex-1 h-12 rounded-xl shadow-lg shadow-accent-foreground/25 hover:shadow-accent-foreground/40"
                   disabled={status !== "saving" && fanCount === 0}
                   onClick={handleSave}
                 >

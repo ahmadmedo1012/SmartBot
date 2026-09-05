@@ -150,7 +150,7 @@ export default function DashboardPage() {
             {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links) */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
               <KpiCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0}
-                trend={stats?.trend?.week} iconBg="bg-orange-muted" index={0}
+                trend={stats?.trend?.week} iconBg="bg-accent" index={0}
                 href="/dashboard/activity" />
               <KpiCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0}
                 trend={stats?.trend?.today} iconBg="bg-success/10" iconColor="text-success" index={1} />
@@ -160,14 +160,14 @@ export default function DashboardPage() {
                 href="/dashboard/messages" />
               <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length}
                 subtitle={`من ${toArabicNumber(rulesList.length)} قاعدة`}
-                iconBg="bg-orange-muted" index={3}
+                iconBg="bg-accent" index={3}
                 href="/dashboard/autoreply" />
             </div>
 
             {/* Secondary row — audience + persisted messages */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
               <KpiCard icon={Users} label="متابعو الصفحة" value={stats?.fan_count || 0}
-                iconBg="bg-orange-muted" index={4} />
+                iconBg="bg-accent" index={4} />
               <KpiCard icon={MessageCircle} label="الرسائل المخزنة" value={messages.total_messages || 0}
                 subtitle="تصل لحظيًا عبر الويبهوك" iconBg="bg-info/10" iconColor="text-info" index={5}
                 href="/dashboard/messages" />
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="size-4 text-orange" /> آخر الردود
+                      <MessageCircle className="size-4 text-accent-foreground" /> آخر الردود
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{r.commenter_name || r.commenter}</p>
                           <p className="text-xs text-muted-foreground truncate">{r.comment_text || r.text}</p>
-                          <p className="text-xs text-orange truncate">{r.reply_text || r.reply}</p>
+                          <p className="text-xs text-accent-foreground truncate">{r.reply_text || r.reply}</p>
                         </div>
                       </div>
                     )) : (
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Activity className="size-4 text-orange" /> قواعد الرد
+                      <Activity className="size-4 text-accent-foreground" /> قواعد الرد
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">

@@ -21,7 +21,7 @@ export default function AnalyticsPage() {
   })
 
   const stats = [
-    { label: "إجمالي الردود", value: data?.total_replies ?? "—", icon: MessageSquare, color: "bg-orange/10 text-orange" },
+    { label: "إجمالي الردود", value: data?.total_replies ?? "—", icon: MessageSquare, color: "bg-accent-foreground/10 text-accent-foreground" },
     { label: "ردود اليوم", value: data?.today_replies ?? "—", icon: Activity, color: "bg-blue-500/10 text-blue-500" },
     { label: "المعجبين", value: data?.fan_count ?? "—", icon: Users, color: "bg-green-500/10 text-green-500" },
     { label: "ذروة النشاط", value: data?.peak_hour != null ? `${data.peak_hour}:00` : "—", icon: Clock, color: "bg-purple-500/10 text-purple-500" },

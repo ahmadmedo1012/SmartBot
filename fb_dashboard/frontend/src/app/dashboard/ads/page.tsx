@@ -36,9 +36,9 @@ export default function AdsPage() {
         {/* Plan §4.5: Facebook Marketing API requires app review + business
             verification — show honest "coming soon" until approved. */}
         <Card>
-          <CardContent className="p-4 flex items-start gap-3.5 border border-orange/25 bg-orange/[0.03]">
-            <div className="size-10 rounded-xl bg-orange/10 flex items-center justify-center shrink-0">
-              <Target className="size-5 text-orange" />
+          <CardContent className="p-4 flex items-start gap-3.5 border border-accent-foreground/25 bg-primary/[0.03]">
+            <div className="size-10 rounded-xl bg-accent-foreground/10 flex items-center justify-center shrink-0">
+              <Target className="size-5 text-accent-foreground" />
             </div>
             <div>
               <p className="text-sm font-bold">إدارة الإعلانات — قريباً</p>

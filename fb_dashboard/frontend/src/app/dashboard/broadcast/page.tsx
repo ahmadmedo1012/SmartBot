@@ -81,7 +81,7 @@ export default function BroadcastPage() {
             <h1 className="font-bold text-sm">البث الجماعي</h1>
             <p className="text-[11px] text-muted-foreground">إرسال رسائل جماعية</p>
           </div>
-          <Button size="sm" className="ms-auto shadow-sm shadow-orange/15" onClick={() => setShowForm(v => !v)}>
+          <Button size="sm" className="ms-auto shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
             <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
           </Button>
         </div>

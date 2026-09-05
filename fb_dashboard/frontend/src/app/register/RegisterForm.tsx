@@ -79,7 +79,7 @@ function RegisterForm() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 sm:px-6">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-orange-muted/20 to-background" />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
       <FloatingShapes />
 
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
@@ -92,9 +92,9 @@ function RegisterForm() {
         <ThemeToggle />
       </div>
 
-      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--orange)] via-[var(--orange)]/80 to-[var(--orange)]/60" />
+      <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--accent-foreground)] via-[var(--accent-foreground)]/80 to-[var(--accent-foreground)]/60" />
 
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-orange/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             <img src="/brand-icon.png" alt="الربط الذكي" className="size-full object-contain drop-shadow-lg" />
@@ -107,7 +107,7 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -121,7 +121,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="email" type="email" autoComplete="email" placeholder="البريد الإلكتروني" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -135,7 +135,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -154,7 +154,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-sm font-medium">تأكيد كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="تأكيد كلمة المرور" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -176,7 +176,7 @@ function RegisterForm() {
                 {formError}
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-orange/20 hover:shadow-lg hover:shadow-orange/30" disabled={loading}>
+            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading}>
               {loading ? (
                 <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جاري إنشاء الحساب...</span>
               ) : (
@@ -186,7 +186,7 @@ function RegisterForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-xs text-orange/80 hover:text-orange transition-colors">
+            <Link href="/login" className="text-xs text-accent-foreground/80 hover:text-accent-foreground transition-colors">
               لديك حساب؟ تسجيل الدخول
             </Link>
           </div>

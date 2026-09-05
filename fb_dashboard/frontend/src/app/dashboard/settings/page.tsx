@@ -72,13 +72,13 @@ export default function SettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <User className="size-4 text-orange" /> معلومات الحساب
+                  <User className="size-4 text-accent-foreground" /> معلومات الحساب
                 </CardTitle>
                 <CardDescription>البيانات الأساسية لحسابك في SmartBot</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                  <div className="size-9 rounded-lg bg-orange/10 text-orange flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-accent-foreground/10 text-accent-foreground flex items-center justify-center shrink-0">
                     <User className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -112,13 +112,13 @@ export default function SettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Lock className="size-4 text-orange" /> الأمان
+                  <Lock className="size-4 text-accent-foreground" /> الأمان
                 </CardTitle>
                 <CardDescription>إعدادات المصادقة والحماية</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
-                  <div className="size-9 rounded-lg bg-orange/10 text-orange flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-accent-foreground/10 text-accent-foreground flex items-center justify-center shrink-0">
                     <Lock className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">

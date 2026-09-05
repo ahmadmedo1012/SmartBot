@@ -71,9 +71,9 @@ export default function PricingPage() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springDefault, delay: 0.05 }}
-          className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-orange/90 mb-6"
+          className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
         >
-          <Sparkles className="size-3 text-orange" />
+          <Sparkles className="size-3 text-accent-foreground" />
           خطط الأسعار
         </motion.div>
 
@@ -103,7 +103,7 @@ export default function PricingPage() {
             { icon: Users, text: "مجاني للأبد" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-1.5">
-              <item.icon className="size-3.5 text-orange" />
+              <item.icon className="size-3.5 text-accent-foreground" />
               <span>{item.text}</span>
             </div>
           ))}
@@ -120,7 +120,7 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(false)}
             className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all ${
-              !annual ? "bg-orange text-orange-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             شهري
@@ -128,12 +128,12 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(true)}
             className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
-              annual ? "bg-orange text-orange-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             سنوي
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-              annual ? "bg-orange-foreground/20 text-orange-foreground" : "bg-orange/15 text-orange"
+              annual ? "bg-primary-foreground/20 text-primary-foreground" : "bg-accent-foreground/15 text-accent-foreground"
             }`}>
               وفّر شهرين
             </span>
@@ -152,8 +152,8 @@ export default function PricingPage() {
         )}
         {loadState === "error" && (
           <div className="max-w-md mx-auto text-center py-16" role="alert">
-            <div className="size-14 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-4">
-              <Zap className="size-6 text-orange" />
+            <div className="size-14 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto mb-4">
+              <Zap className="size-6 text-accent-foreground" />
             </div>
             <p className="font-bold mb-1">تعذر تحميل الخطط</p>
             <p className="text-sm text-muted-foreground mb-5">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</p>
@@ -162,8 +162,8 @@ export default function PricingPage() {
         )}
         {loadState === "ok" && plans.length === 0 && (
           <div className="max-w-md mx-auto text-center py-16">
-            <div className="size-14 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="size-6 text-orange" />
+            <div className="size-14 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="size-6 text-accent-foreground" />
             </div>
             <p className="font-bold mb-1">لا توجد خطط منشورة حالياً</p>
             <p className="text-sm text-muted-foreground">تواصل مع الدعم لترتيب باقة تناسبك</p>
@@ -188,12 +188,12 @@ export default function PricingPage() {
                 <Card className={cn(
                   "relative h-full flex flex-col overflow-hidden transition-all duration-500",
                   isPopular
-                    ? "border-orange/50 shadow-2xl shadow-orange/20 bg-gradient-to-b from-orange/[0.04] via-card to-card"
-                    : "border-border/50 hover:border-orange/30"
+                    ? "border-accent-foreground/50 shadow-2xl shadow-accent-foreground/20 bg-gradient-to-b from-accent-foreground/[0.04] via-card to-card"
+                    : "border-border/50 hover:border-accent-foreground/30"
                 )}>
                   {isPopular && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-orange to-orange/80 text-white text-[10px] font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
+                      <div className="bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white text-[10px] font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
                         <Crown className="size-3 fill-white" />
                         الأكثر شعبية
                       </div>
@@ -202,15 +202,15 @@ export default function PricingPage() {
 
                   {/* Decorative corner gradient for popular */}
                   {isPopular && (
-                    <div className="absolute -top-20 -end-20 size-48 rounded-full bg-orange/10 blur-3xl pointer-events-none" aria-hidden="true" />
+                    <div className="absolute -top-20 -end-20 size-48 rounded-full bg-accent-foreground/10 blur-3xl pointer-events-none" aria-hidden="true" />
                   )}
 
                   <CardHeader className="text-center relative pt-8">
                     <div className={cn(
                       "mx-auto size-12 rounded-xl flex items-center justify-center mb-3",
-                      isPopular ? "bg-orange/20" : "bg-orange/10"
+                      isPopular ? "bg-accent-foreground/20" : "bg-accent-foreground/10"
                     )}>
-                      <Icon className="size-6 text-orange" />
+                      <Icon className="size-6 text-accent-foreground" />
                     </div>
                     <CardTitle className="text-lg">{plan.name_ar || plan.name}</CardTitle>
                     <CardDescription className="text-sm text-muted-foreground">{getDescription(plan.id)}</CardDescription>
@@ -224,7 +224,7 @@ export default function PricingPage() {
                           <span className="text-4xl font-extrabold">مجاني</span>
                         ) : (
                           <>
-                            <span className="text-5xl font-extrabold tracking-tighter text-orange">
+                            <span className="text-5xl font-extrabold tracking-tighter text-accent-foreground">
                               {/* Smart-Menu parity: yearly billing = 10× monthly (two months free) */}
                               {annual ? Math.round(plan.price * 10 * 100) / 100 : plan.price}
                             </span>
@@ -236,7 +236,7 @@ export default function PricingPage() {
                         {plan.price === 0 ? "للأبد، بدون حدود زمنية" : annual ? "سنوياً" : "شهرياً"}
                       </div>
                       {annual && plan.price > 0 && (
-                        <div className="text-[11px] text-orange mt-0.5">
+                        <div className="text-[11px] text-accent-foreground mt-0.5">
                           وفر شهرين عند الاشتراك السنوي
                         </div>
                       )}
@@ -246,8 +246,8 @@ export default function PricingPage() {
                     <ul className="space-y-2.5 mb-6 flex-1 text-right">
                       {plan.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm">
-                          <div className="size-5 rounded-full bg-orange/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <Check className="size-3 text-orange" strokeWidth={3} />
+                          <div className="size-5 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="size-3 text-accent-foreground" strokeWidth={3} />
                           </div>
                           <span className="leading-relaxed">{f}</span>
                         </li>
@@ -259,7 +259,7 @@ export default function PricingPage() {
                       variant={isPopular ? "orange" : "outline"}
                       className={cn(
                         "w-full h-12 font-bold",
-                        isPopular && "shadow-lg shadow-orange/30"
+                        isPopular && "shadow-lg shadow-accent-foreground/30"
                       )}
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}
                     >

@@ -22,7 +22,7 @@ import { unwrapApi } from "@/lib/api"
 const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
   medium: "bg-blue-500/10 text-blue-500",
-  high: "bg-orange/10 text-orange",
+  high: "bg-accent-foreground/10 text-accent-foreground",
   urgent: "bg-red-500/10 text-red-500",
 }
 const PRIORITY_LABEL: Record<string, string> = {
@@ -201,7 +201,7 @@ export default function SupportPage() {
               <div className="space-y-3">
                 <a
                   href={`mailto:${email}`}
-                  className="flex items-center gap-3 text-sm hover:text-orange transition-colors"
+                  className="flex items-center gap-3 text-sm hover:text-accent-foreground transition-colors"
                 >
                   <Mail className="size-4 text-muted-foreground shrink-0" />
                   <span>{email}</span>
@@ -261,8 +261,8 @@ export default function SupportPage() {
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
                         className={`h-8 rounded-sm border text-xs font-medium transition-all ${
                           form.priority === p
-                            ? "border-orange bg-orange/10 text-orange"
-                            : "border-border/50 text-muted-foreground hover:border-orange/30"
+                            ? "border-accent-foreground bg-accent-foreground/10 text-accent-foreground"
+                            : "border-border/50 text-muted-foreground hover:border-accent-foreground/30"
                         }`}
                       >
                         {PRIORITY_LABEL[p]}
@@ -326,10 +326,10 @@ export default function SupportPage() {
         {/* My tickets (plan §4.3) */}
         <section>
           <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
-            <Ticket className="size-4 text-orange" />
+            <Ticket className="size-4 text-accent-foreground" />
             تذاكري
             {tickets.length > 0 && (
-              <span className="text-[10px] font-bold bg-orange/10 text-orange rounded-full px-2 py-0.5">
+              <span className="text-[10px] font-bold bg-accent-foreground/10 text-accent-foreground rounded-full px-2 py-0.5">
                 {tickets.length}
               </span>
             )}
@@ -393,7 +393,7 @@ export default function SupportPage() {
                                   key={r.id}
                                   className={`text-xs rounded-lg p-3 ${
                                     r.is_admin
-                                      ? "bg-orange/5 border border-orange/20"
+                                      ? "bg-accent-foreground/5 border border-accent-foreground/20"
                                       : "bg-muted/50"
                                   }`}
                                 >

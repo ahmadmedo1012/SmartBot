@@ -103,7 +103,7 @@ export default function AdminPage() {
   if (roleLoading) {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
-        <div className="size-8 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+        <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )
   }
@@ -116,7 +116,7 @@ export default function AdminPage() {
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="size-4 rtl:-scale-x-100" /> العودة للوحة التحكم
         </Link>
-        <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-orange/8 hover:border-orange/40 transition-colors">
+        <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
           <Settings className="size-4" /> إعدادات المنصة
         </Link>
       </div>

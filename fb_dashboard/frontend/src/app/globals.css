@@ -56,9 +56,6 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
-  --color-orange: var(--orange);
-  --color-orange-foreground: var(--orange-foreground);
-  --color-orange-muted: var(--orange-muted);
   --color-overlay: var(--overlay);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
@@ -103,10 +100,12 @@
    be derived from them, NEVER set independently.
    ═══════════════════════════════════════════════════════ */
 :root {
-  /* ── Fonts — resolved here so [dir=rtl] and body always find them (Smart-Menu) ── */
-  --font-arabic: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-sans: var(--font-arabic);
-  --font-heading: var(--font-cairo, "Cairo"), "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+  /* v4 radical plan §1.1 — the duplicated font definitions that used to live
+     here are DELETED: the @theme inline block above is the single source.
+     The old hand-written --font-heading (Cairo-first) silently overrode the
+     Readex-first @theme value for every `var(--font-heading)` consumer
+     (h1-h5 rules) — the root cause of the recurring "fonts don't match"
+     complaint that survived three repair rounds. One token, one definition. */
 
   --z-dropdown: 10;
   --z-sticky: 20;
@@ -167,9 +166,6 @@
        v2 §2.3 — see docs/design-system.md) ── */
   --primary: oklch(0.55 0.19 45);
   --primary-foreground: oklch(0.98 0 0);
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.15);
   --ring: oklch(0.55 0.19 45);
 
   /* ── ACCENT — Smart-Menu parity: faint 15% hint for soft hovers/tints,
@@ -202,7 +198,7 @@
      ember/saffron drive the flame gradient (flame buttons, wizard nodes);
      espresso is the foreground on warm surfaces; bloom is brand pink heat. */
   --c-ember: oklch(0.44 0.17 52);            /* pressed/depth of flame */
-  --c-flame: oklch(0.55 0.19 45);            /* brand heat (== --orange) — Smart-Menu parity */
+  --c-flame: oklch(0.55 0.19 45);            /* brand heat (== accent-foreground) — Smart-Menu parity */
   --c-ash: oklch(0.75 0.012 70);             /* warm neutral — UI text */
   --c-ash-dim: oklch(0.4 0.008 65);          /* warm muted — secondary text/borders */
   --c-ash-pale: oklch(0.18 0.01 60);         /* deep warm surface wash (dark) */
@@ -225,7 +221,6 @@
   --surface-overlay: oklch(0.11 0.008 60);
   --surface-sunken: oklch(0.07 0.007 60);
 
-  --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.12), oklch(0.52 0.19 45 / 0.06));
   --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.06) 50%, transparent 100%);
 
   --glass-bg: oklch(0.11 0.01 60 / 0.52);
@@ -255,9 +250,6 @@
        on white; orange stays 0.55 — dual-lightness, exactly Smart-Menu) ── */
   --primary: oklch(0.40 0.19 45);
   --primary-foreground: oklch(0.98 0 0);
-  --orange: oklch(0.55 0.19 45);
-  --orange-foreground: oklch(0.98 0 0);
-  --orange-muted: oklch(0.55 0.19 45 / 0.12);
   --ring: oklch(0.55 0.19 45);
 
   /* ── ACCENT — Smart-Menu parity (light: 12% hint) ── */
@@ -300,7 +292,6 @@
   --grid-line: oklch(0.55 0.19 45 / 0.08);
   --grid-fill: oklch(0.55 0.19 45 / 0.04);
   --grid-square: oklch(0.55 0.19 45 / 0.08);
-  --gradient-orange: linear-gradient(135deg, oklch(0.55 0.19 45 / 0.08), oklch(0.52 0.19 45 / 0.04));
   --glass-bg: oklch(1 0.002 70 / 0.72);
   --glass-bg-strong: oklch(1 0.002 70 / 0.88);
   --glass-border: oklch(0.86 0.008 70 / 0.55);
@@ -340,7 +331,7 @@
   p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.65; }
   [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
   a { color: var(--foreground); text-decoration: none; transition: color 0.2s ease; }
-  a:hover { color: var(--orange); }
+  a:hover { color: var(--accent-foreground); } /* v4: orange token removed */
 }
 
 /* Anti-broken-joins: any tracking utility on Arabic must not win over the base guard (Smart-Menu) */
@@ -353,11 +344,11 @@
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: oklch(0.35 0.005 0); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
 * { scrollbar-width: thin; scrollbar-color: oklch(0.35 0.005 0) transparent; }
 html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 .light ::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
-.light ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+.light ::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
 
 ::selection { background: oklch(0.55 0.19 45 / 0.25); color: inherit; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-sm); }
@@ -388,7 +379,7 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 }
 .card-premium:hover {
   transform: translateY(-3px); box-shadow: var(--shadow-lg), var(--shadow-glow);
-  border-color: color-mix(in oklab, var(--orange) 40%, var(--border));
+  border-color: color-mix(in oklab, var(--accent-foreground) 40%, var(--border)); /* v4: orange token removed */
 }
 
 .skeleton {

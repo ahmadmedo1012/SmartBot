@@ -62,9 +62,9 @@ export interface KpiCardProps {
 	label: string;
 	value: number;
 	icon: LucideIcon;
-	/** Icon tile background class. Default 'bg-orange-muted'. */
+	/** Icon tile background class. Default 'bg-accent'. */
 	iconBg?: string;
-	/** Icon glyph color class. Default 'text-orange'. */
+	/** Icon glyph color class. Default 'text-accent-foreground'. */
 	iconColor?: string;
 	/** Text appended to the value (static mode only). */
 	suffix?: string;
@@ -123,8 +123,8 @@ export const KpiCard = memo(function KpiCard({
 						</div>
 					)}
 				</div>
-				<div className={cn('rounded-xl p-3 ring-1 ring-border/30 shadow-sm shrink-0', iconBg || 'bg-orange-muted')}>
-					<Icon className={cn('size-5', iconColor || 'text-orange')} aria-hidden="true" />
+				<div className={cn('rounded-xl p-3 ring-1 ring-border/30 shadow-sm shrink-0', iconBg || 'bg-accent')}>
+					<Icon className={cn('size-5', iconColor || 'text-accent-foreground')} aria-hidden="true" />
 				</div>
 			</div>
 		</>
@@ -146,13 +146,13 @@ export const KpiCard = memo(function KpiCard({
 				transition={entranceTransition}
 				className={cn(
 					'group relative rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-300',
-					'hover:border-orange/40 hover:shadow-lg hover:shadow-orange/10 hover:-translate-y-1',
+					'hover:border-accent-foreground/40 hover:shadow-lg hover:shadow-accent-foreground/10 hover:-translate-y-1',
 				)}
 			>
 				{/* stretched-link pattern: whole card is one link target */}
 				<Link
 					href={href}
-					className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/60"
+					className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
 				>
 					<span className="sr-only">{label}</span>
 				</Link>

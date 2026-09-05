@@ -87,10 +87,10 @@ const OptimizedImage = memo(function OptimizedImage({
           }}
         />
       ) : (
-        <div className="flex size-full items-center justify-center bg-gradient-to-br from-orange-muted/40 to-transparent">
+        <div className="flex size-full items-center justify-center bg-gradient-to-br from-accent/40 to-transparent">
           {fallback || (
-            <span className="text-2xl text-orange/40">
-              <Bot className="size-6 text-orange/40" />
+            <span className="text-2xl text-accent-foreground/40">
+              <Bot className="size-6 text-accent-foreground/40" />
             </span>
           )}
         </div>

@@ -73,7 +73,7 @@ export default function ReportsPage() {
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-orange/10 flex items-center justify-center"><Bot className="size-4 text-orange" /></div>
+                  <div className="size-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center"><Bot className="size-4 text-accent-foreground" /></div>
                   <div>
                     <p className="text-xl font-bold">{(dashboard?.total_replies ?? 0).toLocaleString("ar-LY")}</p>
                     <p className="text-[10px] text-muted-foreground">ردود البوت التلقائية</p>

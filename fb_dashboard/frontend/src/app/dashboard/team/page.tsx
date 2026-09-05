@@ -22,7 +22,7 @@ export default function TeamPage() {
 
   const roleIcon = (role: string) => {
     switch (role) {
-      case "admin": return <Shield className="size-3 text-orange" />
+      case "admin": return <Shield className="size-3 text-accent-foreground" />
       case "editor": return <User className="size-3 text-info" />
       default: return <User className="size-3 text-muted-foreground" />
     }
@@ -56,7 +56,7 @@ export default function TeamPage() {
           members.map((m: any) => (
             <Card key={m.id}>
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-orange/10 flex items-center justify-center font-bold text-sm text-orange">
+                <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground">
                   {(m.username?.[0] || "?").toUpperCase()}
                 </div>
                 <div className="flex-1">

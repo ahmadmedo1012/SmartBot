@@ -20,11 +20,11 @@ export default function FinalCTASection() {
       : <>انطلق الآن — صفحتك التالية تستحق أتمتة حقيقية</>
 
   return (
-    <SectionContainer className="border-t border-orange/10">
+    <SectionContainer className="border-t border-accent-foreground/10">
       <GlowPool position="top-0 start-0" size="size-80 sm:size-96" color="orange/30" />
       <GlowPool position="bottom-0 end-0" size="size-80 sm:size-96" color="orange/25" />
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[60vmin] rounded-full border border-orange/10 pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[60vmin] rounded-full border border-accent-foreground/10 pointer-events-none z-0" />
 
       <div className="relative z-10 text-center">
         <SectionHeader

@@ -148,7 +148,7 @@ export function SetupWarnings() {
           <button
             type="button"
             onClick={() => router.push(w.href)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-orange px-3 py-2 text-xs font-semibold text-orange-foreground hover:brightness-110 transition-all outline-none focus-visible:ring-2 focus-visible:ring-orange/50"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110 transition-all outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
           >
             {w.cta}
             <ArrowLeft className="size-3.5 rtl:rotate-180" />

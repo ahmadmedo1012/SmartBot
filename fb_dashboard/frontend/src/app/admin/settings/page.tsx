@@ -273,7 +273,7 @@ export default function AdminSettingsPage() {
   if (loading) {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
-        <div className="size-8 border-2 border-orange border-t-transparent rounded-full animate-spin" />
+        <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )
   }
@@ -309,7 +309,7 @@ export default function AdminSettingsPage() {
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Landmark className="size-4 text-orange" /> بيانات الدفع والتحويل
+                <Landmark className="size-4 text-accent-foreground" /> بيانات الدفع والتحويل
               </CardTitle>
               <CardDescription>
                 تظهر داخل نافذة الدفع عند الاشتراك — التحويل البنكي والمحافظ الإلكترونية
@@ -327,7 +327,7 @@ export default function AdminSettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Headset className="size-4 text-orange" /> معلومات الدعم
+                  <Headset className="size-4 text-accent-foreground" /> معلومات الدعم
                 </CardTitle>
                 <CardDescription>
                   بيانات التواصل التي يراها العملاء في صفحة الدعم داخل لوحة التحكم
@@ -335,7 +335,7 @@ export default function AdminSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {SUPPORT_FIELDS.map(fieldRow)}
-                <div className="rounded-lg bg-orange/10 border border-orange/20 p-3 text-xs text-foreground/80 leading-relaxed">
+                <div className="rounded-lg bg-accent-foreground/10 border border-accent-foreground/20 p-3 text-xs text-foreground/80 leading-relaxed">
                   اترك أي حقل فارغًا للعودة إلى القيمة الافتراضية. ما تحدده هنا يلغي القيم
                   الافتراضية فور النشر — دون إعادة نشر الموقع.
                 </div>
@@ -348,7 +348,7 @@ export default function AdminSettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Bot className="size-4 text-orange" /> إشعارات تليجرام
+                  <Bot className="size-4 text-accent-foreground" /> إشعارات تليجرام
                 </CardTitle>
                 <CardDescription>
                   يصلك إشعار فوري عند كل طلب دفع أو اشتراك جديد — مع أزرار موافقة/رفض مباشرة من تليجرام
@@ -380,7 +380,7 @@ export default function AdminSettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Webhook className="size-4 text-orange" /> توقيع ويبهوك فيسبوك
+                  <Webhook className="size-4 text-accent-foreground" /> توقيع ويبهوك فيسبوك
                 </CardTitle>
                 <CardDescription>
                   بدونه يرفض النظام كل أحداث فيسبوك (الرسائل والتعليقات) — السبب الجذري لعدم ظهور أي بيانات سابقًا
@@ -388,7 +388,7 @@ export default function AdminSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {FACEBOOK_FIELDS.map(fieldRow)}
-                <div className="rounded-lg bg-orange/10 border border-orange/20 p-3 text-xs text-foreground/80 leading-relaxed">
+                <div className="rounded-lg bg-accent-foreground/10 border border-accent-foreground/20 p-3 text-xs text-foreground/80 leading-relaxed">
                   بعد الحفظ سجّل الويبهوك في developers.facebook.com ← تطبيقك ← Webhooks ← Page
                   بعنوان <span className="font-mono" dir="ltr">https://api.smart-link.ly/webhook</span> واشترك في
                   حقلي <span dir="ltr">feed</span> و<span dir="ltr">messages</span>.
@@ -401,7 +401,7 @@ export default function AdminSettingsPage() {
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="size-4 text-orange" /> مفاتيح الذكاء الاصطناعي
+                  <Sparkles className="size-4 text-accent-foreground" /> مفاتيح الذكاء الاصطناعي
                 </CardTitle>
                 <CardDescription>
                   تفعّل مساعد الردود الذكية (اقتراح ردود، تحليل مشاعر) من صفحة الأدوات — الحفظ يُطبّق فورًا

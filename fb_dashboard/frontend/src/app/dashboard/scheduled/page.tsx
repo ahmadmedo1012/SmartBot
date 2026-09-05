@@ -82,7 +82,7 @@ export default function ScheduledPage() {
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder="محتوى المنشور..."
-              className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange/30 resize-none"
+              className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex gap-3 items-end">
               <div className="flex-1">

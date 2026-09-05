@@ -20,7 +20,7 @@ export default function HowItWorksSection() {
 
       <div className="relative">
         {/* Connecting line between steps */}
-        <div className="hidden lg:block absolute top-16 start-[calc(16.67%+2rem)] end-[calc(16.67%+2rem)] h-px bg-gradient-to-r from-transparent via-orange/30 to-transparent" aria-hidden="true" />
+        <div className="hidden lg:block absolute top-16 start-[calc(16.67%+2rem)] end-[calc(16.67%+2rem)] h-px bg-gradient-to-r from-transparent via-accent-foreground/30 to-transparent" aria-hidden="true" />
 
         <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
           {STEPS.map((step, i) => {
@@ -36,16 +36,16 @@ export default function HowItWorksSection() {
               >
                 {/* Step circle */}
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 size-16 rounded-full bg-orange/20 blur-xl group-hover:blur-2xl group-hover:bg-orange/30 transition-all duration-700" />
-                  <div className="relative size-16 rounded-full bg-gradient-to-b from-orange/25 to-orange/10 border border-orange/30 flex items-center justify-center group-hover:border-orange/50 group-hover:scale-105 transition-all duration-500 shadow-lg shadow-orange/10">
-                    <Icon className="size-6 text-orange" />
-                    <div className="absolute -top-2 -end-2 size-6 rounded-full bg-orange flex items-center justify-center shadow-md">
+                  <div className="absolute inset-0 size-16 rounded-full bg-accent-foreground/20 blur-xl group-hover:blur-2xl group-hover:bg-accent-foreground/30 transition-all duration-700" />
+                  <div className="relative size-16 rounded-full bg-gradient-to-b from-accent-foreground/25 to-accent-foreground/10 border border-accent-foreground/30 flex items-center justify-center group-hover:border-accent-foreground/50 group-hover:scale-105 transition-all duration-500 shadow-lg shadow-accent-foreground/10">
+                    <Icon className="size-6 text-accent-foreground" />
+                    <div className="absolute -top-2 -end-2 size-6 rounded-full bg-primary flex items-center justify-center shadow-md">
                       <span className="text-[10px] font-bold text-white">{step.num}</span>
                     </div>
                   </div>
                 </div>
 
-                <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-orange transition-colors duration-300">
+                <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-accent-foreground transition-colors duration-300">
                   {step.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch]">
@@ -54,7 +54,7 @@ export default function HowItWorksSection() {
 
                 {/* Connector dot for desktop */}
                 <div className="hidden lg:flex absolute top-8 -start-8 items-center">
-                  <div className="size-1.5 rounded-full bg-orange/40" />
+                  <div className="size-1.5 rounded-full bg-accent-foreground/40" />
                 </div>
               </motion.div>
             )

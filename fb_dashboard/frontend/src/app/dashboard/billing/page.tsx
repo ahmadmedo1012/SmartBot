@@ -52,7 +52,7 @@ export default function BillingPage() {
           </div>
           {/* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before) */}
           <Link href="/subscribe" className="ms-auto">
-            <Button size="sm" className="shadow-sm shadow-orange/15">
+            <Button size="sm" className="shadow-sm shadow-accent-foreground/15">
               <Zap className="size-3.5" /> اشترك أو اشحن الرصيد
             </Button>
           </Link>

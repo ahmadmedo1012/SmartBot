@@ -54,7 +54,7 @@ export function PageHeader({
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.2, delay: 0.05 }}
-                className="size-8 rounded-lg bg-gradient-to-br from-orange/15 to-orange/5 border border-orange/15 flex items-center justify-center text-orange shrink-0"
+                className="size-8 rounded-lg bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 border border-accent-foreground/15 flex items-center justify-center text-accent-foreground shrink-0"
               >
                 {icon}
               </motion.div>

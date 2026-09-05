@@ -71,7 +71,7 @@ export default function StatsSection() {
             >
               <div className="text-center">
                 <div className="text-[2.25rem] sm:text-[2.75rem] md:text-[3.25rem] font-bold leading-none mb-2">
-                  <span className="text-orange">
+                  <span className="text-accent-foreground">
                     {loading ? (
                       <span className="inline-flex items-center gap-1 text-[1rem]">
                         <Loader2 className="size-4 animate-spin" />
@@ -89,7 +89,7 @@ export default function StatsSection() {
             </motion.div>
           ))}
         </div>
-        <div className="mx-auto mt-6 w-16 h-[2px] rounded-full bg-gradient-to-r from-orange/0 via-orange to-orange/0" />
+        <div className="mx-auto mt-6 w-16 h-[2px] rounded-full bg-gradient-to-r from-accent-foreground/0 via-accent-foreground to-accent-foreground/0" />
       </div>
     </SectionContainer>
   )

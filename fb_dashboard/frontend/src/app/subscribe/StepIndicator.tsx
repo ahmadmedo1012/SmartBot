@@ -49,7 +49,7 @@ export function StepIndicator({
               disabled={!clickable}
               onClick={() => clickable && onNavigate?.(s)}
               className={cn(
-                "flex flex-col items-center gap-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-orange/40 rounded-full",
+                "flex flex-col items-center gap-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-full",
                 !clickable && "cursor-default",
               )}
               aria-current={isActive ? "step" : undefined}
@@ -61,9 +61,9 @@ export function StepIndicator({
                 className={cn(
                   "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-300",
                   isActive
-                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-orange/30 font-extrabold"
+                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-extrabold"
                     : isDone
-                      ? "bg-orange/15 text-orange border-orange/40"
+                      ? "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/40"
                       : "bg-muted/50 text-muted-foreground border-border/40",
                 )}
               >
@@ -73,7 +73,7 @@ export function StepIndicator({
                 className={cn(
                   "text-[11px] sm:text-xs font-medium transition-colors hidden sm:block",
                   isActive
-                    ? "text-orange font-bold"
+                    ? "text-accent-foreground font-bold"
                     : isDone
                       ? "text-foreground/70"
                       : "text-muted-foreground/50",
@@ -88,7 +88,7 @@ export function StepIndicator({
               <div
                 className={cn(
                   "w-8 sm:w-14 h-0.5 mx-1 sm:mx-2 rounded-full transition-colors duration-500",
-                  i < currentIdx ? "bg-orange/50" : "bg-muted-foreground/15",
+                  i < currentIdx ? "bg-accent-foreground/50" : "bg-muted-foreground/15",
                 )}
               />
             )}

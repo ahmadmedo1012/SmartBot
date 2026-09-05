@@ -72,13 +72,13 @@ export default function AutoReplyPage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">{rules.length} قاعدة</p>
-          <Button size="sm" onClick={() => setShowForm(!showForm)} className="shadow-sm shadow-orange/15">
+          <Button size="sm" onClick={() => setShowForm(!showForm)} className="shadow-sm shadow-accent-foreground/15">
             <Plus className="size-3.5" /> قاعدة جديدة
           </Button>
         </div>
 
         {showForm && (
-          <Card className="border-orange/30 shadow-md shadow-orange/5">
+          <Card className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5">
             <CardContent className="p-4 space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم القاعدة</label>
@@ -86,7 +86,7 @@ export default function AutoReplyPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="مثال: الرد على الاستفسارات"
-                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
+                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -95,7 +95,7 @@ export default function AutoReplyPage() {
                   value={keyword}
                   onChange={e => setKeyword(e.target.value)}
                   placeholder="مثال: سعر، توصيل، عنوان"
-                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
+                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -105,7 +105,7 @@ export default function AutoReplyPage() {
                   onChange={e => setReplyText(e.target.value)}
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة..."
                   rows={3}
-                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15 resize-none"
+                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
               </div>
               <div>
@@ -114,7 +114,7 @@ export default function AutoReplyPage() {
                   value={priority}
                   onChange={e => setPriority(e.target.value)}
                   inputMode="numeric"
-                  className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
+                  className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
@@ -140,8 +140,8 @@ export default function AutoReplyPage() {
           </div>
         ) : rules.length === 0 ? (
           <div className="text-center py-16 border-2 border-dashed border-border/50 rounded-2xl">
-            <div className="size-16 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-3">
-              <Bot className="size-8 text-orange" />
+            <div className="size-16 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto mb-3">
+              <Bot className="size-8 text-accent-foreground" />
             </div>
             <p className="text-sm font-medium mb-1">لا توجد قواعد رد تلقائي</p>
             <p className="text-xs text-muted-foreground mb-4">أنشئ أول قاعدة ليبدأ البوت بالرد تلقائياً</p>
@@ -152,7 +152,7 @@ export default function AutoReplyPage() {
         ) : (
           <div className="space-y-2">
             {rules.map((r: any) => (
-              <Card key={r.id} className="card-hover border-border/50 hover:border-orange/30 group">
+              <Card key={r.id} className="card-hover border-border/50 hover:border-accent-foreground/30 group">
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -160,7 +160,7 @@ export default function AutoReplyPage() {
                           the old r.keyword / r.reply_text / r.is_active rendered blanks
                           and every rule showed "نشط" even when disabled */}
                       {(r.keywords || []).map((k: string, i: number) => (
-                        <code key={i} className="text-xs font-bold bg-orange/10 text-orange px-2 py-0.5 rounded border border-orange/20">
+                        <code key={i} className="text-xs font-bold bg-accent-foreground/10 text-accent-foreground px-2 py-0.5 rounded border border-accent-foreground/20">
                           {k}
                         </code>
                       ))}

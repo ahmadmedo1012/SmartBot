@@ -51,7 +51,7 @@ export default function AudiencePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-orange/10 flex items-center justify-center mb-2">
+              <div className="size-8 rounded-lg bg-accent-foreground/10 flex items-center justify-center mb-2">
                 <Users className="size-4 text-muted-foreground" />
               </div>
               <p className="text-2xl font-bold">{data?.fan_count ?? "—"}</p>
@@ -134,7 +134,7 @@ export default function AudiencePage() {
                 {(subsQuery.data?.items || []).map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="size-7 rounded-full bg-orange/10 text-orange text-[10px] font-bold flex items-center justify-center shrink-0">
+                      <span className="size-7 rounded-full bg-accent-foreground/10 text-accent-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
                         {(s.first_name || s.name || "؟").slice(0, 2)}
                       </span>
                       <div className="min-w-0">

@@ -46,7 +46,7 @@ export default function CalendarPage() {
               <div className="space-y-2">
                 {posts.map((p: any) => (
                   <div key={p.id} className="flex items-center justify-between text-sm border-b border-border pb-2">
-                    <span className="truncate">{p.message?.slice(0, 50)}...</span>
+                    <span className="truncate">{p.message ? (p.message.length > 50 ? p.message.slice(0, 50) + "…" : p.message) : ""}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {p.scheduled_at ? new Date(p.scheduled_at).toLocaleDateString("ar-LY") : ""}
                     </span>

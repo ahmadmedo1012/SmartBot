@@ -1,8 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
 import { apiFetch } from "@/lib/csrf-client"
-import { Settings, User, Shield, Mail, Lock, KeyRound } from "lucide-react"
+import { Settings, User, Shield, Mail, Lock, KeyRound, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { LoadingState, ErrorState } from "@/components/ui/EmptyState"
@@ -14,6 +18,39 @@ export default function SettingsPage() {
     queryFn: () => apiFetch("/api/me").then(unwrapApi),
   })
   const user = raw?.data || raw
+
+  // Self-service password change (plan v3 §7c — the الأمان card was a
+  // decorative shell; the endpoint existed but had no UI).
+  const [showPw, setShowPw] = useState(false)
+  const [currentPw, setCurrentPw] = useState("")
+  const [newPw, setNewPw] = useState("")
+  const [pwBusy, setPwBusy] = useState(false)
+
+  const changePassword = async () => {
+    if (newPw.length < 8) {
+      toast.error("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
+      return
+    }
+    setPwBusy(true)
+    try {
+      const r = await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
+      })
+      if (r.ok) {
+        toast.success("تم تغيير كلمة المرور بنجاح")
+        setCurrentPw("")
+        setNewPw("")
+        setShowPw(false)
+      } else {
+        const body = await r.json().catch(() => null)
+        toast.error(body?.detail || "تعذر تغيير كلمة المرور")
+      }
+    } catch {
+      toast.error("خطأ في الاتصال")
+    }
+    setPwBusy(false)
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -79,15 +116,50 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
-                  <div className="size-9 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-orange/10 text-orange flex items-center justify-center shrink-0">
                     <Lock className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">كلمة المرور والتشفير</p>
                     <p className="text-xs text-muted-foreground">كلمات المرور مُعمّاة بـ Argon2id وجلساتك محمية بنطاق واحد</p>
                   </div>
-                  <span className="size-2 rounded-full bg-emerald-500 shrink-0" aria-label="مفعّل" />
+                  <span className="size-2 rounded-full bg-success shrink-0" aria-label="مفعّل" />
                 </div>
+
+                {showPw ? (
+                  <div className="space-y-3 mt-3">
+                    <Input
+                      id="current-password"
+                      type="password"
+                      label="كلمة المرور الحالية"
+                      autoComplete="current-password"
+                      value={currentPw}
+                      onChange={(e) => setCurrentPw(e.target.value)}
+                    />
+                    <Input
+                      id="new-password"
+                      type="password"
+                      label="كلمة المرور الجديدة"
+                      hint="8 أحرف على الأقل — مختلفة عن الحالية"
+                      autoComplete="new-password"
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={changePassword} disabled={pwBusy || !currentPw || newPw.length < 8}>
+                        {pwBusy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+                        {pwBusy ? "جارٍ التغيير…" : "تغيير كلمة المرور"}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setShowPw(false)} disabled={pwBusy}>
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowPw(true)}>
+                    <KeyRound className="size-3.5" /> تغيير كلمة المرور
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </>

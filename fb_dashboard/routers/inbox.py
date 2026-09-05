@@ -9,10 +9,11 @@ from sqlalchemy import select, func, and_
 
 from config import settings
 from database import get_db, AsyncSessionLocal
-from models import ConversationLabel, ConversationNote, ConversationTag, User, AnalyticsEvent
+from models import ConversationLabel, ConversationNote, ConversationTag, User, AnalyticsEvent, Conversation, Message
 from routers.auth import get_current_user, require_role
 from _services import get_tenant_fb_client, _track_event
 from _responses import ok
+from _utils import iso_z
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])
@@ -36,23 +37,76 @@ async def inbox_list(
     status: str = Query("all"), tag: str = Query(""), search: str = Query(""),
     page: int = Query(1), per_page: int = Query(25), current_user: User = Depends(get_current_user),
 ):
-    """Professional inbox: list conversations with filters, tags, search."""
-    fb = await _get_inbox_fb(current_user._tenant_id)
-    convos = await fb.get_conversations(50)
-    items = []
-    for c in convos:
-        items.append({
-            "id": c["id"], "subject": c.get("subject", "بدون موضوع"),
-            "senders": c.get("senders", {}).get("data", []),
-            "message_count": c.get("message_count", 0),
-            "unread_count": c.get("unread_count", 0),
-            "updated_time": c.get("updated_time", ""),
-            "tags": [],  # populated below
-        })
+    """Professional inbox: DB-FIRST (v3 final-launch §4.2).
 
-    # Load tags from DB for all conversation IDs
-    if items:
-        async with AsyncSessionLocal() as s:
+    The webhook ingestion path (runner /webhook → messenger_service) persists
+    every inbound message to the Conversation/Message tables — the inbox MUST
+    surface those within seconds. Legacy behavior was live-Graph-only: an
+    expired/invalid token showed an empty list even while messages kept
+    arriving (the "everything is zero" complaint). Now:
+      1. best-effort live sync: upsert conversations FB knows about (failures
+         are non-fatal — offline/expired token just skips the refresh)
+      2. serve the DB rows (filters: status/tag/search) — same item shape as
+         before so the dashboard consumes it unchanged.
+    """
+    tenant_id = current_user._tenant_id
+
+    # ── 1) best-effort live refresh ──
+    try:
+        fb = await _get_inbox_fb(tenant_id)
+        convos = await fb.get_conversations(50)
+        if convos:
+            async with AsyncSessionLocal() as s:
+                for c in convos:
+                    cid = str(c.get("id") or "")
+                    if not cid:
+                        continue
+                    senders = (c.get("senders") or {}).get("data") or []
+                    name = (senders[0].get("name") if senders else "") or ""
+                    row = (await s.execute(
+                        select(Conversation).where(
+                            Conversation.tenant_id == tenant_id,
+                            Conversation.fb_conversation_id == cid,
+                        )
+                    )).scalar_one_or_none()
+                    if row is None:
+                        s.add(Conversation(
+                            tenant_id=tenant_id, fb_conversation_id=cid,
+                            fb_user_id=str(senders[0].get("id", "") if senders else ""),
+                            user_name=name,
+                            message_count=int(c.get("message_count") or 0),
+                            unread_count=int(c.get("unread_count") or 0),
+                            last_message_text=str(c.get("subject") or ""),
+                        ))
+                    else:
+                        row.message_count = max(row.message_count or 0, int(c.get("message_count") or 0))
+                        row.unread_count = int(c.get("unread_count") or row.unread_count or 0)
+                        if name:
+                            row.user_name = name
+                await s.commit()
+    except Exception:
+        pass  # expired token / offline — DB rows below still serve
+
+    # ── 2) DB rows → response items (legacy shape) ──
+    async with AsyncSessionLocal() as s:
+        rows = (await s.execute(
+            select(Conversation)
+            .where(Conversation.tenant_id == tenant_id)
+            .order_by(Conversation.last_message_at.desc())
+            .limit(200)
+        )).scalars().all()
+        items = [{
+            "id": c.fb_conversation_id,
+            "subject": (c.last_message_text or "")[:80] or "بدون موضوع",
+            "senders": [{"name": c.user_name or c.fb_user_id or "غير معروف"}],
+            "message_count": c.message_count or 0,
+            "unread_count": c.unread_count or 0,
+            "updated_time": iso_z(c.last_message_at),
+            "tags": [],
+        } for c in rows]
+
+        # Load tags from DB for all conversation IDs
+        if items:
             ids = [it["id"] for it in items]
             lbls = await s.execute(
                 select(ConversationLabel, ConversationTag)
@@ -91,8 +145,36 @@ async def inbox_list(
 
 @router.get("/api/inbox/conversations/{conversation_id}")
 async def inbox_messages(conversation_id: str, current_user: User = Depends(get_current_user)):
-    """Get full conversation messages with AI analysis hints."""
-    fb = await _get_inbox_fb(current_user._tenant_id)
+    """Get full conversation messages — DB-first (v3 final-launch §4.2).
+
+    Webhook-persisted conversations (synthetic or real ids) serve their
+    stored thread instantly; live-FB-only conversations fall back to a Graph
+    fetch. Response shape unchanged: [{id, message, from, created_time}].
+    """
+    tenant_id = current_user._tenant_id
+    async with AsyncSessionLocal() as s:
+        row = (await s.execute(
+            select(Conversation).where(
+                Conversation.tenant_id == tenant_id,
+                Conversation.fb_conversation_id == conversation_id,
+            )
+        )).scalar_one_or_none()
+        if row:
+            msgs = (await s.execute(
+                select(Message)
+                .where(Message.conversation_id == row.id)
+                .order_by(Message.created_at.asc())
+                .limit(200)
+            )).scalars().all()
+            return ok([{
+                "id": str(m.fb_message_id or m.id),
+                "message": m.text or "",
+                "from": {"id": m.sender_id or "", "name": m.sender_name or ("الصفحة" if m.is_from_page else "")},
+                "created_time": iso_z(m.created_at),
+            } for m in msgs])
+
+    # DB miss → live Graph fetch (conversation discovered via live sync)
+    fb = await _get_inbox_fb(tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
     return ok(
         [{

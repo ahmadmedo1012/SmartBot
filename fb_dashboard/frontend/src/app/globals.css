@@ -3,11 +3,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Z-INDEX LAYER REGISTRY (Smart-Menu parity)
+ * base       0-10     Default content
+ * sticky     10-20    Sticky headers, sidebar
+ * dropdown   30-40    Dropdowns, selects
+ * drawer     40-50    Mobile side drawers (Sheet)
+ * header     40-50    LayoutHeader
+ * modal      50-60    Dialogs, modals
+ * toast      60-70    Toast notifications (sonner)
+ * popover    70-80    Popovers, tooltips
+ * overlay    90-100   Full-screen overlays
+ * max      99999     Emergency overlays
+ */
+
 @theme inline {
-  --font-sans: var(--font-cairo), "Noto Sans Arabic", system-ui, sans-serif;
-  --font-mono: var(--font-cairo), "Noto Naskh Arabic", "Courier New", monospace;
-  --font-arabic: var(--font-cairo), "Noto Sans Arabic", "Noto Naskh Arabic", system-ui, sans-serif;
-  --font-heading: var(--font-cairo), "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+  /* ── Font system — Arabic-first, Cairo local-first (Smart-Menu parity).
+     --font-cairo comes from /fonts/fonts.css @font-face "Cairo" (arabic +
+     latin + latin-ext subsets, 400-800). The literal "Cairo" fallback keeps
+     the stack resolvable when the var is absent (exact Smart-Menu stack). ── */
+  --font-sans: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-mono: var(--font-cairo, "Cairo"), "Cairo", "Courier New", monospace;
+  --font-arabic: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-heading: var(--font-cairo, "Cairo"), "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -41,6 +59,17 @@
   --color-overlay: var(--overlay);
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
+  --color-glass-border-strong: var(--glass-border-strong);
+
+  /* Warm kitchen palette + external brand (Smart-Menu parity) */
+  --color-flame: var(--c-flame);
+  --color-ash: var(--c-ash);
+  --color-ash-dim: var(--c-ash-dim);
+  --color-ash-pale: var(--c-ash-pale);
+  --color-night: var(--c-night);
+  --color-basil: var(--c-basil);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-deep: var(--whatsapp-deep);
 
   /* Saffron-heat warm palette — unified 2026-09-05 with Smart-Menu
      (smart-link.ly identity): flame gradient (ember→saffron), espresso
@@ -71,6 +100,11 @@
    be derived from them, NEVER set independently.
    ═══════════════════════════════════════════════════════ */
 :root {
+  /* ── Fonts — resolved here so [dir=rtl] and body always find them (Smart-Menu) ── */
+  --font-arabic: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-sans: var(--font-arabic);
+  --font-heading: var(--font-cairo, "Cairo"), "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+
   --z-dropdown: 10;
   --z-sticky: 20;
   --z-nav: 30;
@@ -145,7 +179,10 @@
   --secondary: oklch(0.14 0.008 60);
   --secondary-foreground: oklch(0.72 0.01 70);
   --muted: oklch(0.14 0.008 60);
-  --muted-foreground: oklch(0.52 0.015 70);
+  /* a11y(round84 Smart-Menu parity): 0.52 measured 3.7:1 on dark cards (axe
+   * serious — muted description/footer/meta text failed AA). 0.62 measures
+   * 5.54:1 — comfortably AA with the same warm-gray character. */
+  --muted-foreground: oklch(0.62 0.015 70);
   --destructive: oklch(0.6 0.22 25);
   --border: oklch(0.23 0.01 60);
   --input: oklch(0.23 0.01 60);
@@ -162,10 +199,20 @@
      ember/saffron drive the flame gradient (flame buttons, wizard nodes);
      espresso is the foreground on warm surfaces; bloom is brand pink heat. */
   --c-ember: oklch(0.44 0.17 52);            /* pressed/depth of flame */
+  --c-flame: oklch(0.55 0.19 45);            /* brand heat (== --orange) — Smart-Menu parity */
+  --c-ash: oklch(0.75 0.012 70);             /* warm neutral — UI text */
+  --c-ash-dim: oklch(0.4 0.008 65);          /* warm muted — secondary text/borders */
+  --c-ash-pale: oklch(0.18 0.01 60);         /* deep warm surface wash (dark) */
+  --c-night: oklch(0.16 0.02 55);            /* deep warm charcoal base */
+  --c-basil: oklch(0.64 0.14 150);           /* fresh contrast (dietary/health) */
   --c-saffron: oklch(0.78 0.14 70);          /* light amber glow */
   --c-espresso: #1a130b;                     /* deep coffee — foreground on flame/saffron surfaces */
   --c-bloom: oklch(0.56 0.2 16);             /* brand pink heat */
   --image-shimmer: oklch(0.2 0 0 / 0.15);    /* image placeholder shimmer sweep */
+
+  /* External brand colors — theme-independent by definition (Smart-Menu parity) */
+  --whatsapp: #25D366;
+  --whatsapp-deep: #20bd5a;
 
   --grid-line: oklch(0.55 0.19 45 / 0.12);
   --grid-fill: oklch(0.55 0.19 45 / 0.06);
@@ -181,6 +228,7 @@
   --glass-bg: oklch(0.11 0.01 60 / 0.52);
   --glass-bg-strong: oklch(0.14 0.012 60 / 0.68);
   --glass-border: oklch(0.55 0.19 45 / 0.10);
+  --glass-border-strong: oklch(0.55 0.19 45 / 0.22);
   --glass-shadow: 0 10px 40px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
   --glass-shadow-lg: 0 16px 56px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.08);
 
@@ -237,6 +285,12 @@
      middle depth, saffron glow unchanged, shimmer sweep near-black on
      paper. espresso/bloom inherit from :root (theme-independent). */
   --c-ember: oklch(0.5 0.15 52);             /* middle depth */
+  --c-flame: oklch(0.42 0.17 48);            /* pressed brand heat (light) */
+  --c-ash: oklch(0.36 0.012 70);             /* warm ink on paper */
+  --c-ash-dim: oklch(0.55 0.01 70);          /* warm muted (light) */
+  --c-ash-pale: oklch(0.94 0.006 70);        /* paper wash (light) */
+  --c-night: oklch(0.24 0.02 50);            /* deepest warm charcoal (light) */
+  --c-basil: oklch(0.5 0.14 150);            /* fresh contrast (light) */
   --c-saffron: oklch(0.78 0.14 70);          /* same warm amber glow */
   --image-shimmer: oklch(0 0 0 / 0.08);      /* image placeholder shimmer sweep */
 
@@ -247,6 +301,7 @@
   --glass-bg: oklch(1 0.002 70 / 0.72);
   --glass-bg-strong: oklch(1 0.002 70 / 0.88);
   --glass-border: oklch(0.86 0.008 70 / 0.55);
+  --glass-border-strong: oklch(0.86 0.008 70 / 0.18);
   --glass-shadow: 0 8px 36px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.72);
   --glass-shadow-lg: 0 16px 56px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.86);
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
@@ -271,13 +326,25 @@
   }
   html { overflow-x: hidden; max-width: 100vw; scroll-behavior: smooth; }
   html[dir="rtl"] { letter-spacing: 0; }
-  h1, h2 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
-  h3, h4, h5 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+  h1, h2 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; }
+  h3, h4, h5 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
   [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5 { font-family: var(--font-heading); letter-spacing: 0; }
-  p, li, .body-text { font-family: var(--font-sans); font-weight: 500; line-height: 1.5; }
+  /* Readex Pro display letter-spacing only for Latin-safe contexts — never
+     Arabic (guard vs broken letter joins). (Smart-Menu parity) */
+  @supports (font-family: "Readex Pro") {
+    [dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] h3 { letter-spacing: -0.03em; }
+  }
+  p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.65; }
   [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
   a { color: var(--foreground); text-decoration: none; transition: color 0.2s ease; }
   a:hover { color: var(--orange); }
+}
+
+/* Anti-broken-joins: any tracking utility on Arabic must not win over the base guard (Smart-Menu) */
+@layer utilities {
+  html[dir="rtl"] [class*="tracking-"]:not([class*="font-mono"]) {
+    letter-spacing: 0 !important;
+  }
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -285,6 +352,9 @@
 ::-webkit-scrollbar-thumb { background: oklch(0.35 0.005 0); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
 * { scrollbar-width: thin; scrollbar-color: oklch(0.35 0.005 0) transparent; }
+html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+.light ::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+.light ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
 
 ::selection { background: oklch(0.55 0.19 45 / 0.25); color: inherit; }
 :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-sm); }
@@ -292,26 +362,30 @@
 
 .glass-card, .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(32px) saturate(1.4);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
 }
 .glass-strong {
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid oklch(0.55 0.19 45 / 0.15);
+  backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid var(--glass-border-strong);
   box-shadow: var(--glass-shadow-lg);
 }
 
 .card-premium {
-  min-width: 0; background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
-  transform: translateZ(0); transition: all 0.3s var(--ease-out-quart);
+  min-width: 0; background: var(--card);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  transform: translateZ(0);
+  transition: background-color 0.3s var(--ease-out-quart), color 0.3s var(--ease-out-quart),
+    border-color 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart),
+    transform 0.3s var(--ease-out-quart);
 }
 .card-premium:hover {
   transform: translateY(-3px); box-shadow: var(--shadow-lg), var(--shadow-glow);
-  border-color: var(--orange);
+  border-color: color-mix(in oklab, var(--orange) 40%, var(--border));
 }
 
 .skeleton {
@@ -325,9 +399,9 @@
   animation: shimmer 2s ease-in-out infinite;
 }
 
-.grain-overlay { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+.grain-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 .grain-overlay::before {
-  content: ''; position: absolute; inset: 0; opacity: 0.035;
+  content: ''; position: absolute; inset: 0; opacity: 0.022;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
 }
@@ -355,15 +429,23 @@
 .animate-fade-in { animation: fade-in 0.5s var(--ease-out-quart) both; }
 .animate-slide-up { animation: slide-up 0.6s var(--ease-out-quart) both; }
 .animate-float { animation: float 3s var(--ease-smooth) infinite; }
+.animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
 .animate-hero-glow-pulse { animation: hero-glow-pulse 4s var(--ease-smooth) infinite; }
 .animate-marquee { will-change: transform; transform: translateZ(0); animation: marquee 30s linear infinite; }
 
-.shimmer-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 1px; overflow: hidden; pointer-events: none; }
-.shimmer-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, var(--orange-muted) 20%, color-mix(in oklch, var(--orange) 30%, transparent) 40%, color-mix(in oklch, var(--orange) 20%, transparent) 60%, transparent 100%); animation: shimmer-bar 2.5s ease-in-out infinite; }
+/* Page/layout motion primitives (Smart-Menu parity — used by ported dashboard components) */
+.animate-page-enter { animation: fade-in 0.4s var(--ease-out-quart) both; }
+.animate-breath { animation: breath 1.5s ease-in-out infinite; }
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
 
-@keyframes shimmer-bar { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -391,43 +473,12 @@
 /* GlowPool utility */
 .glow-pool { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(100px); }
 
-/* ─── Button Utilities (from Smart Menu brand) ─── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 18px; border-radius: 9999px;
-  font: 600 13px/1 sans-serif; cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
-  border: 0; text-decoration: none;
-}
-.btn-primary {
-  background: var(--primary); color: var(--primary-foreground);
-  box-shadow: 0 0 20px oklch(0.55 0.19 45 / 0.25);
-}
-.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.btn-primary:active { transform: translateY(0) scale(0.97); }
-.btn-outline {
-  background: transparent; color: var(--foreground);
-  border: 1px solid var(--border);
-}
-.btn-outline:hover { border-color: var(--orange); color: var(--orange); }
-.btn-ghost {
-  background: transparent; color: var(--muted-foreground);
-}
-.btn-ghost:hover { color: var(--foreground); background: var(--accent-soft); }
-.btn-sm { padding: 5px 12px; font-size: 12px; }
-.btn-lg { padding: 12px 28px; font-size: 15px; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; transform: none; }
-
-/* ─── Custom Scrollbars ─── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.5 0.01 0 / 0.25); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.5 0.01 0 / 0.4); }
+/* ─── Custom Scrollbars (sidebar) ─── */
 .sidebar-scroll::-webkit-scrollbar { width: 3px; }
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: oklch(0.5 0.01 0 / 0.2); border-radius: 9999px; }
 
-/* ─── Dashboard card micro-interactions ─── */
+/* ─── Dashboard card micro-interactions (legacy — superseded by Card/KpiCard) ─── */
 .card-hover {
   transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), border-color 0.2s;
 }
@@ -436,20 +487,6 @@
   box-shadow: 0 8px 24px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(0.55 0.19 45 / 0.15);
 }
 .card-hover:active { transform: translateY(0); }
-
-/* ─── Input focus glow ─── */
-.input-glow:focus-within {
-  box-shadow: 0 0 0 2px oklch(0.55 0.19 45 / 0.25);
-}
-
-/* ─── Stat card hover lift ─── */
-.stat-card {
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s;
-}
-.stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px oklch(0 0 0 / 0.2);
-}
 
 /* iOS safe area for the mobile bottom nav (Track F) */
 .safe-area-pb {

@@ -444,6 +444,55 @@ class BroadcastRecipient(Base):
     sent_at = Column(DateTime, nullable=True)
 
 
+class Conversation(Base):
+    """Persisted Messenger conversation (world-class plan v3 §4.3).
+
+    FB conversations were previously fetched live-only; now every inbound
+    webhook message upserts its conversation here so the dashboard, inbox
+    search and stats work even without live Graph reachability."""
+    __tablename__ = "conversations"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_conversation_id", name="uq_conversations_tenant_fb"),
+        Index("ix_conversations_tenant_last_msg", "tenant_id", "last_message_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_conversation_id = Column(String(128), nullable=False, index=True)
+    fb_user_id = Column(String(64), default="", index=True)
+    user_name = Column(String(255), default="")
+    message_count = Column(Integer, default=0)
+    unread_count = Column(Integer, default=0)
+    last_message_text = Column(Text, default="")
+    last_message_at = Column(DateTime, default=utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class Message(Base):
+    """Persisted Messenger message (inbound + bot/auto replies).
+
+    fb_message_id dedup guarantee: (tenant_id, fb_message_id) unique — the
+    webhook may redeliver events, replays are dropped silently."""
+    __tablename__ = "messages"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_message_id", name="uq_messages_tenant_fb"),
+        Index("ix_messages_conversation", "conversation_id", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    fb_message_id = Column(String(128), nullable=False)
+    fb_conversation_id = Column(String(128), default="", index=True)
+    sender_id = Column(String(64), default="")
+    sender_name = Column(String(255), default="")
+    text = Column(Text, default="")
+    is_from_page = Column(Boolean, default=False)
+    replied_by_bot = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+
+
 class ConversationNote(Base):
     """Internal notes attached to a conversation (any platform)."""
     __tablename__ = "conversation_notes"

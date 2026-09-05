@@ -7,13 +7,17 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
     start_url: "/",
     display: "standalone",
-    background_color: "#FAF6F1",
+    background_color: "#0B0A08",
     theme_color: "#bc4700",
     lang: "ar",
     dir: "rtl",
+    orientation: "portrait",
+    categories: ["productivity", "business"],
     icons: [
-      { src: "/brand-icon.png", sizes: "160x160", type: "image/png", purpose: "any" },
-      { src: "/brand-icon.png", sizes: "160x160", type: "image/png", purpose: "maskable" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-192-maskable.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   }
 }

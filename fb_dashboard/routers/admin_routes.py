@@ -41,7 +41,15 @@ _SUPPORT_CONFIG_KEYS = {
     "support_working_hours",
 }
 
-_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS
+# Telegram notification keys (world-class plan v3 §5.1) — the owner sets the
+# bot token + default chat id from /admin/settings; telegram_bot.py resolves
+# these DB rows first with env fallback. Fixes "no telegram notifications".
+_TELEGRAM_CONFIG_KEYS = {
+    "telegram_bot_token",
+    "telegram_chat_id",
+}
+
+_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS | _TELEGRAM_CONFIG_KEYS
 
 
 @router.get("/api/admin/config")
@@ -87,6 +95,15 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     if "support_email" in payload and str(payload["support_email"] or "").strip():
         if not _re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', str(payload["support_email"]).strip()):
             raise HTTPException(400, "support_email يجب أن يكون بريداً إلكترونياً صالحاً")
+    # telegram token shape (numeric:secret — 30+ chars) / chat id (numeric or @channel)
+    if "telegram_bot_token" in payload and str(payload["telegram_bot_token"] or "").strip():
+        tok = str(payload["telegram_bot_token"]).strip()
+        if not _re.match(r'^\d{6,12}:[A-Za-z0-9_-]{30,}$', tok):
+            raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA... من BotFather")
+    if "telegram_chat_id" in payload and str(payload["telegram_chat_id"] or "").strip():
+        cid = str(payload["telegram_chat_id"]).strip()
+        if not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', cid):
+            raise HTTPException(400, "telegram_chat_id غير صالح — معرف رقمي أو @قناة")
     from _audit import log_audit
     await log_audit(db, "admin_set_config", actor_id=current_user.id,
                     tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})

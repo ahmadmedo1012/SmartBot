@@ -688,9 +688,9 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
     action = data[:colon]
     payment_id = int(data[colon + 1:])
     from_id = cq.get("from", {}).get("id")
-    # Verify admin
-    from telegram_bot import ADMIN_IDS
-    if from_id not in ADMIN_IDS:
+    # Verify admin — env TELEGRAM_ADMIN_IDS ∪ DB TelegramApprover rows (plan v3 §5.2)
+    from telegram_bot import get_admin_ids
+    if from_id not in (await get_admin_ids()):
         await answer_callback(cq["id"], "عذراً، لا تمتلك الصلاحية", True)
         return {"ok": True}
     async with AsyncSessionLocal() as db:
@@ -934,7 +934,12 @@ async def webhook_verify(
 
 @app.post("/webhook")
 async def webhook_receive(request: Request):
-    """Receive real-time Facebook webhook events and process immediately."""
+    """Receive real-time Facebook webhook events and process immediately.
+
+    Handles BOTH (world-class launch plan v3 §4.3):
+      - entry[].changes[]  → feed comments (auto-reply engine)
+      - entry[].messaging[] → Messenger messages (persist + auto-reply)
+    """
     body = await request.body()
 
     # Validate signature if app secret configured
@@ -950,8 +955,22 @@ async def webhook_receive(request: Request):
 
     data = json.loads(body)
     log.debug(f"Webhook received: {json.dumps(data, ensure_ascii=False)[:500]}")
+    if data.get("object") and data.get("object") != "page":
+        return {"ok": True}
 
     for entry in data.get("entry", []):
+        entry_page_id = str(entry.get("id") or "")
+
+        # ── Messenger events (messages / echoes / postbacks) ──
+        for messaging in entry.get("messaging", []) or []:
+            if not isinstance(messaging, dict):
+                continue
+            try:
+                await _process_webhook_messaging(entry_page_id, messaging)
+            except Exception as e:
+                log.error(f"Messaging event error: {e}", exc_info=True)
+
+        # ── Feed changes (comments) ──
         for change in entry.get("changes", []):
             value = change.get("value", {})
             if change.get("field") != "feed":
@@ -979,6 +998,30 @@ async def webhook_receive(request: Request):
             await _process_webhook_comment(comment_payload, post_id)
 
     return {"ok": True}
+
+
+async def _process_webhook_messaging(page_id: str, messaging: dict):
+    """Dispatch one Messenger event to its tenant (plan v3 §4.3).
+
+    Tenant resolution: page_id → BotState.fb_page_id (exact match on value).
+    """
+    try:
+        if not page_id:
+            return
+        async with AsyncSessionLocal() as db:
+            row = await db.execute(
+                select(BotState).where(BotState.key == "fb_page_id", BotState.value == page_id)
+            )
+            bs = row.scalar_one_or_none()
+        if not bs:
+            log.warning(f"messaging event for unknown page {page_id} — skipped")
+            return
+        from messenger_service import handle_messaging_event
+        fb_client = await get_tenant_fb_client(bs.tenant_id)
+        await handle_messaging_event(bs.tenant_id, page_id, messaging, fb_client)
+        _track_event("webhook_message_processed", {"page_id": page_id}, tenant_id=bs.tenant_id)
+    except Exception as e:
+        log.error(f"Webhook messaging processing error: {e}", exc_info=True)
 
 
 async def _process_webhook_comment(comment: dict, post_id: str):

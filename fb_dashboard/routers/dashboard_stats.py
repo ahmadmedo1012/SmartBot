@@ -10,9 +10,9 @@ from _utils import utcnow, iso_z
 from config import settings
 from _responses import ok
 from database import get_db
-from models import Reply, Rule, BotLog, User, Tenant
+from models import Reply, Rule, BotLog, User, Tenant, Conversation, Message
 from routers.auth import get_current_user, require_role
-from _services import fb, get_ai, _get_trend_data, _track_event
+from _services import fb, get_ai, get_tenant_fb_client, _get_trend_data, _track_event
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["dashboard"])
@@ -39,10 +39,49 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
 
         fan_count = 0
+        page_name = ""
+        connected = False
+        connection_error = ""
         try:
-            fan_count = await fb.get_page_fan_count()
+            tenant_fb = await get_tenant_fb_client(_tid)
+            if tenant_fb is not None:
+                connected = True
+                fan_count = await tenant_fb.get_page_fan_count()
+            else:
+                # legacy single-tenant env fallback (bootstrap mode only)
+                fan_count = await fb.get_page_fan_count()
+                connected = bool(fan_count) or bool(settings.FACEBOOK_ACCESS_TOKEN and settings.FACEBOOK_PAGE_ID)
+        except Exception as e:
+            connection_error = str(e)[:120]
+
+        # Page identity from the connect snapshot (no live call — plan v3 §4.5)
+        try:
+            from models import BotState
+            row = await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id == _tid, BotState.key == "fb_page_name"))
+            bs = row.scalar_one_or_none()
+            page_name = (bs.value or "") if bs else ""
         except Exception:
-            pass
+            page_name = ""
+
+        # Message stats (persisted Messenger data — plan v3 §4.2)
+        try:
+            total_conversations = await db.scalar(
+                select(func.count(Conversation.id)).where(Conversation.tenant_id == _tid)) or 0
+            total_messages = await db.scalar(
+                select(func.count(Message.id)).where(Message.tenant_id == _tid)) or 0
+            unread_messages = await db.scalar(
+                select(func.count(Conversation.id)).where(
+                    Conversation.tenant_id == _tid,
+                    Conversation.unread_count > 0,
+                )) or 0
+            bot_message_replies = await db.scalar(
+                select(func.count(Message.id)).where(
+                    Message.tenant_id == _tid, Message.replied_by_bot.is_(True),
+                )) or 0
+        except Exception:
+            total_conversations = total_messages = unread_messages = bot_message_replies = 0
 
         top = None
         try:
@@ -96,6 +135,17 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
                 "chart": chart,
                 "trend": await _get_trend_data(db, _tid),
             },
+            "connection": {
+                "connected": connected,
+                "page_name": page_name,
+                "error": connection_error,
+            },
+            "messages": {
+                "total_conversations": total_conversations,
+                "total_messages": total_messages,
+                "unread_conversations": unread_messages,
+                "bot_replies": bot_message_replies,
+            },
             "rules": rules,
             "rules_count": rules_count,
             "active_rules_count": active_rules_count,
@@ -126,10 +176,16 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
         pass
 
     fan_count = 0
+    connected = False
     try:
-        fan_count = await fb.get_page_fan_count()
+        tenant_fb = await get_tenant_fb_client(_tid)
+        if tenant_fb is not None:
+            connected = True
+            fan_count = await tenant_fb.get_page_fan_count()
+        else:
+            fan_count = await fb.get_page_fan_count()
     except Exception:
-        pass
+        fan_count = 0
 
     chart_data = {}
     try:
@@ -146,6 +202,7 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
         "total_replies": total_replies,
         "today_replies": today_replies,
         "total_fan_count": fan_count,
+        "connected": connected,
         "top_rule_id": int(top[0]) if top and top[0] is not None else None,
         "reply_chart": chart_data,
     }}
@@ -182,9 +239,10 @@ async def get_system_stats(db=Depends(get_db), current_user: User = Depends(requ
 async def get_hourly_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=7)
+    hour_label = func.extract("hour", Reply.created_at).label("h")
     rows = await db.execute(
-        select(func.extract("hour", Reply.created_at).label("hour"), func.count(Reply.id).label("count"))
+        select(hour_label, func.count(Reply.id).label("count"))
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(text("hour")).order_by(text("hour"))
+        .group_by(hour_label).order_by(hour_label)
     )
-    return {"success": True, "data": [{"hour": int(r.hour), "count": r.count} for r in rows]}
+    return {"success": True, "data": [{"hour": int(r.h), "count": r.count} for r in rows]}

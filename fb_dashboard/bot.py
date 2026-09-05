@@ -842,6 +842,112 @@ class BotEngine:
                 self._mon.error(f"Single comment processing error: {e}",
                                 comment_id=cid, module="engine")
 
+    async def process_single_message(self, messaging: dict) -> dict | None:
+        """Auto-reply to ONE inbound Messenger message (world-class plan v3 §4.4).
+
+        Mirrors the comment pipeline stages (rules → intent → match → cooldown
+        → render → send) but replies via Messenger DM (fb.send_dm) instead of
+        a public comment. Returns {"mid", "text"} on success, else None.
+        """
+        msg = messaging.get("message") or {}
+        text = (msg.get("text") or "").strip()
+        sender = messaging.get("sender") or {}
+        sender_id = str(sender.get("id") or "")
+        sender_name = str(sender.get("name") or "")
+        if not text or not sender_id or sender_id in ("None", "0"):
+            return None
+        # Skip echoes / page-owned events
+        if msg.get("is_echo") or sender_id == str(self.fb.page_id):
+            return None
+
+        t0 = time.time()
+        await self._ensure_cache()
+        rules = await self._rule_cache.get_rules()
+        if not rules:
+            return None
+
+        from bot import CommentContext, IntentAwareMatcher, TemplateRenderer
+        ctx = CommentContext(
+            cid=msg.get("mid", ""),
+            post_id="dm",
+            text=text,
+            from_id=sender_id,
+            from_name=sender_name,
+            from_first=(sender_name or sender_id).split(" ")[0],
+            from_username=sender_name or sender_id,
+            raw=messaging,
+        )
+
+        # Intent (best-effort — same classifier as comments)
+        intent = None
+        try:
+            EI = _get_ei()
+            classification = EI.classify(text) or {}
+            intent = classification.get("primary_intent")
+        except Exception:
+            intent = None
+
+        matcher = IntentAwareMatcher(rules, await self._load_dm_map())
+        template, dm_template, rule_id = matcher.match(text, intent)
+
+        # For Messenger the DM template wins — the reply IS the DM.
+        chosen = (dm_template or template or "").strip()
+        if not chosen or not TemplateRenderer.validate(chosen):
+            self._mon.debug("message: no matching rule", module="webhook",
+                            comment_id=ctx.cid[:12], intent=intent or "")
+            return None
+
+        # Per-user cooldown (shared store with comments — one voice per user)
+        if self.cooldown.is_blocked(f"msg:{sender_id}"):
+            self._mon.debug(f"message cooldown {sender_id}", module="webhook")
+            return None
+
+        reply_text = TemplateRenderer.render(chosen, ctx)
+
+        result = await self.fb.send_dm(sender_id, reply_text)
+        if result is None or result.get("_error"):
+            self._mon.error("message send failed", module="webhook",
+                            comment_id=ctx.cid[:12])
+            return None
+
+        self._mon.info(f"→ DM reply to {ctx.from_first}", comment_id=ctx.cid[:12],
+                       intent=intent or "", rule_id=rule_id, module="webhook",
+                       extra={"duration_ms": f"{(time.time() - t0) * 1000:.0f}"})
+
+        # Persist audit trail + usage counter (same accounting as comments)
+        try:
+            async with AsyncSessionLocal() as session:
+                session.add(BotLog(level="INFO", message=f"رد آلي (رسالة) على {ctx.from_first}: {reply_text[:80]}"))
+                counter = await session.execute(
+                    select(UsageCounter).where(
+                        UsageCounter.tenant_id == self._tenant_id,
+                        UsageCounter.metric == "replies_used",
+                    ).order_by(desc(UsageCounter.period_start)).limit(1)
+                )
+                uc = counter.scalar_one_or_none()
+                if uc:
+                    uc.current_value = (uc.current_value or 0) + 1
+                else:
+                    session.add(UsageCounter(
+                        tenant_id=self._tenant_id, metric="replies_used",
+                        period_start=utcnow(), current_value=1,
+                    ))
+                await session.commit()
+        except Exception:
+            pass
+
+        # Live stats broadcast (WS + SSE — same event as comments)
+        try:
+            from event_bus import event_bus
+            payload = {"source": "message", "sender": ctx.from_first}
+            if ws_manager:
+                asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
+            asyncio.create_task(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
+        except Exception:
+            pass
+
+        return {"mid": (result.get("message_id") or result.get("mid") or ""), "text": reply_text}
+
     async def _load_rules_from_db(self) -> list[dict]:
         async with AsyncSessionLocal() as session:
             stmt = select(Rule)

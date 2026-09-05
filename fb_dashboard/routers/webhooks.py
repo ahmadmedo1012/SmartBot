@@ -56,19 +56,39 @@ async def get_webhook_events(
 
 
 @router.get("/api/webhook/check")
-async def check_webhook(_=Depends(get_current_user)):
-    """Check if webhook is properly configured."""
+async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_current_user)):
+    """Real webhook health: endpoint, app-secret config AND the fields the
+    page is actually subscribed to via Graph API (plan v3 §4.6)."""
     webhook_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or ""
     if webhook_url and not webhook_url.startswith("http"):
         webhook_url = "https://" + webhook_url
     webhook_url += "/webhook"
     if not webhook_url.startswith("http"):
-        webhook_url = "https://smartbot-6lxo.onrender.com/webhook"
+        webhook_url = "https://api.smart-link.ly/webhook"
+
+    subscribed_fields: list[str] = []
+    subscribe_error = ""
+    try:
+        from _services import get_tenant_fb_client
+        tenant_fb = await get_tenant_fb_client(current_user._tenant_id or 0)
+        if tenant_fb is not None:
+            r = await tenant_fb._get(f"{tenant_fb.page_id}/subscribed_apps", {"fields": "subscribed_fields"})
+            data = (r or {}).get("data") or []
+            for app in data:
+                subscribed_fields.extend(app.get("subscribed_fields", []) or [])
+    except Exception as e:
+        subscribe_error = str(e)[:160]
+
     return ok(
         {
         "configured": bool(APP_SECRET),
         "verify_token": "***" if VERIFY_TOKEN else "",
         "webhook_url": webhook_url,
+        "subscribed_fields": sorted(set(subscribed_fields)),
+        "subscribed": bool(subscribed_fields),
+        "subscribe_error": subscribe_error,
+        "messages_field_subscribed": "messages" in subscribed_fields,
+        "feed_field_subscribed": "feed" in subscribed_fields,
         "instructions": [
             "1. Go to https://developers.facebook.com/apps",
             "2. Select your app -> Webhooks -> Page",

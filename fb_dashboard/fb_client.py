@@ -233,6 +233,24 @@ class FBClient:
         r = await self._get(f"{self.page_id}", {"fields": "fan_count"})
         return (r or {}).get("fan_count", 0)
 
+    async def get_page_profile(self) -> dict:
+        """Page identity snapshot: name + fan_count + square picture URL.
+
+        Used by the connect flow (plan v3 §4.5) so the dashboard can show the
+        page name/fans instantly from BotState without live Graph calls.
+        Returns {} on failure — callers treat as best-effort."""
+        r = await self._get(f"{self.page_id}", {
+            "fields": "name,fan_count,picture.type(large)",
+        })
+        if not r or r.get("_error"):
+            return {}
+        pic = ((r.get("picture") or {}).get("data") or {}).get("url", "")
+        return {
+            "name": r.get("name", ""),
+            "fan_count": r.get("fan_count", 0) or 0,
+            "picture": pic,
+        }
+
     # ── Insights / Ads ────────────────────────────────────────────
 
     async def get_post_insights(self, post_id: str) -> dict:

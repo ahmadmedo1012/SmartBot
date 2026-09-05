@@ -8,6 +8,7 @@ from sqlalchemy import select, func, desc, cast, Date, text
 
 from _utils import utcnow
 from config import settings
+from _responses import ok
 from database import get_db
 from models import Reply, Rule, BotLog, User, Tenant
 from routers.auth import get_current_user, require_role
@@ -86,7 +87,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             "created_at": r.created_at.isoformat() if r.created_at else None,
         } for r in recent_replies_rows.scalars().all()[:5]]
 
-        return {
+        return ok({
             "stats": {
                 "total_replies": total_replies,
                 "today_replies": today_replies,
@@ -102,7 +103,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             "ai_status": {"available": ai.available, "provider": ai.provider_name},
             "recent_activity": activities,
             "recent_replies": recent_replies,
-        }
+        })
     except Exception as e:
         log.error(f"dashboard_bundle error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

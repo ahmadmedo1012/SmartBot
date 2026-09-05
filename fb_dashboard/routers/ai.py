@@ -13,6 +13,7 @@ from database import get_db
 from routers.auth import get_current_user, require_role
 
 from event_bus import event_bus
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["ai"])
@@ -33,8 +34,10 @@ async def ai_suggest_replies(
     t0 = __import__("time").time()
     result = await ai.suggest_replies(comment_text, commenter_name, page_context)
     latency = int((__import__("time").time() - t0) * 1000)
-    return {"suggestions": result.get("suggestions", []), "intent": result.get("intent", ""),
+    return ok(
+        {"suggestions": result.get("suggestions", []), "intent": result.get("intent", ""),
             "sentiment": result.get("sentiment", ""), "confidence": result.get("confidence", 0), "latency_ms": latency}
+    )
 
 
 @router.post("/api/ai/analyze")
@@ -45,7 +48,7 @@ async def ai_analyze_tone(comment_text: str = Form(...), _=Depends(get_current_u
     if not ai.available:
         raise HTTPException(400, "AI غير مفعل")
     result = await ai.analyze_tone(comment_text)
-    return result
+    return ok(result)
 
 
 @router.post("/api/ai/generate-reply")
@@ -60,7 +63,7 @@ async def ai_generate_reply(
         raise HTTPException(400, "AI غير مفعل")
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()] if keywords else None
     reply = await ai.generate_reply(comment_text, commenter_name, tone, kw_list)
-    return {"reply": reply or ""}
+    return ok({"reply": reply or ""})
 
 
 @router.post("/api/ai/analyze-image")
@@ -78,14 +81,14 @@ async def ai_analyze_image(data: dict = Body(...), _=Depends(require_role("edito
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=100, temperature=0.3,
             )
-            return {"analysis": (r.choices[0].message.content or "").strip()[:100]}
+            return ok({"analysis": (r.choices[0].message.content or "").strip()[:100]})
         elif ai._provider == "gemini" and ai._google_module:
             model = ai._google_module.GenerativeModel(ai._model)
             r = await model.generate_content_async(prompt)
-            return {"analysis": (r.text or "").strip()[:100]}
+            return ok({"analysis": (r.text or "").strip()[:100]})
     except Exception:
         pass
-    return {"analysis": ""}
+    return ok({"analysis": ""})
 
 
 @router.get("/api/ai/status")
@@ -93,7 +96,7 @@ async def ai_status(_=Depends(get_current_user)):
     """Check AI provider status."""
     from _services import get_ai
     ai = get_ai()
-    return {"available": ai.available, "provider": ai.provider_name}
+    return ok({"available": ai.available, "provider": ai.provider_name})
 
 
 @router.post("/api/agent/interpret")
@@ -156,7 +159,7 @@ async def agent_get_memory(db=Depends(get_db), current_user=Depends(get_current_
     import agent_memory as amem
     session = await amem.get_session(db, current_user.username)
     user = await amem.get_user_memory(db, current_user.username)
-    return {"session": session[-10:], "user_memory": user}
+    return ok({"session": session[-10:], "user_memory": user})
 
 
 @router.post("/api/agent/memory/clear")
@@ -164,4 +167,4 @@ async def agent_clear_memory(db=Depends(get_db), current_user=Depends(get_curren
     """Reset session history (keeps user memory/preferences)."""
     import agent_memory as amem
     await amem.clear_session(db, current_user.username)
-    return {"ok": True, "message": "تم مسح الذاكرة المؤقتة ✅"}
+    return ok({"ok": True, "message": "تم مسح الذاكرة المؤقتة ✅"})

@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { ActivityBarChart, ComparisonBars } from "@/components/charts"
 
 export default function AnalyticsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -71,16 +72,10 @@ export default function AnalyticsPage() {
             ) : daily.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">لا توجد بيانات بعد</p>
             ) : (
-              <div className="flex items-end gap-1 h-32">
-                {daily.slice(-30).map(([d, v]: [string, unknown]) => (
-                  <div key={d} className="flex-1 flex flex-col items-center justify-end h-full">
-                    <div
-                      className="w-full rounded-t bg-orange/70 hover:bg-orange transition-colors min-h-[2px]"
-                      style={{ height: `${((v as number) / maxVal) * 100}%` }}
-                    />
-                  </div>
-                ))}
-              </div>
+              <ActivityBarChart
+                height={128}
+                data={daily.slice(-30).map(([d, v]: [string, unknown]) => ({ label: d, value: Number(v) ?? 0, hint: d }))}
+              />
             )}
           </CardContent>
         </Card>
@@ -108,17 +103,9 @@ export default function AnalyticsPage() {
             <CardContent className="p-4">
               <h3 className="font-bold text-sm mb-3">توزيع المشاعر</h3>
               {data?.sentiment_distribution && Object.keys(data.sentiment_distribution).length > 0 ? (
-                <div className="space-y-2">
-                  {Object.entries(data.sentiment_distribution as Record<string, number>).map(([k, v]) => (
-                    <div key={k} className="flex items-center gap-3 text-sm">
-                      <span className="w-16">{k}</span>
-                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full bg-orange rounded-full" style={{ width: `${(v as number) / Math.max(...Object.values(data.sentiment_distribution) as number[]) * 100}%` }} />
-                      </div>
-                      <span className="text-muted-foreground">{v}</span>
-                    </div>
-                  ))}
-                </div>
+                <ComparisonBars
+                  data={Object.entries(data.sentiment_distribution as Record<string, number>).map(([k, v]) => ({ label: k, value: Number(v) ?? 0 }))}
+                />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">لا توجد بيانات مشاعر</p>
               )}

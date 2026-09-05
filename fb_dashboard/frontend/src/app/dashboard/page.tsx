@@ -1,7 +1,6 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle } from "lucide-react"
 
@@ -11,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { fadeUp, stagger } from "@/lib/motion"
+import { ActivityBarChart } from "@/components/charts"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 
@@ -92,47 +92,24 @@ function StatCard({ icon: Icon, label, value, trend, color }: {
   )
 }
 
-// ── Bar Chart ──
+// ── Bar Chart (recharts — Track E.5) ──
 function ChartBars({ data }: { data: Record<string, number> }) {
-  const entries = useMemo(() => Object.entries(data).slice(-24), [data])
-  const max = Math.max(...entries.map(([, v]) => v), 1)
-  if (entries.length === 0) {
-    return (
-      <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">
-        لا توجد بيانات نشاط لعرضها
-      </div>
-    )
-  }
+  const entries = Object.entries(data).slice(-24)
   return (
     <div>
-      <div className="flex items-end gap-1.5 h-32">
-        {entries.map(([d, v], i) => (
-          <motion.div
-            key={d}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: `${(v / max) * 100}%`, opacity: 1 }}
-            transition={{ duration: 0.5, delay: i * 0.02, ease: "easeOut" }}
-            className="flex-1 group relative"
-          >
-            <div
-              className="w-full rounded-t-md bg-gradient-to-t from-orange to-orange/70 group-hover:from-orange group-hover:to-orange transition-all duration-200 min-h-[3px] shadow-sm shadow-orange/20 group-hover:shadow-md group-hover:shadow-orange/30"
-              style={{ height: "100%" }}
-              title={`${d}: ${v} رد`}
-            />
-            <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-popover text-popover-foreground text-[10px] px-1.5 py-0.5 rounded shadow-md border border-border whitespace-nowrap z-10">
-              {v} رد
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <div className="flex justify-between mt-2.5 text-[10px] text-muted-foreground tabular-nums">
-        <span>{entries[0]?.[0]?.slice(5) || ""}</span>
-        <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
-      </div>
+      <ActivityBarChart
+        height={128}
+        data={entries.map(([d, v]) => ({ label: d.slice(5), value: v, hint: d }))}
+      />
+      {entries.length > 1 && (
+        <div className="flex justify-between mt-2.5 text-[10px] text-muted-foreground tabular-nums">
+          <span>{entries[0]?.[0]?.slice(5) || ""}</span>
+          <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
+        </div>
+      )}
     </div>
   )
 }
-
 // ── Main Dashboard ──
 export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({

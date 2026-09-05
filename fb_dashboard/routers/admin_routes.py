@@ -16,6 +16,7 @@ from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLab
 from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
 from models import SystemConfig
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["admin"])
@@ -113,7 +114,7 @@ async def repair(current_user: User = Depends(require_role("admin"))):
             await conn.commit()
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
-        return {"ok": True, "message": "DB repaired"}
+        return ok({"ok": True, "message": "DB repaired"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -140,7 +141,7 @@ async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User =
     await db.execute(User.__table__.delete().where(User.tenant_id == tenant_id))
     await db.delete(tenant)
     await db.commit()
-    return {"ok": True, "deleted_tenant_id": tenant_id}
+    return ok({"ok": True, "deleted_tenant_id": tenant_id})
 
 
 @router.post("/api/admin/rules/{rule_id}/priority")
@@ -151,7 +152,7 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
     if not rule: raise HTTPException(404, "Rule not found")
     rule.priority = max(0, min(9999, priority))
     await db.commit()
-    return {"ok": True, "priority": rule.priority}
+    return ok({"ok": True, "priority": rule.priority})
 
 
 @router.post("/api/admin/cooldown")
@@ -161,19 +162,22 @@ async def set_cooldown(seconds: int = Form(...), _=Depends(require_role("admin")
     from _services import get_bot_engine
     eng = get_bot_engine(tenant_id=_._tenant_id)
     eng.cooldown.adjust_window("global", seconds)
-    return {"ok": True, "cooldown_seconds": seconds}
+    return ok({"ok": True, "cooldown_seconds": seconds})
 
 
 @router.get("/api/admin/template-vars")
 async def template_vars(_=Depends(get_current_user)):
-    return {"vars": {"{name}": "الاسم الأول", "{full_name}": "الاسم الكامل",
+    return ok(
+        {"vars": {"{name}": "الاسم الأول", "{full_name}": "الاسم الكامل",
                      "{username}": "اسم المستخدم", "{message}": "النص", "{mention}": "تاغ الإشعار"},
             "example": "شكراً {name} على تعليقك!"}
+    )
 
 
 @router.get("/api/admin/rules-categories")
 async def rule_categories(_=Depends(get_current_user)):
-    return {"categories": [
+    return ok(
+        {"categories": [
         {"id": "negative", "label": "شكوى", "color": "red"},
         {"id": "complaint", "label": "شكوى صريحة", "color": "red"},
         {"id": "price_inquiry", "label": "استفسار سعر", "color": "blue"},
@@ -185,3 +189,4 @@ async def rule_categories(_=Depends(get_current_user)):
         {"id": "urgent", "label": "عاجل", "color": "orange"},
         {"id": "neutral", "label": "محايد", "color": "gray"},
     ]}
+    )

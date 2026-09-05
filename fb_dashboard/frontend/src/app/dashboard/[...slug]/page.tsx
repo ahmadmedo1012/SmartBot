@@ -89,14 +89,27 @@ const PAGE_CONFIG: Record<string, {
   },
 }
 
-// ── Page Not Found ──
+// ── Page Not Found — designed per docs/design-system.md (Track E.4) ──
 function PageNotFound({ slug }: { slug: string }) {
   return (
-    <SectionContainer className="py-16 text-center">
-      <HelpCircle className="size-12 text-muted-foreground mx-auto mb-4" />
-      <h2 className="text-lg font-bold mb-1">صفحة غير موجودة</h2>
-      <p className="text-sm text-muted-foreground mb-2">المسار: /{slug}</p>
-      <p className="text-sm text-muted-foreground">هذه الصفحة قيد التطوير</p>
+    <SectionContainer className="py-16">
+      <div className="mx-auto max-w-md text-center">
+        <div className="relative mx-auto mb-6 size-20">
+          <div className="absolute inset-0 rounded-full bg-accent-soft" />
+          <div className="absolute inset-0 m-4 rounded-full border-2 border-dashed border-accent/40 rotate-12" />
+          <HelpCircle className="absolute inset-0 m-auto size-8 text-accent" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">هذا القسم غير متاح</h2>
+        <p className="text-sm text-muted-foreground mb-1">
+          المسار <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded" dir="ltr">/{slug}</span> غير موجود ضمن لوحة التحكم
+        </p>
+        <p className="text-xs text-muted-foreground mb-6">
+          ربما كان رابطًا قديمًا — كل الأقسام متاحة من القائمة الجانبية
+        </p>
+        <Button variant="outline" onClick={() => window.location.assign("/dashboard")}>
+          العودة إلى لوحة البيانات
+        </Button>
+      </div>
     </SectionContainer>
   )
 }

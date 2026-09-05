@@ -17,6 +17,7 @@ import {
   Sparkles, ArrowLeft, ChevronLeft, LayoutDashboard, Settings, Shield,
   CheckCircle,
 } from "lucide-react"
+import { ActivityBarChart } from "@/components/charts"
 
 const mockStats = {
   replies_today: 327, replies_week: 1284, followers: 12500, rules: 3,
@@ -47,7 +48,6 @@ const navItems = [
 export default function DemoPage() {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const maxCount = Math.max(...mockStats.active_hours, 1)
   // title handled by layout.tsx
 
   return (
@@ -144,16 +144,10 @@ export default function DemoPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-end gap-1 h-32">
-                    {mockStats.active_hours.map((v, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <div
-                          className="w-full rounded-t bg-orange-500/70 transition-all hover:bg-orange-500"
-                          style={{ height: `${(v / maxCount) * 100}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <ActivityBarChart
+                    height={128}
+                    data={mockStats.active_hours.map((v, i) => ({ label: `${i}:00`, value: v, hint: `الساعة ${i}:00` }))}
+                  />
                   <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
                     <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
                   </div>

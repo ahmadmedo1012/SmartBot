@@ -29,7 +29,7 @@ export function Footer({ className }: FooterProps) {
       <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-10 sm:mb-12">
           <div className="col-span-2 sm:col-span-1">
-            <img src="/static/brand-icon.png" alt="الربط الذكي" className="h-7 w-auto mb-4" />
+            <img src="/brand-icon.png" alt="الربط الذكي" className="h-7 w-auto mb-4" />
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               منصة رقمية لإدارة صفحات فيسبوك — ردود تلقائية، تحليلات، وجدولة منشورات بذكاء
             </p>

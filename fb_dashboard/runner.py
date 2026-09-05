@@ -569,6 +569,16 @@ if _FONTS_DIR.exists():
         app.mount("/fonts", StaticFiles(directory=str(_FONTS_DIR)), name="fonts")
     except Exception as e:
         log.error(f"Fonts mount failed: {e}")
+# Root-level public assets (brand icon / favicon) — the frontend references
+# them at the root path (works on Vercel via public/); single-server mode
+# serves the same files from STATIC_DIR so both deployments agree.
+from fastapi.responses import FileResponse as _FileResponse
+for _root_asset in ("brand-icon.png", "favicon.png", "robots.txt", "manifest.json"):
+    _asset_path = STATIC_DIR / _root_asset
+    if _asset_path.is_file():
+        async def _serve_root_asset(p: str = str(_asset_path)):
+            return _FileResponse(p)
+        app.add_api_route(f"/{_root_asset}", _serve_root_asset, methods=["GET"], name=f"root-{_root_asset}")
 # ponytail: Vercel includeFiles bundles fb_dashboard/static/** but the Python
 # function may see files at a different path. Log diagnostic on startup.
 log.info(f"STATIC_DIR={STATIC_DIR} exists={STATIC_DIR.exists()}")

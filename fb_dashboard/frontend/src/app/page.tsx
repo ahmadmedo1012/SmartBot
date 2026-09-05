@@ -30,7 +30,7 @@ const organizationSchema = {
   "@type": "Organization",
   name: "SmartBot",
   url: SITE_URL,
-  logo: `${SITE_URL}/static/brand-icon.png`,
+  logo: `${SITE_URL}/brand-icon.png`,
   description: "منصة إدارة صفحات فيسبوك الذكية — أتمتة الردود والتحليلات لصفحات فيسبوك في ليبيا",
   areaServed: { "@type": "Country", name: "Libya" },
   knowsLanguage: ["ar", "en"],

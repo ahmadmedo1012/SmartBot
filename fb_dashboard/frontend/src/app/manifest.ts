@@ -12,8 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ar",
     dir: "rtl",
     icons: [
-      { src: "/static/brand-icon.png", sizes: "any", type: "image/png", purpose: "any" },
-      { src: "/static/brand-icon.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/brand-icon.png", sizes: "any", type: "image/png", purpose: "any" },
+      { src: "/brand-icon.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
     ],
   }
 }

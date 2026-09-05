@@ -105,7 +105,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
             style={{ transformOrigin: "top center" }}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-              <Image src="/static/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
+              <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
               <span className="text-sm font-medium tracking-tight text-foreground/80">SmartBot</span>
               <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-orange/20 transition-colors active:scale-90" aria-label="إغلاق"><X className="size-4" /></button>
             </div>
@@ -177,7 +177,7 @@ export function Header({ className }: HeaderProps) {
           <div className="flex items-center gap-3 flex-1">
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
             <Link href="/" className="flex items-center gap-2 shrink-0 group">
-              <Image src="/static/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
+              <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
               <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-orange transition-colors duration-200" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
             </Link>
           </div>

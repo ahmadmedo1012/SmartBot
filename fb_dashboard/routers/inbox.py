@@ -170,16 +170,26 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                 "id": str(m.fb_message_id or m.id),
                 "message": m.text or "",
                 "from": {"id": m.sender_id or "", "name": m.sender_name or ("الصفحة" if m.is_from_page else "")},
+                # v4 §2.4 — the frontend compared from.id === "page" which never
+                # matches the numeric page id → page replies rendered as customer
+                # bubbles. Explicit flag is unambiguous.
+                "is_from_page": bool(m.is_from_page),
+                "attachment_type": m.attachment_type or "",
+                "attachment_url": m.attachment_url or "",
+                "postback_payload": m.postback_payload or "",
                 "created_time": iso_z(m.created_at),
             } for m in msgs])
 
     # DB miss → live Graph fetch (conversation discovered via live sync)
     fb = await _get_inbox_fb(tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
+    # v4 §2.4 — is_from_page explicit on the live path too (message.data
+    # carries the page id on page-sent messages)
     return ok(
         [{
         "id": m["id"], "message": m.get("message", ""),
         "from": m.get("from", {}),
+        "is_from_page": m.get("is_from_page", False),
         "created_time": m.get("created_time", ""),
     } for m in messages]
     )

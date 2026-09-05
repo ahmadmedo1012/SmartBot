@@ -130,8 +130,9 @@ export default function MarketingPage() {
     onError: (e: Error) => toast.error(e.message || "فشل الحذف"),
   })
 
-  const campaigns: Campaign[] = data?.data || []
-  const audienceCount: number = audienceQuery.data?.data?.count ?? 0
+  // v4 §2.2 — unwrapApi already returned the payload; the extra .data made the list always empty
+  const campaigns: Campaign[] = data || []
+  const audienceCount: number = audienceQuery.data?.count ?? 0
 
   return (
     <div className="flex-1 flex flex-col">

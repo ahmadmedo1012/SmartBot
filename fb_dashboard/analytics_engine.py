@@ -8,7 +8,7 @@ from typing import Any
 
 from sqlalchemy import select, func, cast, Date, extract, desc, and_, text
 
-from models import Reply, Rule, BotLog, AnalyticsEvent, AISuggestion, Subscriber
+from models import Reply, Rule, BotLog, AnalyticsEvent, AISuggestion, Subscriber, Message, Conversation, Customer
 
 log = logging.getLogger("fb-analytics")
 
@@ -77,6 +77,29 @@ class AnalyticsEngine:
         total_replies = r.total_replies or 0
         prior_replies = r.prior_replies or 0
 
+        # v4 §7.24 — honest, real-data KPIs the reports page actually renders:
+        # messages / conversations / CRM customers (all tenant-scoped tables that
+        # ARE populated in production). Replaces the likes/views/shares phantoms
+        # the old frontend read (fields that never existed in any response).
+        total_messages = (
+            await session.scalar(
+                select(func.count(Message.id)).where(Message.tenant_id == tenant_id)
+            )
+            or 0
+        )
+        total_conversations = (
+            await session.scalar(
+                select(func.count(Conversation.id)).where(Conversation.tenant_id == tenant_id)
+            )
+            or 0
+        )
+        total_customers = (
+            await session.scalar(
+                select(func.count(Customer.id)).where(Customer.tenant_id == tenant_id)
+            )
+            or 0
+        )
+
         return {
             "total_replies": total_replies,
             "today_replies": r.today_replies or 0,
@@ -86,6 +109,9 @@ class AnalyticsEngine:
             "prior_replies": prior_replies,
             "change_pct": self._pct_change(total_replies, prior_replies),
             "period_days": days,
+            "total_messages": total_messages,
+            "total_conversations": total_conversations,
+            "total_customers": total_customers,
         }
 
     async def get_daily_trend(self, days: int, session, tenant_id: int = 0) -> list[dict]:

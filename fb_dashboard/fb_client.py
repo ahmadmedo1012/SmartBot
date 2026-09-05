@@ -190,7 +190,16 @@ class FBClient:
             "limit": limit,
             "fields": "id,message,from{name,id},created_time",
         })
-        return (r or {}).get("data", [])
+        msgs = (r or {}).get("data", [])
+        # v4 §2.4 — mark page-sent messages explicitly so the inbox UI puts
+        # them on the correct bubble side (comparing from.id === "page" never
+        # matched the numeric page id).
+        page_id_str = str(self.page_id) if self.page_id else ""
+        for m in msgs:
+            m["is_from_page"] = bool(page_id_str) and str(
+                (m.get("from") or {}).get("id", "")
+            ) == page_id_str
+        return msgs
 
     async def send_conversation_message(self, conversation_id: str,
                                         message: str) -> dict | None:
@@ -229,8 +238,13 @@ class FBClient:
 
     # ── Page info ─────────────────────────────────────────────────
 
-    async def get_page_fan_count(self) -> int:
+    async def get_page_fan_count(self) -> int | None:
+        # v4 §3.7 — honest failure: None (not 0) when the call fails, so
+        # callers can fall back to the stored fb_fan_count snapshot instead
+        # of displaying "0 followers" next to a "connected" badge.
         r = await self._get(f"{self.page_id}", {"fields": "fan_count"})
+        if r is None:
+            return None
         return (r or {}).get("fan_count", 0)
 
     async def get_page_profile(self) -> dict:
@@ -265,12 +279,16 @@ class FBClient:
 
     async def get_campaigns(self, ad_account_id: str, limit: int = 20) -> list:
         fields = "id,name,status,objective,created_time,adsets{name,status,daily_budget,lifetime_budget,start_time,end_time}"
-        r = await self._get(f"act_{ad_account_id}/campaigns", {"limit": limit, "fields": fields})
+        # v4 §7.26 — Graph already returns ids prefixed with act_; the old
+        # unconditional f"act_{id}" built act_act_… and 404'd every request.
+        aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
+        r = await self._get(f"{aid}/campaigns", {"limit": limit, "fields": fields})
         return (r or {}).get("data", [])
 
     async def get_ads(self, ad_account_id: str, limit: int = 20) -> list:
         fields = "id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_story_spec},insights{impressions,clicks,spend,ctr,cpc}"
-        r = await self._get(f"act_{ad_account_id}/ads", {"limit": limit, "fields": fields})
+        aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
+        r = await self._get(f"{aid}/ads", {"limit": limit, "fields": fields})
         return (r or {}).get("data", [])
 
     # ── Name helpers ──────────────────────────────────────────────

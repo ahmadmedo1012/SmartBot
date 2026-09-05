@@ -1016,7 +1016,11 @@ async def webhook_receive(request: Request):
                 continue
 
             # Process this single comment immediately (inline, not fire-and-forget — Vercel kills background tasks)
-            await _process_webhook_comment(comment_payload, post_id)
+            # v4 §4.9 (G2) — pass entry_page_id: the old call relied on
+            # comment["page_id"] (never set) or the COMMENTER's user id, so
+            # the tenant lookup always failed and the comment pipeline fell
+            # to a tokenless singleton → no auto-reply, ever, in multi-tenant.
+            await _process_webhook_comment(comment_payload, post_id, entry_page_id)
 
     return {"ok": True}
 
@@ -1045,31 +1049,62 @@ async def _process_webhook_messaging(page_id: str, messaging: dict):
         log.error(f"Webhook messaging processing error: {e}", exc_info=True)
 
 
-async def _process_webhook_comment(comment: dict, post_id: str):
+async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: str = ""):
     """Process a single webhook comment — dispatches by page_id for multi-tenant."""
     try:
-        page_id = comment.get("page_id") or comment.get("from", {}).get("id", "")
+        # v4 §4.9 (G2) — resolve the tenant from the PAGE that emitted the
+        # event (same logic as _process_webhook_messaging), never from the
+        # comment author.
+        page_id = entry_page_id or comment.get("page_id", "")
         if page_id:
             async with AsyncSessionLocal() as db:
                 row = await db.execute(
-                    select(BotState).where(BotState.key == "fb_page_id", BotState.value == page_id)
+                    select(BotState).where(
+                        BotState.tenant_id.isnot(None),
+                        BotState.key == "fb_page_id",
+                        BotState.value == page_id,
+                    )
                 )
                 bs = row.scalar_one_or_none()
             if bs:
                 fb_client = await get_tenant_fb_client(bs.tenant_id)
+                # v4 §4.10 — persist the comment regardless of engine health so
+                # /api/comments (DB-first) shows it immediately
+                try:
+                    from models import Comment as CommentRow
+                    from database import AsyncSessionLocal as _ASL
+                    async with _ASL() as cdb:
+                        cid = comment.get("id", "")
+                        if cid:
+                            existing = (await cdb.execute(
+                                select(CommentRow).where(
+                                    CommentRow.tenant_id == bs.tenant_id,
+                                    CommentRow.fb_comment_id == cid,
+                                )
+                            )).scalar_one_or_none()
+                            if existing is None:
+                                from _utils import utcnow as _now
+                                cdb.add(CommentRow(
+                                    tenant_id=bs.tenant_id,
+                                    fb_comment_id=cid,
+                                    fb_post_id=str(post_id or ""),
+                                    commenter_id=str((comment.get("from") or {}).get("id", "")),
+                                    commenter_name=str((comment.get("from") or {}).get("name", "")),
+                                    comment_text=str(comment.get("message", "")),
+                                    created_at=_now(),
+                                ))
+                                await cdb.commit()
+                except Exception as ce:
+                    log.warning(f"webhook comment persist failed: {ce}")
                 if fb_client:
                     # Use registry — ensures dedup cache and cooldown are shared with background bot loop
                     engine = get_bot_engine(fb_client, tenant_id=bs.tenant_id)
                     await engine.process_single_comment(comment, post_id)
                     _track_event("webhook_comment_processed", {"comment_id": comment.get("id",""), "tenant_id": bs.tenant_id})
                     return
-        # Fallback: unscoped singleton (legacy single-tenant mode) — only if no tenant found
-        engine = get_bot_engine()
-        if not engine._tenant_id:
-            await engine.process_single_comment(comment, post_id)
-        else:
-            log.warning("webhook skipped — no tenant context for per-tenant engine")
-        _track_event("webhook_comment_processed", {"comment_id": comment.get("id","")})
+                log.warning(f"webhook comment for page {page_id}: tenant {bs.tenant_id} has no FB client — stored only")
+                return
+        log.warning(f"webhook comment for unknown page {page_id or '(none)'} — skipped")
     except Exception as e:
         log.error(f"Webhook comment processing error: {e}", exc_info=True)
 

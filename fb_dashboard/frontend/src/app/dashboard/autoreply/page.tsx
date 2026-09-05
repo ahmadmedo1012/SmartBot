@@ -12,8 +12,10 @@ import { unwrapApi } from "@/lib/api"
 
 export default function AutoReplyPage() {
   const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState("")
   const [keyword, setKeyword] = useState("")
   const [replyText, setReplyText] = useState("")
+  const [priority, setPriority] = useState("50")
   const queryClient = useQueryClient()
 
   const { data: rules = [], isLoading, isError, error, refetch } = useQuery({
@@ -28,12 +30,21 @@ export default function AutoReplyPage() {
   })
 
   const createMut = useMutation({
+    // v4 §2.3/§5.14 — send the fields the backend actually declares
+    // (name, keywords, reply_template, priority). The old body sent
+    // keyword/reply_text → guaranteed 422, so NO rule was ever creatable
+    // from this page.
     mutationFn: () =>
       apiFetch("/api/rules", {
         method: "POST",
-        body: new URLSearchParams({ keyword: keyword.trim(), reply_text: replyText.trim() }),
+        body: new URLSearchParams({
+          name: name.trim() || keyword.trim(),
+          keywords: keyword.trim(),
+          reply_template: replyText.trim(),
+          priority: priority.trim() || "50",
+        }),
       }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); setShowForm(false); setKeyword(""); setReplyText(""); toast.success("تم إنشاء القاعدة") },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); setShowForm(false); setName(""); setKeyword(""); setReplyText(""); setPriority("50"); toast.success("تم إنشاء القاعدة") },
     onError: (e: Error) => toast.error(e.message || "فشل الإنشاء"),
   })
 
@@ -70,7 +81,16 @@ export default function AutoReplyPage() {
           <Card className="border-orange/30 shadow-md shadow-orange/5">
             <CardContent className="p-4 space-y-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الكلمة المفتاحية</label>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم القاعدة</label>
+                <input
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="مثال: الرد على الاستفسارات"
+                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الكلمات المفتاحية (افصل بفاصلة)</label>
                 <input
                   value={keyword}
                   onChange={e => setKeyword(e.target.value)}
@@ -86,6 +106,15 @@ export default function AutoReplyPage() {
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة..."
                   rows={3}
                   className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15 resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الأولوية (الرقم الأقل يُفحص أولاً: 1-999)</label>
+                <input
+                  value={priority}
+                  onChange={e => setPriority(e.target.value)}
+                  inputMode="numeric"
+                  className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-orange/40 focus:ring-2 focus:ring-orange/15"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
@@ -126,20 +155,31 @@ export default function AutoReplyPage() {
               <Card key={r.id} className="card-hover border-border/50 hover:border-orange/30 group">
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <code className="text-xs font-bold bg-orange/10 text-orange px-2 py-0.5 rounded border border-orange/20">
-                        {r.keyword}
-                      </code>
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${r.is_active === false ? "text-muted-foreground" : "text-green-500"}`}>
-                        <span className={`size-1.5 rounded-full ${r.is_active === false ? "bg-muted-foreground" : "bg-green-500"}`} />
-                        {r.is_active === false ? "متوقف" : "نشط"}
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      {/* v4 §2.3 — backend returns keywords[] / reply_template / enabled;
+                          the old r.keyword / r.reply_text / r.is_active rendered blanks
+                          and every rule showed "نشط" even when disabled */}
+                      {(r.keywords || []).map((k: string, i: number) => (
+                        <code key={i} className="text-xs font-bold bg-orange/10 text-orange px-2 py-0.5 rounded border border-orange/20">
+                          {k}
+                        </code>
+                      ))}
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${r.enabled === false ? "text-muted-foreground" : "text-green-500"}`}>
+                        <span className={`size-1.5 rounded-full ${r.enabled === false ? "bg-muted-foreground" : "bg-green-500"}`} />
+                        {r.enabled === false ? "متوقف" : "نشط"}
                       </span>
+                      <span className="text-[10px] text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
+                        أولوية {r.priority ?? 999}
+                      </span>
+                      {(r.replies_count ?? 0) > 0 && (
+                        <span className="text-[10px] text-muted-foreground">{r.replies_count} رد</span>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_text}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_template}</p>
                   </div>
                   <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
                     <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} className="size-8 p-0" aria-label="تبديل">
-                      {r.is_active === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-green-500" />}
+                      {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-green-500" />}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} className="size-8 p-0 hover:text-destructive" aria-label="حذف">
                       <Trash2 className="size-3.5" />

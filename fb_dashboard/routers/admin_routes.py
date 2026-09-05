@@ -56,7 +56,20 @@ _FACEBOOK_CONFIG_KEYS = {
     "facebook_app_secret",
 }
 
-_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS | _TELEGRAM_CONFIG_KEYS | _FACEBOOK_CONFIG_KEYS
+# v4 §5.20 — AI provider keys from /admin/settings (DB-first, env fallback).
+# The owner previously had to redeploy to set an AI key; now it's a form field
+# and routers/ai.py refreshes the service before every call.
+_AI_CONFIG_KEYS = {
+    "openai_api_key",
+    "openai_base_url",
+    "gemini_api_key",
+    "ai_model",
+}
+
+_ADMIN_CONFIG_KEYS = (
+    _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS | _TELEGRAM_CONFIG_KEYS
+    | _FACEBOOK_CONFIG_KEYS | _AI_CONFIG_KEYS
+)
 
 
 @router.get("/api/admin/config")

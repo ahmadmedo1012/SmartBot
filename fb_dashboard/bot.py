@@ -170,6 +170,8 @@ class TextNormalizer:
                        "شنو ", "شحال ", "قداش ", "قداه ", "شكون ", "علاش ",
                        "واش ", "هذاك ", "هذيك ", "هذولا ")
 
+    TATWEEL = "ـ"  # U+0640 — السـعر should equal السعر (v4 §5.19)
+
     @classmethod
     def normalize(cls, text: str) -> str:
         import unicodedata
@@ -178,6 +180,7 @@ class TextNormalizer:
         t = t.translate(cls.YEH_MAP).translate(cls.WAW_MAP)
         for ch in cls.DIACRITICS:
             t = t.replace(ch, "")
+        t = t.replace(cls.TATWEEL, "")
         return t
 
     @classmethod
@@ -242,7 +245,10 @@ class IntentAwareMatcher:
             kw = r.get("keywords", [])
             rname = r.get("name", "")
             if not kw or kw == ["__catch_all__"]:
-                self._catch_all = r
+                # v4 §5.19 (F3) — FIRST (lowest-priority) catch-all wins; the
+                # old loop overwrote on every match so the LAST one won.
+                if self._catch_all is None:
+                    self._catch_all = r
                 continue
             normalized = []
             for k in kw:
@@ -544,6 +550,30 @@ class ReplyPipeline:
                 reply_text=reply,
                 rule_id=rule_id,
             ))
+            # v4 §4.10 — upsert the stored Comment row so /api/comments
+            # (DB-first) reflects replies even without live Graph reachability
+            try:
+                from models import Comment as _C
+                _crow = (await session.execute(
+                    select(_C).where(
+                        _C.tenant_id == self._tenant_id,
+                        _C.fb_comment_id == ctx.cid,
+                    )
+                )).scalar_one_or_none()
+                if _crow is None:
+                    _crow = _C(
+                        tenant_id=self._tenant_id,
+                        fb_comment_id=ctx.cid,
+                        fb_post_id=str(ctx.post_id or ""),
+                        commenter_id=str(ctx.from_id or ""),
+                        commenter_name=ctx.from_name or "",
+                        comment_text=ctx.text or "",
+                    )
+                    session.add(_crow)
+                _crow.reply_text = reply
+                _crow.replied_by_bot = True
+            except Exception as _ce:
+                self._mon.debug(f"comment upsert skipped: {_ce}", comment_id=ctx.cid[:12])
             await session.commit()
         except IntegrityError:
             await session.rollback()
@@ -842,22 +872,112 @@ class BotEngine:
                 self._mon.error(f"Single comment processing error: {e}",
                                 comment_id=cid, module="engine")
 
+    async def _subscription_active(self) -> bool:
+        """v4 §5.18 — one gate, both paths (webhook + cycle).
+
+        Semantics (aligned with register/lifespan reality):
+          - fresh tenant (plan_end unset, any status) → ACTIVE: registration
+            leaves subscription_status="UNPAID" by default until a cold start
+            migrates it to FREE — blocking those would silence the bot for
+            every new customer (the exact "everything is zero" complaint).
+          - TRIAL with past plan_end → EXPIRED_TRIAL: basic replies continue
+            (same as the cycle's documented §2.6 behavior).
+          - UNPAID *with* a past plan_end (a paid plan that lapsed) or
+            REJECTED → blocked.
+        """
+        if not self._tenant_id:
+            return True  # legacy singleton — no tenant to gate
+        try:
+            async with AsyncSessionLocal() as session:
+                tenant = await session.get(Tenant, self._tenant_id)
+                if not tenant:
+                    return True
+                if tenant.subscription_status == "REJECTED":
+                    return False
+                if tenant.subscription_status == "UNPAID" and tenant.plan_end and utcnow() > tenant.plan_end:
+                    return False
+                if tenant.plan_end and utcnow() > tenant.plan_end:
+                    if tenant.subscription_status == "TRIAL":
+                        tenant.subscription_status = "EXPIRED_TRIAL"
+                        await session.commit()
+                        return True  # basic auto-replies stay on
+                    if tenant.subscription_status not in ("FREE", "PAID"):
+                        return False
+                return True
+        except Exception:
+            return True  # fail-open: never lose replies over a DB hiccup
+
+    async def _is_first_contact(self, sender_id: str) -> bool:
+        """v4 §5.15 — TRUE first-contact detection: is this the sender's FIRST
+        inbound message? (Runs AFTER persist_message stored it, so count==1
+        means the current message is the first one.)"""
+        if not sender_id:
+            return False
+        try:
+            from models import Message as _Msg
+            async with AsyncSessionLocal() as session:
+                n = await session.scalar(
+                    select(func.count(_Msg.id)).where(
+                        _Msg.tenant_id == self._tenant_id,
+                        _Msg.sender_id == sender_id,
+                        _Msg.is_from_page == False,
+                    )
+                )
+                return (n or 0) == 1
+        except Exception:
+            return False
+
+    @staticmethod
+    def _find_greeting_rule(rules: list[dict]):
+        """v4 §5.15 — locate the greeting rule (by name/description/intent)."""
+        best = (None, None, None)
+        for r in rules or []:
+            name = str(r.get("name") or "").lower()
+            desc = str(r.get("description") or "").lower()
+            if "greeting" in name or "ترحيب" in name or "greeting" in desc or "ترحيب" in desc:
+                tpl = (r.get("reply_template") or r.get("template") or "").strip()
+                dm = (r.get("dm_template") or "").strip()
+                if tpl or dm:
+                    best = (tpl, dm, r.get("id"))
+                    break
+        return best
+
     async def process_single_message(self, messaging: dict) -> dict | None:
         """Auto-reply to ONE inbound Messenger message (world-class plan v3 §4.4).
 
-        Mirrors the comment pipeline stages (rules → intent → match → cooldown
-        → render → send) but replies via Messenger DM (fb.send_dm) instead of
-        a public comment. Returns {"mid", "text"} on success, else None.
+        Mirrors the comment pipeline stages (rules → intent → match → gating
+        → render → send with retry) but replies via Messenger DM (fb.send_dm)
+        instead of a public comment. Returns {"mid", "text", "rule_id"} on
+        success, else None.
         """
         msg = messaging.get("message") or {}
-        text = (msg.get("text") or "").strip()
         sender = messaging.get("sender") or {}
         sender_id = str(sender.get("id") or "")
         sender_name = str(sender.get("name") or "")
+
+        # v4 §4.11 — text may come from postback/quick-reply payloads when the
+        # user tapped a button (no message.text). Use the payload as the
+        # matchable text so button taps get answers too.
+        text = (msg.get("text") or "").strip()
+        pb_payload = ""
+        pb = messaging.get("postback")
+        if isinstance(pb, dict) and pb.get("payload"):
+            pb_payload = str(pb["payload"]).strip()
+            text = text or pb_payload or str(pb.get("title") or "").strip()
+        elif isinstance(msg.get("quick_reply"), dict) and msg["quick_reply"].get("payload"):
+            pb_payload = str(msg["quick_reply"]["payload"]).strip()
+            text = text or pb_payload
+
         if not text or not sender_id or sender_id in ("None", "0"):
             return None
         # Skip echoes / page-owned events
-        if msg.get("is_echo") or sender_id == str(self.fb.page_id):
+        if msg.get("is_echo") or (self.fb and sender_id == str(self.fb.page_id)):
+            return None
+
+        # v4 §5.18 — subscription/plan gate for webhook replies (the background
+        # cycle already gated on plan limits; the webhook path bypassed it, so
+        # expired/UNPAID tenants still got unlimited auto-replies).
+        if not await self._subscription_active():
             return None
 
         t0 = time.time()
@@ -888,7 +1008,17 @@ class BotEngine:
             intent = None
 
         matcher = IntentAwareMatcher(rules, await self._load_dm_map())
+
+        # v4 §5.15 — TRUE first-message greeting: fires once per NEW
+        # conversation (new PSID), not on every "السلام عليكم". A rule named/
+        # described as greeting (or with the greeting intent) wins on the
+        # customer's first contact.
+        is_first_contact = await self._is_first_contact(sender_id)
         template, dm_template, rule_id = matcher.match(text, intent)
+        if is_first_contact:
+            g_tpl, g_dm, g_rule = self._find_greeting_rule(rules)
+            if g_tpl or g_dm:
+                template, dm_template, rule_id = g_tpl, g_dm, g_rule
 
         # For Messenger the DM template wins — the reply IS the DM.
         chosen = (dm_template or template or "").strip()
@@ -897,15 +1027,37 @@ class BotEngine:
                             comment_id=ctx.cid[:12], intent=intent or "")
             return None
 
-        # Per-user cooldown (shared store with comments — one voice per user)
-        if self.cooldown.is_blocked(f"msg:{sender_id}"):
-            self._mon.debug(f"message cooldown {sender_id}", module="webhook")
-            return None
+        # v4 §5.12 — NO 60-second cooldown on 1:1 Messenger conversations.
+        # The old per-user block swallowed consecutive questions: a customer
+        # typing "سلام" then "شحال السعر؟" got NO answer to the second one.
+        # Rate safety comes from dedup + the plan gate; comments keep theirs.
 
         reply_text = TemplateRenderer.render(chosen, ctx)
 
-        result = await self.fb.send_dm(sender_id, reply_text)
+        # v4 §5.16 — 3 attempts with exponential backoff (same as comments);
+        # a single transient failure no longer silently loses the reply.
+        result = None
+        last_err = None
+        for attempt in range(3):
+            result = await self.fb.send_dm(sender_id, reply_text)
+            if result is not None and not result.get("_error"):
+                break
+            last_err = (result or {}) if isinstance(result, dict) else None
+            result = None
+            await asyncio.sleep(1.2 ** attempt)
         if result is None or result.get("_error"):
+            # v4 §5.17 — distinguish the Facebook 24h window (error code 10)
+            # from generic failures so the log tells the owner the truth.
+            err = last_err.get("_error") if isinstance(last_err, dict) else None
+            err_str = str(err or "")
+            code_10 = "code 10" in err_str.lower() or "(10)" in err_str or '"code":10' in err_str.replace(" ", "")
+            why = (
+                "العميل خارج نافذة 24 ساعة — فيسبوك يمنع الرد التلقائي الآن"
+                if code_10 else
+                f"فشل إرسال الرد الآلي (رسالة إلى {ctx.from_first})"
+                + (f" — {err_str[:120]}" if err_str else "")
+                + " — تحقق من صلاحية توكن الصفحة"
+            )
             self._mon.error("message send failed", module="webhook",
                             comment_id=ctx.cid[:12])
             # Honest telemetry (v3 final-launch §4.3): the owner must SEE why
@@ -913,11 +1065,9 @@ class BotEngine:
             # not as silence. Persisted with tenant_id so /api/logs surfaces it.
             try:
                 async with AsyncSessionLocal() as session:
-                    err = (result or {}).get("_error") if isinstance(result, dict) else None
-                    detail = f" — {str(err)[:120]}" if err else ""
                     session.add(BotLog(
                         tenant_id=self._tenant_id, level="WARN",
-                        message=f"فشل إرسال الرد الآلي (رسالة إلى {ctx.from_first}){detail} — تحقق من صلاحية توكن الصفحة"))
+                        message=why))
                     await session.commit()
             except Exception:
                 pass
@@ -961,13 +1111,17 @@ class BotEngine:
         except Exception:
             pass
 
-        return {"mid": (result.get("message_id") or result.get("mid") or ""), "text": reply_text}
+        return {"mid": (result.get("message_id") or result.get("mid") or ""), "text": reply_text,
+                "rule_id": rule_id}
 
     async def _load_rules_from_db(self) -> list[dict]:
         async with AsyncSessionLocal() as session:
             stmt = select(Rule)
             if self._tenant_id:
                 stmt = stmt.where(Rule.tenant_id == self._tenant_id)
+            # v4 §5.14 (F1) — deterministic priority order: equal priorities
+            # break ties by id, so first-match is stable across restarts.
+            stmt = stmt.order_by(Rule.priority, Rule.id)
             result = await session.execute(stmt)
             return [
                 {

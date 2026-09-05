@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, ThumbsUp, Eye, Share2 } from "lucide-react"
+import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, Bot, Users, MessagesSquare, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
@@ -58,43 +58,67 @@ export default function ReportsPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* v4 §2.3 (G3) — these KPIs now read fields the backend actually
+                  returns (analytics_engine.get_dashboard_overview). The old cards
+                  read total_comments/likes/views/shares — fields that never
+                  existed in any response, so every card was permanently 0. */}
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-blue-500/10 flex items-center justify-center"><MessageSquare className="size-4 text-blue-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_comments?.toLocaleString("ar-LY") || 0}</p>
-                    <p className="text-[10px] text-muted-foreground">إجمالي التعليقات</p>
+                    <p className="text-xl font-bold">{(dashboard?.total_messages ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-[10px] text-muted-foreground">إجمالي الرسائل</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-green-500/10 flex items-center justify-center"><ThumbsUp className="size-4 text-green-500" /></div>
+                  <div className="size-9 rounded-lg bg-orange/10 flex items-center justify-center"><Bot className="size-4 text-orange" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_likes?.toLocaleString("ar-LY") || 0}</p>
-                    <p className="text-[10px] text-muted-foreground">إجمالي الإعجابات</p>
+                    <p className="text-xl font-bold">{(dashboard?.total_replies ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-[10px] text-muted-foreground">ردود البوت التلقائية</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-purple-500/10 flex items-center justify-center"><Eye className="size-4 text-purple-500" /></div>
+                  <div className="size-9 rounded-lg bg-green-500/10 flex items-center justify-center"><MessagesSquare className="size-4 text-green-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_views?.toLocaleString("ar-LY") || 0}</p>
-                    <p className="text-[10px] text-muted-foreground">إجمالي المشاهدات</p>
+                    <p className="text-xl font-bold">{(dashboard?.total_conversations ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-[10px] text-muted-foreground">المحادثات</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-7 flex items-center justify-center"><Share2 className="size-4 text-muted-foreground" /></div>
+                  <div className="size-9 rounded-lg bg-purple-500/10 flex items-center justify-center"><Users className="size-4 text-purple-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_shares?.toLocaleString("ar-LY") || 0}</p>
-                    <p className="text-[10px] text-muted-foreground">إجمالي المشاركات</p>
+                    <p className="text-xl font-bold">{(dashboard?.total_customers ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-[10px] text-muted-foreground">عملاء محفوظون (CRM)</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center"><TrendingUp className="size-4 text-muted-foreground" /></div>
+                  <div>
+                    <p className="text-sm font-bold">
+                      {(dashboard?.today_replies ?? 0).toLocaleString("ar-LY")}
+                      <span className="text-[10px] text-muted-foreground font-normal"> رد اليوم</span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {(dashboard?.unique_commenters ?? 0).toLocaleString("ar-LY")} معلّق فريد · {(dashboard?.active_rules ?? 0)} قاعدة نشطة · آخر {dashboard?.period_days ?? 30} يوماً
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${(dashboard?.change_pct ?? 0) >= 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}>
+                  {(dashboard?.change_pct ?? 0) >= 0 ? "↑" : "↓"} {Math.abs(dashboard?.change_pct ?? 0)}%
+                </span>
+              </CardContent>
+            </Card>
 
             <section>
               <h2 className="font-bold text-sm mb-3">أكثر المعلقين تفاعلاً</h2>

@@ -17,7 +17,9 @@ export default function SettingsPage() {
     queryKey: ["current-user"],
     queryFn: () => apiFetch("/api/me").then(unwrapApi),
   })
-  const user = raw?.data || raw
+  // v4 §2.3 — unwrapApi already returned /api/me's payload ({user: {...}});
+  // the old raw?.data fallback made username/email/role blank forever
+  const user = raw?.user ?? raw?.data?.user ?? raw
 
   // Self-service password change (plan v3 §7c — the الأمان card was a
   // decorative shell; the endpoint existed but had no UI).

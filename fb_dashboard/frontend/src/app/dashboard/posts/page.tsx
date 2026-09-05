@@ -17,11 +17,14 @@ export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
   const queryClient = useQueryClient()
 
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: posts = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["scheduled-posts"],
     queryFn: () => apiFetch("/api/scheduled-posts").then(unwrapApi),
     refetchInterval: 30000,
+    retry: 1,
   })
+  // v4 §2.5 — API failure previously rendered as "لا توجد منشورات بعد"
+  // (data looked empty instead of broken)
 
   const createMut = useMutation({
     mutationFn: (message: string) =>
@@ -98,6 +101,13 @@ export default function PostsPage() {
                 <div className="h-3 bg-muted rounded w-1/2" />
               </CardContent></Card>
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12">
+            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <p className="text-sm font-bold mb-1">فشل تحميل المنشورات</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-12">

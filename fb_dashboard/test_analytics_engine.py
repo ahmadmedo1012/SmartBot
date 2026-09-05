@@ -95,8 +95,9 @@ class TestDashboardOverview:
         session.execute = AsyncMock(return_value=_Rows([
             Row(total_replies=100, today_replies=10, prior_replies=80, unique_commenters=30)
         ]))
-        # session.scalar returns: active_rules, total_subscribers
-        session.scalar = AsyncMock(side_effect=[5, 200])
+        # session.scalar returns: active_rules, total_subscribers,
+        # total_messages, total_conversations, total_customers (v4 §7.24)
+        session.scalar = AsyncMock(side_effect=[5, 200, 400, 40, 15])
 
         result = await engine.get_dashboard_overview(7, session)
         assert result["total_replies"] == 100
@@ -106,6 +107,10 @@ class TestDashboardOverview:
         assert result["unique_commenters"] == 30
         assert result["change_pct"] == 25.0
         assert result["period_days"] == 7
+        # v4 §7.24 — honest real-data KPIs
+        assert result["total_messages"] == 400
+        assert result["total_conversations"] == 40
+        assert result["total_customers"] == 15
 
 
 # ── get_top_rules ─────────────────────────────────────────────────────

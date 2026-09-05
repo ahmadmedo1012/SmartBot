@@ -278,15 +278,36 @@ export default function MessagesPage() {
                   <div className="text-center text-sm text-muted-foreground py-8">لا توجد رسائل في هذه المحادثة</div>
                 ) : (
                   messages.map((msg: any, i: number) => {
-                    const isPage = msg.from?.id === "page"
+                    // v4 §2.4 — explicit backend flag; the old from?.id === "page"
+                    // comparison never matched → page replies rendered as
+                    // customer bubbles (wrong side + wrong color)
+                    const isPage = msg.is_from_page === true
+                    const hasImage = !!msg.attachment_url && msg.attachment_type === "image"
+                    const isSticker = !!msg.attachment_url && msg.attachment_type === "sticker"
                     return (
                       <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
                         <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
                           isPage ? "bg-muted rounded-tr-sm" : "bg-orange text-orange-foreground rounded-tl-sm"
                         }`}>
-                          <p>{msg.message}</p>
+                          {/* v4 §4.11 — attachments/stickers are persisted now;
+                              render them instead of an empty text bubble */}
+                          {hasImage && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={msg.attachment_url} alt="مرفق" className="rounded-lg max-w-full mb-1" />
+                          )}
+                          {isSticker && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={msg.attachment_url} alt="ملصق" className="rounded-lg size-24 mb-1" />
+                          )}
+                          {msg.postback_payload && !msg.message && (
+                            <p className="text-[11px] opacity-70 mb-0.5">اختيار: {msg.postback_payload}</p>
+                          )}
+                          {msg.message && <p>{msg.message}</p>}
+                          {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
+                            <p className="opacity-50">مرفق غير مدعوم</p>
+                          )}
                           <p className={`text-[10px] mt-1 ${isPage ? "text-muted-foreground" : "text-orange-foreground/70"}`}>
-                            {new Date(msg.created_time).toLocaleString("ar-LY")}
+                            {msg.created_time ? new Date(msg.created_time).toLocaleString("ar-LY") : ""}
                           </p>
                         </div>
                       </div>

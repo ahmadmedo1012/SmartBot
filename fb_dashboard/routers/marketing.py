@@ -142,7 +142,7 @@ async def send_campaign(
     c = await db.get(MarketingCampaign, campaign_id)
     if not c or c.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الحملة غير موجودة")
-    if c.status in ("sent", "sending"):
+    if c.status in ("sent", "sending", "queued"):
         raise HTTPException(400, "الحملة أُرسلت مسبقاً")
 
     q = select(Subscriber).where(Subscriber.tenant_id == c.tenant_id)
@@ -151,44 +151,70 @@ async def send_campaign(
         q = q.where(f)
     rows = await db.execute(q)
     recipients = rows.scalars().all()
-    c.status = "sent"
+    c.status = "sending"
     c.sent_at = utcnow()
     c.sent_count = len(recipients)
-    c.delivered_count = len(recipients)  # queued for delivery via broadcast engine
 
-    # Dispatch attempt: hand the audience to the broadcast engine only when a
-    # tenant FB client is configured. In dev/test (no FB token) the campaign
-    # is marked sent and queued — stats reflect the reached audience size.
+    # v4 §3.8 (G7) — actually dispatch: create the tenant-scoped broadcast and
+    # run it inline (the old code created a draft broadcast nothing consumed,
+    # and LIED with delivered_count = audience size before anything was sent).
     dispatched = False
-    try:
-        from _services import get_tenant_fb_client
-        fb_cli = await get_tenant_fb_client(c.tenant_id)
-        if fb_cli is not None and recipients:
-            from models import Broadcast
-            b = Broadcast(
-                tenant_id=c.tenant_id,
-                name=f"campaign:{c.id}:{c.name[:120]}",
-                message_template=c.message,
-                status="draft",
-                segment_filters={"campaign_id": c.id, "audience": c.audience},
-                total_recipients=len(recipients),
-                created_by=current_user.username,
-            )
-            db.add(b)
-            await db.flush()
-            dispatched = True  # broadcast queued — engine picks it up
-    except Exception as e:
-        log.warning(f"campaign {c.id} dispatch deferred: {e}")
+    if recipients:
+        try:
+            from _services import get_tenant_fb_client, broadcast_engine
+            fb_cli = await get_tenant_fb_client(c.tenant_id)
+            if fb_cli is not None:
+                from database import AsyncSessionLocal
+                from models import Broadcast
+                b = Broadcast(
+                    tenant_id=c.tenant_id,
+                    name=f"campaign:{c.id}:{c.name[:120]}",
+                    message_template=c.message,
+                    status="draft",
+                    segment_filters={"campaign_id": c.id, "audience": c.audience},
+                    total_recipients=len(recipients),
+                    created_by=current_user.username,
+                )
+                db.add(b)
+                await db.flush()
+                broadcast_id = b.id
+                await db.commit()
+                # Run the real send (per-recipient status, honest counts)
+                async with AsyncSessionLocal() as s:
+                    await broadcast_engine.send_broadcast(broadcast_id, s)
+                async with AsyncSessionLocal() as s:
+                    fresh = await s.get(Broadcast, broadcast_id)
+                    c2 = await s.get(MarketingCampaign, c.id)
+                    if fresh is not None and c2 is not None:
+                        c2.delivered_count = fresh.sent_count or 0
+                        c2.status = "sent" if (fresh.sent_count or 0) > 0 else "failed"
+                        await s.commit()
+                c.status = "sent"
+                dispatched = True
+                # refresh honest counts onto the ORM instance in this session
+                fresh_b = await db.get(Broadcast, broadcast_id)
+                if fresh_b is not None:
+                    c.delivered_count = fresh_b.sent_count or 0
+        except Exception as e:
+            log.warning(f"campaign {c.id} dispatch deferred: {e}")
+    if c.status == "sending":
+        # v4 §3.8 — no connected page / dispatch unavailable → honest "queued"
+        # (the audience is selected; delivery starts once a page is connected),
+        # NOT fake "sent". "failed" is reserved for a dispatch that actually
+        # ran and delivered to zero recipients.
+        c.status = "queued"
+        c.delivered_count = 0
 
     await push_notification(
         db, c.tenant_id,
         title=f"تم إرسال حملة '{c.name}'",
-        body=f"وصلت إلى {c.sent_count} مشترك" + ("" if dispatched else " (في قائمة الانتظار)"),
+        body=f"وصلت إلى {c.delivered_count or 0} مشترك" + ("" if dispatched else " (في قائمة الانتظار)"),
         type_="marketing", link="/dashboard/marketing",
     )
     await db.commit()
     return {"success": True, "data": {
         "id": c.id, "status": c.status, "sent_count": c.sent_count,
+        "delivered_count": c.delivered_count or 0,
         "dispatched": dispatched,
     }}
 

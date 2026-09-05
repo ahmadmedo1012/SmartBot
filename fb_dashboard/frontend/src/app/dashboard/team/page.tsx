@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
 
 const ROLE_LABELS: Record<string, string> = {
-  admin: "مدير", editor: "محرر", viewer: "مشاهد", member: "عضو",
+  // v4 §2.3 — owner role existed in backend but had no label → raw English leaked
+  admin: "مدير", editor: "محرر", viewer: "مشاهد", member: "عضو", owner: "مالك",
 }
 
 export default function TeamPage() {

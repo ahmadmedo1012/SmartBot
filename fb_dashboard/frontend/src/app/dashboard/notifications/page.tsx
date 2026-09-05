@@ -136,7 +136,8 @@ export default function NotificationsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications-feed"] }),
   })
 
-  const notifications: NotificationItem[] = feedQuery.data?.data || []
+  // v4 §2.2 — payload already unwrapped; extra .data hid the feed and unread badge
+  const notifications: NotificationItem[] = feedQuery.data?.items || []
   const unread: number = feedQuery.data?.unread || 0
 
   // ── Preferences ──
@@ -166,7 +167,8 @@ export default function NotificationsPage() {
     },
   })
 
-  const prefs: Record<string, boolean> = data?.data?.preferences || {}
+  // v4 §2.2 — preferences live inside the unwrapped payload, not under a second .data
+  const prefs: Record<string, boolean> = data?.preferences || {}
 
   const toggle = useCallback(
     (key: string) => {

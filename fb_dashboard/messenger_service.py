@@ -77,14 +77,71 @@ async def _get_or_create_conversation(db, tenant_id: int, page_id: str,
     return conv
 
 
+def _extract_content(messaging: dict) -> tuple[str, str, str, str]:
+    """v4 §4.11 — extract (text, attachment_type, attachment_url, payload).
+
+    Before: images/stickers stored as empty-text bubbles and postback events
+    (no message.mid) were dropped entirely — buttons/quick replies silently
+    vanished. Now every event keeps its real content."""
+    msg = messaging.get("message") or {}
+    text = str(msg.get("text") or "")
+    att_type = ""
+    att_url = ""
+    atts = msg.get("attachments") or []
+    for a in atts:
+        if not isinstance(a, dict):
+            continue
+        t = str(a.get("type") or "")
+        payload = a.get("payload") or {}
+        url = str(payload.get("url") or "") if isinstance(payload, dict) else ""
+        if t == "image" and url:
+            att_type, att_url = "image", url
+            break
+        if t == "sticker" or (t == "image" and payload.get("sticker_id")):
+            att_type, att_url = "sticker", url
+            break
+        if t == "video" and url:
+            att_type, att_url = "video", url
+            break
+        if t == "audio" and url:
+            att_type, att_url = "audio", url
+            break
+        if t == "file" and url:
+            att_type, att_url = "file", url
+            break
+    if not att_type and msg.get("sticker_id"):
+        att_type = "sticker"
+    payload = ""
+    pb = messaging.get("postback")
+    if isinstance(pb, dict) and pb.get("payload"):
+        payload = str(pb["payload"])[:250]
+    elif isinstance(msg.get("quick_reply"), dict) and msg["quick_reply"].get("payload"):
+        payload = str(msg["quick_reply"]["payload"])[:250]
+    return text, att_type, att_url, payload
+
+
+def _event_mid(messaging: dict) -> str:
+    """Stable message id: real mid, or a synthetic one for postback events
+    (which have no message.mid) so they persist instead of being dropped."""
+    msg = messaging.get("message") or {}
+    mid = str(msg.get("mid") or "")
+    if mid:
+        return mid
+    pb = messaging.get("postback")
+    if isinstance(pb, dict):
+        import hashlib
+        raw = f"pb|{(messaging.get('sender') or {}).get('id','')}|{messaging.get('timestamp','')}|{pb.get('payload','')}"
+        return "pb_" + hashlib.sha1(raw.encode()).hexdigest()[:20]
+    return ""
+
+
 async def persist_message(db, tenant_id: int, page_id: str, messaging: dict,
                           fb_conversation_id: str, *, is_from_page: bool) -> Message | None:
     """Persist one message row. Returns None on dedup/replay or missing mid."""
-    msg = messaging.get("message") or {}
-    mid = msg.get("mid") or ""
-    text = msg.get("text") or ""
+    mid = _event_mid(messaging)
     if not mid:
         return None
+    text, att_type, att_url, payload = _extract_content(messaging)
     sender = messaging.get("sender") or {}
     recipient = messaging.get("recipient") or {}
     sender_id = str(sender.get("id") or "")
@@ -93,6 +150,11 @@ async def persist_message(db, tenant_id: int, page_id: str, messaging: dict,
         # echo: sender is the page; the human is the recipient
         sender_id = str(recipient.get("id") or sender_id)
         sender_name = ""
+    else:
+        # postback title as visible content when no message wrapper exists
+        pb = messaging.get("postback")
+        if isinstance(pb, dict) and pb.get("title") and not text:
+            text = str(pb["title"])[:500]
 
     existing = await db.execute(
         select(Message.id).where(
@@ -115,12 +177,15 @@ async def persist_message(db, tenant_id: int, page_id: str, messaging: dict,
         sender_name=sender_name,
         text=text,
         is_from_page=is_from_page,
+        attachment_type=att_type,
+        attachment_url=att_url,
+        postback_payload=payload,
     )
     db.add(m)
 
-    ts = _ts_from_epoch(msg.get("timestamp"))
+    ts = _ts_from_epoch(messaging.get("timestamp") or (messaging.get("message") or {}).get("timestamp"))
     conv.message_count = (conv.message_count or 0) + 1
-    conv.last_message_text = text[:500]
+    conv.last_message_text = (text or (f"[{att_type}]" if att_type else payload))[:500]
     conv.last_message_at = ts or utcnow()
     if not is_from_page:
         conv.unread_count = (conv.unread_count or 0) + 1
@@ -137,6 +202,42 @@ def _ts_from_epoch(value) -> object | None:
     except Exception:
         return None
     return None
+
+
+async def _upsert_subscriber(db, tenant_id: int, page_id: str,
+                             sender_id: str, sender_name: str) -> None:
+    """v4 §5.17 (F17/G6) — feed the Subscriber audience from real messages.
+
+    Before: nothing ever created Subscriber rows, so audience size, broadcasts,
+    sequences and campaign targeting were permanently 0 recipients."""
+    if not sender_id:
+        return
+    from models import Subscriber
+    row = await db.execute(
+        select(Subscriber).where(
+            Subscriber.tenant_id == tenant_id,
+            Subscriber.fb_user_id == sender_id,
+        )
+    )
+    sub = row.scalar_one_or_none()
+    now = utcnow()
+    if sub is None:
+        first = (sender_name or "").split(" ")[0][:100] if sender_name else ""
+        db.add(Subscriber(
+            tenant_id=tenant_id,
+            fb_user_id=sender_id,
+            name=(sender_name or "")[:200],
+            first_name=first,
+            platform="messenger",
+            page_id=str(page_id or ""),
+            status="active",
+            first_seen_at=now,
+            last_interaction_at=now,
+        ))
+    else:
+        sub.last_interaction_at = now
+        if sender_name and not sub.name:
+            sub.name = sender_name[:200]
 
 
 async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
@@ -161,6 +262,14 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
                                       is_from_page=is_echo)
             status["stored"] = m is not None
 
+            # v4 §5.17 — audience ingestion on every genuine inbound event
+            if not is_echo and sender_id:
+                try:
+                    await _upsert_subscriber(db, tenant_id, page_id, sender_id,
+                                             str((messaging.get("sender") or {}).get("name") or ""))
+                except Exception as se:
+                    log.warning("subscriber upsert failed: %s", se)
+
             await db.commit()
         except Exception as e:
             log.error("persist message failed: %s", e, exc_info=True)
@@ -168,6 +277,11 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
 
     # Auto-reply only for genuine inbound human messages
     if not is_echo and sender_id and sender_id != str(page_id):
+        # v4 §5.13 (F12) — replay guard: FB redelivers webhooks when the 200 is
+        # slow. Storage dedup caught the duplicate, but the reply path still
+        # ran → customers got the SAME auto-reply twice. Skip when not stored.
+        if not status["stored"]:
+            return status
         if not _is_recent(messaging):
             return status  # old redelivery — skip replying
         try:
@@ -232,6 +346,8 @@ async def _persist_bot_reply(db, tenant_id: int, page_id: str, user_id: str,
         text=reply_info.get("text", ""),
         is_from_page=True,
         replied_by_bot=True,
+        # v4 §5.19 — rule attribution for per-rule DM stats
+        rule_id=reply_info.get("rule_id"),
     ))
     conv.message_count = (conv.message_count or 0) + 1
     conv.last_message_text = reply_info.get("text", "")[:500]

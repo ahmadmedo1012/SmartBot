@@ -473,7 +473,9 @@ class Message(Base):
     """Persisted Messenger message (inbound + bot/auto replies).
 
     fb_message_id dedup guarantee: (tenant_id, fb_message_id) unique — the
-    webhook may redeliver events, replays are dropped silently."""
+    webhook may redeliver events, replays are dropped silently.
+    v4: rule_id attributes bot DM replies to rules (stats §5.19);
+    attachment_type/url + postback_payload keep non-text content visible (§4.11)."""
     __tablename__ = "messages"
     __table_args__ = (
         UniqueConstraint("tenant_id", "fb_message_id", name="uq_messages_tenant_fb"),
@@ -490,7 +492,40 @@ class Message(Base):
     text = Column(Text, default="")
     is_from_page = Column(Boolean, default=False)
     replied_by_bot = Column(Boolean, default=False)
+    # v4 §5.19 — which rule fired the bot reply (None = manual/human reply)
+    rule_id = Column(Integer, nullable=True, index=True)
+    # v4 §4.11 — image/sticker/audio content instead of empty-text bubbles
+    attachment_type = Column(String(32), default="")
+    attachment_url = Column(String(512), default="")
+    # v4 §4.11 — postback/button payloads (otherwise dropped events)
+    postback_payload = Column(String(255), default="")
+    source = Column(String(16), default="messenger")
     created_at = Column(DateTime, default=utcnow)
+
+
+class Comment(Base):
+    """Persisted FB post comment (v4 §4.10 — DB-first comments pipeline).
+
+    Webhook feed events + the background bot loop upsert here, so
+    /api/comments serves real stored data even when live Graph fetch fails
+    (the old path used the empty global env client → always [])."""
+    __tablename__ = "comments"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_comment_id", name="uq_comments_tenant_fb"),
+        Index("ix_comments_tenant_post", "tenant_id", "fb_post_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_comment_id = Column(String(128), nullable=False)
+    fb_post_id = Column(String(128), default="", index=True)
+    commenter_id = Column(String(64), default="", index=True)
+    commenter_name = Column(String(255), default="")
+    comment_text = Column(Text, default="")
+    reply_text = Column(Text, default="")
+    replied_by_bot = Column(Boolean, default=False)
+    hidden = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow, index=True)
 
 
 class ConversationNote(Base):
@@ -810,7 +845,7 @@ class MarketingCampaign(Base):
     """Marketing campaign — audience-targeted bulk message (plan §4.4).
 
     audience: all | active | engaged | new
-    status:   draft | scheduled | sending | sent | failed
+    status:   draft | scheduled | queued | sending | sent | failed
     """
     __tablename__ = "marketing_campaigns"
     __table_args__ = (

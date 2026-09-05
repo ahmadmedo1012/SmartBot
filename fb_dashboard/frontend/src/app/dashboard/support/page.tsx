@@ -86,7 +86,8 @@ export default function SupportPage() {
     },
     retry: 1,
   })
-  const tickets: any[] = ticketsQuery.data?.data || []
+  // v4 §2.2 — unwrapApi already returned the payload; extra .data hid the ticket list
+  const tickets: any[] = ticketsQuery.data || []
   const [openTicketId, setOpenTicketId] = useState<number | null>(null)
 
   const ticketDetailQuery = useQuery({
@@ -137,14 +138,13 @@ export default function SupportPage() {
       return unwrapApi(res)
     },
     onSuccess: (data) => {
-      if (data?.success) {
-        toast.success(data?.data?.message || "تم إرسال طلبك بنجاح")
-        setFormSent(true)
-        setForm({ subject: "", message: "", email: "", priority: "medium" })
-        queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
-      } else {
-        toast.error(data?.error || "فشل إرسال الطلب")
-      }
+      // v4 §2.2 — unwrapApi returns the payload or THROWS on success:false;
+      // reaching here means success. The old data?.success check always failed
+      // → users saw "فشل إرسال الطلب" after a successful send and resubmitted.
+      toast.success(data?.message || "تم إرسال طلبك بنجاح")
+      setFormSent(true)
+      setForm({ subject: "", message: "", email: "", priority: "medium" })
+      queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
     },
     onError: (e: Error) => {
       toast.error(e.message || "فشل إرسال الطلب")
@@ -388,7 +388,7 @@ export default function SupportPage() {
                         ) : (
                           <>
                             <div className="space-y-2">
-                              {(ticketDetailQuery.data?.data?.replies || []).map((r: any) => (
+                              {(ticketDetailQuery.data?.replies || []).map((r: any) => (
                                 <div
                                   key={r.id}
                                   className={`text-xs rounded-lg p-3 ${
@@ -403,7 +403,7 @@ export default function SupportPage() {
                                   <p className="text-muted-foreground leading-relaxed">{r.message}</p>
                                 </div>
                               ))}
-                              {(ticketDetailQuery.data?.data?.replies || []).length === 0 && (
+                              {(ticketDetailQuery.data?.replies || []).length === 0 && (
                                 <p className="text-xs text-muted-foreground text-center py-2">
                                   لا ردود بعد — فريق الدعم سيرد قريباً
                                 </p>

@@ -151,15 +151,16 @@ export default function ToolsPage() {
                 <Card key={o.id}>
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold">{o.name}</p>
+                      {/* v4 §2.3 — offers_routes returns title/is_active */}
+                      <p className="text-sm font-bold">{o.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{o.description}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)}>
-                        {o.active ? <ToggleRight className="size-4" /> : <ToggleLeft className="size-4" />}
+                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)} aria-label="تبديل">
+                        {o.is_active ? <ToggleRight className="size-4" /> : <ToggleLeft className="size-4" />}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)}>
-                        <Trash2 className="size-3" />
+                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} aria-label="حذف">
+                        <Trash2 className="size-3.5" />
                       </Button>
                     </div>
                   </CardContent>

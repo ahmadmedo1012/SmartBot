@@ -1,16 +1,25 @@
 from __future__ import annotations
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import NullPool, StaticPool
 from config import settings
 
 # Serverless-safe pool: NullPool for Neon/Postgres — avoids stale connection issues
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 _db_url = settings.DATABASE_POOLED_URL or settings.DATABASE_URL or ""
 _is_pg = _db_url.startswith("postgresql")
-_pool_args = {"pool_pre_ping": True, "pool_recycle": 300}
+_pool_args: dict = {"pool_pre_ping": True, "pool_recycle": 300}
 if _IS_VERCEL or _is_pg:
     _pool_args = {"poolclass": NullPool}
+# v4 (test infra): a :memory: SQLite DB exists PER CONNECTION — with a queue
+# pool, a second concurrent connection sees a fresh EMPTY database (the
+# flaky "no such table" mid-suite failures). StaticPool pins exactly ONE
+# shared connection, the canonical SQLAlchemy recipe for in-memory testing.
+# SMARTBOT_TEST_POOL=static (set by conftest) extends the same single-
+# connection guarantee to the session temp FILE, avoiding "database is
+# locked" under pytest-asyncio's per-test event loops. Never set in prod.
+if ":memory:" in (settings.async_database_url or "") or os.getenv("SMARTBOT_TEST_POOL") == "static":
+    _pool_args = {"poolclass": StaticPool}
 
 # asyncpg needs an explicit ssl= object — query string sslmode= is stripped
 # from the URL by config.async_database_url. Build a proper SSLContext only

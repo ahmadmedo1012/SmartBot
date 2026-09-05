@@ -55,13 +55,16 @@ async def list_notifications(
             Notification.tenant_id == _tid, Notification.read == False
         )
     ) or 0
-    return {"success": True, "data": [
+    # v4 §2.2 — unread moved INSIDE data: unwrapApi() strips sibling keys, so the
+    # frontend could never see the top-level "unread" (badge showed 0 forever)
+    items = [
         {
             "id": n.id, "type": n.type, "title": n.title, "body": n.body,
             "link": n.link, "read": n.read,
             "created_at": iso_z(n.created_at),
         } for n in rows.scalars().all()
-    ], "unread": unread}
+    ]
+    return {"success": True, "data": {"items": items, "unread": unread}}
 
 
 @router.post("/{notification_id}/read")

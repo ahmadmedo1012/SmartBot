@@ -10,7 +10,7 @@ from sqlalchemy import select, func, desc, cast, Date, text
 
 from _utils import utcnow, iso_z
 from database import get_db
-from models import Reply, User, AISuggestion, ScheduledPost
+from models import Reply, User, AISuggestion, ScheduledPost, Rule, Message
 from routers.auth import get_current_user, require_role
 from _responses import ok
 
@@ -51,13 +51,37 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_
         if d not in heatmap: heatmap[d] = {}
         heatmap[d][h] = row.cnt
 
-    # Top rules
+    # Top rules — v4 §7.24: with NAMES (the old query returned rule_id only;
+    # the UI showed raw ids) and now including Messenger DM replies
+    # (Message.rule_id) so rules that answer DMs finally appear.
     top_rules_rows = await db.execute(
         select(Reply.rule_id, func.count(Reply.id).label("cnt"))
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
         .group_by(Reply.rule_id).order_by(desc("cnt")).limit(10)
     )
-    top_rules = [{"rule_id": int(r[0]), "count": r[1]} for r in top_rules_rows if r[0] is not None]
+    counts: dict[int, int] = {}
+    for r in top_rules_rows:
+        if r[0] is not None:
+            counts[int(r[0])] = r[1]
+    dm_rows = await db.execute(
+        select(Message.rule_id, func.count(Message.id).label("cnt"))
+        .where(
+            Message.tenant_id == _tid, Message.rule_id.isnot(None),
+            Message.is_from_page == True, Message.created_at >= cutoff,
+        )
+        .group_by(Message.rule_id)
+    )
+    for r in dm_rows:
+        counts[int(r[0])] = counts.get(int(r[0]), 0) + r[1]
+    rule_name_rows = await db.execute(
+        select(Rule.id, Rule.name).where(Rule.tenant_id == _tid)
+    ) if counts else []
+    rule_names = {row[0]: row[1] for row in rule_name_rows} if counts else {}
+    top_rules = sorted(
+        [{"rule_id": rid, "name": rule_names.get(rid) or f"قاعدة #{rid}", "count": cnt}
+         for rid, cnt in counts.items()],
+        key=lambda x: x["count"], reverse=True,
+    )[:10]
 
     # Sentiment distribution (from AI suggestions if available)
     sentiment = {}
@@ -81,12 +105,27 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_
     peak_hour = peak_hour_rows.first()
     peak = int(peak_hour.h) if peak_hour else None
 
-    fan_count = 0
+    # v4 §3.11 — tenant's page client (was the GLOBAL env client → the
+    # analytics/audience fan KPIs were permanently 0 in production),
+    # with the stored connect-time snapshot as an honest fallback.
+    fan_count = None
     try:
-        from _services import fb as _fb
-        fan_count = await _fb.get_page_fan_count()
+        from _services import get_tenant_fb_client
+        tenant_fb = await get_tenant_fb_client(_tid)
+        if tenant_fb is not None:
+            fan_count = await tenant_fb.get_page_fan_count()
     except Exception:
-        pass
+        fan_count = None
+    if fan_count is None:
+        try:
+            from models import BotState
+            snap = await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id == _tid, BotState.key == "fb_fan_count"))
+            bs = snap.scalar_one_or_none()
+            fan_count = int(bs.value) if bs and (bs.value or "").isdigit() else 0
+        except Exception:
+            fan_count = 0
 
     return ok(
         {

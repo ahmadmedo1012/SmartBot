@@ -13,8 +13,6 @@ import { ActivityBarChart, ComparisonBars } from "@/components/charts"
 const SENTIMENT_LABELS: Record<string, string> = {
   positive: "إيجابي", negative: "سلبي", neutral: "محايد", mixed: "مختلط",
 }
-const RULE_NAMES: Record<string, string> = {}
-
 export default function AnalyticsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
@@ -93,7 +91,8 @@ export default function AnalyticsPage() {
                 <div className="space-y-2">
                   {data.top_rules.map((r: any, i: number) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span>{RULE_NAMES[r.rule_id] || `القاعدة #${r.rule_id}`}</span>
+                      {/* v4 §7.24 — backend now sends rule names (incl. DM replies) */}
+                      <span>{r.name || `القاعدة #${r.rule_id}`}</span>
                       <span className="text-muted-foreground">{r.count} رد</span>
                     </div>
                   ))}

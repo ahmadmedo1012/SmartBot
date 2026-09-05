@@ -105,23 +105,23 @@ async def test_notifications_feed_and_read_flow():
         r = await client.get("/api/notifications")
         assert r.status_code == 200, r.text
         body = r.json()
-        titles = [n["title"] for n in body["data"]]
+        titles = [n["title"] for n in body["data"]["items"]]  # v4 §2.2 shape
         assert len(titles) == 3, titles
         assert "دفع B" not in titles, "تسريب: إشعار مستأجر B ظهر لمستأجر A"
-        assert body["unread"] == 2
+        assert body["data"]["unread"] == 2  # v4 §2.2: unread inside data
 
         # تعليم إشعار واحد كمقروء
-        target = next(n for n in body["data"] if n["title"] == "تحديث")
+        target = next(n for n in body["data"]["items"] if n["title"] == "تحديث")  # v4 §2.2
         r = await client.post(f"/api/notifications/{target['id']}/read")
         assert r.status_code == 200
         r = await client.get("/api/notifications")
-        assert r.json()["unread"] == 1
+        assert r.json()["data"]["unread"] == 1  # v4 §2.2
 
         # read-all
         r = await client.post("/api/notifications/read-all")
         assert r.status_code == 200
         r = await client.get("/api/notifications")
-        assert r.json()["unread"] == 0
+        assert r.json()["data"]["unread"] == 0  # v4 §2.2
         await client.aclose()
     finally:
         await _teardown(fixture)
@@ -152,9 +152,9 @@ async def test_notification_from_payment_approval():
         assert r.status_code == 200, r.text
 
         r = await client.get("/api/notifications")
-        titles = [n["title"] for n in r.json()["data"]]
+        titles = [n["title"] for n in r.json()["data"]["items"]]  # v4 §2.2
         assert any("تأكيد الدفع" in t for t in titles), titles
-        assert r.json()["unread"] >= 1
+        assert r.json()["data"]["unread"] >= 1  # v4 §2.2
         await client.aclose()
     finally:
         await _teardown(fixture)
@@ -251,7 +251,7 @@ async def test_support_ticket_lifecycle():
         assert any(x["is_admin"] for x in replies)
 
         r = await client.get("/api/notifications")
-        assert any("رد الدعم" in n["title"] for n in r.json()["data"])
+        assert any("رد الدعم" in n["title"] for n in r.json()["data"]["items"])  # v4 §2.2
 
         # إغلاق (أدمن)
         r = await c2.post(f"/api/support/tickets/{ticket_id}/close")
@@ -341,10 +341,12 @@ async def test_marketing_campaign_flow():
         assert r.status_code == 200
         assert r.json()["data"]["status"] == "scheduled"
 
-        # إرسال الحملة الأولى → sent + sent_count=3 (مشتركو A فقط)
+        # إرسال الحملة الأولى → sent_count=3 (مشتركو A فقط) — بدون صفحة
+        # مرتبطة في بيئة الاختبار الحالة الصادقة هي queued (v4 §3.8)
         r = await client.post(f"/api/marketing/campaigns/{cid}/send")
         assert r.status_code == 200, r.text
         assert r.json()["data"]["sent_count"] == 3, r.text
+        assert r.json()["data"]["status"] in ("queued", "sent"), r.text
 
         # إعادة الإرسال → 400
         r = await client.post(f"/api/marketing/campaigns/{cid}/send")
@@ -369,7 +371,7 @@ async def test_marketing_campaign_flow():
 
         # إشعار إرسال الحملة
         r = await client.get("/api/notifications")
-        assert any("خصم العيد" in n["title"] for n in r.json()["data"])
+        assert any("خصم العيد" in n["title"] for n in r.json()["data"]["items"])  # v4 §2.2
         await client.aclose()
     finally:
         await _teardown(fixture)

@@ -67,11 +67,21 @@ export default function AdsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-bold">{a.name}</p>
+                    {/* v4 §7.26 — backend returns account_status as an INT (FB
+                        Marketing API codes); the old a.status === "ACTIVE"
+                        string check never matched → badge rendered a raw number */}
                     <span className={`text-[11px] px-2 py-0.5 rounded-full ${
-                      a.status === "ACTIVE" ? "bg-success/15 text-success" :
-                      a.status === "PAUSED" ? "bg-warning/15 text-warning" :
-                      "bg-muted text-muted-foreground"
-                    }`}>{a.status === "ACTIVE" ? "نشطة" : a.status === "PAUSED" ? "متوقفة" : a.status}</span>
+                      a.account_status === 1 ? "bg-success/15 text-success" :
+                      a.account_status === 2 ? "bg-destructive/15 text-destructive" :
+                      "bg-warning/15 text-warning"
+                    }`}>{
+                      a.account_status === 1 ? "نشطة" :
+                      a.account_status === 2 ? "معطّلة" :
+                      a.account_status === 3 ? "معلّقة (مبالغ مستحقة)" :
+                      a.account_status === 9 ? "غير مفعّلة" :
+                      a.account_status === 100 ? "معلّقة" :
+                      `حالة ${a.account_status ?? "—"}`
+                    }</span>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {a.currency && <p>العملة: {a.currency}</p>}

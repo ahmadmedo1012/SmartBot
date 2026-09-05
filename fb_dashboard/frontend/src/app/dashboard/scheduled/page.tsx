@@ -22,10 +22,16 @@ export default function ScheduledPage() {
   })
 
   const createMut = useMutation({
+    // v4 §6.23 — datetime-local gives a naive LOCAL string (Libya +02); the
+    // backend compared it against UTC → posts fired 2h late, and past dates
+    // were accepted. toISOString() is unambiguous UTC + server rejects past.
     mutationFn: () =>
       apiFetch("/api/scheduled-posts", {
         method: "POST",
-        body: new URLSearchParams({ message: message.trim(), scheduled_at: scheduledAt }),
+        body: new URLSearchParams({
+          message: message.trim(),
+          scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : "",
+        }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
@@ -84,6 +90,7 @@ export default function ScheduledPage() {
                   type="datetime-local"
                   value={scheduledAt}
                   onChange={e => setScheduledAt(e.target.value)}
+                  min={new Date(Date.now() + 60000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   className="text-sm"
                 />
               </div>

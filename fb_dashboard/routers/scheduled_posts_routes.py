@@ -2,7 +2,7 @@
 from __future__ import annotations
 """Scheduled Posts routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc
@@ -11,7 +11,7 @@ from _utils import utcnow, iso_z
 from database import get_db
 from models import ReplyTemplate, ScheduledPost, User
 from routers.auth import get_current_user, require_role
-from _services import fb, _track_event
+from _services import get_tenant_fb_client, _track_event
 from _responses import ok
 
 router = APIRouter(prefix="", tags=["scheduled"])
@@ -44,10 +44,20 @@ async def create_scheduled_post(
 ):
     sched = None
     if scheduled_at:
+        # v4 §6.23 — honest timezone handling: accept ISO-8601 with or without
+        # an offset. Naive values are treated as UTC (the API convention), the
+        # frontend now sends toISOString() (always Z-suffixed). Past dates are
+        # rejected instead of silently queueing an instantly-overdue post.
         try:
-            sched = datetime.fromisoformat(scheduled_at)
+            sched = datetime.fromisoformat(
+                scheduled_at.replace("Z", "+00:00").replace("+0000", "+00:00")
+            )
         except ValueError:
             raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601")
+        if sched.tzinfo is not None:
+            sched = sched.astimezone(timezone.utc).replace(tzinfo=None)
+        if sched <= utcnow():
+            raise HTTPException(400, "لا يمكن جدولة منشور في الماضي — اختر وقتاً مستقبلياً")
 
     post = ScheduledPost(
         message=message, image_url=image_url, scheduled_at=sched,
@@ -64,20 +74,30 @@ async def create_scheduled_post(
 @router.post("/api/scheduled-posts/{post_id}/publish")
 async def publish_scheduled_post(post_id: int, db=Depends(get_db),
                                  current_user: User = Depends(require_role("editor"))):
-    """Publish a scheduled post immediately or at its scheduled time."""
+    """Publish a scheduled post immediately or at its scheduled time.
+
+    v4 §3.6 (G4) — uses the TENANT's page client (was the global env client,
+    which is empty in production → "publish now" always failed) and honors
+    the post's image_url via post_to_page_with_image."""
     post = (await db.execute(
         select(ScheduledPost).where(ScheduledPost.id == post_id, ScheduledPost.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not post:
         raise HTTPException(404, "المنشور غير موجود")
-    result = await fb.post_to_page(post.message)
+    fb = await get_tenant_fb_client(current_user._tenant_id)
+    if fb is None:
+        raise HTTPException(400, "لا توجد صفحة فيسبوك مرتبطة بحسابك — اربط صفحتك أولاً")
+    if post.image_url:
+        result = await fb.post_to_page_with_image(post.message, post.image_url)
+    else:
+        result = await fb.post_to_page(post.message)
     if not result:
-        raise HTTPException(400, "فشل النشر على فيسبوك")
+        raise HTTPException(400, "فشل النشر على فيسبوك — تحقق من صلاحيات توكن الصفحة")
     post.status = "published"
     post.fb_post_id = result.get("id", "")
     post.published_at = utcnow()
     await db.commit()
-    _track_event("post_published", {"scheduled_post_id": post_id})
+    _track_event("post_published", {"scheduled_post_id": post_id}, tenant_id=current_user._tenant_id)
     return ok({"ok": True, "fb_post_id": post.fb_post_id})
 
 

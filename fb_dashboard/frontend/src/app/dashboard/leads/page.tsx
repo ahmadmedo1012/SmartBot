@@ -57,10 +57,16 @@ export default function LeadsPage() {
                     <p className="text-sm font-bold">{c.name || "بدون اسم"}</p>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
-                    {c.email && <p>البريد: {c.email}</p>}
+                    {/* v4 §2.3 — backend crm_routes returns notes/first_seen_at/
+                        last_contacted_at; email was never in the serializer */}
                     {c.phone && <p>الهاتف: {c.phone}</p>}
-                    {c.note && <p>{c.note}</p>}
-                    {c.created_at && <p className="text-[10px]">{new Date(c.created_at).toLocaleDateString("ar-LY")}</p>}
+                    {c.notes && <p>{c.notes}</p>}
+                    {c.first_seen_at && (
+                      <p className="text-[10px]">أول ظهور: {new Date(c.first_seen_at).toLocaleDateString("ar-LY")}</p>
+                    )}
+                    {c.last_contacted_at && (
+                      <p className="text-[10px]">آخر تواصل: {new Date(c.last_contacted_at).toLocaleDateString("ar-LY")}</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

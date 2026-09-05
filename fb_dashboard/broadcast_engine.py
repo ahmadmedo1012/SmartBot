@@ -196,6 +196,19 @@ class BroadcastEngine:
             log.warning(f"Broadcast #{broadcast_id} not found or not draft (status={getattr(b,'status','?')})")
             return False
 
+        # v4 §3.8 (G5) — resolve THIS tenant's page client. The old engine sent
+        # every broadcast through the shared global env client (empty token in
+        # production → every send failed) — and to subscribers of ALL tenants.
+        tenant_id = int(b.tenant_id or 0)
+        from _services import get_tenant_fb_client
+        tenant_fb = await get_tenant_fb_client(tenant_id)
+        if tenant_fb is None:
+            b.status = "failed"
+            b.sent_at = utcnow()
+            await session.commit()
+            log.error(f"Broadcast #{broadcast_id}: tenant {tenant_id} has no connected FB page")
+            return False
+
         # Mark sending
         b.status = "sending"
         await session.commit()
@@ -205,7 +218,12 @@ class BroadcastEngine:
             platform_filter = json.loads(b.platform_filter) if isinstance(b.platform_filter, str) else b.platform_filter
             segment_filters = json.loads(b.segment_filters) if isinstance(b.segment_filters, str) else b.segment_filters
 
-            subq = select(Subscriber.id).where(Subscriber.status == "active")
+            # v4 §3.8 (G5) — tenant-scoped audience (was: ALL active subscribers
+            # across every tenant; the estimate shown in the UI WAS scoped, so
+            # the preview never matched what was actually "sent")
+            subq = select(Subscriber.id).where(
+                Subscriber.status == "active", Subscriber.tenant_id == tenant_id
+            )
 
             platform = (platform_filter or {}).get("platform", "all")
             if platform and platform != "all":
@@ -275,6 +293,9 @@ class BroadcastEngine:
             log.info(f"Broadcast #{broadcast_id}: {len(subscriber_ids)} recipients created")
 
             # Send with concurrency limit
+            # v4 §3.8 (G5) — each task opens its OWN session: a single
+            # AsyncSession shared across asyncio.gather coroutines is not
+            # concurrency-safe (InvalidRequestError / lost updates).
             sem = asyncio.Semaphore(10)
             sent = 0
             failed = 0
@@ -282,40 +303,44 @@ class BroadcastEngine:
             async def send_one(subscriber_id: int, recipient_id: int):
                 nonlocal sent, failed
                 async with sem:
-                    qs = await session.execute(
-                        select(Subscriber).where(Subscriber.id == subscriber_id)
-                    )
-                    sub = qs.scalar_one_or_none()
-                    if not sub:
-                        return
+                    from database import AsyncSessionLocal
+                    async with AsyncSessionLocal() as s:
+                        qs = await s.execute(
+                            select(Subscriber).where(Subscriber.id == subscriber_id)
+                        )
+                        sub = qs.scalar_one_or_none()
+                        if not sub:
+                            return
 
-                    # Render template
-                    msg = b.message_template
-                    msg = msg.replace("{name}", sub.first_name or sub.name or "")
-                    msg = msg.replace("{full_name}", sub.name or "")
-                    msg = msg.replace("{mention}", f"@{sub.username}" if sub.username else sub.name or "")
+                        # Render template
+                        msg = b.message_template
+                        msg = msg.replace("{name}", sub.first_name or sub.name or "")
+                        msg = msg.replace("{full_name}", sub.name or "")
+                        msg = msg.replace("{mention}", f"@{sub.username}" if sub.username else sub.name or "")
 
-                    # Send based on platform
-                    # ponytail: fb_client only supports Messenger; other platforms logged+skipped
-                    ok = False
-                    if sub.platform in ("messenger", "facebook"):
-                        result_data = await self.fb.send_dm(sub.fb_user_id, msg)
-                        ok = result_data is not None
-                    else:
-                        log.info(f"Skip {sub.platform} subscriber {sub.fb_user_id}: only Messenger supported")
-                        ok = False
+                        # Send based on platform
+                        # ponytail: fb_client only supports Messenger; other platforms logged+skipped
+                        send_ok = False
+                        if sub.platform in ("messenger", "facebook"):
+                            # v4 §3.8 — tenant client, not the global engine client
+                            result_data = await tenant_fb.send_dm(sub.fb_user_id, msg)
+                            send_ok = result_data is not None
+                        else:
+                            log.info(f"Skip {sub.platform} subscriber {sub.fb_user_id}: only Messenger supported")
+                            send_ok = False
 
-                    rcpt_q = await session.execute(
-                        select(BroadcastRecipient).where(BroadcastRecipient.id == recipient_id)
-                    )
-                    rcpt = rcpt_q.scalar_one_or_none()
-                    if rcpt:
-                        rcpt.status = "sent" if ok else "failed"
-                        if not ok:
-                            rcpt.error_message = f"Unsupported platform or send failed: {sub.platform}"
-                        rcpt.sent_at = utcnow()
+                        rcpt_q = await s.execute(
+                            select(BroadcastRecipient).where(BroadcastRecipient.id == recipient_id)
+                        )
+                        rcpt = rcpt_q.scalar_one_or_none()
+                        if rcpt:
+                            rcpt.status = "sent" if send_ok else "failed"
+                            if not send_ok:
+                                rcpt.error_message = f"Unsupported platform or send failed: {sub.platform}"
+                            rcpt.sent_at = utcnow()
+                        await s.commit()
 
-                    if ok:
+                    if send_ok:
                         sent += 1
                     else:
                         failed += 1

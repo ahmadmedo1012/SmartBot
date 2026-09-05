@@ -38,7 +38,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         )
         chart = {str(row[0]): row[1] for row in chart_rows if row[0]}
 
-        fan_count = 0
+        fan_count = None
         page_name = ""
         connected = False
         connection_error = ""
@@ -46,13 +46,29 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             tenant_fb = await get_tenant_fb_client(_tid)
             if tenant_fb is not None:
                 connected = True
-                fan_count = await tenant_fb.get_page_fan_count()
+                fan_count = await tenant_fb.get_page_fan_count()  # None on failure (v4 §3.7)
             else:
                 # legacy single-tenant env fallback (bootstrap mode only)
                 fan_count = await fb.get_page_fan_count()
                 connected = bool(fan_count) or bool(settings.FACEBOOK_ACCESS_TOKEN and settings.FACEBOOK_PAGE_ID)
         except Exception as e:
             connection_error = str(e)[:120]
+
+        # v4 §3.7 — snapshot fallback: a failed/expired token previously showed
+        # fan_count=0 with a healthy "connected" badge. Serve the stored
+        # connect-time value and surface the error text instead.
+        if fan_count is None and connected:
+            connection_error = connection_error or "تعذر جلب عدد المعجبين — يُعرض آخر رقم محفوظ"
+        try:
+            from models import BotState as _BS
+            _snap = await db.execute(
+                select(_BS).where(_BS.tenant_id == _tid, _BS.key == "fb_fan_count"))
+            _sbs = _snap.scalar_one_or_none()
+            if _sbs and (_sbs.value or "").isdigit():
+                fan_count = int(_sbs.value) if fan_count is None else fan_count
+        except Exception:
+            pass
+        fan_count = fan_count or 0
 
         # Page identity from the connect snapshot (no live call — plan v3 §4.5)
         try:
@@ -175,17 +191,28 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
     except Exception:
         pass
 
-    fan_count = 0
+    fan_count = None
     connected = False
     try:
         tenant_fb = await get_tenant_fb_client(_tid)
         if tenant_fb is not None:
             connected = True
-            fan_count = await tenant_fb.get_page_fan_count()
+            fan_count = await tenant_fb.get_page_fan_count()  # None on failure (v4 §3.7)
         else:
             fan_count = await fb.get_page_fan_count()
     except Exception:
-        fan_count = 0
+        fan_count = None
+    if fan_count is None:
+        try:
+            from models import BotState as _BS
+            _snap = await db.execute(
+                select(_BS).where(_BS.tenant_id == _tid, _BS.key == "fb_fan_count"))
+            _sbs = _snap.scalar_one_or_none()
+            if _sbs and (_sbs.value or "").isdigit():
+                fan_count = int(_sbs.value)
+        except Exception:
+            pass
+    fan_count = fan_count or 0
 
     chart_data = {}
     try:
@@ -221,16 +248,30 @@ async def get_system_stats(db=Depends(get_db), current_user: User = Depends(requ
         select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == today)
     ) or 0
     active_pages = 1 if _tid else 0
+    # v4 §7.27 — real revenue from confirmed PaymentRequests (was a literal 0)
+    from models import PaymentRequest as _PR
+    total_revenue = float(await db.scalar(
+        select(func.coalesce(func.sum(_PR.amount), 0)).where(
+            _PR.tenant_id == _tid, _PR.status == "confirmed"
+        )
+    ) or 0)
+    recent_signups = [
+        {"username": u.username, "created_at": iso_z(u.created_at)}
+        for u in (await db.execute(
+            select(User).where(User.tenant_id == _tid)
+            .order_by(desc(User.created_at)).limit(5)
+        )).scalars().all()
+    ]
     return {"success": True, "data": {
         "totalUsers": total_users,
         "totalTenants": total_tenants,
         "totalReplies": total_replies,
         "todayReplies": today_replies,
         "activePages": active_pages,
-        "totalRevenue": 0,
+        "totalRevenue": total_revenue,
         "userGrowthPct": 0,
         "revenueTrend": [],
-        "recentSignups": [],
+        "recentSignups": recent_signups,
         "recentLogins": [],
     }}
 

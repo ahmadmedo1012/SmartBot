@@ -49,6 +49,47 @@ def get_ai():
             log.info("AI Service: no provider configured (set OPENAI_API_KEY or GEMINI_API_KEY)")
     return _ai_service
 
+async def refresh_ai_from_db() -> None:
+    """v4 §5.20 — AI keys from SystemConfig (DB-first, env fallback).
+
+    The owner sets openai_api_key/gemini_api_key/openai_base_url/ai_model in
+    /admin/settings; AI endpoints call this before use so a saved key takes
+    effect on the next request without a redeploy."""
+    global _ai_service
+    try:
+        from database import AsyncSessionLocal
+        from models import SystemConfig
+        from sqlalchemy import select as _select
+        keys = {}
+        async with AsyncSessionLocal() as db:
+            rows = await db.execute(
+                _select(SystemConfig).where(SystemConfig.key.in_([
+                    "openai_api_key", "openai_base_url", "gemini_api_key", "ai_model",
+                ])))
+            for r in rows.scalars().all():
+                if r.value:
+                    keys[r.key] = r.value
+    except Exception:
+        return
+    import os as _os
+    changed = False
+    env_map = {
+        "openai_api_key": "OPENAI_API_KEY",
+        "openai_base_url": "OPENAI_BASE_URL",
+        "gemini_api_key": "GEMINI_API_KEY",
+        "ai_model": "AI_MODEL",
+    }
+    for cfg_key, env_key in env_map.items():
+        val = keys.get(cfg_key)
+        if val and val != _os.getenv(env_key):
+            _os.environ[env_key] = val
+            changed = True
+    if changed:
+        import ai_service as _mod
+        _mod._openai = None   # reset lazy providers
+        _mod._google = None
+        _ai_service = None    # rebuilt by the next get_ai()
+
 # Bot engine — per-tenant dict registry (same pattern as _get_ctx/_get_offer)
 _bot_engines: dict[int, BotEngine] = {}
 _bot_engine_lock = __import__('threading').RLock()

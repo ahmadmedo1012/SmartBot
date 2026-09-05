@@ -54,9 +54,18 @@ async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_
     if recent == 0:
         issues.append({"type": "no_replies", "severity": "warning", "message": "لا توجد ردود في آخر ساعة"})
 
-    # 2. Check token connectivity
+    # 2. Check token connectivity (v4 §3.12 — the TENANT's client, not the
+    # empty global env client; None (not 0) means the token check FAILED)
     try:
-        fan_count = await fb.get_page_fan_count()
+        from _services import get_tenant_fb_client
+        tenant_fb = await get_tenant_fb_client(_tid)
+        if tenant_fb is None:
+            fan_count = None
+            issues.append({"type": "fb_page", "severity": "warning", "message": "لا توجد صفحة فيسبوك مرتبطة"})
+        else:
+            fan_count = await tenant_fb.get_page_fan_count()
+            if fan_count is None:
+                issues.append({"type": "fb_token", "severity": "critical", "message": "توكن الصفحة غير صالح أو منتهي — أعد الربط من صفحة «الصفحات»"})
     except Exception:
         fan_count = None
         issues.append({"type": "fb_token", "severity": "critical", "message": "فشل الاتصال بفيسبوك — تحقق من التوكن"})

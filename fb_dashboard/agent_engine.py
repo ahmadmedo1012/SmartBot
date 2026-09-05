@@ -57,7 +57,7 @@ class AgentEngine:
         self._history: list[dict] = []  # ponytail: in-memory fallback, DB is primary
 
     async def process(self, text: str, image_url: str = "", username: str = "admin",
-                      db=None) -> dict:
+                      db=None, tenant_id: int = 0) -> dict:
         """Main entry: load context → reason → execute → remember → return."""
         if db is None:
             log.error("process called without db session")
@@ -71,8 +71,14 @@ class AgentEngine:
 
             step = "build ctx"
             from models import Reply, Rule
-            reply_count = await db.scalar(select(func.count(Reply.id))) or 0
-            rule_count = await db.scalar(select(func.count(Rule.id))) or 0
+            # v4 §3.6 — tenant-scoped counts (were global: cross-tenant context
+            # leaked into AI agent answers on a multi-tenant deployment)
+            reply_count = await db.scalar(
+                select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id)
+            ) or 0
+            rule_count = await db.scalar(
+                select(func.count(Rule.id)).where(Rule.tenant_id == tenant_id)
+            ) or 0
             from config import settings
             bot_running = False
             try:

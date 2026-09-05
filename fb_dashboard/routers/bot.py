@@ -103,7 +103,12 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
 
 @router.get("/api/cron/bot-cycle")
 async def cron_bot_cycle(request: Request, token: str = Query("")):
-    """Cron-job.org: runs one bot cycle per active tenant. Auth via CRON_SECRET."""
+    """Cron: runs one bot cycle per active, connected tenant. Auth via CRON_SECRET.
+
+    v4 §6.22 (G8) — the old `balance` gate skipped every new tenant (balance
+    was only credited via manual Telegram payment confirmation), so the bot
+    NEVER ran for anyone on Vercel. Gate is now the subscription status +
+    plan usage limits, same as the engine itself."""
     secret = os.getenv("CRON_SECRET", "")
     auth_header = request.headers.get("authorization", "")
     # Constant-time compare (timing-attack hygiene); empty secret never validates
@@ -117,22 +122,21 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
     shard = int(raw_shard) % _CRON_SHARDS
     try:
         async with AsyncSessionLocal() as db:
-            tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
-            all_tenants = list(tenants.scalars().all())
-            tids = [t.id for t in all_tenants]
-            bs_rows = await db.execute(
-                select(BotState).where(
-                    BotState.key == "balance",
-                    BotState.tenant_id.in_(tids),
+            # v4 §6.22 — connected tenants = has fb_page_id; active by flag.
+            # UNPAID tenants are skipped by the engine's own gate anyway.
+            page_rows = await db.execute(
+                select(BotState.tenant_id).where(
+                    BotState.key == "fb_page_id", BotState.tenant_id.isnot(None)
                 )
             )
-            balances = {bs.tenant_id: int(bs.value) for bs in bs_rows.scalars().all() if bs and bs.value}
+            connected_tids = {row[0] for row in page_rows.all() if row[0]}
+            tenants = await db.execute(
+                select(Tenant).where(Tenant.is_active == True, Tenant.id.in_(list(connected_tids) or [0]))
+            )
+            all_tenants = list(tenants.scalars().all())
         results = []
         for tenant in all_tenants:
             if (tenant.id % _CRON_SHARDS) != shard % _CRON_SHARDS:
-                continue
-            if balances.get(tenant.id, 0) <= 0:
-                results.append({"tenant_id": tenant.id, "status": "skipped", "reason": "no_balance"})
                 continue
             from _services import get_tenant_fb_client
             fb_cli = await get_tenant_fb_client(tenant.id)
@@ -150,6 +154,121 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
     except Exception as e:
         log.error("Cron bot cycle error", exc_info=True)
         return fail(f"cron cycle failed: {str(e)[:120]}")
+
+
+@router.get("/api/cron/heartbeat")
+async def cron_heartbeat(request: Request, token: str = Query("")):
+    """v4 §6.21 — the serverless heartbeat: everything that never ran on Vercel.
+
+    One authenticated cron entrypoint that runs per invocation:
+      1. publishes DUE scheduled posts (tenant-scoped, was never scheduled)
+      2. refreshes fb_fan_count snapshots for connected tenants
+      3. runs one bot comment cycle for connected tenants (same engine gate)
+    Vercel Hobby note: if sub-daily crons are not available, schedule what the
+    plan allows — the endpoint itself is idempotent and safe to call often.
+    """
+    secret = os.getenv("CRON_SECRET", "")
+    auth_header = request.headers.get("authorization", "")
+    valid = bool(secret) and (
+        secrets.compare_digest(auth_header, f"Bearer {secret}")
+        or secrets.compare_digest(token, secret)
+    )
+    if not valid:
+        raise HTTPException(403, "Unauthorized cron")
+    from _utils import utcnow as _now
+    report = {"published_posts": 0, "fan_refreshed": 0, "cycles": 0, "errors": []}
+
+    # ── 1. Publish due scheduled posts (tenant-scoped) ──
+    try:
+        from models import ScheduledPost
+        async with AsyncSessionLocal() as db:
+            due = (await db.execute(
+                select(ScheduledPost).where(
+                    ScheduledPost.status == "scheduled",
+                    ScheduledPost.scheduled_at.isnot(None),
+                    ScheduledPost.scheduled_at <= _now(),
+                )
+            )).scalars().all()
+        for post in due:
+            try:
+                from _services import get_tenant_fb_client
+                fb = await get_tenant_fb_client(post.tenant_id)
+                if fb is None:
+                    post.status = "failed"
+                    continue
+                result = (
+                    await fb.post_to_page_with_image(post.message, post.image_url)
+                    if post.image_url else await fb.post_to_page(post.message)
+                )
+                async with AsyncSessionLocal() as db:
+                    fresh = await db.get(ScheduledPost, post.id)
+                    if result and not result.get("_error"):
+                        fresh.status = "published"
+                        fresh.fb_post_id = str(result.get("id", ""))
+                        fresh.published_at = _now()
+                        report["published_posts"] += 1
+                    else:
+                        fresh.status = "failed"
+                    await db.commit()
+            except Exception as e:
+                report["errors"].append(f"post {post.id}: {str(e)[:80]}")
+    except Exception as e:
+        report["errors"].append(f"publish sweep: {str(e)[:120]}")
+
+    # ── 2. Refresh fan_count snapshots for connected tenants ──
+    try:
+        from models import BotState
+        async with AsyncSessionLocal() as db:
+            rows = await db.execute(
+                select(BotState).where(
+                    BotState.key == "fb_page_id", BotState.tenant_id.isnot(None)
+                )
+            )
+            pages = [(bs.tenant_id, bs.value) for bs in rows.scalars().all() if bs.value]
+        for tenant_id, page_id in pages:
+            try:
+                from _services import get_tenant_fb_client
+                fb = await get_tenant_fb_client(tenant_id)
+                if fb is None:
+                    continue
+                fans = await fb.get_page_fan_count()
+                if fans is None:
+                    continue
+                async with AsyncSessionLocal() as db:
+                    snap = (await db.execute(
+                        select(BotState).where(
+                            BotState.tenant_id == tenant_id,
+                            BotState.key == "fb_fan_count",
+                        )
+                    )).scalar_one_or_none()
+                    if snap is None:
+                        db.add(BotState(tenant_id=tenant_id, key="fb_fan_count", value=str(fans)))
+                    else:
+                        snap.value = str(fans)
+                    await db.commit()
+                report["fan_refreshed"] += 1
+            except Exception as e:
+                report["errors"].append(f"fan {tenant_id}: {str(e)[:80]}")
+    except Exception as e:
+        report["errors"].append(f"fan sweep: {str(e)[:120]}")
+
+    # ── 3. One bot comment cycle for connected tenants (gated by engine) ──
+    try:
+        from _services import get_tenant_fb_client, get_bot_engine
+        for tenant_id, _page in pages:
+            try:
+                fb = await get_tenant_fb_client(tenant_id)
+                if fb is None:
+                    continue
+                engine = get_bot_engine(fb, tenant_id=tenant_id)
+                await engine.cycle()
+                report["cycles"] += 1
+            except Exception as e:
+                report["errors"].append(f"cycle {tenant_id}: {str(e)[:80]}")
+    except Exception as e:
+        report["errors"].append(f"cycle sweep: {str(e)[:120]}")
+
+    return ok(report)
 
 
 @router.get("/api/logs")

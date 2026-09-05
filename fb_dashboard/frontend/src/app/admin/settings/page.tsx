@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot, Webhook } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot, Webhook, Sparkles } from "lucide-react"
 import Link from "next/link"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -131,7 +131,40 @@ const FACEBOOK_FIELDS: Field[] = [
   },
 ]
 
-const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS, ...TELEGRAM_FIELDS, ...FACEBOOK_FIELDS].map((f) => f.key)
+const AI_FIELDS: Field[] = [
+  {
+    key: "openai_api_key",
+    label: "مفتاح OpenAI",
+    placeholder: "sk-proj-...",
+    hint: "يفعّل مساعد الردود الذكية (اقتراحات الردود وتحليلها) — يُستخدم فور الحفظ دون إعادة نشر",
+    ltr: true,
+    type: "password",
+  },
+  {
+    key: "openai_base_url",
+    label: "عنوان OpenAI البديل (اختياري)",
+    placeholder: "https://api.openai.com/v1",
+    hint: "اتركه فارغًا للخدمة الرسمية — أو ضع عنوان مزوّد متوافق",
+    ltr: true,
+  },
+  {
+    key: "gemini_api_key",
+    label: "مفتاح Google Gemini",
+    placeholder: "AIza...",
+    hint: "بديل عن OpenAI — يُستخدم إن لم يوجد مفتاح OpenAI",
+    ltr: true,
+    type: "password",
+  },
+  {
+    key: "ai_model",
+    label: "اسم النموذج (اختياري)",
+    placeholder: "gpt-4o-mini / gemini-1.5-flash",
+    hint: "اتركه فارغًا للاختيار التلقائي المناسب للمزوّد",
+    ltr: true,
+  },
+]
+
+const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS, ...TELEGRAM_FIELDS, ...FACEBOOK_FIELDS, ...AI_FIELDS].map((f) => f.key)
 
 type ConfigMap = Partial<Record<string, string>>
 
@@ -360,6 +393,22 @@ export default function AdminSettingsPage() {
                   بعنوان <span className="font-mono" dir="ltr">https://api.smart-link.ly/webhook</span> واشترك في
                   حقلي <span dir="ltr">feed</span> و<span dir="ltr">messages</span>.
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+          {/* AI provider keys (v4 §5.20) */}
+          <motion.div {...fadeUp}>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="size-4 text-orange" /> مفاتيح الذكاء الاصطناعي
+                </CardTitle>
+                <CardDescription>
+                  تفعّل مساعد الردود الذكية (اقتراح ردود، تحليل مشاعر) من صفحة الأدوات — الحفظ يُطبّق فورًا
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {AI_FIELDS.map(fieldRow)}
               </CardContent>
             </Card>
           </motion.div>

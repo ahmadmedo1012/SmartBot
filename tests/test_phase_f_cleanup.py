@@ -9,7 +9,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §6:
     الذي أخفى دعم/إحصاءات حقيقية خلف stubs
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 import asyncio
 from collections import defaultdict
@@ -17,7 +18,7 @@ from collections import defaultdict
 
 def test_dead_engines_marked_deprecated():
     """الخطة 6.1: flow/pdf_reports/commerce/sequence تحمل علامة DEPRECATED دون حذف."""
-    base = os.path.dirname(__file__)
+    base = FB_DIR
     for engine in ("flow_engine.py", "pdf_reports_engine.py",
                    "commerce_engine.py", "sequence_engine.py"):
         src = open(os.path.join(base, engine), encoding="utf-8").read()
@@ -28,7 +29,7 @@ def test_dead_engines_marked_deprecated():
 
 def test_alive_engines_present():
     """المحركات الحية (الخطة 6.1 ALIVE) موجودة وسليمة."""
-    base = os.path.dirname(__file__)
+    base = FB_DIR
     for engine in ("bot.py", "analytics_engine.py", "broadcast_engine.py",
                    "subscriber_engine.py", "inbox_engine.py",
                    "offer_engine.py", "team_engine.py"):

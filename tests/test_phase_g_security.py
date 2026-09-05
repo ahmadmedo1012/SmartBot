@@ -13,7 +13,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §7.1:
   [2FA: مؤجل لما بعد MVP — كما تنص الخطة]
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 from sqlalchemy import select
 
@@ -206,7 +207,7 @@ async def test_login_rate_limited():
 def test_no_raw_string_sql_interpolation():
     """حارس مصدري: لا استعلامات نصية مركّبة (f-string/format على SQL) في المسارات."""
     import re
-    base = os.path.dirname(__file__)
+    base = FB_DIR
     offenders = []
     routers_dir = os.path.join(base, "routers")
     for fn in os.listdir(routers_dir):

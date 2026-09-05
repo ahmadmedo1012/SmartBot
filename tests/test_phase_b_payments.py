@@ -11,7 +11,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §2:
   2.6 انتهاء التجربة → EXPIRED_TRIAL مع استمرار البوت (وليس إيقافه)
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 import asyncio
 from datetime import timedelta
@@ -362,7 +363,7 @@ async def test_upload_receipt_ok():
         assert url.endswith(".jpg")
         # الملف موجود فعلاً على القرص
         from pathlib import Path
-        p = Path(__file__).parent / "static" / "uploads" / "receipts" / url.rsplit("/", 1)[1]
+        p = Path(FB_DIR) / "static" / "uploads" / "receipts" / url.rsplit("/", 1)[1]
         assert p.exists(), p
     finally:
         await _teardown(fixture)

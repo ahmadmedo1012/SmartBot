@@ -10,7 +10,7 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §4:
 كل مسارات الواجهة الثلاثة (settings/info/ticket/campaigns) تعمل فعلياً.
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 
 import asyncio
 from datetime import timedelta

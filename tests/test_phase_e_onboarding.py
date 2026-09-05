@@ -10,7 +10,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §5:
   5.2 جولة react-joyride: مركّبة فعلاً في AuthGuard + أهدافها موجودة في الشريط الجانبي
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 from sqlalchemy import select
 
@@ -241,7 +242,7 @@ async def test_onboarding_complete_marks_tenant():
 # ── §5.2: tour mounted + targets exist (source guards) ─────────────────────
 
 def _read(p):
-    base = os.path.join(os.path.dirname(__file__), "frontend", "src")
+    base = os.path.join(FB_DIR, "frontend", "src")
     return open(os.path.join(base, p), encoding="utf-8").read()
 
 
@@ -281,7 +282,7 @@ def test_wizard_uses_real_plans_and_test_connection():
 
 def test_onboarding_router_uses_fernet():
     """حارس مصدري: لا XOR منزلي — تشفير Fernet فقط للرموز."""
-    src = open(os.path.join(os.path.dirname(__file__), "routers", "onboarding.py"),
+    src = open(os.path.join(FB_DIR, "routers", "onboarding.py"),
                encoding="utf-8").read()
     assert "encrypt_token" in src, "يجب استخدام encrypt_token (Fernet)"
     assert "_encrypt_value" not in src, "الإصدار XOR القديم يجب ألا يعود"

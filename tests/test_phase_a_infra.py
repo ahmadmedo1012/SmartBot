@@ -9,7 +9,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §1:
   1.5 next.config                 → لا يوجد output:"export" (يُتحقق منه في grep خارجي)
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 import asyncio
 import inspect
@@ -159,7 +160,7 @@ async def test_get_bot_engine_registry_per_tenant():
 
 def test_webhook_uses_tenant_scoped_engine():
     """متطلب 1.3: معالج webhook يستخدم registry بعامل المستأجر — لا BotEngine() داخلية."""
-    src_path = os.path.join(os.path.dirname(__file__), "runner.py")
+    src_path = os.path.join(FB_DIR, "runner.py")
     src = open(src_path, encoding="utf-8").read()
     assert "get_bot_engine(fb_client, tenant_id=bs.tenant_id)" in src, \
         "معالج webhook يجب أن يستخدم get_bot_engine(fb_client, tenant_id=bs.tenant_id)"
@@ -170,7 +171,7 @@ def test_webhook_uses_tenant_scoped_engine():
 
 def test_next_config_no_static_export():
     """متطلب 1.5: output:'export' أزيل من next.config.ts (كان يمنع API routes)."""
-    cfg_path = os.path.join(os.path.dirname(__file__), "frontend", "next.config.ts")
+    cfg_path = os.path.join(FB_DIR, "frontend", "next.config.ts")
     if not os.path.exists(cfg_path):
         pytest.skip("frontend غير مثبت في بيئة الاختبار")
     cfg = open(cfg_path, encoding="utf-8").read()

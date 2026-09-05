@@ -8,7 +8,8 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §3:
   3.2 /api/public/testimonials تُرجع [] حتى جمع آراء حقيقية — لا تقييمات وهمية.
 """
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
+FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
 from sqlalchemy import select
 
@@ -113,7 +114,7 @@ async def test_testimonials_empty_until_real():
 
 def test_stats_source_uses_real_queries():
     """حارس مصدري: المسار يستعلم Tenant/Reply من قاعدة البيانات (لا أرقاماً ثابتة)."""
-    src = open(os.path.join(os.path.dirname(__file__), "routers", "plans_config.py"),
+    src = open(os.path.join(FB_DIR, "routers", "plans_config.py"),
                encoding="utf-8").read()
     assert "select(func.count(Tenant.id))" in src, "يجب عدّ المستأجرين من DB"
     assert "select(func.count(Reply.id))" in src, "يجب عدّ الردود من DB"
@@ -121,7 +122,7 @@ def test_stats_source_uses_real_queries():
 
 def test_no_fake_numbers_in_landing_components():
     """حارس مصدري: لا أرقام تسويقية وهمية (٥٠٠/98% رضا) في مكونات الهبوط."""
-    base = os.path.join(os.path.dirname(__file__), "frontend", "src")
+    base = os.path.join(FB_DIR, "frontend", "src")
     checks = [
         (os.path.join(base, "components", "landing", "sections", "StatsSection.tsx"),
          ["98", "معدل رضا", "fallback"]),

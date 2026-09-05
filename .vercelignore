@@ -12,3 +12,5 @@ docs
 *.md
 *.db
 botlogo.png
+tests
+.pytest_cache

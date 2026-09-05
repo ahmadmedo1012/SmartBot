@@ -10,7 +10,7 @@ os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("FACEBOOK_ACCESS_TOKEN", "test")
 os.environ.setdefault("FACEBOOK_PAGE_ID", "test")
 
-sys.path.insert(0, os.path.dirname(__file__))  # file lives in fb_dashboard/ now
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # file lives in fb_dashboard/ now
 
 from bot import BotEngine
 from _services import get_bot_engine, reset_bot_engines

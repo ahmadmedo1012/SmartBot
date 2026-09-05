@@ -41,7 +41,7 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 2. **Create duplicate entry points** — `api/bot.py` and `api/public.py` are deleted. Only `api/index.py` exists.
 3. **Add dead code** — no Vite/SPA remnants, no unconnected API files.
 4. **Commit build artifacts** — `.next/`, `tsconfig.tsbuildinfo` in .gitignore and NOT tracked.
-5. **Return raw dicts from any router** (latest_plan.md Track A): every endpoint MUST return `{"success": bool, "data": ..., "error"?: str}` via `fb_dashboard/_responses.py` (`ok()` / `fail()`). HTTP transport failures use `HTTPException`. Gate: `grep -L '"success"' fb_dashboard/routers/*.py` returns nothing (every router carries the contract note).
+5. **Return raw dicts from any router** (docs/plans/latest_plan.md Track A): every endpoint MUST return `{"success": bool, "data": ..., "error"?: str}` via `fb_dashboard/_responses.py` (`ok()` / `fail()`). HTTP transport failures use `HTTPException`. Gate: `grep -L '"success"' fb_dashboard/routers/*.py` returns nothing (every router carries the contract note).
 6. **Parse API responses ad hoc in the frontend** (Track A.4): all `/api` fetches go through `src/lib/api.ts` — `unwrapApi(res)` / `apiJson()`. Never `.then(r => r.json())` then read fields directly; the envelope is unwrapped centrally and `success:false` throws `ApiError`.
 7. **Hardcode colors/shadows in components** (Track D): every color lives in `globals.css` tokens (incl. `--confetti-*`, `--iphone-*`); icons come from `lucide-react` exclusively; every `<Input>` carries `dir="auto"`. See `docs/design-system.md` (incl. the documented `bg-white` exceptions table and the AI-cliché refuse list).
 8. **Ship a mobile-invisible dashboard** (Track F): `MobileBottomNav` must stay wired in `DashboardShell` (`md:hidden`) — nav data is the single exported `defaultNavSections` in `AdminSidebar`. Any new sidebar section MUST be added there (one source, both renders).
@@ -66,4 +66,4 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 - Local single-server mode: `python -m uvicorn runner:app --app-dir fb_dashboard --port 8000` serves API + the built frontend from `fb_dashboard/static/` (sync with `scripts/sync_next_static.py` after `npm run build`).
 
 ## Governing plan
-`latest_plan.md` (2026-09-03) is the current source of truth. Delivery evidence: `docs/master-plan-2026-09-03-delivery-report.md`. Historical plans live in `docs/plans/` + `docs/history/` (superseded).
+`docs/plans/latest_plan.md` (2026-09-03) is the historical master plan (superseded by v3/v4/v5 plans in `docs/plans/`). Delivery evidence: `docs/reports/master-plan-2026-09-03-delivery-report.md`. Historical plans live in `docs/plans/` + `docs/history/` (superseded).

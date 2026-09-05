@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 """Replies & comments listing routes.
 
 v4 radical plan §3.6 + §4.10 (G1):

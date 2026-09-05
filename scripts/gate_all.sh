@@ -56,8 +56,9 @@ fi
 echo "── [5/5] static contracts ──"
 CONTRACT_OK=1
 # 5a. every router carries the response-contract note
-if grep -qL '"success"' fb_dashboard/routers/*.py 2>/dev/null; then
-  echo "❌ router(s) missing the response contract"; CONTRACT_OK=0
+MISSING_CONTRACT=$(grep -L '"success"' fb_dashboard/routers/*.py 2>/dev/null)
+if [[ -n "$MISSING_CONTRACT" ]]; then
+  echo "❌ router(s) missing the response contract: $MISSING_CONTRACT"; CONTRACT_OK=0
 fi
 # 5b. no duplicated CSS custom property per mode (v4 §1 gate)
 if $PY scripts/check-css-token-duplication.py >/dev/null 2>&1; then

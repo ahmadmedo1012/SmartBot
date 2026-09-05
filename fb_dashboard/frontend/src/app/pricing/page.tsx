@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge"
 import { GlowPool } from "@/components/ui/GlowPool"
 import { cn } from "@/lib/utils"
 import { fadeUp, stagger, springSnappy, springDefault } from "@/lib/motion"
+import { KineticText } from "@/components/ui/kinetic-text"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { apiFetch } from "@/lib/csrf-client"
 import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
 import { unwrapApi } from "@/lib/api"
@@ -63,22 +65,16 @@ export default function PricingPage() {
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springDefault, delay: 0.1 }}
           className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
         >
-          خطط تناسب <span className="text-orange">كل الأحجام</span>
+          <KineticText mode="words" duration={800} delay={100}>خطط تناسب كل الأحجام</KineticText>
         </motion.h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springDefault, delay: 0.2 }}
+        <ScrollReveal y={18} delay={200}
           className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto text-balance"
         >
           ابدأ مجاناً، ارتقِ عندما تنمو صفحتك. بدون رسوم خفية، إلغاء في أي وقت.
-        </motion.p>
+        </ScrollReveal>
 
         {/* Trust row */}
         <motion.div
@@ -133,18 +129,23 @@ export default function PricingPage() {
       </SectionContainer>
 
       <SectionContainer className="pb-24">
-        <motion.div variants={stagger} initial="hidden" animate="visible" className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
+        {/* Plan cards — scroll-triggered stagger (scroll-craft §G.4) */}
+        <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
           {plans.map((plan, i) => {
             const Icon = PLAN_ICONS[i] || Sparkles
             const isPopular = i === 1
             return (
-              <motion.div
+              <ScrollReveal
                 key={plan.id}
-                variants={fadeUp}
-                custom={i}
-                whileHover={{ y: -6, transition: springSnappy }}
+                y={28}
+                delay={i * 120}
+                duration={0.7}
                 className={cn("relative", isPopular && "lg:-mt-4")}
               >
+                <motion.div
+                  whileHover={{ y: -6, transition: springSnappy }}
+                  className="h-full"
+                >
                 <Card className={cn(
                   "relative h-full flex flex-col overflow-hidden transition-all duration-500",
                   isPopular
@@ -226,10 +227,11 @@ export default function PricingPage() {
                     </Button>
                   </CardContent>
                 </Card>
-              </motion.div>
+                </motion.div>
+              </ScrollReveal>
             )
           })}
-        </motion.div>
+        </div>
 
         {/* FAQ-style microcopy */}
         <motion.div

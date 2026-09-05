@@ -537,6 +537,18 @@ app.include_router(notifications_router.router)
 app.include_router(support_router.router)
 app.include_router(marketing_router.router)
 
+
+# ── Vercel Analytics stubs (single-server mode) ─────────────────────────────
+# The Next.js PRODUCTION build injects <script src="/_vercel/insights/script.js">
+# and /_vercel/speed-insights/script.js. On Vercel these are platform-served;
+# in local/E2E single-server mode they previously 404'd as text/html, which
+# browsers refuse to execute ("strict MIME type checking") — a console error
+# on EVERY dashboard page. Serve a valid no-op JS stub instead.
+@app.get("/_vercel/insights/script.js", include_in_schema=False)
+@app.get("/_vercel/speed-insights/script.js", include_in_schema=False)
+async def _vercel_analytics_stub():
+    return PlainTextResponse("/* no-op outside Vercel */", media_type="application/javascript")
+
 if STATIC_DIR.exists():
     try:
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

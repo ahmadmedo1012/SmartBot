@@ -15,6 +15,9 @@ import HowItWorksSection from "@/components/landing/sections/HowItWorksSection"
 import StatsSection from "@/components/landing/sections/StatsSection"
 import FinalCTASection from "@/components/landing/sections/FinalCTASection"
 import FaqSection from "@/components/landing/sections/FaqSection"
+import { KineticText } from "@/components/ui/kinetic-text"
+import { ScrollParallax } from "@/components/ui/scroll-parallax"
+import { ClipPathReveal } from "@/components/ui/clip-path-reveal"
 import { HeroMockup } from "@/components/landing/HeroMockup"
 import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
 import { unwrapApi } from "@/lib/api"
@@ -117,11 +120,14 @@ export default function HomePage() {
       <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />
 
-      {/* Hero */}
+      {/* Hero — scroll-craft treatment (latest_plan §G.4): kinetic headline,
+          parallax depth layers, clip-path mockup reveal. Landing/pricing ONLY. */}
       <section className="relative min-h-[100svh] flex items-center overflow-hidden">
-        {/* Background layers */}
-        <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[70vmin]" color="orange/10" />
-        <GlowPool position="bottom-0 right-0" size="size-[40vmin]" color="orange/5" />
+        {/* Background layers — parallax depth */}
+        <ScrollParallax rate={-0.3} maxTravel={50} className="absolute inset-0 pointer-events-none">
+          <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[70vmin]" color="orange/10" />
+          <GlowPool position="bottom-0 right-0" size="size-[40vmin]" color="orange/5" />
+        </ScrollParallax>
         <div className="absolute inset-0 z-0 opacity-30 pointer-events-none" style={{ backgroundImage: "linear-gradient(color-mix(in oklch, var(--orange) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklch, var(--orange) 8%, transparent) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-background/30 to-background pointer-events-none" />
 
@@ -137,11 +143,12 @@ export default function HomePage() {
                   <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,transparent 0%,oklch(1 0 0 / 0.12) 50%,transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 3s ease-in-out infinite" }} />
                 </motion.div>
 
-                <motion.h1 initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.1 }}
-                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.02] tracking-tighter font-heading text-balance">
-                  إدارة تفاعل فيسبوك<br />
+                <motion.h1
+                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.02] tracking-tighter font-heading text-balance"
+                >
+                  <KineticText mode="lines" duration={900} delay={150}>إدارة تفاعل فيسبوك</KineticText>
                   <span className="relative inline-block text-orange">
-                    بذكاء واحترافية
+                    <KineticText mode="words" duration={700} delay={550}>بذكاء واحترافية</KineticText>
                     <span className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-orange/0 via-orange/60 to-orange/0 rounded-full" aria-hidden="true" />
                   </span>
                 </motion.h1>
@@ -187,9 +194,11 @@ export default function HomePage() {
                 </motion.div>
               </div>
 
-              {/* ── Right: live product mockup ── */}
+              {/* ── Right: live product mockup — clip-path wipe reveal ── */}
               <div className="relative lg:pl-4">
-                <HeroMockup />
+                <ClipPathReveal direction="up" duration={900} delay={200}>
+                  <HeroMockup />
+                </ClipPathReveal>
               </div>
             </div>
           </div>

@@ -13,7 +13,11 @@ export default function LeadsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/crm/customers")
       if (!res.ok) throw new Error(`فشل تحميل العملاء (${res.status})`)
-      return unwrapApi(res)
+      // API returns a paginated envelope {total, page, per_page, items} —
+      // this page maps the LIST. The old code mapped the envelope object
+      // itself and crashed with "e.map is not a function" on first render.
+      const d = await unwrapApi(res)
+      return Array.isArray(d) ? d : (d?.items ?? [])
     },
     retry: 1,
   })

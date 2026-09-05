@@ -83,6 +83,34 @@ async def update_facebook_settings(
     subscribe = body.get("subscribe_webhook", True)
     tenant_id = current_user.tenant_id or 0
 
+    # Explicit disconnect (v3 final-launch §4): `clear: true` wipes the whole
+    # page-connection state — previously empty values were no-ops, so a test
+    # or wrong page stayed "connected" forever (silent lie in the UI).
+    if body.get("clear"):
+        for key in ("fb_page_id", "fb_access_token", "fb_page_name",
+                    "fb_fan_count", "fb_picture_url"):
+            existing = await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id == tenant_id, BotState.key == key
+                )
+            )
+            row = existing.scalar_one_or_none()
+            if row:
+                await db.delete(row)
+        await db.commit()
+        try:
+            from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
+            _inbox_fb_cache.pop(tenant_id, None)
+        except Exception:
+            pass
+        try:
+            from _services import reset_bot_engines
+            reset_bot_engines()
+        except Exception:
+            pass
+        _track_event("fb_settings_cleared", {}, tenant_id=tenant_id)
+        return ok({"ok": True, "cleared": True})
+
     if page_id:
         existing = await db.execute(
             select(BotState).where(

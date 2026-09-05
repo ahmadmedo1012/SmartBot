@@ -33,7 +33,7 @@ export function HeroMockup() {
         initial={{ opacity: 0, x: 20, y: -10 }}
         animate={{ opacity: 1, x: 0, y: 0 }}
         transition={{ ...springSnappy, delay: 0.9 }}
-        className="absolute -top-6 -right-2 sm:right-4 z-20 glass-strong rounded-2xl p-3 sm:p-4 shadow-xl min-w-[180px]"
+        className="absolute -top-6 right-0 sm:right-4 z-20 glass-strong rounded-2xl p-3 sm:p-4 shadow-xl min-w-[180px]"
       >
         <div className="flex items-center gap-2 mb-1.5">
           <div className="size-7 rounded-lg bg-accent-foreground/15 flex items-center justify-center">

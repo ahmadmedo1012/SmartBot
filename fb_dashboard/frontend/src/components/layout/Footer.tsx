@@ -51,7 +51,7 @@ export function Footer({ className }: FooterProps) {
           </div>
 
           <div>
-            <h4 className="text-sm font-medium mb-3">روابط سريعة</h4>
+            <h3 className="text-sm font-medium mb-3">روابط سريعة</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
               {QUICK_LINKS.map((link) => (
                 <Link key={link.label} href={link.href} className="block w-fit hover:text-foreground transition-colors">{link.label}</Link>
@@ -60,7 +60,7 @@ export function Footer({ className }: FooterProps) {
           </div>
 
           <div>
-            <h4 className="text-sm font-medium mb-3">الخدمات</h4>
+            <h3 className="text-sm font-medium mb-3">الخدمات</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
               {SERVICES.map((svc, i) => (
                 svc.href ? <Link key={i} href={svc.href} className="block w-fit hover:text-foreground transition-colors">{svc.label}</Link>
@@ -70,7 +70,7 @@ export function Footer({ className }: FooterProps) {
           </div>
 
           <div>
-            <h4 className="text-sm font-medium mb-3">تواصل معنا</h4>
+            <h3 className="text-sm font-medium mb-3">تواصل معنا</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
               <a href={`https://wa.me/${waNumber}`} className="flex items-center gap-2 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
               <span className="block">دعم فني 24/7</span>

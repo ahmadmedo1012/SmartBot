@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "تسجيل الدخول إلى لوحة تحكم SmartBot - إدارة تفاعل صفحات فيسبوك",
   alternates: { canonical: `${siteUrl}/login` },
   openGraph: { title: "تسجيل الدخول | SmartBot", description: "تسجيل الدخول إلى SmartBot" },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 }
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {

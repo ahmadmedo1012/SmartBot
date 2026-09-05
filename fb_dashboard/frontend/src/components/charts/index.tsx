@@ -15,7 +15,9 @@ import {
   YAxis,
 } from "recharts"
 
-const ACCENT = "var(--accent)"
+// Brand solid — NOT --accent (that token is the 15% whisper tint; using it
+// here made chart bars nearly invisible on the dashboard).
+const ACCENT = "var(--primary)"
 const MUTED = "var(--muted)"
 const GRID = "var(--border)"
 

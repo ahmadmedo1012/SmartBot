@@ -137,7 +137,7 @@ export default function ConnectPage() {
       {/* Header */}
       <div className="fixed left-4 right-4 top-4 z-10 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 rtl:-scale-x-100" />
           العودة للوحة التحكم
         </Link>
       </div>

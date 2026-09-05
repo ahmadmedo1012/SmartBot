@@ -194,7 +194,7 @@ export default function AdminSettingsPage() {
   if (loading) {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
-        <div className="size-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-8 border-2 border-orange border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )
   }
@@ -211,7 +211,7 @@ export default function AdminSettingsPage() {
           href="/admin"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="size-4" /> إدارة الاشتراكات
+          <ArrowLeft className="size-4 rtl:-scale-x-100" /> إدارة الاشتراكات
         </Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty || saving}>

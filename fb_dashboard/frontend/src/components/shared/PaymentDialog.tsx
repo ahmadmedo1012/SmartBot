@@ -131,8 +131,12 @@ export function PaymentDialog({
     const isBank = provider === "bank"
     // Validate BEFORE latching the guard — a failed validation must leave
     // the button usable.
-    if (!isBank && !phone.trim()) {
-      premiumToast("error", "يرجى إدخال رقم هاتفك")
+    if (!isBank && !/^09\d{8}$/.test(phone.trim().replace(/[\s-]/g, ""))) {
+      premiumToast("error", "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)")
+      return
+    }
+    if (!isBank && Number(price) <= 0) {
+      premiumToast("error", "سعر الباقة غير صالح — أعد فتح نافذة الدفع")
       return
     }
     if (isBank) {
@@ -216,6 +220,13 @@ export function PaymentDialog({
         pollRef.current = setInterval(async () => {
           try {
             const res = await fetch(`/api/subscriptions/status?payment_id=${paymentId}`)
+            if (!res.ok) {
+              // 401 (session expired) / 404 (payment gone) — polling forever
+              // would hide the failure; treat like a poll failure.
+              pollFailures++
+              if (pollFailures >= 3) { onRejected("انتهت صلاحية الجلسة أو لم يعد الطلب موجوداً — حدّث الصفحة") }
+              return
+            }
             const json = await res.json()
             pollFailures = 0
             if (json.data?.status === "verified") onVerified()

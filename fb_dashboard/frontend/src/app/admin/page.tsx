@@ -103,7 +103,7 @@ export default function AdminPage() {
   if (roleLoading) {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
-        <div className="size-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <div className="size-8 border-2 border-orange border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )
   }
@@ -114,7 +114,7 @@ export default function AdminPage() {
 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="size-4" /> العودة للوحة التحكم
+          <ArrowLeft className="size-4 rtl:-scale-x-100" /> العودة للوحة التحكم
         </Link>
         <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-orange/8 hover:border-orange/40 transition-colors">
           <Settings className="size-4" /> إعدادات المنصة
@@ -166,7 +166,7 @@ export default function AdminPage() {
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
                       </td>
                       <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
-                        {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-SA") : "-"}
+                        {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-LY", { calendar: "gregory" }) : "-"}
                       </td>
                       <td className="p-3 text-center" data-label="إجراءات">
                         <div className="flex items-center justify-center gap-2">

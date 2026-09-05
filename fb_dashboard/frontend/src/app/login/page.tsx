@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
@@ -82,12 +82,18 @@ function LoginForm() {
         toast.error(msg)
         return
       }
+      // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
+      // message (e.g. "بيانات تسجيل الدخول غير صحيحة") instead of a generic one.
       toast.success("تم تسجيل الدخول بنجاح")
       const role = data.data?.user?.role || data.role
       const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : (safeRedirect(rawRedirect) || "/dashboard")
       setTimeout(() => window.location.replace(target), 150)
-    } catch {
-      toast.error("خطأ في الاتصال بالخادم")
+    } catch (e) {
+      const msg = e instanceof ApiError
+        ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل تسجيل الدخول")
+        : "خطأ في الاتصال بالخادم"
+      setFormError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -101,7 +107,7 @@ function LoginForm() {
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-3.5 rtl:-scale-x-100" />
             العودة للرئيسية
           </Button>
         </Link>

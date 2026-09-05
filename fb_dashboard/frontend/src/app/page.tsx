@@ -167,7 +167,7 @@ export default function HomePage() {
                   </Link>
                   <Link href="/demo">
                     <Button variant="outline" size="lg" className="text-base h-12 px-7">
-                      <Sparkles className="size-4 ml-1" /> جرب البوت الآن
+                      <Sparkles className="size-4 ms-1" /> جرب البوت الآن
                     </Button>
                   </Link>
                 </motion.div>
@@ -195,7 +195,7 @@ export default function HomePage() {
               </div>
 
               {/* ── Right: live product mockup — clip-path wipe reveal ── */}
-              <div className="relative lg:pl-4">
+              <div className="relative ">
                 <ClipPathReveal direction="up" duration={900} delay={200}>
                   <HeroMockup />
                 </ClipPathReveal>
@@ -229,18 +229,19 @@ export default function HomePage() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-5">
-            {[
-              { name: "أحمد السالمي", role: "صاحب صفحة - طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً.", metric: "+٤٢٠٪ تفاعل", color: "from-orange to-orange/70" },
-              { name: "سارة النفاتي", role: "مديرة تسويق - بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً.", metric: "٢٤/٧ ردود", color: "from-orange/90 to-orange/60" },
-              { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني - مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته.", metric: "١٠ صفحات", color: "from-orange/80 to-orange/50" },
-            ].map((t, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            {/* REAL data from /api/public/testimonials only — the hardcoded
+                entries were removed (the comment above said "never fake" while
+                the render ignored the payload entirely). Owner seeds real
+                testimonials via the admin surfaces when available. */}
+            {testimonials.map((t: any, i: number) => (
+              <motion.div key={t.id ?? i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                 transition={{ ...springDefault, delay: i * 0.1 }}
                 className="group relative rounded-2xl p-6 bg-card border border-border/50 hover:border-orange/40 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange/5">
-                {/* Metric badge */}
+                {t.metric && (
                 <div className="absolute top-4 left-4 text-[10px] font-bold text-orange/90 bg-orange/10 px-2.5 py-1 rounded-full border border-orange/20">
                   {t.metric}
                 </div>
+                )}
                 <div className="flex gap-1 mb-4 mt-2">
                   {[1,2,3,4,5].map(s => <Star key={s} className="size-4 fill-orange text-orange" />)}
                 </div>
@@ -248,7 +249,7 @@ export default function HomePage() {
                   &ldquo;{t.text}&rdquo;
                 </p>
                 <div className="flex items-center gap-3 pt-4 border-t border-border/40">
-                  <div className={`size-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br ${t.color} text-white shadow-md`}>{t.name.charAt(0)}</div>
+                  <div className="size-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-orange to-orange/70 text-white shadow-md">{(t.name || "؟").charAt(0)}</div>
                   <div>
                     <div className="text-sm font-bold">{t.name}</div>
                     <div className="text-xs text-muted-foreground">{t.role}</div>

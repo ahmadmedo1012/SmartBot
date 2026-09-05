@@ -160,8 +160,13 @@ export default function SupportPage() {
     mutation.mutate(form)
   }
 
-  const email = info?.email || "support@smartbot.ly"
-  const whatsapp = info?.whatsapp || info?.phone || "0920000000"
+  // Config-driven contact info with SANE fallbacks (the old fallback produced
+  // wa.me/0920000000 — invalid, no country code — and an email on a domain we
+  // don't control; real values come from /admin/settings via /api/support/info).
+  const email = info?.email || "support@smart-link.ly"
+  const whatsappRaw = info?.whatsapp || info?.phone || "218910089975"
+  // normalize local 09XXXXXXXX → international 218XXXXXXXXX for wa.me
+  const whatsapp = whatsappRaw.replace(/\D/g, "").replace(/^0(9\d{8})$/, "218$1")
   const phone = info?.phone || "—"
   const hours = info?.working_hours || "24/7"
 
@@ -196,7 +201,7 @@ export default function SupportPage() {
               <div className="space-y-3">
                 <a
                   href={`mailto:${email}`}
-                  className="flex items-center gap-3 text-sm hover:text-orange-500 transition-colors"
+                  className="flex items-center gap-3 text-sm hover:text-orange transition-colors"
                 >
                   <Mail className="size-4 text-muted-foreground shrink-0" />
                   <span>{email}</span>

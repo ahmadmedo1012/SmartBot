@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
@@ -62,10 +62,16 @@ function RegisterForm() {
         toast.error(data.detail || data.error || "فشل إنشاء الحساب")
         return
       }
+      // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
+      // validation message instead of a generic connection error.
       toast.success("تم إنشاء الحساب بنجاح")
       setTimeout(() => window.location.replace("/dashboard"), 150)
-    } catch {
-      toast.error("خطأ في الاتصال بالخادم")
+    } catch (e) {
+      const msg = e instanceof ApiError
+        ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل إنشاء الحساب")
+        : "خطأ في الاتصال بالخادم"
+      setFormError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -79,7 +85,7 @@ function RegisterForm() {
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-3.5 rtl:-scale-x-100" />
             العودة للرئيسية
           </Button>
         </Link>
@@ -107,7 +113,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
                   <span className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {usernameOk ? <CheckCircle className="size-4 text-green-500" /> : <XCircle className="size-4 text-destructive" />}
+                    {usernameOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -121,7 +127,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
                   <span className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {emailOk ? <CheckCircle className="size-4 text-green-500" /> : <XCircle className="size-4 text-destructive" />}
+                    {emailOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -135,7 +141,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {password.length > 0 && (
                   <span className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {passwordOk ? <CheckCircle className="size-4 text-green-500" /> : <XCircle className="size-4 text-destructive" />}
+                    {passwordOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -154,7 +160,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {confirm.length > 0 && (
                   <span className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {password === confirm ? <CheckCircle className="size-4 text-green-500" /> : <XCircle className="size-4 text-destructive" />}
+                    {password === confirm ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}

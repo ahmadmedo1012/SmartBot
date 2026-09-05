@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useConfig } from "@/hooks/useConfig"
 import { MessageCircle } from "lucide-react"
 
 interface FooterProps { className?: string }
@@ -15,12 +16,14 @@ const QUICK_LINKS = [
 ]
 
 const SERVICES = [
-  { href: "https://menu.smart-link.ly", label: "منيو إلكتروني" },
-  { href: "https://menu.smart-link.ly/menu/al-waha-cafe", label: "طلب عبر واتساب" },
   { href: "/dashboard", label: "إحصائيات وتحليلات" },
+  { href: "/demo", label: "تجربة حية" },
+  { href: "/pricing", label: "خطط الأسعار" },
 ]
 
 export function Footer({ className }: FooterProps) {
+  const { config } = useConfig()
+  const waNumber = String(config.support_whatsapp || config.whatsapp_number || "218910089975").replace(/[^0-9]/g, "")
   const [year, setYear] = useState(2026)
   useEffect(() => { setYear(new Date().getFullYear()) }, [])
 
@@ -43,7 +46,7 @@ export function Footer({ className }: FooterProps) {
               <span className="size-8 rounded-sm bg-card border border-border flex items-center justify-center opacity-40 cursor-not-allowed" aria-label="قريباً">
                 <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.55A3.02 3.02 0 0 0 .5 6.19 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14c1.88.55 9.38.55 9.38.55s7.5 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>
               </span>
-              <a href="https://wa.me/218910089975" className="size-8 rounded-sm bg-card border border-border flex items-center justify-center hover:bg-orange/20 transition-colors" aria-label="واتساب"><MessageCircle className="size-3.5" /></a>
+              <a href={`https://wa.me/${waNumber}`} className="size-8 rounded-sm bg-card border border-border flex items-center justify-center hover:bg-orange/20 transition-colors" aria-label="واتساب"><MessageCircle className="size-3.5" /></a>
             </div>
           </div>
 
@@ -69,7 +72,7 @@ export function Footer({ className }: FooterProps) {
           <div>
             <h4 className="text-sm font-medium mb-3">تواصل معنا</h4>
             <div className="space-y-2.5 text-sm text-muted-foreground">
-              <a href="https://wa.me/218910089975" className="flex items-center gap-2 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
+              <a href={`https://wa.me/${waNumber}`} className="flex items-center gap-2 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
               <span className="block">دعم فني 24/7</span>
             </div>
           </div>

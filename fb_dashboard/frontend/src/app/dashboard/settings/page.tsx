@@ -80,15 +80,13 @@ export default function SettingsPage() {
               <CardContent>
                 <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card/50">
                   <div className="size-9 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
-                    <KeyRound className="size-4" />
+                    <Lock className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">المصادقة الثنائية (2FA)</p>
-                    <p className="text-xs text-muted-foreground">حماية إضافية لحسابك عبر تطبيق Authenticator</p>
+                    <p className="text-sm font-medium">كلمة المرور والتشفير</p>
+                    <p className="text-xs text-muted-foreground">كلمات المرور مُعمّاة بـ Argon2id وجلساتك محمية بنطاق واحد</p>
                   </div>
-                  <a href="/dashboard/settings/2fa" className="text-xs text-orange hover:text-orange/80 font-medium shrink-0">
-                    إعداد ←
-                  </a>
+                  <span className="size-2 rounded-full bg-emerald-500 shrink-0" aria-label="مفعّل" />
                 </div>
               </CardContent>
             </Card>

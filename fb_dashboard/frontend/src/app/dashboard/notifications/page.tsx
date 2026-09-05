@@ -296,9 +296,14 @@ export default function NotificationsPage() {
                     .filter(Boolean)
                     .join(" ")}
                 >
-                  <CardContent
-                    className="p-4 flex items-center justify-between gap-4 cursor-pointer select-none"
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    aria-label={`${t.label} — ${on ? "مفعّل" : "معطّل"}`}
+                    disabled={isPending}
                     onClick={() => !isPending && toggle(t.key)}
+                    className="p-4 flex w-full items-center justify-between gap-4 cursor-pointer select-none text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
                   >
                     <div className="flex items-center gap-3.5">
                       <div
@@ -311,14 +316,15 @@ export default function NotificationsPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">{t.desc}</p>
                       </div>
                     </div>
-                    <div
+                    <span
+                      aria-hidden="true"
                       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-orange" : "bg-muted-foreground/30"}`}
                     >
-                      <div
+                      <span
                         className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "right-0.5" : "right-[22px]"}`}
                       />
-                    </div>
-                  </CardContent>
+                    </span>
+                  </button>
                 </Card>
               )
             })

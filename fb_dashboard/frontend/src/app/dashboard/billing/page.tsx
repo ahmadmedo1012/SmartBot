@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
 
+const STATUS_LABELS: Record<string, string> = {
+  completed: "مكتمل", pending: "قيد الانتظار", failed: "فاشل",
+  confirmed: "مؤكد", cancelled: "ملغى", verified: "مُفعّل", rejected: "مرفوض",
+}
+const PROVIDER_LABELS: Record<string, string> = {
+  liyana: "ليانا", madar: "مدار", bank: "تحويل بنكي",
+}
+
 export default function BillingPage() {
   const { data: balance, isLoading: balLoad, isError: balErr } = useQuery({
     queryKey: ["balance"],
@@ -77,7 +85,7 @@ export default function BillingPage() {
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{p.amount?.toLocaleString()} LYD</p>
-                      <p className="text-xs text-muted-foreground">{p.provider} · {p.phone}</p>
+                      <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
                       <p className="text-[10px] text-muted-foreground">{p.created_at ? new Date(p.created_at).toLocaleString("ar-LY") : ""}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -85,7 +93,7 @@ export default function BillingPage() {
                       p.status === "pending" ? "bg-yellow-500/10 text-yellow-500" :
                       p.status === "failed" ? "bg-red-500/10 text-red-500" :
                       "bg-muted text-muted-foreground"
-                    }`}>{p.status}</span>
+                    }`}>{STATUS_LABELS[p.status] || p.status}</span>
                   </CardContent>
                 </Card>
               ))}

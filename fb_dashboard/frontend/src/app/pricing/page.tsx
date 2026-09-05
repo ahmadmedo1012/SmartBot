@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
@@ -30,10 +30,22 @@ export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [annual, setAnnual] = useState(false)
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ok">("loading")
+
+  const loadPlans = useCallback(() => {
+    setLoadState("loading")
+    apiFetch("/api/plans")
+      .then(unwrapApi)
+      .then(d => {
+        setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))
+        setLoadState("ok")
+      })
+      .catch(() => setLoadState("error"))
+  }, [])
 
   useEffect(() => {
-    apiFetch("/api/plans").then(unwrapApi).then(d => setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))).catch(() => {})
-  }, [])
+    loadPlans()
+  }, [loadPlans])
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -130,6 +142,32 @@ export default function PricingPage() {
 
       <SectionContainer className="pb-24">
         {/* Plan cards — scroll-triggered stagger (scroll-craft §G.4) */}
+        {loadState === "loading" && (
+          <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto" role="status" aria-label="جارٍ تحميل الخطط">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="h-96 rounded-2xl border border-border/40 bg-card/60 animate-pulse" />
+            ))}
+          </div>
+        )}
+        {loadState === "error" && (
+          <div className="max-w-md mx-auto text-center py-16" role="alert">
+            <div className="size-14 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-4">
+              <Zap className="size-6 text-orange" />
+            </div>
+            <p className="font-bold mb-1">تعذر تحميل الخطط</p>
+            <p className="text-sm text-muted-foreground mb-5">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</p>
+            <Button variant="outline" onClick={loadPlans}>إعادة المحاولة</Button>
+          </div>
+        )}
+        {loadState === "ok" && plans.length === 0 && (
+          <div className="max-w-md mx-auto text-center py-16">
+            <div className="size-14 rounded-2xl bg-orange/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="size-6 text-orange" />
+            </div>
+            <p className="font-bold mb-1">لا توجد خطط منشورة حالياً</p>
+            <p className="text-sm text-muted-foreground">تواصل مع الدعم لترتيب باقة تناسبك</p>
+          </div>
+        )}
         <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
           {plans.map((plan, i) => {
             const Icon = PLAN_ICONS[i] || Sparkles

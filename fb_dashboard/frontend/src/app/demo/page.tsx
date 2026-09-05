@@ -57,13 +57,15 @@ export default function DemoPage() {
         <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — closed state slides toward the logical start edge:
+          in RTL `start-0` = right, so off-canvas is +X (translate-x-full).
+          The old -translate-x-full left the sidebar stranded mid-screen. */}
       <aside className={cn(
         "fixed top-0 start-0 z-50 h-full w-64 border-s border-border bg-card transition-transform md:translate-x-0 md:static md:z-auto",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        sidebarOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="flex items-center gap-2 p-4 border-b border-border">
-          <div className="size-8 rounded-lg bg-orange-500 flex items-center justify-center text-white font-bold text-sm">S</div>
+          <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
           <div>
             <p className="font-bold text-sm">SmartBot</p>
             <p className="text-xs text-muted-foreground">تجربة حية</p>
@@ -73,7 +75,7 @@ export default function DemoPage() {
           {navItems.map((item, i) => (
             <div key={i} className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer",
-              item.active ? "bg-orange-500 text-white font-medium" : "text-muted-foreground hover:bg-muted"
+              item.active ? "bg-orange text-white font-medium" : "text-muted-foreground hover:bg-muted"
             )}>
               <item.icon className="size-4" />
               {item.label}
@@ -94,11 +96,12 @@ export default function DemoPage() {
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between px-4 h-14">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSidebarOpen(true)}>
-                <ChevronLeft className="size-5" />
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setSidebarOpen(true)}
+                      aria-label="فتح القائمة الجانبية">
+                <ChevronLeft className="size-5 rtl:-scale-x-100" />
               </Button>
               <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
-                <ArrowLeft className="size-4" /> العودة
+                <ArrowLeft className="size-4 rtl:-scale-x-100" /> العودة
               </Button>
               <Badge variant="warning">تجربة - بيانات وهمية</Badge>
             </div>
@@ -114,7 +117,7 @@ export default function DemoPage() {
             {/* Stats */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
               {[
-                { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-orange-500" },
+                { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-orange" },
                 { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-blue-500" },
                 { icon: Users, value: mockStats.followers.toLocaleString(), label: "المتابعون", color: "text-green-500" },
                 { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-yellow-500" },
@@ -140,7 +143,7 @@ export default function DemoPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="size-4 text-orange-500" /> النشاط اليومي (24 ساعة)
+                    <TrendingUp className="size-4 text-orange" /> النشاط اليومي (24 ساعة)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -161,7 +164,7 @@ export default function DemoPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <MessageCircle className="size-4 text-orange-500" /> آخر الردود
+                      <MessageCircle className="size-4 text-orange" /> آخر الردود
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -173,7 +176,7 @@ export default function DemoPage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{r.commenter}</p>
                           <p className="text-xs text-muted-foreground truncate">{r.text}</p>
-                          <p className="text-xs text-orange-500 truncate">{r.reply}</p>
+                          <p className="text-xs text-orange truncate">{r.reply}</p>
                         </div>
                         <span className="text-[10px] text-muted-foreground shrink-0">{r.time}</span>
                       </div>
@@ -187,7 +190,7 @@ export default function DemoPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Shield className="size-4 text-orange-500" /> قواعد الرد
+                      <Shield className="size-4 text-orange" /> قواعد الرد
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -222,9 +225,9 @@ export default function DemoPage() {
 
             {/* CTA */}
             <motion.div variants={fadeUp} custom={7} className="text-center py-8">
-              <Card className="max-w-lg mx-auto border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+              <Card className="max-w-lg mx-auto border-orange/25 bg-orange/5 dark:bg-orange/15">
                 <CardContent className="p-8 text-center space-y-4">
-                  <Sparkles className="size-10 text-orange-500 mx-auto" />
+                  <Sparkles className="size-10 text-orange mx-auto" />
                   <CardTitle className="text-xl">استعد لتجربة البوت الحقيقي</CardTitle>
                   <CardDescription className="text-base">
                     اشترك الآن واحصل على ردود تلقائية ذكية لصفحتك

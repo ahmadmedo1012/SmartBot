@@ -63,6 +63,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     const panel = panelRef.current
     if (!panel) return
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose() ; return }
       if (e.key !== "Tab") return
       const focusable = panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')
       if (focusable.length === 0) { e.preventDefault(); return }

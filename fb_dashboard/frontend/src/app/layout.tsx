@@ -43,8 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/fonts/fonts.css" />
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#f97316" />
+        <meta name="theme-color" content="#bc4700" />
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",

@@ -3,7 +3,8 @@ import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  title: "سياسة الخصوصية",
+  description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها",
 }
 
 export default function PrivacyPage() {
@@ -11,30 +12,54 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="max-w-3xl mx-auto px-4 py-20">
-        <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
-        <div className="space-y-6 text-foreground/80">
-          <p>SmartBot is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</p>
-          <h2 className="text-foreground text-xl font-semibold mt-8">Information We Collect</h2>
+        <h1 className="text-3xl font-bold mb-8">سياسة الخصوصية</h1>
+        <div className="space-y-6 text-foreground/80 leading-relaxed">
+          <p>
+            تلتزم منصة الربط الذكي (SmartBot) بحماية خصوصيتك. توضح هذه السياسة كيفية جمعنا
+            للمعلومات الشخصية واستخدامها وحمايتها، وتنطبق على جميع مستخدمي المنصة. نلتزم بجمع
+            الحد الأدنى من البيانات اللازمة لتشغيل الخدمة فقط، وبعدم بيع أي بيانات لأي طرف
+            ثالث.
+          </p>
+
+          <h2 className="text-foreground text-xl font-semibold mt-8">المعلومات التي نجمعها</h2>
           <ul className="list-disc ps-5 space-y-2">
-            <li>Account information: name, email address, phone number</li>
-            <li>Facebook page data: pages you connect, engagement metrics</li>
-            <li>Automation settings: your configured responses, schedules, and rules</li>
-            <li>Usage data: interaction logs, analytics, and performance statistics</li>
+            <li>بيانات الحساب: الاسم، البريد الإلكتروني، رقم الهاتف</li>
+            <li>بيانات صفحة فيسبوك: الصفحات المرتبطة، ومؤشرات التفاعل الخاصة بها</li>
+            <li>إعدادات الأتمتة: قواعد الردود، الجداول، والحملات التي تهيئها بنفسك</li>
+            <li>بيانات الاستخدام: سجلات التفاعل، التحليلات، وإحصاءات الأداء</li>
           </ul>
-          <h2 className="text-foreground text-xl font-semibold mt-8">How We Use Your Information</h2>
+
+          <h2 className="text-foreground text-xl font-semibold mt-8">كيف نستخدم معلوماتك</h2>
           <ul className="list-disc ps-5 space-y-2">
-            <li>Provide and improve Facebook engagement automation services</li>
-            <li>Process automation rules and deliver scheduled content</li>
-            <li>Analyze performance and send usage reports</li>
-            <li>Communicate about your account and service updates</li>
+            <li>تقديم خدمات أتمتة التفاعل مع فيسبوك وتحسينها باستمرار</li>
+            <li>تنفيذ قواعد الأتمتة وتوصيل المحتوى المجدول في مواعيده</li>
+            <li>تحليل الأداء وإرسال تقارير الاستخدام إلى لوحة التحكم الخاصة بك</li>
+            <li>التواصل معك بشأن حسابك وتحديثات الخدمة والدعم الفني</li>
           </ul>
-          <h2 className="text-foreground text-xl font-semibold mt-8">Data Protection</h2>
-          <p>We implement advanced security measures to protect your data from unauthorized access, alteration, or disclosure.</p>
-          <h2 className="text-foreground text-xl font-semibold mt-8">Third Parties</h2>
-          <p>We do not share your information with third parties except when required for service delivery (e.g., Facebook API) and under strict security standards.</p>
-          <h2 className="text-foreground text-xl font-semibold mt-8">Contact Us</h2>
-          <p>For privacy-related inquiries, please contact us through the support channels available in your account dashboard.</p>
-          <p className="text-sm mt-12">Last updated: July 2026</p>
+
+          <h2 className="text-foreground text-xl font-semibold mt-8">حماية البيانات</h2>
+          <p>
+            نطبق إجراءات أمنية متقدمة لحماية بياناتك من الوصول غير المصرح به أو التعديل أو
+            الإفصاح، تشمل تشفير رموز الوصول لصفحاتك عند تخزينها، وتشفير الاتصالات بين متصفحك
+            وخوادمنا، وفصل بيانات كل عميل في مساحة عمل مستقلة لا يمكن لعملاء آخرين الوصول
+            إليها. وتُحذف بيانات مساحة العمل بالكامل عند طلب حذف الحساب.
+          </p>
+
+          <h2 className="text-foreground text-xl font-semibold mt-8">الأطراف الثالثة</h2>
+          <p>
+            لا نشارك معلوماتك مع أي طرف ثالث إلا بالقدر اللازم لتقديم الخدمة نفسها (مثل واجهة
+            فيسبوك البرمجية الضرورية لتشغيل البوت)، وتحت معايير أمنية صارمة، أو عندما يفرض
+            القانون ذلك. لا نستخدم بياناتك لأغراض إعلانية ولن نبيعها لأي جهة.
+          </p>
+
+          <h2 className="text-foreground text-xl font-semibold mt-8">تواصل معنا</h2>
+          <p>
+            لأي استفسارات متعلقة بالخصوصية أو لطلب نسخة من بياناتك أو حذفها، تواصل معنا عبر
+            قنوات الدعم المتاحة في لوحة التحكم أو صفحة الدعم داخل حسابك، وسنستجيب في أقرب وقت
+            ممكن.
+          </p>
+
+          <p className="text-sm mt-12 text-muted-foreground">آخر تحديث: سبتمبر 2026</p>
         </div>
       </div>
       <Footer />

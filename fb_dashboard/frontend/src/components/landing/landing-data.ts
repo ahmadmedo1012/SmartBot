@@ -3,8 +3,6 @@ import { Bot, MessageCircle, BarChart3, Calendar, Target, ShieldCheck, Globe, Us
 export type Benefit = { icon: typeof Bot; title: string; desc: string }
 export type Step = { num: string; title: string; desc: string }
 export type Faq = { q: string; a: string }
-export type Testimonial = { name: string; role: string; text: string }
-export type PricingPlan = { name: string; price: string; period: string; features: string[]; cta: string; popular: boolean }
 
 export const BENEFITS: Benefit[] = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
@@ -32,14 +30,3 @@ export const FAQS: Faq[] = [
   { q: "هل يمكنني تجربة البوت قبل الشراء؟", a: "نعم! يمكنك تجربة لوحة التحكم التجريبية ببيانات وهمية لترى كل الميزات قبل الاشتراك." },
 ]
 
-export const TESTIMONIALS: Testimonial[] = [
-  { name: "أحمد السالمي", role: "صاحب صفحة - طرابلس", text: "منذ استخدام SmartBot زاد تفاعل صفحتنا بشكل ملحوظ. الردود التلقائية وفرت علينا وقتاً كبيراً." },
-  { name: "سارة النفاتي", role: "مديرة تسويق - بنغازي", text: "أفضل أداة لإدارة صفحات فيسبوك في ليبيا. التحليلات والتقارير دقيقة جداً." },
-  { name: "محمد الكيلاني", role: "صاحب متجر إلكتروني - مصراتة", text: "البث الجماعي والردود الذكية غيروا طريقة تعاملنا مع العملاء. أنصح الجميع بتجربته." },
-]
-
-export const PRICING_PLANS: PricingPlan[] = [
-  { name: "مجاني", price: "0", period: "دائماً", features: ["صفحة واحدة", "100 رد شهرياً", "ردود تلقائية أساسية", "إحصائيات أساسية"], cta: "ابدأ مجاناً", popular: false },
-  { name: "أساسي", price: "9", period: "شهرياً", features: ["3 صفحات", "1000 رد شهرياً", "ردود ذكية بالذكاء الاصطناعي", "جدولة المنشورات", "إحصائيات متقدمة", "دعم فني", "بث جماعي"], cta: "اشترك الآن", popular: true },
-  { name: "احترافي", price: "29", period: "شهرياً", features: ["10 صفحات", "ردود غير محدودة", "ردود ذكية بالذكاء الاصطناعي", "جدولة المنشورات", "تقارير متقدمة", "دعم فني فوري", "بث جماعي", "إدارة فريق متعددة الصلاحيات", "استهداف الجمهور"], cta: "اشترك الآن", popular: false },
-]

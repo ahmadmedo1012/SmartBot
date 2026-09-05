@@ -43,3 +43,6 @@ fb_dashboard/static/uploads/
 
 # E2E test-run artifacts (regenerated on demand)
 fb_dashboard/e2e_artifacts/
+
+# Playwright test-run output (regenerated on demand)
+fb_dashboard/frontend/e2e_artifacts/

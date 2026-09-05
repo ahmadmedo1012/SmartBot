@@ -74,6 +74,7 @@ export default function SubscribePage() {
   const [submitting, setSubmitting] = useState(false)
   const [resolutionMsg, setResolutionMsg] = useState("")
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sseRef = useRef<EventSource | null>(null)
   const sentRef = useRef(false)
 
   // Load plans + payment config on mount
@@ -108,12 +109,16 @@ export default function SubscribePage() {
     }
   }, [selectedPlan, provider])
 
-  // Cleanup polling on unmount
+  // Cleanup polling + SSE on unmount
   useEffect(() => {
     return () => {
       if (pollRef.current) {
         clearInterval(pollRef.current)
         pollRef.current = null
+      }
+      if (sseRef.current) {
+        sseRef.current.close()
+        sseRef.current = null
       }
     }
   }, [])
@@ -229,6 +234,23 @@ export default function SubscribePage() {
     if (pollRef.current) clearInterval(pollRef.current)
     let pollFailures = 0
     let warned = false
+    let settled = false
+    const onVerified = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      setResolutionMsg("تم تفعيل اشتراكك بنجاح!")
+      setStep("success")
+      toast.success("تم تفعيل اشتراكك بنجاح")
+    }
+    const onRejected = (message?: string) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      setResolutionMsg(message || "عذراً، تم رفض طلب التفعيل. يمكنك المحاولة مجدداً.")
+      setStep("rejected")
+      toast.error("تم رفض طلب الدفع")
+    }
     const onVisibility = () => {
       if (document.visibilityState === "hidden" && pollRef.current) {
         clearInterval(pollRef.current)
@@ -245,17 +267,9 @@ export default function SubscribePage() {
         pollFailures = 0
         const status = d?.data?.status
         if (status === "verified") {
-          cleanup()
-          setResolutionMsg("تم تفعيل اشتراكك بنجاح!")
-          setStep("success")
-          toast.success("تم تفعيل اشتراكك بنجاح")
-        } else if (status === "cancelled") {
-          cleanup()
-          setResolutionMsg(
-            d?.data?.message || "عذراً، تم رفض طلب التفعيل. يمكنك المحاولة مجدداً."
-          )
-          setStep("rejected")
-          toast.error("تم رفض طلب الدفع")
+          onVerified()
+        } else if (status === "cancelled" || status === "rejected") {
+          onRejected(d?.data?.message)
         }
       } catch {
         pollFailures++
@@ -270,8 +284,34 @@ export default function SubscribePage() {
         clearInterval(pollRef.current)
         pollRef.current = null
       }
+      if (sseRef.current) {
+        sseRef.current.close()
+        sseRef.current = null
+      }
       document.removeEventListener("visibilitychange", onVisibility)
     }
+
+    // ── Track B.5: SSE is PRIMARY — pushes the admin approval the moment it
+    // happens (≤2s). Polling below is the automatic fallback (SSE unsupported,
+    // proxy buffering, or hidden-tab reconnect).
+    try {
+      const es = new EventSource(`/api/subscriptions/status-stream?payment_id=${pid}`)
+      sseRef.current = es
+      es.onmessage = (ev) => {
+        try {
+          const payload = JSON.parse(ev.data)
+          if (payload.status === "verified") onVerified()
+          else if (payload.status === "cancelled" || payload.status === "rejected") onRejected(payload.message)
+        } catch { /* malformed frame — polling still covers us */ }
+      }
+      es.addEventListener("close", () => { es.close(); if (sseRef.current === es) sseRef.current = null })
+      es.onerror = () => {
+        // SSE failed (proxy/unsupported) — close it; interval polling takes over
+        es.close()
+        if (sseRef.current === es) sseRef.current = null
+      }
+    } catch { /* EventSource unavailable — polling takes over */ }
+
     pollRef.current = setInterval(poll, 5000)
     document.addEventListener("visibilitychange", onVisibility)
   }, [])
@@ -289,6 +329,10 @@ export default function SubscribePage() {
     if (pollRef.current) {
       clearInterval(pollRef.current)
       pollRef.current = null
+    }
+    if (sseRef.current) {
+      sseRef.current.close()
+      sseRef.current = null
     }
     sentRef.current = false
     setStep("select")

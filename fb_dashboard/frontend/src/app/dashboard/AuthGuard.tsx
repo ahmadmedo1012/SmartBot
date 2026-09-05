@@ -3,6 +3,9 @@
 import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
 import OnboardingWizard from "@/app/onboarding/OnboardingWizard"
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
+
+const TOUR_SEEN_KEY = "smartbot-tour-completed"
 
 export default function AuthGuard({
   children,
@@ -14,6 +17,8 @@ export default function AuthGuard({
   const [authorized, setAuthorized] = useState(false)
   const [userData, setUserData] = useState<Record<string, unknown> | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  // Plan §5.2: interactive dashboard tour (react-joyride) right after the wizard
+  const [showTour, setShowTour] = useState(false)
   const pathname = usePathname()
   const attempts = useRef(0)
   const onboardingChecked = useRef(false)
@@ -84,8 +89,25 @@ export default function AuthGuard({
       {children}
       {showOnboarding && (
         <OnboardingWizard
-          onComplete={() => setShowOnboarding(false)}
+          onComplete={() => {
+            setShowOnboarding(false)
+            // ابدأ جولة اللوحة (react-joyride) بعد إتمام المعالج — مرة واحدة فقط
+            if (typeof window !== "undefined" && !window.localStorage.getItem(TOUR_SEEN_KEY)) {
+              setShowTour(true)
+            }
+          }}
           onSkip={() => setShowOnboarding(false)}
+        />
+      )}
+      {showTour && (
+        <OnboardingTour
+          autoStart
+          onComplete={() => {
+            setShowTour(false)
+            if (typeof window !== "undefined") {
+              window.localStorage.setItem(TOUR_SEEN_KEY, "1")
+            }
+          }}
         />
       )}
     </>

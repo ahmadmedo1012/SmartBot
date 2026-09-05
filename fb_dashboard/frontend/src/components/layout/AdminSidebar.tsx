@@ -23,6 +23,8 @@ interface NavItem {
   label: string
   href?: string
   badge?: number | string
+  /** CSS id for the onboarding tour (react-joyride targets) */
+  tourId?: string
 }
 
 interface AdminSidebarProps {
@@ -55,8 +57,8 @@ const defaultNavSections: NavSection[] = [
   {
     label: "التحليل",
     items: [
-      { icon: BarChart3, label: "التحليلات", href: "/dashboard/analytics" },
-      { icon: Users, label: "الجمهور", href: "/dashboard/audience" },
+      { icon: BarChart3, label: "التحليلات", href: "/dashboard/analytics", tourId: "sidebar-analytics" },
+      { icon: Users, label: "الجمهور", href: "/dashboard/audience", tourId: "sidebar-subscribers" },
       { icon: UserPlus, label: "العملاء المتوقعون", href: "/dashboard/leads" },
     ],
   },
@@ -72,10 +74,10 @@ const defaultNavSections: NavSection[] = [
   {
     label: "الإدارة",
     items: [
-      { icon: FileText, label: "الصفحات", href: "/dashboard/pages" },
+      { icon: FileText, label: "الصفحات", href: "/dashboard/pages", tourId: "sidebar-pages" },
       { icon: Users2, label: "الفريق", href: "/dashboard/team" },
       { icon: Calendar, label: "تقويم المحتوى", href: "/dashboard/calendar" },
-      { icon: Bot, label: "الردود التلقائية", href: "/dashboard/autoreply" },
+      { icon: Bot, label: "الردود التلقائية", href: "/dashboard/autoreply", tourId: "sidebar-rules" },
       { icon: Activity, label: "سجل النشاطات", href: "/dashboard/activity" },
     ],
   },
@@ -84,7 +86,7 @@ const defaultNavSections: NavSection[] = [
     items: [
       { icon: Bell, label: "الإشعارات", href: "/dashboard/notifications" },
       { icon: Wrench, label: "الأدوات", href: "/dashboard/tools" },
-      { icon: CreditCard, label: "الفواتير", href: "/dashboard/billing" },
+      { icon: CreditCard, label: "الفواتير", href: "/dashboard/billing", tourId: "subscribe-btn" },
       { icon: HelpCircle, label: "الدعم", href: "/dashboard/support" },
       { icon: Settings, label: "الإعدادات", href: "/dashboard/settings" },
     ],
@@ -129,6 +131,7 @@ export function AdminSidebar({
                 return (
                   <motion.div
                     key={ii}
+                    id={item.tourId}
                     whileHover={{ x: 3 }}
                     whileTap={{ scale: 0.97 }}
                     transition={springHover}

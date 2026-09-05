@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot, Webhook } from "lucide-react"
 import Link from "next/link"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -120,7 +120,18 @@ const TELEGRAM_FIELDS: Field[] = [
   },
 ]
 
-const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS, ...TELEGRAM_FIELDS].map((f) => f.key)
+const FACEBOOK_FIELDS: Field[] = [
+  {
+    key: "facebook_app_secret",
+    label: "سر تطبيق فيسبوك (App Secret)",
+    placeholder: "32 حرفًا سداسيًا عشريًا",
+    hint: "من developers.facebook.com → تطبيقك → Settings → Basic — مطلوب لقبول أحداث الويبهوك (الرسائل والتعليقات) الموقّعة",
+    ltr: true,
+    type: "password",
+  },
+]
+
+const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS, ...TELEGRAM_FIELDS, ...FACEBOOK_FIELDS].map((f) => f.key)
 
 type ConfigMap = Partial<Record<string, string>>
 
@@ -326,6 +337,28 @@ export default function AdminSettingsPage() {
                   >
                     <Send className="size-3.5" /> {testing ? "جارٍ الإرسال…" : "إرسال رسالة تجريبية"}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Facebook webhook signature (plan v3 §4 final gap) */}
+          <motion.div {...fadeUp}>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Webhook className="size-4 text-orange" /> توقيع ويبهوك فيسبوك
+                </CardTitle>
+                <CardDescription>
+                  بدونه يرفض النظام كل أحداث فيسبوك (الرسائل والتعليقات) — السبب الجذري لعدم ظهور أي بيانات سابقًا
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {FACEBOOK_FIELDS.map(fieldRow)}
+                <div className="rounded-lg bg-orange/10 border border-orange/20 p-3 text-xs text-foreground/80 leading-relaxed">
+                  بعد الحفظ سجّل الويبهوك في developers.facebook.com ← تطبيقك ← Webhooks ← Page
+                  بعنوان <span className="font-mono" dir="ltr">https://api.smart-link.ly/webhook</span> واشترك في
+                  حقلي <span dir="ltr">feed</span> و<span dir="ltr">messages</span>.
                 </div>
               </CardContent>
             </Card>

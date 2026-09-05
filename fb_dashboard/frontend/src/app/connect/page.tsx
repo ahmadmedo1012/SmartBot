@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Check, X, Loader2, ArrowLeft, Shield, Zap, MessageCircle } from "lucide-react"
+import { Check, X, Loader2, ArrowLeft, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -22,8 +22,9 @@ export default function ConnectPage() {
   const [fanCount, setFanCount] = useState(0)
   const [scopeWarnings, setScopeWarnings] = useState<string[]>([])
   const [errorMsg, setErrorMsg] = useState("")
-  const [existing, setExisting] = useState<{ page_id: string; connected: boolean } | null>(null)
+  const [existing, setExisting] = useState<{ page_id: string; connected: boolean; page_name?: string } | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
+  const [wh, setWh] = useState<any>(null)
 
   useEffect(() => {
     apiFetch("/api/facebook/settings")
@@ -34,6 +35,12 @@ export default function ConnectPage() {
       })
       .catch(() => {})
       .finally(() => setLoadingExisting(false))
+    // Real webhook health (plan v3 §4.6) — shows the owner exactly what's
+    // missing instead of the old "كل شيء يعمل" while events were rejected.
+    apiFetch("/api/webhook/check")
+      .then(unwrapApi)
+      .then(setWh)
+      .catch(() => {})
   }, [])
 
   const handleTest = async () => {
@@ -94,20 +101,71 @@ export default function ConnectPage() {
   }
 
   if (existing?.connected) {
+    const secretOk = !!wh?.configured
+    const messagesOk = !!wh?.messages_field_subscribed
+    const feedOk = !!wh?.feed_field_subscribed
+    const allOk = secretOk && messagesOk && feedOk
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md border-orange/20 bg-card/80 shadow-2xl shadow-orange/5 backdrop-blur-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10">
-              <Check className="h-8 w-8 text-green-500" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
+              <Check className="h-8 w-8 text-success" />
             </div>
-            <CardTitle className="text-2xl">الصفحة متصلة</CardTitle>
-            <CardDescription>حسابك مرتبط بصفحة فيسبوك وكل شيء يعمل</CardDescription>
+            <CardTitle className="text-2xl">{existing.page_name || "الصفحة متصلة"}</CardTitle>
+            <CardDescription>{allOk ? "الحساب مرتبط والويبهوك يعمل بكامل قدرته" : "الحساب مرتبط — أكمل خطوات الويبهوك لاستقبال الأحداث لحظيًا"}</CardDescription>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <span className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-4 py-1.5 text-sm text-green-600 dark:text-green-400">
-              {existing?.page_id ? `معرف الصفحة: ${existing.page_id}` : "متصل"}
+          <CardContent className="space-y-4">
+            <span className="flex justify-center">
+              <span className="inline-flex items-center rounded-full border border-success/30 bg-success/10 px-4 py-1.5 text-sm text-success">
+                {existing?.page_id ? `معرف الصفحة: ${existing.page_id}` : "متصل"}
+              </span>
             </span>
+
+            {/* Webhook health checklist — honest state (plan v3) */}
+            {wh && (
+              <div className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-muted-foreground"><Webhook className="size-3.5" /> عنوان الويبهوك</span>
+                  <button
+                    className="flex items-center gap-1.5 font-mono text-[11px] text-foreground hover:text-orange transition-colors"
+                    onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); toast.success("تم نسخ عنوان الويبهوك") }}
+                  >
+                    {wh.webhook_url} <Copy className="size-3" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-muted-foreground"><Shield className="size-3.5" /> سر التطبيق (توقيع الأحداث)</span>
+                  {secretOk ? (
+                    <span className="flex items-center gap-1 text-success text-xs"><Check className="size-3.5" /> مُفعّل {wh.secret_source === "db" ? "(من الإعدادات)" : ""}</span>
+                  ) : (
+                    <Link href="/admin/settings" className="flex items-center gap-1 text-warning text-xs underline underline-offset-2 hover:text-foreground">
+                      <AlertTriangle className="size-3.5" /> غير مضبوط — أضفه من إعدادات المنصة
+                    </Link>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-muted-foreground"><MessageCircle className="size-3.5" /> استقبال الرسائل</span>
+                  <span className={`flex items-center gap-1 text-xs ${messagesOk ? "text-success" : "text-warning"}`}>
+                    {messagesOk ? <><Check className="size-3.5" /> مشترك</> : <><AlertTriangle className="size-3.5" /> غير مشترك</>}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-muted-foreground"><Zap className="size-3.5" /> استقبال التعليقات</span>
+                  <span className={`flex items-center gap-1 text-xs ${feedOk ? "text-success" : "text-warning"}`}>
+                    {feedOk ? <><Check className="size-3.5" /> مشترك</> : <><AlertTriangle className="size-3.5" /> غير مشترك</>}
+                  </span>
+                </div>
+                {(!secretOk || !messagesOk || !feedOk) && (
+                  <div className="rounded-md bg-orange/10 border border-orange/20 p-2.5 text-[11px] leading-relaxed text-foreground/80">
+                    سجّل في <span className="font-medium">developers.facebook.com → تطبيقك → Webhooks → Page</span> بالعنوان أعلاه،
+                    واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
+                    بدون ذلك لا تصل الرسائل/التعليقات لحظيًا ولن يرد البوت تلقائيًا.
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 justify-center">
               <Link href="/dashboard" className="inline-flex items-center justify-center rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium hover:bg-accent transition-colors">
                 الذهاب للوحة التحكم

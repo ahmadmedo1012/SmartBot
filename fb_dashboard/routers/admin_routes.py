@@ -49,7 +49,14 @@ _TELEGRAM_CONFIG_KEYS = {
     "telegram_chat_id",
 }
 
-_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS | _TELEGRAM_CONFIG_KEYS
+# Facebook webhook secret (plan v3 §4 final gap): production env had NO
+# FACEBOOK_APP_SECRET so POST /webhook rejected every event with 401 since
+# launch. The owner can now paste it from /admin/settings.
+_FACEBOOK_CONFIG_KEYS = {
+    "facebook_app_secret",
+}
+
+_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS | _TELEGRAM_CONFIG_KEYS | _FACEBOOK_CONFIG_KEYS
 
 
 @router.get("/api/admin/config")
@@ -104,9 +111,17 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
         cid = str(payload["telegram_chat_id"]).strip()
         if not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', cid):
             raise HTTPException(400, "telegram_chat_id غير صالح — معرف رقمي أو @قناة")
+    # facebook app secret: 32 hex chars (from the FB developer console)
+    if "facebook_app_secret" in payload and str(payload["facebook_app_secret"] or "").strip():
+        sec = str(payload["facebook_app_secret"]).strip()
+        if not _re.match(r'^[a-f0-9]{32}$', sec):
+            raise HTTPException(400, "facebook_app_secret غير صالح — 32 حرفًا سداسيًا عشريًا من إعدادات التطبيق في فيسبوك")
     from _audit import log_audit
     await log_audit(db, "admin_set_config", actor_id=current_user.id,
                     tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})
+    # Keys whose values are credentials — stored with is_secret=True so they
+    # never leak through non-secret config reads (support/info pattern).
+    _SECRET_KEYS = {"telegram_bot_token", "facebook_app_secret"}
     for k, v in payload.items():
         v = str(v or "").strip()
         existing = await db.execute(select(SystemConfig).where(SystemConfig.key == k))
@@ -117,9 +132,9 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
             continue
         if row:
             row.value = v
-            row.is_secret = False
+            row.is_secret = k in _SECRET_KEYS
         else:
-            db.add(SystemConfig(key=k, value=v, is_secret=False))
+            db.add(SystemConfig(key=k, value=v, is_secret=k in _SECRET_KEYS))
     await db.commit()
     # invalidate the cached public /api/config so new values show immediately
     try:

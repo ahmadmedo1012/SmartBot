@@ -394,3 +394,48 @@ async def test_notify_admins_iterates_db_approvers(monkeypatch):
         await db.commit()
     await tb.notify_admins_new_payment(1, "tester", 50, "liyana", "0911")
     assert 246813579 in sent, "DB approver must receive the notification"
+
+
+# ────────────────────────────────────────────────────────────────────
+# 6. Facebook app secret from SystemConfig (final gap §4)
+# ────────────────────────────────────────────────────────────────────
+
+async def test_webhook_app_secret_resolves_from_db(app_client, monkeypatch):
+    """POST /webhook must accept a correctly-signed event when the app secret
+    lives in SystemConfig (env unset — exactly the production situation)."""
+    import runner as runner_mod
+    # ensure env secret is not what signs our payload
+    monkeypatch.setattr(runner_mod, "WEBHOOK_APP_SECRET", "")
+    secret = "0" * 31 + "1"  # 32 hex chars
+    async with AsyncSessionLocal() as db:
+        existing = await db.execute(select(SystemConfig).where(SystemConfig.key == "facebook_app_secret"))
+        row = existing.scalar_one_or_none()
+        if row:
+            row.value = secret
+        else:
+            db.add(SystemConfig(key="facebook_app_secret", value=secret, is_secret=True))
+        await db.commit()
+
+    user = await _register(app_client, "wsecret")
+    await _login(app_client, user["username"])
+    await _connect_page(app_client, user["username"], "555000111")
+
+    payload = {
+        "object": "page",
+        "entry": [{
+            "id": "555000111", "time": 1757000009999,
+            "messaging": [{
+                "sender": {"id": "424242", "name": "م"},
+                "recipient": {"id": "555000111"},
+                "timestamp": 1757000009999,
+                "message": {"mid": f"mid.{uuid.uuid4().hex[:10]}", "text": "اختبار السر"},
+            }],
+        }],
+    }
+    body = json.dumps(payload).encode()
+    sig = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    r = await app_client.post("/webhook", content=body, headers={"x-hub-signature-256": sig})
+    assert r.status_code == 200, r.text
+    async with AsyncSessionLocal() as db:
+        msg = (await db.execute(select(Message).where(Message.text == "اختبار السر"))).scalars().first()
+        assert msg is not None, "signed webhook event must be ingested with DB-resolved secret"

@@ -57,14 +57,31 @@ async def get_webhook_events(
 
 @router.get("/api/webhook/check")
 async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_current_user)):
-    """Real webhook health: endpoint, app-secret config AND the fields the
-    page is actually subscribed to via Graph API (plan v3 §4.6)."""
-    webhook_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or ""
-    if webhook_url and not webhook_url.startswith("http"):
-        webhook_url = "https://" + webhook_url
-    webhook_url += "/webhook"
-    if not webhook_url.startswith("http"):
-        webhook_url = "https://api.smart-link.ly/webhook"
+    """Real webhook health (plan v3 §4.6): endpoint, secret config AND the
+    fields the page is actually subscribed to via Graph API.
+    URL: API_PUBLIC_URL env → api.smart-link.ly stable custom domain — never
+    the ephemeral deployment URL (the owner registers ONE stable callback)."""
+    domain = (
+        os.getenv("API_PUBLIC_URL")
+        or "api.smart-link.ly"
+    )
+    domain = domain.removeprefix("https://").removeprefix("http://").rstrip("/")
+    if domain.endswith(".vercel.app"):
+        domain = "api.smart-link.ly"
+    webhook_url = f"https://{domain}/webhook"
+
+    # Secret resolution mirrors runner._get_webhook_app_secret (env → SystemConfig)
+    app_secret = os.getenv("FACEBOOK_APP_SECRET", "")
+    if not app_secret:
+        try:
+            from models import SystemConfig
+            row = await db.execute(
+                select(SystemConfig).where(SystemConfig.key == "facebook_app_secret"))
+            r = row.scalar_one_or_none()
+            if r and r.value:
+                app_secret = r.value
+        except Exception:
+            pass
 
     subscribed_fields: list[str] = []
     subscribe_error = ""
@@ -81,7 +98,8 @@ async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_curr
 
     return ok(
         {
-        "configured": bool(APP_SECRET),
+        "configured": bool(app_secret),
+        "secret_source": "env" if os.getenv("FACEBOOK_APP_SECRET") else ("db" if app_secret else ""),
         "verify_token": "***" if VERIFY_TOKEN else "",
         "webhook_url": webhook_url,
         "subscribed_fields": sorted(set(subscribed_fields)),
@@ -90,12 +108,12 @@ async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_curr
         "messages_field_subscribed": "messages" in subscribed_fields,
         "feed_field_subscribed": "feed" in subscribed_fields,
         "instructions": [
-            "1. Go to https://developers.facebook.com/apps",
-            "2. Select your app -> Webhooks -> Page",
-            "3. Set Callback URL to: " + webhook_url,
+            f"1. Go to https://developers.facebook.com/apps",
+            f"2. Select your app -> Webhooks -> Page",
+            f"3. Set Callback URL to: {webhook_url}",
             "4. Set Verify Token in your Facebook app settings",
             "5. Subscribe to 'feed' and 'messages' fields",
-            "6. After setup, post a test comment or use POST /api/webhook/test",
+            "6. After setup, post a test comment or send a page message",
         ],
     }
     )

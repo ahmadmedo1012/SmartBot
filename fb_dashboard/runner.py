@@ -920,6 +920,26 @@ WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
 WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
 
 
+async def _get_webhook_app_secret() -> str:
+    """App secret resolution (plan v3 §4 final gap): env FACEBOOK_APP_SECRET
+    first, then SystemConfig.facebook_app_secret (owner-entered from
+    /admin/settings — the production env had NO app secret, so the webhook
+    rejected every event with 401 since launch)."""
+    if WEBHOOK_APP_SECRET:
+        return WEBHOOK_APP_SECRET
+    try:
+        async with AsyncSessionLocal() as db:
+            from models import SystemConfig as _SC
+            row = await db.execute(
+                select(_SC).where(_SC.key == "facebook_app_secret"))
+            r = row.scalar_one_or_none()
+            if r and r.value:
+                return r.value
+    except Exception:
+        pass
+    return ""
+
+
 @app.get("/webhook")
 async def webhook_verify(
     hub_mode: str = Query("", alias="hub.mode"),
@@ -942,13 +962,14 @@ async def webhook_receive(request: Request):
     """
     body = await request.body()
 
-    # Validate signature if app secret configured
-    if not WEBHOOK_APP_SECRET:
-        log.warning("FACEBOOK_APP_SECRET not set — rejecting unverified webhook")
+    # Validate signature if app secret configured (env or SystemConfig)
+    app_secret = await _get_webhook_app_secret()
+    if not app_secret:
+        log.warning("FACEBOOK_APP_SECRET not set (env nor SystemConfig) — rejecting unverified webhook")
         raise HTTPException(401, "Invalid signature")
     sig = request.headers.get("x-hub-signature-256", "")
     expected = "sha256=" + hmac.new(
-        WEBHOOK_APP_SECRET.encode(), body, hashlib.sha256
+        app_secret.encode(), body, hashlib.sha256
     ).hexdigest()
     if not hmac.compare_digest(sig, expected):
         raise HTTPException(401, "Invalid signature")

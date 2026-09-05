@@ -294,19 +294,28 @@ async def test_admin_config_rejects_invalid_keys_and_non_admin():
         await _teardown(fixture)
 
 
-async def test_config_env_fallbacks():
-    """بدائل env تظهر عندما لا يوجد سطر SystemConfig (بند 2.4)."""
+async def test_config_env_fallbacks(monkeypatch):
+    """بدائل env تظهر عندما لا يوجد سطر SystemConfig (بند 2.4).
+
+    Deterministic: sets env values explicitly (the old assertion depended
+    on an ambient .env file — passed locally with wallet test values but
+    failed in clean clones/CI where LIBYANA_WALLET_PHONE defaults to '').
+    """
     fixture = await _make_app_fixture()
     try:
         client, _plan_ids, _ = await _seed(fixture)
         from config import settings
         from _services import api_cache
         api_cache.clear_all()
+        # pin env fallbacks so the test never depends on ambient .env
+        monkeypatch.setattr(settings, "LIBYANA_WALLET_PHONE", "0942119637", raising=False)
+        monkeypatch.setattr(settings, "MADAR_WALLET_PHONE", "0910089975", raising=False)
         # public config: no SystemConfig rows → env fallbacks apply
         r = await client.get("/api/config")
         assert r.status_code == 200
         data = r.json()["data"]
-        assert data.get("balance_transfer_phone_2") == settings.LIBYANA_WALLET_PHONE or data.get("balance_transfer_phone_2") == ""
+        assert data.get("balance_transfer_phone_2") == "0942119637"
+        assert data.get("balance_transfer_phone_1") == "0910089975"
         assert data.get("mobile_wallet_cap") == str(settings.MOBILE_WALLET_CAP)
         # DB wins over env when set
         await client.post("/api/admin/config", json={"config": {"bank_transfer_bank_name": "بنك من الداتابيس"}})

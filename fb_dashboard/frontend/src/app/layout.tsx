@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Cairo } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "sonner"
-import { Analytics } from "@vercel/analytics/react"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Providers } from "./providers"
 import "./globals.css"
@@ -83,7 +82,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </main>
 
             <Toaster position="top-left" richColors closeButton duration={5000} />
-            <Analytics />
             <SpeedInsights />
           </Providers>
         </ThemeProvider>

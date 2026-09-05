@@ -24,3 +24,9 @@ redis[asyncio]>=5.4.0
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
 aiosqlite>=0.20.0  # for SQLite in-memory test DB
+
+# Track G (latest_plan.md) — STANDALONE MCP server ONLY.
+# The live app does NOT import mcp at runtime; needed solely by
+# fb_dashboard/facebook_engine/mcp_server.py when run as its own process:
+#   python -m fb_dashboard.facebook_engine.mcp_server --tenant-id 1 ...
+mcp>=1.2.0

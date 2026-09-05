@@ -56,14 +56,22 @@ class APICache:
         Uses Redis when available (Vercel), falls back to in-memory dict.
         The decorated function's first positional arg is used as the request-like
         object — it must have a `.url.path` (or be a string path) and optionally
-        `.query_params` (a dict-like).
+        `.query_params` (a dict-like). FastAPI endpoints WITHOUT a `Request`
+        parameter are called with kwargs only, so the wrapper falls back to
+        `"<module>.<qualname>"` — a stable, per-endpoint cache key. (The old
+        `str(req)` fallback produced the literal key "None", which would have
+        COLLIDED across different cached endpoints.)
         """
         def decorator(fn):
             @wraps(fn)
             async def wrapper(*args, **kwargs):
                 req = args[0] if args else None
-                path = req.url.path if hasattr(req, 'url') else str(req)
-                qp = dict(req.query_params) if hasattr(req, 'query_params') else None
+                if hasattr(req, 'url'):
+                    path = req.url.path
+                    qp = dict(req.query_params)
+                else:
+                    path = f"{fn.__module__}.{fn.__qualname__}"
+                    qp = None
                 key = _make_key(path, qp)
 
                 # Try Redis first

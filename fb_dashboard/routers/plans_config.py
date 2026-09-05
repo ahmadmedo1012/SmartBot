@@ -1,9 +1,12 @@
 from __future__ import annotations
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Body, HTTPException, Form, Request
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, delete
+
+from _utils import utcnow
 
 from config import settings
 from database import engine, AsyncSessionLocal, get_db
@@ -16,8 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # ponytail: match runner.py's
 router = APIRouter(prefix="", tags=["plans"])
 
 
-@api_cache.cached(ttl=3600)
 @router.get("/api/plans")
+@api_cache.cached(ttl=3600)  # BELOW router.get — so the cached wrapper is what gets registered
 async def list_plans(db=Depends(get_db)):
     """List active subscription plans. Public—no auth required."""
     result = await db.execute(
@@ -177,12 +180,12 @@ async def cleanup_old_logs(request: Request, token: str = Form("")):
     if token != CRON_SECRET:
         raise HTTPException(403, "Unauthorized")
     async with AsyncSessionLocal() as db:
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = utcnow() - timedelta(days=30)
         deleted_logs = await db.execute(
             delete(BotLog).where(BotLog.created_at < cutoff)
         )
         deleted_rates = await db.execute(
-            delete(RateLimitEntry).where(RateLimitEntry.window_end < datetime.utcnow())
+            delete(RateLimitEntry).where(RateLimitEntry.window_end < utcnow())
         )
         await db.commit()
         return {

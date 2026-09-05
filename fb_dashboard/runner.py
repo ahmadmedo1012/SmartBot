@@ -30,6 +30,7 @@ from models import AnalyticsEvent, SubscriptionPlan, SubscriptionPayment, Paymen
 from bot import BotEngine
 from ws_manager import ws_manager
 from event_bus import event_bus
+from _schema_reconcile import reconcile_schema as _reconcile_schema
 from logs_api import logs_router
 from routers import auth as auth_router
 from routers import payments as payments_router
@@ -180,21 +181,25 @@ async def _seed_dm_templates(db):
 
 
 async def _seed_subscription_plans(db):
-    """Seed default subscription plans. Idempotent — skips if plans exist."""
-    existing = await db.scalar(select(func.count(SubscriptionPlan.id))) or 0
-    if existing > 0:
-        return
-    plans = [
-        SubscriptionPlan(
+    """Seed canonical subscription plans. Idempotent UPSERT by name.
+
+    Legacy DBs (pre-rebuild era) already hold 5 rows with the OLD schema —
+    after _schema_reconcile adds the missing columns those rows need the
+    canonical values (name_ar, price, has_* flags, features, ...), otherwise
+    /api/plans would serve half-empty plan cards. Upsert by name keeps ids
+    stable (FKs from tenants.plan_id stay valid) and matches fresh installs.
+    """
+    canonical = [
+        dict(
             name="Free", name_ar="مجاني", price=0, period_days=30,
             max_replies=100, max_pages=1, max_rules=5, max_team=0,
             has_dm=False, has_ai=False, has_broadcast=False,
             has_scheduling=False, has_reports=False, has_flows=False,
             has_offers=False, has_sequences=False, has_analytics_advanced=False,
             sort_order=1, is_active=True,
-            features=["ردود تلقائية (100/شهر)", "صفحة فيسبوك واحدة", "5 قواعد رد", "إحصائيات أساسية"],
+            features=["ردود تلقائية (100/شهر)", "صفحة فيسبوك واحدة", "5 قواعد رد", "إحصاءات أساسية"],
         ),
-        SubscriptionPlan(
+        dict(
             name="Basic", name_ar="أساسي", price=19, period_days=30,
             max_replies=2000, max_pages=1, max_rules=20, max_team=1,
             has_dm=True, has_ai=True, has_broadcast=False,
@@ -204,7 +209,7 @@ async def _seed_subscription_plans(db):
             features=["2,000 رد/شهر", "صفحة فيسبوك واحدة", "20 قاعدة رد", "رد خاص على التعليقات",
                       "ردود ذكية بالذكاء الاصطناعي", "تقارير أسبوعية", "دعم فوري"],
         ),
-        SubscriptionPlan(
+        dict(
             name="Premium", name_ar="مميز", price=29, period_days=30,
             max_replies=10000, max_pages=2, max_rules=50, max_team=2,
             has_dm=True, has_ai=True, has_broadcast=True,
@@ -215,7 +220,7 @@ async def _seed_subscription_plans(db):
                       "بث جماعي للرسائل", "جدولة المنشورات", "تقارير PDF",
                       "محرك العروض الترويجية", "تحليلات متقدمة", "فريق حتى 2"],
         ),
-        SubscriptionPlan(
+        dict(
             name="Pro", name_ar="احترافي", price=129, period_days=30,
             max_replies=50000, max_pages=5, max_rules=100, max_team=5,
             has_dm=True, has_ai=True, has_broadcast=True,
@@ -225,7 +230,7 @@ async def _seed_subscription_plans(db):
             features=["50,000 رد/شهر", "5 صفحات فيسبوك", "100 قاعدة رد", "جميع الميزات المتقدمة",
                       "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم فني ممتاز"],
         ),
-        SubscriptionPlan(
+        dict(
             name="Enterprise", name_ar="مؤسسي", price=299, period_days=30,
             max_replies=999999, max_pages=999, max_rules=999, max_team=999,
             has_dm=True, has_ai=True, has_broadcast=True,
@@ -236,10 +241,18 @@ async def _seed_subscription_plans(db):
                       "جميع الميزات بدون استثناء", "فريق غير محدود", "دعم 24/7"],
         ),
     ]
-    for p in plans:
-        db.add(p)
+    for p in canonical:
+        row = (await db.execute(
+            select(SubscriptionPlan).where(SubscriptionPlan.name == p["name"])
+        )).scalar_one_or_none()
+        if row is None:
+            db.add(SubscriptionPlan(**p))
+        else:
+            for k, v in p.items():
+                if k != "name":
+                    setattr(row, k, v)
     await db.commit()
-    log.info(f"Seeded {len(plans)} subscription plans")
+    log.info(f"Canonical subscription plans ensured ({len(canonical)})")
 
 
 @asynccontextmanager
@@ -250,8 +263,15 @@ async def lifespan(app: FastAPI):
             raise RuntimeError("SECRET_KEY is default — set SECRET_KEY env var for production")
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # ponytail: self-heal legacy (pre-rebuild) tables — add missing model
+            # columns BEFORE Alembic, so production heals even if the Alembic
+            # step is skipped (root cause of the live /api/plans 500 — see
+            # scripts/repro_plans_500.py and alembic 007).
+            _added_cols = await conn.run_sync(_reconcile_schema)
             await conn.commit()
-        log.info("DB tables ready")
+        log.info("DB tables ready%s", f" — reconciled {len(_added_cols)} columns" if _added_cols else "")
+        if _added_cols:
+            log.info("DB schema reconciled: %s", ", ".join(_added_cols))
         # Run pending Alembic migrations via to_thread (no subprocess)
         try:
             _alembic_root = Path(__file__).resolve().parent.parent

@@ -12,14 +12,16 @@ import {
   Loader2,
   Smartphone,
   Landmark,
-  Copy,
   Phone,
   CreditCard,
   ArrowLeft,
-  Upload,
   XCircle,
   CheckCircle2,
 } from "lucide-react"
+
+import AnimatedUpload from "@/components/ui/upload-icon"
+import AnimatedCopy from "@/components/ui/copy-icon"
+import { compressImage } from "@/lib/image-compress"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
@@ -140,8 +142,11 @@ export default function SubscribePage() {
   const handleReceiptUpload = useCallback(async (file: File) => {
     setUploading(true)
     try {
+      // Smart-Menu parity: compress before upload — keeps receipts light on
+      // mobile data and within server body limits (JPEG q0.7, max 1200px)
+      const compressed = await compressImage(file)
       const fd = new FormData()
-      fd.append("file", file)
+      fd.append("file", compressed, file.name.replace(/\.[^.]+$/, ".jpg"))
       const res = await apiFetch("/api/upload", { method: "POST", body: fd })
       const data = await res.json()
       if (!res.ok) {
@@ -481,19 +486,24 @@ export default function SubscribePage() {
               </div>
 
               {step === "form" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>إتمام الاشتراك</CardTitle>
-                    <CardDescription>
+                <Card className="overflow-hidden gap-0">
+                  {/* Payment header — Smart-Menu PaymentDialog parity (orange
+                      gradient block, same icon/title/description treatment) */}
+                  <div className="bg-gradient-to-br from-orange to-orange/80 text-white p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Smartphone className="size-5" />
+                      <h3 className="text-white text-lg font-bold">دفع الاشتراك</h3>
+                    </div>
+                    <p className="text-white/70 text-sm">
                       اختر طريقة الدفع وأدخل بياناتك — التفعيل خلال دقائق بعد موافقة الإدارة
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {/* Plan summary */}
-                    <div className="rounded-xl bg-orange-500/5 border border-orange-500/15 p-4">
+                    </p>
+                  </div>
+                  <CardContent className="p-5 space-y-5">
+                    {/* Plan summary — Smart-Menu PaymentDialog parity */}
+                    <div className="rounded-xl bg-orange-muted/50 dark:bg-orange-muted/20 border border-orange/15 p-4">
                       <div className="flex justify-between items-center">
                         <span className="font-bold">{selectedPlan.name_ar || selectedPlan.name}</span>
-                        <span className="text-lg font-bold text-orange-500">
+                        <span className="text-lg font-bold text-orange">
                           {Number(selectedPlan.price).toLocaleString()} د.ل
                         </span>
                       </div>
@@ -534,12 +544,12 @@ export default function SubscribePage() {
                               onClick={() => !opt.disabled && setProvider(opt.id)}
                               disabled={opt.disabled}
                               className={cn(
-                                "h-14 rounded-xl border-2 text-[13px] font-medium flex flex-col items-center justify-center gap-1 transition-all",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50",
+                                "h-14 rounded-xl border-2 text-[13px] font-medium flex flex-col items-center justify-center gap-1 transition-[border-color,box-shadow,color,background-color]",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange/50",
                                 opt.disabled && "opacity-40 cursor-not-allowed",
                                 provider === opt.id
-                                  ? "border-orange-500 bg-orange-500/10 shadow-sm"
-                                  : "border-border/50 hover:border-orange-500/30 text-muted-foreground"
+                                  ? "border-orange bg-orange-muted/40 dark:bg-orange-muted/20 shadow-sm"
+                                  : "border-border/30 hover:border-orange/30 text-muted-foreground"
                               )}
                             >
                               <Icon className="size-4" />
@@ -549,7 +559,7 @@ export default function SubscribePage() {
                         })}
                       </div>
                       {Number(selectedPlan.price) > MOBILE_WALLET_CAP && (
-                        <p className="text-xs text-orange-500 mt-2">
+                        <p className="text-xs text-orange mt-2">
                           المبالغ فوق {MOBILE_WALLET_CAP} د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot;
                         </p>
                       )}
@@ -643,11 +653,11 @@ export default function SubscribePage() {
                   <CardContent className="py-16 flex flex-col items-center text-center space-y-6">
                     <div className="relative size-24">
                       <div
-                        className="absolute inset-0 rounded-full border-2 border-orange-500/20 animate-ping"
+                        className="absolute inset-0 rounded-full border-2 border-orange/20 animate-ping"
                         style={{ animationDuration: "2s" }}
                       />
-                      <div className="absolute inset-2 rounded-full border border-orange-500/30" />
-                      <div className="absolute inset-4 rounded-full bg-gradient-to-br from-orange-500 to-orange-500/80 flex items-center justify-center shadow-lg shadow-orange-500/25">
+                      <div className="absolute inset-2 rounded-full border border-orange/30" />
+                      <div className="absolute inset-4 rounded-full bg-gradient-to-br from-orange to-orange/80 flex items-center justify-center shadow-lg shadow-orange/25">
                         <Loader2 className="size-8 text-white animate-spin" />
                       </div>
                     </div>
@@ -660,8 +670,8 @@ export default function SubscribePage() {
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/30 border border-border/30">
                       <span className="relative flex size-2">
-                        <span className="absolute inset-0 rounded-full bg-orange-500 animate-ping opacity-75" />
-                        <span className="relative rounded-full size-2 bg-orange-500" />
+                        <span className="absolute inset-0 rounded-full bg-orange animate-ping opacity-75" />
+                        <span className="relative rounded-full size-2 bg-orange" />
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         بانتظار موافقة الإدارة...
@@ -681,15 +691,15 @@ export default function SubscribePage() {
                       className="relative size-20"
                     >
                       <div
-                        className="absolute inset-0 rounded-full bg-green-500/20 animate-ping"
+                        className="absolute inset-0 rounded-full bg-success/20 animate-ping"
                         style={{ animationDuration: "1.5s" }}
                       />
-                      <div className="relative size-full rounded-full bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-green-500/30">
-                        <CheckCircle2 className="size-10 text-white" />
+                      <div className="relative size-full rounded-full bg-gradient-to-br from-success to-success/80 flex items-center justify-center shadow-lg shadow-success/30">
+                        <CheckCircle2 className="size-10 text-success-foreground" />
                       </div>
                     </motion.div>
                     <div className="space-y-2">
-                      <p className="text-lg font-bold text-green-600">تم تفعيل الاشتراك</p>
+                      <p className="text-lg font-bold text-success">تم تفعيل الاشتراك</p>
                       <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                         {resolutionMsg || "اشتراكك نشط الآن — يمكنك البدء فوراً"}
                       </p>
@@ -711,15 +721,15 @@ export default function SubscribePage() {
                       className="relative size-20"
                     >
                       <div
-                        className="absolute inset-0 rounded-full bg-red-500/20 animate-ping"
+                        className="absolute inset-0 rounded-full bg-destructive/20 animate-ping"
                         style={{ animationDuration: "1.5s" }}
                       />
-                      <div className="relative size-full rounded-full bg-gradient-to-br from-red-500 to-rose-400 flex items-center justify-center shadow-lg shadow-red-500/30">
-                        <XCircle className="size-10 text-white" />
+                      <div className="relative size-full rounded-full bg-gradient-to-br from-destructive to-destructive/80 flex items-center justify-center shadow-lg shadow-destructive/30">
+                        <XCircle className="size-10 text-destructive-foreground" />
                       </div>
                     </motion.div>
                     <div className="space-y-2">
-                      <p className="text-lg font-bold text-red-600">تم رفض طلب الدفع</p>
+                      <p className="text-lg font-bold text-destructive">تم رفض طلب الدفع</p>
                       <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                         {resolutionMsg || "يمكنك تعديل البيانات والمحاولة مجدداً"}
                       </p>
@@ -775,8 +785,8 @@ function ProviderWalletPanel({
 
   return (
     <div className="space-y-3">
-      {/* Provider phone */}
-      <div className="rounded-xl bg-muted/30 border border-border/30 p-3">
+      {/* Provider phone — Smart-Menu PaymentDialog parity */}
+      <div className="rounded-xl bg-muted/30 border border-border/20 p-3">
         <p className="text-xs text-muted-foreground mb-1.5">أرسل المبلغ إلى {providerName}</p>
         <div className="flex items-center justify-between">
           <span className="font-bold text-lg tracking-wide font-mono" dir="ltr">
@@ -785,19 +795,19 @@ function ProviderWalletPanel({
           <button
             type="button"
             onClick={() => onCopy(phone)}
-            className="size-10 rounded-lg border border-border/40 flex items-center justify-center hover:bg-accent transition-colors"
+            className="size-10 rounded-lg border border-border/30 flex items-center justify-center hover:bg-accent transition-colors"
             title="نسخ الرقم"
           >
-            <Copy className="size-3.5" />
+            <AnimatedCopy className="size-3.5" />
           </button>
         </div>
       </div>
 
       {/* Quick transfer code */}
-      <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 p-3">
-        <p className="text-xs font-medium text-green-600 mb-1.5">رمز التحويل السريع</p>
+      <div className="rounded-xl bg-success/10 border border-success/25 p-3">
+        <p className="text-xs font-medium text-success mb-1.5">رمز التحويل السريع</p>
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-sm font-bold text-orange-500 truncate" dir="ltr">
+          <span className="font-mono text-sm font-bold text-orange truncate" dir="ltr">
             {ussd}
           </span>
           <button
@@ -808,19 +818,19 @@ function ProviderWalletPanel({
                 window.location.href = `tel:${encodedUssd}`
               }, 200)
             }}
-            className="h-9 px-3 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
+            className="h-9 px-3 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0"
             title="نسخ الرمز وفتح الاتصال"
           >
-            <Copy className="size-3.5" />
+            <AnimatedCopy className="size-3.5" />
             نسخ واتصال
           </button>
         </div>
       </div>
 
       {/* Amount required */}
-      <div className="rounded-xl bg-muted/30 border border-border/30 p-3 flex items-center justify-between">
+      <div className="rounded-xl bg-muted/30 border border-border/20 p-3 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
-        <span className="text-lg font-bold text-orange-500">{price.toLocaleString()} د.ل</span>
+        <span className="text-lg font-bold text-orange">{price.toLocaleString()} د.ل</span>
       </div>
     </div>
   )
@@ -861,10 +871,10 @@ function BankTransferPanel({
 
   return (
     <div className="space-y-3">
-      {/* Bank info card */}
-      <div className="rounded-xl bg-muted/30 border border-border/30 p-3 space-y-2.5">
+      {/* Bank info card — Smart-Menu PaymentDialog parity */}
+      <div className="rounded-xl bg-muted/30 border border-border/20 p-3 space-y-2.5">
         <p className="text-xs font-medium flex items-center gap-1.5">
-          <Landmark className="size-3.5 text-orange-500" />
+          <Landmark className="size-3.5 text-orange" />
           حوّل على الحساب البنكي التالي
         </p>
         {[
@@ -880,10 +890,10 @@ function BankTransferPanel({
             <button
               type="button"
               onClick={() => onCopy(row.value)}
-              className="size-9 rounded-lg border border-border/40 flex items-center justify-center hover:bg-accent transition-colors shrink-0"
+              className="size-9 rounded-lg border border-border/30 flex items-center justify-center hover:bg-accent transition-colors shrink-0"
               title={`نسخ ${row.label}`}
             >
-              <Copy className="size-3.5" />
+              <AnimatedCopy className="size-3.5" />
             </button>
           </div>
         ))}
@@ -918,13 +928,13 @@ function BankTransferPanel({
         className="text-left font-mono"
       />
 
-      {/* Receipt upload */}
+      {/* Receipt upload — Smart-Menu parity: AnimatedUpload icon */}
       <div>
         <label className="text-sm font-semibold mb-1.5 block">صورة التحويل (اختياري)</label>
         <div className="flex items-center gap-2">
           <label
             className={cn(
-              "h-11 px-4 rounded-xl border border-border/40 flex items-center justify-center gap-2 cursor-pointer text-sm text-muted-foreground hover:bg-accent transition-colors",
+              "h-11 px-4 rounded-xl border border-border/30 flex items-center justify-center gap-2 cursor-pointer text-sm text-muted-foreground hover:bg-accent transition-colors",
               uploading && "opacity-50 pointer-events-none"
             )}
           >
@@ -938,14 +948,14 @@ function BankTransferPanel({
                 if (f) onUpload(f)
               }}
             />
-            {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            {uploading ? <Loader2 className="size-4 animate-spin" /> : <AnimatedUpload className="size-4" />}
             {uploading ? "جاري الرفع..." : "اختر صورة"}
           </label>
           {receiptUrl && (
             <button
               type="button"
               onClick={() => onReceiptChange("")}
-              className="text-xs text-red-500 hover:underline shrink-0"
+              className="text-xs text-destructive hover:underline shrink-0"
             >
               حذف الصورة
             </button>
@@ -959,9 +969,9 @@ function BankTransferPanel({
         )}
       </div>
 
-      <div className="rounded-xl bg-muted/30 border border-border/30 p-3 flex items-center justify-between">
+      <div className="rounded-xl bg-muted/30 border border-border/20 p-3 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">سعر الباقة</span>
-        <span className="text-lg font-bold text-orange-500">{price.toLocaleString()} د.ل</span>
+        <span className="text-lg font-bold text-orange">{price.toLocaleString()} د.ل</span>
       </div>
     </div>
   )

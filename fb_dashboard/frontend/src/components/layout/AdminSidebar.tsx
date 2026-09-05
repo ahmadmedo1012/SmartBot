@@ -106,11 +106,11 @@ export function AdminSidebar({
 
   return (
     <aside className={cn("flex flex-col h-full bg-card/95 backdrop-blur-md border-l border-border/60 shadow-sm", className)}>
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 p-4 border-b border-border/60">
-        <div className="relative size-9 rounded-lg bg-gradient-to-br from-orange to-orange/70 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-orange/20 ring-1 ring-orange/30">
+      {/* Logo — chrome unified with Smart-Menu (smart-link.ly identity) */}
+      <div className="flex items-center gap-2.5 p-4 border-b border-border/60 min-h-[72px]">
+        <div className="relative size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-orange/20">
           {logo}
-          <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-green-500 ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
+          <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-success ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
         </div>
         <div className="min-w-0">
           <p className="font-bold text-sm leading-tight truncate">{title}</p>
@@ -142,24 +142,35 @@ export function AdminSidebar({
                     aria-current={active ? "page" : undefined}
                     aria-label={item.label}
                     className={cn(
-                      "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition-all duration-200 outline-none",
-                      "focus-visible:ring-2 focus-visible:ring-orange/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                      "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow] duration-200 outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-orange/60",
+                      /* Active/hover treatment unified with Smart-Menu NavLink:
+                         soft orange tint + end-side spring indicator, not a solid fill */
                       active
-                        ? "bg-gradient-to-l from-orange to-orange/85 text-orange-foreground font-semibold shadow-md shadow-orange/25"
-                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        ? "bg-orange/12 text-foreground shadow-xs"
+                        : "text-muted-foreground hover:bg-orange/8 hover:text-foreground"
                     )}
                   >
                     {active && (
-                      <span className="absolute start-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-e-full bg-orange-foreground/90" aria-hidden="true" />
+                      <motion.span
+                        layoutId="activeNavIndicator"
+                        className="absolute end-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-orange"
+                        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                        aria-hidden="true"
+                      />
                     )}
-                    <item.icon className={cn("size-4 shrink-0 transition-transform duration-200", !active && "group-hover:scale-110")} />
+                    <item.icon className={cn(
+                      "size-4 shrink-0 transition-[color,transform,translate,scale,rotate,filter] duration-200",
+                      active && "text-orange",
+                      !active && "group-hover:scale-110 group-hover:text-primary/70 group-hover:drop-shadow-sm"
+                    )} />
                     <span className="truncate flex-1">{item.label}</span>
                     {item.badge !== undefined && (
                       <Badge
                         variant={active ? "outline" : "info"}
                         className={cn(
                           "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
-                          active && "border-white/30 text-white"
+                          active && "border-orange/40 text-orange"
                         )}
                       >
                         {item.badge}
@@ -185,7 +196,7 @@ export function AdminSidebar({
         )}
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
+          className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-orange/60"
         >
           <LogOut className="size-4" /> تسجيل الخروج
         </button>

@@ -16,7 +16,6 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
 os.environ.setdefault("CRON_SECRET", "test-cron-secret")
 os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("FB_PAGE_ID", "0")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("DEBUG", "True")
 
 import asyncio
@@ -120,6 +119,11 @@ async def test_plans_endpoint_200_on_reconciled_legacy_db():
     from runner import _seed_subscription_plans
     async with AsyncSessionLocal() as db:
         await _seed_subscription_plans(db)
+    # v5 §0 hermetic: /api/plans is served through APICache (ttl=60) — an
+    # earlier test file in the same session may have cached a response with
+    # different rows. Bust the cache so THIS test asserts its own DB state.
+    from api_cache import _cache_store
+    _cache_store.clear()
     from runner import app
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as ac:
         r = await ac.get("/api/plans")

@@ -26,7 +26,6 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod-0123456789")
 os.environ.setdefault("CRON_SECRET", "test-cron-secret")
 os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("FB_PAGE_ID", "0")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 
@@ -121,8 +120,13 @@ async def test_webhook_comment_resolves_tenant_and_persists(app_client):
     page_id = f"999888{uuid.uuid4().hex[:4]}"
     await _connect_page(ac, page_id)
     async with AsyncSessionLocal() as db:
+        # v5 §0 hermetic: filter by THIS tenant — other files' page rows are
+        # legitimately in the shared session DB and must not leak in here.
         row = await db.execute(
-            select(BotState).where(BotState.key == "fb_page_id")
+            select(BotState).where(
+                BotState.key == "fb_page_id",
+                BotState.tenant_id == user["tenant_id"],
+            )
         )
         bs = row.scalars().first()
         assert bs and bs.value == page_id

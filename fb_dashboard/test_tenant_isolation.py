@@ -6,7 +6,6 @@ import time
 
 # Bootstrapped env — no SECRET_KEY needed for bot module init
 os.environ.setdefault("SECRET_KEY", "test-key")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("FACEBOOK_ACCESS_TOKEN", "test")
 os.environ.setdefault("FACEBOOK_PAGE_ID", "test")

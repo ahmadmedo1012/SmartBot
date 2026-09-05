@@ -12,7 +12,6 @@ import os
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
 os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("FB_PAGE_ID", "1001")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("DEBUG", "True")
 
 import asyncio

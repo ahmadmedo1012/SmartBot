@@ -68,19 +68,32 @@ class SequenceEngine:
         }
 
     async def list_sequences(self, session, tenant_id: int = 0) -> list[dict]:
-        """List all sequences with subscriber stats."""
+        """List all sequences with subscriber stats.
+
+        v5 §4 (N+1 fix): one grouped count query for ALL sequences instead of
+        a COUNT per sequence — list endpoints must not multiply queries.
+        """
         rows = await session.execute(
             select(Sequence).where(Sequence.tenant_id == tenant_id).order_by(Sequence.created_at.desc())
         )
         sequences = rows.scalars().all()
+        if not sequences:
+            return []
+
+        active_map: dict[int, int] = {}
+        count_rows = await session.execute(
+            select(SequenceSubscription.sequence_id, func.count(SequenceSubscription.id))
+            .where(
+                SequenceSubscription.status == "active",
+                SequenceSubscription.sequence_id.in_([s.id for s in sequences]),
+            )
+            .group_by(SequenceSubscription.sequence_id)
+        )
+        active_map = {int(seq_id): int(cnt) for seq_id, cnt in count_rows.all()}
+
         results: list[dict] = []
         for seq in sequences:
-            count_active = await session.scalar(
-                select(func.count(SequenceSubscription.id)).where(
-                    SequenceSubscription.sequence_id == seq.id,
-                    SequenceSubscription.status == "active",
-                )
-            ) or 0
+            count_active = active_map.get(seq.id, 0)
             results.append({
                 "id": seq.id,
                 "name": seq.name,

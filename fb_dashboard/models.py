@@ -48,6 +48,7 @@ class Reply(Base):
     __table_args__ = (
         Index("ix_reply_rule_created", "rule_id", "created_at"),
         Index("ix_reply_post_created", "fb_post_id", "created_at"),
+        Index("ix_reply_tenant_created", "tenant_id", "created_at"),  # v5 §4: analytics daily/hourly
         UniqueConstraint('tenant_id', 'fb_comment_id', name='uq_reply_tenant_comment'),
     )
 
@@ -279,7 +280,11 @@ class OfferClaim(Base):
 class Subscriber(Base):
     """Social platform subscriber/follower."""
     __tablename__ = "subscribers"
-    __table_args__ = (Index("ix_sub_tenant_id", "tenant_id", "id"), UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),)
+    __table_args__ = (
+        Index("ix_sub_tenant_id", "tenant_id", "id"),
+        Index("ix_sub_tenant_last_interaction", "tenant_id", "last_interaction_at"),  # v5 §4: audience list sort
+        UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -527,6 +532,7 @@ class Comment(Base):
     __table_args__ = (
         UniqueConstraint("tenant_id", "fb_comment_id", name="uq_comments_tenant_fb"),
         Index("ix_comments_tenant_post", "tenant_id", "fb_post_id"),
+        Index("ix_comment_tenant_created", "tenant_id", "created_at"),  # v5 §4: comments list sort
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)

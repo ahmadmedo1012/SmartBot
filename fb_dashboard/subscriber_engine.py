@@ -117,15 +117,23 @@ class SubscriberEngine:
             r = await session.execute(base)
             subs = r.scalars().all()
 
+            # v5 §4 (N+1 fix): ONE grouped tag query for the whole page instead
+            # of a join-query per subscriber — page of 50 was 51 queries.
+            tag_map: dict[int, list[dict]] = {}
+            if subs:
+                tag_rows = await session.execute(
+                    select(SubscriberTag.subscriber_id, Tag.id, Tag.name, Tag.color)
+                    .join(Tag, Tag.id == SubscriberTag.tag_id)
+                    .where(SubscriberTag.subscriber_id.in_([s.id for s in subs]))
+                )
+                for sid, tid, tname, tcolor in tag_rows.all():
+                    tag_map.setdefault(sid, []).append(
+                        {"id": tid, "name": tname, "color": tcolor}
+                    )
+
             items = []
             for sub in subs:
-                # load tags
-                tag_r = await session.execute(
-                    select(Tag.id, Tag.name, Tag.color)
-                    .join(SubscriberTag, Tag.id == SubscriberTag.tag_id)
-                    .where(SubscriberTag.subscriber_id == sub.id)
-                )
-                tags = [{"id": t.id, "name": t.name, "color": t.color} for t in tag_r]
+                tags = tag_map.get(sub.id, [])
 
                 items.append(
                     {

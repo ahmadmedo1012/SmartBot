@@ -6,10 +6,11 @@ Enterprise team features matching Hootsuite + Respond.io.
 import json
 import logging
 from datetime import timedelta
+from typing import Any
 
 from _utils import iso_z, utcnow
 from models import AnalyticsEvent, BotLog, ConversationLabel, ConversationTag, Reply, User
-from sqlalchemy import desc, func, select
+from sqlalchemy import desc, func, or_, select
 
 log = logging.getLogger("fb-team")
 
@@ -18,25 +19,52 @@ class TeamEngine:
     """Team collaboration features — approval workflows, internal notes, activity log."""
 
     async def get_team_members(self, session, tenant_id: int = 0) -> list[dict]:
-        """List all users with stats: replies count (via BotLog mentions), last active."""
+        """List all users with stats: replies count (via BotLog mentions), last active.
+
+        v5 §4 (N+1 fix): was 2 queries PER USER (count + latest); now one grouped
+        message-count query + one per-tenant latest-log query, attributed to
+        usernames in Python — the LIKE proxy stays semantically identical.
+        """
         rows = await session.execute(select(User).where(User.tenant_id == tenant_id).order_by(User.id))
         users = rows.scalars().all()
+        if not users:
+            return []
+
+        usernames = [u.username for u in users]
+        # reply-count proxy: group logs by message, then attribute "User <name>" hits
+        count_map: dict[str, int] = {name: 0 for name in usernames}
+        grouped = await session.execute(
+            select(BotLog.message, func.count(BotLog.id))
+            .where(
+                BotLog.level != "DEBUG",
+                BotLog.tenant_id == tenant_id,
+                or_(*[BotLog.message.contains(f"User {name}") for name in usernames]),
+            )
+            .group_by(BotLog.message)
+        )
+        for msg, cnt in grouped.all():
+            for name in usernames:
+                if f"User {name}" in (msg or ""):
+                    count_map[name] += int(cnt)
+
+        # latest activity per user: single tenant log scan (newest first)
+        latest_map: dict[str, Any] = {}
+        log_rows = await session.execute(
+            select(BotLog.message, BotLog.created_at)
+            .where(BotLog.tenant_id == tenant_id,
+                   or_(*[BotLog.message.contains(f"User {name}") for name in usernames]))
+            .order_by(desc(BotLog.created_at))
+            .limit(500)
+        )
+        for msg, created in log_rows.all():
+            for name in usernames:
+                if name not in latest_map and f"User {name}" in (msg or ""):
+                    latest_map[name] = created
+
         result = []
         for u in users:
-            # ponytail: BotLog.message contains "User <username>" as proxy for per-user reply count
-            log_count = await session.scalar(
-                select(func.count(BotLog.id))
-                .where(BotLog.message.contains(f"User {u.username}"),
-                       BotLog.level != "DEBUG")
-            ) or 0
-
-            # Last active = most recent BotLog referencing this user
-            last_row = await session.execute(
-                select(BotLog.created_at)
-                .where(BotLog.message.contains(f"User {u.username}"))
-                .order_by(desc(BotLog.created_at)).limit(1)
-            )
-            last_active = last_row.scalar()
+            log_count = count_map.get(u.username, 0)
+            last_active = latest_map.get(u.username)
             result.append({
                 "id": u.id,
                 "username": u.username,

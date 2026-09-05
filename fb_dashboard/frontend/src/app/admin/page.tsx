@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowLeft } from "lucide-react"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle, ArrowLeft, Settings } from "lucide-react"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
@@ -112,9 +112,14 @@ export default function AdminPage() {
     <SectionContainer className="min-h-screen py-8">
       <SectionHeader title="إدارة الاشتراكات" description="مراجعة وإدارة طلبات الاشتراك" />
 
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-        <ArrowLeft className="size-4" /> العودة للوحة التحكم
-      </Link>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="size-4" /> العودة للوحة التحكم
+        </Link>
+        <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-orange/8 hover:border-orange/40 transition-colors">
+          <Settings className="size-4" /> إعدادات المنصة
+        </Link>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">

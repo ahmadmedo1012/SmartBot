@@ -32,17 +32,29 @@ _PAYMENT_CONFIG_KEYS = {
     "mobile_wallet_cap",
 }
 
+# Support contact keys (parity-v2 §3.1 / support.py GET /info merge order).
+# The owner enters these via /admin/settings — no redeploy needed.
+_SUPPORT_CONFIG_KEYS = {
+    "support_email",
+    "support_phone",
+    "support_whatsapp",
+    "support_working_hours",
+}
+
+_ADMIN_CONFIG_KEYS = _PAYMENT_CONFIG_KEYS | _SUPPORT_CONFIG_KEYS
+
 
 @router.get("/api/admin/config")
 async def admin_get_config(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: read the payment-related SystemConfig entries (incl. secrets-free values)."""
-    rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_PAYMENT_CONFIG_KEYS)))
+    """Admin: read payment + support SystemConfig entries (secrets-free values only)."""
+    rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_ADMIN_CONFIG_KEYS)))
     return {"success": True, "data": {r.key: r.value for r in rows.scalars().all()}}
 
 
 @router.post("/api/admin/config")
 async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    """Admin: set payment config (bank transfer details, wallet phones, wallet cap).
+    """Admin: set payment + support config (bank details, wallet phones, wallet cap,
+    support contact info).
 
     Plan §2.4 — the bank details shown on /subscribe come from SystemConfig;
     env vars are only fallbacks. Setting a key to "" removes the DB override
@@ -53,7 +65,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     payload = body.get("config", body) if isinstance(body.get("config", body), dict) else None
     if not payload:
         raise HTTPException(400, "config object required")
-    invalid = [k for k in payload if k not in _PAYMENT_CONFIG_KEYS]
+    invalid = [k for k in payload if k not in _ADMIN_CONFIG_KEYS]
     if invalid:
         raise HTTPException(400, f"مفاتيح غير مسموحة: {', '.join(invalid)}")
     # validate wallet cap value
@@ -65,6 +77,11 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
             payload["mobile_wallet_cap"] = str(cap)
         except (TypeError, ValueError):
             raise HTTPException(400, "mobile_wallet_cap يجب أن يكون رقماً بين 1 و 10000")
+    # validate support_email shape when provided (empty = clear override, allowed)
+    import re as _re
+    if "support_email" in payload and str(payload["support_email"] or "").strip():
+        if not _re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', str(payload["support_email"]).strip()):
+            raise HTTPException(400, "support_email يجب أن يكون بريداً إلكترونياً صالحاً")
     from _audit import log_audit
     await log_audit(db, "admin_set_config", actor_id=current_user.id,
                     tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})

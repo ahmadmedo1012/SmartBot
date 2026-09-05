@@ -485,3 +485,54 @@ async def test_paid_expiry_still_skips_cycle():
             assert t.subscription_status == "UNPAID"
     finally:
         await _teardown(fixture)
+
+
+async def test_admin_config_support_keys_roundtrip():
+    """مفاتيح الدعم (parity-v2 §3.1) — الأدمن يحددها عبر /api/admin/config
+    وصفحة /api/support/info تقرأها من SystemConfig (SystemConfig يغلب الافتراضي)."""
+    fixture = await _make_app_fixture()
+    try:
+        client, _plan_ids, (tid, uid) = await _seed(fixture)
+        # set support contact values
+        r = await client.post("/api/admin/config", json={
+            "config": {
+                "support_email": "help@smart-link.ly",
+                "support_phone": "0911234567",
+                "support_whatsapp": "0911234567",
+                "support_working_hours": "السبت-الخميس 9ص-5م",
+            }
+        })
+        assert r.status_code == 200, r.text
+        # /api/support/info must reflect the DB override (no login needed)
+        r = await client.get("/api/support/info")
+        assert r.status_code == 200
+        data = r.json()["data"]
+        assert data["email"] == "help@smart-link.ly"
+        assert data["phone"] == "0911234567"
+        assert data["whatsapp"] == "0911234567"
+        assert data["working_hours"] == "السبت-الخميس 9ص-5م"
+        # admin read-back includes support keys
+        r = await client.get("/api/admin/config")
+        assert r.status_code == 200
+        assert r.json()["data"]["support_email"] == "help@smart-link.ly"
+        # clearing a key removes the override → default applies again
+        r = await client.post("/api/admin/config", json={"config": {"support_phone": ""}})
+        assert r.status_code == 200
+        r = await client.get("/api/support/info")
+        assert r.json()["data"]["phone"] == "0920000000"  # default fallback
+    finally:
+        await _teardown(fixture)
+
+
+async def test_admin_config_support_email_validation():
+    """بريد دعم غير صالح → 400 قبل أي كتابة في القاعدة."""
+    fixture = await _make_app_fixture()
+    try:
+        client, _plan_ids, _ = await _seed(fixture)
+        r = await client.post("/api/admin/config", json={
+            "config": {"support_email": "ليس-بريداً"}
+        })
+        assert r.status_code == 400
+        assert "support_email" in r.text
+    finally:
+        await _teardown(fixture)

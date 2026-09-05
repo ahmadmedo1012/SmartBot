@@ -125,19 +125,22 @@
   --popover: oklch(0.11 0.008 60);
   --popover-foreground: oklch(0.93 0.008 70);
 
-  /* ── ACCENT (single source) ── */
-  --accent: oklch(0.55 0.19 45);
+  /* ── BRAND SOLID — Smart-Menu parity: --primary is the single solid source
+       (was: --accent solid + indirection; changed 2026-09-05 per parity plan
+       v2 §2.3 — see docs/design-system.md) ── */
+  --primary: oklch(0.55 0.19 45);
+  --primary-foreground: oklch(0.98 0 0);
+  --orange: oklch(0.55 0.19 45);
+  --orange-foreground: oklch(0.98 0 0);
+  --orange-muted: oklch(0.55 0.19 45 / 0.15);
+  --ring: oklch(0.55 0.19 45);
+
+  /* ── ACCENT — Smart-Menu parity: faint 15% hint for soft hovers/tints,
+       NOT a solid brand color. bg-accent/hover:bg-accent produce a whisper. ── */
+  --accent: oklch(0.55 0.19 45 / 0.15);
   --accent-foreground: oklch(0.55 0.19 45);
   --accent-soft: oklch(0.55 0.19 45 / 0.15);
   --accent-fg: oklch(0.98 0 0);
-
-  /* ── DERIVED from --accent (do NOT set independently) ── */
-  --primary: var(--accent);
-  --primary-foreground: var(--accent-fg);
-  --orange: var(--accent);
-  --orange-foreground: var(--accent-fg);
-  --orange-muted: var(--accent-soft);
-  --ring: var(--accent);
 
   --secondary: oklch(0.14 0.008 60);
   --secondary-foreground: oklch(0.72 0.01 70);
@@ -197,19 +200,20 @@
   --popover: oklch(1 0.002 70);
   --popover-foreground: oklch(0.12 0.008 70);
 
-  /* ── ACCENT (single source — 0.40 matches Smart-Menu light primary, AA on white) ── */
-  --accent: oklch(0.40 0.19 45);
-  --accent-foreground: oklch(0.40 0.19 45);
+  /* ── BRAND SOLID — Smart-Menu parity (light: primary darkened 0.40 for AA
+       on white; orange stays 0.55 — dual-lightness, exactly Smart-Menu) ── */
+  --primary: oklch(0.40 0.19 45);
+  --primary-foreground: oklch(0.98 0 0);
+  --orange: oklch(0.55 0.19 45);
+  --orange-foreground: oklch(0.98 0 0);
+  --orange-muted: oklch(0.55 0.19 45 / 0.12);
+  --ring: oklch(0.55 0.19 45);
+
+  /* ── ACCENT — Smart-Menu parity (light: 12% hint) ── */
+  --accent: oklch(0.55 0.19 45 / 0.12);
+  --accent-foreground: oklch(0.55 0.19 45);
   --accent-soft: oklch(0.55 0.19 45 / 0.12);
   --accent-fg: oklch(0.98 0 0);
-
-  /* ── DERIVED from --accent ── */
-  --primary: var(--accent);
-  --primary-foreground: var(--accent-fg);
-  --orange: var(--accent);
-  --orange-foreground: var(--accent-fg);
-  --orange-muted: var(--accent-soft);
-  --ring: var(--accent);
 
   --secondary: oklch(0.92 0.008 70);
   --secondary-foreground: oklch(0.2 0.01 70);

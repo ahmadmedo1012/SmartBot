@@ -2,9 +2,29 @@
 
 import { useEffect, useState } from "react";
 
-const SHAPE_COLORS = ["#D4AF37", "#ef4444", "oklch(0.55 0.19 45)", "#10b981", "#8b5cf6", "#ec4899", "#FFD700"];
+/** Festive palettes — centralized as --confetti-* CSS variables (Track D.1).
+ *  A natural multi-hue spread is intentional for celebration; the VALUES live
+ *  in globals.css, this file only references them. */
+const SHAPE_COLOR_VARS = [
+  "var(--confetti-gold)",
+  "var(--confetti-red)",
+  "var(--confetti-accent)",
+  "var(--confetti-green)",
+  "var(--confetti-violet)",
+  "var(--confetti-pink)",
+  "var(--confetti-gold-bright)",
+]
 const SHAPES = ["■", "●", "▲", "★", "♦"];
-const RECT_COLORS = ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#D4AF37", "#DDA0DD", "#FF8C00"];
+const RECT_COLOR_VARS = [
+  "var(--confetti-gold-bright)",
+  "var(--confetti-coral)",
+  "var(--confetti-teal)",
+  "var(--confetti-sky)",
+  "var(--confetti-sage)",
+  "var(--confetti-gold)",
+  "var(--confetti-plum)",
+  "var(--confetti-orange)",
+]
 
 type Variant = "shapes" | "rects";
 
@@ -45,7 +65,7 @@ export default function Confetti({
       return;
     }
 
-    const colors = variant === "rects" ? RECT_COLORS : SHAPE_COLORS;
+    const colors = variant === "rects" ? RECT_COLOR_VARS : SHAPE_COLOR_VARS;
     const sizeMin = variant === "rects" ? 4 : 8;
     const sizeRange = variant === "rects" ? 8 : 12;
     const delayMax = variant === "rects" ? 1.5 : 2;

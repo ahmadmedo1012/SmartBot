@@ -588,7 +588,7 @@ export default function SubscribePage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       {provider !== "bank" && (
                         <div className="sm:col-span-2">
-                          <Input
+                          <Input dir="auto"
                             label="رقم هاتفك"
                             id="phone"
                             value={form.phone}
@@ -596,7 +596,6 @@ export default function SubscribePage() {
                             placeholder="09XXXXXXXXX"
                             inputMode="numeric"
                             maxLength={10}
-                            dir="ltr"
                             className="text-left font-mono"
                           />
                           <p className="text-[11px] text-muted-foreground mt-1">
@@ -604,21 +603,20 @@ export default function SubscribePage() {
                           </p>
                         </div>
                       )}
-                      <Input
+                      <Input dir="auto"
                         label="الاسم (اختياري)"
                         id="name"
                         value={form.name}
                         onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                         placeholder="اسمك الكامل"
                       />
-                      <Input
+                      <Input dir="auto"
                         label="البريد الإلكتروني (اختياري)"
                         id="email"
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                         placeholder="email@example.com"
-                        dir="ltr"
                         className="text-left"
                       />
                     </div>
@@ -891,7 +889,7 @@ function BankTransferPanel({
         ))}
       </div>
 
-      <Input
+      <Input dir="auto"
         label="المبلغ (د.ل)"
         type="number"
         value={amount}
@@ -900,11 +898,10 @@ function BankTransferPanel({
           if (!Number.isNaN(v) && v >= 0) onAmountChange(v)
         }}
         min={1}
-        dir="ltr"
         className="text-left"
       />
 
-      <Input
+      <Input dir="auto"
         label="اسم صاحب الحساب المُرسِل"
         id="senderName"
         value={senderName}
@@ -912,13 +909,12 @@ function BankTransferPanel({
         placeholder="الاسم كما يظهر في الحساب"
       />
 
-      <Input
+      <Input dir="auto"
         label="رقم حساب المُرسِل"
         id="senderAccount"
         value={senderAccount}
         onChange={(e) => onSenderAccountChange(e.target.value)}
         placeholder="رقم الحساب الذي حُوّل منه"
-        dir="ltr"
         className="text-left font-mono"
       />
 

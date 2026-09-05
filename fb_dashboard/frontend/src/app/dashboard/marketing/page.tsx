@@ -154,7 +154,7 @@ export default function MarketingPage() {
             <Card>
               <CardContent className="p-5 space-y-4">
                 <h2 className="font-bold text-sm">إنشاء حملة</h2>
-                <Input
+                <Input dir="auto"
                   label="اسم الحملة"
                   id="campaign-name"
                   value={form.name}

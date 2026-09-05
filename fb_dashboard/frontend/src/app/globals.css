@@ -69,6 +69,33 @@
 
   --scroll-offset: 6rem;
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+  /* ═══════════════════════════════════════════════════════
+     CENTRALIZED SPECIAL-PURPOSE PALETTES (latest_plan Track D.1)
+     Festive confetti needs a natural multi-hue spread and the
+     iPhone mockup needs physical device tones — neither may be
+     scattered as raw hex in components; all values live HERE.
+     ═══════════════════════════════════════════════════════ */
+  --confetti-gold: #D4AF37;
+  --confetti-gold-bright: #FFD700;
+  --confetti-red: #ef4444;
+  --confetti-coral: #FF6B6B;
+  --confetti-green: #10b981;
+  --confetti-teal: #4ECDC4;
+  --confetti-sky: #45B7D1;
+  --confetti-sage: #96CEB4;
+  --confetti-violet: #8b5cf6;
+  --confetti-pink: #ec4899;
+  --confetti-plum: #DDA0DD;
+  --confetti-orange: #FF8C00;
+  --confetti-accent: oklch(0.55 0.19 45);
+
+  /* Physical device tones (iPhone mockup — not theme colors) */
+  --iphone-black: #0b0b0d;
+  --iphone-titanium: #837a72;
+  --iphone-natural-titanium: #a69a8a;
+  --iphone-screen: #000;
+
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);

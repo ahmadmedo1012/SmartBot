@@ -102,7 +102,7 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
-                <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم"
+                <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
@@ -116,7 +116,7 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
-                <Input id="email" type="email" autoComplete="email" placeholder="البريد الإلكتروني"
+                <Input id="email" type="email" autoComplete="email" placeholder="البريد الإلكتروني" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
@@ -130,7 +130,7 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
-                <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password"
+                <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {password.length > 0 && (
@@ -149,7 +149,7 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-sm font-medium">تأكيد كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
-                <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password"
+                <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="تأكيد كلمة المرور" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {confirm.length > 0 && (

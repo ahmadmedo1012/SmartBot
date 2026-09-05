@@ -231,21 +231,20 @@ export default function SupportPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
+                <Input dir="auto"
                   label="الموضوع (اختياري)"
                   id="subject"
                   value={form.subject}
                   onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
                   placeholder="مشكلة في الردود التلقائية..."
                 />
-                <Input
+                <Input dir="auto"
                   label="البريد الإلكتروني (اختياري)"
                   id="email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="email@example.com"
-                  dir="ltr"
                 />
                 <div className="space-y-1">
                   <label className="text-sm font-semibold leading-none">الأولوية</label>

@@ -32,9 +32,9 @@ const SPECS: Record<IPhoneModel, {
 }
 
 const COLORS: Record<string, string> = {
-  black: "#0b0b0d",
-  titanium: "#837a72",
-  "natural-titanium": "#a69a8a",
+  black: "var(--iphone-black)",
+  titanium: "var(--iphone-titanium)",
+  "natural-titanium": "var(--iphone-natural-titanium)",
 }
 
 function shade(hex: string, pct: number): string {
@@ -50,7 +50,7 @@ export function IPhoneMockup({
   color = "natural-titanium",
   scale = 1,
   shadow = true,
-  screenBg = "#000",
+  screenBg = "var(--iphone-screen)",
   wallpaper,
   wallpaperFit = "cover",
   className,
@@ -114,7 +114,7 @@ export function IPhoneMockup({
             style={{
               position: "absolute", left: "50%", transform: "translateX(-50%)",
               top: 12, width: 126, height: 37, borderRadius: 20,
-              background: "#000", zIndex: 2,
+              background: "var(--iphone-screen)", zIndex: 2,
               boxShadow: "0 1px 2px rgba(0,0,0,0.7)",
             }}
           />

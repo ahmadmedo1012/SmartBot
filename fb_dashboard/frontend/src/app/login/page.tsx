@@ -133,7 +133,7 @@ function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
               <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-orange/50 focus-within:ring-2 focus-within:ring-orange/20">
-                <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+                <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" dir="auto"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}

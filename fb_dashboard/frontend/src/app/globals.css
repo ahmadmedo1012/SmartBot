@@ -387,12 +387,6 @@
 @media (min-width: 640px) { .section-inner { padding-inline: 1.5rem; } }
 
 /* Eyebrow pattern */
-.eyebrow {
-  display: inline-flex; align-items: center; gap: 0.375rem;
-  border-radius: 9999px; border: 1px solid color-mix(in oklch, var(--orange) 20%, transparent);
-  background: color-mix(in oklch, var(--orange) 5%, transparent);
-  padding: 0.25rem 1rem; font-size: 0.65rem; font-weight: 500; color: var(--orange);
-}
 
 /* GlowPool utility */
 .glow-pool { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(100px); }

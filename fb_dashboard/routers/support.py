@@ -30,13 +30,38 @@ _PRIORITIES = {"low", "medium", "high", "urgent"}
 
 
 @router.get("/info")
-async def support_info():
-    """Public support contact info — env overrides, sensible Libyan defaults."""
+async def support_info(db=Depends(get_db)):
+    """Public support contact info.
+
+    Merge order (same pattern as GET /api/config): SystemConfig rows (set by
+    admin via POST /api/admin/config) WIN; env vars fallback so the owner can
+    set real values in Vercel without a redeploy. Values shown until the owner
+    configures real ones are the page's existing defaults — nothing invented.
+
+    NOTE for future audits: this route is registered as prefix="/api/support"
+    + @router.get("/info") — grepping for the literal "/api/support/info"
+    only matches the docstring, NOT the route. That grep pitfall produced the
+    false "missing endpoint" claim in parity plan v2 §3.1.
+    """
+    from models import SystemConfig
+    config: dict = {}
+    try:
+        rows = await db.execute(select(SystemConfig))
+        for r in rows.scalars().all():
+            if not r.is_secret:
+                config[r.key] = r.value
+    except Exception:
+        log.warning("support/info: SystemConfig read failed — env fallback", exc_info=True)
+
+    def merged(key: str, env: str, default: str) -> str:
+        return config.get(key) or os.getenv(env) or default
+
     return {"success": True, "data": {
-        "email": os.getenv("SUPPORT_EMAIL", "support@smartbot.ly"),
-        "phone": os.getenv("SUPPORT_PHONE", "0920000000"),
-        "whatsapp": os.getenv("SUPPORT_WHATSAPP", os.getenv("SUPPORT_PHONE", "0920000000")),
-        "working_hours": os.getenv("SUPPORT_WORKING_HOURS", "24/7"),
+        "email": merged("support_email", "SUPPORT_EMAIL", "support@smartbot.ly"),
+        "phone": merged("support_phone", "SUPPORT_PHONE", "0920000000"),
+        "whatsapp": merged("support_whatsapp", "SUPPORT_WHATSAPP",
+                           os.getenv("SUPPORT_PHONE", "0920000000")),
+        "working_hours": merged("support_working_hours", "SUPPORT_WORKING_HOURS", "24/7"),
     }}
 
 

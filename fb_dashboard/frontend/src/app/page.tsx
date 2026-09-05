@@ -137,8 +137,8 @@ export default function HomePage() {
               {/* ── Left: copy ── */}
               <div className="space-y-7">
                 <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.05 }}
-                  className="eyebrow relative overflow-hidden">
-                  <span className="size-1.5 rounded-full bg-orange animate-pulse-dot" />
+                  className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-orange/90 relative overflow-hidden">
+                  <span className="size-1 rounded-full bg-orange animate-pulse-dot shrink-0" />
                   {heroTrust}
                   <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,transparent 0%,oklch(1 0 0 / 0.12) 50%,transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 3s ease-in-out infinite" }} />
                 </motion.div>
@@ -216,7 +216,7 @@ export default function HomePage() {
           <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             transition={{ ...springDefault, delay: 0.05 }}
             className="text-center mb-14">
-            <div className="eyebrow mb-4 inline-flex">
+            <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-orange/90 mb-4">
               <Star className="size-3 fill-orange text-orange" />
               آراء حقيقية
             </div>

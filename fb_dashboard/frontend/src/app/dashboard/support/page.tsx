@@ -119,7 +119,7 @@ export default function SupportPage() {
   const [replyText, setReplyText] = useState("")
 
   useEffect(() => {
-    fetch("/api/support/info")
+    apiFetch("/api/support/info")
       .then(unwrapApi)
       .then((d) => {
         if (d) setInfo(d)

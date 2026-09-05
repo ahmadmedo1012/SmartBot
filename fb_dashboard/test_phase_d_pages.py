@@ -399,3 +399,38 @@ async def test_marketing_audience_segments():
         await client.aclose()
     finally:
         await _teardown(fixture)
+
+
+# ── 4.3b Support info: SystemConfig wins over env (parity-v2 §3.1) ────────────
+async def test_support_info_config_merge(monkeypatch):
+    """GET /api/support/info: env fallbacks → SystemConfig rows win.
+
+    (The parity-v2 audit claimed this endpoint didn't exist — a grep pitfall:
+    prefix="/api/support" + @router.get("/info") doesn't match a literal
+    "/api/support/info" search. This test pins the real contract.)
+    """
+    fixture = await _make_app_fixture()
+    try:
+        app, sf, _te = fixture
+        from httpx import ASGITransport, AsyncClient
+        from models import SystemConfig
+
+        # 1) env fallback applies when no SystemConfig rows
+        monkeypatch.setenv("SUPPORT_EMAIL", "owner@smart-link.ly")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as ac:
+            r = await ac.get("/api/support/info")
+            assert r.status_code == 200
+            d = r.json()
+            assert d["success"] is True
+            assert d["data"]["email"] == "owner@smart-link.ly"
+            assert d["data"]["working_hours"]  # always present
+
+        # 2) SystemConfig row wins over env
+        async with sf() as s:
+            s.add(SystemConfig(key="support_email", value="real@smart-link.ly"))
+            await s.commit()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as ac:
+            r = await ac.get("/api/support/info")
+            assert r.json()["data"]["email"] == "real@smart-link.ly"
+    finally:
+        await _teardown(fixture)

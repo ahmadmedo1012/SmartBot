@@ -1,9 +1,20 @@
 "use client";
+
 import { cn } from "@/lib/utils";
 
+/* Ported from Smart-Menu (smart-link.ly shared identity) — plain uppercase
+   tracked label with pulsing dot (was: SmartBot pill variant). */
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border border-orange/20 bg-orange/5 px-4 py-1 text-[0.65rem] font-medium text-orange mb-5", className)}>
+    <span className={cn(
+      "inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-orange/90 mb-5",
+      className,
+    )}>
+      {/* Animated pulsing dot — subtle premium indicator */}
+      <span
+        className="inline-block size-1 rounded-full bg-orange animate-pulse-dot shrink-0"
+        aria-hidden="true"
+      />
       {children}
     </span>
   );

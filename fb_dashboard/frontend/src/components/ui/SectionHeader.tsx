@@ -4,7 +4,11 @@ import * as React from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { springGentle, springSnappy } from "@/lib/motion"
+import { Eyebrow } from "./Eyebrow"
 
+/* Aligned with Smart-Menu's SectionHeader (smart-link.ly shared identity):
+   staggered whileInView reveal, Eyebrow component, font-semibold title,
+   balanced leading, muted-foreground/90 subtitle. */
 interface SectionHeaderProps {
   eyebrow?: string
   title: string
@@ -12,47 +16,59 @@ interface SectionHeaderProps {
   description?: React.ReactNode
   icon?: React.ReactNode
   className?: string
+  align?: "center" | "start"
 }
 
-export function SectionHeader({ eyebrow, title, subtitle, description, icon, className }: SectionHeaderProps) {
+const fadeUpSpring = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: springGentle },
+}
+
+const fadeUpSnappy = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: springSnappy },
+}
+
+export function SectionHeader({ eyebrow, title, subtitle, description, icon, className, align = "center" }: SectionHeaderProps) {
   const desc = subtitle || description
+  const centered = align === "center"
   return (
-    <div className={cn("text-center mb-16", className)}>
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-40px" }}
+      variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+      className={cn("mb-14 sm:mb-20", centered ? "text-center" : "text-start", className)}
+    >
       {eyebrow && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ ...springGentle, delay: 0.08 }}
-        >
-          <div className="eyebrow">
-            {icon && icon}
-            {eyebrow}
-          </div>
+        <motion.div variants={fadeUpSnappy}>
+          <Eyebrow className={centered ? "justify-center" : "justify-start"}>
+            {icon}{icon && " "}{eyebrow}
+          </Eyebrow>
         </motion.div>
       )}
       {title && (
         <motion.h2
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ ...springGentle, delay: 0.16 }}
-          className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tighter"
+          variants={fadeUpSpring}
+          className={cn(
+            "text-3xl sm:text-4xl lg:text-[3.25rem] font-semibold leading-[1.25] tracking-tight text-balance",
+            centered ? "mx-auto" : "max-w-2xl",
+          )}
         >
           {title}
         </motion.h2>
       )}
       {desc && (
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ ...springSnappy, delay: 0.24 }}
-          className="text-base max-w-2xl mx-auto text-muted-foreground"
+          variants={fadeUpSnappy}
+          className={cn(
+            "text-base text-muted-foreground/90 mt-4 max-w-[48ch] leading-relaxed",
+            centered ? "mx-auto" : "",
+          )}
         >
           {desc}
         </motion.p>
       )}
-    </div>
+    </motion.div>
   )
 }

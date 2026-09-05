@@ -105,21 +105,21 @@ export function AdminSidebar({
   const pathname = usePathname() ?? ""
 
   return (
-    <aside className={cn("flex flex-col h-full bg-card/95 backdrop-blur-md border-l border-border/60 shadow-sm", className)}>
+    <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-l border-border/50 shadow-sm", className)}>
       {/* Logo — chrome unified with Smart-Menu (smart-link.ly identity) */}
-      <div className="flex items-center gap-2.5 p-4 border-b border-border/60 min-h-[72px]">
-        <div className="relative size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-md shadow-orange/20">
+      <div className="flex items-center gap-3 border-b border-border/20 px-5 py-5 min-h-[72px]">
+        <div className="relative size-8 rounded-lg bg-orange flex items-center justify-center text-white font-semibold text-sm shrink-0">
           {logo}
           <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-success ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-sm leading-tight truncate">{title}</p>
-          <p className="text-[10px] text-muted-foreground leading-tight">لوحة التحكم</p>
+          <p className="font-semibold text-sm leading-tight truncate">{title}</p>
+          <p className="text-[11px] text-muted-foreground leading-tight">لوحة التحكم</p>
         </div>
       </div>
 
       {/* Nav */}
-      <motion.nav variants={stagger} initial="hidden" animate="visible" className="sidebar-scroll flex-1 overflow-y-auto p-3 space-y-5">
+      <motion.nav variants={stagger} initial="hidden" animate="visible" className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {navSections.map((section, si) => (
           <motion.div key={si} variants={fadeUp}>
             <p className="px-3 pb-1.5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.12em]">

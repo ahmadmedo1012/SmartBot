@@ -54,8 +54,9 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 2. Import shared state from `_services` (fb, engines, helpers) — never re-create.
 3. Register new routers in `runner.py` with `app.include_router(...)`.
 4. Keep .gitignore up to date — exclude build artifacts, env files, test outputs.
-5. Add per-page backend proof to `test_track_e_pages_gate.py` (PAGE_API_MAP) when a page gets a new API dependency.
+5. Add per-page backend proof to `tests/test_track_e_pages_gate.py` (PAGE_API_MAP) when a page gets a new API dependency. Test files live in `tests/` (root conftest.py owns sys.path + hermetic env) — NEVER in `fb_dashboard/` (v5 §1).
 6. Run the E2E gates before shipping UI changes: `e2e/journey.spec.ts` (full customer journey) + `e2e/mobile-nav.spec.ts` (375px) — server + `scripts/sync_next_static.py` first.
+7. Run `bash scripts/gate_all.sh` (ruff + pytest + tsc + build) before every push — CI runs the same gates on push/PR (`.github/workflows/ci.yml`). Ruff config: `ruff.toml`. The pytest suite MUST stay green in reverse order too (hermeticity is a gate, v5 §0).
 
 ## Deployment
 - Vercel (two projects linked to same repo):

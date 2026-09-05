@@ -908,6 +908,19 @@ class BotEngine:
         if result is None or result.get("_error"):
             self._mon.error("message send failed", module="webhook",
                             comment_id=ctx.cid[:12])
+            # Honest telemetry (v3 final-launch §4.3): the owner must SEE why
+            # replies stopped — an expired/invalid page token shows up here,
+            # not as silence. Persisted with tenant_id so /api/logs surfaces it.
+            try:
+                async with AsyncSessionLocal() as session:
+                    err = (result or {}).get("_error") if isinstance(result, dict) else None
+                    detail = f" — {str(err)[:120]}" if err else ""
+                    session.add(BotLog(
+                        tenant_id=self._tenant_id, level="WARN",
+                        message=f"فشل إرسال الرد الآلي (رسالة إلى {ctx.from_first}){detail} — تحقق من صلاحية توكن الصفحة"))
+                    await session.commit()
+            except Exception:
+                pass
             return None
 
         self._mon.info(f"→ DM reply to {ctx.from_first}", comment_id=ctx.cid[:12],
@@ -917,7 +930,9 @@ class BotEngine:
         # Persist audit trail + usage counter (same accounting as comments)
         try:
             async with AsyncSessionLocal() as session:
-                session.add(BotLog(level="INFO", message=f"رد آلي (رسالة) على {ctx.from_first}: {reply_text[:80]}"))
+                session.add(BotLog(
+                    tenant_id=self._tenant_id, level="INFO",
+                    message=f"رد آلي (رسالة) على {ctx.from_first}: {reply_text[:80]}"))
                 counter = await session.execute(
                     select(UsageCounter).where(
                         UsageCounter.tenant_id == self._tenant_id,

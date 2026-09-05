@@ -9,6 +9,7 @@ import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { GlowPool } from "@/components/ui/GlowPool"
 import { usePublicStats } from "@/lib/usePublicStats"
+import { formatNumber } from "@/lib/format"
 
 export default function FinalCTASection() {
   // Plan §3.1: real tenant count or qualitative copy — the old fixed count claim was fake
@@ -16,7 +17,7 @@ export default function FinalCTASection() {
   const tenants = stats?.activeTenants ?? 0
   const subtitle =
     ready && tenants >= 1
-      ? <>انطلق الآن — انضم إلى <strong className="text-foreground">{tenants.toLocaleString("ar-EG")} صفحة</strong> تثق في SmartBot</>
+      ? <>انطلق الآن — انضم إلى <strong className="text-foreground">{formatNumber(tenants)} صفحة</strong> تثق في SmartBot</>
       : <>انطلق الآن — صفحتك التالية تستحق أتمتة حقيقية</>
 
   return (

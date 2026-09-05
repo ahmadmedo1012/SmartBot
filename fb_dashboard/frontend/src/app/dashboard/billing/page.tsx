@@ -7,6 +7,7 @@ import { CreditCard, AlertCircle, RefreshCw, Zap, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatDate, formatNumber } from "@/lib/format"
 
 const STATUS_LABELS: Record<string, string> = {
   completed: "مكتمل", pending: "قيد الانتظار", failed: "فاشل",
@@ -66,7 +67,7 @@ export default function BillingPage() {
             {balLoad ? (
               <div className="h-8 w-24 bg-muted rounded animate-pulse" />
             ) : balance ? (
-              <p className="text-3xl font-bold">{balance.balance?.toLocaleString("ar-LY")} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
+              <p className="text-3xl font-bold">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
             ) : (
               <p className="text-sm text-muted-foreground">غير متاح</p>
             )}
@@ -93,9 +94,9 @@ export default function BillingPage() {
                 <Card key={p.payment_id}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{p.amount?.toLocaleString("ar-LY")} LYD</p>
+                      <p className="text-sm font-medium">{formatNumber(p.amount)} LYD</p>
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
-                      <p className="text-[10px] text-muted-foreground">{p.created_at ? new Date(p.created_at).toLocaleString("ar-LY") : ""}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       p.status === "completed" ? "bg-green-500/10 text-green-500" :

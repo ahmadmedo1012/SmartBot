@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
+import { formatDate, formatDateOnly } from "@/lib/format"
 
 function initials(name: string) {
   if (!name) return "?"
@@ -27,7 +28,7 @@ function timeAgo(dateStr: string) {
   if (hours < 24) return `منذ ${hours} س`
   const days = Math.floor(hours / 24)
   if (days < 30) return `منذ ${days} ي`
-  return new Date(dateStr).toLocaleDateString("ar-LY")
+  return formatDateOnly(dateStr)
 }
 
 const FILTERS = [
@@ -307,7 +308,7 @@ export default function MessagesPage() {
                             <p className="opacity-50">مرفق غير مدعوم</p>
                           )}
                           <p className={`text-[10px] mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
-                            {msg.created_time ? new Date(msg.created_time).toLocaleString("ar-LY") : ""}
+                            {msg.created_time ? formatDate(msg.created_time) : ""}
                           </p>
                         </div>
                       </div>
@@ -319,8 +320,13 @@ export default function MessagesPage() {
 
               <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">
                 <div className="flex gap-2 items-end">
-                  <Button onClick={handleSend} disabled={!replyText.trim() || sendMut.isPending} className="shrink-0 shadow-sm shadow-accent-foreground/15">
-                    <Send className="size-4" />
+                  <Button
+                    onClick={handleSend}
+                    disabled={!replyText.trim() || sendMut.isPending}
+                    className="shrink-0 shadow-sm shadow-accent-foreground/15"
+                    aria-label="إرسال الرد"
+                  >
+                    <Send className="size-4" aria-hidden="true" />
                   </Button>
                   <div className="flex-1 relative">
                     <textarea

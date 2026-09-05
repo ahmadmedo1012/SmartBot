@@ -8,6 +8,7 @@ import { Newspaper, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 
 const POST_STATUS_LABELS: Record<string, string> = {
   published: "منشور", scheduled: "مجدول", draft: "مسودة", failed: "فاشل",
@@ -127,7 +128,7 @@ export default function PostsPage() {
                         p.status === "scheduled" ? "bg-info/15 text-info" :
                         "bg-muted text-muted-foreground"
                       }`}>{POST_STATUS_LABELS[p.status] || p.status}</span>
-                      {p.scheduled_at && <span>{new Date(p.scheduled_at).toLocaleString("ar-LY")}</span>}
+                      {p.scheduled_at && <span>{formatDate(p.scheduled_at)}</span>}
                     </div>
                     <div className="flex gap-1">
                       {p.status !== "published" && (

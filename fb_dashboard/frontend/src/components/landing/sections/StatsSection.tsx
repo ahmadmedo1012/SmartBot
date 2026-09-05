@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react"
 import { springSnappy } from "@/lib/motion"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { usePublicStats } from "@/lib/usePublicStats"
+import { formatNumber } from "@/lib/format"
 
 function AnimatedNumber({ value }: { value: number }) {
   const [count, setCount] = useState(0)
@@ -19,7 +20,9 @@ function AnimatedNumber({ value }: { value: number }) {
     }, 30)
     return () => clearInterval(timer)
   }, [inView, value])
-  return <span ref={ref} dir="ltr">{count.toLocaleString()}</span>
+  // v6 §A — was count.toLocaleString() with NO locale: the animated landing counter
+  // rendered per-visitor-browser format while every other number in the app was "ar-LY".
+  return <span ref={ref} dir="ltr">{formatNumber(count)}</span>
 }
 
 export default function StatsSection() {

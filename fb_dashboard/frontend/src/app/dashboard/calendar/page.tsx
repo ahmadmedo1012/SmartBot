@@ -6,6 +6,7 @@ import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
+import { formatDateOnly, formatMonth } from "@/lib/format"
 
 export default function CalendarPage() {
   const now = new Date()
@@ -31,7 +32,7 @@ export default function CalendarPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-bold text-sm mb-3">{now.toLocaleDateString("ar-LY", { year: "numeric", month: "long" })}</h3>
+            <h3 className="font-bold text-sm mb-3">{formatMonth(now)}</h3>
             {isError ? (
               <div className="text-center py-8">
                 <AlertCircle className="size-8 mx-auto mb-2 text-red-500/50" />
@@ -48,7 +49,7 @@ export default function CalendarPage() {
                   <div key={p.id} className="flex items-center justify-between text-sm border-b border-border pb-2">
                     <span className="truncate">{p.message ? (p.message.length > 50 ? p.message.slice(0, 50) + "…" : p.message) : ""}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {p.scheduled_at ? new Date(p.scheduled_at).toLocaleDateString("ar-LY") : ""}
+                      {p.scheduled_at ? formatDateOnly(p.scheduled_at) : ""}
                     </span>
                   </div>
                 ))}

@@ -18,6 +18,7 @@ import {
   Sparkles, ArrowLeft, CheckCircle, Send, Bell, Settings as SettingsIcon,
 } from "lucide-react"
 import { ActivityBarChart } from "@/components/charts"
+import { formatNumber } from "@/lib/format"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * v4 radical plan §3 — REBUILT on the REAL dashboard architecture.
@@ -139,7 +140,7 @@ function StatsTab() {
         {[
           { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-accent-foreground", bg: "bg-accent-foreground/10" },
           { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-blue-500", bg: "bg-blue-500/10" },
-          { icon: Users, value: mockStats.followers.toLocaleString("ar-LY"), label: "المتابعون", color: "text-green-500", bg: "bg-green-500/10" },
+          { icon: Users, value: formatNumber(mockStats.followers), label: "المتابعون", color: "text-green-500", bg: "bg-green-500/10" },
           { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-yellow-500", bg: "bg-yellow-500/10" },
         ].map((s) => (
           <Card key={s.label}>

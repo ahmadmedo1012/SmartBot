@@ -6,6 +6,7 @@ import { Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 
 
 export default function ActivityPage() {
@@ -54,7 +55,7 @@ export default function ActivityPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">{log.message}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {log.created_at ? new Date(log.created_at).toLocaleString("ar-LY") : ""}
+                        {log.created_at ? formatDate(log.created_at) : ""}
                       </p>
                     </div>
                   </div>

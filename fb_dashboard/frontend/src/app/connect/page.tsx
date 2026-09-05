@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
 
@@ -323,7 +324,7 @@ export default function ConnectPage() {
               {fanCount > 0 && status !== "connected" && (
                 <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-center">
                   <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                    ✅ اتصال ناجح — {fanCount.toLocaleString("ar-LY")} متابع
+                    ✅ اتصال ناجح — {formatNumber(fanCount)} متابع
                   </p>
                 </div>
               )}

@@ -14,6 +14,7 @@ import { fadeUp } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
+import { formatDateOnly } from "@/lib/format"
 
 interface Payment {
   id: number
@@ -128,8 +129,15 @@ export default function AdminPage() {
             {f.label}
           </Button>
         ))}
-        <Button variant="ghost" size="sm" className="mr-auto" onClick={fetchPayments} loading={loading}>
-          <RefreshCw className="size-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mr-auto"
+          onClick={fetchPayments}
+          loading={loading}
+          aria-label="تحديث قائمة المدفوعات"
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
         </Button>
       </div>
 
@@ -166,7 +174,7 @@ export default function AdminPage() {
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
                       </td>
                       <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
-                        {p.created_at ? new Date(p.created_at).toLocaleDateString("ar-LY", { calendar: "gregory" }) : "-"}
+                        {p.created_at ? formatDateOnly(p.created_at) : "-"}
                       </td>
                       <td className="p-3 text-center" data-label="إجراءات">
                         <div className="flex items-center justify-center gap-2">

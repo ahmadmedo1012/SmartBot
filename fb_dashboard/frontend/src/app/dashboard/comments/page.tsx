@@ -9,6 +9,7 @@ import { MessageSquare, Reply, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { formatDateOnly } from "@/lib/format"
 
 function timeAgo(dateStr: string) {
   if (!dateStr) return ""
@@ -18,7 +19,7 @@ function timeAgo(dateStr: string) {
   if (mins < 60) return `منذ ${mins} د`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `منذ ${hours} س`
-  return new Date(dateStr).toLocaleDateString("ar-LY")
+  return formatDateOnly(dateStr)
 }
 
 export default function CommentsPage() {

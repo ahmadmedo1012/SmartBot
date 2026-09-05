@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -322,7 +323,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         ? "✓ الاتصال ناجح — " +
                           testResult.page_name +
                           (testResult.fan_count
-                            ? " (" + testResult.fan_count.toLocaleString("ar-EG") + " متابع)"
+                            ? " (" + formatNumber(testResult.fan_count) + " متابع)"
                             : "")
                         : "✗ " + (testResult.error || "فشل الاتصال")}
                     </div>

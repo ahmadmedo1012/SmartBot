@@ -6,6 +6,7 @@ import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, Bot, Users, Messag
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 export default function ReportsPage() {
   const { data: dashboard, isLoading: dbLoad, isError: dbErr, error: dbError, refetch: dbRefetch } = useQuery({
@@ -66,7 +67,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-blue-500/10 flex items-center justify-center"><MessageSquare className="size-4 text-blue-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{(dashboard?.total_messages ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_messages ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي الرسائل</p>
                   </div>
                 </CardContent>
@@ -75,7 +76,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center"><Bot className="size-4 text-accent-foreground" /></div>
                   <div>
-                    <p className="text-xl font-bold">{(dashboard?.total_replies ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_replies ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">ردود البوت التلقائية</p>
                   </div>
                 </CardContent>
@@ -84,7 +85,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-green-500/10 flex items-center justify-center"><MessagesSquare className="size-4 text-green-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{(dashboard?.total_conversations ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_conversations ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">المحادثات</p>
                   </div>
                 </CardContent>
@@ -93,7 +94,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-purple-500/10 flex items-center justify-center"><Users className="size-4 text-purple-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{(dashboard?.total_customers ?? 0).toLocaleString("ar-LY")}</p>
+                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_customers ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">عملاء محفوظون (CRM)</p>
                   </div>
                 </CardContent>
@@ -106,11 +107,11 @@ export default function ReportsPage() {
                   <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center"><TrendingUp className="size-4 text-muted-foreground" /></div>
                   <div>
                     <p className="text-sm font-bold">
-                      {(dashboard?.today_replies ?? 0).toLocaleString("ar-LY")}
+                      {formatNumber(dashboard?.today_replies ?? 0)}
                       <span className="text-[10px] text-muted-foreground font-normal"> رد اليوم</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {(dashboard?.unique_commenters ?? 0).toLocaleString("ar-LY")} معلّق فريد · {(dashboard?.active_rules ?? 0)} قاعدة نشطة · آخر {dashboard?.period_days ?? 30} يوماً
+                      {formatNumber(dashboard?.unique_commenters ?? 0)} معلّق فريد · {formatNumber(dashboard?.active_rules ?? 0)} قاعدة نشطة · آخر {formatNumber(dashboard?.period_days ?? 30)} يوماً
                     </p>
                   </div>
                 </div>

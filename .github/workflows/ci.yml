@@ -3,6 +3,7 @@ name: CI — quality gates
 # v5 §2: the regression class found in §0 (6 failing tests that had gone
 # unnoticed because gates only ran manually during agent sessions) must
 # never happen again. Every push and every PR to main runs all gates.
+# v6 §A/§B: static-contract gates (i18n seam + a11y labels) join the wall.
 
 on:
   push:
@@ -58,6 +59,14 @@ jobs:
 
       - name: Install frontend deps
         run: cd fb_dashboard/frontend && npm ci || npm install
+
+      - name: Gate 5a — i18n seam (v6 §A)
+        # every user-visible number/date must flow through src/lib/format.ts
+        run: python scripts/check_i18n_calls.py
+
+      - name: Gate 5b — a11y labels (v6 §B)
+        # every icon-only interactive control must carry an accessible name
+        run: cd fb_dashboard/frontend && node ../../scripts/check_a11y_labels.ts
 
       - name: Run tsc
         run: cd fb_dashboard/frontend && npx tsc --noEmit

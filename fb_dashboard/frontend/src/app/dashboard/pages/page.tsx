@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 export default function PagesPage() {
   const [pageId, setPageId] = useState("")
@@ -134,7 +135,7 @@ export default function PagesPage() {
                 </div>
                 {testResult.connected && (
                   <>
-                    <p className="text-sm">{testResult.fan_count?.toLocaleString("ar-LY")} متابع</p>
+                    <p className="text-sm">{formatNumber(testResult.fan_count)} متابع</p>
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (

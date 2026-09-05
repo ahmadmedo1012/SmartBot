@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 export interface PublicStats {
   activeTenants?: number
@@ -43,7 +44,7 @@ export function trustCopy(stats: PublicStats | null, ready: boolean): string {
   const tenants = stats?.activeTenants ?? 0
   if (!ready) return "أتمتة ذكية لصفحات فيسبوك"
   if (tenants >= 1) {
-    const n = tenants.toLocaleString("ar-EG")
+    const n = formatNumber(tenants) // v6 §A — was ar-EG (Arabic-Indic digits), inconsistent with the ar-LY convention everywhere else
     return `أكثر من ${n} صفحة تثق بنا`
   }
   return "أتمتة ذكية لصفحات فيسبوك"

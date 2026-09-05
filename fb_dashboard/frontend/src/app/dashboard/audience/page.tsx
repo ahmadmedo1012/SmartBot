@@ -6,6 +6,7 @@ import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatDateOnly } from "@/lib/format"
 
 export default function AudiencePage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -141,7 +142,7 @@ export default function AudiencePage() {
                         <p className="text-sm truncate">{s.name || `مشترك #${s.id}`}</p>
                         <p className="text-[10px] text-muted-foreground truncate">
                           {s.platform === "messenger" ? "ماسنجر" : s.platform}
-                          {s.last_interaction_at ? ` · آخر تفاعل ${new Date(s.last_interaction_at).toLocaleDateString("ar-LY")}` : ""}
+                          {s.last_interaction_at ? ` · آخر تفاعل ${formatDateOnly(s.last_interaction_at)}` : ""}
                         </p>
                       </div>
                     </div>

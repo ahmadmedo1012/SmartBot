@@ -6,6 +6,7 @@ import { Target, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
 
 export default function AdsPage() {
   const { data: accounts = [], isLoading, isError, error, refetch } = useQuery({
@@ -85,8 +86,8 @@ export default function AdsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {a.currency && <p>العملة: {a.currency}</p>}
-                    {a.amount_spent != null && <p>المصروف: {Number(a.amount_spent).toLocaleString("ar-LY")}</p>}
-                    {a.balance != null && <p>الرصيد: {Number(a.balance).toLocaleString("ar-LY")}</p>}
+                    {a.amount_spent != null && <p>المصروف: {formatNumber(a.amount_spent)}</p>}
+                    {a.balance != null && <p>الرصيد: {formatNumber(a.balance)}</p>}
                   </div>
                 </CardContent>
               </Card>

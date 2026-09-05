@@ -9,7 +9,7 @@ PY=.venv/bin/python
 FAILURES=()
 
 echo "════════════════════════════════════════════════════════════════"
-echo "  SmartBot v5 unified quality gate — $(date -u '+%Y-%m-%d %H:%M:%SZ')"
+echo "  SmartBot unified quality gate (v5 §2 + v6 §A/§B) — $(date -u '+%Y-%m-%d %H:%M:%SZ')"
 echo "════════════════════════════════════════════════════════════════"
 
 # ── Gate 1: ruff (lint) ────────────────────────────────────────────
@@ -65,6 +65,18 @@ if $PY scripts/check-css-token-duplication.py >/dev/null 2>&1; then
   echo "✅ css tokens: no duplication"
 else
   echo "❌ css token duplication detected"; CONTRACT_OK=0
+fi
+# 5c. v6 §A — zero direct toLocale* calls outside the format.ts seam
+if $PY scripts/check_i18n_calls.py >/dev/null 2>&1; then
+  echo "✅ i18n: all numbers/dates through format.ts"
+else
+  echo "❌ i18n: direct locale calls found outside format.ts"; CONTRACT_OK=0
+fi
+# 5d. v6 §B — every icon-only interactive control has an accessible name
+if (cd fb_dashboard/frontend && node ../../scripts/check_a11y_labels.ts >/dev/null 2>&1); then
+  echo "✅ a11y labels: all icon-only controls named"
+else
+  echo "❌ a11y: unnamed icon-only control(s) found"; CONTRACT_OK=0
 fi
 [[ $CONTRACT_OK -eq 1 ]] || FAILURES+=("contracts")
 

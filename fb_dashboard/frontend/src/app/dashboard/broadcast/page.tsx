@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 
 const BROADCAST_STATUS_LABELS: Record<string, string> = {
   sent: "مُرسل", pending: "قيد الإرسال", scheduled: "مجدول", failed: "فاشل", draft: "مسودة",
@@ -146,7 +147,7 @@ export default function BroadcastPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium mb-1">{b.name || `بث #${b.id}`}</p>
-                    <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status] || b.status} · {new Date(b.scheduled_at || b.created_at).toLocaleString("ar-LY")}</p>
+                    <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status] || b.status} · {formatDate(b.scheduled_at || b.created_at)}</p>
                   </div>
                   {b.status !== "sent" && (
                     <Button

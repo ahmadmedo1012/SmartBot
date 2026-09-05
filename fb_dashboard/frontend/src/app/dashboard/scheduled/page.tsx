@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
@@ -124,7 +125,7 @@ export default function ScheduledPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CalendarDays className="size-3" />
-                      <span>{p.scheduled_at ? new Date(p.scheduled_at).toLocaleString("ar-LY") : "بدون تاريخ"}</span>
+                      <span>{p.scheduled_at ? formatDate(p.scheduled_at) : "بدون تاريخ"}</span>
                     </div>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)}>

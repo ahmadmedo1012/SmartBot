@@ -6,6 +6,7 @@ import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
+import { formatDateOnly } from "@/lib/format"
 
 export default function LeadsPage() {
   const { data: customers = [], isLoading, isError, error, refetch } = useQuery({
@@ -62,10 +63,10 @@ export default function LeadsPage() {
                     {c.phone && <p>الهاتف: {c.phone}</p>}
                     {c.notes && <p>{c.notes}</p>}
                     {c.first_seen_at && (
-                      <p className="text-[10px]">أول ظهور: {new Date(c.first_seen_at).toLocaleDateString("ar-LY")}</p>
+                      <p className="text-[10px]">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
                     )}
                     {c.last_contacted_at && (
-                      <p className="text-[10px]">آخر تواصل: {new Date(c.last_contacted_at).toLocaleDateString("ar-LY")}</p>
+                      <p className="text-[10px]">آخر تواصل: {formatDateOnly(c.last_contacted_at)}</p>
                     )}
                   </div>
                 </CardContent>

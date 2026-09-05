@@ -35,7 +35,9 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10",
+    "pixelmatch": "^7.2.0",
     "playwright": "^1.63.0",
+    "pngjs": "^7.0.0",
     "postcss": "^8",
     "tailwindcss": "^4",
     "typescript": "^5"

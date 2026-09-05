@@ -1,5 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BASE = 'http://localhost:8000';
 const ARTIFACTS = path.resolve(__dirname, '../e2e_artifacts');
@@ -7,11 +10,15 @@ const ARTIFACTS = path.resolve(__dirname, '../e2e_artifacts');
 // ── Helpers ──────────────────────────────────────────────────────────
 
 async function registerUser(page: Page) {
+  // Give the page a real origin first — the CSRF origin guard correctly
+  // rejects API posts from an about:blank page (Origin: null).
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  const uname = `spec_${Date.now().toString(36)}`;
   const resp = await page.request.post(`${BASE}/api/register`, {
-    form: { username: 'testadmin', email: 'test@example.com', password: 'test123456' },
+    data: { username: uname, email: `${uname}@t.ly`, password: 'test123456' },
   });
   const body = await resp.json();
-  return { ok: resp.ok(), body };
+  return { ok: resp.ok(), body, username: uname };
 }
 
 interface TestResult {
@@ -176,7 +183,7 @@ test.describe('SmartBot Dashboard E2E', () => {
     // If already exists, try login
     if (!result.ok && result.body?.detail?.includes?.('موجود')) {
       const loginResp = await page.request.post(`${BASE}/api/login`, {
-        form: { username: 'testadmin', password: 'test123456' },
+        data: { username: result.username, password: 'test123456' },
       });
       expect(loginResp.ok()).toBeTruthy();
       // Set cookie manually
@@ -187,11 +194,9 @@ test.describe('SmartBot Dashboard E2E', () => {
       }
     } else {
       expect(result.ok).toBeTruthy();
-      const cookies = page.response()?.headers()['set-cookie'] || '';
-      // Actually, the API call via page.request won't set browser cookies.
       // Let's login anyway to get cookies set in browser
       const loginResp = await page.request.post(`${BASE}/api/login`, {
-        form: { username: 'testadmin', password: 'test123456' },
+        data: { username: result.username, password: 'test123456' },
       });
       expect(loginResp.ok()).toBeTruthy();
       const setCookie = loginResp.headers()['set-cookie'];
@@ -209,7 +214,7 @@ test.describe('SmartBot Dashboard E2E', () => {
 
     // Check we're on dashboard
     const body = await page.textContent('body');
-    const isLoggedIn = body?.includes('لوحة التحكم') || body?.includes('testadmin');
+    const isLoggedIn = body?.includes('لوحة التحكم') || body?.includes(result.username);
 
     if (!isLoggedIn) {
       // Try direct login page
@@ -219,7 +224,7 @@ test.describe('SmartBot Dashboard E2E', () => {
       // Try UI login
       const usernameField = page.locator('input[type="text"], input[name="username"]').first();
       if (await usernameField.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await usernameField.fill('testadmin');
+        await usernameField.fill(result.username);
         const pwField = page.locator('input[type="password"], input[name="password"]').first();
         await pwField.fill('test123456');
         await page.locator('button[type="submit"], button:has-text("دخول"), button:has-text("تسجيل الدخول")').first().click();
@@ -320,7 +325,6 @@ test.describe('SmartBot Dashboard E2E', () => {
 
   test.afterAll(async () => {
     // Write results
-    const fs = require('fs');
     const ARTIFACTS_DIR = ARTIFACTS;
     if (!fs.existsSync(ARTIFACTS_DIR)) fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
     fs.writeFileSync(`${ARTIFACTS_DIR}/e2e_results.json`, JSON.stringify(allResults, null, 2), 'utf-8');

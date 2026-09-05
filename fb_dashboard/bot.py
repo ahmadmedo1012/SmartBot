@@ -682,10 +682,18 @@ class BotEngine:
                     self._mon.warn("tenant unpaid — skipping cycle")
                     return
                 if tenant and tenant.plan_end and utcnow() > tenant.plan_end:
-                    tenant.subscription_status = "UNPAID"
-                    await session.commit()
-                    self._mon.warn("tenant plan expired — skipping cycle")
-                    return
+                    if tenant.subscription_status == "TRIAL":
+                        # Plan §2.6: expired trial → EXPIRED_TRIAL. The engine KEEPS
+                        # running (basic auto-replies stay) — paid features are
+                        # gated elsewhere (has_ai/has_broadcast flags).
+                        tenant.subscription_status = "EXPIRED_TRIAL"
+                        await session.commit()
+                        self._mon.warn("tenant trial expired — EXPIRED_TRIAL (bot continues, paid features off)")
+                    else:
+                        tenant.subscription_status = "UNPAID"
+                        await session.commit()
+                        self._mon.warn("tenant plan expired — skipping cycle")
+                        return
                 # Self-healing usage counter reset
                 if tenant and tenant.plan_start:
                     period_start = tenant.plan_start

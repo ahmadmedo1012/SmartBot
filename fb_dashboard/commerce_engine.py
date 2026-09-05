@@ -2,6 +2,9 @@ from __future__ import annotations
 """Commerce Engine — E-commerce integration for Shopify.
 Connects store data to SmartBot flows for abandoned cart recovery,
 order confirmations, product recommendations.
+
+[DEPRECATED — plan §6.1: decoupled from the production flow; activates only
+with SHOPIFY_* env config. Kept for future use.]
 """
 import json
 import logging

@@ -18,9 +18,12 @@ async def check_rate_limit(db, key: str, max_attempts: int = 10, window_seconds:
         )
     )
 
-    # record attempt
+    # record attempt — MUST commit: callers may use a short-lived session
+    # (e.g. payments' rl_db) whose close() would otherwise roll this back,
+    # making the limiter a no-op across requests.
     db.add(RateLimitEntry(key=key, window_end=now + timedelta(seconds=window_seconds)))
     await db.flush()
+    await db.commit()
 
     # count in current window
     count = await db.scalar(

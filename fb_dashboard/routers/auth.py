@@ -15,7 +15,8 @@ from sqlalchemy import select, func, desc, or_
 
 from config import settings
 from database import get_db
-from models import User, Tenant, BlacklistedToken, AuditLog
+from models import User, Tenant, BlacklistedToken, AuditLog, SubscriptionPlan
+from _utils import utcnow
 from _hash import hash_password, verify_password
 from _audit import log_audit
 
@@ -146,6 +147,17 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     if len(password) < 6:
         raise HTTPException(400, "كلمة المرور يجب أن تكون 6 أحرف على الأقل")
     tenant = Tenant(name=username)
+    # Trial period (plan §2.5): register with a trial-enabled plan → TRIAL status
+    # until plan_end; expiry flips it to EXPIRED_TRIAL in BotEngine (§2.6).
+    trial_plan_id = body.get("plan_id", 0)
+    if trial_plan_id:
+        trial_plan = await db.get(SubscriptionPlan, int(trial_plan_id))
+        if trial_plan and trial_plan.is_active and (trial_plan.trial_days or 0) > 0:
+            tenant.plan_id = trial_plan.id
+            tenant.plan = trial_plan.name.lower()
+            tenant.subscription_status = "TRIAL"
+            tenant.plan_start = utcnow()
+            tenant.plan_end = utcnow() + timedelta(days=trial_plan.trial_days)
     db.add(tenant)
     await db.flush()
     pw_hash = hash_password(password)

@@ -1,6 +1,10 @@
 from __future__ import annotations
 """Sequence Engine -- Time-based drip campaign scheduler.
 Manages multi-step message sequences sent over days/weeks.
+
+[DEPRECATED — plan §6.1: decoupled from the production flow (CRUD endpoints
+remain under /api/sequences but no scheduler dispatches sends). Kept for
+future use.]
 """
 import asyncio
 import logging

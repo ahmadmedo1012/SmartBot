@@ -37,3 +37,6 @@ tsconfig.tsbuildinfo
 *.tsbuildinfo
 fb_dashboard/frontend/.next/
 __pycache__/
+
+# Receipt uploads (runtime data)
+fb_dashboard/static/uploads/

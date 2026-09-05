@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -24,6 +24,13 @@ import { apiFetch } from "@/lib/csrf-client"
 interface OnboardingWizardProps {
   onComplete: () => void
   onSkip?: () => void
+}
+
+interface PlanPreview {
+  id: number
+  name_ar: string
+  price: number
+  features: string[]
 }
 
 const STEPS = [
@@ -77,14 +84,78 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   // Step 1 (index 1): Facebook page fields
   const [pageId, setPageId] = useState("")
   const [pageName, setPageName] = useState("")
+  const [accessToken, setAccessToken] = useState("")
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<
+    { connected: boolean; page_name?: string; fan_count?: number; error?: string } | null
+  >(null)
 
   // Step 2 (index 2): First rule fields
   const [keyword, setKeyword] = useState("")
   const [reply, setReply] = useState("")
+  const [suggesting, setSuggesting] = useState(false)
+
+  // Step 3 (index 3): real plans from API
+  const [plans, setPlans] = useState<PlanPreview[]>([])
+  useEffect(() => {
+    apiFetch("/api/plans")
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d?.data) ? d.data : []
+        setPlans(list.filter((p: PlanPreview) => Number(p.price) > 0).slice(0, 3))
+      })
+      .catch(() => {/* keep empty — the CTA link still works */})
+  }, [])
 
   const total = STEPS.length
   const current = STEPS[step]
   const Icon = current.icon
+
+  const handleTestConnection = useCallback(async () => {
+    if (!pageId.trim() || !accessToken.trim()) {
+      setTestResult({ connected: false, error: "أدخل معرف الصفحة ورمز الوصول أولاً" })
+      return
+    }
+    setTesting(true)
+    try {
+      const res = await apiFetch("/api/onboarding/test-connection", {
+        method: "POST",
+        body: JSON.stringify({ page_id: pageId, access_token: accessToken }),
+      })
+      const d = await res.json()
+      setTestResult(d?.data ?? d)
+      if (d?.data?.connected && d?.data?.page_name && !pageName) {
+        setPageName(d.data.page_name)
+      }
+    } catch (e) {
+      setTestResult({ connected: false, error: "تعذر الاتصال — تحقق من البيانات" })
+    } finally {
+      setTesting(false)
+    }
+  }, [pageId, accessToken, pageName])
+
+  const handleSuggestReply = useCallback(async () => {
+    if (!keyword.trim()) {
+      toast.error("أدخل كلمة مفتاحية أولاً")
+      return
+    }
+    setSuggesting(true)
+    try {
+      const res = await apiFetch("/api/onboarding/suggest-reply", {
+        method: "POST",
+        body: JSON.stringify({ keyword }),
+      })
+      const d = await res.json()
+      if (d?.data?.suggestion) {
+        setReply(d.data.suggestion)
+        toast.success(d.data.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
+      }
+    } catch {
+      toast.error("تعذر الاقتراح — اكتب الرد يدوياً")
+    } finally {
+      setSuggesting(false)
+    }
+  }, [keyword])
 
   const handleNext = useCallback(async () => {
     // Step 1 (index 1) → save page connection before advancing
@@ -92,7 +163,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       try {
         await apiFetch("/api/onboarding/connect-page", {
           method: "POST",
-          body: JSON.stringify({ page_id: pageId, page_name: pageName }),
+          body: JSON.stringify({ page_id: pageId, page_name: pageName, access_token: accessToken }),
         })
       } catch {
         // Non-fatal — continue wizard
@@ -211,23 +282,61 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     dir="ltr"
                   />
                   <Input
-                    label="اسم الصفحة"
+                    label="رمز الوصول (Page Access Token)"
+                    id="accessToken"
+                    type="password"
+                    value={accessToken}
+                    onChange={(e) => setAccessToken(e.target.value)}
+                    placeholder="EAAG..."
+                    dir="ltr"
+                    hint="من Graph API Explorer بصلاحيات الصفحة — يُشفّر فور الحفظ"
+                  />
+                  <Input
+                    label="اسم الصفحة (اختياري — يُملأ تلقائياً عند نجاح الاختبار)"
                     id="pageName"
                     value={pageName}
                     onChange={(e) => setPageName(e.target.value)}
                     placeholder="اسم صفحتك على فيسبوك"
                   />
+                  {/* اختبار الاتصال قبل التأكيد — الخطة ٥.١ */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleTestConnection}
+                    disabled={testing}
+                  >
+                    {testing ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
+                    {testing ? "جاري اختبار الاتصال..." : "اختبار الاتصال قبل التأكيد"}
+                  </Button>
+                  {testResult && (
+                    <div
+                      className={`rounded-lg p-2.5 text-xs leading-relaxed ${
+                        testResult.connected
+                          ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                          : "bg-red-500/10 text-red-600 border border-red-500/20"
+                      }`}
+                    >
+                      {testResult.connected
+                        ? "✓ الاتصال ناجح — " +
+                          testResult.page_name +
+                          (testResult.fan_count
+                            ? " (" + testResult.fan_count.toLocaleString("ar-EG") + " متابع)"
+                            : "")
+                        : "✗ " + (testResult.error || "فشل الاتصال")}
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    ستجد معرف الصفحة من{" "}
+                    ستجد الرمز من{" "}
                     <a
-                      href="https://business.facebook.com"
+                      href="https://developers.facebook.com/tools/explorer/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-orange-500 hover:underline"
                     >
-                      Meta Business
-                    </a>
-                    . يمكنك أيضاً نسخ رابط صفحتك لمعرفة المعرف.
+                      Graph API Explorer
+                    </a>{" "}
+                    بعد اختيار صفحتك والصلاحيات.
                   </p>
                 </motion.div>
               )}
@@ -248,12 +357,24 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     hint="البوت يرد عند ذكر هذه الكلمة في التعليق"
                   />
                   <div className="space-y-1">
-                    <label
-                      htmlFor="reply"
-                      className="text-sm font-semibold leading-none"
-                    >
-                      نص الرد
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="reply" className="text-sm font-semibold leading-none">
+                        نص الرد
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleSuggestReply}
+                        disabled={suggesting || !keyword.trim()}
+                        className="text-[11px] font-medium text-orange-500 hover:text-orange-400 disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {suggesting ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-3" />
+                        )}
+                        اقترح رداً
+                      </button>
+                    </div>
                     <textarea
                       id="reply"
                       value={reply}
@@ -262,6 +383,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       rows={3}
                       className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
+                    </p>
                   </div>
                 </motion.div>
               )}
@@ -274,11 +398,17 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   className="space-y-3"
                 >
                   <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { name: "مجاني", price: "0", desc: "مثالي للتجربة", color: "border-border/40" },
-                      { name: "أساسي", price: "50", desc: "للمتاجر الصغيرة", color: "border-orange-500/40" },
-                      { name: "احترافي", price: "150", desc: "للمتاجر الكبيرة", color: "border-border/40" },
-                    ].map((plan) => (
+                    {(plans.length > 0
+                      ? plans.map((p) => ({
+                          name: p.name_ar,
+                          price: String(p.price),
+                          desc: (p.features || [])[0] || "",
+                          color: p.id === plans[1]?.id ? "border-orange-500/40" : "border-border/40",
+                        }))
+                      : [
+                          { name: "…", price: "…", desc: "جاري التحميل", color: "border-border/40" },
+                        ]
+                    ).map((plan) => (
                       <div
                         key={plan.name}
                         className={`rounded-xl border-2 p-3 text-center ${plan.color}`}

@@ -1,6 +1,9 @@
 from __future__ import annotations
 """PDF Reports Engine -- White-label client-ready PDF reports (weasyprint).
 Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
+
+[DEPRECATED — plan §6.1: activated but not invoked in the production flow.
+Kept for future use; do not build new features on top of it.]
 """
 import io
 import logging

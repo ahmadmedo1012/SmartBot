@@ -14,10 +14,80 @@ from database import engine, AsyncSessionLocal, get_db
 from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote
 from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
 from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
+from models import SystemConfig
 from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["admin"])
+
+# Payment config keys an admin may manage (plan §2.4). Everything else in
+# SystemConfig stays hands-off — this endpoint cannot touch arbitrary rows.
+_PAYMENT_CONFIG_KEYS = {
+    "balance_transfer_phone_2",  # ليبيانا
+    "balance_transfer_phone_1",  # مدار
+    "bank_transfer_bank_name",
+    "bank_transfer_account_number",
+    "bank_transfer_iban",
+    "mobile_wallet_cap",
+}
+
+
+@router.get("/api/admin/config")
+async def admin_get_config(db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    """Admin: read the payment-related SystemConfig entries (incl. secrets-free values)."""
+    rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_PAYMENT_CONFIG_KEYS)))
+    return {"success": True, "data": {r.key: r.value for r in rows.scalars().all()}}
+
+
+@router.post("/api/admin/config")
+async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
+    """Admin: set payment config (bank transfer details, wallet phones, wallet cap).
+
+    Plan §2.4 — the bank details shown on /subscribe come from SystemConfig;
+    env vars are only fallbacks. Setting a key to "" removes the DB override
+    (falls back to env / frontend defaults).
+    """
+    if not body:
+        raise HTTPException(400, "JSON body required")
+    payload = body.get("config", body) if isinstance(body.get("config", body), dict) else None
+    if not payload:
+        raise HTTPException(400, "config object required")
+    invalid = [k for k in payload if k not in _PAYMENT_CONFIG_KEYS]
+    if invalid:
+        raise HTTPException(400, f"مفاتيح غير مسموحة: {', '.join(invalid)}")
+    # validate wallet cap value
+    if "mobile_wallet_cap" in payload:
+        try:
+            cap = int(float(payload["mobile_wallet_cap"]))
+            if cap < 1 or cap > 10000:
+                raise ValueError
+            payload["mobile_wallet_cap"] = str(cap)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "mobile_wallet_cap يجب أن يكون رقماً بين 1 و 10000")
+    from _audit import log_audit
+    await log_audit(db, "admin_set_config", actor_id=current_user.id,
+                    tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})
+    for k, v in payload.items():
+        v = str(v or "").strip()
+        existing = await db.execute(select(SystemConfig).where(SystemConfig.key == k))
+        row = existing.scalar_one_or_none()
+        if v == "":
+            if row:
+                await db.delete(row)  # remove override → env/frontend fallback applies
+            continue
+        if row:
+            row.value = v
+            row.is_secret = False
+        else:
+            db.add(SystemConfig(key=k, value=v, is_secret=False))
+    await db.commit()
+    # invalidate the cached public /api/config so new values show immediately
+    try:
+        from _services import api_cache
+        api_cache.clear_all()
+    except Exception:
+        pass
+    return {"success": True, "data": {"updated": sorted(payload.keys())}}
 
 
 async def seed_admin(db):

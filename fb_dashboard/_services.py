@@ -54,14 +54,23 @@ _bot_engines: dict[int, BotEngine] = {}
 _bot_engine_lock = __import__('threading').RLock()
 
 def get_bot_engine(fb_client=None, tenant_id: int = 0) -> BotEngine:
+    """Per-tenant BotEngine registry (plan §1.3 — webhook tenant routing).
+
+    - Same tenant → SAME engine instance, so dedup cache, cooldown and rule
+      cache are shared between the background loop and the webhook handler.
+      (A new instance per call loses dedup state → duplicate replies.)
+    - A different fb_client (e.g. refreshed token) is swapped onto the existing
+      engine so per-tenant state survives token/page rotation.
+    """
     global _bot_engines
     with _bot_engine_lock:
-        if fb_client is not None:
-            _bot_engines[tenant_id] = BotEngine(fb_client, tenant_id=tenant_id)
-            return _bot_engines[tenant_id]
-        if tenant_id not in _bot_engines:
-            _bot_engines[tenant_id] = BotEngine(None, tenant_id=tenant_id)
-        return _bot_engines[tenant_id]
+        engine = _bot_engines.get(tenant_id)
+        if engine is None:
+            engine = BotEngine(fb_client, tenant_id=tenant_id)
+            _bot_engines[tenant_id] = engine
+        elif fb_client is not None and engine.fb is not fb_client:
+            engine.fb = fb_client  # token/page rotation — keep engine state
+        return engine
 
 def reset_bot_engines():
     """Reset all BotEngine instances (used during test teardown / tenant deactivation)."""

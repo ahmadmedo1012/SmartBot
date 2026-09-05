@@ -1,9 +1,13 @@
 """Payment & subscription routes: topup, confirm, balance, history, subscriptions."""
 import asyncio
 import logging
+import os
+import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, Query, HTTPException, Body, Request, UploadFile, File
 from sqlalchemy import select, func, desc, update
 
 from _utils import utcnow
@@ -16,9 +20,104 @@ from telegram_bot import notify_admins_new_payment, notify_admins_new_subscripti
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
 
+# Receipt uploads — plan §2.1 (receipt upload)
+# payments.py lives in fb_dashboard/routers/ → static/ is one level up
+_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "static" / "uploads" / "receipts"
+_MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5MB
+_ALLOWED_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+_IS_VERCEL = bool(os.getenv("VERCEL"))
+
+
+@router.post("/api/upload")
+async def upload_receipt(request: Request, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+    """Upload a payment receipt image (plan §2.1).
+
+    - Authenticated users only.
+    - Rate-limited (10/min per IP — plan §7.1).
+    - Content-type + magic-byte validation, 5MB cap, Pillow re-encode to
+      cap dimensions (1600px) so storage/Telegram payloads stay sane.
+    - Local disk: saved to static/uploads/receipts → returns /static/... URL.
+    - Vercel (read-only FS): returns a data: URL so the receipt still
+      reaches the admin review flow via extra_data.
+    """
+    await _payment_rate_limit(request, "upload")
+    ctype = (file.content_type or "").lower()
+    if ctype not in _ALLOWED_TYPES:
+        raise HTTPException(400, "صيغة الصورة غير مدعومة — JPG أو PNG أو WEBP فقط")
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "الملف فارغ")
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(400, "حجم الصورة يتجاوز 5 ميغابايت")
+
+    # Re-encode with Pillow: validates real image content AND caps dimensions
+    try:
+        import io
+        from PIL import Image
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+        img = img.convert("RGB")
+        if max(img.size) > 1600:
+            img.thumbnail((1600, 1600))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        payload = buf.getvalue()
+        ext = ".jpg"
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "الملف ليس صورة صالحة")
+
+    if _IS_VERCEL:
+        import base64
+        url = f"data:image/jpeg;base64,{base64.b64encode(payload).decode()}"
+        return {"success": True, "data": {"url": url}}
+
+    try:
+        _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        name = f"{secrets.token_hex(12)}{ext}"
+        (_UPLOAD_DIR / name).write_bytes(payload)
+        url = f"/static/uploads/receipts/{name}"
+        return {"success": True, "data": {"url": url}}
+    except Exception as e:
+        log.error(f"receipt upload failed: {e}", exc_info=True)
+        raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى")
+
+
+def _reject_wallet_above_cap(provider: str, amount: float) -> None:
+    """Plan §2.2: amounts above MOBILE_WALLET_CAP (99 LYD) must go via bank transfer.
+
+    Server-side enforcement — the frontend auto-switch is UX only and can be bypassed.
+    """
+    if provider in ("liyana", "madar") and float(amount) > float(settings.MOBILE_WALLET_CAP):
+        raise HTTPException(
+            400,
+            f"المبالغ فوق {settings.MOBILE_WALLET_CAP} د.ل تتطلب تحويل بنكي — اختر مزود التحويل البنكي",
+        )
+
+
+async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10, window: int = 60) -> None:
+    """Plan §7.1: rate limit every payment-adjacent POST.
+
+    Same DB-backed limiter as /api/subscriptions; graceful degradation if
+    the check itself fails (never blocks legitimate payments on limiter hiccups).
+    """
+    try:
+        from _rate_limit import check_rate_limit
+        async with AsyncSessionLocal() as rl_db:
+            if not await check_rate_limit(rl_db, f"{key}:{request.client.host if request.client else 'unknown'}",
+                                          max_attempts=max_attempts, window_seconds=window):
+                raise HTTPException(429, "محاولات كثيرة — حاول بعد قليل")
+    except HTTPException:
+        raise
+    except Exception:
+        log.warning("payment rate-limit check failed — allowing through", exc_info=True)
+
 
 @router.post("/api/payments/topup")
-async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await _payment_rate_limit(request, "topup")
     amount = body.get("amount", 0)
     provider = body.get("provider", "")
     phone = body.get("phone", "")
@@ -26,6 +125,7 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
         raise HTTPException(400, "المبلغ غير صالح (1-10000)")
     if provider not in ("liyana", "madar"):
         raise HTTPException(400, "مزود الدفع غير صالح")
+    _reject_wallet_above_cap(provider, amount)
     if not phone or len(phone) < 7:
         raise HTTPException(400, "رقم الهاتف غير صالح")
     pr = PaymentRequest(
@@ -50,8 +150,9 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
 
 
 @router.post("/api/payments/confirm")
-async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def payment_confirm(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """User submits transfer reference — marks pending for admin approval."""
+    await _payment_rate_limit(request, "confirm")
     pid = body.get("payment_id", 0)
     ref = body.get("reference", "")
     if not pid or not ref:
@@ -139,6 +240,8 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         raise HTTPException(400, "الباقة غير موجودة")
     if provider != "bank" and float(amount) != float(plan.price):
         raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
+    # غلاف المحافظ (فرض على الخادم — التحويل فوق 99 د.ل بنكي فقط)
+    _reject_wallet_above_cap(provider, amount if provider != "bank" else 0)
     if provider != "bank" and (not phone or len(phone) < 7):
         raise HTTPException(400, "رقم الهاتف غير صالح")
 
@@ -245,6 +348,7 @@ async def upgrade_subscription(body: dict = Body(...), db=Depends(get_db), curre
             raise HTTPException(400, "رقم الهاتف غير صالح")
         if float(amount) != float(new_plan.price):
             raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
+        _reject_wallet_above_cap(provider, amount)
     else:
         amount = float(amount) if amount else float(new_plan.price)
         if amount < float(new_plan.price) * 0.5:
@@ -340,5 +444,24 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
             user = await db.get(User, sp.user_id)
             if user:
                 user.subscription_status = "REJECTED"
+    # In-app notification (plan §4.2 — payment alerts)
+    try:
+        from routers.notifications import push_notification
+        if decision == "verified":
+            await push_notification(
+                db, sp.tenant_id,
+                title="تم تأكيد الدفع وتفعيل الاشتراك",
+                body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+            )
+        else:
+            await push_notification(
+                db, sp.tenant_id,
+                title="تم رفض طلب الدفع",
+                body=f"رُفضت دفعة بقيمة {float(sp.amount):.2f} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
+                type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+            )
+    except Exception:
+        pass
     await db.commit()
     return {"success": True, "data": {"ok": True, "status": decision}}

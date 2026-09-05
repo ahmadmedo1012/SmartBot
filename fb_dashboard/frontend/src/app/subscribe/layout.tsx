@@ -1,13 +1,18 @@
 import type { Metadata } from "next"
 
-const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
-  title: "اشتراك",
-  description: "اشترك في SmartBot وابدأ في أتمتة ردود فيسبوك — خطط متنوعة تبدأ من مجانية",
-  alternates: { canonical: `${siteUrl}/subscribe` },
-  openGraph: { title: "اشتراك | SmartBot", description: "اشترك في SmartBot الآن" },
-  robots: { index: true, follow: true },
+  title: "الاشتراك والدفع",
+  description:
+    "اشترك في SmartBot وادفع بطريقتك: محفظة ليبيانا أو مدار للفئات الصغيرة، أو تحويل بنكي للمبالغ الكبيرة — تفعيل فوري بعد موافقة الإدارة.",
+  alternates: { canonical: `${BASE}/subscribe` },
+  openGraph: {
+    title: "اشترك في SmartBot",
+    description: "دفع محلي بسيط: ليبيانا، مدار، أو تحويل بنكي — بدون بطاقات ائتمان.",
+    url: `${BASE}/subscribe`,
+    type: "website",
+  },
 }
 
 export default function SubscribeLayout({ children }: { children: React.ReactNode }) {

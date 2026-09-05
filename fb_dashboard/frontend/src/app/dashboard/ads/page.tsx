@@ -68,15 +68,15 @@ export default function AdsPage() {
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-bold">{a.name}</p>
                     <span className={`text-[11px] px-2 py-0.5 rounded-full ${
-                      a.status === "ACTIVE" ? "bg-green-500/10 text-green-500" :
-                      a.status === "PAUSED" ? "bg-yellow-500/10 text-yellow-500" :
+                      a.status === "ACTIVE" ? "bg-success/15 text-success" :
+                      a.status === "PAUSED" ? "bg-warning/15 text-warning" :
                       "bg-muted text-muted-foreground"
-                    }`}>{a.status}</span>
+                    }`}>{a.status === "ACTIVE" ? "نشطة" : a.status === "PAUSED" ? "متوقفة" : a.status}</span>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {a.currency && <p>العملة: {a.currency}</p>}
-                    {a.amount_spent != null && <p>المصروف: {Number(a.amount_spent).toLocaleString()}</p>}
-                    {a.balance != null && <p>الرصيد: {Number(a.balance).toLocaleString()}</p>}
+                    {a.amount_spent != null && <p>المصروف: {Number(a.amount_spent).toLocaleString("ar-LY")}</p>}
+                    {a.balance != null && <p>الرصيد: {Number(a.balance).toLocaleString("ar-LY")}</p>}
                   </div>
                 </CardContent>
               </Card>

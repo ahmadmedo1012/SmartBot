@@ -119,18 +119,31 @@ function GenericListView({ data }: { data: any; label: string }) {
   if (!data) return <div className="p-6 text-center text-sm text-muted-foreground">بيانات غير كافية</div>
   if (Array.isArray(data) && data.length === 0)
     return <div className="p-6 text-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
+  // Non-array payloads: render a readable key/value summary instead of a raw
+  // JSON dump (plan v3 §7c — the <pre> looked broken to end users).
+  if (!Array.isArray(data)) {
+    const entries = Object.entries(data as Record<string, unknown>).slice(0, 12)
+    return (
+      <div className="p-6 space-y-2">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex items-start justify-between gap-4 text-sm border-b border-border/50 pb-2 last:border-0">
+            <span className="text-muted-foreground shrink-0">{k}</span>
+            <span className="font-medium text-end truncate">
+              {typeof v === "object" && v !== null ? "…" : String(v ?? "—")}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
   return (
     <div className="p-6 space-y-3">
-      {Array.isArray(data) ? data.slice(0, 20).map((item: any, i: number) => (
+      {data.slice(0, 20).map((item: any, i: number) => (
         <div key={item.id || i} className="border-b border-border pb-3 last:border-0 text-sm">
           <p className="font-medium">{item.name || item.title || item.label || `#${item.id || i}`}</p>
           {item.description && <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>}
         </div>
-      )) : (
-        <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-          {JSON.stringify(data, null, 2).slice(0, 2000)}
-        </pre>
-      )}
+      ))}
     </div>
   )
 }

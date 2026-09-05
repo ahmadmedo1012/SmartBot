@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { Search, Send, Bell, Link2, RefreshCw, MessageCircle } from "lucide-react"
+import { Search, Send, Bell, Link2, RefreshCw, MessageCircle, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -149,8 +149,13 @@ export default function MessagesPage() {
       />
 
       <div className="flex-1 flex" dir="rtl">
-        {/* Conversations list */}
-        <div className="w-96 border-l border-border flex flex-col bg-card/50">
+        {/* Conversations list — responsive master-detail (plan v3 §7c):
+         * was fixed w-96 swallowing the whole mobile screen; now full-width
+         * on mobile and hidden while a conversation is open (back button returns). */}
+        <div className={cn(
+          "w-full md:w-96 md:max-w-96 border-l border-border flex-col bg-card/50",
+          selectedId ? "hidden md:flex" : "flex"
+        )}>
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -241,7 +246,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Message area */}
-        <div className="flex-1 flex flex-col">
+        <div className={cn("flex-1 flex-col", selectedId ? "flex" : "hidden md:flex")}>
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center max-w-sm">
@@ -254,6 +259,12 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
+              {/* Mobile back-to-list (master-detail) */}
+              <div className="md:hidden flex items-center gap-2 p-2 border-b border-border bg-card/80">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} className="h-9">
+                  <ArrowRight className="size-4" /> كل المحادثات
+                </Button>
+              </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {msgLoading ? (
                   <div className="space-y-3">

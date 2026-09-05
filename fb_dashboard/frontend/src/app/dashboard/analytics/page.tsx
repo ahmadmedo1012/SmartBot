@@ -10,6 +10,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
 import { ActivityBarChart, ComparisonBars } from "@/components/charts"
 
+const SENTIMENT_LABELS: Record<string, string> = {
+  positive: "إيجابي", negative: "سلبي", neutral: "محايد", mixed: "مختلط",
+}
+const RULE_NAMES: Record<string, string> = {}
+
 export default function AnalyticsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
@@ -88,7 +93,7 @@ export default function AnalyticsPage() {
                 <div className="space-y-2">
                   {data.top_rules.map((r: any, i: number) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span>القاعدة #{r.rule_id}</span>
+                      <span>{RULE_NAMES[r.rule_id] || `القاعدة #${r.rule_id}`}</span>
                       <span className="text-muted-foreground">{r.count} رد</span>
                     </div>
                   ))}
@@ -104,7 +109,7 @@ export default function AnalyticsPage() {
               <h3 className="font-bold text-sm mb-3">توزيع المشاعر</h3>
               {data?.sentiment_distribution && Object.keys(data.sentiment_distribution).length > 0 ? (
                 <ComparisonBars
-                  data={Object.entries(data.sentiment_distribution as Record<string, number>).map(([k, v]) => ({ label: k, value: Number(v) ?? 0 }))}
+                  data={Object.entries(data.sentiment_distribution as Record<string, number>).map(([k, v]) => ({ label: SENTIMENT_LABELS[k] || k, value: Number(v) ?? 0 }))}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">لا توجد بيانات مشاعر</p>

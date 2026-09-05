@@ -2,17 +2,28 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { motion } from "framer-motion"
-import { TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle } from "lucide-react"
+import Link from "next/link"
+import {
+  TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle,
+  Users, Inbox, Bot, Link2, Zap,
+} from "lucide-react"
 
-import { cn } from "@/lib/utils"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { KpiCard } from "@/components/shared/KpiCard"
+import { ChartCard } from "@/components/shared/ChartCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { fadeUp, stagger } from "@/lib/motion"
 import { ActivityBarChart } from "@/components/charts"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { toArabicNumber } from "@/lib/format"
+import { cn } from "@/lib/utils"
+
+/* World-class launch plan v3 §7b: honest connection state, persisted-message
+ * KPIs, Smart-Menu KpiCard/ChartCard components, token-only colors. */
 
 // ── Skeleton ──
 function LoadingSkeleton() {
@@ -47,52 +58,7 @@ function ErrorState({ message, onRetry }: { message?: string; onRetry: () => voi
   )
 }
 
-const STAT_COLORS: Record<string, { bg: string; text: string }> = {
-  orange: { bg: "bg-orange/10", text: "text-orange" },
-  blue: { bg: "bg-blue-500/10", text: "text-blue-500" },
-  green: { bg: "bg-green-500/10", text: "text-green-500" },
-  yellow: { bg: "bg-yellow-500/10", text: "text-yellow-500" },
-  purple: { bg: "bg-purple-500/10", text: "text-purple-500" },
-  red: { bg: "bg-red-500/10", text: "text-red-500" },
-  emerald: { bg: "bg-emerald-500/10", text: "text-emerald-500" },
-  amber: { bg: "bg-amber-500/10", text: "text-amber-500" },
-  indigo: { bg: "bg-indigo-500/10", text: "text-indigo-500" },
-  cyan: { bg: "bg-cyan-500/10", text: "text-cyan-500" },
-  rose: { bg: "bg-rose-500/10", text: "text-rose-500" },
-}
-
-// ── Stats card ──
-function StatCard({ icon: Icon, label, value, trend, color }: {
-  icon: any; label: string; value: number | string; trend?: number; color?: string
-}) {
-  const c = color ? STAT_COLORS[color] : undefined
-  return (
-    <Card className="stat-card border-border/50 hover:border-orange/30">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className={cn("size-9 rounded-lg flex items-center justify-center transition-transform duration-200", c?.bg || "bg-muted")}>
-            <Icon className={cn("size-4", c?.text || "text-muted-foreground")} />
-          </div>
-          {trend !== undefined && (
-            <span className={cn(
-              "inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full",
-              trend >= 0 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-            )}>
-              <span aria-hidden="true">{trend >= 0 ? "↑" : "↓"}</span>
-              {Math.abs(trend)}%
-            </span>
-          )}
-        </div>
-        <p className="text-2xl font-bold tabular-nums tracking-tight">
-          {typeof value === "number" ? value.toLocaleString("ar-LY") : value}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-      </CardContent>
-    </Card>
-  )
-}
-
-// ── Bar Chart (recharts — Track E.5) ──
+// ── Bar Chart ──
 function ChartBars({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data).slice(-24)
   return (
@@ -110,6 +76,31 @@ function ChartBars({ data }: { data: Record<string, number> }) {
     </div>
   )
 }
+
+// ── Not connected ──
+function NotConnectedCard() {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="py-2">
+        <EmptyState
+          icon={Link2}
+          title="اربط صفحتك لتبدأ"
+          description="لم يتم ربط صفحة فيسبوك بهذا الحساب بعد. بعد الربط ستصل الرسائل والتعليقات فورًا ويعمل الرد التلقائي."
+          action={{
+            label: "ربط صفحة فيسبوك",
+            icon: Link2,
+            onClick: () => { window.location.href = "/connect" },
+          }}
+          secondaryAction={{
+            label: "إنشاء قاعدة رد أولًا",
+            onClick: () => { window.location.href = "/dashboard/autoreply" },
+          }}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Main Dashboard ──
 export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({
@@ -122,6 +113,9 @@ export default function DashboardPage() {
   const recentReplies = bundle?.recent_replies || []
   const rulesList = bundle?.rules || []
   const stats = bundle?.stats || {}
+  const connection = bundle?.connection || {}
+  const messages = bundle?.messages || {}
+  const connected = connection.connected !== false // absent flag = legacy assume true
 
   if (error && !isLoading) {
     return <ErrorState message={(error as Error)?.message} onRetry={() => refetch()} />
@@ -129,56 +123,85 @@ export default function DashboardPage() {
 
   if (isLoading && !bundle) return <LoadingSkeleton />
 
+  const pageName: string = connection.page_name || ""
+
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-        {/* Header */}
+    <div className="min-h-screen bg-background">
+        {/* Header — REAL connection state (was hardcoded "متصل") */}
         <PageHeader
           icon={<TrendingUp className="size-4" />}
           title="لوحة البيانات"
-          status={{ label: "متصل", tone: "success" }}
+          subtitle={pageName ? `متصل بـ ${pageName}` : undefined}
+          status={connected
+            ? { label: "متصل", tone: "success" }
+            : { label: "غير متصل", tone: "warning" }}
           compact
         />
 
         <SectionContainer className="py-6">
           <motion.div variants={stagger} initial="hidden" animate="visible">
-            {/* Stats grid */}
+            {/* Not connected → the ONE honest empty state that explains everything */}
+            {!connected && (
+              <motion.div variants={fadeUp} className="mb-6">
+                <NotConnectedCard />
+              </motion.div>
+            )}
+
+            {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links) */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
-              <StatCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0} trend={stats?.trend?.week} color="orange" />
-              <StatCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0} trend={stats?.trend?.today} color="blue" />
-              <StatCard icon={MessageCircle} label="المتابعون" value={stats?.fan_count || 0} color="green" />
-              <StatCard icon={RefreshCw} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length} color="yellow" />
+              <KpiCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0}
+                trend={stats?.trend?.week} iconBg="bg-orange-muted" index={0}
+                href="/dashboard/activity" />
+              <KpiCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0}
+                trend={stats?.trend?.today} iconBg="bg-success/10" iconColor="text-success" index={1} />
+              <KpiCard icon={Inbox} label="محادثات الماسنجر" value={messages.total_conversations || 0}
+                subtitle={`${toArabicNumber(messages.unread_conversations || 0)} غير مقروءة`}
+                iconBg="bg-info/10" iconColor="text-info" index={2}
+                href="/dashboard/messages" />
+              <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length}
+                subtitle={`من ${toArabicNumber(rulesList.length)} قاعدة`}
+                iconBg="bg-orange-muted" index={3}
+                href="/dashboard/autoreply" />
+            </div>
+
+            {/* Secondary row — audience + persisted messages */}
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
+              <KpiCard icon={Users} label="متابعو الصفحة" value={stats?.fan_count || 0}
+                iconBg="bg-orange-muted" index={4} />
+              <KpiCard icon={MessageCircle} label="الرسائل المخزنة" value={messages.total_messages || 0}
+                subtitle="تصل لحظيًا عبر الويبهوك" iconBg="bg-info/10" iconColor="text-info" index={5}
+                href="/dashboard/messages" />
+              <KpiCard icon={Zap} label="ردود البوت على الرسائل" value={messages.bot_replies || 0}
+                iconBg="bg-success/10" iconColor="text-success" index={6} />
             </div>
 
             {/* Activity chart */}
-            <motion.div variants={fadeUp} custom={4} className="mb-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="size-4 text-orange" /> النشاط اليومي
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {stats?.chart ? (
-                    <ChartBars data={stats.chart} />
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">بيانات غير كافية بعد</p>
-                  )}
-                </CardContent>
-              </Card>
+            <motion.div variants={fadeUp} custom={7} className="mb-6">
+              <ChartCard
+                title="النشاط اليومي"
+                description="ردود البوت خلال آخر 7 أيام"
+                icon={TrendingUp}
+                empty={!stats?.chart || Object.keys(stats.chart).length === 0}
+                emptyTitle="لا توجد ردود بعد"
+                emptyDescription="ستظهر حركة الردود هنا بعد أول تفاعل على صفحتك."
+                summary="مخطط أعمدة للردود اليومية خلال آخر سبعة أيام"
+              >
+                <ChartBars data={stats.chart || {}} />
+              </ChartCard>
             </motion.div>
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Recent replies */}
-              <motion.div variants={fadeUp} custom={5}>
+              <motion.div variants={fadeUp} custom={8}>
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
+                    <CardTitle className="flex items-center gap-2">
                       <MessageCircle className="size-4 text-orange" /> آخر الردود
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r: any) => (
-                      <div key={r.id} className="flex items-start gap-3 px-6 py-3 border-b border-border last:border-0">
+                      <div key={r.id} className="flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0">
                         <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
                           {(r.commenter_name || r.commenter || "?")[0]}
                         </div>
@@ -195,41 +218,50 @@ export default function DashboardPage() {
                 </Card>
               </motion.div>
 
-              {/* Rules */}
-              <motion.div variants={fadeUp} custom={6}>
+              {/* Rules — overflow-safe, token colors, no dead "keywords" column */}
+              <motion.div variants={fadeUp} custom={9}>
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
+                    <CardTitle className="flex items-center gap-2">
                       <Activity className="size-4 text-orange" /> قواعد الرد
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     {rulesList.length > 0 ? (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-border text-muted-foreground text-xs">
-                            <th className="text-right p-3 font-medium">القاعدة</th>
-                            <th className="text-center p-3 font-medium">الكلمات</th>
-                            <th className="text-center p-3 font-medium">الحالة</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rulesList.slice(0, 5).map((r: any) => (
-                            <tr key={r.id} className="border-b border-border last:border-0">
-                              <td className="p-3 font-medium">{r.name}</td>
-                              <td className="p-3 text-center text-muted-foreground">{r.keywords || "—"}</td>
-                              <td className="p-3 text-center">
-                                <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-green-600" : "text-muted-foreground")}>
-                                  <span className={cn("size-1.5 rounded-full", r.enabled !== false ? "bg-green-500" : "bg-muted-foreground")} />
-                                  {r.enabled !== false ? "نشط" : "متوقف"}
-                                </span>
-                              </td>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border text-muted-foreground text-xs">
+                              <th className="text-start p-3 font-medium">القاعدة</th>
+                              <th className="text-center p-3 font-medium">الحالة</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {rulesList.slice(0, 5).map((r: any) => (
+                              <tr key={r.id} className="border-b border-border last:border-0">
+                                <td className="p-3 font-medium">{r.name}</td>
+                                <td className="p-3 text-center">
+                                  <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-success" : "text-muted-foreground")}>
+                                    <span className={cn("size-1.5 rounded-full", r.enabled !== false ? "bg-success" : "bg-muted-foreground")} />
+                                    {r.enabled !== false ? "نشط" : "متوقف"}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
-                      <div className="p-8 text-center text-sm text-muted-foreground">لا توجد قواعد بعد</div>
+                      <EmptyState
+                        icon={Activity}
+                        title="لا توجد قواعد بعد"
+                        description="أنشئ قاعدة رد أولى ليبدأ البوت بالرد تلقائيًا."
+                        size="sm"
+                        action={{
+                          label: "إنشاء قاعدة",
+                          onClick: () => { window.location.href = "/dashboard/autoreply" },
+                        }}
+                      />
                     )}
                   </CardContent>
                 </Card>

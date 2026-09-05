@@ -53,6 +53,10 @@ export default function StatsSection() {
     },
   ]
 
+  // "never fake" (usePublicStats.ts): when the API is unreachable we show a
+  // qualitative marker instead of a misleading "0+" (plan v3 §7c).
+  const zero = !loading && items.every((it) => it.value === 0)
+
   return (
     <SectionContainer>
       <div className="glass-strong rounded-2xl mx-auto max-w-4xl p-6 sm:p-8">
@@ -72,10 +76,12 @@ export default function StatsSection() {
                       <span className="inline-flex items-center gap-1 text-[1rem]">
                         <Loader2 className="size-4 animate-spin" />
                       </span>
+                    ) : zero ? (
+                      <span className="text-[1.5rem]">—</span>
                     ) : (
                       <AnimatedNumber value={item.value} />
                     )}
-                    {item.suffix}
+                    {!zero && item.suffix}
                   </span>
                 </div>
                 <div className="text-xs sm:text-sm font-medium text-muted-foreground/80">{item.label}</div>

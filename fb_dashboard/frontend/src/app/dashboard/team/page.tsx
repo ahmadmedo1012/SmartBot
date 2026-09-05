@@ -7,17 +7,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "مدير", editor: "محرر", viewer: "مشاهد", member: "عضو",
+}
+
 export default function TeamPage() {
-  const { data: members = [], isLoading } = useQuery({
+  const { data: members = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["team-members"],
     queryFn: () => apiFetch("/api/team/members").then(unwrapApi),
     refetchInterval: 30000,
+    retry: 1,
   })
 
   const roleIcon = (role: string) => {
     switch (role) {
       case "admin": return <Shield className="size-3 text-orange" />
-      case "editor": return <User className="size-3 text-blue-500" />
+      case "editor": return <User className="size-3 text-info" />
       default: return <User className="size-3 text-muted-foreground" />
     }
   }
@@ -38,6 +43,12 @@ export default function TeamPage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-3">
         {isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-12" /></Card>)}</div>
+        ) : isError ? (
+          <div className="text-center py-8">
+            <Users2 className="size-8 mx-auto mb-2 text-muted-foreground/40" />
+            <p className="text-xs text-muted-foreground mb-3">{(error as any)?.message || "تعذر تحميل الفريق"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          </div>
         ) : members.length === 0 ? (
           <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">لا يوجد أعضاء فريق بعد</CardContent></Card>
         ) : (
@@ -53,7 +64,7 @@ export default function TeamPage() {
                 </div>
                 <div className="flex items-center gap-1 text-xs">
                   {roleIcon(m.role)}
-                  <span className="capitalize">{m.role}</span>
+                  <span>{ROLE_LABELS[m.role] || m.role}</span>
                 </div>
               </CardContent>
             </Card>

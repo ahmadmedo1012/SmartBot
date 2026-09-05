@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot } from "lucide-react"
 import Link from "next/link"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -102,7 +102,25 @@ const SUPPORT_FIELDS: Field[] = [
   },
 ]
 
-const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS].map((f) => f.key)
+const TELEGRAM_FIELDS: Field[] = [
+  {
+    key: "telegram_bot_token",
+    label: "توكن بوت تليجرام",
+    placeholder: "123456789:AAHfAk...",
+    hint: "من @BotFather في تليجرام — يفعّل إشعارات الدفع والاشتراك والتحكم بالموافقة",
+    ltr: true,
+    type: "password",
+  },
+  {
+    key: "telegram_chat_id",
+    label: "معرف الدردشة الافتراضي",
+    placeholder: "123456789",
+    hint: "اختياري — رقم حسابك أو @قناتك لتلقي الرسائل التجريبية والإشعارات العامة",
+    ltr: true,
+  },
+]
+
+const ALL_KEYS = [...PAYMENT_FIELDS, ...SUPPORT_FIELDS, ...TELEGRAM_FIELDS].map((f) => f.key)
 
 type ConfigMap = Partial<Record<string, string>>
 
@@ -111,6 +129,7 @@ export default function AdminSettingsPage() {
   const [orig, setOrig] = useState<ConfigMap>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
 
   // robots noindex — admin area
   useEffect(() => {
@@ -168,6 +187,22 @@ export default function AdminSettingsPage() {
       toast.error("خطأ في الاتصال")
     }
     setSaving(false)
+  }
+
+  const sendTelegramTest = async () => {
+    setTesting(true)
+    try {
+      const r = await apiFetch("/api/telegram/test", { method: "POST" })
+      if (r.ok) {
+        toast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
+      } else {
+        const body = await r.json().catch(() => null)
+        toast.error(body?.detail || "فشل الإرسال — احفظ التوكن أولًا")
+      }
+    } catch {
+      toast.error("خطأ في الاتصال")
+    }
+    setTesting(false)
   }
 
   const reset = () => setConfig({ ...orig })
@@ -242,26 +277,60 @@ export default function AdminSettingsPage() {
           </Card>
         </motion.div>
 
-        {/* Support section */}
-        <motion.div {...fadeUp}>
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Headset className="size-4 text-orange" /> معلومات الدعم
-              </CardTitle>
-              <CardDescription>
-                بيانات التواصل التي يراها العملاء في صفحة الدعم داخل لوحة التحكم
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {SUPPORT_FIELDS.map(fieldRow)}
-              <div className="rounded-lg bg-orange/10 border border-orange/20 p-3 text-xs text-foreground/80 leading-relaxed">
-                اترك أي حقل فارغًا للعودة إلى القيمة الافتراضية. ما تحدده هنا يلغي القيم
-                الافتراضية فور النشر — دون إعادة نشر الموقع.
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <div className="space-y-6">
+          {/* Support section */}
+          <motion.div {...fadeUp}>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Headset className="size-4 text-orange" /> معلومات الدعم
+                </CardTitle>
+                <CardDescription>
+                  بيانات التواصل التي يراها العملاء في صفحة الدعم داخل لوحة التحكم
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {SUPPORT_FIELDS.map(fieldRow)}
+                <div className="rounded-lg bg-orange/10 border border-orange/20 p-3 text-xs text-foreground/80 leading-relaxed">
+                  اترك أي حقل فارغًا للعودة إلى القيمة الافتراضية. ما تحدده هنا يلغي القيم
+                  الافتراضية فور النشر — دون إعادة نشر الموقع.
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Telegram notifications section (plan v3 §5.3) */}
+          <motion.div {...fadeUp}>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bot className="size-4 text-orange" /> إشعارات تليجرام
+                </CardTitle>
+                <CardDescription>
+                  يصلك إشعار فوري عند كل طلب دفع أو اشتراك جديد — مع أزرار موافقة/رفض مباشرة من تليجرام
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {TELEGRAM_FIELDS.map(fieldRow)}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-xs text-muted-foreground leading-relaxed flex-1 min-w-[220px]">
+                    بعد حفظ التوكن، أرسل /start لبوتك في تليجرام ثم جرّب الإرسال.
+                    أضف مدراء إضافيين من صفحة تليجرام في لوحة الإدارة.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={sendTelegramTest}
+                    disabled={testing || dirty}
+                    className="shrink-0"
+                  >
+                    <Send className="size-3.5" /> {testing ? "جارٍ الإرسال…" : "إرسال رسالة تجريبية"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
       </div>
     </SectionContainer>
   )

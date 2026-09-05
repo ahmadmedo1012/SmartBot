@@ -48,7 +48,7 @@ export function EmptyState({
   return (
     <div className={cn("flex flex-col items-center justify-center text-center px-6", s.wrapper, className)}>
       {Icon || iconNode ? (
-        <div className={cn("rounded-2xl flex items-center justify-center mb-4", s.iconBg, iconBgClassName)}>
+        <div className={cn("rounded-2xl border border-orange/20 bg-orange/8 flex items-center justify-center mb-4 shadow-sm", s.iconBg, iconBgClassName)}>
           {Icon ? (
             <Icon className={cn(s.icon, iconClassName)} />
           ) : (
@@ -56,7 +56,7 @@ export function EmptyState({
           )}
         </div>
       ) : null}
-      <p className={cn("font-semibold mb-1 text-foreground", s.title)}>{title}</p>
+      <p className={cn("font-bold mb-1 text-foreground", s.title)}>{title}</p>
       {description && (
         <p className={cn("text-muted-foreground mb-4 max-w-xs leading-relaxed", s.desc)}>{description}</p>
       )}

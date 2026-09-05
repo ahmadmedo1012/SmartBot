@@ -62,7 +62,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-blue-500/10 flex items-center justify-center"><MessageSquare className="size-4 text-blue-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_comments?.toLocaleString() || 0}</p>
+                    <p className="text-xl font-bold">{dashboard?.total_comments?.toLocaleString("ar-LY") || 0}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي التعليقات</p>
                   </div>
                 </CardContent>
@@ -71,7 +71,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-green-500/10 flex items-center justify-center"><ThumbsUp className="size-4 text-green-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_likes?.toLocaleString() || 0}</p>
+                    <p className="text-xl font-bold">{dashboard?.total_likes?.toLocaleString("ar-LY") || 0}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي الإعجابات</p>
                   </div>
                 </CardContent>
@@ -80,7 +80,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-purple-500/10 flex items-center justify-center"><Eye className="size-4 text-purple-500" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_views?.toLocaleString() || 0}</p>
+                    <p className="text-xl font-bold">{dashboard?.total_views?.toLocaleString("ar-LY") || 0}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي المشاهدات</p>
                   </div>
                 </CardContent>
@@ -89,7 +89,7 @@ export default function ReportsPage() {
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="size-7 flex items-center justify-center"><Share2 className="size-4 text-muted-foreground" /></div>
                   <div>
-                    <p className="text-xl font-bold">{dashboard?.total_shares?.toLocaleString() || 0}</p>
+                    <p className="text-xl font-bold">{dashboard?.total_shares?.toLocaleString("ar-LY") || 0}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي المشاركات</p>
                   </div>
                 </CardContent>

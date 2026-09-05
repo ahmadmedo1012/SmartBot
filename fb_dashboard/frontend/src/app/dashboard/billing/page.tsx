@@ -1,8 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { CreditCard, AlertCircle, RefreshCw } from "lucide-react"
+import { CreditCard, AlertCircle, RefreshCw, Zap, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
@@ -49,6 +50,12 @@ export default function BillingPage() {
             <h1 className="font-bold text-sm">الفواتير</h1>
             <p className="text-[11px] text-muted-foreground">الرصيد وسجل الدفع</p>
           </div>
+          {/* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before) */}
+          <Link href="/subscribe" className="ms-auto">
+            <Button size="sm" className="shadow-sm shadow-orange/15">
+              <Zap className="size-3.5" /> اشترك أو اشحن الرصيد
+            </Button>
+          </Link>
         </div>
       </header>
 
@@ -59,7 +66,7 @@ export default function BillingPage() {
             {balLoad ? (
               <div className="h-8 w-24 bg-muted rounded animate-pulse" />
             ) : balance ? (
-              <p className="text-3xl font-bold">{balance.balance?.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
+              <p className="text-3xl font-bold">{balance.balance?.toLocaleString("ar-LY")} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
             ) : (
               <p className="text-sm text-muted-foreground">غير متاح</p>
             )}
@@ -67,7 +74,9 @@ export default function BillingPage() {
         </Card>
 
         <div>
-          <h3 className="font-bold text-sm mb-3">سجل الدفع</h3>
+          <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+            <Receipt className="size-4 text-muted-foreground" /> سجل الدفع
+          </h3>
           {histLoad ? (
             <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-10" /></Card>)}</div>
           ) : anyError ? (
@@ -84,7 +93,7 @@ export default function BillingPage() {
                 <Card key={p.payment_id}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{p.amount?.toLocaleString()} LYD</p>
+                      <p className="text-sm font-medium">{p.amount?.toLocaleString("ar-LY")} LYD</p>
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
                       <p className="text-[10px] text-muted-foreground">{p.created_at ? new Date(p.created_at).toLocaleString("ar-LY") : ""}</p>
                     </div>

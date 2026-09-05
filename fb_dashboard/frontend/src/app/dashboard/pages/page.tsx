@@ -134,7 +134,7 @@ export default function PagesPage() {
                 </div>
                 {testResult.connected && (
                   <>
-                    <p className="text-sm">{testResult.fan_count?.toLocaleString()} متابع</p>
+                    <p className="text-sm">{testResult.fan_count?.toLocaleString("ar-LY")} متابع</p>
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (

@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { unwrapApi } from "@/lib/api"
 
+const POST_STATUS_LABELS: Record<string, string> = {
+  published: "منشور", scheduled: "مجدول", draft: "مسودة", failed: "فاشل",
+}
+
 export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
   const queryClient = useQueryClient()
@@ -109,10 +113,10 @@ export default function PostsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className={`px-2 py-0.5 rounded-full ${
-                        p.status === "published" ? "bg-green-500/10 text-green-500" :
-                        p.status === "scheduled" ? "bg-blue-500/10 text-blue-500" :
+                        p.status === "published" ? "bg-success/15 text-success" :
+                        p.status === "scheduled" ? "bg-info/15 text-info" :
                         "bg-muted text-muted-foreground"
-                      }`}>{p.status}</span>
+                      }`}>{POST_STATUS_LABELS[p.status] || p.status}</span>
                       {p.scheduled_at && <span>{new Date(p.scheduled_at).toLocaleString("ar-LY")}</span>}
                     </div>
                     <div className="flex gap-1">

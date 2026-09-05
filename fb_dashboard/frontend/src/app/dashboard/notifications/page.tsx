@@ -1,5 +1,7 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 import { useState, useEffect, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -99,6 +101,7 @@ const TOGGLES = [
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   // ── Notification feed (plan §4.2) ──
   const feedQuery = useQuery({
@@ -243,7 +246,7 @@ export default function NotificationsPage() {
                       ].join(" ")}
                       onClick={() => {
                         if (!n.read) markOneMutation.mutate(n.id)
-                        if (n.link) window.location.hash = n.link
+                        if (n.link) router.push(n.link)  // real navigation (was location.hash — did nothing)
                       }}
                     >
                       <CardContent className="p-4 flex items-start gap-3.5">
@@ -321,7 +324,7 @@ export default function NotificationsPage() {
                       className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-orange" : "bg-muted-foreground/30"}`}
                     >
                       <span
-                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "right-0.5" : "right-[22px]"}`}
+                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "start-[calc(100%-1.375rem)]" : "start-0.5"}`}
                       />
                     </span>
                   </button>

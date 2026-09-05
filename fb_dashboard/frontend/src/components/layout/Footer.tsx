@@ -81,8 +81,8 @@ export function Footer({ className }: FooterProps) {
         <div className="border-t border-border/50 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <span>© {year} الربط الذكي | SmartBot. جميع الحقوق محفوظة.</span>
           <div className="flex gap-4">
-            <span className="hover:text-foreground cursor-pointer">شروط الاستخدام</span>
-            <span className="hover:text-foreground cursor-pointer">سياسة الخصوصية</span>
+            <Link href="/terms" className="hover:text-foreground transition-colors">شروط الاستخدام</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">سياسة الخصوصية</Link>
           </div>
         </div>
       </div>

@@ -40,7 +40,7 @@ const TOUR_STEPS: TourStep[] = [
     placement: "right",
   },
   {
-    target: ".subscribe-btn",
+    target: "#subscribe-btn",  // sidebar renders id={tourId} — was .subscribe-btn (no such class → broken step)
     disableBeacon: true,
     content: "اختر الخطة المناسبة لصفحتك وابدأ خلال دقائق.",
     placement: "bottom",

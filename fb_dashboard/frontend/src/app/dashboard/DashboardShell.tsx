@@ -6,13 +6,24 @@ import { motion } from "framer-motion"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { apiFetch } from "@/lib/csrf-client"
-import { springSnappy } from "@/lib/motion"
+import { springGentle } from "@/lib/motion"
+
+/* World-class launch plan v3 §6 (Smart-Menu owner-layout pattern):
+ * - page entrance uses the Smart-Menu PageFade spring (250/22/0.9 — was
+ *   500/30, ~2x stiffer)
+ * - sidebar stays a flex sibling (no fixed overlay) — content flows beside it
+ * - the dead "اشتراك" sidebar CTA is now wired to /subscribe (was never
+ *   passed → button never rendered, OnboardingTour step was broken) */
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const handleNavigate = (href: string) => {
     router.push(href)
+  }
+
+  const handleSubscribe = () => {
+    router.push("/subscribe")
   }
 
   const handleLogout = async () => {
@@ -25,13 +36,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <div className="fixed top-0 right-0 z-50 h-full w-60 hidden md:block">
-        <AdminSidebar onNavigate={handleNavigate} onLogout={handleLogout} />
+      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block" style={{ zIndex: "var(--z-sticky, 30)" }}>
+        <AdminSidebar onNavigate={handleNavigate} onLogout={handleLogout} onSubscribe={handleSubscribe} />
       </div>
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={springSnappy}
+        transition={springGentle}
         className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0"
       >
         {children}

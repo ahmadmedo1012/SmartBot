@@ -397,7 +397,7 @@ async def api_health():
     return {
         "ok": True,
         "service": "smartbot-api",
-        "version": "2.0.0",
+        "version": "2.0.1-v5canary",
         "env": "production" if not settings.DEBUG else "development",
         "ts": __import__('datetime').datetime.utcnow().isoformat() + "Z",
     }

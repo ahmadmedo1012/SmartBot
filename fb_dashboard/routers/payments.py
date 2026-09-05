@@ -29,16 +29,18 @@ _IS_VERCEL = bool(os.getenv("VERCEL"))
 
 
 @router.post("/api/upload")
-async def upload_receipt(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+async def upload_receipt(request: Request, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     """Upload a payment receipt image (plan §2.1).
 
     - Authenticated users only.
+    - Rate-limited (10/min per IP — plan §7.1).
     - Content-type + magic-byte validation, 5MB cap, Pillow re-encode to
       cap dimensions (1600px) so storage/Telegram payloads stay sane.
     - Local disk: saved to static/uploads/receipts → returns /static/... URL.
     - Vercel (read-only FS): returns a data: URL so the receipt still
       reaches the admin review flow via extra_data.
     """
+    await _payment_rate_limit(request, "upload")
     ctype = (file.content_type or "").lower()
     if ctype not in _ALLOWED_TYPES:
         raise HTTPException(400, "صيغة الصورة غير مدعومة — JPG أو PNG أو WEBP فقط")
@@ -95,8 +97,27 @@ def _reject_wallet_above_cap(provider: str, amount: float) -> None:
         )
 
 
+async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10, window: int = 60) -> None:
+    """Plan §7.1: rate limit every payment-adjacent POST.
+
+    Same DB-backed limiter as /api/subscriptions; graceful degradation if
+    the check itself fails (never blocks legitimate payments on limiter hiccups).
+    """
+    try:
+        from _rate_limit import check_rate_limit
+        async with AsyncSessionLocal() as rl_db:
+            if not await check_rate_limit(rl_db, f"{key}:{request.client.host if request.client else 'unknown'}",
+                                          max_attempts=max_attempts, window_seconds=window):
+                raise HTTPException(429, "محاولات كثيرة — حاول بعد قليل")
+    except HTTPException:
+        raise
+    except Exception:
+        log.warning("payment rate-limit check failed — allowing through", exc_info=True)
+
+
 @router.post("/api/payments/topup")
-async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    await _payment_rate_limit(request, "topup")
     amount = body.get("amount", 0)
     provider = body.get("provider", "")
     phone = body.get("phone", "")
@@ -129,8 +150,9 @@ async def payment_topup(body: dict = Body(...), db=Depends(get_db), current_user
 
 
 @router.post("/api/payments/confirm")
-async def payment_confirm(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def payment_confirm(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """User submits transfer reference — marks pending for admin approval."""
+    await _payment_rate_limit(request, "confirm")
     pid = body.get("payment_id", 0)
     ref = body.get("reference", "")
     if not pid or not ref:

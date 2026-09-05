@@ -17,6 +17,70 @@ import FinalCTASection from "@/components/landing/sections/FinalCTASection"
 import FaqSection from "@/components/landing/sections/FaqSection"
 import { HeroMockup } from "@/components/landing/HeroMockup"
 
+const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+
+// ── Schema.org: Organization + WebSite (plan §8.1) ──
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "SmartBot",
+  url: SITE_URL,
+  logo: `${SITE_URL}/static/brand-icon.png`,
+  description: "منصة إدارة صفحات فيسبوك الذكية — أتمتة الردود والتحليلات لصفحات فيسبوك في ليبيا",
+  areaServed: { "@type": "Country", name: "Libya" },
+  knowsLanguage: ["ar", "en"],
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    availableLanguage: ["Arabic", "English"],
+    hoursAvailable: "Mo-Su 00:00-24:00",
+  },
+}
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "SmartBot",
+  url: SITE_URL,
+  inLanguage: "ar-LY",
+  publisher: { "@type": "Organization", name: "SmartBot" },
+}
+
+// ── Schema.org: SoftwareApplication + AggregateOffer (plan §8.1 Product) ──
+// Prices mirror the DB seed (runner.py _seed_subscription_plans): 0/19/29/129/299 LYD/month
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "SmartBot",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  inLanguage: "ar",
+  url: SITE_URL,
+  description: "منصة أتمتة الردود والتحليلات لصفحات فيسبوك — الردود التلقائية، الرسائل الجماعية، التقارير، وحملات تسويقية متقدمة",
+  featureList: [
+    "ردود تلقائية ذكية على التعليقات",
+    "ردود خاصة (DM) تلقائية",
+    "بث جماعي للرسائل",
+    "جدولة المنشورات",
+    "تحليلات وتقارير PDF",
+    "حملات تسويقية بالمستهدفين",
+  ],
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "LYD",
+    lowPrice: "0",
+    highPrice: "299",
+    offerCount: 5,
+    offers: [
+      { "@type": "Offer", name: "مجاني", price: "0", priceCurrency: "LYD", description: "100 رد/شهر، صفحة واحدة" },
+      { "@type": "Offer", name: "أساسي", price: "19", priceCurrency: "LYD", description: "2,000 رد/شهر + ذكاء اصطناعي" },
+      { "@type": "Offer", name: "مميز", price: "29", priceCurrency: "LYD", description: "10,000 رد/شهر + بث وجدولة" },
+      { "@type": "Offer", name: "احترافي", price: "129", priceCurrency: "LYD", description: "50,000 رد/شهر + حملات تسلسلية" },
+      { "@type": "Offer", name: "مؤسسي", price: "299", priceCurrency: "LYD", description: "غير محدود + دعم 24/7" },
+    ],
+  },
+}
+
 const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -41,6 +105,9 @@ export default function HomePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />

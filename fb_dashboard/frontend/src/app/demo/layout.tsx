@@ -1,13 +1,18 @@
 import type { Metadata } from "next"
 
-const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
-  title: "لوحة التحكم التجريبية",
-  description: "جرب SmartBot مجاناً — لوحة تحكم تجريبية ببيانات وهمية لتتعرف على ميزات إدارة صفحات فيسبوك",
-  alternates: { canonical: `${siteUrl}/demo` },
-  openGraph: { title: "تجربة SmartBot", description: "جرب لوحة التحكم التجريبية" },
-  robots: { index: true, follow: true },
+  title: "تجربة لوحة التحكم",
+  description:
+    "جرّب لوحة تحكم SmartBot كاملة ببيانات تجريبية — شاهد الردود التلقائية، التحليلات، والرسائل قبل الاشتراك.",
+  alternates: { canonical: `${BASE}/demo` },
+  openGraph: {
+    title: "تجربة SmartBot الحية",
+    description: "لوحة تحكم تفاعلية ببيانات تجريبية — بدون تسجيل.",
+    url: `${BASE}/demo`,
+    type: "website",
+  },
 }
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {

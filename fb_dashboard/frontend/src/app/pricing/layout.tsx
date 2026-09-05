@@ -1,12 +1,18 @@
 import type { Metadata } from "next"
 
-const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
-  title: "الخطط والأسعار",
-  description: "اختر الخطة المناسبة لإدارة صفحات فيسبوك — خطط مرنة تبدأ من مجانية وحتى مؤسسي 299 د.ل/شهر",
-  alternates: { canonical: `${siteUrl}/pricing` },
-  openGraph: { title: "الخطط والأسعار - SmartBot", description: "خطط أسعار مرنة لإدارة صفحات فيسبوك - ابدأ مجاناً" },
+  title: "الأسعار والباقات",
+  description:
+    "باقات SmartBot المرنة لكل حجم عمل: مجانية، أساسية، مميزة، احترافية، ومؤسسية — دفع بالدينار الليبي عبر ليبيانا ومدار والتحويل البنكي.",
+  alternates: { canonical: `${BASE}/pricing` },
+  openGraph: {
+    title: "باقات وأسعار SmartBot",
+    description: "ابدأ مجاناً وارتقِ عند الحاجة — أسعار بالدينار الليبي تناسب السوق الليبي.",
+    url: `${BASE}/pricing`,
+    type: "website",
+  },
 }
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {

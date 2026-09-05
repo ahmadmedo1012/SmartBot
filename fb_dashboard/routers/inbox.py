@@ -185,6 +185,34 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     )
 
 
+@router.delete("/api/inbox/conversations/{conversation_id}")
+async def inbox_delete_conversation(
+    conversation_id: str, db=Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Delete a conversation (and its messages) from the tenant inbox (v3 §4).
+
+    Tenant-scoped. Messages are removed explicitly (portable across SQLite
+    test envs where FK cascade may be off) before the conversation row."""
+    tenant_id = current_user._tenant_id
+    row = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conversation_id,
+        )
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    await db.execute(
+        Message.__table__.delete().where(
+            Message.tenant_id == tenant_id, Message.conversation_id == row.id))
+    await db.delete(row)
+    await db.commit()
+    _track_event("inbox_conversation_deleted", {"conversation_id": conversation_id[:60]},
+                 tenant_id=tenant_id)
+    return ok({"ok": True})
+
+
 @router.post("/api/inbox/conversations/{conversation_id}/reply")
 async def inbox_reply(
     conversation_id: str, message: str = Form(...),

@@ -62,18 +62,29 @@ test('full journey: register → subscribe → pay → admin approve → dashboa
   await page.waitForTimeout(2000);
   await shot(page, '05-subscribe-plan');
 
-  // ── Step 3: fill payment form (mobile wallet) ───────────────────────
+  // ── Step 3: subscribe wizard → payment dialog (mobile wallet) ───────
   // /subscribe without a plan param lands on the plan-selection grid first
-  const planGrid = page.locator('div.grid.gap-6 [class*="card"]');
-  const gridCount = await planGrid.count();
-  if (gridCount > 0) {
-    // pick the popular (middle) plan card
-    await planGrid.nth(Math.min(1, gridCount - 1)).click();
-    await page.waitForTimeout(1200);
+  const planBtn = page.locator('div.grid [aria-pressed]');
+  const planCount = await planBtn.count();
+  if (planCount > 0) {
+    // pick the popular (Basic) plan card — middle of the grid
+    await planBtn.nth(Math.min(1, planCount - 1)).click();
+    await page.waitForTimeout(800);
+    // continue to the review step
+    const continueBtn = page.locator('button:has-text("متابعة")');
+    await continueBtn.first().waitFor({ state: 'visible', timeout: 10_000 });
+    await continueBtn.first().click();
+    await page.waitForTimeout(800);
   }
-  // wallet provider (liyana) is the default; fill the phone
-  await page.fill('#phone', '0910000001');
-  await shot(page, '06-payment-form');
+  // review step → open the payment dialog
+  const payNow = page.locator('button:has-text("ادفع الآن")');
+  await payNow.first().waitFor({ state: 'visible', timeout: 10_000 });
+  await payNow.first().click();
+  await shot(page, '06-payment-dialog');
+  // wallet provider (liyana) is the default; fill the phone inside the dialog
+  const phoneInput = page.locator('#payment-phone');
+  await phoneInput.waitFor({ state: 'visible', timeout: 10_000 });
+  await phoneInput.fill('0910000001');
   const submit = page.locator('button:has-text("إرسال طلب الدفع")').first();
   await submit.waitFor({ state: 'visible', timeout: 10_000 });
   const [payResp] = await Promise.all([
@@ -106,6 +117,14 @@ test('full journey: register → subscribe → pay → admin approve → dashboa
   expect(approve.ok(), `admin approve failed: ${JSON.stringify(approveBody)}`).toBeTruthy();
 
   // ── Step 5: user sees activation (SSE ≤2s or poll ≤5s) ──────────────
+  // The dialog flips to the approved screen; clicking "الانتقال إلى لوحة
+  // التحكم" fires onSuccess → /dashboard. Fallback: direct URL check.
+  const approved = page.locator('text=تم الموافقة على الاشتراك');
+  await approved.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {});
+  const goDash = page.locator('button:has-text("الانتقال إلى لوحة التحكم")');
+  if (await goDash.count() > 0) {
+    await goDash.first().click().catch(() => {});
+  }
   await page.waitForURL(/dashboard|success/, { timeout: 30_000 }).catch(() => {});
   await page.waitForTimeout(4000); // give SSE/poll + redirect time
   await shot(page, '08-after-approval');

@@ -42,6 +42,14 @@
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
 
+  /* Saffron-heat warm palette — unified 2026-09-05 with Smart-Menu
+     (smart-link.ly identity): flame gradient (ember→saffron), espresso
+     foreground on warm surfaces, bloom contrast. */
+  --color-ember: var(--c-ember);
+  --color-saffron: var(--c-saffron);
+  --color-espresso: var(--c-espresso);
+  --color-bloom: var(--c-bloom);
+
   /* Radius scale — unified 2026-09-05 with Smart-Menu (smart-link.ly identity):
      8/12/18/28 is the canonical scale across both products. */
   --radius-sm: 8px;
@@ -147,6 +155,15 @@
   --info-foreground: oklch(0.98 0 0);
   --overlay: oklch(0 0 0 / 0.55);
 
+  /* Saffron-heat warm palette (dark) — Smart-Menu parity.
+     ember/saffron drive the flame gradient (flame buttons, wizard nodes);
+     espresso is the foreground on warm surfaces; bloom is brand pink heat. */
+  --c-ember: oklch(0.44 0.17 52);            /* pressed/depth of flame */
+  --c-saffron: oklch(0.78 0.14 70);          /* light amber glow */
+  --c-espresso: #1a130b;                     /* deep coffee — foreground on flame/saffron surfaces */
+  --c-bloom: oklch(0.56 0.2 16);             /* brand pink heat */
+  --image-shimmer: oklch(0.2 0 0 / 0.15);    /* image placeholder shimmer sweep */
+
   --grid-line: oklch(0.55 0.19 45 / 0.12);
   --grid-fill: oklch(0.55 0.19 45 / 0.06);
   --grid-square: oklch(0.55 0.19 45 / 0.12);
@@ -211,6 +228,13 @@
   --info: oklch(0.48 0.13 245);
   --info-foreground: oklch(0.98 0 0);
   --overlay: oklch(0 0 0 / 0.25);
+
+  /* Saffron-heat warm palette (light) — Smart-Menu parity: ember takes
+     middle depth, saffron glow unchanged, shimmer sweep near-black on
+     paper. espresso/bloom inherit from :root (theme-independent). */
+  --c-ember: oklch(0.5 0.15 52);             /* middle depth */
+  --c-saffron: oklch(0.78 0.14 70);          /* same warm amber glow */
+  --image-shimmer: oklch(0 0 0 / 0.08);      /* image placeholder shimmer sweep */
 
   --grid-line: oklch(0.55 0.19 45 / 0.08);
   --grid-fill: oklch(0.55 0.19 45 / 0.04);

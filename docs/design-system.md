@@ -68,13 +68,14 @@ warning = 0.52، info = 0.48 — نفس مقياس «السطوع المزدوج
 
 ## 8. الاستثناءات الموثَّقة (بوابة المسار D)
 
-نتيجة فحص `grep "bg-white|text-black|bg-black"` — **ثلاثة مواضع فقط**، كلها مشروعة:
+نتيجة فحص `grep "bg-white|text-black|bg-black"` — **أربعة مواضع فقط**، كلها مشروعة:
 
 | الملف | السطر | السبب |
 |-------|-------|-------|
 | `components/ui/switch.tsx:32` | `bg-white` | مقبض مفتاح التبديل (shadcn primitive) — العنصر الأبيض على مسار ملون هو نمط المفتاح القياسي |
 | `dashboard/notifications/page.tsx:318` | `bg-white` | مقبض مفتاح تفضيلات — نفس النمط أعلاه (مكوّن مخصص) |
 | `demo/page.tsx:57` | `bg-black/40` | حجاب (scrim) لإغلاق القائمة الجانبية على الجوال — وظيفي، لا دلالي |
+| `components/layout/MobileBottomNav.tsx:56` | `bg-black/40` | حجاب لوحة الجوال السفلية — نفس النمط الوظيفي أعلاه |
 
 **قاعدة البوابة:** أي `bg-white/bg-black/text-[#…]` جديد خارج هذا الجدول يُرفض في المراجعة. الفحص:
 ```bash
@@ -87,6 +88,37 @@ grep -rn "bg-white\|text-black\|bg-black\|text-\[#\|bg-\[#" fb_dashboard/fronten
 - منحنيات الحركة: `--ease-out-expo` (افتراضي للدخول)، `--ease-smooth`، `--ease-in-out-quart` — لا `ease-in-out` الخام.
 - المدد: `--duration-fast/base/slow` (0.2s/0.4s/0.7s).
 - z-index هرمي مثبّت: dropdown(10) < sticky(20) < nav(30) < modal-backdrop(40) < modal(50) < toast(60) < tooltip(70).
+
+## 9.5 منظومة السَّعفَر/الجمر (2026-09-05 — نقل حرفي من Smart-Menu)
+
+التوكنز الدافئة المنقولة حرفيًا من Smart-Menu (`--c-*`) — تُستخدم في تدرّج اللهب
+وحوافّ بطاقات الخطط، ولا يُسمح بإعادة تعريفها في مكان آخر:
+
+| التوكن | القيمة (داكن) | الدور الحصري |
+|--------|----------------|----------------|
+| `--c-ember` | `oklch(0.44 0.17 52)` | عمق اللهب — بداية تدرّج `flame` وعُقد معالج الاشتراك |
+| `--c-saffron` | `oklch(0.78 0.14 70)` | وهج العنبر — نهاية التدرّج (`--c-saffron` لا يتغير بين الوضعين) |
+| `--c-espresso` | `#1a130b` | قهوة عميقة — النص الأمامي على أسطح اللهب/العنبر |
+| `--c-bloom` | `oklch(0.56 0.2 16)` | حرارة وردية — تدرّجات بطاقات Pro/Enterprise |
+| `--image-shimmer` | `oklch(0.2 0 0 / 0.15)` | مسح الوميض في `OptimizedImage` |
+
+الوضع الفاتح يعيد تعريف `--c-ember` إلى `oklch(0.5 0.15 52)` فقط (نفس سلوك
+Smart-Menu). أداة `Button` تكتسب الصيغة `flame`:
+`bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso`.
+
+### مكوّنات الدفع المشتركة (نقل معماري من Smart-Menu)
+
+هذه الملفات منقولة حرفيًا (مع تكييف عقود الـ API فقط) ويجب أن تبقى متطابقة
+الشكل بين المشروعين:
+
+- `components/shared/PaymentDialog.tsx` — نافذة الدفع (ترويسة برتقالية متدرجة،
+  تبويبات المزوّد الثلاثة، بطاقة USSD، أقسام البنك، رفع الإيصال، شاشات الانتظار/القبول/الرفض)
+- `app/subscribe/PlanSelector.tsx` + `StepIndicator.tsx` + `PaymentSection.tsx`
+  — معمارية معالج الاشتراك (فُقاعة الاختيار، شارة اللهب، عقد مرقّمة)
+- `components/ui/dialog.tsx` (Base UI)، `OptimizedImage.tsx`، `motion-icons.tsx`،
+  `x-icon.tsx`، `lib/premium-toast.tsx`، `lib/arabic-plural.ts`، `hooks/useConfig.ts`
+- مزوّدو SmartBot: `liyana | madar | bank` (عقد الخادم) — مقابل
+  `libyana | madar | bank` في Smart-Menu؛ الجِلب الاتصالي USSD متطابق.
 
 ## 10. قائمة رفض أنماط «AI النمطية» (مستلهمة scroll-craft)
 

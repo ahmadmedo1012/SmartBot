@@ -8,6 +8,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         orange: "bg-orange text-orange-foreground hover:brightness-110 shadow-lg shadow-orange/20 hover:shadow-xl hover:shadow-orange/25 border-0",
+        flame:
+          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 shadow-md shadow-orange/30 hover:shadow-2xl hover:shadow-orange/45 border-0 dark:hover:brightness-110",
         outline: "border-border bg-transparent text-foreground hover:bg-foreground/5 hover:border-foreground/30",
         ghost: "bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 border-transparent",
         destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",

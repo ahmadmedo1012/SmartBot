@@ -40,3 +40,6 @@ __pycache__/
 
 # Receipt uploads (runtime data)
 fb_dashboard/static/uploads/
+
+# E2E test-run artifacts (regenerated on demand)
+fb_dashboard/e2e_artifacts/

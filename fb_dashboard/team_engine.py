@@ -1,17 +1,15 @@
 from __future__ import annotations
+
 """Team Collaboration Engine — Approvals, notes, activity tracking.
 Enterprise team features matching Hootsuite + Respond.io.
 """
 import json
 import logging
-from datetime import datetime, timedelta
-from _utils import utcnow, iso_z
-from typing import Any
-from sqlalchemy import select, func, desc, or_
-from sqlalchemy.orm import selectinload
+from datetime import timedelta
 
-from models import User, Reply, BotLog, AnalyticsEvent, BotAlert, ConversationTag, ConversationLabel
-from database import AsyncSessionLocal
+from _utils import iso_z, utcnow
+from models import AnalyticsEvent, BotLog, ConversationLabel, ConversationTag, Reply, User
+from sqlalchemy import desc, func, select
 
 log = logging.getLogger("fb-team")
 
@@ -85,7 +83,8 @@ class TeamEngine:
         ).order_by(desc(AnalyticsEvent.created_at)).limit(50)
         for e in (await session.execute(evt_stmt)).scalars().all():
             meta = {}
-            try: meta = json.loads(e.metadata_json or "{}")
+            try:
+                meta = json.loads(e.metadata_json or "{}")
             except Exception:
                 log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
                 meta = {}
@@ -127,7 +126,8 @@ class TeamEngine:
         items = []
         for e in rows.scalars().all():
             meta = {}
-            try: meta = json.loads(e.metadata_json or "{}")
+            try:
+                meta = json.loads(e.metadata_json or "{}")
             except Exception:
                 log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
                 meta = {}
@@ -155,7 +155,6 @@ class TeamEngine:
         ponytail: Reply model lacks created_by — all replies attributed to system.
         Add created_by to Reply if per-user attribution needed.
         """
-        total_replies = await session.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id)) or 0
         rows = await session.execute(select(User).where(User.tenant_id == tenant_id, User.role.in_(["admin", "editor"])).order_by(User.id))
         users = rows.scalars().all()
         # ponytail: batch all log queries via single grouped query instead of N+1

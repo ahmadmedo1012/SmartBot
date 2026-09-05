@@ -16,9 +16,8 @@ os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-
 from database import engine as db_engine
+from httpx import ASGITransport, AsyncClient
 from models import Base
 
 # page → list of endpoints it consumes (grep-verified 2026-09-05)

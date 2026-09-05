@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 TTL-based cache and connection management for SmartBot.
 Reduces DB load and FB API calls on hot paths.
@@ -6,7 +7,8 @@ Reduces DB load and FB API calls on hot paths.
 import asyncio
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 log = logging.getLogger("fb-cache")
 

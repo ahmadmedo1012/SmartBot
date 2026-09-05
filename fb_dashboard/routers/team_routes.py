@@ -1,13 +1,12 @@
 """Team management routes."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-
-from database import get_db
-from models import User
-from routers.auth import get_current_user, require_role, require_platform_admin
-from _services import team_engine
 from _responses import ok
+from _services import team_engine
+from database import get_db
+from fastapi import APIRouter, Depends, Query
+from models import User
+
+from routers.auth import get_current_user, require_platform_admin, require_role
 
 router = APIRouter(tags=["team"])
 

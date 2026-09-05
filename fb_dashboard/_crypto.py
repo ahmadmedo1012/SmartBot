@@ -1,7 +1,10 @@
 from __future__ import annotations
-from cryptography.fernet import Fernet, InvalidToken
-import base64, hashlib
+
+import base64
+import hashlib
+
 from config import settings
+from cryptography.fernet import Fernet, InvalidToken
 
 
 def _get_legacy_key():

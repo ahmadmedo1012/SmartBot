@@ -28,11 +28,20 @@ os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest
+from database import AsyncSessionLocal
+from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
+from models import (
+    Base,
+    BotState,
+    Conversation,
+    Message,
+    Rule,
+    SystemConfig,
+    TelegramApprover,
+    User,
+)
 from sqlalchemy import select
-
-from database import engine as db_engine, AsyncSessionLocal
-from models import Base, User, Tenant, BotState, Conversation, Message, Rule, SystemConfig, TelegramApprover
 
 
 @pytest.fixture(scope="module")
@@ -124,7 +133,7 @@ async def test_webhook_messaging_event_persists_conversation_and_message(app_cli
 
     async with AsyncSessionLocal() as db:
         conv = (await db.execute(
-            select(Conversation).where(Conversation.fb_conversation_id == f"w_111222333_999888777")
+            select(Conversation).where(Conversation.fb_conversation_id == "w_111222333_999888777")
         )).scalar_one_or_none()
         assert conv is not None, "conversation row must be persisted"
         assert conv.tenant_id == user["tenant_id"]
@@ -323,7 +332,6 @@ async def test_facebook_settings_returns_page_name(app_client):
 # ────────────────────────────────────────────────────────────────────
 
 async def test_telegram_bot_token_resolves_from_db():
-    import asyncio
     from telegram_bot import get_bot_token
     async with AsyncSessionLocal() as db:
         db.add(SystemConfig(key="telegram_bot_token", value="123456789:AAHfAk_dummy_token_for_tests", is_secret=True))

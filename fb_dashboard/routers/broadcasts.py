@@ -3,13 +3,13 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Depends, Request, HTTPException
-from sqlalchemy import select, func, desc
-
-from database import get_db, AsyncSessionLocal
-from models import Broadcast, BroadcastRecipient, User
-from routers.auth import get_current_user, require_role
 from _responses import ok
+from database import AsyncSessionLocal, get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from models import Broadcast, User
+from sqlalchemy import select
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["broadcasts"])

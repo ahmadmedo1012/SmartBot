@@ -1,15 +1,15 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Reply Templates routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, Form, Query
-from sqlalchemy import select, desc
-
-from database import get_db
-from models import ReplyTemplate, ScheduledPost, User
-from routers.auth import get_current_user, require_role
-from _services import fb, _track_event
 from _responses import ok
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import ReplyTemplate, User
+from sqlalchemy import select
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["templates"])
 
@@ -46,7 +46,10 @@ async def update_template(template_id: int, name: str = Form(...), text: str = F
     )).scalar_one_or_none()
     if not t:
         raise HTTPException(404, "القالب غير موجود")
-    t.name = name; t.text = text; t.category = category; t.shortcut = shortcut
+    t.name = name
+    t.text = text
+    t.category = category
+    t.shortcut = shortcut
     await db.commit()
     return ok({"ok": True})
 

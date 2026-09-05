@@ -16,7 +16,7 @@ helpers — raw dict/list returns are forbidden outside the documented
 exceptions in docs/design-system-adjacent API docs.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 def ok(data: Any = None) -> dict:

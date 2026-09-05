@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from facebook_engine.client import GraphClient, GraphAPIError
+from facebook_engine.client import GraphAPIError, GraphClient
 
 __all__ = ["GraphAPIError"]
 

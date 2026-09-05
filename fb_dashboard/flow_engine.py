@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Flow Engine — Visual bot flow execution engine. [DEPRECATED — kept for future use]
 
 Executes ManyChat-style JSON graphs (nodes + edges) against Facebook comments.
@@ -12,16 +13,13 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from _utils import utcnow
-from typing import Any
 
 import httpx
-from sqlalchemy import select, delete
-
-from models import Flow, FlowExecution, Subscriber, SubscriberTag, Tag
-from fb_client import FBClient
+from _utils import utcnow
 from bot import TextNormalizer
+from fb_client import FBClient
+from models import Flow, FlowExecution, SubscriberTag, Tag
+from sqlalchemy import delete, select
 
 log = logging.getLogger("fb-flow")
 
@@ -61,7 +59,7 @@ class FlowGraph:
 _STOP_WORDS = frozenset({
     "في", "من", "إلى", "على", "عن", "مع", "كان", "هذا", "هذه", "ذلك",
     "تلك", "هو", "هي", "هم", "الذي", "التي", "الذين", "ما", "لم", "لن",
-    "سوف", "قد", "لقد", "إن", "أن", "لا", "ما", "كل", "بعض", "نعم",
+    "سوف", "قد", "لقد", "إن", "أن", "لا", "كل", "بعض", "نعم",
     "بلى", "ثم", "أو", "أم", "بل", "لأن", "حتى", "عند", "بين", "خلال",
     "دون", "غير", "مثل", "حول", "بسبب", "رغم", "قبل", "بعد", "فوق",
     "تحت", "داخل", "خارج", "أمام", "وراء", "يمين", "شمال", "فقط",

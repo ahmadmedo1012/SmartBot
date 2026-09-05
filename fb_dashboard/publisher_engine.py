@@ -1,14 +1,12 @@
 from __future__ import annotations
+
 """Publisher Engine — Multi-platform content publishing.
 Schedule and publish to Facebook, X (Twitter), LinkedIn, Instagram.
 """
-import json
 import logging
-from datetime import datetime
-from typing import Any
-from sqlalchemy import select, func
 
-from models import ScheduledPost, AnalyticsEvent, BotState
+from models import BotState
+from sqlalchemy import select
 
 log = logging.getLogger("fb-publisher")
 

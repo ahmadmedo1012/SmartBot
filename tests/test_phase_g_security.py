@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase G (= الخطة 7) — بوابة الخروج: الأمان
 
@@ -12,19 +13,20 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §7.1:
   [x] CSP + رؤوس الأمان على كل استجابة
   [2FA: مؤجل لما بعد MVP — كما تنص الخطة]
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
-from sqlalchemy import select
 
 
 async def _make_fixture():
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from sqlalchemy.pool import StaticPool
-    from models import Base
     from database import get_db
+    from models import Base
     from runner import app
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import StaticPool
 
     test_engine = create_async_engine(
         "sqlite+aiosqlite://",
@@ -59,9 +61,9 @@ async def _teardown(fixture):
 
 
 async def _seed(fixture):
+    from _hash import hash_password
     from models import Tenant, User
     from routers.auth import make_token
-    from _hash import hash_password
     app, sf, te, client, _ = fixture
     async with sf() as db:
         t = Tenant(name="T-Sec", subscription_status="PAID", is_active=True)

@@ -1,12 +1,13 @@
 from __future__ import annotations
-"""Tests for SubscriberEngine — get_or_create, search, add/remove_tag."""
-import pytest
-from unittest.mock import AsyncMock, MagicMock, PropertyMock
-from datetime import datetime, timezone
-from collections import namedtuple
 
+"""Tests for SubscriberEngine — get_or_create, search, add/remove_tag."""
+from collections import namedtuple
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from models import Subscriber, SubscriberTag
 from subscriber_engine import SubscriberEngine
-from models import Subscriber, Tag, SubscriberTag
 
 
 def _mock_session():
@@ -58,8 +59,8 @@ class TestGetOrCreate:
         existing = Subscriber(
             id=1, fb_user_id="fb_1", name="أحمد علي", first_name="أحمد",
             platform="messenger",
-            first_seen_at=datetime.now(timezone.utc),
-            last_interaction_at=datetime.now(timezone.utc),
+            first_seen_at=datetime.now(UTC),
+            last_interaction_at=datetime.now(UTC),
         )
         session = _mock_session()
         session.execute.return_value.scalar_one_or_none.return_value = existing
@@ -86,8 +87,8 @@ class TestGetOrCreate:
         existing = Subscriber(
             id=1, fb_user_id="fb_1", name="", first_name="",
             platform="messenger",
-            first_seen_at=datetime.now(timezone.utc),
-            last_interaction_at=datetime.now(timezone.utc),
+            first_seen_at=datetime.now(UTC),
+            last_interaction_at=datetime.now(UTC),
         )
         session = _mock_session()
         session.execute.return_value.scalar_one_or_none.return_value = existing
@@ -116,8 +117,8 @@ class TestSearch:
         sub = Subscriber(
             id=1, fb_user_id="fb_1", name="أحمد", first_name="أحمد",
             platform="messenger", reply_count=0,
-            first_seen_at=datetime.now(timezone.utc),
-            last_interaction_at=datetime.now(timezone.utc),
+            first_seen_at=datetime.now(UTC),
+            last_interaction_at=datetime.now(UTC),
         )
         session.execute.return_value.scalars.return_value.all.return_value = [sub]
 
@@ -144,8 +145,8 @@ class TestSearch:
         sub = Subscriber(
             id=1, fb_user_id="fb_1", name="A", first_name="A",
             platform="messenger", reply_count=0,
-            first_seen_at=datetime.now(timezone.utc),
-            last_interaction_at=datetime.now(timezone.utc),
+            first_seen_at=datetime.now(UTC),
+            last_interaction_at=datetime.now(UTC),
         )
         session.execute.return_value.scalars.return_value.all.return_value = [sub]
 

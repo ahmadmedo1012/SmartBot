@@ -3,12 +3,12 @@ SmartBot AI Agent v2 — LLM Orchestrator with Tool Registry, Memory, Auto-Execu
 Bot engine (keyword reply pipeline) remains untouched.
 """
 from __future__ import annotations
-import asyncio, json, logging, time
-from typing import Any
-from datetime import datetime
-from _utils import utcnow
 
-from sqlalchemy import select, func, desc
+import asyncio
+import logging
+
+from _utils import utcnow
+from sqlalchemy import func, select
 
 log = logging.getLogger("fb-agent")
 
@@ -44,8 +44,8 @@ def _get_tools():
 def _get_fb():
     global _fb_client
     if _fb_client is None:
-        from fb_client import FBClient
         from config import settings
+        from fb_client import FBClient
         _fb_client = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
     return _fb_client
 
@@ -165,7 +165,6 @@ class AgentEngine:
         """Execute a tool action. Handles all registered tools."""
         try:
             fb = _get_fb()
-            from config import settings
 
             if action == "publish_post":
                 msg = params.get("message", "")
@@ -261,7 +260,7 @@ class AgentEngine:
 
 
 # Singleton
-_agent: "AgentEngine | None" = None
+_agent: AgentEngine | None = None
 
 
 def get_agent() -> AgentEngine:

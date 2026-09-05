@@ -1,13 +1,12 @@
 """Subscribers + Tags CRUD routes."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import select
-
-from database import get_db
-from models import User
-from routers.auth import get_current_user, require_role
-from _services import subscriber_engine, tag_engine
 from _responses import ok
+from _services import subscriber_engine, tag_engine
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from models import User
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(tags=["subscribers"])
 
@@ -62,7 +61,7 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
         result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
         return ok(result)
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 @router.delete("/api/tags/{tag_id}")

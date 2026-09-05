@@ -2,14 +2,13 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import select
-
-from database import get_db
-from models import User
-from routers.auth import get_current_user, require_role
-from _services import content_calendar_engine, utcnow
 from _responses import ok
+from _services import content_calendar_engine, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from models import User
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(tags=["calendar"])
 
@@ -41,7 +40,7 @@ async def calendar_create(request: Request, db=Depends(get_db), current_user: Us
         )
         return ok({"id": post_id})
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, str(e)) from e
 
 
 @router.put("/api/calendar/{post_id}")

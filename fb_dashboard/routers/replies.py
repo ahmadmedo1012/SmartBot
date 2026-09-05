@@ -9,17 +9,18 @@ v4 radical plan §3.6 + §4.10 (G1):
   replies also upsert the Comment row (replied state stays visible).
 """
 import logging
+from datetime import UTC
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Form
-from sqlalchemy import select, func, desc
-
-from database import get_db
-from _utils import iso_z
-from models import Reply, User, Comment
-from routers.auth import get_current_user, require_role
-from _services import get_tenant_fb_client
-from ws_manager import ws_manager
 from _responses import ok
+from _services import get_tenant_fb_client
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import Comment, Reply, User
+from sqlalchemy import desc, func, select
+from ws_manager import ws_manager
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["replies"])
@@ -39,7 +40,7 @@ async def _sync_recent_comments(db, tenant_id: int, fb, limit: int = 25) -> None
 
     Failure (expired token, network) leaves the stored rows untouched —
     the page keeps serving real data instead of going blank."""
-    from datetime import datetime, timezone
+    from datetime import datetime
     try:
         live = await fb.get_recent_comments(limit)
     except Exception as e:
@@ -56,7 +57,7 @@ async def _sync_recent_comments(db, tenant_id: int, fb, limit: int = 25) -> None
             try:
                 created_at = datetime.fromisoformat(
                     raw_time.replace("+0000", "+00:00").replace("Z", "+00:00")
-                ).astimezone(timezone.utc).replace(tzinfo=None)
+                ).astimezone(UTC).replace(tzinfo=None)
             except ValueError:
                 created_at = None
         row = (await db.execute(

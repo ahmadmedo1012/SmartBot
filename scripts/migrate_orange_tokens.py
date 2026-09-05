@@ -12,8 +12,8 @@ semantic to its official single-source token):
   5. other solid <u>-orange → <u>-accent-foreground (0.55 both modes)
   6. var(--orange)        → var(--accent-foreground)
 """
-from pathlib import Path
 import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "fb_dashboard" / "frontend" / "src"
 

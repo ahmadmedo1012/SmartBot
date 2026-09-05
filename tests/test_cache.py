@@ -1,11 +1,15 @@
 from __future__ import annotations
+
 """
 Unit tests for TTLCache and RuleCache.
 """
-import sys, os, asyncio
+import asyncio
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from cache_layer import TTLCache, ReplyDedupCache
+from cache_layer import ReplyDedupCache, TTLCache
 
 
 async def test_ttl_cache():

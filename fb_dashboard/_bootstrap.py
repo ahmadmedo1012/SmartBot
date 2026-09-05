@@ -17,7 +17,7 @@ import os
 import secrets
 import string
 
-from sqlalchemy import select, func, delete
+from sqlalchemy import delete, func, select
 
 log = logging.getLogger("fb-api")
 
@@ -65,6 +65,7 @@ async def purge_expired_blacklist(db) -> int:
     Called from the daily cleanup cron and from lifespan startup.
     """
     from datetime import timedelta
+
     from _utils import utcnow
     from models import BlacklistedToken
     result = await db.execute(

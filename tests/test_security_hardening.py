@@ -23,10 +23,10 @@ os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest
+from database import AsyncSessionLocal
+from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
-
-from database import engine as db_engine, AsyncSessionLocal
-from models import Base, User, Tenant, Customer
+from models import Base, Customer, Tenant, User
 
 
 @pytest.fixture(scope="module")
@@ -106,7 +106,7 @@ async def test_tenant_admin_cannot_reset_bootstrap_admin(app_client):
     ac = app_client
     atk = await _register(ac, "atk2")
     await _login(ac, atk["username"], atk["password"])
-    async with AsyncSessionLocal() as db:
+    async with AsyncSessionLocal() as _db:
         boot_id = await _make_user("bootadmin", 0)
     r = await ac.post("/api/admin/reset-password", json={
         "user_id": boot_id, "new_password": "Hacked!12345"})
@@ -196,7 +196,6 @@ async def test_crm_customer_count_not_cartesian(app_client):
     ac = app_client
     u = await _register(ac, "crm")
     await _login(ac, u["username"], u["password"])
-    from routers.auth import get_current_user
     # find our tenant
     async with AsyncSessionLocal() as db:
         from sqlalchemy import select
@@ -299,10 +298,9 @@ async def test_setup_status_hides_platform_flags_from_tenants(app_client):
     assert "platform_admin" not in data
 
     # platform admin (bootstrap-style tenant 0) sees the platform flags
-    import asyncio
+    from _hash import hash_password
     from database import AsyncSessionLocal as ASL
     from models import User as U
-    from _hash import hash_password
     async with ASL() as db:
         pa = U(username=f"plat_{uuid.uuid4().hex[:6]}", email="plat@t.ly",
                password_hash=hash_password("Str0ngPass!ly"),

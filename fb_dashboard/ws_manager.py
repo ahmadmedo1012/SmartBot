@@ -1,7 +1,11 @@
 from __future__ import annotations
+
 """WebSocket manager for real-time dashboard updates with tenant isolation."""
-import json, logging, os
+import json
+import logging
+import os
 from typing import Any
+
 from fastapi import WebSocket
 
 _IS_VERCEL = bool(os.getenv("VERCEL"))

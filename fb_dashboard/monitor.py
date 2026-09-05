@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Structured logging and diagnostics for SmartBot.
 JSON-formatted logs, health metrics, performance tracking.
@@ -6,12 +7,9 @@ JSON-formatted logs, health metrics, performance tracking.
 import asyncio
 import json
 import logging
-import os
 import time
-import traceback
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
-from typing import Any
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 
 # BotLog batch buffer and async flush
 _botlog_batch: list[dict] = []
@@ -57,7 +55,7 @@ class LogEvent:
     intent: str = ""
     latency_ms: float = 0.0
     extra: dict = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def to_dict(self) -> dict:
         return {k: v for k, v in asdict(self).items() if v}

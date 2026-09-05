@@ -3,13 +3,13 @@ Agent Brain — LLM Orchestrator Core.
 Reasoning engine: receives user input + context, calls LLM, returns structured action.
 """
 from __future__ import annotations
-import json, logging
-from typing import Any
 
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import json
+import logging
 
-from agent_tools import get_tools_system_prompt, get_tool, get_tool_schema
+from agent_tools import get_tool_schema, get_tools_system_prompt
 from ai_service import AIService
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 log = logging.getLogger("fb-agent-brain")
 
@@ -102,7 +102,8 @@ async def reason(text: str, context: dict | None = None) -> dict:
         ctx = context or {}
     except Exception:
         ai = {"available": False}
-        class _Fake: available = False
+        class _Fake:
+            available = False
         ai = _Fake()
         ctx = context or {}
     prompt = f"أمر المستخدم: \"{text}\"\nالسياق: {json.dumps(ctx, ensure_ascii=False)}"
@@ -143,9 +144,9 @@ def _heuristic_parse(text: str, ctx: dict) -> dict:
                     msg = parts[1].strip()
                     break
         if "ترحيب" in t:
-            msg = f"🌹 أهلاً بكم متابعينا الأعزاء!\n\nنفتخر بوجودكم معنا. فريق SmartBot في خدمتكم.\n\n#ترحيب #SmartBot"
+            msg = "🌹 أهلاً بكم متابعينا الأعزاء!\n\nنفتخر بوجودكم معنا. فريق SmartBot في خدمتكم.\n\n#ترحيب #SmartBot"
         elif "رمضان" in t:
-            msg = f"🌙 كل عام وأنتم بخير! تقبل الله منا ومنكم صالح الأعمال.\n\n#رمضان #SmartBot"
+            msg = "🌙 كل عام وأنتم بخير! تقبل الله منا ومنكم صالح الأعمال.\n\n#رمضان #SmartBot"
         elif "تخفيض" in t or "عرض" in t or "خصم" in t:
             msg = f"🔥 عرض مميز!\n\n{msg}\n\n⏳ لفترة محدودة!\n\n#عرض_خاص #SmartBot"
         return {
@@ -189,7 +190,7 @@ def _validate_with_schema(result: dict) -> dict:
         return result
     except Exception as e:
         log.warning(f"jsonschema validation failed for {action}: {e}")
-        result.setdefault("warnings", []).append(f"المُدخلات غير متطابقة مع الصيغة المطلوبة")
+        result.setdefault("warnings", []).append("المُدخلات غير متطابقة مع الصيغة المطلوبة")
         result["confidence"] = min(result.get("confidence", 0.5), 0.3)
         return result
 

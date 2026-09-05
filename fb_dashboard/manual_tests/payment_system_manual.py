@@ -1,6 +1,10 @@
 from __future__ import annotations
+
 """Self-check: payment modules — PaymentRequest model, telegram_bot, payment API."""
-import sys, os, hashlib, json
+import json
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 os.environ["DEBUG"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-prod"
@@ -8,7 +12,6 @@ os.environ["CRON_SECRET"] = "test-cron-secret"
 os.environ["TELEGRAM_BOT_TOKEN"] = "test:token"
 os.environ["TELEGRAM_ADMIN_IDS"] = "12345,67890"
 
-from _utils import utcnow
 errors = []
 
 def check(desc, ok):
@@ -20,6 +23,7 @@ def check(desc, ok):
 
 # --- 1. PaymentRequest model ---
 from models import PaymentRequest
+
 cols = {c.name: c for c in PaymentRequest.__table__.columns}
 check("PaymentRequest has id", "id" in cols)
 check("PaymentRequest has tenant_id", "tenant_id" in cols)
@@ -35,7 +39,8 @@ check("PaymentRequest provider default liyana", cols["provider"].default.arg == 
 check("PaymentRequest status default pending", cols["status"].default.arg == "pending")
 
 # --- 2. telegram_bot module ---
-from telegram_bot import BOT_TOKEN, ADMIN_IDS, send_message, notify_admins_new_payment, edit_keyboard, edit_message, answer_callback
+from telegram_bot import ADMIN_IDS, BOT_TOKEN
+
 check("BOT_TOKEN loaded from env", BOT_TOKEN == "test:token")
 check("ADMIN_IDS parsed correctly", 12345 in ADMIN_IDS and 67890 in ADMIN_IDS)
 check("ADMIN_IDS has exactly 2", len(ADMIN_IDS) == 2)
@@ -43,6 +48,7 @@ check("ADMIN_IDS has exactly 2", len(ADMIN_IDS) == 2)
 # --- 3. Payment API logic (no HTTP, just structural) ---
 # Check the runner imports PaymentRequest
 import ast
+
 with open("runner.py") as f:
     tree = ast.parse(f.read())
 imports = set()
@@ -53,7 +59,6 @@ for node in ast.walk(tree):
 check("runner.py imports PaymentRequest", "PaymentRequest" in imports)
 
 # Check telegram_bot imported in runner
-from telegram_bot import notify_admins_new_payment
 tg_imports = set()
 for node in ast.walk(tree):
     if isinstance(node, ast.ImportFrom):
@@ -63,6 +68,7 @@ check("runner imports telegram_bot functions", "notify_admins_new_payment" in tg
 
 # --- 4. Config checks ---
 from config import settings
+
 check("config has CRON_SECRET in env", bool(os.environ.get("CRON_SECRET")))
 check("config DEBUG mode", settings.DEBUG or True)  # won't fail if False
 
@@ -87,7 +93,6 @@ for node in ast.walk(tree):
 check("telegram_webhook endpoint exists", wh_found)
 
 # --- 7. vercel.json crons removed ---
-import json
 with open("../vercel.json") as f:
     vc = json.load(f)
 check("vercel.json has no crons key", "crons" not in vc)
@@ -117,7 +122,9 @@ for node in ast.walk(tree):
 check("Schedulers have _IS_VERCEL guard", vercel_guard)
 
 # --- 11. Config has TELEGRAM variables ---
-from config import TELEGRAM_BOT_TOKEN as cfg_tg, TELEGRAM_ADMIN_IDS as cfg_adm
+from config import TELEGRAM_ADMIN_IDS as cfg_adm
+from config import TELEGRAM_BOT_TOKEN as cfg_tg
+
 check("config exports TELEGRAM_BOT_TOKEN", isinstance(cfg_tg, str))
 check("config exports TELEGRAM_ADMIN_IDS", isinstance(cfg_adm, list))
 

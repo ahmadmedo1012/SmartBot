@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Audit log helper for auth and sensitive operations."""
 from models import AuditLog
 

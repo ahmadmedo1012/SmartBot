@@ -1,18 +1,19 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Analytics routes."""
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-from fastapi import APIRouter, Depends, Query, HTTPException
-from fastapi.responses import JSONResponse, Response
-from sqlalchemy import select, func, desc, cast, Date, text
-
-from _utils import utcnow, iso_z
-from database import get_db
-from models import Reply, User, AISuggestion, ScheduledPost, Rule, Message
-from routers.auth import get_current_user, require_role
 from _responses import ok
+from _utils import iso_z, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse, Response
+from models import AISuggestion, Message, Reply, Rule, ScheduledPost, User
+from sqlalchemy import Date, cast, desc, func, select, text
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["analytics"])
@@ -47,8 +48,10 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_
     )
     heatmap = {}
     for row in hourly_rows:
-        h = int(row.h); d = str(row.d)
-        if d not in heatmap: heatmap[d] = {}
+        h = int(row.h)
+        d = str(row.d)
+        if d not in heatmap:
+            heatmap[d] = {}
         heatmap[d][h] = row.cnt
 
     # Top rules — v4 §7.24: with NAMES (the old query returned rule_id only;
@@ -161,7 +164,8 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
         return JSONResponse(items)
 
     # CSV
-    import csv, io
+    import csv
+    import io
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["id", "commenter", "comment", "reply", "rule_id", "fb_comment_id", "created_at"])
@@ -174,8 +178,8 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
 @router.get("/api/analytics/scheduler-check")
 async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Check and publish overdue scheduled posts."""
-    from _services import fb as _fb
     from _services import _publisher
+    from _services import fb as _fb
 
     _tid = current_user._tenant_id
     now = utcnow()

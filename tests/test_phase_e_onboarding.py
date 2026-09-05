@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase E (= الخطة 5) — بوابة الخروج: مسار Onboarding
 
@@ -9,7 +10,9 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §5:
   5.1 الخطوة 4: أول قاعدة تُنشأ فعلاً + اقتراح AI/قالب متاح
   5.2 جولة react-joyride: مركّبة فعلاً في AuthGuard + أهدافها موجودة في الشريط الجانبي
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
@@ -17,11 +20,11 @@ from sqlalchemy import select
 
 
 async def _make_fixture():
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from sqlalchemy.pool import StaticPool
-    from models import Base
     from database import get_db
+    from models import Base
     from runner import app
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import StaticPool
 
     test_engine = create_async_engine(
         "sqlite+aiosqlite://",
@@ -43,9 +46,9 @@ async def _make_fixture():
 
 
 async def _seed_user(fixture):
+    from _hash import hash_password
     from models import Tenant, User
     from routers.auth import make_token
-    from _hash import hash_password
     app, sf, te, client = fixture
     async with sf() as db:
         t = Tenant(name="T-Onboard", subscription_status="UNPAID", is_active=True,
@@ -76,8 +79,8 @@ async def test_connect_page_saves_fernet_encrypted_token():
         })
         assert r.status_code == 200, r.text
 
-        from models import BotState
         from _crypto import decrypt_token
+        from models import BotState
         async with sf() as db:
             rows = await db.execute(
                 select(BotState).where(BotState.tenant_id == tid))
@@ -126,14 +129,12 @@ async def test_connection_endpoint_exists_and_validates():
 
 async def test_connection_success_via_mock(monkeypatch=None):
     """نجاح الاختبار عبر محاكاة Graph API (httpx المُحاكى) — عقد الواجهة {connected, page_name}."""
-    import asyncio
     fixture = await _make_fixture()
     try:
         app, sf, te, client = fixture
         await _seed_user(fixture)
 
         # محاكاة httpx.AsyncClient داخل وحدة onboarding
-        import routers.onboarding as ob
         import httpx as real_httpx
 
         class FakeResp:

@@ -1,10 +1,11 @@
 from __future__ import annotations
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 
 def utcnow() -> datetime:
     """Return UTC-naive datetime (compatible with SQLAlchemy/Postgres timestamp)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def iso_z(dt: datetime | None) -> str | None:

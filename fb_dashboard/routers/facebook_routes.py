@@ -11,17 +11,18 @@ get_tenant_fb_client() and fails loudly with a clear Arabic message when the
 page is not connected.
 """
 from __future__ import annotations
+
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request
-from sqlalchemy import select
-
+from _responses import ok
+from _services import _track_event, decrypt_token, encrypt_token, get_tenant_fb_client
 from config import settings
 from database import get_db
-from models import User, BotState
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from models import BotState, User
+from sqlalchemy import select
+
 from routers.auth import get_current_user, require_role
-from _services import get_tenant_fb_client, encrypt_token, decrypt_token, _track_event
-from _responses import ok
 
 router = APIRouter(prefix="", tags=["facebook"])
 log = logging.getLogger("fb-api")

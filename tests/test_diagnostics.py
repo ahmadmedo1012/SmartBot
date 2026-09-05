@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 """
 Unit tests for DiagnosticsEngine.
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from diagnostics import DiagnosticsEngine

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase A (= الخطة 1) — بوابة الخروج: البنية التحتية والاستقرار
 
@@ -8,16 +9,15 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §1:
   1.3 Webhook engine registry     → get_bot_engine(fb_client, tenant_id=...) لا يوجد inline BotEngine
   1.5 next.config                 → لا يوجد output:"export" (يُتحقق منه في grep خارجي)
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
-import asyncio
-import inspect
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import select
 
 # ── 1.1 WebSocket Tenant Isolation ───────────────────────────────────────────
 
@@ -188,8 +188,8 @@ def test_next_config_no_static_export():
 
 async def _seed_two_tenants(session_factory):
     """يُنشئ مستأجرين A/B مع مستخدمين وبيانات مختلفة الحجم."""
-    from models import Tenant, User, Reply, Rule
     from _hash import hash_password
+    from models import Reply, Rule, Tenant, User
 
     async with session_factory() as db:
         t_a = Tenant(name="Tenant-A", subscription_status="PAID", is_active=True)
@@ -223,11 +223,11 @@ async def test_system_stats_tenant_scoped_http():
     مستأجر A (3 ردود/2 قواعد/1 مستخدم) مقابل مستأجر B (7 ردود/5 قواعد/1 مستخدم)
     — إذا عادت أرقام الطرفين لأي منهما فهذا تسريب.
     """
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from models import Base
-    from database import get_db
-    from routers.auth import make_token
     import httpx
+    from database import get_db
+    from models import Base
+    from routers.auth import make_token
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
     # محرك اختبار معزول (ذاكرة مشتركة عبر StaticPool)
     test_engine = create_async_engine(

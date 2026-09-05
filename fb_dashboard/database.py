@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import NullPool, StaticPool
+
 from config import settings
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool, StaticPool
 
 # Serverless-safe pool: NullPool for Neon/Postgres — avoids stale connection issues
 _IS_VERCEL = bool(os.getenv("VERCEL"))

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase B (= الخطة 2) — بوابة الخروج: نظام الدفع والاشتراكات
 
@@ -10,31 +11,29 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §2:
   2.5 فترة التجربة: trial_days → حالة TRIAL عند التسجيل
   2.6 انتهاء التجربة → EXPIRED_TRIAL مع استمرار البوت (وليس إيقافه)
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
-import asyncio
 from datetime import timedelta
 from unittest.mock import MagicMock
 
-import pytest
-from sqlalchemy import select
-
 from _utils import utcnow
-
+from sqlalchemy import select
 
 # ── Test harness: isolated DB + real ASGI app ───────────────────────────────
 
 async def _make_app_fixture():
     """Returns (app, session_factory, test_engine) with fresh in-memory DB."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from sqlalchemy.pool import StaticPool
-    from models import Base
-    from database import get_db
-    import routers.payments as payments_mod
     import bot as bot_mod
+    import routers.payments as payments_mod
+    from database import get_db
+    from models import Base
     from runner import app
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import StaticPool
 
     test_engine = create_async_engine(
         "sqlite+aiosqlite://",
@@ -75,9 +74,9 @@ async def _teardown(fixture):
 
 async def _seed(fixture, plans=None, users=1, tenant_kwargs=None):
     """Seed plans + an admin user. Returns (client_factory, plan_ids, user)."""
+    from _hash import hash_password
     from models import SubscriptionPlan, Tenant, User
     from routers.auth import make_token
-    from _hash import hash_password
     app, session_factory, *_ = fixture
 
     plans = plans if plans is not None else [
@@ -317,8 +316,8 @@ async def test_config_env_fallbacks(monkeypatch):
     fixture = await _make_app_fixture()
     try:
         client, _plan_ids, _ = await _seed(fixture)
-        from config import settings
         from _services import api_cache
+        from config import settings
         api_cache.clear_all()
         # pin env fallbacks so the test never depends on ambient .env
         monkeypatch.setattr(settings, "LIBYANA_WALLET_PHONE", "0942119637", raising=False)
@@ -343,6 +342,7 @@ async def test_config_env_fallbacks(monkeypatch):
 def _png_bytes() -> bytes:
     """Minimal valid 4x4 PNG."""
     import io
+
     from PIL import Image
     buf = io.BytesIO()
     Image.new("RGB", (4, 4), color=(200, 60, 30)).save(buf, format="PNG")
@@ -455,8 +455,8 @@ async def test_trial_expiry_flips_to_expired_trial_and_bot_continues():
     fixture = await _make_app_fixture()
     try:
         client, plan_ids, (tid, uid) = await _seed(fixture)
-        from models import Tenant
         from bot import BotEngine
+        from models import Tenant
         app, sf, *_ = fixture
         async with sf() as db:
             t = await db.get(Tenant, tid)
@@ -481,8 +481,8 @@ async def test_paid_expiry_still_skips_cycle():
     fixture = await _make_app_fixture()
     try:
         client, plan_ids, (tid, uid) = await _seed(fixture)
-        from models import Tenant
         from bot import BotEngine
+        from models import Tenant
         app, sf, *_ = fixture
         async with sf() as db:
             t = await db.get(Tenant, tid)

@@ -6,14 +6,19 @@ BEFORE: POST /config was a stub returning {updated: true} without saving
 anything, and the token came from env only (never set in production).
 """
 from __future__ import annotations
-import os, logging
-from fastapi import APIRouter, Depends, HTTPException, Body, Query, Request
-from sqlalchemy import select, delete as sa_delete
-from database import get_db
-from _utils import iso_z
-from models import TelegramApprover, TelegramBroadcastTarget, SystemConfig
-from routers.auth import require_platform_admin
+
+import logging
+import os
+
 import httpx
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from models import SystemConfig, TelegramApprover, TelegramBroadcastTarget
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import select
+
+from routers.auth import require_platform_admin
 
 log = logging.getLogger("fb-tg-config")
 router = APIRouter(prefix="/api", tags=["telegram"])
@@ -80,7 +85,7 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
 
 @router.get("/telegram/diagnose")
 async def diagnose(dry_run: bool = Query(False), db=Depends(get_db), _=Depends(require_platform_admin)):
-    from telegram_bot import get_bot_token, get_chat_id, get_admin_ids
+    from telegram_bot import get_admin_ids, get_bot_token, get_chat_id
     token = await get_bot_token()
     chat_id = await get_chat_id()
     admins = await get_admin_ids()
@@ -121,7 +126,9 @@ async def add_approver(body: dict = Body(None), db=Depends(get_db),
     if existing.scalar_one_or_none():
         raise HTTPException(409, "Approver already exists")
     a = TelegramApprover(telegram_id=tid, label=body.get("label", ""), added_by_id=current_user.id)
-    db.add(a); await db.commit(); await db.refresh(a)
+    db.add(a)
+    await db.commit()
+    await db.refresh(a)
     return {"success": True, "data": {"id": a.id, "telegramId": a.telegram_id, "label": a.label}}
 
 @router.delete("/admin/telegram/approvers/{approver_id}")
@@ -140,16 +147,21 @@ async def list_targets(db=Depends(get_db), _=Depends(require_platform_admin)):
 
 @router.post("/telegram/broadcast-targets")
 async def add_target(body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
-    if not body or "chatId" not in body: raise HTTPException(400, "chatId required")
+    if not body or "chatId" not in body:
+        raise HTTPException(400, "chatId required")
     t = TelegramBroadcastTarget(label=body.get("label", ""), chat_id=str(body["chatId"]))
-    db.add(t); await db.commit(); await db.refresh(t)
+    db.add(t)
+    await db.commit()
+    await db.refresh(t)
     return {"success": True, "data": {"id": t.id, "label": t.label, "chatId": t.chat_id, "isActive": t.is_active}}
 
 @router.patch("/telegram/broadcast-targets/{target_id}")
 async def update_target(target_id: int, body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
     t = await db.get(TelegramBroadcastTarget, target_id)
-    if not t: raise HTTPException(404)
-    if "isActive" in body: t.is_active = body["isActive"]
+    if not t:
+        raise HTTPException(404)
+    if "isActive" in body:
+        t.is_active = body["isActive"]
     await db.commit()
     return {"success": True}
 
@@ -162,7 +174,7 @@ async def delete_target(target_id: int, db=Depends(get_db), _=Depends(require_pl
 @router.post("/telegram/test")
 async def test_telegram(db=Depends(get_db), _=Depends(require_platform_admin)):
     """Send a REAL test message (was a stub returning sent:true blindly)."""
-    from telegram_bot import send_message, get_bot_token, get_chat_id, get_admin_ids
+    from telegram_bot import get_admin_ids, get_bot_token, get_chat_id, send_message
     token = await get_bot_token()
     if not token:
         raise HTTPException(400, "لم يتم إعداد توكن البوت — أضفه من الإعدادات")

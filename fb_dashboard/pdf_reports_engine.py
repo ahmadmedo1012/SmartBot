@@ -1,27 +1,27 @@
 from __future__ import annotations
+
 """PDF Reports Engine -- White-label client-ready PDF reports (weasyprint).
 Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 
 [DEPRECATED — plan §6.1: activated but not invoked in the production flow.
 Kept for future use; do not build new features on top of it.]
 """
-import io
 import logging
-from datetime import datetime, timedelta
-from _utils import utcnow
+from datetime import timedelta
 
-from sqlalchemy import select, func, cast, Date, desc
+from _utils import utcnow
+from sqlalchemy import Date, cast, desc, func, select
 
 log = logging.getLogger("fb-pdf-reports")
 
 _WEASYPRINT = False
 _FPDF = False
 try:
-    import weasyprint
+    import weasyprint  # noqa: F401 — availability probe
     _WEASYPRINT = True
 except ImportError:
     try:
-        from fpdf import FPDF
+        from fpdf import FPDF  # noqa: F401 — fallback availability probe
         _FPDF = True
     except ImportError:
         pass
@@ -272,7 +272,7 @@ class PdfReportsEngine:
         result = {"name": "", "total_recipients": 0, "sent_count": 0, "failed_count": 0, "opened_count": 0,
                   "status": "", "created_at": "", "sent_at": ""}
         if campaign_type == "broadcast":
-            from models import Broadcast, BroadcastRecipient
+            from models import Broadcast
             row = (await session.execute(select(Broadcast).where(Broadcast.id == int(campaign_id)))).scalar_one_or_none()
             if row:
                 result.update(name=row.name, total_recipients=row.total_recipients, sent_count=row.sent_count,

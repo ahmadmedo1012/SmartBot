@@ -1,19 +1,20 @@
 """Shared state & helpers extracted from runner.py for router modules."""
 from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import os
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, func
-
-from _utils import utcnow
+from _crypto import decrypt_token  # re-export: routers import it from here
+from _crypto import encrypt_token as encrypt_token
 from _lazy import lazy
+from _utils import utcnow
+from bot import BotEngine
 from config import settings
 from database import AsyncSessionLocal
-from bot import BotEngine
-from _crypto import encrypt_token, decrypt_token
+from sqlalchemy import func, select
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")
@@ -166,7 +167,8 @@ async def _get_trend_data(db, tenant_id: int) -> dict:
     }
 
 # Prevent circular import — Reply model imported lazily
-from models import Reply, BotState, BotLog, BotAlert
+from models import BotState, Reply
+
 
 # Event tracking
 def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int = 0):

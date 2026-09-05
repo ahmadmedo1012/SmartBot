@@ -1,19 +1,18 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Inbox & conversations routes."""
-import json
 import logging
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Form
-from sqlalchemy import select, func, and_
-
-from config import settings
-from database import get_db, AsyncSessionLocal
-from models import ConversationLabel, ConversationNote, ConversationTag, User, AnalyticsEvent, Conversation, Message
-from routers.auth import get_current_user, require_role
-from _services import get_tenant_fb_client, _track_event
 from _responses import ok
+from _services import _track_event, get_tenant_fb_client
 from _utils import iso_z
+from database import AsyncSessionLocal, get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import Conversation, ConversationLabel, ConversationTag, Message, User
+from sqlalchemy import and_, select
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])

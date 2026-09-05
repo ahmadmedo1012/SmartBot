@@ -1,15 +1,18 @@
 from __future__ import annotations
+
 """
 Bot Logic QA — scenario-based regression and edge case suite.
 Tests the rebuilt bot.py components independently of FB API.
 """
-import sys, os, time, hashlib
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Test the new bot modules directly
-from enhanced_intent import EnhancedIntentClassifier
-from cache_layer import TTLCache, ReplyDedupCache
+from cache_layer import ReplyDedupCache
 from context_engine import ContextEngine
+from enhanced_intent import EnhancedIntentClassifier
 from offer_engine import OfferEngine
 
 PASS = 0
@@ -101,6 +104,8 @@ check("legacy: neutral", EnhancedIntentClassifier.to_legacy(
 # ===== 2. CACHE LAYER (async tests) =====
 print("\n=== Cache Layer (async tests) ===")
 import asyncio
+
+
 async def _test_cache():
     dedup = ReplyDedupCache(initial={"a", "b"}, ttl=30)
     check("dedup detects existing", await dedup.is_dup("a"))
@@ -129,9 +134,13 @@ check("active users > 0", ctx.active_users >= 1)
 # segmentation
 c2 = ctx.get("user2")
 check("new user is_new", c2.is_new())
-c2.add_comment("c1"); c2.add_comment("c2"); c2.add_comment("c3")
+c2.add_comment("c1")
+c2.add_comment("c2")
+c2.add_comment("c3")
 check("returning user", c2.is_returning())
-c2.add_comment("c4"); c2.add_comment("c5"); c2.add_comment("c6")
+c2.add_comment("c4")
+c2.add_comment("c5")
+c2.add_comment("c6")
 check("frequent user", c2.is_frequent())
 
 # ===== 4. OFFER ENGINE =====
@@ -147,6 +156,7 @@ check("diff user not tracked", not oe.has_received("u2", 1))
 # ===== 5. TEXT NORMALIZER (from bot.py) =====
 print("\n=== Text Normalizer ===")
 from bot import TextNormalizer
+
 check("alef normalization", TextNormalizer.normalize("أحمد") == "احمد")
 check("teh marbuta", TextNormalizer.normalize("مدرسة") == "مدرسه")
 check("yeh ali", TextNormalizer.normalize("على") == "علي")

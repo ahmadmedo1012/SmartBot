@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Broadcast Engine — Segmented mass messaging engine.
 Sends bulk messages to filtered subscriber segments with rate limiting.
 """
@@ -6,13 +7,11 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from _utils import utcnow, iso_z
-from typing import Any
-from sqlalchemy import select, and_, or_, func, desc, not_, exists
-from sqlalchemy.orm import joinedload
 
-from models import Broadcast, BroadcastRecipient, Subscriber, SubscriberTag, Tag
+from _utils import iso_z, utcnow
 from fb_client import FBClient
+from models import Broadcast, BroadcastRecipient, Subscriber, SubscriberTag, Tag
+from sqlalchemy import desc, exists, func, select
 
 log = logging.getLogger("fb-broadcast")
 
@@ -281,7 +280,6 @@ class BroadcastEngine:
                 return True
 
             # Create recipient records
-            now = utcnow()
             for sid in subscriber_ids:
                 session.add(BroadcastRecipient(
                     broadcast_id=broadcast_id,

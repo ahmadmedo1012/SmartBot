@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase F (= الخطة 6) — بوابة الخروج: تنظيف المحرك
 
@@ -8,11 +9,12 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §6:
   + لا مسارات API مكررة (نفس method+path مسجلة مرتين) — فخ "الأول يسجل يفوز"
     الذي أخفى دعم/إحصاءات حقيقية خلف stubs
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
-import asyncio
 from collections import defaultdict
 
 

@@ -14,13 +14,10 @@ os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("FB_PAGE_ID", "1001")
 os.environ.setdefault("DEBUG", "True")
 
-import asyncio
 import httpx
 import pytest
-
-from facebook_engine.client import GraphClient, GraphAPIError
 from facebook_engine import tools
-
+from facebook_engine.client import GraphAPIError, GraphClient
 
 # ── mock Graph API ──────────────────────────────────────────────────────────
 POSTS_PAGE1 = {"data": [{"id": f"p{i}", "message": f"post {i}"} for i in range(25)],
@@ -140,13 +137,14 @@ async def test_tenant_isolation_by_construction():
     b = GraphClient(2, "tok-b", "page-b")
     assert a.tenant_id != b.tenant_id and a.page_id != b.page_id
     assert a._http is not b._http
-    await a.aclose(); await b.aclose()
+    await a.aclose()
+    await b.aclose()
 
 
 async def test_mcp_server_is_lazy_and_isolated():
     """The MCP module must not import `mcp` at package import time (app safety)."""
     import sys
-    import facebook_engine
+
     assert "mcp.server" not in sys.modules
     # and the live app does NOT import the engine anywhere
     import subprocess
@@ -155,6 +153,6 @@ async def test_mcp_server_is_lazy_and_isolated():
          "/home/z/my-project/SmartBot/fb_dashboard/"],
         capture_output=True, text=True,
     )
-    hits = [l for l in r.stdout.splitlines()
-            if "facebook_engine/" not in l and "test_track_g" not in l]
+    hits = [ln for ln in r.stdout.splitlines()
+            if "facebook_engine/" not in ln and "test_track_g" not in ln]
     assert not hits, f"live app imports the isolated engine: {hits}"

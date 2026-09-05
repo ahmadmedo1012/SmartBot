@@ -1,11 +1,12 @@
 """Distributed Redis cache — shared across all Vercel instances."""
 from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import os
-import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 log = logging.getLogger("redis-cache")
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 """Integration test: payment API endpoints via TestClient."""
-import sys, os, json
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 os.environ["DEBUG"] = "true"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
@@ -9,7 +12,8 @@ os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///test_payment.db"
 os.environ["TELEGRAM_BOT_TOKEN"] = ""
 os.environ["TELEGRAM_ADMIN_IDS"] = ""
 import asyncio
-from httpx import AsyncClient, ASGITransport
+
+from httpx import ASGITransport, AsyncClient
 
 errors = []
 
@@ -21,10 +25,9 @@ def check(desc, ok):
         print(f"  ✓ {desc}")
 
 async def main():
+    from database import AsyncSessionLocal, engine
+    from models import Base, BotState, PaymentRequest, Tenant, User
     from runner import app
-    from database import engine, AsyncSessionLocal
-    from models import Base, PaymentRequest, BotState, User, Tenant
-    from sqlalchemy import select
 
     # Create tables
     async with engine.begin() as conn:
@@ -132,7 +135,7 @@ async def main():
             print(f"   {e}")
         sys.exit(1)
     else:
-        print(f"✅ All API integration tests passed")
+        print("✅ All API integration tests passed")
 
 if __name__ == "__main__":
     asyncio.run(main())

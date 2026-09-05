@@ -30,14 +30,19 @@ os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest
+from database import AsyncSessionLocal
+from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
-
-from database import engine as db_engine, AsyncSessionLocal
 from models import (
-    Base, User, Tenant, BotState, Conversation, Message, Rule,
-    SystemConfig, Subscriber, Comment, Reply,
+    Base,
+    BotState,
+    Comment,
+    Conversation,
+    Message,
+    Rule,
+    Subscriber,
 )
+from sqlalchemy import select
 
 
 @pytest.fixture(scope="module")
@@ -257,7 +262,7 @@ async def test_consecutive_messages_both_replied(app_client):
     from _services import reset_bot_engines
     reset_bot_engines()
     from messenger_service import handle_messaging_event
-    s1 = await handle_messaging_event(
+    await handle_messaging_event(
         tenant_id, page_id, _msg_event(page_id, "555000222", "سلام", f"a_{uuid.uuid4().hex[:6]}"), FakeFB())
     s2 = await handle_messaging_event(
         tenant_id, page_id, _msg_event(page_id, "555000222", "شحال السعر؟", f"b_{uuid.uuid4().hex[:6]}"), FakeFB())
@@ -273,7 +278,7 @@ async def test_consecutive_messages_both_replied(app_client):
 async def test_rule_crud_priority_and_cache_invalidation(app_client):
     ac = app_client
     user = await _register(ac, "pri")
-    tok = await _login(ac, user["username"])
+    await _login(ac, user["username"])
     tenant_id = user["tenant_id"]
 
     # create with priority 5 via the API (was: not settable at all)
@@ -289,7 +294,7 @@ async def test_rule_crud_priority_and_cache_invalidation(app_client):
         assert rule.priority == 5
 
     # the engine cache must reflect the new rule immediately (no 120s staleness)
-    from _services import get_bot_engine, _bot_engines
+    from _services import _bot_engines, get_bot_engine
     _bot_engines.pop(tenant_id, None)
     engine = get_bot_engine(None, tenant_id=tenant_id)
     await engine._ensure_cache()

@@ -2,14 +2,14 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
-from fastapi import APIRouter, Depends, Request, HTTPException
-from sqlalchemy import select, func, desc
-
-from database import get_db
-from _utils import iso_z
-from models import Flow, FlowExecution, User
-from routers.auth import get_current_user, require_role
 from _responses import ok
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from models import Flow, FlowExecution, User
+from sqlalchemy import select
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["flows"])
@@ -108,7 +108,7 @@ async def toggle_flow(flow_id: int, db=Depends(get_db), current_user: User = Dep
 
 
 @router.post("/api/flows/{flow_id}/test")
-async def test_flow(flow_id: int, request: Request, db=Depends(get_db), _=Depends(require_role("editor"))):
+async def test_flow(flow_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     flow = (await db.execute(
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)

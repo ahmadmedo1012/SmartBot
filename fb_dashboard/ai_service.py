@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 AI Service — Smart Reply Engine for SmartBot.
 Supports Gemini & OpenAI providers.
@@ -8,9 +9,13 @@ Usage:
     suggestions = await ai.suggest_replies(comment_text, page_context)
     tone = await ai.analyze_tone(comment_text)
 """
-import logging, json, os, time
+import json
+import logging
+import os
 from typing import Any
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 log = logging.getLogger("fb-ai")
@@ -299,7 +304,9 @@ class AIService:
                 r = await c.get(image_url)
                 if r.status_code == 200:
                     img_data = r.content
-        import PIL.Image, io
+        import io
+
+        import PIL.Image
         img = PIL.Image.open(io.BytesIO(img_data)) if img_data else None
         if img is None:
             return ""

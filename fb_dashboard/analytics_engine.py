@@ -1,14 +1,12 @@
 from __future__ import annotations
+
 """Analytics Engine — Advanced metrics, reporting, and insights."""
-import json
 import logging
-from datetime import datetime, timedelta, date
-from _utils import utcnow, iso_z
-from typing import Any
+from datetime import datetime, timedelta
 
-from sqlalchemy import select, func, cast, Date, extract, desc, and_, text
-
-from models import Reply, Rule, BotLog, AnalyticsEvent, AISuggestion, Subscriber, Message, Conversation, Customer
+from _utils import iso_z, utcnow
+from models import AISuggestion, Conversation, Customer, Message, Reply, Rule, Subscriber
+from sqlalchemy import Date, and_, cast, desc, extract, func, select, text
 
 log = logging.getLogger("fb-analytics")
 

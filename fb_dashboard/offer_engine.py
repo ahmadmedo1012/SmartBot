@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 """
 Smart offer engine — selects best offer based on user context.
 """
 import logging
-from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -10,6 +10,7 @@ World-class launch plan v3, Stage 1.1:
 Run from repo root:  python scripts/gen_icon_set.py
 """
 from pathlib import Path
+
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]

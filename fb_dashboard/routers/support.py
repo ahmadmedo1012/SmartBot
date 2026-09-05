@@ -11,16 +11,17 @@ Full system (plan §4.3):
 Priorities: low | medium | high | urgent.
 """
 from __future__ import annotations
+
 import asyncio
 import logging
 import os
 
-from fastapi import APIRouter, Depends, Body, HTTPException, Query
-from sqlalchemy import select, func, desc
-
-from database import get_db
 from _utils import iso_z
-from models import User, SupportTicket, SupportTicketReply
+from database import get_db
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from models import SupportTicket, SupportTicketReply, User
+from sqlalchemy import desc, func, select
+
 from routers.auth import get_current_user, require_role
 from routers.notifications import push_notification
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 """Lazy proxy — defers object construction until first attribute access.
 Reduces cold-start weight: only what a request actually uses gets loaded."""
-import asyncio
 
 
 class lazy:

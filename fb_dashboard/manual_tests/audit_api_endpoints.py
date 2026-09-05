@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 """
 Automated API endpoint audit: compare frontend API calls vs backend routes.
 """
-import sys
 import os
 import re
+import sys
 
 os.chdir('/home/ahmed/Downloads/SmartBot')
 
@@ -16,17 +17,17 @@ print("=" * 60)
 frontend_dir = "fb_dashboard/frontend/src/app/dashboard"
 
 frontend_calls = []
-for root, dirs, files in os.walk(frontend_dir):
+for root, _dirs, files in os.walk(frontend_dir):
     for file in files:
         if file.endswith('.ts') or file.endswith('.tsx'):
             filepath = os.path.join(root, file)
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
+                with open(filepath, encoding='utf-8') as f:
                     content = f.read()
                     # Match apiFetch("/api/...")
                     matches = re.findall(r'apiFetch\(["\'](/api/[^"\']+)["\']', content)
                     frontend_calls.extend(matches)
-            except Exception as e:
+            except Exception:
                 pass
 
 frontend_calls = sorted(set(frontend_calls))
@@ -42,23 +43,23 @@ print("=" * 60)
 routers_dir = "fb_dashboard/routers"
 
 backend_routes = []
-for root, dirs, files in os.walk(routers_dir):
+for root, _dirs, files in os.walk(routers_dir):
     for file in files:
         if file.endswith('.py'):
             filepath = os.path.join(root, file)
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
+                with open(filepath, encoding='utf-8') as f:
                     content = f.read()
                     # Match @router.get("/api/...") or @router.post("/api/...")
                     matches = re.findall(r'@router\.(get|post|put|delete|patch)\(["\'](/api/[^"\']+)["\']', content)
                     for method, route in matches:
                         backend_routes.append((method.upper(), route))
-            except Exception as e:
+            except Exception:
                 pass
 
 backend_routes = sorted(set(backend_routes))
 print(f"\nFound {len(backend_routes)} unique backend routes:")
-for method, route in backend_routes:
+for _method, route in backend_routes:
     print(f"  [{method}] {route}")
 
 # ── Step 3: Compare and find mismatches ──────────────────────────────────────
@@ -74,7 +75,7 @@ for call in frontend_calls:
         frontend_paths.add(path)
 
 backend_paths = set()
-for method, route in backend_routes:
+for _method, route in backend_routes:
     path = route.split('?')[0].rstrip('/')
     if path:
         backend_paths.add(path)

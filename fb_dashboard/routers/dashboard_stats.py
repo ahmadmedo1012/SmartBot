@@ -1,18 +1,18 @@
 from __future__ import annotations
+
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
-from sqlalchemy import select, func, desc, cast, Date, text
-
-from _utils import utcnow, iso_z
-from config import settings
 from _responses import ok
+from _services import _get_trend_data, fb, get_ai, get_tenant_fb_client
+from _utils import iso_z, utcnow
+from config import settings
 from database import get_db
-from models import Reply, Rule, BotLog, User, Tenant, Conversation, Message
+from fastapi import APIRouter, Depends, HTTPException
+from models import BotLog, Conversation, Message, Reply, Rule, User
+from sqlalchemy import Date, cast, desc, func, select
+
 from routers.auth import get_current_user, require_role
-from _services import fb, get_ai, get_tenant_fb_client, _get_trend_data, _track_event
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["dashboard"])
@@ -128,10 +128,10 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
                 "type": "reply", "text": f"رد على {r.commenter_name}",
                 "detail": r.reply_text[:60], "time": iso_z(r.created_at),
             })
-        for l in recent_logs_rows.scalars().all():
+        for lg in recent_logs_rows.scalars().all():
             activities.append({
-                "type": "log", "level": l.level, "text": l.message[:100],
-                "detail": "", "time": iso_z(l.created_at),
+                "type": "log", "level": lg.level, "text": lg.message[:100],
+                "detail": "", "time": iso_z(lg.created_at),
             })
         activities.sort(key=lambda a: a.get("time", ""), reverse=True)
         activities = activities[:8]
@@ -170,9 +170,9 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             "recent_activity": activities,
             "recent_replies": recent_replies,
         })
-    except Exception as e:
+    except Exception:
         log.error("dashboard_bundle error", exc_info=True)
-        raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً")
+        raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً") from None
 
 
 @router.get("/api/stats")

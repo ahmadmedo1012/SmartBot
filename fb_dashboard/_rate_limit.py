@@ -1,15 +1,15 @@
 from __future__ import annotations
+
 """DB-backed rate limiter — works across Vercel serverless instances."""
 from datetime import datetime, timedelta
-from sqlalchemy import select, func, delete
+
 from models import RateLimitEntry
+from sqlalchemy import delete, func, select
 
 
 async def check_rate_limit(db, key: str, max_attempts: int = 10, window_seconds: int = 60) -> bool:
     """Returns True if within limit, False if exceeded."""
     now = datetime.utcnow()
-    window_start = now - timedelta(seconds=window_seconds)
-
     # cleanup stale entries for this key
     await db.execute(
         delete(RateLimitEntry).where(

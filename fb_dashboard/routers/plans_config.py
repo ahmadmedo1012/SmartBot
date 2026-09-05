@@ -1,19 +1,19 @@
 from __future__ import annotations
+
 import os
 from datetime import timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Body, HTTPException, Form, Request
-from fastapi.responses import JSONResponse
-from sqlalchemy import select, func, text, delete
-
-from _utils import utcnow
-
-from config import settings
-from database import engine, AsyncSessionLocal, get_db
-from models import SubscriptionPlan, SystemConfig, Reply, Rule, User, BotLog, RateLimitEntry
-from routers.auth import get_current_user
 from _services import api_cache
+from _utils import utcnow
+from config import settings
+from database import AsyncSessionLocal, engine, get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import JSONResponse
+from models import BotLog, RateLimitEntry, Reply, SubscriptionPlan, SystemConfig
+from sqlalchemy import delete, func, select, text
+
+from routers.auth import get_current_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # ponytail: match runner.py's BASE_DIR (fb_dashboard/)
 
@@ -93,7 +93,7 @@ async def public_stats(db=Depends(get_db)):
         activeUsers30d — count of users who logged in within the past 30 days (best-effort)
         uptimePercent — fixed 99.9 (status page assumed; replace with real probe later)
     """
-    from models import Tenant, Reply, User
+    from models import Tenant
     try:
         active_tenants = await db.scalar(
             select(func.count(Tenant.id)).where(

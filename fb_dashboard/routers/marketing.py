@@ -12,15 +12,16 @@ existing broadcast engine when a tenant FB client is configured; otherwise
 the campaign is queued and stats reflect the queued audience size.
 """
 from __future__ import annotations
+
 import logging
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, Body, HTTPException, Query
-from sqlalchemy import select, func, desc, or_
-
-from _utils import utcnow, iso_z
+from _utils import iso_z, utcnow
 from database import get_db
-from models import User, MarketingCampaign, Subscriber
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from models import MarketingCampaign, Subscriber, User
+from sqlalchemy import desc, func, or_, select
+
 from routers.auth import get_current_user
 from routers.notifications import push_notification
 
@@ -97,7 +98,7 @@ async def create_campaign(
             sched = datetime.fromisoformat(str(scheduled_at))
             status = "scheduled"
         except ValueError:
-            raise HTTPException(400, "تاريخ الجدولة غير صالح (ISO 8601)")
+            raise HTTPException(400, "تاريخ الجدولة غير صالح (ISO 8601)") from None
 
     c = MarketingCampaign(
         tenant_id=current_user._tenant_id,
@@ -161,7 +162,7 @@ async def send_campaign(
     dispatched = False
     if recipients:
         try:
-            from _services import get_tenant_fb_client, broadcast_engine
+            from _services import broadcast_engine, get_tenant_fb_client
             fb_cli = await get_tenant_fb_client(c.tenant_id)
             if fb_cli is not None:
                 from database import AsyncSessionLocal

@@ -30,3 +30,7 @@ aiosqlite>=0.20.0  # for SQLite in-memory test DB
 # fb_dashboard/facebook_engine/mcp_server.py when run as its own process:
 #   python -m fb_dashboard.facebook_engine.mcp_server --tenant-id 1 ...
 mcp>=1.2.0
+
+# Code quality gates (v5 §2) — ruff lint + coverage measurement
+ruff>=0.6.0
+pytest-cov>=5.0.0

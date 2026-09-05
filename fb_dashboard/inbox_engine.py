@@ -1,18 +1,14 @@
 from __future__ import annotations
+
 """Omnichannel Inbox Engine — Unified conversation management across platforms.
 Handles Messenger, Instagram, WhatsApp, Telegram conversations in one inbox.
 """
-import json
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
-from sqlalchemy import select, func, and_
-from sqlalchemy.orm import selectinload
-
-from models import ConversationTag, ConversationLabel, Reply, ConversationNote, ConversationAssignee
 from fb_client import FBClient
-from database import AsyncSessionLocal
+from models import ConversationAssignee, ConversationLabel, ConversationNote, ConversationTag, Reply
+from sqlalchemy import and_, func, select
 
 log = logging.getLogger("fb-inbox")
 
@@ -203,7 +199,7 @@ class InboxEngine:
         if result:
             try:
                 s = Reply(
-                    fb_comment_id=f"inbox_{conversation_id}_{datetime.now(timezone.utc).timestamp()}",
+                    fb_comment_id=f"inbox_{conversation_id}_{datetime.now(UTC).timestamp()}",
                     fb_post_id=real_id,
                     commenter_name="",
                     comment_text="",

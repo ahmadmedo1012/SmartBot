@@ -1,10 +1,11 @@
 from __future__ import annotations
-"""Tests for AnalyticsEngine — daily trend, peak hour, overview, helpers."""
-import pytest
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, date
-from collections import namedtuple
 
+"""Tests for AnalyticsEngine — daily trend, peak hour, overview, helpers."""
+from collections import namedtuple
+from datetime import date, datetime
+from unittest.mock import AsyncMock
+
+import pytest
 from analytics_engine import AnalyticsEngine
 
 

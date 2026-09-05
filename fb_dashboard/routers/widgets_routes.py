@@ -1,14 +1,15 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, desc
-from _utils import utcnow, iso_z
-from datetime import datetime, timedelta
-from config import settings
-from database import get_db
-from models import Reply, BotLog, AISuggestion, Rule, ReplyTemplate, User
-from routers.auth import get_current_user
-from _services import log, get_ai
+from datetime import timedelta
+
 from _responses import ok
+from _services import get_ai, log
+from _utils import iso_z, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, Query
+from models import AISuggestion, BotLog, Reply, ReplyTemplate, Rule, User
+from sqlalchemy import desc, func, select
+
+from routers.auth import get_current_user
 
 router = APIRouter(prefix="", tags=["widgets"])
 
@@ -30,10 +31,10 @@ async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
             "type": "reply", "text": f"رد على {r.commenter_name}",
             "detail": r.reply_text[:60], "time": iso_z(r.created_at),
         })
-    for l in recent_logs.scalars().all():
+    for lg in recent_logs.scalars().all():
         activities.append({
-            "type": "log", "level": l.level, "text": l.message[:100],
-            "detail": "", "time": iso_z(l.created_at),
+            "type": "log", "level": lg.level, "text": lg.message[:100],
+            "detail": "", "time": iso_z(lg.created_at),
         })
     activities.sort(key=lambda a: a.get("time", ""), reverse=True)
     return ok(activities[:limit])
@@ -77,7 +78,8 @@ async def widget_response_time(days: int = Query(7), db=Depends(get_db), current
 async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Sentiment distribution over time."""
     _tid = current_user._tenant_id
-    from sqlalchemy import cast as sql_cast, Date
+    from sqlalchemy import Date
+    from sqlalchemy import cast as sql_cast
     cutoff = utcnow() - timedelta(days=days)
     rows = await db.execute(
         select(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date).label("d"), func.count(AISuggestion.id))
@@ -88,7 +90,8 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), curre
     trend = {}
     for row in rows:
         d = str(row.d)
-        if d not in trend: trend[d] = {}
+        if d not in trend:
+            trend[d] = {}
         trend[d][row.sentiment or "محايد"] = row.count
     return ok({"trend": trend})
 

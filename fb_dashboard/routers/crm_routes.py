@@ -1,12 +1,13 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, HTTPException, Form, Query
-from sqlalchemy import select, desc, func, or_
-from datetime import datetime
-from database import get_db
-from _utils import iso_z
-from models import Offer, BrandConfig, Customer, BotAlert, User
-from routers.auth import get_current_user, require_role
+
 from _responses import ok
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import Customer, User
+from sqlalchemy import desc, func, or_, select
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["crm"])
 
@@ -83,10 +84,15 @@ async def crm_update(
     )).scalar_one_or_none()
     if not c:
         raise HTTPException(404, "العميل غير موجود")
-    if name: c.name = name
-    if phone: c.phone = phone
-    if stage: c.stage = stage
-    if notes: c.notes = notes
-    if interested_in: c.interested_in = interested_in
+    if name:
+        c.name = name
+    if phone:
+        c.phone = phone
+    if stage:
+        c.stage = stage
+    if notes:
+        c.notes = notes
+    if interested_in:
+        c.interested_in = interested_in
     await db.commit()
     return ok({"ok": True})

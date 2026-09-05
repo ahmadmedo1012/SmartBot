@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Commerce Engine — E-commerce integration for Shopify.
 Connects store data to SmartBot flows for abandoned cart recovery,
 order confirmations, product recommendations.
@@ -6,14 +7,12 @@ order confirmations, product recommendations.
 [DEPRECATED — plan §6.1: decoupled from the production flow; activates only
 with SHOPIFY_* env config. Kept for future use.]
 """
-import json
-import logging
-import hmac
 import hashlib
-from datetime import datetime
+import hmac
+import logging
+
 from _utils import utcnow
-from typing import Any
-from fastapi import Request, HTTPException
+from fastapi import Request
 
 log = logging.getLogger("fb-commerce")
 

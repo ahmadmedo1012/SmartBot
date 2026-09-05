@@ -1,25 +1,23 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Bot routes: status, restart, stop, interval, cron, trigger, logs, helper."""
 import asyncio
-import os
-import json
 import logging
+import os
 import secrets
 from datetime import timedelta
-from _utils import utcnow, iso_z
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Form, Request
-from sqlalchemy import select, func, desc
-
+from _responses import fail, ok
+from _utils import iso_z, utcnow
 from config import settings
-from database import get_db, AsyncSessionLocal
+from database import AsyncSessionLocal, get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from models import BotLog, BotState, Tenant, User
-from routers.auth import get_current_user, require_role
-
+from sqlalchemy import desc, func, select
 from ws_manager import ws_manager
-from event_bus import event_bus
-from _responses import ok, fail
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["bot"])
@@ -225,7 +223,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
                 )
             )
             pages = [(bs.tenant_id, bs.value) for bs in rows.scalars().all() if bs.value]
-        for tenant_id, page_id in pages:
+        for tenant_id, _page in pages:
             try:
                 from _services import get_tenant_fb_client
                 fb = await get_tenant_fb_client(tenant_id)
@@ -254,7 +252,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
 
     # ── 3. One bot comment cycle for connected tenants (gated by engine) ──
     try:
-        from _services import get_tenant_fb_client, get_bot_engine
+        from _services import get_bot_engine, get_tenant_fb_client
         for tenant_id, _page in pages:
             try:
                 fb = await get_tenant_fb_client(tenant_id)

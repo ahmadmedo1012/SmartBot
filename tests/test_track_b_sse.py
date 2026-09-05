@@ -18,9 +18,9 @@ import asyncio
 import json
 
 import pytest
+from database import AsyncSessionLocal
+from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
-
-from database import engine as db_engine, AsyncSessionLocal
 from models import Base, SubscriptionPayment, SubscriptionPlan, User
 
 

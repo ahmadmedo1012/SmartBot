@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 """Subscription payment resolution — plan activation and tenant update."""
-from _utils import utcnow
 from datetime import timedelta
+
+from _utils import utcnow
 
 
 async def resolve_subscription_payment(db, payment_id: int, decision: str):
     """Verify or cancel a subscription payment. Handles plan activation."""
     from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
-    from sqlalchemy import select
 
     sp = await db.get(SubscriptionPayment, payment_id)
     if not sp or sp.status != "pending":

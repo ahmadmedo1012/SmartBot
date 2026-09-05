@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Password hashing with argon2id primary, bcrypt fallback for legacy."""
 import bcrypt
 

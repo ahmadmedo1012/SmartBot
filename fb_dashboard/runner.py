@@ -1,74 +1,95 @@
 from __future__ import annotations
+
 import asyncio
 import hashlib
-import time
 import hmac
 import json
 import logging
 import os
-from datetime import datetime, timedelta
-from _utils import utcnow
-from pathlib import Path
+import time
 from contextlib import asynccontextmanager
+from datetime import timedelta
+from pathlib import Path
 
 import jwt
-from fastapi import FastAPI, Request, Depends, Query, HTTPException, Body, WebSocket, WebSocketDisconnect
+from _schema_reconcile import reconcile_schema as _reconcile_schema
+from _utils import utcnow
+from config import settings
+from database import AsyncSessionLocal, engine
+from event_bus import event_bus
+from fastapi import (
+    Body,
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, PlainTextResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, cast, Date, update
-
-from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription, edit_keyboard, edit_message, answer_callback
-
-from config import settings
-from database import engine, AsyncSessionLocal
-from models import Base, Rule, Reply, BotState, Tenant, User, BlacklistedToken
-from models import AnalyticsEvent, SubscriptionPlan, SubscriptionPayment, PaymentRequest, UsageCounter
-from bot import BotEngine
-from ws_manager import ws_manager
-from event_bus import event_bus
-from _schema_reconcile import reconcile_schema as _reconcile_schema
 from logs_api import logs_router
-from routers import auth as auth_router
-from routers import payments as payments_router
-from routers import users as users_router
-from routers import rules as rules_router
-from routers import replies as replies_router
-from routers import webhooks as webhooks_router
-from routers import analytics as analytics_router
-from routers import inbox as inbox_router
-from routers import bot as bot_router
-from routers import diagnostics as diagnostics_router
-from routers import ai as ai_router
-from routers import flows as flows_router
-from routers import sequences as sequences_router
-from routers import broadcasts as broadcasts_router
+from models import (
+    Base,
+    BlacklistedToken,
+    BotState,
+    PaymentRequest,
+    Reply,
+    Rule,
+    SubscriptionPayment,
+    SubscriptionPlan,
+    Tenant,
+    User,
+)
 from routers import admin_routes as admin_router
+from routers import ai as ai_router
 from routers import alerts_routes as alerts_router
+from routers import analytics as analytics_router
+from routers import auth as auth_router
+from routers import bot as bot_router
 from routers import brand_routes as brand_router
+from routers import broadcasts as broadcasts_router
 from routers import calendar_routes as calendar_router
-from routers import telegram_config as telegram_router
 from routers import commerce_routes as commerce_router
 from routers import crm_routes as crm_router
 from routers import dashboard_stats as dashboard_router
+from routers import diagnostics as diagnostics_router
 from routers import facebook_routes as facebook_router
+from routers import flows as flows_router
 from routers import health_alerts_routes as health_alerts_router
+from routers import inbox as inbox_router
+from routers import marketing as marketing_router
+from routers import notifications as notifications_router
 from routers import offers_routes as offers_router
+from routers import onboarding as onboarding_router
+from routers import payments as payments_router
 from routers import plans_config as plans_router
 from routers import publisher_routes as publisher_router
+from routers import replies as replies_router
 from routers import reports_routes as reports_router
+from routers import rules as rules_router
 from routers import scheduled_posts_routes as scheduled_router
+from routers import sequences as sequences_router
 from routers import subscribers_tags_routes as subscribers_router
-from routers import team_routes as team_router
-from routers import templates_routes as templates_router
-from routers import widgets_routes as widgets_router
-from routers import onboarding as onboarding_router
-from routers import notifications as notifications_router
 from routers import support as support_router
-from routers import marketing as marketing_router
+from routers import team_routes as team_router
+from routers import telegram_config as telegram_router
+from routers import templates_routes as templates_router
+from routers import users as users_router
+from routers import webhooks as webhooks_router
+from routers import widgets_routes as widgets_router
+from sqlalchemy import Date, cast, func, select, update
+from telegram_bot import (
+    answer_callback,
+    edit_keyboard,
+    edit_message,
+)
+from ws_manager import ws_manager
 
 # Lazy AI import — single source of truth in _services.py
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -82,10 +103,7 @@ PARENT_DIR = BASE_DIR.parent
 _bot_task: asyncio.Task | None = None
 
 # ── Engine proxies: single source of truth in _services.py ──
-from _services import (fb, sequence_engine, broadcast_engine, subscriber_engine,
-    tag_engine, analytics_engine, report_engine, pdf_engine,
-    content_calendar_engine, team_engine, commerce_engine, _publisher, api_cache)
-
+from _services import content_calendar_engine, fb, sequence_engine
 
 # ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
 MAX_LOCKS = 1000
@@ -135,14 +153,15 @@ def _maybe_evict():
         oldest = min(_dedup_locks, key=lambda k: _dedup_locks[k][1])
         del _dedup_locks[oldest]
 
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
 # ponytail: detect Vercel to skip long-running background tasks
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 
-# Import shared auth primitives from extracted router
-from routers.auth import get_current_user, require_role, make_token, ACCESS_TOKEN_EXPIRE, ALGORITHM, ROLE_HIERARCHY
+# Import shared auth primitives from extracted router (ALGORITHM comes from
+# routers.auth — the local duplicate definition was removed, v5 §2 ruff F811)
+from routers.auth import ALGORITHM, get_current_user
+
 
 async def seed_admin(db):
     # Deprecated shim — the canonical implementation moved to _bootstrap.py
@@ -293,7 +312,7 @@ async def lifespan(app: FastAPI):
             except Exception:
                 log.warning("Blacklist purge failed", exc_info=True)
             # Migrate existing tenants: set FREE plan if no plan_id assigned
-            result = await session.execute(select(Tenant).where(Tenant.plan_id == None))
+            result = await session.execute(select(Tenant).where(Tenant.plan_id.is_(None)))
             for t in result.scalars().all():
                 t.plan_id = 1  # Free plan
                 t.subscription_status = "FREE"
@@ -609,6 +628,7 @@ if _FONTS_DIR.exists():
 # via public/ + file-based metadata routes); single-server mode serves the
 # same files from STATIC_DIR so both deployments agree.
 from fastapi.responses import FileResponse as _FileResponse
+
 for _root_asset in ("brand-icon.png", "favicon.png", "robots.txt", "manifest.json",
                     "manifest.webmanifest", "opengraph-image.png", "og-image.png",
                     "sitemap.xml"):
@@ -658,9 +678,6 @@ async def _run_bot_loop():
 
 
 from _services import get_bot_engine, get_tenant_fb_client
-
-
-
 
 # ── Telegram Payment Webhook ────────────────────────────────────────────
 _TG_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
@@ -903,7 +920,7 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
                     item = await asyncio.wait_for(queue.get(), timeout=30)
                     payload = json.dumps(item, default=str)
                     yield f"data: {payload}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": keepalive\n\n"
         finally:
             for evt_name, h in handlers.items():
@@ -914,7 +931,6 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
 
 # ── Analytics Events (internal) — shared from _services to avoid duplication
 from _services import _track_event
-
 
 WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
 WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
@@ -1071,8 +1087,8 @@ async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: s
                 # v4 §4.10 — persist the comment regardless of engine health so
                 # /api/comments (DB-first) shows it immediately
                 try:
-                    from models import Comment as CommentRow
                     from database import AsyncSessionLocal as _ASL
+                    from models import Comment as CommentRow
                     async with _ASL() as cdb:
                         cid = comment.get("id", "")
                         if cid:

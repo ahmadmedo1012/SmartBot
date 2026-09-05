@@ -129,7 +129,7 @@ def main() -> int:
         time.sleep(3)  # webhook processes inline; give log write a beat
         r = c.get("/api/logs?limit=30")
         logs = r.json().get("data", []) if r.status_code == 200 else []
-        warn = [l for l in logs if "فشل إرسال الرد الآلي" in (l.get("message") or "")]
+        warn = [entry for entry in logs if "فشل إرسال الرد الآلي" in (entry.get("message") or "")]
         check("honest WARN log for failed auto-reply (telemetry)", bool(warn),
               (warn[0]["message"][:70] if warn else "no WARN found"))
 

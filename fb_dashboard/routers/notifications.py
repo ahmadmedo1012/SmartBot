@@ -9,12 +9,13 @@ Feed (plan §4.2):
   POST /api/notifications/read-all
 """
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, desc, update
 
-from database import get_db
 from _utils import iso_z
-from models import User, NotificationPreference, Notification
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from models import Notification, User
+from sqlalchemy import desc, func, select, update
+
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])

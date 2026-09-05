@@ -15,13 +15,11 @@ Entry point (from runner webhook): handle_messaging_event(tenant_id, page_id, me
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
-
-from sqlalchemy import select
 
 from _utils import utcnow
 from database import AsyncSessionLocal
-from models import BotLog, Conversation, Message, UsageCounter
+from models import Conversation, Message
+from sqlalchemy import select
 
 log = logging.getLogger("fb-messenger")
 
@@ -198,7 +196,7 @@ def _ts_from_epoch(value) -> object | None:
     import datetime as _dt
     try:
         if value:
-            return _dt.datetime.fromtimestamp(int(value) / 1000, tz=_dt.timezone.utc).replace(tzinfo=None)
+            return _dt.datetime.fromtimestamp(int(value) / 1000, tz=_dt.UTC).replace(tzinfo=None)
     except Exception:
         return None
     return None

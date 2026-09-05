@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 """
 Unit tests for EnhancedIntentClassifier.
 Covers Arabic, Libyan dialect, English, compound intents, urgency.
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from enhanced_intent import EnhancedIntentClassifier

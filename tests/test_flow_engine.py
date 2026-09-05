@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 """Tests for FlowEngine — graph traversal, trigger matching, condition eval."""
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from flow_engine import FlowEngine, FlowContext, FlowGraph
+from flow_engine import FlowContext, FlowEngine, FlowGraph
 
 
 def _async_session():
@@ -34,12 +36,10 @@ def engine(fb_mock):
 
 class TestMatchTrigger:
     def test_keyword_any_match(self, engine):
-        ctx = FlowContext(text="سعر", trigger_type="keyword")
         cfg = {"triggerType": "keyword", "keywords": ["سعر", "غش"], "matchMode": "any"}
         assert engine._match_trigger(cfg, "keyword", "سعر")
 
     def test_keyword_any_no_match(self, engine):
-        ctx = FlowContext(text="مرحبا", trigger_type="keyword")
         cfg = {"triggerType": "keyword", "keywords": ["سعر"], "matchMode": "any"}
         assert not engine._match_trigger(cfg, "keyword", "مرحبا")
 

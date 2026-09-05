@@ -1,18 +1,19 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Scheduled Posts routes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Form, Query
-from sqlalchemy import select, desc
-
-from _utils import utcnow, iso_z
-from database import get_db
-from models import ReplyTemplate, ScheduledPost, User
-from routers.auth import get_current_user, require_role
-from _services import get_tenant_fb_client, _track_event
 from _responses import ok
+from _services import _track_event, get_tenant_fb_client
+from _utils import iso_z, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import ScheduledPost, User
+from sqlalchemy import desc, select
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["scheduled"])
 
@@ -53,9 +54,9 @@ async def create_scheduled_post(
                 scheduled_at.replace("Z", "+00:00").replace("+0000", "+00:00")
             )
         except ValueError:
-            raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601")
+            raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601") from None
         if sched.tzinfo is not None:
-            sched = sched.astimezone(timezone.utc).replace(tzinfo=None)
+            sched = sched.astimezone(UTC).replace(tzinfo=None)
         if sched <= utcnow():
             raise HTTPException(400, "لا يمكن جدولة منشور في الماضي — اختر وقتاً مستقبلياً")
 

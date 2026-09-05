@@ -1,14 +1,14 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, func, desc
-from _utils import utcnow, iso_z
-from datetime import datetime, timedelta
-from config import settings
-from database import get_db
-from models import BotAlert, Reply, Rule, User
-from routers.auth import get_current_user, require_role
-from _services import fb
+from datetime import timedelta
+
 from _responses import ok
+from _utils import iso_z, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from models import BotAlert, Reply, Rule, User
+from sqlalchemy import desc, func, select
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["health"])
 

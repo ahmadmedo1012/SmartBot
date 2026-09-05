@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """SmartBot — auto-reply engine (v2).
 Architecture: SharedEngine → Pipeline → IntentMatcher → ResponseComposer.
 Flow:
@@ -18,19 +19,22 @@ import asyncio
 import json
 import logging
 import time
-from dataclasses import dataclass, field
-from typing import Any
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
 from _utils import utcnow
-
-from sqlalchemy import select, func, cast, Date, desc
-from sqlalchemy.exc import IntegrityError
-
 from database import AsyncSessionLocal
-from models import Rule, Reply, BotLog, Offer, BotState, Customer
-from models import Tenant, SubscriptionPlan, UsageCounter
 from fb_client import FBClient
-from config import settings
+from models import (
+    BotLog,
+    Customer,
+    Reply,
+    Rule,
+    Tenant,
+    UsageCounter,
+)
+from sqlalchemy import Date, cast, desc, func, select
+from sqlalchemy.exc import IntegrityError
 
 # ── Per-tenant engine registries (instead of module-level singletons) ──
 try:
@@ -243,7 +247,6 @@ class IntentAwareMatcher:
         remaining = []
         for r in self._all_rules:
             kw = r.get("keywords", [])
-            rname = r.get("name", "")
             if not kw or kw == ["__catch_all__"]:
                 # v4 §5.19 (F3) — FIRST (lowest-priority) catch-all wins; the
                 # old loop overwrote on every match so the LAST one won.
@@ -442,7 +445,6 @@ class ReplyPipeline:
             pass
 
         # Stage 6: Attach offer (context-aware)
-        offer_text = ""
         sales_stage = None
         try:
             # Check if EnhancedIntentClassifier returned sales info
@@ -535,7 +537,7 @@ class ReplyPipeline:
                 if dm_sent:
                     self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
                 else:
-                    self._mon.warn(f"× DM failed after all strategies", comment_id=ctx.cid[:12], module="pipeline")
+                    self._mon.warn("× DM failed after all strategies", comment_id=ctx.cid[:12], module="pipeline")
             except Exception as e:
                 self._mon.warn(f"dm failed: {e}", comment_id=ctx.cid[:12], module="pipeline")
 
@@ -706,7 +708,6 @@ class BotEngine:
         async with AsyncSessionLocal() as session:
             try:
                 # ── Plan enforcement: skip if tenant subscription expired ──
-                plan_ok = True
                 tenant = await session.get(Tenant, self._tenant_id)
                 if tenant and tenant.subscription_status == "UNPAID":
                     self._mon.warn("tenant unpaid — skipping cycle")
@@ -744,8 +745,6 @@ class BotEngine:
                 if not rules:
                     self._mon.warn("no rules — skipping cycle")
                     return
-
-                dm_map = await self._load_dm_map()
 
                 # Fetch posts from FB
                 posts, _ = await self.fb.get_page_posts(10)

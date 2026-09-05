@@ -1,19 +1,16 @@
 from __future__ import annotations
+
 """AI & Agent routes: suggest, analyze, generate-reply, analyze-image, status, agent interpret, memory."""
 import asyncio
-import secrets
 import logging
-from pathlib import PurePosixPath
+import secrets
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Form, Body, UploadFile, File
-from sqlalchemy import select, func, desc
-
-from config import settings
-from database import get_db
-from routers.auth import get_current_user, require_role
-
-from event_bus import event_bus
 from _responses import ok
+from database import get_db
+from event_bus import event_bus
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["ai"])
@@ -131,6 +128,7 @@ async def agent_interpret(
             raise HTTPException(400, "حجم الصورة يتجاوز 10 ميغابايت")
         try:
             import io
+
             from PIL import Image
             img = Image.open(io.BytesIO(img_data))
             img.load()
@@ -141,7 +139,7 @@ async def agent_interpret(
             img.save(buf, format="JPEG", quality=85)
             payload = buf.getvalue()
         except Exception:
-            raise HTTPException(400, "الملف ليس صورة صالحة")
+            raise HTTPException(400, "الملف ليس صورة صالحة") from None
         img_filename = f"agent_{secrets.token_hex(8)}.jpg"
         img_path = _STATIC_DIR / "uploads" / img_filename
         img_path.parent.mkdir(parents=True, exist_ok=True)

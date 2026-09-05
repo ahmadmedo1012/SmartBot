@@ -1,12 +1,14 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-from fastapi import APIRouter, Depends, HTTPException, Form, Query
-from sqlalchemy import select, desc, or_
 from datetime import datetime
-from database import get_db
-from _utils import iso_z
-from models import Offer, BrandConfig, Customer, BotAlert, User
-from routers.auth import get_current_user, require_role
+
 from _responses import ok
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from models import Offer, User
+from sqlalchemy import select
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["offers"])
 
@@ -50,7 +52,8 @@ async def toggle_offer(offer_id: int, db=Depends(get_db), current_user: User = D
     offer = (await db.execute(
         select(Offer).where(Offer.id == offer_id, Offer.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
-    if not offer: raise HTTPException(404, "العرض غير موجود")
+    if not offer:
+        raise HTTPException(404, "العرض غير موجود")
     offer.is_active = not offer.is_active
     await db.commit()
     return ok({"ok": True, "is_active": offer.is_active})
@@ -61,7 +64,8 @@ async def delete_offer(offer_id: int, db=Depends(get_db), current_user: User = D
     offer = (await db.execute(
         select(Offer).where(Offer.id == offer_id, Offer.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
-    if not offer: raise HTTPException(404, "العرض غير موجود")
+    if not offer:
+        raise HTTPException(404, "العرض غير موجود")
     await db.delete(offer)
     await db.commit()
     return ok({"ok": True})

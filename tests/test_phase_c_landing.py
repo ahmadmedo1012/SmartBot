@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase C (= الخطة 3) — بوابة الخروج: أرقام حقيقية في صفحة الهبوط
 
@@ -7,21 +8,21 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §3:
        تغيّر البيانات → تغيّر الأرقام. لا تكشف بيانات مستأجرين (مجاميع فقط).
   3.2 /api/public/testimonials تُرجع [] حتى جمع آراء حقيقية — لا تقييمات وهمية.
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 FB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # v5 §1: tests moved out of fb_dashboard/
 
-from sqlalchemy import select
 
-from _utils import utcnow
 
 
 async def _make_fixture():
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from sqlalchemy.pool import StaticPool
-    from models import Base
     from database import get_db
+    from models import Base
     from runner import app
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import StaticPool
 
     test_engine = create_async_engine(
         "sqlite+aiosqlite://",
@@ -46,7 +47,7 @@ async def test_public_stats_reflect_real_db_changes():
     """البوابة: الأرقام تتبع قاعدة البيانات — بيانات مختلفة → أرقام مختلفة."""
     app, sf, te, client = await _make_fixture()
     try:
-        from models import Tenant, Reply
+        from models import Reply, Tenant
 
         # الحالة 1: قاعدة فارغة
         r = await client.get("/api/public/stats")
@@ -132,7 +133,7 @@ def test_no_fake_numbers_in_landing_components():
     ]
     for path, banned in checks:
         if not os.path.exists(path):
-            pytest_skip = True
+            _skipped = True
             continue
         content = open(path, encoding="utf-8").read()
         for b in banned:

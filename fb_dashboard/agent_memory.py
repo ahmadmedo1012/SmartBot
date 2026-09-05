@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 """
 Agent Memory — DB-backed session + user memory for Vercel serverless.
 Stores in BotState table as JSON. Every request reads/writes from DB.
 """
-import json, logging
-from typing import Any
+import json
+import logging
 
 log = logging.getLogger("fb-agent-mem")
 
@@ -21,8 +22,8 @@ def _user_key(username: str) -> str:
 
 async def get_session(db, username: str) -> list[dict]:
     """Load session history from DB. Returns list of turns."""
-    from sqlalchemy import select
     from models import BotState
+    from sqlalchemy import select
     key = _session_key(username)
     row = await db.execute(select(BotState).where(BotState.key == key))
     state = row.scalar_one_or_none()
@@ -37,8 +38,8 @@ async def get_session(db, username: str) -> list[dict]:
 
 async def append_to_session(db, username: str, turn: dict):
     """Append one {role, text, action} turn and trim to MAX_SESSION_TURNS."""
-    from sqlalchemy import select
     from models import BotState
+    from sqlalchemy import select
     key = _session_key(username)
     history = await get_session(db, username)
     history.append(turn)
@@ -56,8 +57,8 @@ async def append_to_session(db, username: str, turn: dict):
 
 async def clear_session(db, username: str):
     """Delete session history for user."""
-    from sqlalchemy import select
     from models import BotState
+    from sqlalchemy import select
     key = _session_key(username)
     row = await db.execute(select(BotState).where(BotState.key == key))
     state = row.scalar_one_or_none()
@@ -68,8 +69,8 @@ async def clear_session(db, username: str):
 
 async def get_user_memory(db, username: str) -> dict:
     """Load persistent user preferences/decisions."""
-    from sqlalchemy import select
     from models import BotState
+    from sqlalchemy import select
     key = _user_key(username)
     row = await db.execute(select(BotState).where(BotState.key == key))
     state = row.scalar_one_or_none()
@@ -83,8 +84,8 @@ async def get_user_memory(db, username: str) -> dict:
 
 async def update_user_memory(db, username: str, updates: dict):
     """Merge updates into user memory — preferences, decisions, etc."""
-    from sqlalchemy import select
     from models import BotState
+    from sqlalchemy import select
     key = _user_key(username)
     mem = await get_user_memory(db, username)
     for k, v in updates.items():

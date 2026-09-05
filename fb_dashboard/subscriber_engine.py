@@ -1,15 +1,14 @@
 from __future__ import annotations
+
 """Subscriber Engine — Manage subscribers, tags, segments across platforms."""
 import logging
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
 
-from sqlalchemy import select, or_, func, desc, and_, exists, delete
-from sqlalchemy.exc import IntegrityError
-
-from _utils import utcnow, iso_z
-from models import Subscriber, Tag, SubscriberTag, Reply, FlowExecution, SequenceSubscription
+from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
+from models import Reply, SequenceSubscription, Subscriber, SubscriberTag, Tag
+from sqlalchemy import delete, desc, func, or_, select
+from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-subscriber")
 

@@ -1,16 +1,15 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
+
 """Diagnostics & debug routes: status, cycle-stats, errors, logs, events, permissions, demo-test, fb-reply."""
 import json
 import logging
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Form
-from sqlalchemy import select, func, desc
-
-from config import settings
-from database import get_db
-from routers.auth import get_current_user, require_role
 from _responses import ok
+from config import settings
+from fastapi import APIRouter, Depends, Form, Query
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["diagnostics"])
@@ -117,11 +116,11 @@ async def diagnostic_status(_=Depends(get_current_user)):
     from diagnostics import get_diagnostics
     from monitor import get_logger
     d = get_diagnostics()
-    l = get_logger()
+    logger = get_logger()
     return ok(
         {"system": d.get_system_info(), "cycles": d.get_cycle_stats(),
             "errors": {"recent": d.get_recent_errors(10), "rate_pct": d.get_error_rate()},
-            "logs": l.get_stats()}
+            "logs": logger.get_stats()}
     )
 
 
@@ -162,8 +161,8 @@ async def diagnostic_events(limit: int = Query(100), _=Depends(get_current_user)
 
 @router.get("/api/diagnostics/permissions")
 async def diagnostic_permissions(_=Depends(get_current_user)):
-    from fb_client import FBClient
     from config import settings
+    from fb_client import FBClient
     if not settings.FACEBOOK_ACCESS_TOKEN:
         return ok({"has_token": False})
     fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
@@ -176,8 +175,8 @@ async def diagnostic_permissions(_=Depends(get_current_user)):
 
 @router.post("/api/diagnostics/demo-test-comment")
 async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(require_role("admin"))):
-    from enhanced_intent import EnhancedIntentClassifier
     from bot import TextNormalizer
+    from enhanced_intent import EnhancedIntentClassifier
     classification = EnhancedIntentClassifier.classify(comment_text)
     normalized = TextNormalizer.normalize_for_matching(comment_text)
     return ok({"original": comment_text, "normalized": normalized, "classification": classification})

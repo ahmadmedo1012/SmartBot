@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Phase D (= الخطة 4) — بوابة الخروج: صفحات Dashboard المفقودة
 
@@ -9,23 +10,23 @@ Exit-gate evidence per PLAN-REBUILD-V2.md §4:
   4.5 Ads: placeholder "قريباً" (يُتحقق في بناء الواجهة)
 كل مسارات الواجهة الثلاثة (settings/info/ticket/campaigns) تعمل فعلياً.
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 
-import asyncio
 from datetime import timedelta
 
-from sqlalchemy import select
-
 from _utils import utcnow
+from sqlalchemy import select
 
 
 async def _make_app_fixture():
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-    from sqlalchemy.pool import StaticPool
-    from models import Base
     from database import get_db
+    from models import Base
     from runner import app
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import StaticPool
 
     test_engine = create_async_engine(
         "sqlite+aiosqlite://",
@@ -53,9 +54,9 @@ async def _teardown(fixture):
 
 async def _seed_two_tenants(fixture):
     """Two tenants, each with an admin user — for isolation checks."""
+    from _hash import hash_password
     from models import Tenant, User
     from routers.auth import make_token
-    from _hash import hash_password
     app, sf, _te = fixture
 
     async with sf() as db:
@@ -131,7 +132,7 @@ async def test_notification_from_payment_approval():
     """موافقة الأدمن على دفعة → إشعار حقيقي للمستأجر (ربط §4.2 بـ§2)."""
     fixture = await _make_app_fixture()
     try:
-        from models import SubscriptionPlan, SubscriptionPayment, Notification
+        from models import SubscriptionPayment, SubscriptionPlan
         client_for, (tid_a, _tid_b) = await _seed_two_tenants(fixture)
         app, sf, _te = fixture
         async with sf() as db:
@@ -145,7 +146,7 @@ async def test_notification_from_payment_approval():
                                      plan_name="أساسي", status="pending")
             db.add(sp)
             await db.commit()
-            sp_id, plan_id = sp.id, plan.id
+            sp_id = sp.id
 
         client = await client_for("user_a", tid_a)
         r = await client.post("/api/admin/subscriptions", json={"id": sp_id, "status": "verified"})

@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 """End-to-end live test against actual Facebook Graph API.
 Usage: FACEBOOK_ACCESS_TOKEN=xxx FACEBOOK_PAGE_ID=xxx uv run python3 test_e2e_live.py
 """
-import asyncio, json, os, sys
+import asyncio
+import os
+import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 TOKEN = os.environ.get("FACEBOOK_ACCESS_TOKEN", "")
@@ -127,7 +130,7 @@ async def main():
     print(f"\n{'='*50}")
     print(f"Tests run: {tests_run}, Passed: {tests_passed}, Failed: {len(errors)}")
     if errors:
-        print(f"FAILURES:")
+        print("FAILURES:")
         for e in errors:
             print(f"  • {e}")
     else:

@@ -1,22 +1,44 @@
 from __future__ import annotations
+
 """Admin routes: repair, tenant deletion, rule priority, cooldown, template-vars, rules-categories."""
-import json
 import logging
 import os
-from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Form
-from fastapi.responses import JSONResponse
-from sqlalchemy import select, func, or_, desc
-
-from config import settings
-from database import engine, AsyncSessionLocal, get_db
-from models import Base, Rule, Reply, BotLog, BotState, Tenant, User, ConversationNote
-from models import ReplyTemplate, AISuggestion, ConversationTag, ConversationLabel, ScheduledPost, AnalyticsEvent, BotAlert, Offer, OfferClaim, BrandConfig, Customer, Flow, FlowExecution
-from models import Subscriber, Tag, SubscriberTag, Sequence, SequenceStep, SequenceSubscription, Broadcast, BroadcastRecipient, ConversationAssignee, ReportSchedule, PaymentRequest
-from models import SystemConfig
-from routers.auth import get_current_user, require_role, require_platform_admin, is_platform_admin
 from _responses import ok
+from database import AsyncSessionLocal, engine, get_db
+from fastapi import APIRouter, Depends, Form, HTTPException
+from models import (
+    AISuggestion,
+    AnalyticsEvent,
+    Base,
+    BotAlert,
+    BotLog,
+    BotState,
+    BrandConfig,
+    BroadcastRecipient,
+    ConversationAssignee,
+    ConversationLabel,
+    ConversationNote,
+    Customer,
+    FlowExecution,
+    Offer,
+    OfferClaim,
+    Reply,
+    ReplyTemplate,
+    Rule,
+    ScheduledPost,
+    SequenceStep,
+    SequenceSubscription,
+    Subscriber,
+    SubscriberTag,
+    SystemConfig,
+    Tag,
+    Tenant,
+    User,
+)
+from sqlalchemy import desc, func, or_, select
+
+from routers.auth import get_current_user, is_platform_admin, require_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["admin"])
@@ -109,7 +131,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
                 raise ValueError
             payload["mobile_wallet_cap"] = str(cap)
         except (TypeError, ValueError):
-            raise HTTPException(400, "mobile_wallet_cap يجب أن يكون رقماً بين 1 و 10000")
+            raise HTTPException(400, "mobile_wallet_cap يجب أن يكون رقماً بين 1 و 10000") from None
     # validate support_email shape when provided (empty = clear override, allowed)
     import re as _re
     if "support_email" in payload and str(payload["support_email"] or "").strip():
@@ -204,9 +226,9 @@ async def repair(current_user: User = Depends(require_platform_admin)):
         async with AsyncSessionLocal() as session:
             await seed_admin(session)
         return ok({"ok": True, "message": "DB repaired"})
-    except Exception as e:
+    except Exception:
         log.error("DB repair failed", exc_info=True)
-        raise HTTPException(status_code=500, detail="فشل إصلاح قاعدة البيانات — راجع سجلات الخادم")
+        raise HTTPException(status_code=500, detail="فشل إصلاح قاعدة البيانات — راجع سجلات الخادم") from None
 
 
 @router.delete("/api/admin/tenants/{tenant_id}")
@@ -239,7 +261,8 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
     rule = (await db.execute(
         select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
-    if not rule: raise HTTPException(404, "Rule not found")
+    if not rule:
+        raise HTTPException(404, "Rule not found")
     rule.priority = max(0, min(9999, priority))
     await db.commit()
     return ok({"ok": True, "priority": rule.priority})

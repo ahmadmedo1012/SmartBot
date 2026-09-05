@@ -1,19 +1,15 @@
 from __future__ import annotations
+
 """Logs API router — structured log endpoints."""
-import json
 import asyncio
-from datetime import datetime, timezone
-from typing import Any
+import json
 
 import jwt
-from fastapi import APIRouter, Query, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
-
 from config import settings
-
-from monitor import get_logger
 from database import get_db
-from sqlalchemy import select, desc, func
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
+from monitor import get_logger
 
 logs_router = APIRouter(prefix="/api/logs")
 
@@ -32,9 +28,9 @@ async def get_token_user(request: Request):
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub", "unknown")
     except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired")
+        raise HTTPException(401, "Token expired") from None
     except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token")
+        raise HTTPException(401, "Invalid token") from None
 
 
 async def _require_user(request: Request, db=Depends(get_db)):
@@ -81,7 +77,7 @@ async def realtime_logs(
                 try:
                     ev = await asyncio.wait_for(q.get(), timeout=30)
                     yield f"data: {json.dumps(ev, ensure_ascii=False, default=str)}\n\n"
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield "data: {\"event\":\"heartbeat\"}\n\n"
         finally:
             event_bus.unsubscribe("log_event", handler)

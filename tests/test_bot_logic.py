@@ -1,11 +1,17 @@
 from __future__ import annotations
+
 """Self-check for bot core logic: RuleMatcher, TemplateRenderer, IntentClassifier, TextNormalizer."""
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 
 from bot import (
-    RuleMatcher, TemplateRenderer, IntentClassifier,
-    TextNormalizer, CommentContext,
+    CommentContext,
+    IntentClassifier,
+    RuleMatcher,
+    TemplateRenderer,
+    TextNormalizer,
 )
 
 errors = []
@@ -26,7 +32,8 @@ rules = [
 ]
 
 matcher = RuleMatcher(rules)
-match1 = lambda t: matcher.match(t)[0]
+def match1(t):
+    return matcher.match(t)[0]
 check("match_rule negative priority", match1("هذا غش ونصب") == "نأسف {name}")
 check("match_rule price inquiry", match1("كم السعر") == "أهلاً {name}")
 check("match_rule thanks", match1("شكرا جزيلا") == "العفو {name}")
@@ -42,7 +49,8 @@ rules_disabled = [
     {"id": 2, "priority": 999, "enabled": True, "keywords": ["__catch_all__"], "reply_template": "y", "bot_type": "reply"},
 ]
 m2 = RuleMatcher(rules_disabled)
-match2 = lambda t: m2.match(t)[0]
+def match2(t):
+    return m2.match(t)[0]
 check("disabled rule skipped", match2("غش") == "y")
 
 # --- TemplateRenderer ---
@@ -83,7 +91,8 @@ rules_stop = [
     {"id": 2, "priority": 999, "enabled": True, "keywords": ["__catch_all__"], "reply_template": "correct", "bot_type": "reply"},
 ]
 m3 = RuleMatcher(rules_stop)
-match3 = lambda t: m3.match(t)[0]
+def match3(t):
+    return m3.match(t)[0]
 check("stop word 'في' does not match", match3("في البداية") == "correct")
 
 # --- Empty text ---
@@ -97,4 +106,4 @@ if errors:
         print(f"   {e}")
     sys.exit(1)
 else:
-    print(f"✅ All {len([1 for l in open(__file__) if 'check(' in l])} tests passed")
+    print(f"✅ All {len([1 for ln in open(__file__) if 'check(' in ln])} tests passed")

@@ -1,0 +1,43 @@
+# SmartBot ruff configuration — v5 §2 quality gate
+# Conservative, high-signal rule set: correctness bugs (B), pyflakes (F),
+# pycodestyle errors (E/W/W6), import order (I), modernization (UP).
+# Line length 100 matches the codebase's prevailing style.
+
+target-version = "py312"
+line-length = 100
+
+extend-exclude = [
+    "fb_dashboard/frontend",       # Next.js app — has its own toolchain
+    "fb_dashboard/static",         # build artifacts / vendored
+    "fb_dashboard/migrations",     # generated migration scripts
+    "alembic",                     # generated env boilerplate
+    "design-system",
+    ".opencode",
+]
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes — undefined names, unused imports
+    "W",   # pycodestyle warnings (trailing whitespace etc.)
+    "I",   # isort — import ordering
+    "B",   # bugbear — real correctness hazards
+    "UP",  # pyupgrade — modern syntax
+]
+ignore = [
+    "E501",   # line length: enforced at 100 but long Arabic strings/URLs are legitimate; formatter handles the rest
+    "B008",   # FastAPI Depends(...) in defaults is the framework idiom
+    "UP007",  # Optional[X] vs X | None — widespread in models; cosmetic
+    "UP045",  # same class of Optional modernization
+    "E402",   # module-import-not-at-top: INTENTIONAL architecture — conftest/test files set os.environ BEFORE app imports (hermetic env); engine modules import lazily after config
+    "E712",   # col == True/False is the SQLAlchemy filter idiom, not a style bug
+]
+
+[lint.per-file-ignores]
+"tests/**" = [
+    "B011",   # assert False pattern is used in a few guard tests
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"

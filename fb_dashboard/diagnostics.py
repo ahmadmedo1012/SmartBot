@@ -1,15 +1,12 @@
 from __future__ import annotations
+
 """
 Diagnostics and health monitoring for SmartBot.
 Provides API endpoints for system health, performance metrics,
 and diagnostic information.
 """
-import asyncio
-import json
 import os
 import time as time_module
-from collections import defaultdict
-from typing import Any
 
 
 class DiagnosticsEngine:

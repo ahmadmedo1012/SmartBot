@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 """Comprehensive E2E test for SmartBot dashboard at localhost:8000.
 
 Tests: auth, all nav pages, buttons, modals, forms, console errors.
 """
-import json, os, sys, time, traceback
-from playwright.sync_api import sync_playwright, Page, expect
+import json
+import os
+import re
+import sys
+import time
+
+from playwright.sync_api import Page, sync_playwright
 
 BASE = "http://localhost:8000"
 ARTIFACT_DIR = "/home/ahmed/Downloads/SmartBot/fb_dashboard/e2e_artifacts"
@@ -60,10 +66,10 @@ def goto(page: Page, url: str):
 
 def report():
     print(f"\n{'='*60}")
-    print(f"E2E TEST RESULTS")
+    print("E2E TEST RESULTS")
     print(f"{'='*60}")
     print(f"Pass: {PASS}, Fail: {FAIL}")
-    print(f"\nIssues found:")
+    print("\nIssues found:")
     for page_n, elem, issue in ERRORS:
         print(f"  [{page_n}] {elem}: {issue[:120]}")
     print(f"{'='*60}")
@@ -156,7 +162,7 @@ def main():
                     page.get_by_placeholder(re.compile(r"كلمة", re.I)).first.fill("test123456")
                     page.get_by_role("button").first.click()
                     time.sleep(2)
-                except:
+                except Exception:
                     pass
             else:
                 # Maybe app auto-redirects to dashboard if token set
@@ -223,11 +229,11 @@ def main():
                 if not clicked:
                     # Try finding by role link
                     try:
-                        el = page.locator(f"nav a, nav button, [class*='nav'] a, [class*='sidebar'] a").filter(has_text=nav_text).first
+                        el = page.locator("nav a, nav button, [class*='nav'] a, [class*='sidebar'] a").filter(has_text=nav_text).first
                         if el.is_visible(timeout=2000):
                             el.click()
                             clicked = True
-                    except:
+                    except Exception:
                         pass
                 time.sleep(2)
                 check(page)
@@ -257,7 +263,7 @@ def main():
                                 # Switch back
                                 btn.click(timeout=2000)
                                 time.sleep(0.5)
-                    except Exception as e:
+                    except Exception:
                         errors_on_page += 1
 
                 # Check for modal dialogs or dropdowns
@@ -278,7 +284,7 @@ def main():
                         try:
                             close_btns.first.click(timeout=2000)
                             time.sleep(0.5)
-                        except:
+                        except Exception:
                             pass
 
                 PASS += 1
@@ -323,7 +329,7 @@ def main():
                 print("    Search box: OK")
             else:
                 print("    Search box: not visible (skip)")
-        except:
+        except Exception:
             print("    Search box: not found (skip)")
 
         # 5.3 Bot status toggle

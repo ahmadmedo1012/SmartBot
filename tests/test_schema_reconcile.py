@@ -18,16 +18,14 @@ os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
 os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
-import asyncio
-import uuid
 
 import pytest
 import sqlalchemy as sa
-from httpx import ASGITransport, AsyncClient
-
-from database import engine as db_engine, AsyncSessionLocal
-from models import Base, SubscriptionPlan
 from _schema_reconcile import reconcile_schema
+from database import AsyncSessionLocal
+from database import engine as db_engine
+from httpx import ASGITransport, AsyncClient
+from models import Base, SubscriptionPlan
 
 # The pre-rebuild (commit 6237331d) subscription_plans schema — the shape the
 # production Neon table still had when /api/plans returned 500.

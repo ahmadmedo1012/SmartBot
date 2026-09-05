@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 """
 Enhanced FB Client — connection pooling + exponential backoff retry.
 Full API: posts, comments, conversations, ads, insights, messaging.
 """
 import asyncio
 import json
-import httpx
 import logging
-from typing import Any
+
+import httpx
 
 log = logging.getLogger("fb-client")
 
@@ -119,7 +120,6 @@ class FBClient:
 
     async def post_photo(self, image_data: bytes, filename: str = "photo.jpg", message: str = "") -> dict | None:
         """Post a photo to the page. Returns photo object with id."""
-        from httpx import AsyncClient
         client = await _ensure_client()
         files = {"source": (filename, image_data, "image/jpeg")}
         data = {"access_token": self.token}
@@ -297,8 +297,10 @@ class FBClient:
         from_data = comment.get("from", {})
         full = from_data.get("name", "") or ""
         username = from_data.get("username", "") or ""
-        if full: return full
-        if username: return username
+        if full:
+            return full
+        if username:
+            return username
         uid = from_data.get("id", "")
         return f"مستخدم{uid[-4:]}" if uid else "صديقنا"
 

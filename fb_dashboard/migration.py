@@ -1,11 +1,12 @@
 from __future__ import annotations
+
 """
 DB migration: add priority and bot_type columns to rules table.
 Run: python -m migration
 """
 import asyncio
-import sqlite3
 import os
+import sqlite3
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "data.db")
 

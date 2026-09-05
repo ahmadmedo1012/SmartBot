@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 
@@ -112,7 +113,7 @@ class GraphClient:
     async def iter_pages(self, path: str, params: dict | None = None,
                          *, max_items: int = 500) -> AsyncIterator[list[dict]]:
         """Yield each page of `data`; follows paging.next until exhausted."""
-        from urllib.parse import urlsplit, parse_qsl
+        from urllib.parse import parse_qsl, urlsplit
 
         params = dict(params or {})
         url = path

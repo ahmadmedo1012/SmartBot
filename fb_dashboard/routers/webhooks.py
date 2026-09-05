@@ -1,23 +1,19 @@
 """Facebook Webhook endpoints: events list + status check."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
-import hashlib
-import hmac
-import json
+
 import logging
 import os
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import PlainTextResponse
+from _responses import ok
+from _utils import iso_z
+from database import get_db
+from fastapi import APIRouter, Depends
+from models import BotLog
 from sqlalchemy import select
 
-from config import settings
-from database import get_db
-from _utils import iso_z
-from models import BotLog
-from routers.auth import get_current_user, require_role
-from _responses import ok
+from routers.auth import get_current_user
 
 log = logging.getLogger("fb-webhook")
 
@@ -108,8 +104,8 @@ async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_curr
         "messages_field_subscribed": "messages" in subscribed_fields,
         "feed_field_subscribed": "feed" in subscribed_fields,
         "instructions": [
-            f"1. Go to https://developers.facebook.com/apps",
-            f"2. Select your app -> Webhooks -> Page",
+            "1. Go to https://developers.facebook.com/apps",
+            "2. Select your app -> Webhooks -> Page",
             f"3. Set Callback URL to: {webhook_url}",
             "4. Set Verify Token in your Facebook app settings",
             "5. Subscribe to 'feed' and 'messages' fields",

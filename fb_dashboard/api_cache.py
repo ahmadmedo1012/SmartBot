@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 """API response cache: Redis-backed on Vercel, in-memory fallback locally."""
 import asyncio
-import time
 import json
+import time
 from functools import wraps
 
 # ponytail: process-local fallback — used when Redis is unreachable

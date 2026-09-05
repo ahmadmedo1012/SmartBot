@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Sequence Engine -- Time-based drip campaign scheduler.
 Manages multi-step message sequences sent over days/weeks.
 
@@ -8,16 +9,14 @@ future use.]
 """
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import timedelta
 
-from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError
-
-from _utils import utcnow, iso_z
-from models import Sequence, SequenceStep, SequenceSubscription, Subscriber
-from fb_client import FBClient
+from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
+from fb_client import FBClient
+from models import Sequence, SequenceStep, SequenceSubscription, Subscriber
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-sequence")
 
@@ -80,11 +79,6 @@ class SequenceEngine:
                 select(func.count(SequenceSubscription.id)).where(
                     SequenceSubscription.sequence_id == seq.id,
                     SequenceSubscription.status == "active",
-                )
-            ) or 0
-            count_total = await session.scalar(
-                select(func.count(SequenceSubscription.id)).where(
-                    SequenceSubscription.sequence_id == seq.id
                 )
             ) or 0
             results.append({

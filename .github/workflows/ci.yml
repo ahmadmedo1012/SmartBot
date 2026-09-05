@@ -1,41 +1,70 @@
-name: CI
+name: CI — quality gates
+
+# v5 §2: the regression class found in §0 (6 failing tests that had gone
+# unnoticed because gates only ran manually during agent sessions) must
+# never happen again. Every push and every PR to main runs all gates.
 
 on:
-  pull_request:
   push:
+    branches: [main, develop]
+  pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend:
+  quality-gates:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
-        working-directory: .
+        shell: bash
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      # Skip ruff check — codebase has 1000+ pre-existing lint issues unrelated
-      # to this PR. Pytest is the source of truth for correctness.
-      # - run: pip install ruff
-      # - run: ruff check fb_dashboard/
-      - run: pip install pytest pytest-asyncio
-      - run: pytest fb_dashboard/ -x -q
+          cache: pip
 
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: fb_dashboard/frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm run build
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Gate 1 — ruff (lint)
+        run: ruff check fb_dashboard api tests scripts
+
+      - name: Gate 2 — pytest (hermetic suite, any order)
         env:
-          NEXT_TELEMETRY_DISABLED: 1
+          # conftest.py FORCES a temp-file SQLite URL; these dummies satisfy
+          # the fail-fast production checks (DEBUG=True relaxes them).
+          SECRET_KEY: ci-secret
+          CRON_SECRET: ci-cron-secret
+          FB_ACCESS_TOKEN: ci-token
+          FB_PAGE_ID: "0"
+        run: |
+          # Forward order...
+          pytest -q
+          # ...and reverse order — hermeticity is a GATE, not a hope (v5 §0).
+          pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
+
+      - name: Gate 3 — TypeScript
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps
+        run: cd fb_dashboard/frontend && npm ci || npm install
+
+      - name: Run tsc
+        run: cd fb_dashboard/frontend && npx tsc --noEmit
+
+      - name: Gate 4 — production build
+        run: cd fb_dashboard/frontend && npx next build

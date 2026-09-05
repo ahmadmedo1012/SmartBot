@@ -2,15 +2,15 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request, Response
-from sqlalchemy import select
-from database import get_db
-from _utils import utcnow, iso_z
-from models import BotState, ReportSchedule, User
-from routers.auth import get_current_user, require_role
-
-from _services import pdf_engine, report_engine, _track_event
 from _responses import ok
+from _services import pdf_engine
+from _utils import iso_z, utcnow
+from database import get_db
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from models import ReportSchedule, User
+from sqlalchemy import select
+
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["reports"])

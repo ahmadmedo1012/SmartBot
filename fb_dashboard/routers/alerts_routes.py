@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, Query, Body
-from sqlalchemy import select, desc, or_
-from datetime import datetime
-from database import get_db
-from models import Offer, BrandConfig, Customer, BotAlert, User, NotificationPreference
-from routers.auth import get_current_user, require_role
-from ws_manager import ws_manager
-from _utils import utcnow
-from _responses import ok
 import asyncio
+
+from _responses import ok
+from _utils import utcnow
+from database import get_db
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query
+from models import BotAlert, NotificationPreference, User
+from sqlalchemy import desc, select
+from ws_manager import ws_manager
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["alerts"])
 

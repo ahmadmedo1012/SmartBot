@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Test BotEngine tenant isolation: verify two tenants (A and B) run completely independently
 with asyncio.gather (truly parallel execution).
@@ -9,16 +10,15 @@ Key checks:
 3. rate limit isolation (per-post rate limits not shared)
 4. cycle counters isolated (no interference in _cycle, _post_reply_count)
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 
 import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+
+from _services import reset_bot_engines
 from bot import BotEngine
-from _services import reset_bot_engines, get_bot_engine
-from cache_layer import ReplyDedupCache
-from bot import CooldownManager
 
 
 # ── Mock FB Client ────────────────────────────────────────────────────────────

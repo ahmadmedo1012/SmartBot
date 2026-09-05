@@ -10,16 +10,17 @@
   Step 5  POST /complete         — mark tenant.onboarding_completed
 """
 from __future__ import annotations
+
 import logging
 
-from fastapi import APIRouter, Depends, Body, HTTPException
+from _crypto import encrypt_token
+from database import get_db
+from fastapi import APIRouter, Body, Depends, HTTPException
+from models import BotState, Rule, Tenant, User
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from database import get_db
-from models import User, Tenant, Rule, BotState
 from routers.auth import get_current_user
-from _crypto import encrypt_token
 
 log = logging.getLogger("fb-onboarding")
 

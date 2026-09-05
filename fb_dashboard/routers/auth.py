@@ -1,24 +1,21 @@
 from __future__ import annotations
+
 """Auth & user routes: login, register, logout, /me, audit log."""
-import asyncio
-import json
 import logging
-import os
 import re
 import secrets
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import jwt
-from fastapi import APIRouter, Depends, Body, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
-from sqlalchemy import select, func, desc, or_
-
+from _audit import log_audit
+from _hash import hash_password, verify_password
+from _utils import iso_z, utcnow
 from config import settings
 from database import get_db
-from models import User, Tenant, BlacklistedToken, AuditLog, SubscriptionPlan
-from _utils import utcnow, iso_z
-from _hash import hash_password, verify_password
-from _audit import log_audit
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
+from models import AuditLog, BlacklistedToken, SubscriptionPlan, Tenant, User
+from sqlalchemy import desc, func, or_, select
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["auth"])
@@ -29,7 +26,7 @@ ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
 def make_token(username: str, tenant_id: int = 0) -> str:
     jti = secrets.token_hex(16)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return jwt.encode(
         {"sub": username, "tid": tenant_id, "jti": jti,
          "iat": now, "nbf": now,
@@ -45,9 +42,9 @@ async def get_current_user(request: Request, db=Depends(get_db)):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "انتهت صلاحية الجلسة")
+        raise HTTPException(401, "انتهت صلاحية الجلسة") from None
     except jwt.InvalidTokenError:
-        raise HTTPException(401, "رمز غير صالح")
+        raise HTTPException(401, "رمز غير صالح") from None
     jti = payload.get("jti", "")
     if jti:
         blacklisted = await db.execute(select(BlacklistedToken).where(BlacklistedToken.jti == jti))
@@ -145,7 +142,7 @@ async def logout(request: Request, db=Depends(get_db)):
             jti = payload.get("jti", "")
             exp = payload.get("exp")
             if jti and exp:
-                db.add(BlacklistedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, tz=timezone.utc)))
+                db.add(BlacklistedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, tz=UTC)))
                 await db.commit()
         except Exception:
             pass

@@ -1,18 +1,18 @@
 from __future__ import annotations
+
 """Content Calendar — Visual multi-platform scheduling engine.
 Schedule, approve, and publish content across Facebook, Instagram, WhatsApp.
 """
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta, date
-from _utils import utcnow, iso_z
-from typing import Any
-from sqlalchemy import select, func, and_, or_, desc
+from datetime import date, datetime, timedelta
 
-from models import ScheduledPost, AnalyticsEvent
-from fb_client import FBClient
+from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
+from fb_client import FBClient
+from models import AnalyticsEvent, ScheduledPost
+from sqlalchemy import func, select
 
 log = logging.getLogger("fb-calendar")
 
@@ -52,7 +52,7 @@ class ContentCalendarEngine:
             try:
                 sched = datetime.fromisoformat(scheduled_at)
             except ValueError:
-                raise ValueError("Invalid ISO 8601 date format")
+                raise ValueError("Invalid ISO 8601 date format") from None
         post = ScheduledPost(
             message=message,
             image_url=image_url,

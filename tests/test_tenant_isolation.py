@@ -1,8 +1,7 @@
 """Verify BotEngine per-tenant isolation: dedup cache, cooldown, rate-limit."""
 import asyncio
-import sys
 import os
-import time
+import sys
 
 # Bootstrapped env — no SECRET_KEY needed for bot module init
 os.environ.setdefault("SECRET_KEY", "test-key")
@@ -12,7 +11,6 @@ os.environ.setdefault("FACEBOOK_PAGE_ID", "test")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))  # file lives in fb_dashboard/ now
 
-from bot import BotEngine
 from _services import get_bot_engine, reset_bot_engines
 
 
@@ -53,7 +51,7 @@ async def test_isolation():
 
     # Rule cache: independent per tenant
     assert e1._rule_cache is not e2._rule_cache, "FAIL: rule cache shared"
-    print(f"PASS: independent rule caches")
+    print("PASS: independent rule caches")
 
     # Cooldown: per-instance — block one doesn't affect the other
     # is_blocked() sets timestamp on first call (returns False), blocks on second

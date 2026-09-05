@@ -3,19 +3,25 @@ import asyncio
 import logging
 import os
 import secrets
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Body, Request, UploadFile, File
-from sqlalchemy import select, func, desc, update
-
-from _utils import utcnow, iso_z
+from _utils import iso_z, utcnow
 from config import settings
-from database import get_db, AsyncSessionLocal
-from models import PaymentRequest, BotState, SubscriptionPlan, SubscriptionPayment, Tenant, User, SystemConfig
-from routers.auth import get_current_user, require_role, is_platform_admin
+from database import AsyncSessionLocal, get_db
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
+from models import (
+    BotState,
+    PaymentRequest,
+    SubscriptionPayment,
+    SubscriptionPlan,
+    Tenant,
+    User,
+)
+from sqlalchemy import desc, select
 from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription
+
+from routers.auth import get_current_user, is_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
@@ -54,6 +60,7 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
     # Re-encode with Pillow: validates real image content AND caps dimensions
     try:
         import io
+
         from PIL import Image
         img = Image.open(io.BytesIO(raw))
         img.load()
@@ -67,7 +74,7 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(400, "الملف ليس صورة صالحة")
+        raise HTTPException(400, "الملف ليس صورة صالحة") from None
 
     if _IS_VERCEL:
         import base64
@@ -82,7 +89,7 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
         return {"success": True, "data": {"url": url}}
     except Exception as e:
         log.error(f"receipt upload failed: {e}", exc_info=True)
-        raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى")
+        raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى") from e
 
 
 def _reject_wallet_above_cap(provider: str, amount: float) -> None:

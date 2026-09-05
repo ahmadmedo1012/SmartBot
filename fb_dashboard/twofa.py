@@ -1,5 +1,6 @@
 """Two-factor authentication helpers (TOTP + backup codes + Fernet encryption)."""
 from __future__ import annotations
+
 import base64
 import hashlib
 import hmac
@@ -9,7 +10,6 @@ import secrets
 import struct
 import time
 from typing import Optional
-
 
 # ── AES-encrypted TOTP secret storage ────────────────────────────────────────
 # Use Fernet via cryptography. Falls back to base64+HMAC if FERNET_KEY not set

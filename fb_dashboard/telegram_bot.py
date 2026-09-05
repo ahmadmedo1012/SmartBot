@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Telegram admin notifications for payment approvals (world-class plan v3 §5).
 
 Smart-Menu pattern applied: the bot token + admin recipients resolve from

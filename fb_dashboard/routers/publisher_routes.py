@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlalchemy import select
-
-from database import get_db
-from models import ScheduledPost, User
-from routers.auth import get_current_user, require_role
-from _services import _publisher, fb, _track_event
 from _responses import ok
+from _services import _publisher, _track_event, fb
+from database import get_db
+from fastapi import APIRouter, Body, Depends, HTTPException
+from models import ScheduledPost, User
+
+from routers.auth import get_current_user, require_role
 
 router = APIRouter(tags=["publisher"])
 
@@ -58,7 +57,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         try:
             sched = datetime.fromisoformat(scheduled_at)
         except ValueError:
-            raise HTTPException(400, "Invalid date format — use ISO 8601")
+            raise HTTPException(400, "Invalid date format — use ISO 8601") from None
         _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,

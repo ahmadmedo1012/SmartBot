@@ -213,6 +213,25 @@ async def complete_onboarding(db=Depends(get_db), current_user: User = Depends(g
     return {"success": True, "data": {"onboardingCompleted": True}}
 
 
+@router.post("/api/onboarding/skip")
+async def skip_onboarding(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Persistently dismiss the onboarding wizard (user pressed تخي).
+
+    Without this, skip was local-state only and the wizard re-appeared on
+    every page navigation — the dismissal now sticks like completion does.
+    The wizard remains re-runnable from the dashboard help entry points.
+    """
+    if not current_user.tenant_id:
+        raise HTTPException(400, "لا توجد مساحة عمل مرتبطة بهذا الحساب")
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    if not tenant:
+        raise HTTPException(404, "المساحة غير موجودة")
+    tenant.onboarding_completed = True
+    await db.commit()
+    await log_audit(db, "onboarding_skip", actor_id=current_user.id, tenant_id=tenant.id)
+    return {"success": True, "data": {"onboardingCompleted": True, "skipped": True}}
+
+
 @router.get("/api/audit/logs")
 async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
                           current_user: User = Depends(require_role("admin"))):

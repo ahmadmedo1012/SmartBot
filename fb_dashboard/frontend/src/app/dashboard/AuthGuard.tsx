@@ -99,7 +99,12 @@ export default function AuthGuard({
               setShowTour(true)
             }
           }}
-          onSkip={() => setShowOnboarding(false)}
+          onSkip={() => {
+            setShowOnboarding(false)
+            // persist the dismissal so the wizard doesn't re-appear on every
+            // page navigation (bug: skip was local-state only)
+            fetch("/api/onboarding/skip", { method: "POST", credentials: "include" }).catch(() => {})
+          }}
         />
       )}
       {showTour && (

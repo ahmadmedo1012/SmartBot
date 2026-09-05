@@ -286,3 +286,36 @@ def test_onboarding_router_uses_fernet():
     assert "encrypt_token" in src, "يجب استخدام encrypt_token (Fernet)"
     assert "_encrypt_value" not in src, "الإصدار XOR القديم يجب ألا يعود"
     assert "chr(ord(c) ^" not in src
+
+
+async def test_onboarding_skip_persists():
+    """التخطي يُحفظ دائمًا (إصلاح عطل: كان محليًا فقط فيعود المعالج مع كل صفحة)."""
+    fixture = await _make_fixture()
+    try:
+        app, sf, te, client = fixture
+        tid = await _seed_user(fixture)
+
+        r = await client.post("/api/onboarding/skip")
+        assert r.status_code == 200, r.text
+        assert r.json()["data"]["skipped"] is True
+
+        from models import Tenant
+        async with sf() as db:
+            t = await db.get(Tenant, tid)
+            assert t.onboarding_completed is True
+
+        # /api/me reflects it — the wizard won't re-show on next navigation
+        r = await client.get("/api/me")
+        assert r.json()["data"]["user"]["onboardingCompleted"] is True
+    finally:
+        from database import get_db
+        app.dependency_overrides.pop(get_db, None)
+        await client.aclose()
+        await te.dispose()
+
+
+def test_authguard_skip_calls_persist_endpoint():
+    """حارس مصدري: onSkip في AuthGuard يستدعي /api/onboarding/skip (لا حالة محلية فقط)."""
+    guard = _read("app/dashboard/AuthGuard.tsx")
+    assert "/api/onboarding/skip" in guard, \
+        "onSkip يجب أن يستدعي نقطة التخطي الدائمة وإلا عاد المعالج مع كل تنقل"

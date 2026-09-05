@@ -405,11 +405,23 @@ async def api_health():
 
 @app.get("/api/health/ready", include_in_schema=False)
 async def api_health_ready():
-    """Readiness probe — checks DB connectivity. 200 if ready, 503 otherwise."""
+    """Readiness probe — checks DB connectivity + a pivotal table.
+
+    v5 §7: also reports measured latency. Only SAFE fields are exposed
+    (no internals, no error text) — external monitors can alert on
+    `ok`, `database`, and `latency_ms` thresholds.
+    200 if ready, 503 otherwise.
+    """
+    import time as _t
+    start = _t.perf_counter()
     try:
         async with engine.connect() as conn:
-            await conn.execute(__import__('sqlalchemy').text("SELECT 1"))
-        return {"ok": True, "database": "ok"}
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+            # pivotal table: proves the schema actually exists (not just
+            # that the TCP connection opened) — catches reconcile drift
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1 FROM tenants LIMIT 1"))
+        latency_ms = (_t.perf_counter() - start) * 1000
+        return {"ok": True, "database": "ok", "latency_ms": round(latency_ms), "version": "2.0.0"}
     except Exception as e:
         log.error("Readiness probe failed: %s", e)
         return JSONResponse(
@@ -543,10 +555,18 @@ async def request_logging_middleware(request: Request, call_next):
     if path.startswith(("/_next/", "/static/", "/fonts/")) or path in ("/healthz", "/api/health"):
         return await call_next(request)
     import time as _time
+    import uuid as _uuid
+    request_id = _uuid.uuid4().hex[:8]
     start = _time.perf_counter()
     response = await call_next(request)
     duration_ms = (_time.perf_counter() - start) * 1000
-    log.info("%s %s → %s (%.0fms)", request.method, path, response.status_code, duration_ms)
+    # v5 §7: request-id correlation — echoed in the response header so a
+    # user-reported issue maps to one grep in the logs; 5xx at ERROR with id.
+    response.headers["X-Request-Id"] = request_id
+    if response.status_code >= 500:
+        log.error("%s %s → %s (%.0fms) rid=%s", request.method, path, response.status_code, duration_ms, request_id)
+    else:
+        log.info("%s %s → %s (%.0fms) rid=%s", request.method, path, response.status_code, duration_ms, request_id)
     return response
 
 

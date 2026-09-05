@@ -145,6 +145,39 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     return {"success": True, "data": {"updated": sorted(payload.keys())}}
 
 
+@router.get("/api/setup-status")
+async def setup_status(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Setup-status booleans (v3 plan §4.1) — drives the dashboard warning banners.
+
+    Tenant-scoped: page_connected, has_rules. Platform-scoped (included only
+    for platform admins): telegram_configured, fb_webhook_secret_configured.
+    Booleans ONLY — secret values never leave the server.
+    """
+    tenant_id = current_user._tenant_id
+    data: dict = {"page_connected": False, "has_rules": False}
+    if tenant_id:
+        states = (await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id,
+                BotState.key.in_(("fb_page_id", "fb_access_token")),
+            )
+        )).scalars().all()
+        vals = {s.key: (s.value or "").strip() for s in states}
+        data["page_connected"] = bool(vals.get("fb_page_id") and vals.get("fb_access_token"))
+        n_rules = await db.scalar(
+            select(func.count()).select_from(Rule).where(Rule.tenant_id == tenant_id))
+        data["has_rules"] = bool(n_rules)
+    if is_platform_admin(current_user):
+        data["platform_admin"] = True
+        tg_row = await db.scalar(select(SystemConfig).where(SystemConfig.key == "telegram_bot_token"))
+        data["telegram_configured"] = bool(
+            (tg_row and (tg_row.value or "").strip()) or os.environ.get("TELEGRAM_BOT_TOKEN", "").strip())
+        fb_row = await db.scalar(select(SystemConfig).where(SystemConfig.key == "facebook_app_secret"))
+        data["fb_webhook_secret_configured"] = bool(
+            (fb_row and (fb_row.value or "").strip()) or os.environ.get("FACEBOOK_APP_SECRET", "").strip())
+    return {"success": True, "data": data}
+
+
 from _bootstrap import seed_admin  # single source of truth (runner.py imports the same)
 
 

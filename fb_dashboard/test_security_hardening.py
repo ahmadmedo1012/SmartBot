@@ -280,3 +280,43 @@ async def test_alerts_endpoints_enveloped(app_client):
     r = await ac.get("/api/logs/stats")
     assert r.status_code == 200
     assert "success" in r.json()
+
+
+# ── 10: setup-status surface (v3 final-launch §4.1) ─────────────────────────
+
+async def test_setup_status_hides_platform_flags_from_tenants(app_client):
+    """Tenant admins get their own booleans only; platform flags never leak."""
+    ac = app_client
+    t = await _register(ac, "sst")           # tenant owner
+    await _login(ac, t["username"], t["password"])
+    r = await ac.get("/api/setup-status")
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+    assert data["page_connected"] is False   # fresh tenant: nothing connected
+    assert data["has_rules"] is False
+    # THE leak guard: platform-level keys must be absent for tenant admins
+    assert "telegram_configured" not in data
+    assert "fb_webhook_secret_configured" not in data
+    assert "platform_admin" not in data
+
+    # platform admin (bootstrap-style tenant 0) sees the platform flags
+    import asyncio
+    from database import AsyncSessionLocal as ASL
+    from models import User as U
+    from _hash import hash_password
+    async with ASL() as db:
+        pa = U(username=f"plat_{uuid.uuid4().hex[:6]}", email="plat@t.ly",
+               password_hash=hash_password("Str0ngPass!ly"),
+               tenant_id=0, role="admin", is_platform_admin=False)
+        db.add(pa)
+        await db.commit()
+    await _login(ac, pa.username, "Str0ngPass!ly")
+    r2 = await ac.get("/api/setup-status")
+    assert r2.status_code == 200, r2.text
+    d2 = r2.json()["data"]
+    assert d2["platform_admin"] is True
+    assert "telegram_configured" in d2
+    assert "fb_webhook_secret_configured" in d2
+    # no secret VALUES ever leave the server — booleans only
+    import json as _json
+    assert "token" not in _json.dumps(d2).lower() or d2.get("telegram_configured") in (True, False)

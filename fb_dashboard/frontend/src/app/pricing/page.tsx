@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
@@ -52,7 +53,7 @@ export default function PricingPage() {
       <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-30">
         <SectionContainer><div className="flex items-center justify-between h-14">
           <a href="/" className="flex items-center gap-2">
-            <div className="size-7 rounded-md bg-orange flex items-center justify-center text-white font-bold text-xs shadow-md shadow-orange/20">S</div>
+            <Image src="/brand-icon.png" alt="SmartBot" width={56} height={56} className="size-7 rounded-md" priority />
             <span className="font-bold text-sm">SmartBot</span>
           </a>
           <div className="flex items-center gap-2">

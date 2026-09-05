@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -36,7 +37,6 @@ interface AdminSidebarProps {
   onSubscribe?: () => void
   className?: string
 }
-
 function isActiveItem(href: string | undefined, pathname: string): boolean {
   if (!href) return false
   if (href === "/dashboard") return pathname === "/dashboard"
@@ -95,7 +95,7 @@ export const defaultNavSections: NavSection[] = [
 
 export function AdminSidebar({
   navSections = defaultNavSections,
-  logo = "S",
+  logo,
   title = "SmartBot",
   onNavigate,
   onLogout,
@@ -106,10 +106,18 @@ export function AdminSidebar({
 
   return (
     <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-l border-border/50 shadow-sm", className)}>
-      {/* Logo — chrome unified with Smart-Menu (smart-link.ly identity) */}
+      {/* Logo — the REAL brand image (v3 §5.1): same /brand-icon.png asset
+          Header.tsx already serves, ending the text-"S" placeholder era. */}
       <div className="flex items-center gap-3 border-b border-border/20 px-5 py-5 min-h-[72px]">
-        <div className="relative size-8 rounded-lg bg-orange flex items-center justify-center text-white font-semibold text-sm shrink-0">
-          {logo}
+        <div className="relative shrink-0">
+          <Image
+            src="/brand-icon.png"
+            alt="SmartBot"
+            width={64}
+            height={64}
+            className="size-8 rounded-lg object-cover"
+            priority
+          />
           <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-success ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
         </div>
         <div className="min-w-0">

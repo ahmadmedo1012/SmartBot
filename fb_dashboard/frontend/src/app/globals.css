@@ -21,11 +21,14 @@
   /* ── Font system — Arabic-first, Cairo local-first (Smart-Menu parity).
      --font-cairo comes from /fonts/fonts.css @font-face "Cairo" (arabic +
      latin + latin-ext subsets, 400-800). The literal "Cairo" fallback keeps
-     the stack resolvable when the var is absent (exact Smart-Menu stack). ── */
-  --font-sans: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-mono: var(--font-cairo, "Cairo"), "Cairo", "Courier New", monospace;
-  --font-arabic: var(--font-cairo, "Cairo"), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-heading: var(--font-cairo, "Cairo"), "Cairo", "Readex Pro", "Noto Sans Arabic", system-ui, sans-serif;
+     the stack resolvable when the var is absent (exact Smart-Menu stack).
+     --font-heading is THE display face: "Readex Pro" FIRST (Smart-Menu
+     literal stack) — @theme inline inlines this value into the font-heading
+     utility, so headings render Readex Pro exactly like menu.smart-link.ly. ── */
+  --font-sans: var(--font-cairo), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-mono: var(--font-cairo), "Cairo", "Courier New", monospace;
+  --font-arabic: var(--font-cairo), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-heading: "Readex Pro", var(--font-cairo, "Cairo"), "Noto Sans Arabic", system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -456,17 +459,20 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 .text-balance { text-wrap: balance; }
 .gpu-layer { transform: translateZ(0); backface-visibility: hidden; }
 
-.font-heading { font-family: var(--font-heading); }
+/* NOTE: no hand-written .font-heading override — Smart-Menu does not have one.
+   The Tailwind @theme inline emission ("Readex Pro" first) is the single
+   source; a var() shim here would defeat it and re-Cairo the headings. */
+
+/* Noto Naskh Arabic stays available via .font-naskh for editorial/quote text
+   only (Smart-Menu rule, verbatim) — Eyebrow labels use it. */
+[dir="rtl"] .font-naskh { font-family: "Noto Naskh Arabic", "Cairo", system-ui, sans-serif; }
 
 /* RTL utilities */
 [dir="rtl"] { --font-sans: var(--font-arabic); font-family: var(--font-arabic); }
 .rtl\:rotate-180 { rotate: y 180deg; }
 
-/* Section pattern */
-.section-container { position: relative; padding-block: 3rem; overflow: hidden; }
-@media (min-width: 640px) { .section-container { padding-block: 4rem; } }
-.section-inner { position: relative; z-index: 10; max-width: 1220px; margin-inline: auto; padding-inline: 1rem; }
-@media (min-width: 640px) { .section-inner { padding-inline: 1.5rem; } }
+/* Section rhythm now lives in SectionContainer.tsx as Tailwind utilities
+   (Smart-Menu literal port) — the under-spec'd .section-container pair was removed. */
 
 /* Eyebrow pattern */
 

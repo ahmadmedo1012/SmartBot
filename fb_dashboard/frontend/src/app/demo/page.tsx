@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
@@ -65,7 +66,7 @@ export default function DemoPage() {
         sidebarOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <div className="flex items-center gap-2 p-4 border-b border-border">
-          <div className="size-8 rounded-lg bg-orange flex items-center justify-center text-white font-bold text-sm">S</div>
+          <Image src="/brand-icon.png" alt="SmartBot" width={64} height={64} className="size-8 rounded-lg" priority />
           <div>
             <p className="font-bold text-sm">SmartBot</p>
             <p className="text-xs text-muted-foreground">تجربة حية</p>

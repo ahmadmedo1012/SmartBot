@@ -9,6 +9,7 @@
  * Every section is reachable within 2 taps (bar item = 1, sheet item = 2).
  */
 import { useState } from "react"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { LayoutDashboard, MessageCircle, BarChart3, Bell, Menu, X, LogOut } from "lucide-react"
@@ -66,12 +67,26 @@ export function MobileBottomNav({
               aria-label="كل الأقسام"
             >
               <div className="sticky top-0 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-                <span className="font-bold text-sm">كل الأقسام</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Real brand mark (v3 §5.4) — the mobile navigation header
+                      carries the logo, mirroring Smart-Menu's MobileNav header. */}
+                  <Image
+                    src="/brand-icon.png"
+                    alt="SmartBot"
+                    width={40}
+                    height={40}
+                    className="size-10 rounded-xl shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="block text-sm font-bold leading-tight truncate">SmartBot</span>
+                    <span className="block text-[11px] text-muted-foreground leading-tight">كل الأقسام</span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setSheetOpen(false)}
                   aria-label="إغلاق"
-                  className="size-8 rounded-lg flex items-center justify-center hover:bg-muted"
+                  className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0"
                 >
                   <X className="size-4" />
                 </button>

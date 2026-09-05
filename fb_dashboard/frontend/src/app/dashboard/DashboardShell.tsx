@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
+import { SetupWarnings } from "@/components/shared/SetupWarnings"
 import { apiFetch } from "@/lib/csrf-client"
 import { springGentle } from "@/lib/motion"
 
@@ -45,6 +46,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         transition={springGentle}
         className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0"
       >
+        {/* v3 §4.1 — loud setup-status banners (missing telegram token /
+            FB secret / page connection) instead of silent zero data */}
+        <SetupWarnings />
         {children}
       </motion.div>
 

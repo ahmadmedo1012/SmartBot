@@ -44,12 +44,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             dir="auto"
             className={cn(
-              "flex h-12 w-full rounded-lg border border-input bg-transparent px-4 py-2 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-orange focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:shadow-[0_0_0_4px_oklch(0.55_0.19_45_/_0.12)] disabled:cursor-not-allowed disabled:opacity-50",
+              "flex h-12 w-full min-w-0 rounded-lg border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:border-orange focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_oklch(0.55_0.19_45_/_0.12)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
               startIcon && "ps-11",
               StateIcon && "pe-11",
-              effectiveState === "error" && "border-destructive focus-visible:border-destructive",
-              effectiveState === "success" && "border-success/60",
-              effectiveState === "warning" && "border-warning/60",
+              effectiveState === "error" && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+              effectiveState === "success" && "border-success focus-visible:border-success focus-visible:ring-success/20",
+              effectiveState === "warning" && "border-warning focus-visible:border-warning focus-visible:ring-warning/20",
               className
             )}
             ref={ref}

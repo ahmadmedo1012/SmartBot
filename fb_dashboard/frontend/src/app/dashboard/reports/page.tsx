@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, ThumbsUp, Eye, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function ReportsPage() {
   const { data: dashboard, isLoading: dbLoad, isError: dbErr, error: dbError, refetch: dbRefetch } = useQuery({
@@ -12,7 +13,7 @@ export default function ReportsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/dashboard?days=30")
       if (!res.ok) throw new Error(`فشل تحميل الإحصائيات (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -22,7 +23,7 @@ export default function ReportsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/top-commenters?limit=10")
       if (!res.ok) throw new Error(`فشل تحميل المعلقين (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })

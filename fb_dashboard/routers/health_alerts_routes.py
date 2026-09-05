@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
 from _utils import utcnow
@@ -7,6 +8,7 @@ from database import get_db
 from models import BotAlert, Reply, Rule, User
 from routers.auth import get_current_user, require_role
 from _services import fb
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["health"])
 
@@ -18,11 +20,13 @@ async def get_bot_alerts(resolved: bool = Query(False), db=Depends(get_db), curr
     if not resolved:
         stmt = stmt.where(BotAlert.resolved == False)
     rows = await db.execute(stmt.order_by(desc(BotAlert.created_at)).limit(20))
-    return [{
+    return ok(
+        [{
         "id": a.id, "alert_type": a.alert_type, "severity": a.severity,
         "message": a.message, "resolved": a.resolved,
         "created_at": a.created_at.isoformat() if a.created_at else None,
     } for a in rows.scalars().all()]
+    )
 
 
 @router.post("/api/health/alerts/{alert_id}/resolve")
@@ -35,7 +39,7 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = 
     alert.resolved = True
     alert.resolved_at = utcnow()
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.get("/api/health/bot-check")
@@ -66,7 +70,8 @@ async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_
     from runner import _bot_task as _bt
     running = _bt is not None and not _bt.done()
 
-    return {
+    return ok(
+        {
         "status": "ok" if not issues else "warning",
         "running": running,
         "fan_count": fan_count,
@@ -75,3 +80,4 @@ async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_
         "issues": issues,
         "alerts_count": 0,
     }
+    )

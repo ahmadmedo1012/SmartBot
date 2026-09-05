@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { fadeUp, stagger } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 // ── Skeleton ──
 function LoadingSkeleton() {
@@ -136,7 +137,7 @@ function ChartBars({ data }: { data: Record<string, number> }) {
 export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-bundle"],
-    queryFn: () => apiFetch("/api/dashboard/bundle").then((r) => r.json()),
+    queryFn: () => apiFetch("/api/dashboard/bundle").then(unwrapApi),
     refetchInterval: 60000,
     refetchIntervalInBackground: false,
   })

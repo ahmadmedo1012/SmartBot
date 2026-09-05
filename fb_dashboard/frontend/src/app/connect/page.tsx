@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
+import { unwrapApi } from "@/lib/api"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
 
@@ -26,7 +27,7 @@ export default function ConnectPage() {
 
   useEffect(() => {
     apiFetch("/api/facebook/settings")
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
         setExisting(d)
         if (d.page_id) setPageId(d.page_id)

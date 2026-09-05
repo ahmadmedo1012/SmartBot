@@ -1,4 +1,5 @@
 """Commerce / Shopify routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request, Response
@@ -9,6 +10,7 @@ from models import BotState, ReportSchedule, User
 from routers.auth import get_current_user, require_role
 
 from _services import commerce_engine
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["commerce"])
@@ -16,7 +18,7 @@ router = APIRouter(prefix="", tags=["commerce"])
 
 @router.get("/api/commerce/status")
 async def commerce_status(_=Depends(get_current_user)):
-    return commerce_engine.get_status()
+    return ok(commerce_engine.get_status())
 
 
 @router.post("/api/commerce/shopify/configure")
@@ -40,7 +42,7 @@ async def shopify_configure(request: Request, db=Depends(get_db), _=Depends(requ
         access_token=body.get("access_token", ""),
         webhook_secret=body.get("webhook_secret", ""),
     )
-    return {"ok": True, "store": body.get("store_domain", "")}
+    return ok({"ok": True, "store": body.get("store_domain", "")})
 
 
 @router.post("/api/commerce/shopify/webhook/{topic:path}")
@@ -51,14 +53,14 @@ async def shopify_webhook(topic: str, request: Request):
         raise HTTPException(401, "Invalid HMAC signature")
     body = await request.json()
     ctx = await commerce_engine.shopify.handle_webhook(topic, body)
-    return ctx
+    return ok(ctx)
 
 
 @router.get("/api/commerce/shopify/products")
 async def shopify_products(limit: int = Query(10), _=Depends(get_current_user)):
-    return {"products": await commerce_engine.shopify.get_products(limit)}
+    return ok({"products": await commerce_engine.shopify.get_products(limit)})
 
 
 @router.get("/api/commerce/shopify/orders")
 async def shopify_orders(limit: int = Query(10), status: str = Query("any"), _=Depends(get_current_user)):
-    return {"orders": await commerce_engine.shopify.get_orders(limit, status)}
+    return ok({"orders": await commerce_engine.shopify.get_orders(limit, status)})

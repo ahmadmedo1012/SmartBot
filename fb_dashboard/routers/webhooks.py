@@ -1,4 +1,5 @@
 """Facebook Webhook endpoints: events list + status check."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 import hashlib
 import hmac
@@ -15,6 +16,7 @@ from config import settings
 from database import get_db
 from models import BotLog
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 log = logging.getLogger("fb-webhook")
 
@@ -44,10 +46,12 @@ async def get_webhook_events(
             BotLog.message.contains("webhook"),
         ).order_by(BotLog.id.desc()).limit(limit)
     )
-    return [{
+    return ok(
+        [{
         "id": r.id, "level": r.level, "message": r.message,
         "created_at": r.created_at.isoformat() if r.created_at else None,
     } for r in rows.scalars().all()]
+    )
 
 
 @router.get("/api/webhook/check")
@@ -59,7 +63,8 @@ async def check_webhook(_=Depends(get_current_user)):
     webhook_url += "/webhook"
     if not webhook_url.startswith("http"):
         webhook_url = "https://smartbot-6lxo.onrender.com/webhook"
-    return {
+    return ok(
+        {
         "configured": bool(APP_SECRET),
         "verify_token": "***" if VERIFY_TOKEN else "",
         "webhook_url": webhook_url,
@@ -72,3 +77,4 @@ async def check_webhook(_=Depends(get_current_user)):
             "6. After setup, post a test comment or use POST /api/webhook/test",
         ],
     }
+    )

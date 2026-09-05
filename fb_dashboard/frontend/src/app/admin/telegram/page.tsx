@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { TelegramConfigSection } from "./TelegramConfigSection"
 import { BroadcastTargetsSection } from "./BroadcastTargetsSection"
 import { DiagnosticsSection } from "./DiagnosticsSection"
+import { unwrapApi } from "@/lib/api"
 
 interface TelegramConfig {
   botToken: string
@@ -59,20 +60,20 @@ export default function AdminTelegramPage() {
 
   useEffect(() => {
     apiFetch("/api/me")
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
-        const data = d.data || d
-        if (data.role !== "admin") {
+        const role = d?.user?.role
+        if (role !== "admin") {
           setAccessDenied(true); setLoading(false); return
         }
       })
       .catch(() => { setAccessDenied(true); setLoading(false); return })
 
     fetch("/api/telegram/config", { credentials: "include" })
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((json) => {
-        if (json.data) {
-          const d = json.data
+        const d = json
+        if (d) {
           setConfig({ botToken: d.botTokenMasked ? "••••••••" : "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
           setEventsInput((d.events ?? []).join(", "))
         }
@@ -81,18 +82,18 @@ export default function AdminTelegramPage() {
       .finally(() => setLoading(false))
 
     fetch("/api/telegram/broadcast-targets", { credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => { if (json.success && json.data) setTargets(json.data) })
+      .then(unwrapApi)
+      .then((data) => { if (Array.isArray(data)) setTargets(data) })
       .catch(() => {})
 
     fetch("/api/telegram/diagnose?dryRun=true", { credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => { if (json.success && json.data) { setLinkedAdmins(json.data.linkedAdmins ?? 0); setDiagnose(json.data) } })
+      .then(unwrapApi)
+      .then((data) => { if (data) { setLinkedAdmins(data.linkedAdmins ?? 0); setDiagnose(data) } })
       .catch(() => {})
 
     fetch("/api/admin/telegram/approvers", { credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => { if (json.success) setApprovers(json.data ?? []) })
+      .then(unwrapApi)
+      .then((data) => { setApprovers(Array.isArray(data) ? data : []) })
       .catch(() => {})
       .finally(() => setApproversLoading(false))
   }, [])

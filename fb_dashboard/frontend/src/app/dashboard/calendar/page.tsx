@@ -5,12 +5,13 @@ import { apiFetch } from "@/lib/csrf-client"
 import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { unwrapApi } from "@/lib/api"
 
 export default function CalendarPage() {
   const now = new Date()
   const { data: posts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["calendar", now.getFullYear(), now.getMonth() + 1],
-    queryFn: () => apiFetch(`/api/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`).then(r => r.json()),
+    queryFn: () => apiFetch(`/api/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`).then(unwrapApi),
     refetchInterval: 60000,
   })
 

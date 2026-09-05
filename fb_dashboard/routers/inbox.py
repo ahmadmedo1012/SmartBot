@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 """Inbox & conversations routes."""
 import json
@@ -11,6 +12,7 @@ from database import get_db, AsyncSessionLocal
 from models import ConversationLabel, ConversationNote, ConversationTag, User, AnalyticsEvent
 from routers.auth import get_current_user, require_role
 from _services import get_tenant_fb_client, _track_event
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])
@@ -84,7 +86,7 @@ async def inbox_list(
     total = len(items)
     offset = (page - 1) * per_page
     paged = items[offset:offset + per_page]
-    return {"items": paged, "total": total, "page": page, "per_page": per_page}
+    return ok({"items": paged, "total": total, "page": page, "per_page": per_page})
 
 
 @router.get("/api/inbox/conversations/{conversation_id}")
@@ -92,11 +94,13 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     """Get full conversation messages with AI analysis hints."""
     fb = await _get_inbox_fb(current_user._tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
-    return [{
+    return ok(
+        [{
         "id": m["id"], "message": m.get("message", ""),
         "from": m.get("from", {}),
         "created_time": m.get("created_time", ""),
     } for m in messages]
+    )
 
 
 @router.post("/api/inbox/conversations/{conversation_id}/reply")
@@ -110,13 +114,13 @@ async def inbox_reply(
     result = await fb.send_conversation_message(conversation_id, message)
     if result:
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
-        return {"ok": True}
+        return ok({"ok": True})
 
     # Fallback: try private_reply (works for ANY comment, no prior conversation needed)
     result = await fb.send_private_reply(conversation_id, message)
     if result and not result.get("_error"):
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
-        return {"ok": True}
+        return ok({"ok": True})
 
     raise HTTPException(400, "لم يتم الرد — راجع سجل الخادم لتفاصيل خطأ فيسبوك")
 
@@ -125,7 +129,7 @@ async def inbox_reply(
 async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """List all conversation tags."""
     rows = await db.execute(select(ConversationTag).where(ConversationTag.tenant_id == current_user._tenant_id))
-    return [{"id": t.id, "name": t.name, "color": t.color} for t in rows.scalars().all()]
+    return ok([{"id": t.id, "name": t.name, "color": t.color} for t in rows.scalars().all()])
 
 
 @router.post("/api/inbox/tags")
@@ -139,7 +143,7 @@ async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
     db.add(tag)
     await db.commit()
     await db.refresh(tag)
-    return {"id": tag.id, "name": tag.name, "color": tag.color}
+    return ok({"id": tag.id, "name": tag.name, "color": tag.color})
 
 
 @router.delete("/api/inbox/tags/{tag_id}")
@@ -152,7 +156,7 @@ async def inbox_delete_tag(tag_id: int, db=Depends(get_db), current_user: User =
     await db.execute(ConversationLabel.__table__.delete().where(ConversationLabel.tag_id == tag_id))
     await db.delete(tag)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/inbox/conversations/{conv_id}/tags")
@@ -171,7 +175,7 @@ async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
     if not existing.scalar_one_or_none():
         db.add(ConversationLabel(conversation_id=conv_id, tag_id=tag_id))
         await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.delete("/api/inbox/conversations/{conv_id}/tags/{tag_id}")
@@ -182,4 +186,4 @@ async def inbox_remove_tag(conv_id: str, tag_id: int,
             and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id))
     )
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

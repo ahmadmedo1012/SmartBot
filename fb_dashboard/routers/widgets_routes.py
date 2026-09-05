@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
 from _utils import utcnow
@@ -7,6 +8,7 @@ from database import get_db
 from models import Reply, BotLog, AISuggestion, Rule, ReplyTemplate, User
 from routers.auth import get_current_user
 from _services import log, get_ai
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["widgets"])
 
@@ -34,7 +36,7 @@ async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
             "detail": "", "time": l.created_at.isoformat() if l.created_at else None,
         })
     activities.sort(key=lambda a: a.get("time", ""), reverse=True)
-    return activities[:limit]
+    return ok(activities[:limit])
 
 
 @router.get("/api/widgets/ai-insights")
@@ -43,11 +45,13 @@ async def widget_ai_insights(db=Depends(get_db), current_user: User = Depends(ge
     ai = get_ai()
     rows = await db.execute(select(func.count(ReplyTemplate.id)).where(ReplyTemplate.tenant_id == current_user._tenant_id))
     template_count = rows.scalar() or 0
-    return {
+    return ok(
+        {
         "ai_available": ai.available,
         "ai_provider": ai.provider_name,
         "template_count": template_count,
     }
+    )
 
 
 @router.get("/api/widgets/response-time")
@@ -60,11 +64,13 @@ async def widget_response_time(days: int = Query(7), db=Depends(get_db), current
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
     )
     total = row.scalar() or 0
-    return {
+    return ok(
+        {
         "total_replies": total,
         "period_days": days,
         "avg_per_day": round(total / max(days, 1), 1),
     }
+    )
 
 
 @router.get("/api/widgets/sentiment-trend")
@@ -84,7 +90,7 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), curre
         d = str(row.d)
         if d not in trend: trend[d] = {}
         trend[d][row.sentiment or "محايد"] = row.count
-    return {"trend": trend}
+    return ok({"trend": trend})
 
 
 @router.get("/api/widgets/top-keywords")
@@ -99,7 +105,7 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), curren
         )
         top = agg_rows.all()
         if not top:
-            return []
+            return ok([])
         rule_ids = [r.rule_id for r in top if r.rule_id is not None]
         rules_map = {}
         if rule_ids:
@@ -107,12 +113,14 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), curren
             for r in rule_rows.scalars().all():
                 rules_map[r.id] = r
         count_map = {r.rule_id: r.cnt for r in top}
-        return [{
+        return ok(
+            [{
             "rule_id": rid,
             "rule_name": rules_map[rid].name if rid in rules_map else f"#{rid}",
             "count": count_map.get(rid, 0),
             "keywords": (rules_map[rid].keywords or [])[:3] if rid in rules_map else [],
         } for rid in rule_ids if rid]
+        )
     except Exception as e:
         log.error(f"widget_top_keywords failed: {e}")
-        return []
+        return ok([])

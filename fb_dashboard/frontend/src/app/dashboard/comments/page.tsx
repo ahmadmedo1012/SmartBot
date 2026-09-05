@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 import { toast } from "sonner"
 import { MessageSquare, Reply, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -29,8 +30,8 @@ export default function CommentsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/comments?limit=30")
       if (!res.ok) throw new Error(`فشل تحميل التعليقات (${res.status})`)
-      const json = await res.json()
-      return (json.items || []) as any[]
+      const json = await unwrapApi(res)
+      return (json.items || json || []) as any[]
     },
     refetchInterval: 20000,
     retry: 1,

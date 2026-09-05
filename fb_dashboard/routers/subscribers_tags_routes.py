@@ -1,4 +1,5 @@
 """Subscribers + Tags CRUD routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 
@@ -6,6 +7,7 @@ from database import get_db
 from models import User
 from routers.auth import get_current_user, require_role
 from _services import subscriber_engine, tag_engine
+from _responses import ok
 
 router = APIRouter(tags=["subscribers"])
 
@@ -16,10 +18,12 @@ async def list_subscribers(
     page: int = Query(1), per_page: int = Query(20),
     db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
-    return await subscriber_engine.search(
+    return ok(
+        await subscriber_engine.search(
         query=search, platform=platform, tag=tag,
         page=page, per_page=per_page, session=db,
         tenant_id=current_user._tenant_id,
+    )
     )
 
 
@@ -28,14 +32,14 @@ async def get_subscriber(sub_id: int, db=Depends(get_db), current_user: User = D
     detail = await subscriber_engine.get_detail(sub_id, db, tenant_id=current_user._tenant_id)
     if not detail:
         raise HTTPException(404, "Subscriber not found")
-    return detail
+    return ok(detail)
 
 
 @router.post("/api/subscribers/{sub_id}/tags")
 async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
     ok = await subscriber_engine.add_tag(sub_id, body["tag_id"], db, tenant_id=current_user._tenant_id)
-    return {"ok": ok}
+    return ok({"ok": ok})
 
 
 @router.delete("/api/subscribers/{sub_id}/tags/{tag_id}")
@@ -43,12 +47,12 @@ async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), cu
     ok = await subscriber_engine.remove_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Tag not assigned to subscriber")
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.get("/api/tags")
 async def list_tags(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    return await tag_engine.list_tags(db, tenant_id=current_user._tenant_id)
+    return ok(await tag_engine.list_tags(db, tenant_id=current_user._tenant_id))
 
 
 @router.post("/api/tags")
@@ -56,7 +60,7 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
     body = await request.json()
     try:
         result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
-        return result
+        return ok(result)
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -66,4 +70,4 @@ async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depen
     ok = await tag_engine.delete_tag(tag_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Tag not found")
-    return {"ok": True}
+    return ok({"ok": True})

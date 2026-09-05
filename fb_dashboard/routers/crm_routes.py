@@ -1,9 +1,11 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc, func, or_
 from datetime import datetime
 from database import get_db
 from models import Offer, BrandConfig, Customer, BotAlert, User
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["crm"])
 
@@ -27,7 +29,8 @@ async def crm_list(
     rows = await db.execute(
         stmt.order_by(desc(Customer.last_contacted_at)).offset((page-1)*per_page).limit(per_page)
     )
-    return {
+    return ok(
+        {
         "total": total or 0, "page": page, "per_page": per_page,
         "items": [{
             "id": c.id, "name": c.name, "phone": c.phone,
@@ -40,6 +43,7 @@ async def crm_list(
             "last_contacted_at": c.last_contacted_at.isoformat() if c.last_contacted_at else None,
         } for c in rows.scalars().all()],
     }
+    )
 
 
 @router.post("/api/crm/customers")
@@ -57,7 +61,7 @@ async def crm_create(
                  stage=stage, interested_in=interested_in, tenant_id=current_user._tenant_id)
     db.add(c)
     await db.commit()
-    return {"id": c.id}
+    return ok({"id": c.id})
 
 
 @router.put("/api/crm/customers/{customer_id}")
@@ -78,4 +82,4 @@ async def crm_update(
     if notes: c.notes = notes
     if interested_in: c.interested_in = interested_in
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

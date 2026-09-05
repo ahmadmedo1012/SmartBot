@@ -8,6 +8,7 @@ import { Bot, Plus, ToggleLeft, ToggleRight, Trash2, AlertCircle, RefreshCw } fr
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { unwrapApi } from "@/lib/api"
 
 export default function AutoReplyPage() {
   const [showForm, setShowForm] = useState(false)
@@ -20,7 +21,7 @@ export default function AutoReplyPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/rules")
       if (!res.ok) throw new Error(`فشل تحميل القواعد (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     refetchInterval: 30000,
     retry: 1,

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { fadeUp, stagger, springSnappy, springDefault } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
 import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
+import { unwrapApi } from "@/lib/api"
 
 interface Plan {
   id: string; name: string; name_ar: string; price: number
@@ -29,7 +30,7 @@ export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
-    apiFetch("/api/plans").then(r => r.json()).then(d => setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))).catch(() => {})
+    apiFetch("/api/plans").then(unwrapApi).then(d => setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))).catch(() => {})
   }, [])
 
   return (

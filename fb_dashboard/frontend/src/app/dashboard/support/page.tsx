@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -81,7 +82,7 @@ export default function SupportPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/support/tickets")
       if (!res.ok) throw new Error(`فشل تحميل التذاكر (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -93,7 +94,7 @@ export default function SupportPage() {
     queryFn: async () => {
       const res = await apiFetch(`/api/support/tickets/${openTicketId}`)
       if (!res.ok) throw new Error("فشل تحميل التذكرة")
-      return res.json()
+      return unwrapApi(res)
     },
     enabled: openTicketId !== null,
   })
@@ -119,9 +120,9 @@ export default function SupportPage() {
 
   useEffect(() => {
     fetch("/api/support/info")
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
-        if (d?.data) setInfo(d.data)
+        if (d) setInfo(d)
       })
       .catch(() => {/* non-blocking */})
       .finally(() => setInfoLoading(false))
@@ -133,7 +134,7 @@ export default function SupportPage() {
         method: "POST",
         body: JSON.stringify(payload),
       })
-      return res.json()
+      return unwrapApi(res)
     },
     onSuccess: (data) => {
       if (data?.success) {

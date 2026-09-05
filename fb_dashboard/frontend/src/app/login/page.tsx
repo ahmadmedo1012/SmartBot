@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
 import { LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { unwrapApi } from "@/lib/api"
 
 function FloatingShapes() {
   return (
@@ -39,11 +40,10 @@ function LoginForm() {
 
   useEffect(() => {
     apiFetch("/api/me")
-      .then(r => r.json())
+      .then(unwrapApi)
       .then(d => {
-        const data = d.data || d
-        if (data.authenticated || d.authenticated) {
-          const role = data.role || d.role
+        if (d?.user) {
+          const role = d.user.role
           window.location.replace(role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard")
         } else {
           setCheckingAuth(false)

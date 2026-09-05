@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
 import Link from "next/link"
+import { unwrapApi } from "@/lib/api"
 
 function initials(name: string) {
   if (!name) return "?"
@@ -95,7 +96,7 @@ export default function MessagesPage() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["inbox-conversations", filter, search],
-    queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(search)}`).then(r => r.json()),
+    queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(search)}`).then(unwrapApi),
     refetchInterval: 15000,
     retry: (failureCount, err) => {
       // Don't retry a "page not connected" setup error
@@ -108,7 +109,7 @@ export default function MessagesPage() {
 
   const { data: messages = [], isLoading: msgLoading } = useQuery({
     queryKey: ["inbox-messages", selectedId],
-    queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(r => r.json()),
+    queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi),
     enabled: !!selectedId,
     refetchInterval: 10000,
   })

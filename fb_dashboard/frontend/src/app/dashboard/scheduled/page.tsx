@@ -8,6 +8,7 @@ import { Clock, CalendarDays, Send, Trash2 , AlertCircle, RefreshCw } from "luci
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { unwrapApi } from "@/lib/api"
 
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
@@ -16,7 +17,7 @@ export default function ScheduledPage() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["scheduled-posts", "scheduled"],
-    queryFn: () => apiFetch("/api/scheduled-posts?status=scheduled").then(r => r.json()),
+    queryFn: () => apiFetch("/api/scheduled-posts?status=scheduled").then(unwrapApi),
     refetchInterval: 30000,
   })
 

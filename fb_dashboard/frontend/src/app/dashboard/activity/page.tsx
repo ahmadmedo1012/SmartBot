@@ -5,12 +5,13 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { unwrapApi } from "@/lib/api"
 
 
 export default function ActivityPage() {
   const { data: logs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["activity-logs"],
-    queryFn: () => apiFetch("/api/logs?limit=100").then(r => r.json()),
+    queryFn: () => apiFetch("/api/logs?limit=100").then(unwrapApi),
     refetchInterval: 15000,
   })
 

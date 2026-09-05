@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -99,9 +100,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   const [plans, setPlans] = useState<PlanPreview[]>([])
   useEffect(() => {
     apiFetch("/api/plans")
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
-        const list = Array.isArray(d?.data) ? d.data : []
+        const list = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])
         setPlans(list.filter((p: PlanPreview) => Number(p.price) > 0).slice(0, 3))
       })
       .catch(() => {/* keep empty — the CTA link still works */})

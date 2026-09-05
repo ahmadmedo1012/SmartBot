@@ -7,11 +7,12 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function AnalyticsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
-    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(r => r.json()),
+    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi),
     refetchInterval: 60000,
   })
 

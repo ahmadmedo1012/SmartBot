@@ -1,4 +1,5 @@
 """Replies & comments listing routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Form
@@ -8,6 +9,7 @@ from database import get_db
 from models import Reply, User
 from routers.auth import get_current_user, require_role
 from ws_manager import ws_manager
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["replies"])
@@ -26,7 +28,8 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
     rows = await db.execute(
         stmt.order_by(desc(Reply.created_at)).offset(offset).limit(per_page)
     )
-    return {
+    return ok(
+        {
         "total": total, "page": page, "per_page": per_page,
         "items": [{
             "id": r.id, "commenter_name": r.commenter_name, "comment_text": r.comment_text,
@@ -35,6 +38,7 @@ async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id:
             "created_at": r.created_at.isoformat() if r.created_at else None,
         } for r in rows.scalars().all()]
     }
+    )
 
 
 @router.get("/api/comments")
@@ -72,7 +76,7 @@ async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user
         })
     items.sort(key=lambda x: x.get("created_time", ""), reverse=True)
     items = items[:limit]
-    return {"items": items}
+    return ok({"items": items})
 
 
 @router.post("/api/comments/{comment_id}/hide")
@@ -81,7 +85,7 @@ async def hide_comment(comment_id: str, _=Depends(require_role("editor"))):
     result = await _fb.hide_comment(comment_id)
     if not result:
         raise HTTPException(400, "Failed to hide comment")
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.delete("/api/comments/{comment_id}")
@@ -90,7 +94,7 @@ async def delete_api_comment(comment_id: str, _=Depends(require_role("editor")))
     result = await _fb.delete_comment(comment_id)
     if not result:
         raise HTTPException(400, "Failed to delete comment")
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/replies/{comment_id}/reply")
@@ -124,4 +128,4 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     log.info(f"Manual reply: user={current_user.username} comment={comment_id} reply_id={reply.id}")
     await ws_manager.broadcast_to_tenant(current_user._tenant_id, "new_reply")
     await ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification")
-    return {"ok": True, "reply_id": reply.id}
+    return ok({"ok": True, "reply_id": reply.id})

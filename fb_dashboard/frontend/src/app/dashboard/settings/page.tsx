@@ -6,11 +6,12 @@ import { Settings, User, Shield, Mail, Lock, KeyRound } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { LoadingState, ErrorState } from "@/components/ui/EmptyState"
+import { unwrapApi } from "@/lib/api"
 
 export default function SettingsPage() {
   const { data: raw, isLoading, isError, refetch } = useQuery({
     queryKey: ["current-user"],
-    queryFn: () => apiFetch("/api/me").then(r => r.json()),
+    queryFn: () => apiFetch("/api/me").then(unwrapApi),
   })
   const user = raw?.data || raw
 

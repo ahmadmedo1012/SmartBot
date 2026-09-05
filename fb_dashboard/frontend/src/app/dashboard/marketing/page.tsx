@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 interface Campaign {
   id: number
@@ -67,7 +68,7 @@ export default function MarketingPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/marketing/campaigns")
       if (!res.ok) throw new Error(`فشل تحميل الحملات (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -77,7 +78,7 @@ export default function MarketingPage() {
     queryFn: async () => {
       const res = await apiFetch(`/api/marketing/audience-size?audience=${form.audience}`)
       if (!res.ok) throw new Error("فشل")
-      return res.json()
+      return unwrapApi(res)
     },
     enabled: showForm,
   })

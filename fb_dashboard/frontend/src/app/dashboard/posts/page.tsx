@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Newspaper, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
@@ -14,7 +15,7 @@ export default function PostsPage() {
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["scheduled-posts"],
-    queryFn: () => apiFetch("/api/scheduled-posts").then(r => r.json()),
+    queryFn: () => apiFetch("/api/scheduled-posts").then(unwrapApi),
     refetchInterval: 30000,
   })
 

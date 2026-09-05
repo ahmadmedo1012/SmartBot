@@ -1,9 +1,11 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from fastapi import APIRouter, Depends, HTTPException, Form, Query
 from sqlalchemy import select, desc, or_
 from datetime import datetime
 from database import get_db
 from models import Offer, BrandConfig, Customer, BotAlert, User
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["brand"])
 
@@ -27,7 +29,8 @@ async def get_brand(db=Depends(get_db), _=Depends(get_current_user)):
         db.add(brand)
         await db.commit()
         await db.refresh(brand)
-    return {
+    return ok(
+        {
         "brand_name": brand.brand_name,
         "tagline": brand.tagline,
         "copyright": brand.copyright_text,
@@ -35,6 +38,7 @@ async def get_brand(db=Depends(get_db), _=Depends(get_current_user)):
         "whatsapp": brand.whatsapp,
         "projects": brand.projects,
     }
+    )
 
 
 @router.put("/api/brand")
@@ -57,4 +61,4 @@ async def update_brand(
     brand.whatsapp = whatsapp
     brand.projects = [p.strip() for p in projects.split(",") if p.strip()]
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

@@ -5,11 +5,12 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Radio, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function BroadcastPage() {
   const { data: broadcasts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["broadcasts"],
-    queryFn: () => apiFetch("/api/broadcasts").then(r => r.json()),
+    queryFn: () => apiFetch("/api/broadcasts").then(unwrapApi),
     refetchInterval: 30000,
   })
 

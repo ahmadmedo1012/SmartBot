@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { fadeUp } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
+import { unwrapApi } from "@/lib/api"
 
 interface Payment {
   id: number
@@ -55,8 +56,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     apiFetch("/api/me")
-      .then((r) => r.json())
-      .then((d) => { const data = d.data || d; setRole(data.role || null); setRoleLoading(false) })
+      .then(unwrapApi)
+      .then((d) => { setRole(d?.user?.role || null); setRoleLoading(false) })
       .catch(() => { setRole(null); setRoleLoading(false) })
   }, [])
 
@@ -64,7 +65,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const r = await apiFetch(`/api/admin/subscriptions?status=${filter}`)
-      if (r.ok) setPayments(await r.json())
+      if (r.ok) setPayments(await unwrapApi(r))
     } catch { /* ignore */ }
     setLoading(false)
   }, [filter])
@@ -78,7 +79,7 @@ export default function AdminPage() {
         method: "POST",
         body: JSON.stringify({ id, status }),
       })
-      if (!r.ok) { const d = await r.json(); toast.error(d.error || "فشل"); return }
+      if (!r.ok) { const d = await r.json().catch(() => ({})); toast.error((d as any)?.error || (d as any)?.detail || "فشل"); return }
       toast.success(status === "verified" ? "تم تأكيد الاشتراك" : "تم رفض الطلب")
       fetchPayments()
     } catch { toast.error("خطأ في الاتصال") }

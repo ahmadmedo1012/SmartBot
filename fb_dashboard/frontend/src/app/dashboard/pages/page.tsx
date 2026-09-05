@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { unwrapApi } from "@/lib/api"
 
 export default function PagesPage() {
   const [pageId, setPageId] = useState("")
@@ -25,7 +26,7 @@ export default function PagesPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/facebook/settings")
       if (!res.ok) throw new Error(`فشل التحميل (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -56,7 +57,7 @@ export default function PagesPage() {
     setTestResult(null)
     try {
       const res = await apiFetch("/api/facebook/test", { method: "POST" })
-      const json = await res.json()
+      const json = await unwrapApi(res)
       setTestResult(json)
       if (json.connected) {
         toast.success(`اتصال ناجح · ${json.fan_count} متابع`)

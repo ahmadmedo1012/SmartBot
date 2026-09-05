@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
 import OnboardingWizard from "@/app/onboarding/OnboardingWizard"
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
+import { unwrapApi } from "@/lib/api"
 
 const TOUR_SEEN_KEY = "smartbot-tour-completed"
 
@@ -37,20 +38,22 @@ export default function AuthGuard({
         .then((r) => {
           clearTimeout(timer)
           if (!r.ok) throw new Error(r.statusText)
-          return r.json()
+          return unwrapApi(r)
         })
         .then((d) => {
-          const data = d.data || d
-          if (!(data.authenticated || d.authenticated)) {
+          // unwrapApi already returned the payload: {user: {...}}
+          // reaching here means 200 OK — i.e. authenticated
+          const user = d?.user
+          if (!user) {
             return void (window.location.href = "/login")
           }
-          const role = data.role || d.role
+          const role = user.role
           if (requiredRole && role !== requiredRole) {
             return void (window.location.href = "/dashboard")
           }
-          setUserData(data)
+          setUserData({ ...user, role })
           // Check onboarding status: show wizard if not completed
-          const completed = data.onboardingCompleted ?? data.user?.onboardingCompleted ?? true
+          const completed = user.onboardingCompleted ?? true
           if (!completed && !onboardingChecked.current) {
             onboardingChecked.current = true
             setShowOnboarding(true)

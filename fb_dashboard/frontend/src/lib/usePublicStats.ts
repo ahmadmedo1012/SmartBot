@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { unwrapApi } from "@/lib/api"
 
 export interface PublicStats {
   activeTenants?: number
@@ -22,9 +23,9 @@ export function usePublicStats() {
   useEffect(() => {
     const controller = new AbortController()
     fetch("/api/public/stats", { signal: controller.signal })
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
-        if (d?.data) setStats(d.data)
+        if (d) setStats(d)
       })
       .catch(() => {/* leave null — qualitative copy is shown */})
       .finally(() => setReady(true))

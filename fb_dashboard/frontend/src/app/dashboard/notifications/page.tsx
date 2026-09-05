@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 interface NotificationItem {
   id: number
@@ -105,7 +106,7 @@ export default function NotificationsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/notifications")
       if (!res.ok) throw new Error(`فشل تحميل الإشعارات (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -114,7 +115,7 @@ export default function NotificationsPage() {
     mutationFn: async () => {
       const res = await apiFetch("/api/notifications/read-all", { method: "POST" })
       if (!res.ok) throw new Error("فشل تعليم الكل كمقروء")
-      return res.json()
+      return unwrapApi(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications-feed"] })
@@ -127,7 +128,7 @@ export default function NotificationsPage() {
     mutationFn: async (id: number) => {
       const res = await apiFetch(`/api/notifications/${id}/read`, { method: "POST" })
       if (!res.ok) throw new Error("فشل التعليم كمقروء")
-      return res.json()
+      return unwrapApi(res)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications-feed"] }),
   })
@@ -140,7 +141,7 @@ export default function NotificationsPage() {
     queryKey: ["notification-settings"],
     queryFn: async () => {
       const res = await apiFetch("/api/notifications/settings")
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -151,7 +152,7 @@ export default function NotificationsPage() {
         method: "PUT",
         body: JSON.stringify({ preferences: prefs }),
       })
-      return res.json()
+      return unwrapApi(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification-settings"] })

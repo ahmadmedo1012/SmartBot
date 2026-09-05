@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 """Reply Templates routes."""
 
@@ -8,6 +9,7 @@ from database import get_db
 from models import ReplyTemplate, ScheduledPost, User
 from routers.auth import get_current_user, require_role
 from _services import fb, _track_event
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["templates"])
 
@@ -19,8 +21,10 @@ async def list_templates(category: str = Query(""), db=Depends(get_db), current_
     if category:
         stmt = stmt.where(ReplyTemplate.category == category)
     rows = await db.execute(stmt.order_by(ReplyTemplate.category, ReplyTemplate.name))
-    return [{"id": t.id, "name": t.name, "text": t.text, "category": t.category, "shortcut": t.shortcut}
+    return ok(
+        [{"id": t.id, "name": t.name, "text": t.text, "category": t.category, "shortcut": t.shortcut}
             for t in rows.scalars().all()]
+    )
 
 
 @router.post("/api/templates")
@@ -30,7 +34,7 @@ async def create_template(name: str = Form(...), text: str = Form(...), category
     db.add(t)
     await db.commit()
     await db.refresh(t)
-    return {"id": t.id}
+    return ok({"id": t.id})
 
 
 @router.put("/api/templates/{template_id}")
@@ -44,7 +48,7 @@ async def update_template(template_id: int, name: str = Form(...), text: str = F
         raise HTTPException(404, "القالب غير موجود")
     t.name = name; t.text = text; t.category = category; t.shortcut = shortcut
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.delete("/api/templates/{template_id}")
@@ -56,4 +60,4 @@ async def delete_template(template_id: int, db=Depends(get_db), current_user: Us
         raise HTTPException(404, "القالب غير موجود")
     await db.delete(t)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

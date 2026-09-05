@@ -5,16 +5,17 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function AudiencePage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
-    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(r => r.json()),
+    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi),
     refetchInterval: 60000,
   })
   const topQuery = useQuery({
     queryKey: ["top-commenters"],
-    queryFn: () => apiFetch("/api/analytics/top-commenters?limit=5").then(r => r.json()),
+    queryFn: () => apiFetch("/api/analytics/top-commenters?limit=5").then(unwrapApi),
     refetchInterval: 60000,
   })
 

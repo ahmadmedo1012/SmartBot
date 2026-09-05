@@ -1,4 +1,5 @@
 """User CRUD routes: list, create, update, delete."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
 from fastapi import APIRouter, Depends, Form, HTTPException
@@ -7,6 +8,7 @@ from sqlalchemy import select
 from database import get_db
 from models import User
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["users"])
@@ -17,8 +19,10 @@ async def list_users(db=Depends(get_db), current_user: User = Depends(require_ro
     rows = await db.execute(
         select(User).where(User.tenant_id == current_user._tenant_id).order_by(User.id)
     )
-    return [{"id": u.id, "username": u.username, "role": u.role, "created_at": u.created_at.isoformat() if u.created_at else None}
+    return ok(
+        [{"id": u.id, "username": u.username, "role": u.role, "created_at": u.created_at.isoformat() if u.created_at else None}
             for u in rows.scalars().all()]
+    )
 
 
 @router.post("/api/users")
@@ -33,7 +37,7 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    return {"id": user.id}
+    return ok({"id": user.id})
 
 
 @router.put("/api/users/{user_id}")
@@ -49,7 +53,7 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
         from _hash import hash_password
         user.password_hash = hash_password(password)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.delete("/api/users/{user_id}")
@@ -63,4 +67,4 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
         raise HTTPException(400, "Cannot delete yourself")
     await db.delete(user)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

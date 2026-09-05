@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { CreditCard, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function BillingPage() {
   const { data: balance, isLoading: balLoad, isError: balErr } = useQuery({
@@ -12,7 +13,7 @@ export default function BillingPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/payments/balance")
       if (!res.ok) throw new Error(`فشل تحميل الرصيد (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -22,7 +23,7 @@ export default function BillingPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/payments/history")
       if (!res.ok) throw new Error(`فشل تحميل سجل الدفع (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })

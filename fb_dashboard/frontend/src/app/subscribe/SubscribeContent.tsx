@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { springGentle, springSnappy } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
+import { unwrapApi } from "@/lib/api"
 
 type Provider = "liyana" | "madar" | "bank"
 
@@ -78,7 +79,7 @@ export default function SubscribePage() {
   // Load plans + payment config on mount
   useEffect(() => {
     apiFetch("/api/plans")
-      .then((r) => r.json())
+      .then(unwrapApi)
       .then((d) => {
         const list: Plan[] = Array.isArray(d) ? d : Array.isArray(d?.data) ? d.data : []
         setPlans(list)
@@ -89,8 +90,8 @@ export default function SubscribePage() {
   // Public config — non-secret payment details from SystemConfig
   useEffect(() => {
     apiFetch("/api/config")
-      .then((r) => r.json())
-      .then((d) => setConfig(d?.data || {}))
+      .then(unwrapApi)
+      .then((d) => setConfig(d || {}))
       .catch(() => {/* non-blocking — use hardcoded fallbacks */})
   }, [])
 

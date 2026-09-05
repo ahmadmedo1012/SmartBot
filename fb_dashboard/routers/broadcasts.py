@@ -1,4 +1,5 @@
 """Broadcast CRUD + send + cancel + estimate routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import asyncio
 import logging
 
@@ -8,6 +9,7 @@ from sqlalchemy import select, func, desc
 from database import get_db, AsyncSessionLocal
 from models import Broadcast, BroadcastRecipient, User
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["broadcasts"])
@@ -16,7 +18,7 @@ router = APIRouter(tags=["broadcasts"])
 @router.get("/api/broadcasts")
 async def list_broadcasts(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import broadcast_engine
-    return await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id)
+    return ok(await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id))
 
 
 @router.post("/api/broadcasts")
@@ -32,7 +34,7 @@ async def create_broadcast(request: Request, db=Depends(get_db), current_user: U
         session=db,
         tenant_id=current_user._tenant_id,
     )
-    return {"id": bcast_id}
+    return ok({"id": bcast_id})
 
 
 @router.get("/api/broadcasts/{bcast_id}")
@@ -41,7 +43,7 @@ async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = 
     bcast = await broadcast_engine.get_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not bcast:
         raise HTTPException(404, "Broadcast not found")
-    return bcast
+    return ok(bcast)
 
 
 @router.put("/api/broadcasts/{bcast_id}")
@@ -51,7 +53,7 @@ async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), 
     ok = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(404, "Broadcast not found")
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/broadcasts/{bcast_id}/send")
@@ -69,7 +71,7 @@ async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User =
         async with AsyncSessionLocal() as s:
             await broadcast_engine.send_broadcast(bc_id, s)
     asyncio.create_task(_send())
-    return {"ok": True, "message": "Broadcast sending started"}
+    return ok({"ok": True, "message": "Broadcast sending started"})
 
 
 @router.post("/api/broadcasts/{bcast_id}/cancel")
@@ -78,7 +80,7 @@ async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User
     ok = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not ok:
         raise HTTPException(400, "Broadcast not found or not cancellable")
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/broadcasts/estimate")
@@ -91,4 +93,4 @@ async def estimate_broadcast_audience(request: Request, db=Depends(get_db), curr
         session=db,
         tenant_id=current_user._tenant_id,
     )
-    return {"count": result["count"]}
+    return ok({"count": result["count"]})

@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Wrench, Plus, Trash2, AlertCircle, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function ToolsPage() {
   const queryClient = useQueryClient()
@@ -16,7 +17,7 @@ export default function ToolsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/offers")
       if (!res.ok) throw new Error(`فشل تحميل العروض (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })
@@ -26,7 +27,7 @@ export default function ToolsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/templates")
       if (!res.ok) throw new Error(`فشل تحميل القوالب (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })

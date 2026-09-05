@@ -17,6 +17,7 @@ import FinalCTASection from "@/components/landing/sections/FinalCTASection"
 import FaqSection from "@/components/landing/sections/FaqSection"
 import { HeroMockup } from "@/components/landing/HeroMockup"
 import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
+import { unwrapApi } from "@/lib/api"
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -102,8 +103,8 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch("/api/public/testimonials")
-      .then(r => r.json())
-      .then(d => setTestimonials(d?.data ?? []))
+      .then(unwrapApi)
+      .then(d => setTestimonials(Array.isArray(d) ? d : (d?.data ?? [])))
       .catch(() => setTestimonials([]))
   }, [])
 

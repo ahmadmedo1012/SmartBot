@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 """Scheduled Posts routes."""
 
@@ -11,6 +12,7 @@ from database import get_db
 from models import ReplyTemplate, ScheduledPost, User
 from routers.auth import get_current_user, require_role
 from _services import fb, _track_event
+from _responses import ok
 
 router = APIRouter(prefix="", tags=["scheduled"])
 
@@ -22,7 +24,8 @@ async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), curr
     if status:
         stmt = stmt.where(ScheduledPost.status == status)
     rows = await db.execute(stmt.order_by(desc(ScheduledPost.scheduled_at)))
-    return [{
+    return ok(
+        [{
         "id": p.id, "message": p.message, "image_url": p.image_url,
         "scheduled_at": p.scheduled_at.isoformat() if p.scheduled_at else None,
         "status": p.status, "fb_post_id": p.fb_post_id,
@@ -30,6 +33,7 @@ async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), curr
         "created_at": p.created_at.isoformat() if p.created_at else None,
         "published_at": p.published_at.isoformat() if p.published_at else None,
     } for p in rows.scalars().all()]
+    )
 
 
 @router.post("/api/scheduled-posts")
@@ -54,7 +58,7 @@ async def create_scheduled_post(
     db.add(post)
     await db.commit()
     await db.refresh(post)
-    return {"id": post.id, "status": post.status}
+    return ok({"id": post.id, "status": post.status})
 
 
 @router.post("/api/scheduled-posts/{post_id}/publish")
@@ -74,7 +78,7 @@ async def publish_scheduled_post(post_id: int, db=Depends(get_db),
     post.published_at = utcnow()
     await db.commit()
     _track_event("post_published", {"scheduled_post_id": post_id})
-    return {"ok": True, "fb_post_id": post.fb_post_id}
+    return ok({"ok": True, "fb_post_id": post.fb_post_id})
 
 
 @router.delete("/api/scheduled-posts/{post_id}")
@@ -87,4 +91,4 @@ async def delete_scheduled_post(post_id: int, db=Depends(get_db),
         raise HTTPException(404, "المنشور غير موجود")
     await db.delete(post)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

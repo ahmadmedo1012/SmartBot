@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function LeadsPage() {
   const { data: customers = [], isLoading, isError, error, refetch } = useQuery({
@@ -12,7 +13,7 @@ export default function LeadsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/crm/customers")
       if (!res.ok) throw new Error(`فشل تحميل العملاء (${res.status})`)
-      return res.json()
+      return unwrapApi(res)
     },
     retry: 1,
   })

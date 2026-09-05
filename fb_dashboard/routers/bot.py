@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 """Bot routes: status, restart, stop, interval, cron, trigger, logs, helper."""
 import asyncio
@@ -17,6 +18,7 @@ from routers.auth import get_current_user, require_role
 
 from ws_manager import ws_manager
 from event_bus import event_bus
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["bot"])
@@ -37,11 +39,13 @@ async def _run_single_cycle():
 
 @router.get("/api/bot/status")
 async def bot_status(_=Depends(get_current_user)):
-    return {
+    return ok(
+        {
         "running": _IS_VERCEL or (_bot_task is not None and not _bot_task.done()),
         "interval": settings.BOT_INTERVAL_SECONDS,
         "mode": "vercel-on-demand" if _IS_VERCEL else "background-loop",
     }
+    )
 
 
 @router.post("/api/bot/restart")
@@ -55,7 +59,7 @@ async def restart_bot(current_user: User = Depends(require_role("admin")), db=De
         "type": "bot_started", "title": "تم تشغيل البوت",
         "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
     }))
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/bot/stop")
@@ -68,7 +72,7 @@ async def stop_bot(current_user: User = Depends(require_role("admin"))):
         "type": "bot_stopped", "title": "تم إيقاف البوت",
         "message": "تم إيقاف البوت يدوياً", "link": "/settings",
     }))
-    return {"ok": True}
+    return ok({"ok": True})
 
 
 @router.post("/api/bot/interval")
@@ -76,7 +80,7 @@ async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("ad
     if interval < 3 or interval > 3600:
         raise HTTPException(400, "Interval must be between 3 and 3600 seconds")
     settings.BOT_INTERVAL_SECONDS = interval
-    return {"ok": True, "interval": interval}
+    return ok({"ok": True, "interval": interval})
 
 
 @router.get("/api/cron/bot-cycle")
@@ -120,10 +124,10 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
             except Exception as e:
                 log.error(f"Cron cycle err tenant {tenant.id}: {e}")
                 results.append({"tenant_id": tenant.id, "status": "error"})
-        return {"ok": True, "tenants_processed": len(results), "shard": shard}
+        return ok({"ok": True, "tenants_processed": len(results), "shard": shard})
     except Exception as e:
         log.error(f"Cron bot cycle error: {e}")
-        return {"ok": False, "error": str(e)[:200]}
+        return ok({"ok": False, "error": str(e)[:200]})
 
 
 @router.get("/api/logs")
@@ -131,10 +135,12 @@ async def get_logs(limit: int = Query(50), db=Depends(get_db), current_user=Depe
     rows = await db.execute(
         select(BotLog).where(BotLog.tenant_id == current_user._tenant_id).order_by(desc(BotLog.created_at)).limit(limit)
     )
-    return [{
+    return ok(
+        [{
         "level": r.level, "message": r.message,
         "created_at": r.created_at.isoformat() if r.created_at else None,
     } for r in rows.scalars().all()]
+    )
 
 
 @router.post("/api/logs/clear")
@@ -146,11 +152,11 @@ async def clear_logs(payload: dict = None, db=Depends(get_db), current_user=Depe
     count = result.scalar() or 0
     await db.execute(BotLog.__table__.delete().where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
     await db.commit()
-    return {"deleted": count}
+    return ok({"deleted": count})
 
 
 @router.post("/api/bot/trigger")
 async def trigger_manual_reply(_=Depends(require_role("admin"))):
     """Force one bot cycle NOW — useful after commenting on Facebook."""
     asyncio.create_task(_run_single_cycle())
-    return {"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"}
+    return ok({"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"})

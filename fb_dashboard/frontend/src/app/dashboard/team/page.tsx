@@ -5,11 +5,12 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Users2, Shield, User, Bot , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { unwrapApi } from "@/lib/api"
 
 export default function TeamPage() {
   const { data: members = [], isLoading } = useQuery({
     queryKey: ["team-members"],
-    queryFn: () => apiFetch("/api/team/members").then(r => r.json()),
+    queryFn: () => apiFetch("/api/team/members").then(unwrapApi),
     refetchInterval: 30000,
   })
 

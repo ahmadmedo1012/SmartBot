@@ -1,4 +1,5 @@
 """PDF Reports routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Form, Query, Request, Response
@@ -9,6 +10,7 @@ from models import BotState, ReportSchedule, User
 from routers.auth import get_current_user, require_role
 
 from _services import pdf_engine, report_engine, _track_event
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["reports"])
@@ -17,7 +19,7 @@ router = APIRouter(prefix="", tags=["reports"])
 @router.get("/api/reports/status")
 async def pdf_reports_status(_=Depends(get_current_user)):
     """Check PDF generation engine availability."""
-    return {"available": pdf_engine.is_available(), "engine": pdf_engine.engine_name}
+    return ok({"available": pdf_engine.is_available(), "engine": pdf_engine.engine_name})
 
 
 @router.post("/api/reports/generate")
@@ -58,19 +60,21 @@ async def reports_create_schedule(
     db.add(rs)
     await db.commit()
     await db.refresh(rs)
-    return {"id": rs.id, "report_type": rs.report_type, "schedule": rs.schedule, "email": rs.email}
+    return ok({"id": rs.id, "report_type": rs.report_type, "schedule": rs.schedule, "email": rs.email})
 
 
 @router.get("/api/reports/schedules")
 async def reports_list_schedules(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """List all report schedules."""
     rows = await db.execute(select(ReportSchedule).where(ReportSchedule.tenant_id == current_user._tenant_id).order_by(ReportSchedule.created_at.desc()))
-    return [{
+    return ok(
+        [{
         "id": r.id, "report_type": r.report_type, "email": r.email,
         "enabled": r.enabled, "schedule": r.schedule,
         "last_sent": r.last_sent.isoformat() if r.last_sent else None,
         "created_at": r.created_at.isoformat() if r.created_at else None,
     } for r in rows.scalars().all()]
+    )
 
 
 @router.delete("/api/reports/schedules/{schedule_id}")
@@ -83,4 +87,4 @@ async def reports_delete_schedule(schedule_id: int, db=Depends(get_db), current_
         raise HTTPException(404, "الجدول غير موجود")
     await db.delete(rs)
     await db.commit()
-    return {"ok": True}
+    return ok({"ok": True})

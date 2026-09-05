@@ -1,4 +1,5 @@
 """Multi-platform publisher routes."""
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +11,7 @@ from database import get_db
 from models import ScheduledPost, User
 from routers.auth import get_current_user, require_role
 from _services import _publisher, fb, _track_event
+from _responses import ok
 
 router = APIRouter(tags=["publisher"])
 
@@ -17,15 +19,17 @@ router = APIRouter(tags=["publisher"])
 @router.get("/api/publisher/status")
 async def publisher_status(current_user: User = Depends(get_current_user)):
     _publisher.load_credentials(None, tenant_id=current_user._tenant_id)
-    return _publisher.get_status()
+    return ok(_publisher.get_status())
 
 
 @router.get("/api/publisher/settings/{platform}")
 async def publisher_settings(platform: str, _=Depends(get_current_user)):
-    return {
+    return ok(
+        {
         "platform": platform,
         "fields": _publisher.get_platform_settings_template(platform),
     }
+    )
 
 
 @router.post("/api/publisher/configure")
@@ -36,7 +40,7 @@ async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
     if not platform or not creds:
         raise HTTPException(400, "platform and credentials required")
     ok = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)
-    return {"ok": ok, "platform": platform}
+    return ok({"ok": ok, "platform": platform})
 
 
 @router.post("/api/publisher/publish")
@@ -65,7 +69,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         db.add(post)
         await db.commit()
         _track_event("post_scheduled", {"platform": platform})
-        return {"id": post.id, "status": "scheduled", "scheduled_at": scheduled_at}
+        return ok({"id": post.id, "status": "scheduled", "scheduled_at": scheduled_at})
 
     # Publish immediately
     if platform == "facebook":
@@ -74,11 +78,11 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             raise HTTPException(400, "فشل النشر على فيسبوك")
         fb_post_id = result.get("id", "")
         _track_event("post_published", {"platform": "facebook"})
-        return {"platform": "facebook", "post_id": fb_post_id, "status": "published"}
+        return ok({"platform": "facebook", "post_id": fb_post_id, "status": "published"})
     else:
         _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         result = await _publisher.publish_to_platform(platform, message, image_url)
         if not result:
             raise HTTPException(400, f"فشل النشر على {_publisher.get_platform_display_name(platform)}")
         _track_event("post_published", {"platform": platform})
-        return {**result, "status": "published"}
+        return ok({**result, "status": "published"})

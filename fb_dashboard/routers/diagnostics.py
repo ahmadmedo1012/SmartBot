@@ -1,3 +1,4 @@
+# Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 """Diagnostics & debug routes: status, cycle-stats, errors, logs, events, permissions, demo-test, fb-reply."""
 import json
@@ -9,6 +10,7 @@ from sqlalchemy import select, func, desc
 from config import settings
 from database import get_db
 from routers.auth import get_current_user, require_role
+from _responses import ok
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["diagnostics"])
@@ -16,7 +18,8 @@ router = APIRouter(tags=["diagnostics"])
 
 @router.get("/api/debug")
 async def debug(_=Depends(get_current_user)):
-    return {
+    return ok(
+        {
         "has_secret_key": bool(settings.SECRET_KEY),
         "has_db_url": bool(settings.DATABASE_URL),
         "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
@@ -27,6 +30,7 @@ async def debug(_=Depends(get_current_user)):
         "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",
         "python_version": __import__("sys").version,
     }
+    )
 
 
 @router.post("/api/debug/fb-reply")
@@ -92,7 +96,8 @@ async def debug_fb_reply(
             "fields": "access_token,id,name",
         })
 
-        return {
+        return ok(
+            {
             "found_user_id": user_id,
             "conv_data": {"status": conv.status_code, "data": conv_data},
             "methods": {
@@ -104,6 +109,7 @@ async def debug_fb_reply(
             "page_id": page_id,
             "page_info": {"status": r5.status_code, "body": r5.text[:500]},
         }
+        )
 
 
 @router.get("/api/diagnostics/status")
@@ -112,21 +118,23 @@ async def diagnostic_status(_=Depends(get_current_user)):
     from monitor import get_logger
     d = get_diagnostics()
     l = get_logger()
-    return {"system": d.get_system_info(), "cycles": d.get_cycle_stats(),
+    return ok(
+        {"system": d.get_system_info(), "cycles": d.get_cycle_stats(),
             "errors": {"recent": d.get_recent_errors(10), "rate_pct": d.get_error_rate()},
             "logs": l.get_stats()}
+    )
 
 
 @router.get("/api/diagnostics/cycle-stats")
 async def diagnostic_cycles(_=Depends(get_current_user)):
     from diagnostics import get_diagnostics
-    return get_diagnostics().get_cycle_stats()
+    return ok(get_diagnostics().get_cycle_stats())
 
 
 @router.get("/api/diagnostics/recent-errors")
 async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user)):
     from diagnostics import get_diagnostics
-    return {"errors": get_diagnostics().get_recent_errors(limit)}
+    return ok({"errors": get_diagnostics().get_recent_errors(limit)})
 
 
 @router.get("/api/diagnostics/logs")
@@ -134,20 +142,22 @@ async def diagnostic_logs(level: str = Query(""), module: str = Query(""),
                           since: str = Query(""), limit: int = Query(50),
                           _=Depends(get_current_user)):
     from monitor import get_logger
-    return {"logs": get_logger().get_buffer(level or None, module=module or None,
+    return ok(
+        {"logs": get_logger().get_buffer(level or None, module=module or None,
                                             since=since or None, limit=limit)}
+    )
 
 
 @router.get("/api/diagnostics/stats")
 async def diagnostic_stats(_=Depends(get_current_user)):
     from monitor import get_logger
-    return get_logger().get_stats()
+    return ok(get_logger().get_stats())
 
 
 @router.get("/api/diagnostics/events")
 async def diagnostic_events(limit: int = Query(100), _=Depends(get_current_user)):
     from monitor import get_logger
-    return {"events": get_logger().get_buffer(limit=limit)}
+    return ok({"events": get_logger().get_buffer(limit=limit)})
 
 
 @router.get("/api/diagnostics/permissions")
@@ -155,13 +165,13 @@ async def diagnostic_permissions(_=Depends(get_current_user)):
     from fb_client import FBClient
     from config import settings
     if not settings.FACEBOOK_ACCESS_TOKEN:
-        return {"has_token": False}
+        return ok({"has_token": False})
     fb = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
     debug = await fb._get("debug_token", {"input_token": settings.FACEBOOK_ACCESS_TOKEN})
     perms = []
     if debug and "data" in debug:
         perms = (debug["data"].get("scopes", []) or debug["data"].get("granular_scopes", []))
-    return {"has_token": True, "permissions": perms}
+    return ok({"has_token": True, "permissions": perms})
 
 
 @router.post("/api/diagnostics/demo-test-comment")
@@ -170,4 +180,4 @@ async def diagnostic_demo_comment(comment_text: str = Form(...), _=Depends(requi
     from bot import TextNormalizer
     classification = EnhancedIntentClassifier.classify(comment_text)
     normalized = TextNormalizer.normalize_for_matching(comment_text)
-    return {"original": comment_text, "normalized": normalized, "classification": classification}
+    return ok({"original": comment_text, "normalized": normalized, "classification": classification})

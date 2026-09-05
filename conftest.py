@@ -28,10 +28,16 @@ if _FB_DIR not in sys.path:
     sys.path.insert(0, _FB_DIR)
 
 # ── 2. hermetic environment (v5 §0) ───────────────────────────────────
-os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
-os.environ.setdefault("CRON_SECRET", "test-cron-secret")
-os.environ.setdefault("FB_ACCESS_TOKEN", "test-token")
-os.environ.setdefault("FB_PAGE_ID", "0")
+# FORCE the canonical test values — setdefault is NOT enough: a CI job or
+# host env that sets its own CRON_SECRET/SECRET_KEY silently changes app
+# behavior while tests hardcode the canonical tokens (the live CI failure
+# of 2026-09-06: workflow set CRON_SECRET=ci-cron-secret → heartbeat tests
+# 403). A hermetic suite pins its world.
+os.environ["SECRET_KEY"] = "test-secret-key-not-for-prod"
+os.environ["CRON_SECRET"] = "test-cron-secret"
+os.environ["FB_ACCESS_TOKEN"] = "test-token"
+os.environ["FB_PAGE_ID"] = "0"
+os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("FERNET_KEY", "")  # not required in DEBUG mode
 

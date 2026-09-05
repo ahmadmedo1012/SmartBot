@@ -42,13 +42,9 @@ jobs:
         run: ruff check fb_dashboard api tests scripts
 
       - name: Gate 2 — pytest (hermetic suite, any order)
-        env:
-          # conftest.py FORCES a temp-file SQLite URL; these dummies satisfy
-          # the fail-fast production checks (DEBUG=True relaxes them).
-          SECRET_KEY: ci-secret
-          CRON_SECRET: ci-cron-secret
-          FB_ACCESS_TOKEN: ci-token
-          FB_PAGE_ID: "0"
+        # No env needed — root conftest.py FORCES the full canonical test
+        # environment (DB URL, SECRET_KEY, CRON_SECRET, …). Hermeticity
+        # means the suite pins its own world regardless of host/CI env.
         run: |
           # Forward order...
           pytest -q

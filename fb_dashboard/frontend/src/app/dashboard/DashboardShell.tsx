@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { apiFetch } from "@/lib/csrf-client"
 import { springSnappy } from "@/lib/motion"
 
@@ -31,10 +32,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springSnappy}
-        className="flex-1 md:pr-60 flex flex-col"
+        className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0"
       >
         {children}
       </motion.div>
+
+      {/* Mobile navigation (Track F) — visible below md where the sidebar is hidden */}
+      <MobileBottomNav onNavigate={handleNavigate} onLogout={handleLogout} />
     </div>
   )
 }

@@ -420,3 +420,8 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 20px oklch(0 0 0 / 0.2);
 }
+
+/* iOS safe area for the mobile bottom nav (Track F) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

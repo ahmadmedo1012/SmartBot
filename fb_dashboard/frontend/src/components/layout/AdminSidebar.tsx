@@ -13,12 +13,12 @@ import {
   HelpCircle, Settings, LogOut, Sparkles,
 } from "lucide-react"
 
-interface NavSection {
+export interface NavSection {
   label: string
   items: NavItem[]
 }
 
-interface NavItem {
+export interface NavItem {
   icon: React.ComponentType<{ className?: string; size?: number }>
   label: string
   href?: string
@@ -43,7 +43,7 @@ function isActiveItem(href: string | undefined, pathname: string): boolean {
   return pathname.startsWith(href)
 }
 
-const defaultNavSections: NavSection[] = [
+export const defaultNavSections: NavSection[] = [
   {
     label: "الرئيسية",
     items: [

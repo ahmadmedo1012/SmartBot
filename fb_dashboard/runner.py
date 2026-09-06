@@ -13,7 +13,7 @@ from pathlib import Path
 
 import jwt
 from _schema_reconcile import reconcile_schema as _reconcile_schema
-from _utils import utcnow
+from _utils import app_version, utcnow
 from config import settings
 from database import AsyncSessionLocal, engine
 from event_bus import event_bus
@@ -400,7 +400,7 @@ async def api_health():
     return {
         "ok": True,
         "service": "smartbot-api",
-        "version": "2.0.1-v5canary",
+        "version": app_version(),
         "env": "production" if not settings.DEBUG else "development",
         "ts": __import__('datetime').datetime.utcnow().isoformat() + "Z",
     }
@@ -424,7 +424,7 @@ async def api_health_ready():
             # that the TCP connection opened) — catches reconcile drift
             await conn.execute(__import__("sqlalchemy").text("SELECT 1 FROM tenants LIMIT 1"))
         latency_ms = (_t.perf_counter() - start) * 1000
-        return {"ok": True, "database": "ok", "latency_ms": round(latency_ms), "version": "2.0.0"}
+        return {"ok": True, "database": "ok", "latency_ms": round(latency_ms), "version": app_version()}
     except Exception as e:
         log.error("Readiness probe failed: %s", e)
         return JSONResponse(

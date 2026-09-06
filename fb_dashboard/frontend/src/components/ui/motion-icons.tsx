@@ -30,38 +30,34 @@ import {
   LogIn,
   Lightbulb,
 } from "lucide-react"
-import { motion, useAnimate } from "framer-motion"
-import { forwardRef, useImperativeHandle, type SVGProps } from "react"
+import { forwardRef, type SVGProps, type CSSProperties } from "react"
 
 /**
  * Motion-enhanced lucide icons. Ported from Smart-Menu (smart-link.ly
- * shared identity) — same useAnimate choreography (scale + rotate on
- * hoverStart/hoverEnd via imperative animate, more reliable than
- * whileHover on nested SVGs). Drop-in replacement for plain lucide:
- * size/color/className API unchanged.
+ * shared identity) — v6+: the useAnimate choreography (scale + rotate on
+ * hover) is now a pure CSS hover (.motion-icon in globals.css, per-icon
+ * rotation via --mi-rot). Drop-in replacement for plain lucide:
+ * size/color/className API unchanged, framer-motion fully out of the
+ * public (subscribe) critical path.
  */
 type MotionIconProps = SVGProps<SVGSVGElement>
 
+const LABEL_ROTATION: Record<string, number> = {
+  Plus: 90,
+  Check: 15,
+  Minus: -90,
+}
+
 function makeMotionIcon(Icon: typeof Plus, label: string) {
-  const Cmp = forwardRef<SVGSVGElement, MotionIconProps>(({ className, width, height, ...rest }, ref) => {
-    const [scope, animate] = useAnimate()
-    useImperativeHandle(ref, () => scope.current as SVGSVGElement)
-
-    const start = () => {
-      animate(
-        scope.current,
-        { scale: 1.15, rotate: label === "Plus" ? 90 : label === "Check" ? 15 : label === "Minus" ? -90 : 0 },
-        { type: "spring", stiffness: 400, damping: 15 },
-      )
-    }
-    const stop = () => {
-      animate(scope.current, { scale: 1, rotate: 0 }, { type: "spring", stiffness: 300, damping: 20 })
-    }
-
+  const Cmp = forwardRef<SVGSVGElement, MotionIconProps>(({ className, width, height, style, ...rest }, ref) => {
+    const iconStyle: CSSProperties = {
+      ...(style as CSSProperties | undefined),
+      "--mi-rot": `${LABEL_ROTATION[label] ?? 0}deg`,
+    } as CSSProperties
     return (
-      <motion.svg
-        ref={scope}
-        className={className}
+      <svg
+        ref={ref}
+        className={["motion-icon", className].filter(Boolean).join(" ")}
         width={width ?? "100%"}
         height={height ?? "100%"}
         viewBox="0 0 24 24"
@@ -70,12 +66,11 @@ function makeMotionIcon(Icon: typeof Plus, label: string) {
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ display: "block" }}
-        onHoverStart={start}
-        onHoverEnd={stop}
+        style={iconStyle}
+        aria-hidden="true"
       >
         <Icon {...(rest as object)} className="w-full h-full" />
-      </motion.svg>
+      </svg>
     )
   })
   Cmp.displayName = `Motion${label}`

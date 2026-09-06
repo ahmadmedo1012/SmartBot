@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
-import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -12,12 +11,16 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { GlowPool } from "@/components/ui/GlowPool"
 import { cn } from "@/lib/utils"
-import { fadeUp, stagger, springSnappy, springDefault } from "@/lib/motion"
 import { KineticText } from "@/components/ui/kinetic-text"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { apiFetch } from "@/lib/csrf-client"
 import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
 import { unwrapApi } from "@/lib/api"
+
+/* v6+ — framer-free: entrance animations use ScrollReveal (CSS tween) and
+ * animate-* utility classes; hover lifts use CSS shadow. The h1 KineticText
+ * is now SSR-split (text ships in HTML — the old version rendered an empty
+ * h1, verified live on /pricing). */
 
 interface Plan {
   id: string; name: string; name_ar: string; price: number
@@ -67,21 +70,18 @@ export default function PricingPage() {
       <SectionContainer className="py-20 text-center relative">
         <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[50vmin]" color="orange/8" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springDefault, delay: 0.05 }}
-          className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
+        <div
+          className="animate-fade-in-150 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
         >
           <Sparkles className="size-3 text-accent-foreground" />
           خطط الأسعار
-        </motion.div>
+        </div>
 
-        <motion.h1
-          className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
+        <h1
+          className="animate-fade-in-250 text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
         >
           <KineticText mode="words" duration={800} delay={100}>خطط تناسب كل الأحجام</KineticText>
-        </motion.h1>
+        </h1>
 
         <ScrollReveal y={18} delay={200}
           className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto text-balance"
@@ -90,11 +90,8 @@ export default function PricingPage() {
         </ScrollReveal>
 
         {/* Trust row */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springDefault, delay: 0.3 }}
-          className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-muted-foreground"
+        <div
+          className="animate-fade-in-400 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-muted-foreground"
         >
           {[
             { icon: Shield, text: "بدون بطاقة ائتمان" },
@@ -107,14 +104,13 @@ export default function PricingPage() {
               <span>{item.text}</span>
             </div>
           ))}
-        </motion.div>
+        </div>
 
         {/* Billing toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
+        <ScrollReveal
+          y={6}
+          delay={200}
+          duration={0.45}
           className="mt-10 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1 backdrop-blur"
         >
           <button
@@ -138,7 +134,7 @@ export default function PricingPage() {
               وفّر شهرين
             </span>
           </button>
-        </motion.div>
+        </ScrollReveal>
       </SectionContainer>
 
       <SectionContainer className="pb-24">
@@ -181,9 +177,8 @@ export default function PricingPage() {
                 duration={0.7}
                 className={cn("relative", isPopular && "lg:-mt-4")}
               >
-                <motion.div
-                  whileHover={{ y: -6, transition: springSnappy }}
-                  className="h-full"
+                <div
+                  className="h-full transition-transform duration-300 ease-out hover:-translate-y-1.5"
                 >
                 <Card className={cn(
                   "relative h-full flex flex-col overflow-hidden transition-all duration-500",
@@ -267,22 +262,21 @@ export default function PricingPage() {
                     </Button>
                   </CardContent>
                 </Card>
-                </motion.div>
+                </div>
               </ScrollReveal>
             )
           })}
         </div>
 
         {/* FAQ-style microcopy */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
+        <ScrollReveal
+          y={0}
+          delay={400}
+          duration={0.6}
           className="text-center mt-12 text-xs text-muted-foreground"
         >
           <p>جميع الخطط تشمل: تشفير SSL، دعم بريد إلكتروني، تحديثات مجانية مدى الحياة.</p>
-        </motion.div>
+        </ScrollReveal>
       </SectionContainer>
     </div>
   )

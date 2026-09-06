@@ -7,13 +7,18 @@
  * ALL 23 sections — same nav data source as AdminSidebar (no duplication).
  * Visible only below md (sidebar is `hidden md:block`).
  * Every section is reachable within 2 taps (bar item = 1, sheet item = 2).
+ *
+ * v6+: the sheet presence (AnimatePresence + motion) is now pure CSS
+ * (.sheet-backdrop/.sheet-panel twins in globals.css) — framer-motion
+ * leaves the /demo first-load. The panel stays mounted so the exit
+ * transition plays; hidden state is pointer-events-none + tabIndex -1.
  */
 import { useState } from "react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { AnimatePresence, motion } from "framer-motion"
 import { LayoutDashboard, MessageCircle, BarChart3, Bell, Menu, X, LogOut } from "lucide-react"
 import { defaultNavSections, type NavItem } from "./AdminSidebar"
+import { cn } from "@/lib/utils"
 
 const BAR_ITEMS: NavItem[] = [
   { icon: LayoutDashboard, label: "الرئيسية", href: "/dashboard" },
@@ -47,86 +52,81 @@ export function MobileBottomNav({
   return (
     <>
       {/* ── More sheet (all 23 sections) ── */}
-      <AnimatePresence>
-        {sheetOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40 md:hidden"
-              onClick={() => setSheetOpen(false)}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="fixed inset-x-0 bottom-0 z-50 md:hidden max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-2xl"
-              role="dialog"
-              aria-label="كل الأقسام"
-            >
-              <div className="sticky top-0 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Real brand mark (v3 §5.4) — the mobile navigation header
-                      carries the logo, mirroring Smart-Menu's MobileNav header. */}
-                  <Image
-                    src="/brand-icon.png"
-                    alt="SmartBot"
-                    width={40}
-                    height={40}
-                    className="size-10 rounded-xl shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <span className="block text-sm font-bold leading-tight truncate">SmartBot</span>
-                    <span className="block text-[11px] text-muted-foreground leading-tight">كل الأقسام</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSheetOpen(false)}
-                  aria-label="إغلاق"
-                  className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
-              <div className="p-4 space-y-5 pb-24">
-                {defaultNavSections.map((section) => (
-                  <div key={section.label}>
-                    <p className="text-[11px] font-bold text-muted-foreground mb-2">{section.label}</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {section.items.map((item) => {
-                        const active = isActive(item.href, pathname)
-                        return (
-                          <button
-                            key={item.label}
-                            type="button"
-                            onClick={() => go(item.href)}
-                            className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] transition-colors ${
-                              active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
-                            }`}
-                          >
-                            <item.icon className="size-5" />
-                            <span className="leading-tight text-center">{item.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => { setSheetOpen(false); onLogout() }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted"
-                >
-                  <LogOut className="size-4" /> تسجيل الخروج
-                </button>
-              </div>
-            </motion.div>
-          </>
+      <div
+        className={cn("sheet-backdrop fixed inset-0 z-40 bg-black/40 md:hidden", sheetOpen && "sheet-open")}
+        onClick={() => setSheetOpen(false)}
+        aria-hidden="true"
+      />
+      <div
+        className={cn(
+          "sheet-panel fixed inset-x-0 bottom-0 z-50 md:hidden max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-2xl",
+          sheetOpen && "sheet-open"
         )}
-      </AnimatePresence>
+        role="dialog"
+        aria-label="كل الأقسام"
+        aria-hidden={!sheetOpen}
+      >
+        <div className="sticky top-0 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Real brand mark (v3 §5.4) — the mobile navigation header
+                carries the logo, mirroring Smart-Menu's MobileNav header. */}
+            <Image
+              src="/brand-icon.png"
+              alt="SmartBot"
+              width={40}
+              height={40}
+              className="size-10 rounded-xl shrink-0"
+            />
+            <div className="min-w-0">
+              <span className="block text-sm font-bold leading-tight truncate">SmartBot</span>
+              <span className="block text-[11px] text-muted-foreground leading-tight">كل الأقسام</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSheetOpen(false)}
+            aria-label="إغلاق"
+            tabIndex={sheetOpen ? 0 : -1}
+            className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="p-4 space-y-5 pb-24">
+          {defaultNavSections.map((section) => (
+            <div key={section.label}>
+              <p className="text-[11px] font-bold text-muted-foreground mb-2">{section.label}</p>
+              <div className="grid grid-cols-4 gap-2">
+                {section.items.map((item) => {
+                  const active = isActive(item.href, pathname)
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => go(item.href)}
+                      tabIndex={sheetOpen ? 0 : -1}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] transition-colors ${
+                        active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <item.icon className="size-5" />
+                      <span className="leading-tight text-center">{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setSheetOpen(false); onLogout() }}
+            tabIndex={sheetOpen ? 0 : -1}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted"
+          >
+            <LogOut className="size-4" /> تسجيل الخروج
+          </button>
+        </div>
+      </div>
 
       {/* ── Bottom bar ── */}
       <nav

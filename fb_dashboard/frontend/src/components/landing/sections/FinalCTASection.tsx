@@ -1,12 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { Sparkles, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { springDefault, springSnappy } from "@/lib/motion"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { GlowPool } from "@/components/ui/GlowPool"
 import { usePublicStats } from "@/lib/usePublicStats"
 import { formatNumber } from "@/lib/format"
@@ -34,11 +33,10 @@ export default function FinalCTASection() {
           subtitle={subtitle}
         />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ ...springSnappy, delay: 0.4 }}
+        <ScrollReveal
+          y={20}
+          delay={400}
+          duration={0.5}
           className="flex gap-4 justify-center flex-wrap"
         >
           <Link href="/subscribe">
@@ -49,17 +47,16 @@ export default function FinalCTASection() {
               عرض الخطط
             </Button>
           </Link>
-        </motion.div>
+        </ScrollReveal>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ ...springDefault, delay: 0.5 }}
+        <ScrollReveal
+          y={0}
+          delay={500}
+          duration={0.6}
           className="text-xs text-muted-foreground/60 mt-6"
         >
           مجاناً بدون بطاقة ائتمان · إلغاء في أي وقت · دعم فني متكامل
-        </motion.p>
+        </ScrollReveal>
       </div>
     </SectionContainer>
   )

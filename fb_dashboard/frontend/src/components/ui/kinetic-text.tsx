@@ -1,10 +1,18 @@
 "use client"
 
 import { useRef, useState, useEffect, type ReactNode, type CSSProperties } from "react"
-import { motion, useReducedMotion } from "framer-motion"
 
-/* Ported from Smart-Menu's scroll-craft integration (smart-link.ly shared
-   identity) — import path adapted for SmartBot's framer-motion setup. */
+/* v6+ — framer-free + SSR-safe rewrite of the Smart-Menu scroll-craft port.
+ *
+ * Two defects fixed vs the framer version:
+ * 1. SEO/LCP/a11y: the old version split text inside useEffect → SSR HTML
+ *    carried an EMPTY container (verified live: /pricing rendered
+ *    <h1><div data-kinetic="words"></div></h1>). String children are now
+ *    split AT RENDER TIME so every unit ships in the HTML — the h1 paints
+ *    at first paint, crawlers see the text, and no-JS visitors read it.
+ * 2. Bundle: framer-motion (~190KB) left the public critical path with
+ *    this conversion (CSS transitions + the same IO trigger).
+ */
 
 type KineticMode = "lines" | "words" | "chars"
 
@@ -17,22 +25,21 @@ interface KineticTextProps {
   delay?: number
   /** Time to complete full reveal (ms) */
   duration?: number
-  /** Easing function */
-  ease?: string | number[]
   style?: CSSProperties
 }
 
+function splitUnits(text: string, mode: KineticMode): string[] {
+  if (mode === "chars") return Array.from(text)
+  if (mode === "words") return text.split(/(\s+)/).filter(t => t.length > 0)
+  return text.split("\n").filter(l => l.length > 0)
+}
+
 /**
- * KineticText — Type that assembles character/word/line by line
+ * KineticText — text that assembles word/line/char by unit
  *
- * Adapted from scroll-craft's data-sc-kinetic device
- * Splits text into units and staggers their reveal
- * Each unit slides up from behind a mask, entering from a clean edge
- *
- * @example
- * ```tsx
- * <KineticText mode="lines">إدارة تفاعل فيسبوك بذكاء</KineticText>
- * ```
+ * Each unit rises from behind a mask with a staggered delay. The reveal is
+ * a pure CSS transition (.kinetic-unit + .kinetic-in) triggered by the same
+ * fire-once IntersectionObserver; prefers-reduced-motion shows text instantly.
  */
 export function KineticText({
   children,
@@ -40,48 +47,19 @@ export function KineticText({
   mode = "lines",
   delay = 0,
   duration = 800,
-  ease = [0.23, 1, 0.32, 1],
   style,
 }: KineticTextProps) {
   const ref = useRef<HTMLDivElement | null>(null)
-  const [units, setUnits] = useState<{ text: string; index: number }[]>([])
   const [isInView, setIsInView] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
-  // Parse text content for splitting
   useEffect(() => {
     const element = ref.current
     if (!element) return
-
-    // Get text content
-    const text = typeof children === "string" ? children : element.textContent || ""
-
-    // Split based on mode
-    let parsed: string[] = []
-    if (mode === "chars") {
-      parsed = Array.from(text)
-    } else if (mode === "words") {
-      parsed = text.split(/(\s+)/).filter(t => t.length > 0)
-    } else {
-      // lines — preserve words and measure positions
-      parsed = text.split("\n").filter(l => l.length > 0)
-    }
-
-    // Create units
-    const parsedUnits = parsed.map((text, index) => ({ text, index }))
-    setUnits(parsedUnits)
-  }, [children, mode])
-
-  // Intersection observer for triggering animation
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-
-    if (prefersReducedMotion) {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    if (mq.matches) {
       setIsInView(true)
       return
     }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -91,47 +69,53 @@ export function KineticText({
       },
       { threshold: 0.2 }
     )
-
     observer.observe(element)
     return () => observer.disconnect()
-  }, [prefersReducedMotion])
+  }, [])
 
-  const staggerDelay = duration / 1000 / Math.max(units.length, 1) * 0.62 // 0.62 spread leaves tail for last unit
+  // SSR-safe split: string children are split at render time (units ship in
+  // the HTML). Non-string children render as-is inside the mask container.
+  const units = typeof children === "string" ? splitUnits(children, mode) : null
+  const staggerDelay = duration / Math.max(units?.length ?? 1, 1) * 0.62
 
   return (
     <div
       ref={ref}
-      className={className}
+      className={[className, isInView ? "kinetic-in" : ""].filter(Boolean).join(" ")}
       style={style}
       data-kinetic={mode}
+      data-ssr-split={units ? "true" : undefined}
     >
-      {units.map(({ text, index }) => (
-        <span
-          key={index}
-          className="inline-block overflow-hidden align-top"
-          style={{
-            // Line masks need room for descenders
-            paddingBottom: mode === "lines" ? "0.14em" : undefined,
-            marginBottom: mode === "lines" ? "-0.14em" : undefined,
-          }}
-        >
-          <motion.span
-            className="inline-block"
-            initial={{
-              opacity: prefersReducedMotion ? 1 : 0,
-              y: prefersReducedMotion ? 0 : 100,
-            }}
-            animate={isInView ? { opacity: 1, y: 0 } : undefined}
-            transition={{
-              duration: prefersReducedMotion ? 0 : duration / 1000,
-              delay: prefersReducedMotion ? 0 : (delay + index * staggerDelay * 1000) / 1000,
-              ease: ease as any,
+      {units ? (
+        units.map((text, index) => (
+          <span
+            key={index}
+            className="inline-block overflow-hidden align-top"
+            style={{
+              // Line masks need room for descenders
+              paddingBottom: mode === "lines" ? "0.14em" : undefined,
+              marginBottom: mode === "lines" ? "-0.14em" : undefined,
             }}
           >
-            {text}
-          </motion.span>
+            <span
+              className="kinetic-unit"
+              style={{
+                "--kt-dur": `${duration / 1000}s`,
+                "--kt-delay": `${delay + index * staggerDelay}ms`,
+              } as CSSProperties}
+            >
+              {text}
+            </span>
+          </span>
+        ))
+      ) : (
+        <span
+          className="kinetic-unit"
+          style={{ "--kt-dur": `${duration / 1000}s`, "--kt-delay": `${delay}ms` } as CSSProperties}
+        >
+          {children}
         </span>
-      ))}
+      )}
     </div>
   )
 }
@@ -149,7 +133,7 @@ export function KineticHeading({
 }: KineticHeadingProps) {
   return (
     <Component className={props.className} style={props.style}>
-      <KineticText mode={mode} delay={props.delay} duration={props.duration} ease={props.ease}>
+      <KineticText mode={mode} delay={props.delay} duration={props.duration}>
         {props.children}
       </KineticText>
     </Component>

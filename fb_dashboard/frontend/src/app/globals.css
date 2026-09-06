@@ -469,6 +469,79 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
 
+/* ── v6+ — framer-free reveal system (public pages critical path) ──
+ * v6 left framer-motion (~190KB) in EVERY public page's first-load JS
+ * (ThemeToggle → Header/login, landing sections, pricing, demo). These
+ * utilities replace the motion tweens with CSS transitions driven by the
+ * same IntersectionObserver triggers the components already used. */
+.reveal { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0); transition: opacity var(--rv-dur, 0.55s) var(--ease-out-quart), transform var(--rv-dur, 0.55s) var(--ease-out-quart); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
+.reveal-shown { opacity: 1; transform: none; }
+/* parent-driven variant: mark the container .reveal-shown and every .reveal
+ * child (each with its own delay var) animates in with its stagger */
+.reveal-shown .reveal { opacity: 1; transform: none; }
+.reveal-shown .reveal-scale, .reveal-scale.reveal-shown { opacity: 1; transform: none; }
+.reveal-scale { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0) scale(0.95); transition: opacity var(--rv-dur, 0.55s) var(--ease-out-quart), transform var(--rv-dur, 0.55s) var(--ease-out-quart); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
+.reveal-scale.reveal-shown { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-scale { opacity: 1; transform: none; transition: none; }
+}
+/* kinetic unit reveal (KineticText CSS twin) — words/lines rise from a mask */
+.kinetic-unit { display: inline-block; transform: translate3d(0, 110%, 0); opacity: 0; transition: transform var(--kt-dur, 0.8s) var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); transition-delay: var(--kt-delay, 0ms); }
+.kinetic-in .kinetic-unit { transform: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-unit { transform: none; opacity: 1; transition: none; }
+}
+/* sheet presence (MobileBottomNav CSS twin of AnimatePresence) */
+.sheet-backdrop { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+.sheet-backdrop.sheet-open { opacity: 1; pointer-events: auto; }
+.sheet-panel { transform: translate3d(0, 100%, 0); transition: transform 0.32s var(--ease-out-quart); }
+.sheet-panel.sheet-open { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-backdrop, .sheet-panel { transition: none; }
+}
+/* theme toggle icon crossfade (CSS twin of framer AnimatePresence swap) */
+.tt-icon { transition: opacity 0.25s ease, transform 0.3s var(--ease-out-quart); }
+.tt-icon-hidden { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+.tt-icon-active { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tt-icon { transition: none; }
+}
+/* motion icons (CSS twin of useAnimate hover choreography) */
+.motion-icon { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.motion-icon:hover { transform: scale(1.15) rotate(var(--mi-rot, 0deg)); }
+@media (prefers-reduced-motion: reduce) {
+  .motion-icon { transition: none; }
+  .motion-icon:hover { transform: none; }
+}
+/* animated svg icons (CSS twins of the Smart-Menu useAnimate ports) */
+.ai-icon .x-line-1, .ai-icon .x-line-2 { transition: transform 0.2s ease-out; transform-origin: 50% 50%; }
+.ai-icon:hover .x-line-1 { transform: rotate(15deg) scale(1.1); }
+.ai-icon:hover .x-line-2 { transform: rotate(-15deg) scale(1.1); }
+.ai-icon .front-copy { }
+.ai-icon:hover .front-copy { animation: copy-wiggle 0.3s ease-in-out; }
+@keyframes copy-wiggle { 0% { translate: 0 0; } 50% { translate: 2px 2px; } 100% { translate: 0 0; } }
+.ai-icon .arrow-group { }
+.ai-icon:hover .arrow-group { animation: upload-fly 1s ease-in-out infinite; }
+@keyframes upload-fly {
+  0% { transform: translateY(0); opacity: 1; }
+  35% { transform: translateY(-12px); opacity: 0; }
+  36% { transform: translateY(12px); opacity: 0; }
+  70% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.ai-icon .message-path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.ai-icon:hover .message-path { animation: message-draw 0.9s ease-in-out; }
+@keyframes message-draw {
+  0% { stroke-dashoffset: 1; opacity: 0; }
+  65% { stroke-dashoffset: 0; opacity: 1; }
+  80% { transform: scale(1.05); opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-icon .x-line-1, .ai-icon .x-line-2 { transition: none; }
+  .ai-icon:hover .front-copy, .ai-icon:hover .arrow-group, .ai-icon:hover .message-path { animation: none; }
+}
+
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 

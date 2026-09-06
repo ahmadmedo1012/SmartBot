@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { premiumToast } from "@/lib/premium-toast"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
 import { Smartphone, Landmark, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import AnimatedUpload from "@/components/ui/upload-icon"
 import AnimatedCopy from "@/components/ui/copy-icon"
@@ -650,7 +649,7 @@ export function PaymentDialog({
 
           {step === "approved" && (
             <div className="flex flex-col items-center py-8 space-y-6">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative size-20">
+              <div className="relative size-20 animate-scale-in">
                 <div
                   className="absolute inset-0 rounded-full bg-success/20 animate-ping opacity-75"
                   style={{ animationDuration: "1.5s" }}
@@ -658,25 +657,16 @@ export function PaymentDialog({
                 <div className="relative size-full rounded-full bg-gradient-to-br from-success to-success/80 flex items-center justify-center shadow-lg shadow-success/30">
                   <CheckCircle2 className="size-10 text-success-foreground" />
                 </div>
-              </motion.div>
-              <div className="text-center space-y-2">
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-lg font-bold text-success"
-                >
-                  تم الموافقة على الاشتراك
-                </motion.p>
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed"
-                >
-                  {resolutionMsg}
-                </motion.p>
               </div>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+              <div className="text-center space-y-2">
+                <p className="text-lg font-bold text-success animate-fade-in">
+                  تم الموافقة على الاشتراك
+                </p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
+                  {resolutionMsg}
+                </p>
+              </div>
+              <div className="animate-fade-in delay-300">
                 <Button
                   className="w-full h-11 rounded-xl bg-success hover:bg-success/90 text-success-foreground"
                   onClick={() => {
@@ -686,13 +676,13 @@ export function PaymentDialog({
                 >
                   الانتقال إلى لوحة التحكم
                 </Button>
-              </motion.div>
+              </div>
             </div>
           )}
 
           {step === "rejected" && (
             <div className="flex flex-col items-center py-8 space-y-6">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative size-20">
+              <div className="relative size-20 animate-scale-in">
                 <div
                   className="absolute inset-0 rounded-full bg-destructive/20 animate-ping opacity-75"
                   style={{ animationDuration: "1.5s" }}
@@ -700,30 +690,16 @@ export function PaymentDialog({
                 <div className="relative size-full rounded-full bg-gradient-to-br from-destructive to-destructive/80 flex items-center justify-center shadow-lg shadow-destructive/30">
                   <XCircle className="size-10 text-destructive-foreground" />
                 </div>
-              </motion.div>
-              <div className="text-center space-y-2">
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-lg font-bold text-destructive"
-                >
-                  تم رفض طلب الاشتراك
-                </motion.p>
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed"
-                >
-                  {resolutionMsg}
-                </motion.p>
               </div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex gap-2 w-full"
-              >
+              <div className="text-center space-y-2">
+                <p className="text-lg font-bold text-destructive animate-fade-in">
+                  تم رفض طلب الاشتراك
+                </p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
+                  {resolutionMsg}
+                </p>
+              </div>
+              <div className="flex gap-2 w-full animate-fade-in delay-300">
                 <Button
                   variant="outline"
                   className="flex-1 h-11 rounded-xl"
@@ -749,7 +725,7 @@ export function PaymentDialog({
                 >
                   إعادة المحاولة
                 </Button>
-              </motion.div>
+              </div>
             </div>
           )}
 

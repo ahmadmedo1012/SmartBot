@@ -319,8 +319,8 @@ test.describe('SmartBot Dashboard E2E', () => {
         await page.waitForTimeout(800);
       }
 
-      // Find and click nav item — the sidebar renders motion.div[role="link"]
-      // (a11y role), not <a>/<button>, so the selector must include it.
+      // Find and click nav item — the sidebar renders div[role="link"] (a11y
+      // role, v6+ framer-free), not <a>/<button>, so the selector must include it.
       // .first(): sidebar items precede MobileBottomNav in DOM. Shared labels
       // (الرسائل/التحليلات/الإشعارات) match BOTH bars — without .first() the
       // strict-mode violation throws and the .catch() silently faked "not found".

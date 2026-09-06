@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import { toast } from "sonner"
 import { Check, X, Loader2, ArrowLeft, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
 
@@ -202,11 +201,8 @@ export default function ConnectPage() {
       </div>
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
-        <motion.div
-          className="w-full max-w-lg"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.2, 1] }}
+        <div
+          className="w-full max-w-lg animate-fade-in"
         >
           <Card className="border-accent-foreground/20 bg-card/85 shadow-2xl shadow-accent-foreground/10 backdrop-blur-2xl backdrop-saturate-150">
             <CardHeader className="text-center">
@@ -345,7 +341,7 @@ export default function ConnectPage() {
               </p>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

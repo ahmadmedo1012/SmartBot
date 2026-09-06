@@ -1,11 +1,10 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { ChevronDown } from "lucide-react"
 import { FAQS } from "@/components/landing/landing-data"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
-import { springGentle } from "@/lib/motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 
 export default function FaqSection() {
   return (
@@ -15,11 +14,10 @@ export default function FaqSection() {
         subtitle="إجابات سريعة لأكثر الأسئلة تردداً"
       />
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ ...springGentle, delay: 0.05 }}
+      <ScrollReveal
+        y={16}
+        delay={50}
+        duration={0.5}
         className="max-w-2xl mx-auto space-y-3"
       >
         {FAQS.map((faq, i) => (
@@ -40,7 +38,7 @@ export default function FaqSection() {
             </div>
           </details>
         ))}
-      </motion.div>
+      </ScrollReveal>
     </SectionContainer>
   )
 }

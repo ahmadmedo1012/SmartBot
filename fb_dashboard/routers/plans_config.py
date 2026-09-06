@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from _services import api_cache
-from _utils import utcnow
+from _utils import app_version, utcnow
 from config import settings
 from database import AsyncSessionLocal, engine, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -141,7 +141,7 @@ async def healthz():
         checks["database"] = "unreachable"
         checks["ok"] = False
         checks["error"] = str(e)[:120]
-    checks["version"] = "2.0.0"
+    checks["version"] = app_version()
     checks["timestamp"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
     checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
@@ -151,10 +151,8 @@ async def healthz():
 
 @router.get("/api/env")
 async def get_env(_=Depends(get_current_user)):
-    version = "2.0.0"
-    vf = BASE_DIR / "VERSION"
-    if vf.exists():
-        version = vf.read_text().strip()
+    # v6+ — single canonical source (same file every health endpoint reads)
+    version = app_version()
     return {"success": True, "data": {
         "version": version,
         "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",

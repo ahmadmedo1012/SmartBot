@@ -1,17 +1,38 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { motion, useInView } from "framer-motion"
 import { Loader2 } from "lucide-react"
-import { springSnappy } from "@/lib/motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { usePublicStats } from "@/lib/usePublicStats"
 import { formatNumber } from "@/lib/format"
 
+/* v6+ — framer-free: useInView replaced by a tiny IO hook, motion.div by
+ * ScrollReveal (CSS tween). The count-up logic itself never needed framer. */
+function useInViewOnce<T extends HTMLElement>(ref: React.RefObject<T | null>): boolean {
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [ref])
+  return inView
+}
+
 function AnimatedNumber({ value }: { value: number }) {
   const [count, setCount] = useState(0)
   const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true })
+  const inView = useInViewOnce(ref)
   useEffect(() => {
     if (!inView || value <= 0) return
     const step = Math.max(1, Math.ceil(value / 30))
@@ -65,12 +86,11 @@ export default function StatsSection() {
       <div className="glass-strong rounded-2xl mx-auto max-w-4xl p-6 sm:p-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
           {items.map((item, i) => (
-            <motion.div
+            <ScrollReveal
               key={item.label}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ ...springSnappy, delay: i * 0.1 }}
+              y={30}
+              delay={i * 100}
+              duration={0.5}
             >
               <div className="text-center">
                 <div className="text-[2.25rem] sm:text-[2.75rem] md:text-[3.25rem] font-bold leading-none mb-2">
@@ -89,7 +109,7 @@ export default function StatsSection() {
                 </div>
                 <div className="text-xs sm:text-sm font-medium text-muted-foreground/80">{item.label}</div>
               </div>
-            </motion.div>
+            </ScrollReveal>
           ))}
         </div>
         <div className="mx-auto mt-6 w-16 h-[2px] rounded-full bg-gradient-to-r from-accent-foreground/0 via-accent-foreground to-accent-foreground/0" />

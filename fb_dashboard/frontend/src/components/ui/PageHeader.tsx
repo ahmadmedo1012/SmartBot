@@ -2,9 +2,13 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+/* v6+ — framer-free: the header/icon/h1 entrance animations are now
+ * CSS (.animate-fade-in / animate-scale-in in globals.css). PageHeader is
+ * mounted by every dashboard page — the motion bundle stays out of any
+ * page that (like /demo) renders it pre-login. */
 
 interface PageHeaderProps {
   icon?: React.ReactNode
@@ -37,12 +41,9 @@ export function PageHeader({
   compact = false,
 }: PageHeaderProps) {
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+    <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md",
+        "sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md animate-fade-in",
         className
       )}
     >
@@ -50,14 +51,11 @@ export function PageHeader({
         <div className="flex items-center justify-between h-full gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {icon && (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.2, delay: 0.05 }}
-                className="size-8 rounded-lg bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 border border-accent-foreground/15 flex items-center justify-center text-accent-foreground shrink-0"
+              <div
+                className="size-8 rounded-lg bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 border border-accent-foreground/15 flex items-center justify-center text-accent-foreground shrink-0 animate-scale-in delay-100"
               >
                 {icon}
-              </motion.div>
+              </div>
             )}
             <div className="min-w-0 flex-1">
               {breadcrumbs && breadcrumbs.length > 0 && (
@@ -83,14 +81,11 @@ export function PageHeader({
                 </nav>
               )}
               <div className="flex items-center gap-2 min-w-0">
-                <motion.h1
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.06 }}
-                  className={cn("font-bold tracking-tight truncate", compact ? "text-sm" : "text-base")}
+                <h1
+                  className={cn("font-bold tracking-tight truncate animate-fade-in delay-100", compact ? "text-sm" : "text-base")}
                 >
                   {title}
-                </motion.h1>
+                </h1>
                 {status && (
                   <span
                     className={cn(
@@ -116,6 +111,6 @@ export function PageHeader({
           {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
         </div>
       </div>
-    </motion.header>
+    </header>
   )
 }

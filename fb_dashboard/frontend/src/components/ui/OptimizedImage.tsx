@@ -1,14 +1,15 @@
 "use client"
 
 import { useState, memo, type ReactNode } from "react"
-import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { Bot } from "lucide-react"
 
 /* Ported from Smart-Menu (smart-link.ly shared identity) — shimmer
    skeleton + fade-in + gradient fallback, identical treatment.
-   next.config.ts sets images.unoptimized so remote receipt URLs work. */
+   next.config.ts sets images.unoptimized so remote receipt URLs work.
+   v6+: shimmer exit is a CSS opacity transition (framer-free) — the
+   skeleton div stays mounted and pointer-events-dead until removed. */
 
 type AspectRatio = "auto" | "square" | "video"
 
@@ -48,22 +49,21 @@ const OptimizedImage = memo(function OptimizedImage({
 
   return (
     <div className={cn("relative overflow-hidden rounded-[4px]", aspectMap[aspectRatio], className)}>
-      {/* Shimmer skeleton */}
-      <AnimatePresence>
-        {skeleton && status === "loading" && (
-          <motion.div
-            key="shimmer"
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 z-10 shimmer"
-            style={{
-              background: "linear-gradient(90deg, transparent 0%, var(--image-shimmer, oklch(0 0 0 / 0.08)) 50%, transparent 100%)",
-              backgroundSize: "200% 100%",
-              willChange: "background-position",
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Shimmer skeleton — CSS crossfade twin of the framer exit */}
+      {skeleton && (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 z-10 shimmer pointer-events-none transition-opacity duration-300",
+            status === "loading" ? "opacity-100" : "opacity-0"
+          )}
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, var(--image-shimmer, oklch(0 0 0 / 0.08)) 50%, transparent 100%)",
+            backgroundSize: "200% 100%",
+            willChange: "background-position",
+          }}
+        />
+      )}
 
       {/* Image */}
       {status !== "error" ? (

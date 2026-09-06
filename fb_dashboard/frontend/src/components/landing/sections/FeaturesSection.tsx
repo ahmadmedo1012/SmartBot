@@ -1,7 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { springDefault, springSnappy } from "@/lib/motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { BENEFITS } from "@/components/landing/landing-data"
@@ -32,14 +31,13 @@ export default function FeaturesSection() {
         {BENEFITS.map((feat, i) => {
           const isLarge = i === 0
           return (
-            <motion.div
+            <ScrollReveal
               key={i}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ ...springDefault, delay: i * 0.05 }}
-              whileHover={{ y: -3, transition: springSnappy }}
-              className={`group relative ${bentoLayout[i]} rounded-2xl bg-card border p-5 sm:p-6 transition-all duration-500 overflow-hidden ${
+              y={24}
+              delay={i * 50}
+              duration={0.5}
+              rootMargin="-60px 0px -60px 0px"
+              className={`group relative ${bentoLayout[i]} rounded-2xl bg-card border p-5 sm:p-6 transition-[border-color,background-color,box-shadow] duration-500 overflow-hidden hover:shadow-lg hover:shadow-accent-foreground/10 ${
                 isLarge
                   ? "border-accent-foreground/30 bg-gradient-to-br from-accent-foreground/[0.04] via-card to-card"
                   : "border-border/50 hover:border-accent-foreground/30"
@@ -95,7 +93,7 @@ export default function FeaturesSection() {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </ScrollReveal>
           )
         })}
       </div>

@@ -3,13 +3,12 @@
 import { cn } from "@/lib/utils"
 import { toArabicNumber } from "@/lib/format"
 import { MotionCheck } from "@/components/ui/motion-icons"
-import { motion, useReducedMotion } from "framer-motion"
 
 /* Ported from Smart-Menu (smart-link.ly shared identity) — identical
    wizard indicator: numbered gradient nodes, check marks on completed
    steps, animated connectors, click-to-navigate back. SmartBot's flow
    has two steps (plan → review) where Smart-Menu has four — the
-   component contract is unchanged. */
+   component contract is unchanged. v6+: framer-free (CSS active tap). */
 
 export type WizardStep = "plan" | "review"
 
@@ -31,7 +30,6 @@ export function StepIndicator({
   current: WizardStep
   onNavigate?: (s: WizardStep) => void
 }) {
-  const reduceMotion = useReducedMotion()
   const currentIdx = stepIndex(current)
 
   return (
@@ -55,11 +53,10 @@ export function StepIndicator({
               aria-current={isActive ? "step" : undefined}
               aria-disabled={!clickable || undefined}
             >
-              <motion.div
-                initial={false}
-                whileTap={clickable && !reduceMotion ? { scale: 0.94 } : undefined}
+              <div
                 className={cn(
-                  "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-300",
+                  "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-300",
+                  clickable && "active:scale-[0.94]",
                   isActive
                     ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-extrabold"
                     : isDone
@@ -68,7 +65,7 @@ export function StepIndicator({
                 )}
               >
                 {isDone ? <MotionCheck className="size-4" /> : toArabicNumber(i + 1)}
-              </motion.div>
+              </div>
               <span
                 className={cn(
                   "text-[11px] sm:text-xs font-medium transition-colors hidden sm:block",

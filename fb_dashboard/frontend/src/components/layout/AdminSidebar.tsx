@@ -3,10 +3,8 @@
 import * as React from "react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { fadeUp, stagger, springHover } from "@/lib/motion"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
@@ -131,10 +129,12 @@ export function AdminSidebar({
         </div>
       </div>
 
-      {/* Nav */}
-      <motion.nav variants={stagger} initial="hidden" animate="visible" className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
+      {/* Nav — v6+ framer-free: section stagger is CSS animation-delay,
+       * item hover/tap are Tailwind translate/scale (individual CSS props,
+       * composable), active indicator renders per-item (no layoutId slide). */}
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {navSections.map((section, si) => (
-          <motion.div key={si} variants={fadeUp}>
+          <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 50}ms` }}>
             <p className="px-3 pb-1.5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.12em]">
               {section.label}
             </p>
@@ -142,12 +142,9 @@ export function AdminSidebar({
               {section.items.map((item, ii) => {
                 const active = isActiveItem(item.href, activeHref ?? pathname)
                 return (
-                  <motion.div
+                  <div
                     key={ii}
                     id={item.tourId}
-                    whileHover={{ x: 3 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={springHover}
                     onClick={() => onNavigate?.(item.href || "#")}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate?.(item.href || "#") } }}
                     tabIndex={0}
@@ -155,7 +152,8 @@ export function AdminSidebar({
                     aria-current={active ? "page" : undefined}
                     aria-label={item.label}
                     className={cn(
-                      "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow] duration-200 outline-none",
+                      "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow,translate,scale] duration-200 outline-none",
+                      "hover:translate-x-[3px] active:scale-[0.97]",
                       "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
                       /* Active/hover treatment unified with Smart-Menu NavLink:
                          soft orange tint + end-side spring indicator, not a solid fill */
@@ -165,10 +163,8 @@ export function AdminSidebar({
                     )}
                   >
                     {active && (
-                      <motion.span
-                        layoutId="activeNavIndicator"
+                      <span
                         className="absolute end-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                        transition={{ type: "spring", stiffness: 400, damping: 28 }}
                         aria-hidden="true"
                       />
                     )}
@@ -189,13 +185,13 @@ export function AdminSidebar({
                         {item.badge}
                       </Badge>
                     )}
-                  </motion.div>
+                  </div>
                 )
               })}
             </div>
-          </motion.div>
+          </div>
         ))}
-      </motion.nav>
+      </nav>
 
       {/* Bottom */}
       <div className="p-3 border-t border-border/60 space-y-2 bg-card/50">

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
@@ -12,12 +11,18 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 
 import { cn } from "@/lib/utils"
-import { fadeUp, stagger } from "@/lib/motion"
 import {
   Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
   Sparkles, ArrowLeft, CheckCircle, Send, Bell, Settings as SettingsIcon,
 } from "lucide-react"
-import { ActivityBarChart } from "@/components/charts"
+import dynamic from "next/dynamic"
+/* v6+ — recharts (~340KB) was eager-imported into /demo's first load (the
+ * biggest public page in the bundle). The chart renders client-side only,
+ * so an ssr:false dynamic import defers the whole recharts chunk. */
+const ActivityBarChart = dynamic(
+  () => import("@/components/charts").then(m => m.ActivityBarChart),
+  { ssr: false, loading: () => <div className="h-32 rounded-xl bg-muted/30 animate-pulse" aria-hidden="true" /> }
+)
 import { formatNumber } from "@/lib/format"
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -482,13 +487,15 @@ export default function DemoPage() {
       <div className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0">
         <DemoHeader tab={tab} />
         <SectionContainer className="py-6 flex-1">
-          <motion.div key={tab} variants={stagger} initial="hidden" animate="visible">
-            <motion.div variants={fadeUp}>
+          {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS
+           * fade-in staggers (identical feel to the old variants pattern) */}
+          <div key={tab}>
+            <div className="animate-fade-in">
               {TAB_CONTENT[tab]}
-            </motion.div>
+            </div>
 
             {/* CTA — kept from the original demo (plan §3.2) */}
-            <motion.div variants={fadeUp} className="text-center py-8">
+            <div className="animate-fade-in-250 text-center py-8">
               <Card className="max-w-lg mx-auto border-accent-foreground/25 bg-accent-foreground/5 dark:bg-accent-foreground/15">
                 <CardContent className="p-8 text-center space-y-4">
                   <Sparkles className="size-10 text-accent-foreground mx-auto" />
@@ -501,8 +508,8 @@ export default function DemoPage() {
                   </Button>
                 </CardContent>
               </Card>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </SectionContainer>
       </div>
 

@@ -1,8 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { STEPS } from "@/components/landing/landing-data"
-import { springGentle, springSnappy } from "@/lib/motion"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { Link2, BrainCircuit, LineChart } from "lucide-react"
@@ -26,12 +25,13 @@ export default function HowItWorksSection() {
           {STEPS.map((step, i) => {
             const Icon = stepIcons[i]
             return (
-              <motion.div
+              <ScrollReveal
                 key={step.title}
-                initial={{ opacity: 0, y: 32, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ ...springGentle, delay: i * 0.15 }}
+                scale
+                y={32}
+                delay={i * 150}
+                duration={0.6}
+                rootMargin="-60px 0px -60px 0px"
                 className="relative flex flex-col items-center text-center group"
               >
                 {/* Step circle */}
@@ -56,7 +56,7 @@ export default function HowItWorksSection() {
                 <div className="hidden lg:flex absolute top-8 -start-8 items-center">
                   <div className="size-1.5 rounded-full bg-accent-foreground/40" />
                 </div>
-              </motion.div>
+              </ScrollReveal>
             )
           })}
         </div>

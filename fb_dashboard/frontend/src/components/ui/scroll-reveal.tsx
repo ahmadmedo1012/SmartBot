@@ -1,22 +1,23 @@
 "use client"
 
 import { useRef, type ReactNode, type CSSProperties, useState, useEffect } from "react"
-import { motion, useReducedMotion } from "framer-motion"
 
-/* Ported from Smart-Menu's scroll-craft integration (smart-link.ly shared
-   identity) — import path adapted for SmartBot's framer-motion setup.
-   See SCROLLCRAFT.md in this folder for the full component guide. */
+/* v6+ — framer-free rewrite of the Smart-Menu scroll-craft port.
+ * The IntersectionObserver trigger (already present pre-v6+) is kept; the
+ * motion tween is now a CSS transition (.reveal/.reveal-shown in
+ * globals.css) — framer-motion (~190KB) leaves the public critical path.
+ * API is unchanged: every call site keeps working as-is. */
 
 interface ScrollRevealProps {
   children: ReactNode
   className?: string
   /** Stagger delay between children (ms) */
   delay?: number
-  /** Animation duration */
+  /** Animation duration (seconds) */
   duration?: number
-  /** Distance to translate from */
+  /** Distance to translate from (px) */
   y?: number
-  /** Distance to translate from (x axis) */
+  /** Distance to translate from (x axis, px) */
   x?: number
   /** Threshold for intersection observer */
   threshold?: number
@@ -27,14 +28,15 @@ interface ScrollRevealProps {
   /** Custom as element */
   as?: "div" | "section" | "article" | "span" | "ul" | "li"
   style?: CSSProperties
+  /** Add scale(0.95) to the entrance (matches the framer version's look) */
+  scale?: boolean
 }
 
 /**
- * ScrollReveal — Fire-once reveal animation
+ * ScrollReveal — fire-once (or repeating) reveal animation
  *
- * Adapted from scroll-craft's flow + in device
- * Content fades up (or slides in) when it enters the viewport
- * Once revealed, it stays revealed (no re-hiding on scroll up)
+ * Content fades up (or slides in) when it enters the viewport.
+ * Once revealed, it stays revealed (unless once=false).
  *
  * @example
  * ```tsx
@@ -55,21 +57,19 @@ export function ScrollReveal({
   once = true,
   as = "div",
   style,
+  scale = false,
 }: ScrollRevealProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [isInView, setIsInView] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     const element = ref.current
     if (!element) return
-
-    // Skip observer for reduced motion
-    if (prefersReducedMotion) {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    if (mq.matches) {
       setIsInView(true)
       return
     }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -83,25 +83,25 @@ export function ScrollReveal({
       },
       { threshold, rootMargin }
     )
-
     observer.observe(element)
     return () => observer.disconnect()
-  }, [threshold, rootMargin, once, prefersReducedMotion])
+  }, [threshold, rootMargin, once])
 
-  const Component = motion[as as keyof typeof motion] as any
+  const Component = as as "div"
 
   return (
     <Component
-      ref={ref as any}
-      className={className}
-      style={style}
-      initial={{ opacity: 0, y, x }}
-      animate={isInView ? { opacity: 1, y: 0, x: 0 } : undefined}
-      transition={{
-        duration: prefersReducedMotion ? 0.2 : duration,
-        delay: prefersReducedMotion ? 0 : delay / 1000,
-        ease: [0.23, 1, 0.32, 1],
-      }}
+      ref={ref as never}
+      className={[scale ? "reveal-scale" : "reveal", isInView ? "reveal-shown" : "", className]
+        .filter(Boolean)
+        .join(" ")}
+      style={{
+        ...style,
+        "--rv-x": `${x}px`,
+        "--rv-y": `${y}px`,
+        "--rv-dur": `${duration}s`,
+        "--rv-delay": `${delay}ms`,
+      } as CSSProperties}
     >
       {children}
     </Component>
@@ -115,7 +115,7 @@ interface StaggeredRevealProps {
   stagger?: number
   /** Initial Y offset */
   y?: number
-  /** Animation duration per child */
+  /** Animation duration per child (seconds) */
   duration?: number
   /** Root margin */
   rootMargin?: string
@@ -123,10 +123,9 @@ interface StaggeredRevealProps {
 }
 
 /**
- * StaggeredReveal — Reveals children one after another
+ * StaggeredReveal — reveals children one after another
  *
- * Adapted from scroll-craft's data-sc-stagger behavior
- * Each child gets a progressive delay
+ * Each child gets a progressive CSS transition delay.
  *
  * @example
  * ```tsx
@@ -146,17 +145,15 @@ export function StaggeredReveal({
 }: StaggeredRevealProps) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [isInView, setIsInView] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     const element = ref.current
     if (!element) return
-
-    if (prefersReducedMotion) {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    if (mq.matches) {
       setIsInView(true)
       return
     }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -166,26 +163,24 @@ export function StaggeredReveal({
       },
       { threshold: 0.05, rootMargin }
     )
-
     observer.observe(element)
     return () => observer.disconnect()
-  }, [rootMargin, prefersReducedMotion])
+  }, [rootMargin])
 
   return (
     <div ref={ref} className={className} style={style}>
       {children.map((child, i) => (
-        <motion.div
+        <div
           key={i}
-          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : y }}
-          animate={isInView ? { opacity: 1, y: 0 } : undefined}
-          transition={{
-            duration: prefersReducedMotion ? 0.2 : duration,
-            delay: prefersReducedMotion ? 0 : (i * stagger) / 1000,
-            ease: [0.23, 1, 0.32, 1],
-          }}
+          className={["reveal", isInView ? "reveal-shown" : ""].filter(Boolean).join(" ")}
+          style={{
+            "--rv-y": `${y}px`,
+            "--rv-dur": `${duration}s`,
+            "--rv-delay": `${i * stagger}ms`,
+          } as CSSProperties}
         >
           {child}
-        </motion.div>
+        </div>
       ))}
     </div>
   )

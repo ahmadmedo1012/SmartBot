@@ -30,7 +30,7 @@ export default function FloatingWhatsApp() {
         "transition-[background-color,transform,translate,scale,rotate,box-shadow] duration-300",
         "animate-fade-in"
       )}
-      aria-label="تواصل عبر واتساب"
+      aria-label="تواصل عبر واتساب — يفتح في تبويب جديد"
       style={{ animationDelay: "3s", animationFillMode: "both" }}
     >
       <AnimatedMessageCircle className="size-7" />

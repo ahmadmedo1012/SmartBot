@@ -793,13 +793,17 @@ class BotEngine:
                     await self._rule_cache.invalidate()
 
                 # Broadcast stats after every cycle (WS + SSE — tenant-scoped)
+                # v8-A3: counts are scoped to THIS tenant — the previous global
+                # count(Reply.id) showed platform-wide totals to every tenant.
                 try:
                     from event_bus import event_bus
                     async with AsyncSessionLocal() as s:
-                        total = await s.scalar(select(func.count(Reply.id))) or 0
+                        total = await s.scalar(
+                            select(func.count(Reply.id)).where(Reply.tenant_id == self._tenant_id)) or 0
                         today_val = await s.scalar(
                             select(func.count(Reply.id))
-                            .where(cast(Reply.created_at, Date) == utcnow().date())
+                            .where(Reply.tenant_id == self._tenant_id,
+                                   cast(Reply.created_at, Date) == utcnow().date())
                         ) or 0
                         payload = {"total_replies": total, "today_replies": today_val, "cycle": self._cycle}
                         if ws_manager:

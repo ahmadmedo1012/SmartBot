@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
-import { toast } from "sonner"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings } from "lucide-react"
+import { brandedToast } from "@/lib/premium-toast"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { fadeUp } from "@/lib/motion"
 import { apiFetch } from "@/lib/csrf-client"
@@ -82,10 +85,10 @@ export default function AdminPage() {
         method: "POST",
         body: JSON.stringify({ id, status }),
       })
-      if (!r.ok) { const d = await r.json().catch(() => ({})); toast.error((d as any)?.error || (d as any)?.detail || "فشل"); return }
-      toast.success(status === "verified" ? "تم تأكيد الاشتراك" : "تم رفض الطلب")
+      if (!r.ok) { const d = await r.json().catch(() => ({})); brandedToast.error((d as any)?.error || (d as any)?.detail || "فشل"); return }
+      brandedToast.success(status === "verified" ? "تم تأكيد الاشتراك" : "تم رفض الطلب")
       fetchPayments()
-    } catch { toast.error("خطأ في الاتصال") }
+    } catch { brandedToast.error("خطأ في الاتصال") }
     setActionId(null)
   }, [fetchPayments])
 
@@ -94,7 +97,7 @@ export default function AdminPage() {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
-          <AlertTriangle className="size-16 text-red-400 mx-auto mb-4" />
+          <AlertTriangle className="size-16 text-destructive mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">غير مصرح</h1>
           <p className="text-muted-foreground mb-6">هذه الصفحة مخصصة للمشرفين فقط. ليس لديك صلاحيات كافية للوصول.</p>
           <Button onClick={() => window.location.href = "/dashboard"}>العودة للوحة التحكم</Button>
@@ -113,6 +116,9 @@ export default function AdminPage() {
 
   return (
     <SectionContainer className="min-h-screen py-8">
+      {/* Visually-hidden page heading — SectionHeader renders the visible title
+          as h2, so heading navigation had no h1 target (v8-B5) */}
+      <h1 className="sr-only">إدارة المنصة</h1>
       <SectionHeader title="إدارة الاشتراكات" description="مراجعة وإدارة طلبات الاشتراك" />
 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
@@ -133,7 +139,7 @@ export default function AdminPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
-          <Button key={f.key} variant={filter === f.key ? "orange" : "outline"} size="sm" onClick={() => setFilter(f.key)}>
+          <Button key={f.key} variant={filter === f.key ? "orange" : "outline"} size="sm" onClick={() => setFilter(f.key)} aria-pressed={filter === f.key}>
             {f.label}
           </Button>
         ))}
@@ -152,12 +158,30 @@ export default function AdminPage() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-muted-foreground">جاري التحميل...</div>
+          {loading && payments.length === 0 ? (
+            /* v8 C5/C8 — skeleton rows only on the very first load; later
+               refetches/filter switches keep the previous rows visible (dimmed
+               below) instead of wiping the table — keepPreviousData equivalent */
+            <div className="p-4 space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="size-8 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3 w-1/3" />
+                    <Skeleton className="h-2.5 w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : payments.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">لا توجد طلبات اشتراك</div>
+            <EmptyState
+              icon={CreditCard}
+              size="sm"
+              title="لا توجد طلبات اشتراك"
+              description="ستظهر طلبات الاشتراك الجديدة هنا فور تقديمها من المستخدمين."
+            />
           ) : (
-            <div className="overflow-x-auto">
+            <div className={cn("overflow-x-auto transition-opacity", loading && "opacity-60")}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">

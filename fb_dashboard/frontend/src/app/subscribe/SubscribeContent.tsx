@@ -109,7 +109,7 @@ export default function SubscribeContent() {
   const currentPlan = plans.find((p) => p.id === selectedPlan)
 
   const handlePaymentSuccess = useCallback(async () => {
-    premiumToast("success", "تم تفعيل اشتراكك بنجاح! جارِ نقلك إلى لوحة التحكم...")
+    premiumToast("success", "تم تفعيل اشتراكك بنجاح! جارٍ نقلك إلى لوحة التحكم...")
     router.push("/dashboard")
   }, [router])
 
@@ -142,7 +142,7 @@ export default function SubscribeContent() {
             <h1 className="text-3xl md:text-5xl font-bold mb-3">
               <span>فعّل اشتراك بوتك الذكي</span>
             </h1>
-            <p className="text-muted-foreground text-lg">اختر الباقة المناسبة لأعمالك على فيسبوك وماسنجر</p>
+            <p className="text-muted-foreground text-lg">اختر الخطة المناسبة لأعمالك على فيسبوك وماسنجر</p>
           </div>
 
           {/* Step indicator */}
@@ -151,7 +151,7 @@ export default function SubscribeContent() {
           {/* Step 1: Plan selector (with visible error state when plans never loaded) */}
           {step === "plan" && plans.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-16 text-center animate-fade-in">
-              <p className="text-muted-foreground">تعذر تحميل الباقات. يرجى المحاولة مرة أخرى.</p>
+              <p className="text-muted-foreground">تعذر تحميل الخطط. يرجى المحاولة مرة أخرى.</p>
               <Button variant="outline" onClick={handleRetryPlans}>
                 إعادة المحاولة
               </Button>

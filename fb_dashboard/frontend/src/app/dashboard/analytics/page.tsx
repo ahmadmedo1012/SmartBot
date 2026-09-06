@@ -2,11 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
+import { countPhrase } from "@/lib/format"
 import {
-  BarChart3, MessageSquare, Activity, Clock, Users, AlertCircle, RefreshCw,
+  BarChart3, MessageSquare, Activity, Clock, Users, AlertCircle, RefreshCw, Smile,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { ActivityBarChart, ComparisonBars } from "@/components/charts"
 
@@ -22,9 +24,9 @@ export default function AnalyticsPage() {
 
   const stats = [
     { label: "إجمالي الردود", value: data?.total_replies ?? "—", icon: MessageSquare, color: "bg-accent-foreground/10 text-accent-foreground" },
-    { label: "ردود اليوم", value: data?.today_replies ?? "—", icon: Activity, color: "bg-blue-500/10 text-blue-500" },
-    { label: "المعجبين", value: data?.fan_count ?? "—", icon: Users, color: "bg-green-500/10 text-green-500" },
-    { label: "ذروة النشاط", value: data?.peak_hour != null ? `${data.peak_hour}:00` : "—", icon: Clock, color: "bg-purple-500/10 text-purple-500" },
+    { label: "ردود اليوم", value: data?.today_replies ?? "—", icon: Activity, color: "bg-info-soft text-info" },
+    { label: "المتابعين", value: data?.fan_count ?? "—", icon: Users, color: "bg-success-soft text-success" },
+    { label: "ذروة النشاط", value: data?.peak_hour != null ? `${data.peak_hour}:00` : "—", icon: Clock, color: "bg-accent text-accent-foreground" },
   ]
 
   const daily = data?.daily_breakdown ? Object.entries(data.daily_breakdown) : []
@@ -47,7 +49,7 @@ export default function AnalyticsPage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل التحليلات</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
@@ -69,14 +71,15 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-bold text-sm mb-4">الردود اليومية (آخر 30 يوم)</h3>
+            <h2 className="font-bold text-sm mb-4">الردود اليومية (آخر 30 يوم)</h2>
             {isLoading ? (
               <div className="h-32 bg-muted rounded animate-pulse" />
             ) : daily.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">لا توجد بيانات بعد</p>
+              <EmptyState icon={BarChart3} size="sm" title="لا توجد بيانات بعد" description="ستظهر حركة الردود اليومية هنا بعد أول تفاعل على صفحتك." />
             ) : (
               <ActivityBarChart
                 height={128}
+                summary="مخطط أعمدة للردود اليومية خلال آخر 30 يوماً"
                 data={daily.slice(-30).map(([d, v]: [string, unknown]) => ({ label: d, value: Number(v) ?? 0, hint: d }))}
               />
             )}
@@ -86,32 +89,33 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-bold text-sm mb-3">أفضل القواعد</h3>
+              <h2 className="font-bold text-sm mb-3">أفضل القواعد</h2>
               {data?.top_rules?.length > 0 ? (
                 <div className="space-y-2">
                   {data.top_rules.map((r: any, i: number) => (
                     <div key={i} className="flex items-center justify-between text-sm">
                       {/* v4 §7.24 — backend now sends rule names (incl. DM replies) */}
                       <span>{r.name || `القاعدة #${r.rule_id}`}</span>
-                      <span className="text-muted-foreground">{r.count} رد</span>
+                      <span className="text-muted-foreground">{countPhrase(r.count, "رد", "ردين", "ردود")}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">لا توجد قواعد بعد</p>
+                <EmptyState icon={Activity} size="sm" title="لا توجد قواعد بعد" description="أنشئ قواعد رد من صفحة الردود التلقائية وستظهر الأكثر فاعلية هنا." />
               )}
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4">
-              <h3 className="font-bold text-sm mb-3">توزيع المشاعر</h3>
+              <h2 className="font-bold text-sm mb-3">توزيع المشاعر</h2>
               {data?.sentiment_distribution && Object.keys(data.sentiment_distribution).length > 0 ? (
                 <ComparisonBars
+                  summary="أشرطة أفقية تقارن عدد رسائل كل فئة شعور: إيجابي، سلبي، محايد، مختلط"
                   data={Object.entries(data.sentiment_distribution as Record<string, number>).map(([k, v]) => ({ label: SENTIMENT_LABELS[k] || k, value: Number(v) ?? 0 }))}
                 />
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">لا توجد بيانات مشاعر</p>
+                <EmptyState icon={Smile} size="sm" title="لا توجد بيانات مشاعر" description="سيُحلَّل شعور التعليقات هنا فور وصول أول تعليق على منشوراتك." />
               )}
             </CardContent>
           </Card>

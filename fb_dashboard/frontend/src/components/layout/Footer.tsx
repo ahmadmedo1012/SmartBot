@@ -11,7 +11,7 @@ interface FooterProps { className?: string }
 
 const QUICK_LINKS = [
   { href: "/pricing", label: "الخطط" },
-  { href: "/demo", label: "منيو تجريبي" },
+  { href: "/demo", label: "نسخة تجريبية" },
   { href: "/login", label: "تسجيل الدخول" },
   { href: "/subscribe", label: "اشترك الآن" },
 ]

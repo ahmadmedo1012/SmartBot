@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import {
   Bot,
   Sparkles,
@@ -20,7 +20,7 @@ import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { formatNumber } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -41,7 +41,7 @@ const STEPS = [
     title: "مرحباً بك في SmartBot!",
     subtitle: "في 3 دقائق فقط، رحلتك تبدأ",
     description:
-      "SmartBot يساعدك على الرد تلقائياً على تعليقات فيسبوك وتحليل أداء صفحتك — بدون أي خبرة تقنية.",
+      "يساعدك SmartBot على الرد تلقائياً على تعليقات فيسبوك وتحليل أداء صفحتك — بدون أي خبرة تقنية.",
   },
   {
     id: "connect",
@@ -62,7 +62,7 @@ const STEPS = [
   {
     id: "subscribe",
     icon: CreditCard,
-    title: "اختر باقتك",
+    title: "اختر خطتك",
     subtitle: "ابدأ مجاناً أو اختر ما يناسبك",
     description:
       "جميع الباقات تبدأ بتجربة مجانية. يمكنك الترقية أو الإلغاء في أي وقت.",
@@ -108,6 +108,29 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       .catch(() => {/* keep empty — the CTA link still works */})
   }, [])
 
+  /* v8-B1: full-screen wizard = modal dialog. Previously keyboard users
+   * tabbed straight into the obscured dashboard behind it (WCAG 2.1.2
+   * No Keyboard Trap / 2.4.3 Focus Order / 4.1.2). Pattern replicated from
+   * the exemplary Header MobileMenu: focus-in on mount, Tab-cycle trap,
+   * Escape maps to the visible back/skip affordance, focus restored on
+   * unmount. */
+  const panelRef = useRef<HTMLDivElement>(null)
+  const restoreFocusRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    restoreFocusRef.current = document.activeElement as HTMLElement | null
+    const raf = requestAnimationFrame(() => {
+      const panel = panelRef.current
+      if (!panel) return
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')
+      if (focusable.length) focusable[0]?.focus()
+    })
+    return () => {
+      cancelAnimationFrame(raf)
+      restoreFocusRef.current?.focus?.()
+    }
+  }, [])
+
   const total = STEPS.length
   const current = STEPS[step]
   const Icon = current.icon
@@ -137,7 +160,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
   const handleSuggestReply = useCallback(async () => {
     if (!keyword.trim()) {
-      toast.error("أدخل كلمة مفتاحية أولاً")
+      brandedToast.error("أدخل كلمة مفتاحية أولاً")
       return
     }
     setSuggesting(true)
@@ -149,10 +172,10 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       const d = await res.json()
       if (d?.data?.suggestion) {
         setReply(d.data.suggestion)
-        toast.success(d.data.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
+        brandedToast.success(d.data.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
       }
     } catch {
-      toast.error("تعذر الاقتراح — اكتب الرد يدوياً")
+      brandedToast.error("تعذر الاقتراح — اكتب الرد يدوياً")
     } finally {
       setSuggesting(false)
     }
@@ -187,7 +210,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         await apiFetch("/api/onboarding/complete", { method: "POST" })
         onComplete()
       } catch {
-        toast.error("فشل حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم")
+        brandedToast.error("فشل حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم")
         onComplete()
       } finally {
         setLoading(false)
@@ -205,9 +228,38 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     }
   }, [step, onSkip])
 
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // maps to the SAME behavior as the visible "السابق/تخطي" button
+        e.preventDefault()
+        handleBack()
+        return
+      }
+      if (e.key !== "Tab") return
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])')
+      if (focusable.length === 0) { e.preventDefault(); return }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    panel.addEventListener("keydown", handleKeyDown)
+    return () => panel.removeEventListener("keydown", handleKeyDown)
+  }, [handleBack])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="absolute inset-0 overflow-hidden">
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-step-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+    >
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-accent-foreground/5 to-transparent" />
         <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-accent-foreground/5 to-transparent" />
       </div>
@@ -260,7 +312,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             >
               <Icon className="size-8 text-white" />
             </motion.div>
-            <h2 className="text-xl font-bold mb-1">{current.title}</h2>
+            <h2 id="onboarding-step-title" className="text-xl font-bold mb-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
           </div>
 
@@ -308,21 +360,23 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     disabled={testing}
                   >
                     {testing ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
-                    {testing ? "جاري اختبار الاتصال..." : "اختبار الاتصال قبل التأكيد"}
+                    {testing ? "جارٍ اختبار الاتصال..." : "اختبار الاتصال قبل التأكيد"}
                   </Button>
                   {testResult && (
                     <div
+                      role="status"
+                      aria-live="polite"
                       className={`rounded-lg p-2.5 text-xs leading-relaxed ${
                         testResult.connected
-                          ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                          : "bg-red-500/10 text-red-600 border border-red-500/20"
+                          ? "bg-success-soft text-success border border-success/20"
+                          : "bg-destructive-soft text-destructive border border-destructive/20"
                       }`}
                     >
                       {testResult.connected
                         ? "✓ الاتصال ناجح — " +
                           testResult.page_name +
                           (testResult.fan_count
-                            ? " (" + formatNumber(testResult.fan_count) + " متابع)"
+                            ? " (" + countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين") + ")"
                             : "")
                         : "✗ " + (testResult.error || "فشل الاتصال")}
                     </div>
@@ -333,6 +387,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       href="https://developers.facebook.com/tools/explorer/"
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label="Graph API Explorer — يفتح في تبويب جديد"
                       className="text-accent-foreground hover:underline"
                     >
                       Graph API Explorer
@@ -407,7 +462,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                           color: p.id === plans[1]?.id ? "border-accent-foreground/40" : "border-border/40",
                         }))
                       : [
-                          { name: "…", price: "…", desc: "جاري التحميل", color: "border-border/40" },
+                          { name: "…", price: "…", desc: "جارٍ التحميل", color: "border-border/40" },
                         ]
                     ).map((plan) => (
                       <div
@@ -439,7 +494,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   animate={{ opacity: 1 }}
                   className="flex flex-col items-center gap-4 py-2"
                 >
-                  <CheckCircle2 className="size-16 text-green-500" />
+                  <CheckCircle2 className="size-16 text-success" />
                   <div className="text-center space-y-1">
                     <p className="text-sm font-medium">مرحباً بك!</p>
                     <p className="text-xs text-muted-foreground">

@@ -95,13 +95,13 @@ export function ErrorState({
   return (
     <EmptyState
       icon={undefined}
-      iconNode={<svg className="size-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+      iconNode={<svg className="size-6 text-destructive" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
       title={title}
       description={message}
       action={onRetry ? { label: "إعادة المحاولة", onClick: onRetry } : undefined}
       className={className}
-      iconBgClassName="bg-red-500/10"
-      iconClassName="text-red-500"
+      iconBgClassName="bg-destructive-soft"
+      iconClassName="text-destructive"
       size={size}
     />
   )

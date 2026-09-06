@@ -94,7 +94,7 @@ async def stop_bot(current_user: User = Depends(require_role("admin"))):
 @router.post("/api/bot/interval")
 async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("admin"))):
     if interval < 3 or interval > 3600:
-        raise HTTPException(400, "Interval must be between 3 and 3600 seconds")
+        raise HTTPException(400, "الفاصل الزمني يجب أن يكون بين 3 و 3600 ثانية")
     settings.BOT_INTERVAL_SECONDS = interval
     return ok({"ok": True, "interval": interval})
 
@@ -284,7 +284,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
 
 
 @router.get("/api/logs")
-async def get_logs(limit: int = Query(50), db=Depends(get_db), current_user=Depends(get_current_user)):
+async def get_logs(limit: int = Query(50, ge=1, le=500), db=Depends(get_db), current_user=Depends(get_current_user)):
     rows = await db.execute(
         select(BotLog).where(BotLog.tenant_id == current_user._tenant_id).order_by(desc(BotLog.created_at)).limit(limit)
     )

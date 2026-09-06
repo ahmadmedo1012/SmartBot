@@ -27,7 +27,9 @@ const liveStats = [
 
 export function HeroMockup() {
   return (
-    <div className="relative animate-fade-in-400">
+    <div className="relative animate-fade-in-400" aria-hidden="true">
+      {/* v8-B16: the whole mockup (fake conversation + stats) is decorative
+          marketing imagery duplicating surrounding copy — hidden from AT. */}
       {/* Soft glow under the mockup */}
       <div className="absolute -inset-12 bg-accent-foreground/10 blur-3xl rounded-[40%]" aria-hidden="true" />
 
@@ -63,13 +65,13 @@ export function HeroMockup() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/20">
             <div className="flex items-center gap-2">
               <div className="flex gap-1.5">
-                <div className="size-2.5 rounded-full bg-red-400/60" />
-                <div className="size-2.5 rounded-full bg-yellow-400/60" />
-                <div className="size-2.5 rounded-full bg-green-400/60" />
+                <div className="size-2.5 rounded-full bg-destructive/60" />
+                <div className="size-2.5 rounded-full bg-warning/60" />
+                <div className="size-2.5 rounded-full bg-success/60" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="size-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="size-2 rounded-full bg-success animate-pulse" />
               <span className="text-[10px] font-semibold text-muted-foreground">نشط الآن</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -92,7 +94,7 @@ export function HeroMockup() {
                   </div>
                 ) : (
                   <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0 shadow-md shadow-accent-foreground/20">
-                    <Bot className="size-4 text-white" />
+                    <Bot className="size-4 text-primary-foreground" />
                   </div>
                 )}
                 <div className={`flex-1 ${msg.from === "user" ? "items-start" : "items-end"} flex flex-col`}>
@@ -104,7 +106,7 @@ export function HeroMockup() {
                     className={`px-3.5 py-2 rounded-2xl text-[12.5px] leading-relaxed max-w-[85%] ${
                       msg.from === "user"
                         ? "bg-muted/60 text-foreground/90 rounded-tr-sm"
-                        : "bg-gradient-to-br from-accent-foreground to-accent-foreground/85 text-white rounded-tl-sm shadow-sm"
+                        : "bg-gradient-to-br from-accent-foreground to-accent-foreground/85 text-primary-foreground rounded-tl-sm shadow-sm"
                     }`}
                   >
                     {msg.text}
@@ -116,7 +118,7 @@ export function HeroMockup() {
             {/* Typing indicator */}
             <div className="flex gap-2.5 flex-row-reverse animate-fade-in-1100" style={{ animationDelay: "2000ms" }}>
               <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0">
-                <Bot className="size-4 text-white" />
+                <Bot className="size-4 text-primary-foreground" />
               </div>
               <div className="bg-gradient-to-br from-accent-foreground/10 to-accent-foreground/5 border border-accent-foreground/20 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />

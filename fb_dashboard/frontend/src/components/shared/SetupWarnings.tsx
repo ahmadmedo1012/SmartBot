@@ -62,7 +62,7 @@ export function SetupWarnings() {
       critical: true,
       icon: Link2,
       title: "لم يتم ربط صفحة فيسبوك",
-      detail: "الرسائل والتعليقات والإعلانات لن تصل إطلاقًا — اربط صفحتك أولًا من صفحة الربط.",
+      detail: "الرسائل والتعليقات والإعلانات لن تصل إطلاقاً — اربط صفحتك أولاً من صفحة الربط.",
       cta: "اربط صفحتك الآن",
       href: "/connect",
     })
@@ -84,7 +84,7 @@ export function SetupWarnings() {
       critical: true,
       icon: Send,
       title: "لم يتم إعداد بوت تليجرام — لن تصلك إشعارات",
-      detail: "إشعارات الاشتراكات والدفع والتذاكر معطّلة. الصق توكن BotFather من إعدادات الأدمن.",
+      detail: "إشعارات الاشتراكات والدفع والتذاكر معطّلة. الصق رمز الوصول BotFather من إعدادات لوحة الإدارة.",
       cta: "الإعدادات",
       href: "/admin/settings",
     })
@@ -94,7 +94,7 @@ export function SetupWarnings() {
       key: "rules",
       critical: false,
       icon: MessageSquareReply,
-      title: "لا توجد قواعد رد تلائي",
+      title: "لا توجد قواعد رد تلقائي",
       detail: "البوت متصل لكنه لن يرد على أي رسالة — أنشئ قاعدة رد واحدة على الأقل.",
       cta: "أنشئ قاعدة",
       href: "/dashboard/autoreply",

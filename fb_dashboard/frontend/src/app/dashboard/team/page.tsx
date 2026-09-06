@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Users2, Shield, User, Bot , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 
 const ROLE_LABELS: Record<string, string> = {
@@ -51,7 +52,9 @@ export default function TeamPage() {
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : members.length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">لا يوجد أعضاء فريق بعد</CardContent></Card>
+          <Card><CardContent className="p-0">
+              <EmptyState icon={Users2} size="sm" title="لا يوجد أعضاء فريق بعد" description="عند إضافة أعضاء إلى فريقك سيظهرون هنا بأدوارهم وصلاحياتهم." />
+            </CardContent></Card>
         ) : (
           members.map((m: any) => (
             <Card key={m.id}>

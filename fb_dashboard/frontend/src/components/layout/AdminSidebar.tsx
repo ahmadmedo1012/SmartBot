@@ -49,7 +49,7 @@ export const defaultNavSections: NavSection[] = [
   {
     label: "الرئيسية",
     items: [
-      { icon: LayoutDashboard, label: "لوحة البيانات", href: "/dashboard" },
+      { icon: LayoutDashboard, label: "لوحة التحكم", href: "/dashboard" },
       { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages" },
       { icon: MessageSquare, label: "التعليقات", href: "/dashboard/comments" },
       { icon: Newspaper, label: "المنشورات", href: "/dashboard/posts" },
@@ -57,7 +57,7 @@ export const defaultNavSections: NavSection[] = [
     ],
   },
   {
-    label: "التحليل",
+    label: "التحليلات",
     items: [
       { icon: BarChart3, label: "التحليلات", href: "/dashboard/analytics", tourId: "sidebar-analytics" },
       { icon: Users, label: "الجمهور", href: "/dashboard/audience", tourId: "sidebar-subscribers" },
@@ -84,7 +84,7 @@ export const defaultNavSections: NavSection[] = [
     ],
   },
   {
-    label: "أخرى",
+    label: "المزيد",
     items: [
       { icon: Bell, label: "الإشعارات", href: "/dashboard/notifications" },
       { icon: Wrench, label: "الأدوات", href: "/dashboard/tools" },
@@ -121,7 +121,9 @@ export function AdminSidebar({
             className="size-8 rounded-lg object-cover"
             priority
           />
-          <span className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-success ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
+          {/* v8-B13: aria-label on a bare span is ignored by AT — role="status"
+              exposes the connection state (the dot itself is decorative) */}
+          <span role="status" className="absolute -bottom-0.5 -end-0.5 size-2.5 rounded-full bg-success ring-2 ring-card animate-pulse-dot" aria-label="متصل" />
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-tight truncate">{title}</p>

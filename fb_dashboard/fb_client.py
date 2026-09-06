@@ -238,14 +238,29 @@ class FBClient:
 
     # ── Page info ─────────────────────────────────────────────────
 
+    _FAN_COUNT_TTL = 300  # seconds — v8-A11
+    _fan_count_cache: tuple[int, int | None, float] | None = None  # (page_id, count, expires_at)
+
     async def get_page_fan_count(self) -> int | None:
         # v4 §3.7 — honest failure: None (not 0) when the call fails, so
         # callers can fall back to the stored fb_fan_count snapshot instead
         # of displaying "0 followers" next to a "connected" badge.
+        # v8-A11 — TTL cache (5 min): this live Graph call sat in the request
+        # path of /api/dashboard/bundle, /api/stats and /api/analytics/overview
+        # on EVERY dashboard load; a slow Graph response stalled the whole
+        # dashboard (maxDuration 30s). Follower counts do not move fast —
+        # a 5-minute window is invisible to users and removes the latency.
+        import time as _time
+        now = _time.monotonic()
+        cached = FBClient._fan_count_cache
+        if cached and cached[0] == self.page_id and cached[2] > now:
+            return cached[1]
         r = await self._get(f"{self.page_id}", {"fields": "fan_count"})
-        if r is None:
-            return None
-        return (r or {}).get("fan_count", 0)
+        value = None if r is None else (r or {}).get("fan_count", 0)
+        # only cache successful reads — failures keep the honest-None contract
+        if r is not None:
+            FBClient._fan_count_cache = (self.page_id, value, now + FBClient._FAN_COUNT_TTL)
+        return value
 
     async def get_page_profile(self) -> dict:
         """Page identity snapshot: name + fan_count + square picture URL.

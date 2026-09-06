@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import {
   HelpCircle,
   Mail,
@@ -14,6 +14,7 @@ import {
   Ticket,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
@@ -21,9 +22,9 @@ import { unwrapApi } from "@/lib/api"
 
 const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
-  medium: "bg-blue-500/10 text-blue-500",
+  medium: "bg-info-soft text-info",
   high: "bg-accent-foreground/10 text-accent-foreground",
-  urgent: "bg-red-500/10 text-red-500",
+  urgent: "bg-destructive-soft text-destructive",
 }
 const PRIORITY_LABEL: Record<string, string> = {
   low: "منخفضة",
@@ -43,7 +44,7 @@ const FAQS = [
     a: "انتقل إلى صفحة الصفحات وأدخل معرف الصفحة ورمز الوصول من فيسبوك، ثم احفظ البيانات.",
   },
   {
-    q: "كيف أعمل رد تلقائي؟",
+    q: "كيف أنشئ ردًّا تلقائيًا؟",
     a: "من صفحة الردود التلقائية، أضف قاعدة جديدة بكلمة مفتاحية ونص الرد الذي تريده.",
   },
   {
@@ -113,9 +114,9 @@ export default function SupportPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-ticket", openTicketId] })
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
-      toast.success("تم إرسال ردك")
+      brandedToast.success("تم إرسال ردك")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل إرسال الرد"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال الرد"),
   })
   const [replyText, setReplyText] = useState("")
 
@@ -141,20 +142,20 @@ export default function SupportPage() {
       // v4 §2.2 — unwrapApi returns the payload or THROWS on success:false;
       // reaching here means success. The old data?.success check always failed
       // → users saw "فشل إرسال الطلب" after a successful send and resubmitted.
-      toast.success(data?.message || "تم إرسال طلبك بنجاح")
+      brandedToast.success(data?.message || "تم إرسال طلبك بنجاح")
       setFormSent(true)
       setForm({ subject: "", message: "", email: "", priority: "medium" })
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
     },
     onError: (e: Error) => {
-      toast.error(e.message || "فشل إرسال الطلب")
+      brandedToast.error(e.message || "فشل إرسال الطلب")
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.message.trim() || form.message.trim().length < 10) {
-      toast.error("يرجى إدخال رسالة لا تقل عن 10 أحرف")
+      brandedToast.error("يرجى إدخال رسالة لا تقل عن 10 أحرف")
       return
     }
     mutation.mutate(form)
@@ -210,7 +211,8 @@ export default function SupportPage() {
                   href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 text-sm hover:text-green-500 transition-colors"
+                  aria-label={`واتساب: ${whatsapp} — يفتح في تبويب جديد`}
+                  className="flex items-center gap-3 text-sm hover:text-success transition-colors"
                 >
                   <MessageCircle className="size-4 text-muted-foreground shrink-0" />
                   <span>واتساب: {whatsapp}</span>
@@ -247,17 +249,20 @@ export default function SupportPage() {
                   label="البريد الإلكتروني (اختياري)"
                   id="email"
                   type="email"
+                  autoComplete="email"
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="email@example.com"
                 />
                 <div className="space-y-1">
                   <label className="text-sm font-semibold leading-none">الأولوية</label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="مستوى الأولوية">
                     {["low", "medium", "high", "urgent"].map((p) => (
                       <button
                         key={p}
                         type="button"
+                        role="radio"
+                        aria-checked={form.priority === p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
                         className={`h-8 rounded-sm border text-xs font-medium transition-all ${
                           form.priority === p
@@ -279,6 +284,8 @@ export default function SupportPage() {
                   </label>
                   <textarea
                     id="message"
+                    aria-describedby={form.message && form.message.trim().length < 10 ? "message-error" : undefined}
+                    aria-invalid={form.message && form.message.trim().length < 10 ? true : undefined}
                     value={form.message}
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="صف مشكلتك بالتفصيل..."
@@ -286,7 +293,7 @@ export default function SupportPage() {
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
-                    <p className="text-[11px] text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
+                    <p id="message-error" role="alert" aria-live="polite" className="text-[11px] text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
                   )}
                 </div>
                 <Button
@@ -296,7 +303,7 @@ export default function SupportPage() {
                   disabled={mutation.isPending || !form.message.trim() || form.message.trim().length < 10}
                 >
                   <Send className="size-4 rtl:-scale-x-100" />
-                  {mutation.isPending ? "جاري الإرسال..." : "إرسال الطلب"}
+                  {mutation.isPending ? "جارٍ الإرسال..." : "إرسال الطلب"}
                 </Button>
               </form>
             </CardContent>
@@ -304,10 +311,10 @@ export default function SupportPage() {
         ) : (
           <Card>
             <CardContent className="py-12 text-center space-y-3">
-              <div className="mx-auto size-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Send className="size-5 text-green-500 rtl:-scale-x-100" />
+              <div className="mx-auto size-12 rounded-full bg-success-soft flex items-center justify-center">
+                <Send className="size-5 text-success rtl:-scale-x-100" />
               </div>
-              <p className="text-sm font-bold text-green-600">تم إرسال طلبك بنجاح!</p>
+              <p role="status" className="text-sm font-bold text-success">تم إرسال طلبك بنجاح!</p>
               <p className="text-xs text-muted-foreground">
                 سيتواصل معك فريق الدعم خلال 24 ساعة
               </p>
@@ -347,8 +354,8 @@ export default function SupportPage() {
             </Card>
           ) : tickets.length === 0 ? (
             <Card>
-              <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                لا توجد تذاكر دعم بعد
+              <CardContent className="p-0">
+                <EmptyState icon={Ticket} size="sm" title="لا توجد تذاكر دعم بعد" description="أرسل طلبك من النموذج أعلاه وستظهر تذاكرك هنا مع ردود فريق الدعم." />
               </CardContent>
             </Card>
           ) : (
@@ -420,6 +427,7 @@ export default function SupportPage() {
                                   value={replyText}
                                   onChange={(e) => setReplyText(e.target.value)}
                                   placeholder="اكتب رداً..."
+                                  aria-label="نص الرسالة"
                                   className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />
                                 <Button

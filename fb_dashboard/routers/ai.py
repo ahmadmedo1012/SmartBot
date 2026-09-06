@@ -3,9 +3,10 @@ from __future__ import annotations
 """AI & Agent routes: suggest, analyze, generate-reply, analyze-image, status, agent interpret, memory."""
 import asyncio
 import logging
+import os
 import secrets
 
-from _responses import ok
+from _responses import fail, ok
 from database import get_db
 from event_bus import event_bus
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
@@ -141,10 +142,19 @@ async def agent_interpret(
         except Exception:
             raise HTTPException(400, "الملف ليس صورة صالحة") from None
         img_filename = f"agent_{secrets.token_hex(8)}.jpg"
-        img_path = _STATIC_DIR / "uploads" / img_filename
-        img_path.parent.mkdir(parents=True, exist_ok=True)
-        img_path.write_bytes(payload)
-        image_url = f"/static/uploads/{img_filename}"
+        # v8-A4: Vercel's function filesystem is READ-ONLY outside /tmp —
+        # writing into STATIC_DIR 500s in production. Mirror the proven
+        # payments.py pattern: embed a data-URI on serverless, write the
+        # file only on a writable (local/standalone) filesystem.
+        _is_vercel = bool(os.getenv("VERCEL"))
+        if _is_vercel:
+            import base64
+            image_url = f"data:image/jpeg;base64,{base64.b64encode(payload).decode()}"
+        else:
+            img_path = _STATIC_DIR / "uploads" / img_filename
+            img_path.parent.mkdir(parents=True, exist_ok=True)
+            img_path.write_bytes(payload)
+            image_url = f"/static/uploads/{img_filename}"
 
     try:
         # v4 §3.6 — pass the tenant so agent context counts are scoped
@@ -153,22 +163,24 @@ async def agent_interpret(
         import traceback
         tb = traceback.format_exc()
         log.error(f"agent.process failed: {e}\n{tb}")
-        return {"action": "error", "params": {}, "response_ar": f"خطأ: {str(e)[:200]}",
-                "data": {}, "success": False}
+        # v8-A8: envelope contract (ok/fail) + never leak internal exception
+        # detail (the old str(e)[:200] reached the client verbatim).
+        return fail("حدث خطأ أثناء معالجة طلب المساعد الذكي — حاول مرة أخرى")
 
+    # v8-A2: emit scoped to THIS tenant — the old global broadcast delivered
+    # the full agent reply to every authenticated SSE subscriber.
     asyncio.create_task(event_bus.emit("agent_message", {
         "role": "agent", "text": result.get("response_ar", ""),
         "action": result.get("action", "unknown"),
         "success": result.get("success", False),
-    }))
+    }, tenant_id=current_user._tenant_id))
 
-    return {
+    return ok({
         "action": result.get("action", "unknown"),
         "params": result.get("params", {}),
         "response_ar": result.get("response_ar", ""),
         "data": result.get("data", {}),
-        "success": result.get("success", False),
-    }
+    })
 
 
 @router.get("/api/agent/memory")

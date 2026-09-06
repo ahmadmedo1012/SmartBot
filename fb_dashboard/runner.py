@@ -483,7 +483,9 @@ async def rate_limit_middleware(request: Request, call_next):
     """
     if request.method in ("POST", "PUT", "DELETE"):
         path = request.url.path
-        if not any(p in path for p in ("/login", "/register", "/webhook", "/telegram")):
+        # v8-A6: exact path-prefix match — the old substring `p in path`
+        # also exempted paths like /api/x/telegram-leak or /api/register-page.
+        if not any(path.startswith(p) for p in ("/api/login", "/api/register", "/webhook", "/api/telegram")):
             ip = request.client.host if request.client else "unknown"
             try:
                 from _rate_limit import check_rate_limit
@@ -498,33 +500,6 @@ async def rate_limit_middleware(request: Request, call_next):
                 logging.getLogger("fb-rate-limit").warning("Rate-limit check failed — allowing request through", exc_info=True)
     return await call_next(request)
 
-
-@app.middleware("http")
-async def security_headers(request: Request, call_next):
-    """Add security headers to every response."""
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
-    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-    # Content-Security-Policy — restrict sources for XSS protection
-    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner;
-    # 'unsafe-eval' REMOVED 2026-09-05 (dev-only need — production Next.js does not eval).
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.facebook.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "img-src 'self' data: blob: https:; "
-        "font-src 'self' data: https://fonts.gstatic.com; "
-        "connect-src 'self' https: wss:; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self';"
-    )
-    return response
 
 @app.middleware("http")
 async def csrf_origin_check(request: Request, call_next):
@@ -544,7 +519,7 @@ async def csrf_origin_check(request: Request, call_next):
         if origin:
             host = urlparse(origin).hostname or ""
             if host not in allowed_hosts:
-                return JSONResponse(status_code=403, content={"detail": "Invalid origin"})
+                return JSONResponse(status_code=403, content={"detail": "المصدر غير مصرح به"})
         elif referer:
             host = urlparse(referer).hostname or ""
             if host and host not in allowed_hosts:
@@ -722,7 +697,10 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         if not _TG_SECRET:
             log.warning("TELEGRAM_WEBHOOK_SECRET not set — rejecting unverified request")
             raise HTTPException(403, "Forbidden")
-        if token != _TG_SECRET:
+        # v8-A6: constant-time compare (hmac.compare_digest) — a plain ==
+        # leaks the secret byte-by-byte via timing. Mirrors the cron check.
+        import hmac as _hmac
+        if not _hmac.compare_digest(token.encode(), _TG_SECRET.encode()):
             raise HTTPException(403, "Forbidden")
     cq = (body or {}).get("callback_query")
     if not cq:
@@ -861,6 +839,40 @@ async def static_cache_middleware(request: Request, call_next):
     return response
 
 
+# v8-A7: security_headers is registered LAST among the HTTP middlewares.
+# Starlette's `@app.middleware("http")` inserts at the FRONT of the user
+# middleware stack, so the LAST registered decorator is the OUTERMOST layer —
+# every response, including early 403s from csrf_origin_check and 429s from
+# rate_limit_middleware, passes back through here and receives the full
+# security header set (previously those early returns bypassed it).
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to every response (outermost layer)."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    # Content-Security-Policy — restrict sources for XSS protection
+    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner;
+    # 'unsafe-eval' REMOVED 2026-09-05 (dev-only need — production Next.js does not eval).
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.facebook.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "img-src 'self' data: blob: https:; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "connect-src 'self' https: wss:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    return response
+
+
 
 
 # ── WebSocket Real-Time Updates ─────────────────────────────────────────────
@@ -928,8 +940,18 @@ async def websocket_endpoint(ws: WebSocket):
 # ── Server-Sent Events ─────────────────────────────────────────────
 
 @app.get("/api/events")
-async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)):
-    """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health)."""
+async def sse_endpoint(request: Request, user: User = Depends(get_current_user)):
+    """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health).
+
+    SECURITY (v8-A2): subscribes with the authenticated user's tenant_id.
+    The old global subscription (tenant_id=None) delivered EVERY queued
+    event — including other tenants' customer names ("sender") and full AI
+    agent replies — to any authenticated user. Tenant-scoped emits are now
+    filtered by event_bus; only genuine platform-wide broadcasts
+    (emit(tenant_id=None)) still reach everyone.
+    """
+    sub_tenant: int | None = user._tenant_id
+
     async def event_generator():
         queue: asyncio.Queue = asyncio.Queue()
         handlers = {}
@@ -940,8 +962,7 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
         for evt_name in ("stats_update", "bot_health", "agent_message"):
             h = await _make_handler(evt_name)
             handlers[evt_name] = h
-            # Subscribe without tenant filter (legacy) — tenant filtering happens on emit
-            event_bus.subscribe(evt_name, h, tenant_id=None)
+            event_bus.subscribe(evt_name, h, tenant_id=sub_tenant)
         try:
             yield "data: {\"event\":\"connected\"}\n\n"
             while True:
@@ -953,7 +974,7 @@ async def sse_endpoint(request: Request, _user: User = Depends(get_current_user)
                     yield ": keepalive\n\n"
         finally:
             for evt_name, h in handlers.items():
-                event_bus.unsubscribe(evt_name, h, tenant_id=None)
+                event_bus.unsubscribe(evt_name, h, tenant_id=sub_tenant)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

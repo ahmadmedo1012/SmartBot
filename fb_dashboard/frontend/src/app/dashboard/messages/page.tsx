@@ -3,41 +3,31 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Search, Send, Bell, Link2, RefreshCw, MessageCircle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
 import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
-import { formatDate, formatDateOnly } from "@/lib/format"
+import { countPhrase, formatDate, formatDateOnly, timeAgo } from "@/lib/format"
 
 function initials(name: string) {
   if (!name) return "?"
   return name.split(" ").slice(0, 2).map(s => s[0]).join("").toUpperCase()
 }
 
-function timeAgo(dateStr: string) {
-  if (!dateStr) return ""
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "الآن"
-  if (mins < 60) return `منذ ${mins} د`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `منذ ${hours} س`
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `منذ ${days} ي`
-  return formatDateOnly(dateStr)
-}
 
 const FILTERS = [
   { value: "all", label: "الكل" },
   { value: "unread", label: "غير مقروء" },
   { value: "read", label: "مقروء" },
-  { value: "needs_reply", label: "بحاجة رد" },
+  { value: "needs_reply", label: "تحتاج إلى رد" },
 ]
 
 function ConvItem({ conv, selectedId, onSelect }: {
@@ -51,7 +41,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
       aria-current={selected ? "true" : undefined}
       className={`group w-full text-right p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
         ${selected
-          ? "bg-gradient-to-l from-accent-foreground/15 to-accent-foreground/5 border-r-[3px] border-r-orange"
+          ? "bg-gradient-to-l from-accent-foreground/15 to-accent-foreground/5 border-s-[3px] border-s-primary"
           : "hover:bg-muted/40 border-r-[3px] border-r-transparent"}`}
     >
       <div className="flex gap-3 items-start">
@@ -77,7 +67,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
             {conv.senders?.map((s: any) => s.name).join("، ") || "غير معروف"}
           </p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[11px] text-muted-foreground">{conv.message_count} رسالة</span>
+            <span className="text-[11px] text-muted-foreground">{countPhrase(conv.message_count, "رسالة", "رسالتين", "رسائل")}</span>
             {hasUnread && (
               <span className="inline-flex items-center justify-center text-[10px] h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
                 {conv.unread_count}
@@ -97,9 +87,12 @@ export default function MessagesPage() {
   const [replyText, setReplyText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
+  // v8 C8 — keepPreviousData: switching filters/search keeps the previous
+  // list on screen (dimmed via isFetching) instead of flashing skeletons
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: ["inbox-conversations", filter, search],
     queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(search)}`).then(unwrapApi),
+    placeholderData: (prev) => prev,
     refetchInterval: 15000,
     retry: (failureCount, err) => {
       // Don't retry a "page not connected" setup error
@@ -127,9 +120,9 @@ export default function MessagesPage() {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages", selectedId] })
       queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] })
       setReplyText("")
-      toast.success("تم إرسال الرد")
+      brandedToast.success("تم إرسال الرد")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الإرسال"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
   })
 
   const scrollToBottom = useCallback(() => {
@@ -166,6 +159,7 @@ export default function MessagesPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="بحث في المحادثات..."
+                aria-label="البحث في المحادثات"
                 className="pr-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
               />
             </div>
@@ -174,6 +168,7 @@ export default function MessagesPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
+                  aria-pressed={filter === f.value}
                   className={cn(
                     "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40",
                     filter === f.value
@@ -186,15 +181,18 @@ export default function MessagesPage() {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className={cn(
+            "flex-1 overflow-y-auto transition-opacity",
+            isFetching && !isLoading && "opacity-60"
+          )}>
             {isLoading ? (
               <div className="p-4 space-y-3">
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="flex gap-3 animate-pulse">
-                    <div className="size-11 rounded-full bg-muted shrink-0" />
+                  <div key={i} className="flex gap-3 items-center">
+                    <Skeleton className="size-11 rounded-full shrink-0" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-muted rounded w-3/4" />
-                      <div className="h-2 bg-muted rounded w-1/2" />
+                      <Skeleton className="h-3 w-3/4" />
+                      <Skeleton className="h-2 w-1/2" />
                     </div>
                   </div>
                 ))}
@@ -229,17 +227,14 @@ export default function MessagesPage() {
                 </Button>
               </div>
             ) : conversations.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="size-14 rounded-2xl bg-muted/40 flex items-center justify-center mx-auto mb-3">
-                  <MessageCircle className="size-7 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm font-medium mb-1">
-                  {search || filter !== "all" ? "لا توجد نتائج" : "لا توجد محادثات بعد"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {search || filter !== "all" ? "جرب كلمات بحث مختلفة" : "ستظهر المحادثات الجديدة هنا"}
-                </p>
-              </div>
+              <EmptyState
+                icon={MessageCircle}
+                size="sm"
+                title={search || filter !== "all" ? "لا توجد نتائج" : "لا توجد محادثات بعد"}
+                description={search || filter !== "all"
+                  ? "جرّب كلمات بحث مختلفة أو غيّر الفلتر لعرض المزيد"
+                  : "ستظهر محادثاتك مع العملاء هنا فور وصول أول رسالة إلى صفحتك"}
+              />
             ) : (
               conversations.map((conv: any) => (
                 <ConvItem key={conv.id} conv={conv} selectedId={selectedId} onSelect={setSelectedId} />
@@ -251,14 +246,13 @@ export default function MessagesPage() {
         {/* Message area */}
         <div className={cn("flex-1 flex-col", selectedId ? "flex" : "hidden md:flex")}>
           {!selectedId ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center max-w-sm">
-                <div className="size-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                  <Bell className="size-9 opacity-40" />
-                </div>
-                <p className="text-sm font-medium text-foreground mb-1">اختر محادثة</p>
-                <p className="text-xs text-muted-foreground">اختر محادثة من القائمة لعرض الرسائل والرد عليها</p>
-              </div>
+            <div className="flex-1 flex items-center justify-center">
+              <EmptyState
+                icon={Bell}
+                size="lg"
+                title="اختر محادثة"
+                description="اختر محادثة من القائمة لعرض الرسائل والرد عليها."
+              />
             </div>
           ) : (
             <>
@@ -272,13 +266,18 @@ export default function MessagesPage() {
                 {msgLoading ? (
                   <div className="space-y-3">
                     {[1,2,3].map(i => (
-                      <div key={i} className={`flex gap-3 animate-pulse ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
-                        <div className="h-16 bg-muted rounded-lg w-1/2" />
+                      <div key={i} className={`flex gap-3 ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                        <Skeleton className="h-16 rounded-lg w-1/2" />
                       </div>
                     ))}
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="text-center text-sm text-muted-foreground py-8">لا توجد رسائل في هذه المحادثة</div>
+                  <EmptyState
+                    icon={MessageCircle}
+                    size="sm"
+                    title="لا توجد رسائل في هذه المحادثة"
+                    description="اكتب أول رد من مربع الإرسال في الأسفل لبدء الحوار مع العميل."
+                  />
                 ) : (
                   messages.map((msg: any, i: number) => {
                     // v4 §2.4 — explicit backend flag; the old from?.id === "page"
@@ -351,6 +350,7 @@ export default function MessagesPage() {
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً..."
+                      aria-label="نص الرد"
                       className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}
                     />

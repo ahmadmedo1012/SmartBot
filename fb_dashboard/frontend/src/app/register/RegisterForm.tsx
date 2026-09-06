@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
 import { UserPlus, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react"
@@ -61,19 +61,19 @@ function RegisterForm() {
       const data = await res.json()
       if (!res.ok) {
         setFormError(data.detail || data.error || "فشل إنشاء الحساب")
-        toast.error(data.detail || data.error || "فشل إنشاء الحساب")
+        brandedToast.error(data.detail || data.error || "فشل إنشاء الحساب")
         return
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
       // validation message instead of a generic connection error.
-      toast.success("تم إنشاء الحساب بنجاح")
+      brandedToast.success("تم إنشاء الحساب بنجاح")
       setTimeout(() => window.location.replace("/dashboard"), 150)
     } catch (e) {
       const msg = e instanceof ApiError
         ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل إنشاء الحساب")
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
-      toast.error(msg)
+      brandedToast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -97,6 +97,9 @@ function RegisterForm() {
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--accent-foreground)] via-[var(--accent-foreground)]/80 to-[var(--accent-foreground)]/60" />
 
       <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+        {/* Visually-hidden page heading — CardTitle is a div, so heading
+            navigation had no target on this route (v8-B5) */}
+        <h1 className="sr-only">إنشاء حساب جديد</h1>
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             {/* v6 §D — next/image: 160×160 intrinsic dims, no CLS */}
@@ -116,7 +119,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
                   <span className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {usernameOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {usernameOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -130,7 +133,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
                   <span className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {emailOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {emailOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -144,7 +147,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {password.length > 0 && (
                   <span className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {passwordOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {passwordOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -163,7 +166,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {confirm.length > 0 && (
                   <span className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {password === confirm ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-green-500" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {password === confirm ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
@@ -181,7 +184,7 @@ function RegisterForm() {
             )}
             <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading}>
               {loading ? (
-                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جاري إنشاء الحساب...</span>
+                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جارٍ إنشاء الحساب...</span>
               ) : (
                 <span className="flex items-center gap-2"><UserPlus className="size-4" /> إنشاء حساب</span>
               )}

@@ -65,7 +65,7 @@ export function TelegramConfigSection({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               احصل على الرمز من{" "}
-              <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a>
+              <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline">@BotFather</a>
             </p>
           </div>
           <div>
@@ -75,13 +75,13 @@ export function TelegramConfigSection({
               placeholder="-1001234567890" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
             <p className="text-xs text-muted-foreground mt-1">
               أرسل <span className="font-mono" dir="ltr">/start</span> إلى{" "}
-              <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="underline">@userinfobot</a> لمعرفة المعرف
+              <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" aria-label="@userinfobot — يفتح في تبويب جديد" className="underline">@userinfobot</a> لمعرفة المعرف
             </p>
           </div>
           <div>
             <Label htmlFor="tg-events">الأحداث المرسلة (مفصولة بفاصلة)</Label>
             <Input id="tg-events" value={eventsInput} onChange={(e) => onEventsChange(e.target.value)}
-              placeholder="user_signup, restaurant_created, system_alert" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
+              placeholder="payment_received, subscription_approved, system_alert" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
             <p className="text-xs text-muted-foreground mt-1">أمثلة: user_signup, restaurant_created, system_alert</p>
           </div>
           <div className="flex gap-2 pt-2">

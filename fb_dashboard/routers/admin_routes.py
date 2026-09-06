@@ -116,7 +116,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     (falls back to env / frontend defaults).
     """
     if not body:
-        raise HTTPException(400, "JSON body required")
+        raise HTTPException(400, "جسم الطلب JSON مطلوب")
     payload = body.get("config", body) if isinstance(body.get("config", body), dict) else None
     if not payload:
         raise HTTPException(400, "config object required")
@@ -156,7 +156,14 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
                     tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})
     # Keys whose values are credentials — stored with is_secret=True so they
     # never leak through non-secret config reads (support/info pattern).
-    _SECRET_KEYS = {"telegram_bot_token", "facebook_app_secret"}
+    # v8-A1: openai/gemini keys are credentials too — previously stored
+    # non-secret, which leaked them via the public GET /api/config.
+    _SECRET_KEYS = {
+        "telegram_bot_token",
+        "facebook_app_secret",
+        "openai_api_key",
+        "gemini_api_key",
+    }
     for k, v in payload.items():
         v = str(v or "").strip()
         existing = await db.execute(select(SystemConfig).where(SystemConfig.key == k))
@@ -287,7 +294,7 @@ async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User =
         raise HTTPException(403, "لا يمكنك حذف مستأجر آخر")
     tenant = await db.get(Tenant, tenant_id)
     if not tenant:
-        raise HTTPException(404, "Tenant not found")
+        raise HTTPException(404, "المنظمة غير موجودة")
 
     tables = [
         SequenceSubscription, SequenceStep, BroadcastRecipient, SubscriberTag,
@@ -310,7 +317,7 @@ async def set_rule_priority(rule_id: int, priority: int = Form(...), db=Depends(
         select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not rule:
-        raise HTTPException(404, "Rule not found")
+        raise HTTPException(404, "القاعدة غير موجودة")
     rule.priority = max(0, min(9999, priority))
     await db.commit()
     return ok({"ok": True, "priority": rule.priority})

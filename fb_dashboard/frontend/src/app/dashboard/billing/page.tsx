@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { CreditCard, AlertCircle, RefreshCw, Zap, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { formatDate, formatNumber } from "@/lib/format"
 
@@ -14,7 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
   confirmed: "مؤكد", cancelled: "ملغى", verified: "مُفعّل", rejected: "مرفوض",
 }
 const PROVIDER_LABELS: Record<string, string> = {
-  liyana: "ليانا", madar: "مدار", bank: "تحويل بنكي",
+  liyana: "ليبيانا", madar: "مدار", bank: "تحويل بنكي",
 }
 
 export default function BillingPage() {
@@ -75,33 +76,35 @@ export default function BillingPage() {
         </Card>
 
         <div>
-          <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
             <Receipt className="size-4 text-muted-foreground" /> سجل الدفع
-          </h3>
+          </h2>
           {histLoad ? (
             <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-10" /></Card>)}</div>
           ) : anyError ? (
             <div className="text-center py-8">
-              <AlertCircle className="size-8 mx-auto mb-2 text-red-500/50" />
+              <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
               <p className="text-xs text-muted-foreground mb-3">{(error as any)?.message || "تعذر الاتصال"}</p>
               <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
             </div>
           ) : (history as any[]).length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">لا توجد معاملات سابقة</CardContent></Card>
+            <Card><CardContent className="p-0">
+              <EmptyState icon={Receipt} size="sm" title="لا توجد معاملات سابقة" description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة." />
+            </CardContent></Card>
           ) : (
             <div className="space-y-2">
               {(history as any[]).map((p: any) => (
                 <Card key={p.payment_id}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{formatNumber(p.amount)} LYD</p>
+                      <p className="text-sm font-medium">{formatNumber(p.amount)} د.ل</p>
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
                       <p className="text-[10px] text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      p.status === "completed" ? "bg-green-500/10 text-green-500" :
-                      p.status === "pending" ? "bg-yellow-500/10 text-yellow-500" :
-                      p.status === "failed" ? "bg-red-500/10 text-red-500" :
+                      p.status === "completed" ? "bg-success-soft text-success" :
+                      p.status === "pending" ? "bg-warning/10 text-warning" :
+                      p.status === "failed" ? "bg-destructive-soft text-destructive" :
                       "bg-muted text-muted-foreground"
                     }`}>{STATUS_LABELS[p.status] || p.status}</span>
                   </CardContent>

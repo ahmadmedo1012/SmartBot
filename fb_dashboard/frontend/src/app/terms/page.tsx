@@ -2,9 +2,15 @@ import type { Metadata } from "next"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 
+const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+
+// v8-E23: canonical + OG — these pages are sitemap-listed and footer-linked;
+// every other public route already had both.
 export const metadata: Metadata = {
   title: "شروط الاستخدام",
   description: "شروط وأحكام استخدام منصة الربط الذكي SmartBot لإدارة صفحات فيسبوك",
+  alternates: { canonical: `${siteUrl}/terms` },
+  openGraph: { title: "شروط الاستخدام | SmartBot", description: "شروط وأحكام استخدام منصة الربط الذكي SmartBot لإدارة صفحات فيسبوك" },
 }
 
 export default function TermsPage() {
@@ -23,9 +29,9 @@ export default function TermsPage() {
 
           <h2 className="text-foreground text-xl font-semibold mt-8">الحساب</h2>
           <p>
-            عند إنشاء حساب في المنصة تصبح مسؤولًا عن الحفاظ على سرية بيانات تسجيل الدخول الخاصة بك،
+            عند إنشاء حساب في المنصة تصبح مسؤولاً عن الحفاظ على سرية بيانات تسجيل الدخول الخاصة بك،
             وعن جميع الأنشطة التي تتم من خلال حسابك. ننصح باستخدام كلمة مرور قوية وتغييرها بشكل
-            دوري، وإخطارنا فورًا بأي استخدام غير مصرح به لحسابك. لا يجوز مشاركة بيانات حسابك مع
+            دوري، وإخطارنا فوراً بأي استخدام غير مصرح به لحسابك. لا يجوز مشاركة بيانات حسابك مع
             أي طرف آخر، ويتحمل مالك الحساب كامل المسؤولية عن أي إهمال في حفظ هذه البيانات.
           </p>
 
@@ -34,7 +40,7 @@ export default function TermsPage() {
             تقدم المنصة أدوات لأتمتة التفاعل مع صفحات فيسبوك، تشمل الردود التلقائية الذكية،
             وإدارة الرسائل، والبث الجماعي، وجدولة المنشورات، والتحليلات. نحرص على توفير الخدمة
             بأعلى درجات الجاهزية الممكنة، لكننا لا نضمن استمرارية الخدمة دون أي انقطاع، وقد يتم
-            إجراء صيانة دورية أو تحديثات تستلزم توقفًا مؤقتًا. كما نحتفظ بحق تطوير الخدمة أو
+            إجراء صيانة دورية أو تحديثات تستلزم توقفاً مؤقتاً. كما نحتفظ بحق تطوير الخدمة أو
             تعديل ميزاتها بما يخدم تحسين جودة الاستخدام.
           </p>
 

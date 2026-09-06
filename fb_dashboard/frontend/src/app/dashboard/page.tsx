@@ -15,11 +15,12 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { Skeleton } from "@/components/ui/skeleton"
 import { fadeUp, stagger } from "@/lib/motion"
 import { ActivityBarChart } from "@/components/charts"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { toArabicNumber } from "@/lib/format"
+import { countPhrase, toArabicNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /* World-class launch plan v3 §7b: honest connection state, persisted-message
@@ -30,18 +31,18 @@ function LoadingSkeleton() {
   return (
     <SectionContainer className="py-6 space-y-6">
       <div className="space-y-2">
-        <div className="h-7 w-36 bg-muted rounded animate-pulse" />
-        <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+        <Skeleton className="h-7 w-36" />
+        <Skeleton className="h-4 w-48" />
       </div>
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}><CardContent className="p-4 space-y-2">
-            <div className="h-3 w-16 bg-muted rounded animate-pulse" />
-            <div className="h-7 w-12 bg-muted rounded animate-pulse" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-12" />
           </CardContent></Card>
         ))}
       </div>
-      <div className="h-48 bg-muted rounded animate-pulse" />
+      <Skeleton className="h-48" />
     </SectionContainer>
   )
 }
@@ -85,14 +86,14 @@ function NotConnectedCard() {
         <EmptyState
           icon={Link2}
           title="اربط صفحتك لتبدأ"
-          description="لم يتم ربط صفحة فيسبوك بهذا الحساب بعد. بعد الربط ستصل الرسائل والتعليقات فورًا ويعمل الرد التلقائي."
+          description="لم يتم ربط صفحة فيسبوك بهذا الحساب بعد. بعد الربط ستصل الرسائل والتعليقات فوراً ويعمل الرد التلقائي."
           action={{
             label: "ربط صفحة فيسبوك",
             icon: Link2,
             onClick: () => { window.location.href = "/connect" },
           }}
           secondaryAction={{
-            label: "إنشاء قاعدة رد أولًا",
+            label: "إنشاء قاعدة رد أولاً",
             onClick: () => { window.location.href = "/dashboard/autoreply" },
           }}
         />
@@ -130,7 +131,7 @@ export default function DashboardPage() {
         {/* Header — REAL connection state (was hardcoded "متصل") */}
         <PageHeader
           icon={<TrendingUp className="size-4" />}
-          title="لوحة البيانات"
+          title="لوحة التحكم"
           subtitle={pageName ? `متصل بـ ${pageName}` : undefined}
           status={connected
             ? { label: "متصل", tone: "success" }
@@ -159,7 +160,7 @@ export default function DashboardPage() {
                 iconBg="bg-info/10" iconColor="text-info" index={2}
                 href="/dashboard/messages" />
               <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length}
-                subtitle={`من ${toArabicNumber(rulesList.length)} قاعدة`}
+                subtitle={`من ${countPhrase(rulesList.length, "قاعدة", "قاعدتين", "قواعد")}`}
                 iconBg="bg-accent" index={3}
                 href="/dashboard/autoreply" />
             </div>
@@ -169,7 +170,7 @@ export default function DashboardPage() {
               <KpiCard icon={Users} label="متابعو الصفحة" value={stats?.fan_count || 0}
                 iconBg="bg-accent" index={4} />
               <KpiCard icon={MessageCircle} label="الرسائل المخزنة" value={messages.total_messages || 0}
-                subtitle="تصل لحظيًا عبر الويبهوك" iconBg="bg-info/10" iconColor="text-info" index={5}
+                subtitle="تصل لحظياً عبر الويبهوك" iconBg="bg-info/10" iconColor="text-info" index={5}
                 href="/dashboard/messages" />
               <KpiCard icon={Zap} label="ردود البوت على الرسائل" value={messages.bot_replies || 0}
                 iconBg="bg-success/10" iconColor="text-success" index={6} />
@@ -201,7 +202,7 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent className="p-0">
                     {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r: any) => (
-                      <div key={r.id} className="flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0">
+                      <div key={r.id} className="flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                         <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
                           {(r.commenter_name || r.commenter || "?")[0]}
                         </div>
@@ -212,7 +213,12 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     )) : (
-                      <div className="p-8 text-center text-sm text-muted-foreground">لا توجد ردود بعد</div>
+                      <EmptyState
+                        icon={MessageCircle}
+                        size="sm"
+                        title="لا توجد ردود بعد"
+                        description="ستظهر آخر ردود البوت هنا فور وصول تعليقات جديدة على منشوراتك."
+                      />
                     )}
                   </CardContent>
                 </Card>
@@ -238,7 +244,7 @@ export default function DashboardPage() {
                           </thead>
                           <tbody>
                             {rulesList.slice(0, 5).map((r: any) => (
-                              <tr key={r.id} className="border-b border-border last:border-0">
+                              <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                                 <td className="p-3 font-medium">{r.name}</td>
                                 <td className="p-3 text-center">
                                   <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-success" : "text-muted-foreground")}>
@@ -255,7 +261,7 @@ export default function DashboardPage() {
                       <EmptyState
                         icon={Activity}
                         title="لا توجد قواعد بعد"
-                        description="أنشئ قاعدة رد أولى ليبدأ البوت بالرد تلقائيًا."
+                        description="أنشئ قاعدة رد أولى ليبدأ البوت بالرد تلقائياً."
                         size="sm"
                         action={{
                           label: "إنشاء قاعدة",

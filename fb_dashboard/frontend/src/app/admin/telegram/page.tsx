@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import {
   Bot, Save, Send, Stethoscope, CheckCircle2, XCircle, Loader2,
   AlertTriangle, BotMessageSquare,
@@ -78,7 +78,7 @@ export default function AdminTelegramPage() {
           setEventsInput((d.events ?? []).join(", "))
         }
       })
-      .catch(() => toast.error("فشل تحميل الإعدادات"))
+      .catch(() => brandedToast.error("فشل تحميل الإعدادات"))
       .finally(() => setLoading(false))
 
     fetch("/api/telegram/broadcast-targets", { credentials: "include" })
@@ -99,7 +99,7 @@ export default function AdminTelegramPage() {
   }, [])
 
   const handleSave = async () => {
-    if (!config.botToken.trim() || !config.chatId.trim()) { toast.error("يرجى إدخال رمز البوت ومعرف المحادثة"); return }
+    if (!config.botToken.trim() || !config.chatId.trim()) { brandedToast.error("يرجى إدخال رمز البوت ومعرف المحادثة"); return }
     setSaving(true)
     try {
       const res = await apiFetch("/api/telegram/config", {
@@ -108,8 +108,8 @@ export default function AdminTelegramPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحفظ")
-      toast.success("تم حفظ إعدادات تليجرام")
-    } catch (e: any) { toast.error(e.message || "فشل حفظ الإعدادات") }
+      brandedToast.success("تم حفظ إعدادات تليجرام")
+    } catch (e: any) { brandedToast.error(e.message || "فشل حفظ الإعدادات") }
     finally { setSaving(false) }
   }
 
@@ -119,8 +119,8 @@ export default function AdminTelegramPage() {
       const res = await apiFetch("/api/telegram/test", { method: "POST" })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الإرسال")
-      toast.success("تم إرسال رسالة الاختبار بنجاح!")
-    } catch (e: any) { toast.error(e.message || "فشل إرسال رسالة الاختبار") }
+      brandedToast.success("تم إرسال رسالة الاختبار بنجاح!")
+    } catch (e: any) { brandedToast.error(e.message || "فشل إرسال رسالة الاختبار") }
     finally { setTesting(false) }
   }
 
@@ -131,7 +131,7 @@ export default function AdminTelegramPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل التشخيص")
       setDiagnose(json.data); setLinkedAdmins(json.data.linkedAdmins ?? 0)
-    } catch (e: any) { toast.error(e.message || "فشل التشخيص") }
+    } catch (e: any) { brandedToast.error(e.message || "فشل التشخيص") }
     finally { setDiagnosing(false) }
   }
 
@@ -143,8 +143,8 @@ export default function AdminTelegramPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الإضافة")
       setTargets((prev) => [json.data, ...prev])
-      toast.success("تمت إضافة جهة الإرسال")
-    } catch (e: any) { toast.error(e.message || "فشل إضافة جهة الإرسال") }
+      brandedToast.success("تمت إضافة جهة الإرسال")
+    } catch (e: any) { brandedToast.error(e.message || "فشل إضافة جهة الإرسال") }
   }
 
   const handleToggleTarget = async (id: number, isActive: boolean) => {
@@ -155,7 +155,7 @@ export default function AdminTelegramPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل التحديث")
       setTargets((prev) => prev.map((t) => (t.id === id ? { ...t, isActive } : t)))
-    } catch (e: any) { toast.error(e.message || "فشل تحديث الحالة") }
+    } catch (e: any) { brandedToast.error(e.message || "فشل تحديث الحالة") }
   }
 
   const handleDeleteTarget = async (id: number) => {
@@ -164,8 +164,8 @@ export default function AdminTelegramPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحذف")
       setTargets((prev) => prev.filter((t) => t.id !== id))
-      toast.success("تم حذف جهة الإرسال")
-    } catch (e: any) { toast.error(e.message || "فشل حذف جهة الإرسال") }
+      brandedToast.success("تم حذف جهة الإرسال")
+    } catch (e: any) { brandedToast.error(e.message || "فشل حذف جهة الإرسال") }
   }
 
   if (accessDenied) return (
@@ -174,7 +174,7 @@ export default function AdminTelegramPage() {
         <AlertTriangle className="size-8 text-destructive" />
       </div>
       <h2 className="text-xl font-bold mb-2">غير مصرح</h2>
-      <p className="text-sm text-muted-foreground max-w-xs">لا تملك الصلاحية للوصول إلى إعدادات التليجرام. يرجى التواصل مع المدير العام.</p>
+      <p className="text-sm text-muted-foreground max-w-xs">لا تملك الصلاحية للوصول إلى إعدادات تليجرام. يرجى التواصل مع المدير العام.</p>
     </div>
   )
 
@@ -186,6 +186,8 @@ export default function AdminTelegramPage() {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-3xl">
+      {/* Visually-hidden page heading — the visible title below is h2 (v8-B5) */}
+      <h1 className="sr-only">إعدادات تليجرام</h1>
       <h2 className="text-2xl font-bold tracking-tight">إعدادات تليجرام</h2>
 
       <TelegramConfigSection
@@ -223,9 +225,9 @@ export default function AdminTelegramPage() {
         <div className="rounded-md bg-muted/30 border border-border/20 p-5">
           <h3 className="text-sm font-semibold mb-2">كيفية الإعداد</h3>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="underline">@BotFather</a> في تليجرام وأنشئ بوت جديد</li>
+            <li>افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline">@BotFather</a> في تليجرام وأنشئ بوت جديد</li>
             <li>انسخ الرمز (token) والصقه في حقل رمز البوت</li>
-            <li>أرسل أي رسالة إلى بوتك الجديد، ثم افتح <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="underline">@userinfobot</a> لمعرفة معرف المحادثة</li>
+            <li>أرسل أي رسالة إلى بوتك الجديد، ثم افتح <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" aria-label="@userinfobot — يفتح في تبويب جديد" className="underline">@userinfobot</a> لمعرفة معرف المحادثة</li>
             <li>أدخل المعرف في حقل معرف المحادثة واحفظ الإعدادات</li>
             <li>اضغط اختبار الإرسال للتحقق من العمل</li>
           </ol>

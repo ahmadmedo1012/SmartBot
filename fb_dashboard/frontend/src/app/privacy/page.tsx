@@ -2,9 +2,15 @@ import type { Metadata } from "next"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 
+const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+
+// v8-E23: canonical + OG — these pages are sitemap-listed and footer-linked;
+// every other public route already had both.
 export const metadata: Metadata = {
   title: "سياسة الخصوصية",
   description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها",
+  alternates: { canonical: `${siteUrl}/privacy` },
+  openGraph: { title: "سياسة الخصوصية | SmartBot", description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها" },
 }
 
 export default function PrivacyPage() {

@@ -4,23 +4,15 @@ import { useState } from "react"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { MessageSquare, Reply, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { formatDateOnly } from "@/lib/format"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { formatDateOnly, timeAgo } from "@/lib/format"
 
-function timeAgo(dateStr: string) {
-  if (!dateStr) return ""
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "الآن"
-  if (mins < 60) return `منذ ${mins} د`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `منذ ${hours} س`
-  return formatDateOnly(dateStr)
-}
 
 export default function CommentsPage() {
   const [replyText, setReplyText] = useState<Record<string, string>>({})
@@ -47,9 +39,9 @@ export default function CommentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments"] })
       setReplyText({})
-      toast.success("تم الرد على التعليق")
+      brandedToast.success("تم الرد على التعليق")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الرد"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الرد"),
   })
 
   return (
@@ -70,24 +62,30 @@ export default function CommentsPage() {
         {isLoading ? (
           <div className="space-y-3">
             {[1,2,3,4].map(i => (
-              <Card key={i}><CardContent className="p-4 animate-pulse space-y-2">
-                <div className="h-3 bg-muted rounded w-1/4" />
-                <div className="h-4 bg-muted rounded w-3/4" />
+              <Card key={i}><CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="size-9 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-1/4" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </div>
               </CardContent></Card>
             ))}
           </div>
         ) : isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل التعليقات</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال بالخادم"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : comments.length === 0 ? (
-          <div className="text-center py-16">
-            <MessageSquare className="size-12 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">لا توجد تعليقات بعد</p>
-          </div>
+          <EmptyState
+            icon={MessageSquare}
+            title="لا توجد تعليقات بعد"
+            description="ستظهر تعليقات متابعيك على منشوراتك هنا فور وصولها — ويمكنك الرد عليها بضغطة واحدة."
+          />
         ) : (
           <div className="space-y-3">
             {comments.map((c: any) => (
@@ -102,7 +100,7 @@ export default function CommentsPage() {
                         <span className="text-sm font-medium">{c.from_name}</span>
                         <span className="text-[11px] text-muted-foreground">{timeAgo(c.created_time)}</span>
                         {c.reply_text && (
-                          <Badge variant="info" className="text-[10px]">مردود</Badge>
+                          <Badge variant="info" className="text-[10px]">تم الرد</Badge>
                         )}
                       </div>
                       <p className="text-sm mb-2">{c.message}</p>
@@ -120,6 +118,7 @@ export default function CommentsPage() {
                             value={replyText[c.id] || ""}
                             onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
                             placeholder="رد سريع..."
+                            aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
                             className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />
                           <Button
@@ -128,7 +127,7 @@ export default function CommentsPage() {
                               if (replyText[c.id]?.trim())
                                 replyMut.mutate({ commentId: c.id, message: replyText[c.id].trim() })
                             }}
-                            disabled={!replyText[c.id]?.trim() || replyMut.isPending}
+                            disabled={!replyText[c.id]?.trim() || (replyMut.isPending && replyMut.variables?.commentId === c.id)}
                           >
                             <Reply className="size-3 rtl:-scale-x-100" /> رد
                           </Button>

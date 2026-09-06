@@ -23,9 +23,9 @@ interface PageHeaderProps {
 }
 
 const TONE_MAP = {
-  success: "bg-green-500/10 text-green-500 border-green-500/20",
-  warning: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  danger: "bg-red-500/10 text-red-500 border-red-500/20",
+  success: "bg-success-soft text-success border-success/20",
+  warning: "bg-warning-soft text-warning border-warning/20",
+  danger: "bg-destructive-soft text-destructive border-destructive/20",
   neutral: "bg-muted text-muted-foreground border-border/60",
 } as const
 
@@ -59,7 +59,7 @@ export function PageHeader({
             )}
             <div className="min-w-0 flex-1">
               {breadcrumbs && breadcrumbs.length > 0 && (
-                <nav aria-label="breadcrumb" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
+                <nav aria-label="مسار التنقل" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
                   {breadcrumbs.map((b, i) => {
                     const last = i === breadcrumbs.length - 1
                     return (
@@ -72,7 +72,12 @@ export function PageHeader({
                             {b.label}
                           </Link>
                         ) : (
-                          <span className={last ? "text-foreground/80 truncate" : "truncate"}>{b.label}</span>
+                          <span
+                            className={last ? "text-foreground/80 truncate" : "truncate"}
+                            aria-current={last ? "page" : undefined}
+                          >
+                            {b.label}
+                          </span>
                         )}
                         {!last && (
                           // v7 §2.2: breadcrumb separator follows the reading flow —
@@ -99,9 +104,9 @@ export function PageHeader({
                   >
                     <span className={cn(
                       "size-1.5 rounded-full",
-                      status.tone === "success" ? "bg-green-500" :
-                      status.tone === "warning" ? "bg-amber-500" :
-                      status.tone === "danger" ? "bg-red-500" : "bg-muted-foreground"
+                      status.tone === "success" ? "bg-success" :
+                      status.tone === "warning" ? "bg-warning" :
+                      status.tone === "danger" ? "bg-destructive" : "bg-muted-foreground"
                     )} />
                     {status.label}
                   </span>

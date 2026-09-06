@@ -10,6 +10,8 @@
  *     toLocaleTimeString outside this file fails the i18n CI gate.
  */
 
+import { arabicNumberState, getArabicPlural } from "@/lib/arabic-plural";
+
 /**
  * Converts a number to a string using only Western digits (0-9).
  * Never uses Arabic-Indic numerals (٠-٩). No thousand separators.
@@ -80,4 +82,57 @@ function formatMonth(date: Date | string | number | null | undefined): string {
   return `${ARABIC_MONTHS[d.getMonth()]} ${toArabicNumber(d.getFullYear())}`;
 }
 
-export { toArabicNumber, formatNumber, formatDate, formatDateOnly, formatMonth };
+/* ── v8-E5/E6: relative time + count phrases — ONE format for the whole app ──
+ * Before v8 the codebase had THREE competing relative-time formats
+ * ("منذ 5 د" / "قبل 5 دقيقة" / "منذ 5 دقائق") and ~15 raw `${n} noun`
+ * interpolations with no dual/plural, while a full Arabic pluralization
+ * engine (lib/arabic-plural.ts) sat unused. */
+
+function _unitPhrase(count: number, one: string, two: string, few: string): string {
+  switch (arabicNumberState(count)) {
+    case "one": return one;
+    case "two": return two;
+    case "few": return `${toArabicNumber(count)} ${few}`;
+    default: return `${toArabicNumber(count)} ${one}`;
+  }
+}
+
+/**
+ * Relative time: "الآن" / "قبل دقيقة" / "قبل دقيقتين" / "قبل 5 دقائق" / "قبل 11 دقيقة"
+ * / "قبل ساعتين" / "قبل 3 أيام" …
+ */
+function timeAgo(date: Date | string | number | null | undefined): string {
+  const d = toDate(date);
+  if (!isValid(d)) return "";
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (seconds < 60) return "الآن";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `قبل ${_unitPhrase(minutes, "دقيقة", "دقيقتين", "دقائق")}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `قبل ${_unitPhrase(hours, "ساعة", "ساعتين", "ساعات")}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `قبل ${_unitPhrase(days, "يوم", "يومين", "أيام")}`;
+  const months = Math.floor(days / 30);
+  return `قبل ${_unitPhrase(months, "شهر", "شهرين", "أشهر")}`;
+}
+
+/**
+ * Count + noun phrase with correct Arabic dual/plural:
+ * "5 رسائل" / "رسالتان" / "1 رسالة" / "15 رسالة".
+ * Optional explicit forms follow getArabicPlural's signature.
+ */
+function countPhrase(
+  count: number,
+  singular: string,
+  dualOrForms?: string | { two?: string; few?: string },
+  plural?: string,
+): string {
+  const noun = getArabicPlural(count, singular, dualOrForms, plural);
+  switch (arabicNumberState(count)) {
+    case "zero": return noun; // "لا رسائل"
+    case "two": return noun; // "رسالتان"
+    default: return `${toArabicNumber(count)} ${noun}`;
+  }
+}
+
+export { toArabicNumber, formatNumber, formatDate, formatDateOnly, formatMonth, timeAgo, countPhrase };

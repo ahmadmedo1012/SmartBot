@@ -126,7 +126,9 @@ async def test_csrf_rejects_foreign_origin():
             json={},
         )
         assert r.status_code == 403, f"الميدل‌وير لم يرفض Origin أجنبي: {r.status_code}"
-        assert "origin" in r.text.lower()
+        # v8-A9: رسالة الرفض أصبحت عربية ("المصدر غير مصرح به") —
+        # نتحقق منها أو من الرسالة الإنجليزية القديمة للتوافقية.
+        assert "origin" in r.text.lower() or "المصدر" in r.text
     finally:
         await _teardown(fixture)
 

@@ -104,7 +104,6 @@ def init_sentry() -> bool:
         return False
     try:
         import sentry_sdk
-
         from _utils import app_version
 
         environment = (

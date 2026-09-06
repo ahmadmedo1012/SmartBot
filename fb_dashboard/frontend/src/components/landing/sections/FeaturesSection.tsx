@@ -72,9 +72,9 @@ export default function FeaturesSection() {
                 {isLarge && (
                   <div className="mt-5 pt-4 border-t border-accent-foreground/10 grid grid-cols-3 gap-2">
                     {[
-                      { icon: Bot, value: "< ٢ث", label: "زمن الرد" },
-                      { icon: BarChart3, value: "٩٤٪", label: "دقة" },
-                      { icon: Zap, value: "٢٤/٧", label: "متاح" },
+                      { icon: Bot, value: "< ثانيتين", label: "زمن الرد" },
+                      { icon: BarChart3, value: "94%", label: "دقة" },
+                      { icon: Zap, value: "24/7", label: "متاح" },
                     ].map((m, idx) => (
                       <div key={idx} className="text-center">
                         <m.icon className="size-3 text-accent-foreground mx-auto mb-1" />

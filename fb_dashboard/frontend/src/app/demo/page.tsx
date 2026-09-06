@@ -24,7 +24,7 @@ const ActivityBarChart = dynamic(
   () => import("@/components/charts").then(m => m.ActivityBarChart),
   { ssr: false, loading: () => <div className="h-32 rounded-xl bg-muted/30 animate-pulse" aria-hidden="true" /> }
 )
-import { formatNumber } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * v4 radical plan §3 — REBUILT on the REAL dashboard architecture.
@@ -102,7 +102,7 @@ const mockStats = {
   logs: [
     { id: 1, time: "10:42", text: "رد آلي على رسالة من أحمد سالم", level: "INFO" },
     { id: 2, time: "10:31", text: "قاعدة «توصيل» طُبّقت على تعليق", level: "INFO" },
-    { id: 3, time: "10:15", text: "مزامنة المعجبين: 12,500", level: "INFO" },
+    { id: 3, time: "10:15", text: "مزامنة المتابعين: 12.500", level: "INFO" },
     { id: 4, time: "09:58", text: "رسالة جديدة من خالد المزوغي", level: "WARN" },
   ],
   scheduled_posts: [
@@ -145,9 +145,9 @@ function StatsTab() {
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
         {[
           { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-accent-foreground", bg: "bg-accent-foreground/10" },
-          { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-blue-500", bg: "bg-blue-500/10" },
-          { icon: Users, value: formatNumber(mockStats.followers), label: "المتابعون", color: "text-green-500", bg: "bg-green-500/10" },
-          { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+          { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-info", bg: "bg-info-soft" },
+          { icon: Users, value: formatNumber(mockStats.followers), label: "المتابعون", color: "text-success", bg: "bg-success-soft" },
+          { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-warning", bg: "bg-warning/10" },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="p-4">
@@ -173,6 +173,7 @@ function StatsTab() {
         <CardContent>
           <ActivityBarChart
             height={128}
+            summary="مخطط أعمدة لنشاط الردود على مدار 24 ساعة ببيانات تجريبية"
             data={mockStats.active_hours.map((v, i) => ({ label: `${i}:00`, value: v, hint: `الساعة ${i}:00` }))}
           />
           <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
@@ -223,7 +224,7 @@ function StatsTab() {
               </thead>
               <tbody>
                 {mockStats.rules_data.map((r, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
+                  <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                     <td className="p-3 font-medium">{r.name}</td>
                     <td className="p-3 text-muted-foreground">{r.keyword}</td>
                     <td className="p-3 text-center">{r.count}</td>
@@ -384,7 +385,7 @@ function AnalyticsTab() {
           {mockStats.rules_data.map((r) => (
             <div key={r.name} className="flex items-center justify-between text-sm">
               <span>{r.name}</span>
-              <span className="text-muted-foreground">{r.count} رد</span>
+              <span className="text-muted-foreground">{countPhrase(r.count, "رد", "ردين", "ردود")}</span>
             </div>
           ))}
         </CardContent>
@@ -439,7 +440,7 @@ function SettingsTab() {
           <CardTitle className="flex items-center gap-2 text-base">
             <SettingsIcon className="size-4 text-accent-foreground" /> ربط الصفحة
           </CardTitle>
-          <CardDescription>تويكن الصفحة يُخزَّن مشفّراً</CardDescription>
+          <CardDescription>رمز الوصول للصفحة يُخزَّن مشفّراً</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           اربط صفحة فيسبوك واحدة أو أكثر وابدأ الرد التلقائي فوراً.
@@ -476,7 +477,7 @@ export default function DemoPage() {
     /* Same architecture as DashboardShell: fixed real sidebar + content
        column + real mobile bottom nav (v4 plan §3.2 — no parallel UI tree). */
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block" style={{ zIndex: "var(--z-sticky, 30)" }}>
+      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
         <AdminSidebar
           onNavigate={handleNavigate}
           onSubscribe={() => router.push("/subscribe")}

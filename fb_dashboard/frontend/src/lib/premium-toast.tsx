@@ -27,15 +27,15 @@ type ToastIcon = "success" | "error" | "info" | "login" | "logout" | "star" | "g
 const iconConfig = {
   success: { icon: CheckCircle, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
   error: { icon: AlertCircle, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
-  info: { icon: Info, bg: "bg-accent", color: "var(--orange, oklch(0.55 0.19 45))" },
+  info: { icon: Info, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
   login: { icon: LogIn, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
   logout: { icon: LogOut, bg: "bg-muted", color: "var(--muted-foreground)" },
   star: { icon: Star, bg: "bg-warning/12", color: "var(--warning, oklch(0.7 0.16 80))" },
-  gift: { icon: Gift, bg: "bg-accent", color: "var(--orange, oklch(0.55 0.19 45))" },
-  refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--orange, oklch(0.55 0.19 45))" },
+  gift: { icon: Gift, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
+  refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
   save: { icon: Save, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
   trash: { icon: Trash2, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
-  copy: { icon: Copy, bg: "bg-accent", color: "var(--orange, oklch(0.55 0.19 45))" },
+  copy: { icon: Copy, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
 } as const
 
 function ToastIconChip({ icon }: { icon: ToastIcon }) {
@@ -77,4 +77,22 @@ export function premiumToast(icon: ToastIcon, title: string, description?: strin
     ),
     { duration: opts?.duration ?? 4000 },
   )
+}
+
+/* v8-C3: ONE toast language. 107 raw sonner `toast.success/error/info` calls
+ * across 22 files rendered sonner's default LTR card (white in dark mode,
+ * sonner's own palette, English dismiss affordances) next to the branded
+ * RTL premiumToast card — two competing visual languages on the same screen.
+ * `brandedToast` keeps the ergonomic `.success()/.error()` call shape so the
+ * migration is mechanical, but every call renders the branded card. */
+export const brandedToast = {
+  success: (title: string, description?: string) => premiumToast("success", title, description),
+  error: (title: string, description?: string) => premiumToast("error", title, description),
+  info: (title: string, description?: string) => premiumToast("info", title, description),
+  warning: (title: string, description?: string) => premiumToast("star", title, description),
+  login: (title: string, description?: string) => premiumToast("login", title, description),
+  logout: (title: string, description?: string) => premiumToast("logout", title, description),
+  save: (title: string, description?: string) => premiumToast("save", title, description),
+  trash: (title: string, description?: string) => premiumToast("trash", title, description),
+  copy: (title: string, description?: string) => premiumToast("copy", title, description),
 }

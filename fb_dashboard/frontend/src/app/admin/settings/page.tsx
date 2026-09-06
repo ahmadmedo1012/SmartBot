@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import Link from "next/link"
@@ -106,7 +106,7 @@ const SUPPORT_FIELDS: Field[] = [
 const TELEGRAM_FIELDS: Field[] = [
   {
     key: "telegram_bot_token",
-    label: "توكن بوت تليجرام",
+    label: "رمز بوت تليجرام",
     placeholder: "123456789:AAHfAk...",
     hint: "من @BotFather في تليجرام — يفعّل إشعارات الدفع والاشتراك والتحكم بالموافقة",
     ltr: true,
@@ -125,7 +125,7 @@ const FACEBOOK_FIELDS: Field[] = [
   {
     key: "facebook_app_secret",
     label: "سر تطبيق فيسبوك (App Secret)",
-    placeholder: "32 حرفًا سداسيًا عشريًا",
+    placeholder: "32 حرفاً سداسياً عشريًا",
     hint: "من developers.facebook.com → تطبيقك → Settings → Basic — مطلوب لقبول أحداث الويبهوك (الرسائل والتعليقات) الموقّعة",
     ltr: true,
     type: "password",
@@ -193,7 +193,7 @@ export default function AdminSettingsPage() {
       setConfig(d || {})
       setOrig(d || {})
     } catch {
-      toast.error("تعذّر تحميل الإعدادات")
+      brandedToast.error("تعذّر تحميل الإعدادات")
     }
     setLoading(false)
   }, [])
@@ -212,7 +212,7 @@ export default function AdminSettingsPage() {
       if ((config[k] || "") !== (orig[k] || "")) changed[k] = config[k] || ""
     }
     if (Object.keys(changed).length === 0) {
-      toast.info("لا توجد تغييرات")
+      brandedToast.info("لا توجد تغييرات")
       return
     }
     setSaving(true)
@@ -222,14 +222,14 @@ export default function AdminSettingsPage() {
         body: JSON.stringify(changed),
       })
       if (r.ok) {
-        toast.success("تم حفظ الإعدادات — تسري فورًا على الموقع")
+        brandedToast.success("تم حفظ الإعدادات — تسري فوراً على الموقع")
         await load()
       } else {
         const body = await r.json().catch(() => null)
-        toast.error(body?.detail || "فشل الحفظ")
+        brandedToast.error(body?.detail || "فشل الحفظ")
       }
     } catch {
-      toast.error("خطأ في الاتصال")
+      brandedToast.error("خطأ في الاتصال")
     }
     setSaving(false)
   }
@@ -239,13 +239,13 @@ export default function AdminSettingsPage() {
     try {
       const r = await apiFetch("/api/telegram/test", { method: "POST" })
       if (r.ok) {
-        toast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
+        brandedToast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
       } else {
         const body = await r.json().catch(() => null)
-        toast.error(body?.detail || "فشل الإرسال — احفظ التوكن أولًا")
+        brandedToast.error(body?.detail || "فشل الإرسال — احفظ رمز البوت أولاً")
       }
     } catch {
-      toast.error("خطأ في الاتصال")
+      brandedToast.error("خطأ في الاتصال")
     }
     setTesting(false)
   }
@@ -281,9 +281,12 @@ export default function AdminSettingsPage() {
 
   return (
     <SectionContainer className="min-h-screen py-8">
+      {/* Visually-hidden page heading — SectionHeader renders the visible title
+          as h2, so heading navigation had no h1 target (v8-B5) */}
+      <h1 className="sr-only">إعدادات المنصة</h1>
       <SectionHeader
         title="إعدادات المنصة"
-        description="بيانات الدفع ومعلومات الدعم — تُحفظ فورًا وتظهر مباشرة للعملاء"
+        description="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
       />
 
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
@@ -306,7 +309,7 @@ export default function AdminSettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2 items-start">
         {/* Payment section */}
-        <motion.div {...fadeUp}>
+        <motion.div variants={fadeUp} initial="hidden" animate="visible">
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -324,7 +327,7 @@ export default function AdminSettingsPage() {
 
         <div className="space-y-6">
           {/* Support section */}
-          <motion.div {...fadeUp}>
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -345,7 +348,7 @@ export default function AdminSettingsPage() {
           </motion.div>
 
           {/* Telegram notifications section (plan v3 §5.3) */}
-          <motion.div {...fadeUp}>
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -359,7 +362,7 @@ export default function AdminSettingsPage() {
                 {TELEGRAM_FIELDS.map(fieldRow)}
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <p className="text-xs text-muted-foreground leading-relaxed flex-1 min-w-[220px]">
-                    بعد حفظ التوكن، أرسل /start لبوتك في تليجرام ثم جرّب الإرسال.
+                    بعد حفظ رمز البوت، أرسل /start لبوتك في تليجرام ثم جرّب الإرسال.
                     أضف مدراء إضافيين من صفحة تليجرام في لوحة الإدارة.
                   </p>
                   <Button
@@ -377,7 +380,7 @@ export default function AdminSettingsPage() {
           </motion.div>
 
           {/* Facebook webhook signature (plan v3 §4 final gap) */}
-          <motion.div {...fadeUp}>
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -398,14 +401,14 @@ export default function AdminSettingsPage() {
             </Card>
           </motion.div>
           {/* AI provider keys (v4 §5.20) */}
-          <motion.div {...fadeUp}>
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Sparkles className="size-4 text-accent-foreground" /> مفاتيح الذكاء الاصطناعي
                 </CardTitle>
                 <CardDescription>
-                  تفعّل مساعد الردود الذكية (اقتراح ردود، تحليل مشاعر) من صفحة الأدوات — الحفظ يُطبّق فورًا
+                  تفعّل مساعد الردود الذكية (اقتراح ردود، تحليل مشاعر) من صفحة الأدوات — الحفظ يُطبّق فوراً
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

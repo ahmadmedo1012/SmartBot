@@ -79,18 +79,30 @@
   --color-espresso: var(--c-espresso);
   --color-bloom: var(--c-bloom);
 
-  /* Radius scale — unified 2026-09-05 with Smart-Menu (smart-link.ly identity):
-     8/12/18/28 is the canonical scale across both products. */
+  /* Radius scale — v8-D4: monotonic 8/12/16/20/28/36/44. The old scale
+     (xl=28, default 2xl=16) was non-monotonic: rounded-2xl < rounded-xl.
+     Large surfaces (cards/dialogs/sheets) unify on rounded-2xl=28px. */
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 28px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+  --radius-4xl: 44px;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
 
   --shadow-glass: var(--glass-shadow);
   --shadow-glass-lg: var(--glass-shadow-lg);
+
+  /* v8-D2: status SOFT tints — the missing utilities that made ~105 raw
+     Tailwind-palette classes (bg-green-500/10 …) the path of least
+     resistance. Soft tint + AA-tuned solid text = one semantic pair. */
+  --color-success-soft: var(--success-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-info-soft: var(--info-soft);
+  --color-destructive-soft: var(--destructive-soft);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -203,6 +215,18 @@
   --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.62 0.13 245); /* AA-tuned on dark — matches Smart-Menu */
   --info-foreground: oklch(0.98 0 0);
+  /* v8-D2: status soft tints (dark) — semantic bg-wash pair for
+     bg-success-soft/text-success chips, replacing bg-green-500/10 etc. */
+  --success-soft: oklch(0.62 0.18 145 / 0.14);
+  --warning-soft: oklch(0.7 0.16 80 / 0.14);
+  --info-soft: oklch(0.62 0.13 245 / 0.14);
+  --destructive-soft: oklch(0.6 0.22 25 / 0.14);
+  /* v8-D1 resolution: the old docs listed --orange/--orange-muted as
+     canonical, but the v4 governance decision (enforced by
+     check-css-token-duplication.py) DELETED the orange alias family —
+     --accent-foreground is the single source of truth for brand orange.
+     consumers (premium-toast) now read --accent-foreground directly;
+     docs/design-system.md §2 corrected accordingly. */
   --overlay: oklch(0 0 0 / 0.55);
 
   /* Saffron-heat warm palette (dark) — Smart-Menu parity.
@@ -290,6 +314,11 @@
   --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.48 0.13 245);
   --info-foreground: oklch(0.98 0 0);
+  /* v8-D2: light soft tints — lighter alpha for paper surfaces */
+  --success-soft: oklch(0.48 0.15 150 / 0.12);
+  --warning-soft: oklch(0.52 0.13 60 / 0.12);
+  --info-soft: oklch(0.48 0.13 245 / 0.12);
+  --destructive-soft: oklch(0.58 0.2 25 / 0.12);
   --overlay: oklch(0 0 0 / 0.25);
 
   /* Saffron-heat warm palette (light) — Smart-Menu parity: ember takes

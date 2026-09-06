@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Clock, CalendarDays, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
 import { unwrapApi } from "@/lib/api"
 import { formatDate } from "@/lib/format"
@@ -37,9 +38,9 @@ export default function ScheduledPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
       setMessage(""); setScheduledAt("")
-      toast.success("تمت الجدولة")
+      brandedToast.success("تمت الجدولة")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الجدولة"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الجدولة"),
   })
 
   const publishMut = useMutation({
@@ -47,9 +48,9 @@ export default function ScheduledPage() {
       apiFetch(`/api/scheduled-posts/${id}/publish`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
-      toast.success("تم النشر")
+      brandedToast.success("تم النشر")
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => brandedToast.error(e.message),
   })
 
   const deleteMut = useMutation({
@@ -57,9 +58,9 @@ export default function ScheduledPage() {
       apiFetch(`/api/scheduled-posts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
-      toast.success("تم الحذف")
+      brandedToast.success("تم الحذف")
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => brandedToast.error(e.message),
   })
 
   return (
@@ -83,6 +84,7 @@ export default function ScheduledPage() {
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder="محتوى المنشور..."
+              aria-label="نص المنشور"
               className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex gap-3 items-end">
@@ -91,6 +93,7 @@ export default function ScheduledPage() {
                   type="datetime-local"
                   value={scheduledAt}
                   onChange={e => setScheduledAt(e.target.value)}
+                  aria-label="وقت النشر"
                   min={new Date(Date.now() + 60000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   className="text-sm"
                 />
@@ -112,10 +115,11 @@ export default function ScheduledPage() {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <Clock className="size-12 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">لا توجد منشورات مجدولة</p>
-          </div>
+          <EmptyState
+            icon={Clock}
+            title="لا توجد منشورات مجدولة"
+            description="جدّول أول منشور من النموذج أعلاه وستظهر منشوراتك المجدولة هنا — يُنشر كل منشور تلقائياً في وقته."
+          />
         ) : (
           <div className="space-y-3">
             {posts.map((p: any) => (

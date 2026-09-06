@@ -21,6 +21,10 @@ router = APIRouter(tags=["inbox"])
 # Evict on token refresh. Replace with Redis-backed registry when multi-worker.
 _tenant_fb_cache: dict[int, object] = {}
 
+# v8-A12: monotonic timestamp of the last successful Graph sync per tenant —
+# the polling messages page re-synced on every 10s poll before this.
+_INBOX_LAST_SYNC: dict[int, float] = {}
+
 async def _get_inbox_fb(tenant_id: int):
     """Resolve (and cache) the tenant's FB client. Awaited — get_tenant_fb_client is async."""
     if tenant_id not in _tenant_fb_cache:
@@ -34,7 +38,7 @@ async def _get_inbox_fb(tenant_id: int):
 @router.get("/api/inbox/conversations")
 async def inbox_list(
     status: str = Query("all"), tag: str = Query(""), search: str = Query(""),
-    page: int = Query(1), per_page: int = Query(25), current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=100), current_user: User = Depends(get_current_user),
 ):
     """Professional inbox: DB-FIRST (v3 final-launch §4.2).
 
@@ -51,25 +55,47 @@ async def inbox_list(
     tenant_id = current_user._tenant_id
 
     # ── 1) best-effort live refresh ──
-    try:
-        fb = await _get_inbox_fb(tenant_id)
-        convos = await fb.get_conversations(50)
-        if convos:
+    # v8-A12: (a) 30-second per-tenant sync skip — the messages page polls
+    # this endpoint every 10-15s; re-hitting the Graph API + a DB write
+    # transaction on every poll was pure waste. (b) batch upsert — the old
+    # loop ran one SELECT per conversation (up to 50 sequential round-trips
+    # + commit); now one IN(...) fetch, diff in Python, add_all.
+    import time as _time
+    now = _time.monotonic()
+    last = _INBOX_LAST_SYNC.get(tenant_id, 0.0)
+    if now - last < 30:
+        convos = None
+    else:
+        _INBOX_LAST_SYNC[tenant_id] = now
+        convos = None
+        try:
+            fb = await _get_inbox_fb(tenant_id)
+            convos = await fb.get_conversations(50)
+        except Exception:
+            convos = None  # expired token / offline — DB rows below still serve
+    if convos:
+        try:
             async with AsyncSessionLocal() as s:
+                cids = [str(c.get("id") or "") for c in convos if c.get("id")]
+                existing: dict[str, Conversation] = {}
+                if cids:
+                    for row in (await s.execute(
+                        select(Conversation).where(
+                            Conversation.tenant_id == tenant_id,
+                            Conversation.fb_conversation_id.in_(cids),
+                        )
+                    )).scalars().all():
+                        existing[row.fb_conversation_id] = row
+                new_rows: list[Conversation] = []
                 for c in convos:
                     cid = str(c.get("id") or "")
                     if not cid:
                         continue
                     senders = (c.get("senders") or {}).get("data") or []
                     name = (senders[0].get("name") if senders else "") or ""
-                    row = (await s.execute(
-                        select(Conversation).where(
-                            Conversation.tenant_id == tenant_id,
-                            Conversation.fb_conversation_id == cid,
-                        )
-                    )).scalar_one_or_none()
+                    row = existing.get(cid)
                     if row is None:
-                        s.add(Conversation(
+                        new_rows.append(Conversation(
                             tenant_id=tenant_id, fb_conversation_id=cid,
                             fb_user_id=str(senders[0].get("id", "") if senders else ""),
                             user_name=name,
@@ -82,9 +108,11 @@ async def inbox_list(
                         row.unread_count = int(c.get("unread_count") or row.unread_count or 0)
                         if name:
                             row.user_name = name
+                if new_rows:
+                    s.add_all(new_rows)
                 await s.commit()
-    except Exception:
-        pass  # expired token / offline — DB rows below still serve
+        except Exception:
+            pass  # non-fatal — DB rows below still serve
 
     # ── 2) DB rows → response items (legacy shape) ──
     async with AsyncSessionLocal() as s:
@@ -255,7 +283,12 @@ async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_c
 async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
                            db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     """Create a new tag."""
-    existing = await db.execute(select(ConversationTag).where(ConversationTag.name == name))
+    # v8-A5: uniqueness is per-tenant — a global name check let tenant A's
+    # "VIP" tag wrongly block tenant B from creating their own.
+    existing = await db.execute(
+        select(ConversationTag).where(
+            ConversationTag.name == name,
+            ConversationTag.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم الوسم موجود مسبقاً")
     tag = ConversationTag(name=name, color=color, tenant_id=current_user._tenant_id)

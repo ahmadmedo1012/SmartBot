@@ -7,9 +7,11 @@ import {
   Calendar, BarChart3, Users, Clock, Target, Bot,
   Settings, HelpCircle, Mail,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/csrf-client"
 
 function LoadingSkeleton() {
@@ -104,10 +106,10 @@ function PageNotFound({ slug }: { slug: string }) {
           المسار <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded" dir="ltr">/{slug}</span> غير موجود ضمن لوحة التحكم
         </p>
         <p className="text-xs text-muted-foreground mb-6">
-          ربما كان رابطًا قديمًا — كل الأقسام متاحة من القائمة الجانبية
+          ربما كان رابطاً قديمًا — كل الأقسام متاحة من القائمة الجانبية
         </p>
         <Button variant="outline" onClick={() => window.location.assign("/dashboard")}>
-          العودة إلى لوحة البيانات
+          العودة إلى لوحة التحكم
         </Button>
       </div>
     </SectionContainer>
@@ -115,10 +117,17 @@ function PageNotFound({ slug }: { slug: string }) {
 }
 
 // ── Generic List View ──
-function GenericListView({ data }: { data: any; label: string }) {
+function GenericListView({ data, icon }: { data: any; label: string; icon?: LucideIcon }) {
   if (!data) return <div className="p-6 text-center text-sm text-muted-foreground">بيانات غير كافية</div>
   if (Array.isArray(data) && data.length === 0)
-    return <div className="p-6 text-center text-sm text-muted-foreground">لا توجد بيانات بعد</div>
+    return (
+      <EmptyState
+        icon={icon}
+        size="sm"
+        title="لا توجد بيانات بعد"
+        description="ستظهر بيانات هذا القسم هنا فور توفرها."
+      />
+    )
   // Non-array payloads: render a readable key/value summary instead of a raw
   // JSON dump (plan v3 §7c — the <pre> looked broken to end users).
   if (!Array.isArray(data)) {
@@ -199,7 +208,7 @@ export default function SubDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {data ? <GenericListView data={data} label={config.title} /> : null}
+            {data ? <GenericListView data={data} label={config.title} icon={config.icon} /> : null}
           </CardContent>
         </Card>
       </SectionContainer>

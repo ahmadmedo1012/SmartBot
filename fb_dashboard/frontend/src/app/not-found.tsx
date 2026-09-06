@@ -11,7 +11,7 @@ export default function NotFound() {
         </div>
         <h2 className="text-2xl font-bold mb-2">الصفحة غير موجودة</h2>
         <p className="text-muted-foreground mb-6 leading-relaxed">
-          الصفحة التي تبحث عنها قد تكون قد نُقلت أو حُذفت أو لم تكن متاحة.
+          ربما تم نقل الصفحة أو حذفها، أو أن الرابط غير صحيح.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link

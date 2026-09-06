@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Check, X, Loader2, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
-import { formatNumber } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
 
@@ -46,7 +46,7 @@ export default function ConnectPage() {
 
   const handleTest = async () => {
     if (!pageId.trim() || !accessToken.trim()) {
-      toast.error("يرجى إدخال معرف الصفحة ورمز الوصول")
+      brandedToast.error("يرجى إدخال معرف الصفحة ورمز الوصول")
       return
     }
     setStatus("testing")
@@ -57,22 +57,22 @@ export default function ConnectPage() {
         method: "PUT",
         body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: false }),
       })
-      if (!r.ok) { toast.error("فشل حفظ البيانات المؤقت"); setStatus("idle"); return }
+      if (!r.ok) { brandedToast.error("فشل حفظ البيانات المؤقت"); setStatus("idle"); return }
       const tr = await apiFetch("/api/facebook/test", { method: "POST" })
       const td = await tr.json()
       if (td.connected) {
         setFanCount(td.fan_count)
         setStatus("saving")
         if (td.scopes?.missing?.length) setScopeWarnings(td.scopes.missing)
-        toast.success(`✅ الاتصال ناجح! عدد المعجبين: ${td.fan_count}`)
+        brandedToast.success(`✅ الاتصال ناجح! عدد المتابعين: ${td.fan_count}`)
       } else {
         setStatus("idle")
-        setErrorMsg(td.error || "فشل الاتصال — تحقق من التوكن والصفحة")
-        toast.error(td.error || "فشل الاتصال")
+        setErrorMsg(td.error || "فشل الاتصال — تحقق من رمز الوصول والصفحة")
+        brandedToast.error(td.error || "فشل الاتصال")
       }
     } catch {
       setStatus("idle")
-      toast.error("خطأ في الاتصال بالخادم")
+      brandedToast.error("خطأ في الاتصال بالخادم")
     }
   }
 
@@ -83,13 +83,13 @@ export default function ConnectPage() {
         method: "PUT",
         body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: true }),
       })
-      if (!r.ok) { toast.error("فشل الحفظ"); setStatus("idle"); return }
+      if (!r.ok) { brandedToast.error("فشل الحفظ"); setStatus("idle"); return }
       await r.json()
       setStatus("connected")
-      toast.success("✅ تم حفظ البيانات وتفعيل webhook")
+      brandedToast.success("✅ تم حفظ البيانات وتفعيل webhook")
     } catch {
       setStatus("idle")
-      toast.error("خطأ في الاتصال بالخادم")
+      brandedToast.error("خطأ في الاتصال بالخادم")
     }
   }
 
@@ -109,6 +109,7 @@ export default function ConnectPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md border-accent-foreground/20 bg-card/80 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl">
+          <h1 className="sr-only">حالة اتصال صفحة فيسبوك</h1>
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
               <Check className="h-8 w-8 text-success" />
@@ -129,8 +130,9 @@ export default function ConnectPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-muted-foreground"><Webhook className="size-3.5" /> عنوان الويبهوك</span>
                   <button
+                    dir="ltr"
                     className="flex items-center gap-1.5 font-mono text-[11px] text-foreground hover:text-accent-foreground transition-colors"
-                    onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); toast.success("تم نسخ عنوان الويبهوك") }}
+                    onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); brandedToast.success("تم نسخ عنوان الويبهوك") }}
                   >
                     {wh.webhook_url} <Copy className="size-3" />
                   </button>
@@ -159,7 +161,7 @@ export default function ConnectPage() {
                 </div>
                 {(!secretOk || !messagesOk || !feedOk) && (
                   <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-[11px] leading-relaxed text-foreground/80">
-                    سجّل في <span className="font-medium">developers.facebook.com → تطبيقك → Webhooks → Page</span> بالعنوان أعلاه،
+                    سجّل في <span className="font-medium">developers.facebook.com ← تطبيقك ← Webhooks ← Page</span> بالعنوان أعلاه،
                     واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
                     بدون ذلك لا تصل الرسائل/التعليقات لحظيًا ولن يرد البوت تلقائيًا.
                   </div>
@@ -182,7 +184,10 @@ export default function ConnectPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-accent/20 to-background dark:from-zinc-900 dark:via-zinc-900 dark:to-background">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-accent/20 to-background">
+      {/* Visually-hidden page heading — the visible card title is a div (CardTitle),
+          so heading navigation had no target on this route (v8-B5) */}
+      <h1 className="sr-only">ربط صفحة فيسبوك</h1>
       {/* Floating shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -right-48 -top-48 h-72 w-72 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 blur-3xl" />
@@ -234,9 +239,10 @@ export default function ConnectPage() {
 
               {/* Page ID */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">معرف الصفحة (Page ID)</Label>
+                <Label htmlFor="page-id" className="text-sm font-medium">معرف الصفحة (Page ID)</Label>
                 <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
+                    id="page-id"
                     dir="ltr"
                     placeholder="123456789012345"
                     value={pageId}
@@ -249,10 +255,11 @@ export default function ConnectPage() {
               {/* Access Token */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">رمز الوصول (Access Token)</Label>
+                  <Label htmlFor="access-token" className="text-sm font-medium">رمز الوصول (Access Token)</Label>
                 </div>
                 <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
+                    id="access-token"
                     dir="ltr"
                     type="password"
                     placeholder="EAAx..."
@@ -262,19 +269,19 @@ export default function ConnectPage() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  التوكن يحتاج الصلاحيات: <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_messaging</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_manage_metadata</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_read_engagement</code>
+                  رمز الوصول يحتاج الصلاحيات: <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_messaging</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_manage_metadata</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_read_engagement</code>
                 </p>
               </div>
 
               {/* Scope warnings */}
               {scopeWarnings.length > 0 && (
-                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
-                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                    تحذير: التوكن ينقصه الصلاحيات التالية:
+                <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                  <p className="text-xs text-warning">
+                    تحذير: رمز الوصول ينقصه الصلاحيات التالية:
                   </p>
                   <ul className="mt-1 space-y-0.5">
                     {scopeWarnings.map((s) => (
-                      <li key={s} className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400">
+                      <li key={s} className="flex items-center gap-1.5 text-xs text-warning">
                         <X className="h-3 w-3" />
                         {s}
                       </li>
@@ -299,7 +306,7 @@ export default function ConnectPage() {
                   onClick={handleTest}
                 >
                   {status === "testing" ? (
-                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الاختبار...</>
+                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جارٍ الاختبار...</>
                   ) : (
                     "اختبار الاتصال"
                   )}
@@ -310,7 +317,7 @@ export default function ConnectPage() {
                   onClick={handleSave}
                 >
                   {status === "saving" ? (
-                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الحفظ...</>
+                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جارٍ الحفظ...</>
                   ) : (
                     "حفظ وتفعيل"
                   )}
@@ -319,19 +326,19 @@ export default function ConnectPage() {
 
               {/* Fan count */}
               {fanCount > 0 && status !== "connected" && (
-                <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-center">
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                    ✅ اتصال ناجح — {formatNumber(fanCount)} متابع
+                <div role="status" aria-live="polite" className="rounded-lg border border-success/30 bg-success/5 p-3 text-center">
+                  <p className="text-sm text-success font-medium">
+                    ✅ اتصال ناجح — {countPhrase(fanCount, "متابع", "متابعين", "متابعين")}
                   </p>
                 </div>
               )}
 
               {status === "connected" && (
-                <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 text-center space-y-3">
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                <div role="status" className="rounded-lg border border-success/30 bg-success/5 p-3 text-center space-y-3">
+                  <p className="text-sm text-success font-medium">
                     ✅ تم التفعيل بنجاح — البوت جاهز للعمل
                   </p>
-                  <Link href="/dashboard" className="inline-flex h-10 items-center justify-center rounded-lg bg-green-600 px-6 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+                  <Link href="/dashboard" className="inline-flex h-10 items-center justify-center rounded-lg bg-success px-6 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors">
                     الذهاب للوحة التحكم
                   </Link>
                 </div>

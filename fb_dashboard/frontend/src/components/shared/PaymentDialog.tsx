@@ -428,13 +428,15 @@ export function PaymentDialog({
 
                   {/* User phone */}
                   <div>
-                    <Label htmlFor="payment-phone">رقم هاتفك</Label>
+                    <Label htmlFor="payment-phone">رقم هاتفك *</Label>
                     <Input
                       id="payment-phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="09XXXXXXXXX"
+                      placeholder="09XXXXXXXX"
                       inputMode="numeric"
+                      autoComplete="tel"
+                      required
                       maxLength={10}
                       className="h-11 rounded-xl mt-1.5 text-left font-mono"
                       dir="ltr"
@@ -502,6 +504,8 @@ export function PaymentDialog({
                       value={senderAccountName}
                       onChange={(e) => setSenderAccountName(e.target.value)}
                       placeholder="الاسم كما يظهر في الحساب"
+                      autoComplete="name"
+                      required
                       className="h-11 rounded-xl mt-1.5"
                     />
                   </div>
@@ -539,7 +543,7 @@ export function PaymentDialog({
                             const file = e.target.files?.[0]
                             if (!file) return
                             setUploadingReceipt(true)
-                            premiumToast("info", "جاري رفع الصورة...")
+                            premiumToast("info", "جارٍ رفع الصورة...")
                             try {
                               const compressed = await compressImage(file)
                               const fd = new FormData()
@@ -566,7 +570,7 @@ export function PaymentDialog({
                         ) : (
                           <AnimatedUpload className="size-4 text-muted-foreground" />
                         )}
-                        {uploadingReceipt ? "جاري الرفع..." : "اختر صورة"}
+                        {uploadingReceipt ? "جارٍ الرفع..." : "اختر صورة"}
                       </label>
                       {receiptImageUrl && (
                         <button
@@ -604,7 +608,7 @@ export function PaymentDialog({
                 onClick={handleSent}
                 disabled={submitting || (provider !== "bank" && !phone.trim())}
               >
-                {submitting ? "جاري الإرسال..." : "إرسال طلب الدفع"}
+                {submitting ? "جارٍ الإرسال..." : "إرسال طلب الدفع"}
               </Button>
             </>
           )}
@@ -630,7 +634,7 @@ export function PaymentDialog({
               <div className="text-center space-y-1.5">
                 <p className="text-base font-bold">في انتظار تأكيد الدفع</p>
                 <p className="text-xs text-muted-foreground max-w-[220px] mx-auto leading-relaxed">
-                  &quot;بعد التحويل، انتظر موافقة الإدارة&quot;
+                  بعد التحويل، انتظر موافقة الإدارة
                 </p>
               </div>
 

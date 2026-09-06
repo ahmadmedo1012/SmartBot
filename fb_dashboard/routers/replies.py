@@ -47,9 +47,19 @@ async def _sync_recent_comments(db, tenant_id: int, fb, limit: int = 25) -> None
     except Exception as e:
         log.warning(f"live comment sync failed (tenant {tenant_id}): {e}")
         return
+    # v8-A12: batch lookup — one IN(...) query instead of one SELECT per
+    # comment (up to 25 sequential round-trips per /api/comments call).
+    cids = [c.get("id", "") for c in live or [] if c.get("id")]
+    existing: set[str] = set()
+    if cids:
+        for row in (await db.execute(
+            select(Comment.fb_comment_id).where(
+                Comment.tenant_id == tenant_id, Comment.fb_comment_id.in_(cids))
+        )).scalars().all():
+            existing.add(row)
     for c in live or []:
         cid = c.get("id", "")
-        if not cid:
+        if not cid or cid in existing:
             continue
         from_data = c.get("from", {}) or {}
         created_at = None
@@ -61,23 +71,19 @@ async def _sync_recent_comments(db, tenant_id: int, fb, limit: int = 25) -> None
                 ).astimezone(UTC).replace(tzinfo=None)
             except ValueError:
                 created_at = None
-        row = (await db.execute(
-            select(Comment).where(Comment.tenant_id == tenant_id, Comment.fb_comment_id == cid)
-        )).scalar_one_or_none()
-        if row is None:
-            db.add(Comment(
-                tenant_id=tenant_id, fb_comment_id=cid,
-                fb_post_id=c.get("_post_id", ""),
-                commenter_id=from_data.get("id", ""),
-                commenter_name=from_data.get("name", ""),
-                comment_text=c.get("message", ""),
-                created_at=created_at,
-            ))
+        db.add(Comment(
+            tenant_id=tenant_id, fb_comment_id=cid,
+            fb_post_id=c.get("_post_id", ""),
+            commenter_id=from_data.get("id", ""),
+            commenter_name=from_data.get("name", ""),
+            comment_text=c.get("message", ""),
+            created_at=created_at,
+        ))
     await db.commit()
 
 
 @router.get("/api/replies")
-async def list_replies(page: int = Query(1), per_page: int = Query(20), rule_id: int = Query(None), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_replies(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1, le=100), rule_id: int = Query(None), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     _tid = current_user._tenant_id
     offset = (page - 1) * per_page
     stmt = select(Reply).where(Reply.tenant_id == _tid)

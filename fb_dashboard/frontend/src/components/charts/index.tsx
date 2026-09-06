@@ -14,12 +14,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { useEffect, useState } from "react"
 
 // Brand solid — NOT --accent (that token is the 15% whisper tint; using it
 // here made chart bars nearly invisible on the dashboard).
 const ACCENT = "var(--primary)"
 const MUTED = "var(--muted)"
 const GRID = "var(--border)"
+
+/* v8-C2: charts must respect prefers-reduced-motion too — recharts draws
+ * with a 600ms tween by default. One media-query hook, shared by all charts. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduced(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
+  return reduced
+}
 
 export interface BarDatum {
   label: string
@@ -32,11 +47,15 @@ export function ActivityBarChart({
   data,
   height = 160,
   showAxis = false,
+  summary,
 }: {
   data: BarDatum[]
   height?: number
   showAxis?: boolean
+  /** sr-only text alternative for screen readers (v8-B14) */
+  summary?: string
 }) {
+  const animate = !usePrefersReducedMotion() // v8-C2 — top-level hook (no conditional order)
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center text-xs text-muted-foreground" style={{ height }}>
@@ -45,7 +64,9 @@ export function ActivityBarChart({
     )
   }
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <div>
+      {summary ? <p className="sr-only">{summary}</p> : null}
+      <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 4, right: 2, left: 2, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke={GRID} strokeDasharray="3 3" opacity={0.4} />
         {showAxis && (
@@ -66,17 +87,22 @@ export function ActivityBarChart({
             )
           }}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]} fill={ACCENT} maxBarSize={28} animationDuration={600} />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} fill={ACCENT} maxBarSize={28}
+             isAnimationActive={animate} animationDuration={600} />
       </BarChart>
     </ResponsiveContainer>
+    </div>
   )
 }
 
 /** Horizontal comparison bars (e.g. sentiment distribution, top rules). */
 export function ComparisonBars({
   data,
+  summary,
 }: {
   data: BarDatum[]
+  /** sr-only text alternative for screen readers (v8-B14) */
+  summary?: string
 }) {
   const max = Math.max(...data.map((d) => d.value), 1)
   if (data.length === 0) {
@@ -84,6 +110,7 @@ export function ComparisonBars({
   }
   return (
     <div className="space-y-2.5">
+      {summary ? <p className="sr-only">{summary}</p> : null}
       {data.map((d) => (
         <div key={d.label} className="flex items-center gap-3 text-sm">
           <span className="w-16 shrink-0 text-muted-foreground">{d.label}</span>

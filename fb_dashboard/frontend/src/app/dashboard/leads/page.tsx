@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { formatDateOnly } from "@/lib/format"
 
@@ -42,13 +43,15 @@ export default function LeadsPage() {
           <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
         ) : isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل العملاء</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (customers as any[]).length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">لا يوجد عملاء متوقعون بعد</CardContent></Card>
+          <Card><CardContent className="p-0">
+              <EmptyState icon={UserPlus} size="sm" title="لا يوجد عملاء متوقعون بعد" description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه." />
+            </CardContent></Card>
         ) : (
           <div className="space-y-2">
             {(customers as any[]).map((c: any) => (

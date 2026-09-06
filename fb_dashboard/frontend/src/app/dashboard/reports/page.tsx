@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, Bot, Users, MessagesSquare, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
 
@@ -51,7 +52,7 @@ export default function ReportsPage() {
           <div className="space-y-3">{[1,2,3,4].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-16" /></Card>)}</div>
         ) : anyError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل التقارير</h2>
             <p className="text-xs text-muted-foreground mb-4">{(dbError as any)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
@@ -65,7 +66,7 @@ export default function ReportsPage() {
                   existed in any response, so every card was permanently 0. */}
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-blue-500/10 flex items-center justify-center"><MessageSquare className="size-4 text-blue-500" /></div>
+                  <div className="size-9 rounded-lg bg-info-soft flex items-center justify-center"><MessageSquare className="size-4 text-info" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_messages ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">إجمالي الرسائل</p>
@@ -83,7 +84,7 @@ export default function ReportsPage() {
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-green-500/10 flex items-center justify-center"><MessagesSquare className="size-4 text-green-500" /></div>
+                  <div className="size-9 rounded-lg bg-success-soft flex items-center justify-center"><MessagesSquare className="size-4 text-success" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_conversations ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">المحادثات</p>
@@ -92,7 +93,7 @@ export default function ReportsPage() {
               </Card>
               <Card>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-purple-500/10 flex items-center justify-center"><Users className="size-4 text-purple-500" /></div>
+                  <div className="size-9 rounded-lg bg-accent flex items-center justify-center"><Users className="size-4 text-accent-foreground" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_customers ?? 0)}</p>
                     <p className="text-[10px] text-muted-foreground">عملاء محفوظون (CRM)</p>
@@ -115,7 +116,7 @@ export default function ReportsPage() {
                     </p>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full ${(dashboard?.change_pct ?? 0) >= 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}>
+                <span className={`text-xs font-bold px-2 py-1 rounded-full ${(dashboard?.change_pct ?? 0) >= 0 ? "bg-success-soft text-success" : "bg-destructive-soft text-destructive"}`}>
                   {(dashboard?.change_pct ?? 0) >= 0 ? "↑" : "↓"} {Math.abs(dashboard?.change_pct ?? 0)}%
                 </span>
               </CardContent>
@@ -128,7 +129,9 @@ export default function ReportsPage() {
               ) : tcErr ? (
                 <Card><CardContent className="p-4 text-center text-xs text-muted-foreground">تعذر تحميل المعلقين</CardContent></Card>
               ) : (topCommenters as any[]).length === 0 ? (
-                <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">لا توجد بيانات كافية</CardContent></Card>
+                <Card><CardContent className="p-0">
+                  <EmptyState icon={MessageSquare} size="sm" title="لا توجد بيانات كافية" description="ستظهر أسماء أكثر المعلقين تفاعلاً هنا بعد وصول تعليقات على منشوراتك." />
+                </CardContent></Card>
               ) : (
                 <div className="space-y-1">
                   {(topCommenters as any[]).map((c: any, i: number) => (

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Radio, AlertCircle, RefreshCw, Plus, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,13 +46,13 @@ export default function BroadcastPage() {
       return unwrapApi(res)
     },
     onSuccess: (data: any) => {
-      toast.success("تم إنشاء البث — يمكنك إرساله الآن")
+      brandedToast.success("تم إنشاء البث — يمكنك إرساله الآن")
       setName("")
       setMessage("")
       setShowForm(false)
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: any) => toast.error(e.message || "فشل إنشاء البث"),
+    onError: (e: any) => brandedToast.error(e.message || "فشل إنشاء البث"),
   })
 
   const sendMut = useMutation({
@@ -65,10 +65,10 @@ export default function BroadcastPage() {
       return unwrapApi(res)
     },
     onSuccess: () => {
-      toast.success("تم إرسال البث للمشتركين")
+      brandedToast.success("تم إرسال البث للمشتركين")
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: any) => toast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
+    onError: (e: any) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
   })
 
   return (
@@ -128,7 +128,7 @@ export default function BroadcastPage() {
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل البثوث</h2>
+            <h2 className="text-sm font-bold mb-1">فشل تحميل رسائل البث</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
@@ -136,7 +136,7 @@ export default function BroadcastPage() {
         ) : (broadcasts as any[]).length === 0 ? (
           <EmptyState
             icon={Radio}
-            title="لا توجد بثوث جماعية"
+            title="لا توجد رسائل بث جماعي"
             description="أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة."
             action={{ label: "بث جديد", icon: Plus, onClick: () => setShowForm(true) }}
           />
@@ -154,7 +154,7 @@ export default function BroadcastPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => sendMut.mutate(b.id)}
-                      disabled={sendMut.isPending}
+                      disabled={sendMut.isPending && sendMut.variables === b.id}
                       className="shrink-0"
                     >
                       <Send className="size-3.5 rtl:-scale-x-100" /> إرسال

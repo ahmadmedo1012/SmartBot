@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
 import { formatDateOnly, formatMonth } from "@/lib/format"
@@ -32,17 +33,17 @@ export default function CalendarPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-bold text-sm mb-3">{formatMonth(now)}</h3>
+            <h2 className="font-bold text-sm mb-3">{formatMonth(now)}</h2>
             {isError ? (
               <div className="text-center py-8">
-                <AlertCircle className="size-8 mx-auto mb-2 text-red-500/50" />
+                <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
                 <p className="text-sm text-muted-foreground mb-3">فشل تحميل التقويم</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
               </div>
             ) : isLoading ? (
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}</div>
             ) : posts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">لا توجد منشورات في هذا الشهر</p>
+              <EmptyState icon={CalendarDays} size="sm" title="لا توجد منشورات في هذا الشهر" description="جدّول منشورات هذا الشهر من صفحة المنشورات وستظهر هنا فور جدولتها." />
             ) : (
               <div className="space-y-2">
                 {posts.map((p: any) => (

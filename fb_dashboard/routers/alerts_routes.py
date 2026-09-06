@@ -112,7 +112,7 @@ async def update_notification_preferences(
     """Save notification preferences (partial update accepted)."""
     prefs_in = body.get("preferences", {})
     if not isinstance(prefs_in, dict):
-        raise HTTPException(400, "preferences must be an object")
+        raise HTTPException(400, "يجب أن تكون التفضيلات كائن JSON")
     # Sanitise: only allow known keys
     clean: dict = {}
     for key in DEFAULT_NOTIF_PREFS:

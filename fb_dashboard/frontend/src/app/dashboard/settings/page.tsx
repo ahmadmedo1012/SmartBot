@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { apiFetch } from "@/lib/csrf-client"
 import { Settings, User, Shield, Mail, Lock, KeyRound, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
   const changePassword = async () => {
     if (newPw.length < 8) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
+      brandedToast.error("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
       return
     }
     setPwBusy(true)
@@ -40,16 +40,16 @@ export default function SettingsPage() {
         body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
       })
       if (r.ok) {
-        toast.success("تم تغيير كلمة المرور بنجاح")
+        brandedToast.success("تم تغيير كلمة المرور بنجاح")
         setCurrentPw("")
         setNewPw("")
         setShowPw(false)
       } else {
         const body = await r.json().catch(() => null)
-        toast.error(body?.detail || "تعذر تغيير كلمة المرور")
+        brandedToast.error(body?.detail || "تعذر تغيير كلمة المرور")
       }
     } catch {
-      toast.error("خطأ في الاتصال")
+      brandedToast.error("خطأ في الاتصال")
     }
     setPwBusy(false)
   }
@@ -88,7 +88,7 @@ export default function SettingsPage() {
                 </div>
                 {user.email && (
                   <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                    <div className="size-9 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                    <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
                       <Mail className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -98,7 +98,7 @@ export default function SettingsPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                  <div className="size-9 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
                     <Shield className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -125,7 +125,9 @@ export default function SettingsPage() {
                     <p className="text-sm font-medium">كلمة المرور والتشفير</p>
                     <p className="text-xs text-muted-foreground">كلمات المرور مُعمّاة بـ Argon2id وجلساتك محمية بنطاق واحد</p>
                   </div>
-                  <span className="size-2 rounded-full bg-success shrink-0" aria-label="مفعّل" />
+                  {/* v8-B13: aria-label on a bare span is ignored by AT — role="status"
+                      exposes the state (the dot itself is decorative) */}
+                  <span role="status" className="size-2 rounded-full bg-success shrink-0" aria-label="مفعّل" />
                 </div>
 
                 {showPw ? (

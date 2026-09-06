@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import {
   FileText, Link2, CheckCircle2, XCircle, RefreshCw, AlertCircle, Loader2, HelpCircle
 } from "lucide-react"
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { unwrapApi } from "@/lib/api"
-import { formatNumber } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 export default function PagesPage() {
   const [pageId, setPageId] = useState("")
@@ -34,7 +34,7 @@ export default function PagesPage() {
 
   const handleSave = async () => {
     if (!pageId.trim() || !accessToken.trim()) {
-      toast.error("يرجى إدخال معرف الصفحة ورمز الوصول")
+      brandedToast.error("يرجى إدخال معرف الصفحة ورمز الوصول")
       return
     }
     setSaving(true)
@@ -46,9 +46,9 @@ export default function PagesPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.detail || "فشل الحفظ")
       queryClient.invalidateQueries({ queryKey: ["facebook-settings"] })
-      toast.success("تم حفظ بيانات فيسبوك والاشتراك في webhook")
+      brandedToast.success("تم حفظ بيانات فيسبوك والاشتراك في webhook")
     } catch (e: any) {
-      toast.error(e.message || "فشل الحفظ")
+      brandedToast.error(e.message || "فشل الحفظ")
     }
     setSaving(false)
   }
@@ -61,13 +61,13 @@ export default function PagesPage() {
       const json = await unwrapApi(res)
       setTestResult(json)
       if (json.connected) {
-        toast.success(`اتصال ناجح · ${json.fan_count} متابع`)
+        brandedToast.success(`اتصال ناجح · ${countPhrase(json.fan_count, "متابع", "متابعين", "متابعين")}`)
       } else {
-        toast.error(json.error || "فشل الاتصال")
+        brandedToast.error(json.error || "فشل الاتصال")
       }
     } catch (e: any) {
       setTestResult({ connected: false, error: e.message })
-      toast.error(e.message || "فشل الاختبار")
+      brandedToast.error(e.message || "فشل الاختبار")
     }
     setTesting(false)
   }
@@ -91,14 +91,14 @@ export default function PagesPage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6" dir="rtl">
         {isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل الإعدادات</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
           <Card><CardContent className="p-6 flex items-center gap-4">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">جاري التحميل...</span>
+            <span className="text-sm text-muted-foreground">جارٍ التحميل...</span>
           </CardContent></Card>
         ) : (
           <>
@@ -106,11 +106,11 @@ export default function PagesPage() {
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-4">
-                <div className={`size-10 rounded-lg flex items-center justify-center ${connected ? "bg-green-500/10" : "bg-muted"}`}>
-                  {connected ? <CheckCircle2 className="size-5 text-green-500" /> : <XCircle className="size-5 text-muted-foreground" />}
+                <div className={`size-10 rounded-lg flex items-center justify-center ${connected ? "bg-success-soft" : "bg-muted"}`}>
+                  {connected ? <CheckCircle2 className="size-5 text-success" /> : <XCircle className="size-5 text-muted-foreground" />}
                 </div>
                 <div>
-                  <p className="font-bold text-sm">{connected ? "صفحة متصلة" : "غير متصل"}</p>
+                  <p className="font-bold text-sm">{connected ? "صفحة متصلة" : "غير متصلة"}</p>
                   <p className="text-xs text-muted-foreground">{data?.page_id ? `المعرف: ${data.page_id}` : "لم يتم ربط أي صفحة بعد"}</p>
                 </div>
               </div>
@@ -129,13 +129,13 @@ export default function PagesPage() {
               <CardContent className="p-5 space-y-2">
                 <div className="flex items-center gap-2">
                   {testResult.connected
-                    ? <CheckCircle2 className="size-4 text-green-500" />
-                    : <XCircle className="size-4 text-red-500" />}
+                    ? <CheckCircle2 className="size-4 text-success" />
+                    : <XCircle className="size-4 text-destructive" />}
                   <span className="text-sm font-bold">{testResult.connected ? "اتصال ناجح" : "فشل الاتصال"}</span>
                 </div>
                 {testResult.connected && (
                   <>
-                    <p className="text-sm">{formatNumber(testResult.fan_count)} متابع</p>
+                    <p className="text-sm">{countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين")}</p>
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (
@@ -144,12 +144,12 @@ export default function PagesPage() {
                       </div>
                     )}
                     {testResult.warning && (
-                      <p className="text-xs text-yellow-500">{testResult.warning}</p>
+                      <p className="text-xs text-warning">{testResult.warning}</p>
                     )}
                   </>
                 )}
                 {testResult.error && (
-                  <p className="text-xs text-red-500">{testResult.error}</p>
+                  <p className="text-xs text-destructive">{testResult.error}</p>
                 )}
               </CardContent>
             </Card>
@@ -161,12 +161,12 @@ export default function PagesPage() {
               <h3 className="font-bold text-sm">ربط صفحة فيسبوك جديدة</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">معرف الصفحة (Page ID)</label>
-                  <Input value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل معرف الصفحة من فيسبوك" className="h-9 text-sm" />
+                  <label htmlFor="fb-page-id" className="text-xs text-muted-foreground mb-1 block">معرف الصفحة (Page ID)</label>
+                  <Input id="fb-page-id" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل معرف الصفحة من فيسبوك" className="h-9 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">رمز الوصول (Access Token)</label>
-                  <Input value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="أدخل رمز الوصول" className="h-9 text-sm font-mono" />
+                  <label htmlFor="fb-access-token" className="text-xs text-muted-foreground mb-1 block">رمز الوصول (Access Token)</label>
+                  <Input id="fb-access-token" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="أدخل رمز الوصول" className="h-9 text-sm font-mono" />
                 </div>
                 <Button onClick={handleSave} disabled={!pageId.trim() || !accessToken.trim() || saving} className="w-full">
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}

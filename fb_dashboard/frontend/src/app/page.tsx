@@ -93,6 +93,7 @@ const faqSchema = {
     { "@type": "Question", name: "هل بياناتي آمنة؟", acceptedAnswer: { "@type": "Answer", text: "جميع البيانات مشفرة. لا نشارك معلومات صفحاتك مع أي جهة خارجية." } },
     { "@type": "Question", name: "كم صفحة يمكنني ربطها؟", acceptedAnswer: { "@type": "Answer", text: "يمكنك ربط صفحة واحدة في الخطة المجانية، وحتى 10 صفحات في الخطة الاحترافية." } },
     { "@type": "Question", name: "هل تدعم اللغة العربية كاملاً؟", acceptedAnswer: { "@type": "Answer", text: "نعم، الواجهة كاملة بالعربية مع دعم كامل للردود والتعليقات العربية." } },
+    { "@type": "Question", name: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", acceptedAnswer: { "@type": "Answer", text: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود غير المحدودة، اختر الخطة المؤسسية." } },
     { "@type": "Question", name: "هل يمكنني تجربة البوت قبل الشراء؟", acceptedAnswer: { "@type": "Answer", text: "نعم! يمكنك تجربة لوحة التحكم التجريبية ببيانات وهمية لترى كل الميزات قبل الاشتراك." } },
   ],
 }
@@ -106,6 +107,8 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />
+      {/* v8-B7: skip-link target — lands past the Header nav */}
+      <span id="page-content" className="sr-only" aria-hidden="true" />
 
       {/* Hero — scroll-craft treatment (latest_plan §G.4): static server
           markup + pure-CSS entrances (v6 §D). */}
@@ -160,7 +163,7 @@ export default function HomePage() {
                 {/* Quick proof bar */}
                 <div
                   className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2 animate-fade-in-400">
-                  <div className="flex items-center gap-2.5" style={{ direction: "ltr" }}>
+                  <div className="flex items-center gap-2.5">
                     <div className="flex -space-x-2">
                       {["أ", "س", "م", "ن"].map((l, i) => (
                         <div key={i} className="size-8 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-primary-foreground">{l}</div>
@@ -173,7 +176,7 @@ export default function HomePage() {
                   </div>
                   <div className="h-8 w-px bg-border/60" aria-hidden="true" />
                   <div className="flex items-center gap-1.5">
-                    <div className="size-2 rounded-full bg-green-500 animate-pulse" />
+                    <div className="size-2 rounded-full bg-success animate-pulse" />
                     <span className="text-xs text-muted-foreground font-medium">النظام يعمل الآن</span>
                   </div>
                 </div>

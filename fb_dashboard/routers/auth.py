@@ -57,7 +57,7 @@ async def get_current_user(request: Request, db=Depends(get_db)):
     if user.tenant_id:
         tenant = await db.get(Tenant, user.tenant_id)
         if not tenant or not tenant.is_active:
-            raise HTTPException(403, "Tenant account is inactive or deleted")
+            raise HTTPException(403, "حساب المنظمة موقوف أو محذوف — تواصل مع الدعم")
     user._tenant_id = user.tenant_id or 0
     return user
 
@@ -98,7 +98,7 @@ async def require_platform_admin(current_user: User = Depends(require_role("admi
 @router.post("/api/login")
 async def login(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
     if not body:
-        raise HTTPException(400, "JSON body required")
+        raise HTTPException(400, "جسم الطلب JSON مطلوب")
     username = body.get("username", "")
     password = body.get("password", "")
     email_lookup = username if "@" in username else ""
@@ -155,7 +155,7 @@ async def logout(request: Request, db=Depends(get_db)):
 @router.post("/api/register")
 async def register(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
     if not body:
-        raise HTTPException(400, "JSON body required")
+        raise HTTPException(400, "جسم الطلب JSON مطلوب")
     username = body.get("username", "")
     email = body.get("email", "")
     password = body.get("password", "")
@@ -290,7 +290,7 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     the bootstrap platform admin (full account takeover chain).
     """
     if not body or "user_id" not in body or "new_password" not in body:
-        raise HTTPException(400, "user_id and new_password are required")
+        raise HTTPException(400, "user_id و new_password مطلوبان")
     user_id = body["user_id"]
     new_password = body["new_password"]
     if not isinstance(new_password, str) or len(new_password) < 8:
@@ -318,7 +318,7 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     password (only admin reset), which pushed operators toward shared defaults.
     """
     if not body:
-        raise HTTPException(400, "JSON body required")
+        raise HTTPException(400, "جسم الطلب JSON مطلوب")
     current_password = str(body.get("current_password") or "")
     new_password = str(body.get("new_password") or "")
     if not current_password:

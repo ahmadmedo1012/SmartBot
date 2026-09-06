@@ -5,8 +5,10 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
-import { formatDateOnly } from "@/lib/format"
+import { countPhrase, formatDateOnly } from "@/lib/format"
 
 export default function AudiencePage() {
   const { data, isLoading, isError, refetch } = useQuery({
@@ -44,7 +46,7 @@ export default function AudiencePage() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل بيانات الجمهور</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
@@ -61,8 +63,8 @@ export default function AudiencePage() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2">
-                <Activity className="size-4 text-blue-500" />
+              <div className="size-8 rounded-lg bg-info-soft flex items-center justify-center mb-2">
+                <Activity className="size-4 text-info" />
               </div>
               <p className="text-2xl font-bold">{data?.total_replies ?? "—"}</p>
               <p className="text-xs text-muted-foreground">إجمالي التفاعل</p>
@@ -70,8 +72,8 @@ export default function AudiencePage() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-green-500/10 flex items-center justify-center mb-2">
-                <Activity className="size-4 text-green-500" />
+              <div className="size-8 rounded-lg bg-success-soft flex items-center justify-center mb-2">
+                <Activity className="size-4 text-success" />
               </div>
               <p className="text-2xl font-bold">{data?.today_replies ?? "—"}</p>
               <p className="text-xs text-muted-foreground">نشاط اليوم</p>
@@ -87,7 +89,7 @@ export default function AudiencePage() {
                 empty state while top commenters were still loading) */}
             {isLoading || topQuery.isLoading ? (
               <div className="space-y-2">
-                {[1,2,3,4,5].map(i => <div key={i} className="h-5 bg-muted rounded animate-pulse" />)}
+                {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-5" />)}
               </div>
             ) : topQuery.isError ? (
               <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
@@ -96,12 +98,12 @@ export default function AudiencePage() {
                 {topQuery.data.map((c: any, i: number) => (
                   <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                     <span>{c.name || `معلق #${c.commenter_id}`}</span>
-                    <span className="text-muted-foreground">{c.count} تعليق</span>
+                    <span className="text-muted-foreground">{countPhrase(c.count, "تعليق", "تعليقين", "تعليقات")}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">بيانات الجمهور ستظهر هنا</p>
+              <EmptyState icon={Activity} size="sm" title="لا توجد بيانات بعد" description="ستظهر أسماء المعلقين الأكثر تفاعلاً هنا مع وصول التعليقات على منشوراتك." />
             )}
           </CardContent>
         </Card>
@@ -121,15 +123,26 @@ export default function AudiencePage() {
               </span>
             </div>
             {subsQuery.isLoading ? (
-              <div className="space-y-2">
-                {[1,2,3,4,5].map(i => <div key={i} className="h-9 bg-muted rounded animate-pulse" />)}
+              <div className="space-y-3">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <Skeleton className="size-7 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-1/3" />
+                      <Skeleton className="h-2.5 w-1/2" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : subsQuery.isError ? (
               <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المشتركين</p>
             ) : (subsQuery.data?.items?.length || 0) === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                لا يوجد مشتركون بعد — أول من يراسل صفحتك سيظهر هنا تلقائياً
-              </p>
+              <EmptyState
+                icon={Users}
+                size="sm"
+                title="لا يوجد مشتركون بعد"
+                description="أول من يراسل صفحتك عبر الماسنجر سيظهر هنا تلقائياً."
+              />
             ) : (
               <div className="space-y-1.5">
                 {(subsQuery.data?.items || []).map((s: any) => (

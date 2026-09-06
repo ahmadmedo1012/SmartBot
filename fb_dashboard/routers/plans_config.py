@@ -53,6 +53,30 @@ async def list_plans(db=Depends(get_db)):
     } for p in plans]}
 
 
+# v8-A1 SECURITY allowlist: /api/config is PUBLIC (no auth) — it may only
+# ever expose payment-instruction + support-contact keys. Reading "all
+# non-secret rows" leaked openai/gemini API keys that were stored with
+# is_secret=False before the fix in admin_routes. An explicit allowlist is
+# immune to future key additions (a new SystemConfig row can never leak by
+# default). Consumers: useConfig.ts → PaymentDialog / Footer /
+# FloatingWhatsApp.
+_PUBLIC_CONFIG_KEYS = frozenset({
+    # payment instructions (/subscribe + PaymentDialog)
+    "balance_transfer_phone_1",       # مدار
+    "balance_transfer_phone_2",       # ليبيانا
+    "bank_transfer_bank_name",
+    "bank_transfer_account_number",
+    "bank_transfer_iban",
+    "mobile_wallet_cap",
+    # support contact (Footer + FloatingWhatsApp)
+    "support_email",
+    "support_phone",
+    "support_whatsapp",
+    "support_working_hours",
+    "whatsapp_number",
+})
+
+
 @router.get("/api/config")
 @api_cache.cached(ttl=300)  # 5min cache — payment phones change rarely
 async def public_config(db=Depends(get_db)):
@@ -61,9 +85,13 @@ async def public_config(db=Depends(get_db)):
     Merge order (plan §2.4): SystemConfig rows (set by admin via
     POST /api/admin/config) WIN; env vars (LIBYANA_WALLET_PHONE, …) act as
     fallbacks so a fresh deployment shows working payment instructions.
-    Never exposes rows flagged is_secret.
+
+    SECURITY (v8-A1): explicit allowlist only — never a "everything not
+    flagged secret" read. Credential-shaped rows (AI keys, telegram token,
+    FB app secret) can never appear here even if flagged non-secret by
+    mistake elsewhere.
     """
-    rows = await db.execute(select(SystemConfig))
+    rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_PUBLIC_CONFIG_KEYS)))
     config: dict = {}
     for r in rows.scalars().all():
         if not r.is_secret:

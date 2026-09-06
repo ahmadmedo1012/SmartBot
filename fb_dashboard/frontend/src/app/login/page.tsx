@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
 import { LogIn, Eye, EyeOff } from "lucide-react"
@@ -59,7 +59,7 @@ function LoginForm() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background">
         <div className="flex flex-col items-center gap-3">
           <div className="size-10 animate-pulse rounded-full bg-accent-foreground/40" />
-          <span className="animate-breath text-sm text-muted-foreground">جاري التحميل...</span>
+          <span className="animate-breath text-sm text-muted-foreground">جارٍ التحميل...</span>
         </div>
       </div>
     )
@@ -81,12 +81,12 @@ function LoginForm() {
       if (!res.ok) {
         const msg = data.detail || "فشل تسجيل الدخول"
         setFormError(msg)
-        toast.error(msg)
+        brandedToast.error(msg)
         return
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
       // message (e.g. "بيانات تسجيل الدخول غير صحيحة") instead of a generic one.
-      toast.success("تم تسجيل الدخول بنجاح")
+      brandedToast.success("تم تسجيل الدخول بنجاح")
       const role = data.data?.user?.role || data.role
       const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : (safeRedirect(rawRedirect) || "/dashboard")
       setTimeout(() => window.location.replace(target), 150)
@@ -95,7 +95,7 @@ function LoginForm() {
         ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل تسجيل الدخول")
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
-      toast.error(msg)
+      brandedToast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -119,6 +119,9 @@ function LoginForm() {
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--accent-foreground)] via-[var(--accent-foreground)]/80 to-[var(--accent-foreground)]/60" />
 
       <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+        {/* Visually-hidden page heading — CardTitle is a div, so heading
+            navigation had no target on this route (v8-B5) */}
+        <h1 className="sr-only">تسجيل الدخول</h1>
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             {/* v6 §D — next/image (was raw <img>): intrinsic 160×160 reserving
@@ -161,7 +164,7 @@ function LoginForm() {
             )}
             <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading}>
               {loading ? (
-                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جاري تسجيل الدخول...</span>
+                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جارٍ تسجيل الدخول...</span>
               ) : (
                 <span className="flex items-center gap-2"><LogIn className="size-4" /> تسجيل الدخول</span>
               )}

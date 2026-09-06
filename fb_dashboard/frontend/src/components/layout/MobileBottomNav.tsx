@@ -13,7 +13,7 @@
  * leaves the /demo first-load. The panel stays mounted so the exit
  * transition plays; hidden state is pointer-events-none + tabIndex -1.
  */
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, MessageCircle, BarChart3, Bell, Menu, X, LogOut } from "lucide-react"
@@ -21,7 +21,7 @@ import { defaultNavSections, type NavItem } from "./AdminSidebar"
 import { cn } from "@/lib/utils"
 
 const BAR_ITEMS: NavItem[] = [
-  { icon: LayoutDashboard, label: "الرئيسية", href: "/dashboard" },
+  { icon: LayoutDashboard, label: "لوحة التحكم", href: "/dashboard" },
   { icon: MessageCircle, label: "الرسائل", href: "/dashboard/messages" },
   { icon: BarChart3, label: "التحليلات", href: "/dashboard/analytics" },
   { icon: Bell, label: "الإشعارات", href: "/dashboard/notifications" },
@@ -43,6 +43,44 @@ export function MobileBottomNav({
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
 
+  /* v8-B3: the "more" sheet is a modal dialog — add aria-modal + the full
+   * keyboard contract (focus-in, Tab-cycle trap, Escape, restore to the
+   * "المزيد" trigger), replicating Header MobileMenu's pattern. */
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const moreBtnRef = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    if (sheetOpen) {
+      moreBtnRef.current = document.activeElement as HTMLButtonElement
+      requestAnimationFrame(() => {
+        const panel = sheetRef.current
+        if (!panel) return
+        const focusable = panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        if (focusable.length) focusable[0]?.focus()
+      })
+    } else {
+      moreBtnRef.current?.focus?.()
+    }
+  }, [sheetOpen])
+  useEffect(() => {
+    if (!sheetOpen) return
+    const panel = sheetRef.current
+    if (!panel) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); setSheetOpen(false); return }
+      if (e.key !== "Tab") return
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      if (focusable.length === 0) { e.preventDefault(); return }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    panel.addEventListener("keydown", handleKeyDown)
+    return () => panel.removeEventListener("keydown", handleKeyDown)
+  }, [sheetOpen])
+
   const go = (href: string | undefined) => {
     if (!href) return
     setSheetOpen(false)
@@ -58,11 +96,13 @@ export function MobileBottomNav({
         aria-hidden="true"
       />
       <div
+        ref={sheetRef}
         className={cn(
           "sheet-panel fixed inset-x-0 bottom-0 z-50 md:hidden max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-2xl",
           sheetOpen && "sheet-open"
         )}
         role="dialog"
+        aria-modal={sheetOpen}
         aria-label="كل الأقسام"
         aria-hidden={!sheetOpen}
       >
@@ -105,7 +145,7 @@ export function MobileBottomNav({
                       type="button"
                       onClick={() => go(item.href)}
                       tabIndex={sheetOpen ? 0 : -1}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[colors,transform] ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[color,background-color,border-color,transform] ${
                         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -121,7 +161,7 @@ export function MobileBottomNav({
             type="button"
             onClick={() => { setSheetOpen(false); onLogout() }}
             tabIndex={sheetOpen ? 0 : -1}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[colors,transform]"
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[color,background-color,border-color,transform]"
           >
             <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
           </button>
@@ -142,7 +182,7 @@ export function MobileBottomNav({
                 type="button"
                 onClick={() => go(item.href)}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[colors,transform] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
                   active ? "text-accent-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -157,7 +197,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[colors,transform]"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
           >
             <Menu className="size-5" />
             <span>المزيد</span>

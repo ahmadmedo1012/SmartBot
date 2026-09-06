@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation"
 
 import { useState, useEffect, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
+import { timeAgo } from "@/lib/format"
 import {
   Bell,
   MessageSquare,
@@ -13,13 +14,14 @@ import {
   CreditCard,
   Rocket,
   TrendingUp,
-  Loader2,
   CheckCheck,
   BellRing,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 
@@ -34,25 +36,14 @@ interface NotificationItem {
 }
 
 const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string; label: string }> = {
-  payment: { icon: CreditCard, color: "text-yellow-500", label: "دفع" },
+  payment: { icon: CreditCard, color: "text-warning", label: "دفع" },
   reply: { icon: MessageSquare, color: "text-accent-foreground", label: "رد" },
-  support: { icon: MessageCircle, color: "text-blue-500", label: "دعم" },
-  marketing: { icon: TrendingUp, color: "text-green-500", label: "تسويق" },
-  system: { icon: Rocket, color: "text-purple-500", label: "نظام" },
+  support: { icon: MessageCircle, color: "text-info", label: "دعم" },
+  marketing: { icon: TrendingUp, color: "text-success", label: "تسويق" },
+  system: { icon: Rocket, color: "text-accent-foreground", label: "نظام" },
   mention: { icon: UserPlus, color: "text-pink-500", label: "إشارة" },
 }
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return ""
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return "الآن"
-  if (m < 60) return `قبل ${m} دقيقة`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `قبل ${h} ساعة`
-  const d = Math.floor(h / 24)
-  return `قبل ${d} يوم`
-}
 
 const TOGGLES = [
   {
@@ -67,28 +58,28 @@ const TOGGLES = [
     label: "رسائل جديدة",
     desc: "عند وصول رسالة جديدة للصفحة",
     icon: MessageCircle,
-    color: "text-blue-500",
+    color: "text-info",
   },
   {
     key: "new_leads",
     label: "عملاء متوقعون جدد",
     desc: "عند تسجيل عميل محتمل جديد",
     icon: UserPlus,
-    color: "text-green-500",
+    color: "text-success",
   },
   {
     key: "payment_alerts",
     label: "تنبيهات الدفع",
     desc: "عند تأكيد أو رفض طلب دفع",
     icon: CreditCard,
-    color: "text-yellow-500",
+    color: "text-warning",
   },
   {
     key: "system_updates",
     label: "تحديثات النظام",
     desc: "إشعارات حول تحسينات وصيانة المنصة",
     icon: Rocket,
-    color: "text-purple-500",
+    color: "text-accent-foreground",
   },
   {
     key: "marketing_reports",
@@ -117,14 +108,14 @@ export default function NotificationsPage() {
   const markAllMutation = useMutation({
     mutationFn: async () => {
       const res = await apiFetch("/api/notifications/read-all", { method: "POST" })
-      if (!res.ok) throw new Error("فشل تعليم الكل كمقروء")
+      if (!res.ok) throw new Error("فشل تحديد الكل كمقروء")
       return unwrapApi(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications-feed"] })
-      toast.success("تم تعليم جميع الإشعارات كمقروءة")
+      brandedToast.success("تم تحديد جميع الإشعارات كمقروءة")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل تعليم الإشعارات"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل تحديد الإشعارات كمقروءة"),
   })
 
   const markOneMutation = useMutation({
@@ -151,7 +142,9 @@ export default function NotificationsPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: async (prefs: Record<string, boolean>) => {
+    // v8 C6 — carries the toggled key so ONLY the acting row's switch is
+    // disabled/pending while the request is in flight (admin actionId pattern)
+    mutationFn: async ({ key, prefs }: { key: string; prefs: Record<string, boolean> }) => {
       const res = await apiFetch("/api/notifications/settings", {
         method: "PUT",
         body: JSON.stringify({ preferences: prefs }),
@@ -160,10 +153,10 @@ export default function NotificationsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification-settings"] })
-      toast.success("تم حفظ الإعدادات")
+      brandedToast.success("تم حفظ الإعدادات")
     },
     onError: (e: Error) => {
-      toast.error(e.message || "فشل حفظ الإعدادات")
+      brandedToast.error(e.message || "فشل حفظ الإعدادات")
     },
   })
 
@@ -173,7 +166,7 @@ export default function NotificationsPage() {
   const toggle = useCallback(
     (key: string) => {
       const next = { ...prefs, [key]: !prefs[key] }
-      mutation.mutate(next)
+      mutation.mutate({ key, prefs: next })
     },
     [prefs, mutation]
   )
@@ -210,14 +203,22 @@ export default function NotificationsPage() {
                   className="text-xs h-7 gap-1.5"
                 >
                   <CheckCheck className="size-3.5" />
-                  تعليم الكل كمقروء
+                  تحديد الكل كمقروء
                 </Button>
               )}
             </div>
 
             {feedQuery.isLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="size-5 animate-spin text-muted-foreground" />
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i}><CardContent className="p-4 flex items-start gap-3.5">
+                    <Skeleton className="size-10 rounded-xl shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-3.5 w-2/3" />
+                      <Skeleton className="h-2.5 w-1/2" />
+                    </div>
+                  </CardContent></Card>
+                ))}
               </div>
             ) : feedQuery.isError ? (
               <Card>
@@ -227,11 +228,13 @@ export default function NotificationsPage() {
               </Card>
             ) : notifications.length === 0 ? (
               <Card>
-                <CardContent className="p-8 text-center space-y-2">
-                  <Bell className="size-8 mx-auto text-muted-foreground/50" />
-                  <p className="text-sm text-muted-foreground">
-                    لا توجد إشعارات بعد — ستظهر هنا تحديثات الدفع والدعم والتسويق
-                  </p>
+                <CardContent className="p-0">
+                  <EmptyState
+                    icon={Bell}
+                    size="sm"
+                    title="لا توجد إشعارات بعد"
+                    description="ستظهر هنا تحديثات الدفع والدعم والتسويق فور وصولها."
+                  />
                 </CardContent>
               </Card>
             ) : (
@@ -242,10 +245,12 @@ export default function NotificationsPage() {
                   return (
                     <Card
                       key={n.id}
+                      interactive
                       className={[
-                        "transition-all cursor-pointer",
+                        "transition-all",
                         n.read ? "opacity-70 border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
                       ].join(" ")}
+                      aria-label={n.read ? `إشعار: ${n.title}` : `إشعار غير مقروء: ${n.title}`}
                       onClick={() => {
                         if (!n.read) markOneMutation.mutate(n.id)
                         if (n.link) router.push(n.link)  // real navigation (was location.hash — did nothing)
@@ -276,8 +281,16 @@ export default function NotificationsPage() {
             <h2 className="font-bold text-sm mb-3">إعدادات التنبيهات</h2>
             <div className="space-y-3">
               {isLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i}><CardContent className="p-4 flex items-center gap-3.5">
+                      <Skeleton className="size-11 rounded-xl shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3.5 w-1/3" />
+                        <Skeleton className="h-2.5 w-2/5" />
+                      </div>
+                    </CardContent></Card>
+                  ))}
                 </div>
               ) : isError ? (
                 <Card>
@@ -289,7 +302,7 @@ export default function NotificationsPage() {
             TOGGLES.map((t) => {
               const Icon = t.icon
               const on = prefs[t.key] ?? true
-              const isPending = mutation.isPending
+              const isPending = mutation.isPending && mutation.variables?.key === t.key
               return (
                 <Card
                   key={t.key}

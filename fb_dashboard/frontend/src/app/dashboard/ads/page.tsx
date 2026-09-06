@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Target, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
 
@@ -54,13 +55,15 @@ export default function AdsPage() {
           <div className="space-y-2">{[1,2].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
         ) : isError ? (
           <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل الحسابات</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (accounts as any[]).length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">لا توجد حسابات إعلانية مرتبطة</CardContent></Card>
+          <Card><CardContent className="p-0">
+              <EmptyState icon={Target} size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
+            </CardContent></Card>
         ) : (
           <div className="space-y-2">
             {(accounts as any[]).map((a: any) => (

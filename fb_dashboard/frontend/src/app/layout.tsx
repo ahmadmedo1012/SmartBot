@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { ThemeProvider } from "next-themes"
-import { Toaster } from "sonner"
+import { AppToaster } from "@/components/ui/app-toaster"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Providers } from "./providers"
 import { GridPattern } from "@/components/ui/grid-pattern"
@@ -65,17 +65,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          * discovery (Smart-Menu pattern). */}
         <link rel="preload" as="font" type="font/woff2" href="/fonts/cairo-arabic.woff2" crossOrigin="anonymous" />
         <link rel="preload" as="font" type="font/woff2" href="/fonts/readex-pro.woff2" crossOrigin="anonymous" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            name: "SmartBot",
-            url: siteUrl,
-            logo: `${siteUrl}/icon-512.png`,
-            description: "منصة إدارة تفاعل فيسبوك الذكية",
-            areaServed: "LY",
-          }),
-        }} />
       </head>
       <body className="flex min-h-dvh flex-col overflow-x-clip bg-background antialiased"
         style={{ background: "var(--background-radial), var(--background)" }}>
@@ -86,9 +75,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <Providers>
-            {/* Skip to content — Smart-Menu style (logical offset, brand chip) */}
+            {/* Skip to content — Smart-Menu style (logical offset, brand chip).
+                v8-B7: target is #page-content — the per-page content anchor
+                (DashboardShell content column / landing hero). The old
+                #main-content target wrapped the 23-item sidebar too, so
+                skip-link users still tabbed through the whole nav. */}
             <a
-              href="#main-content"
+              href="#page-content"
               className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:end-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
             >
               تخطي إلى المحتوى الرئيسي
@@ -108,20 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
 
-            <Toaster
-              position="top-center"
-              richColors
-              closeButton
-              duration={5000}
-              toastOptions={{
-                style: {
-                  animation: "slide-up 0.35s cubic-bezier(0.16, 1, 0.2, 1)",
-                  borderRadius: "12px",
-                  padding: "8px",
-                },
-                className: "border border-border/30 shadow-xl backdrop-blur-xl",
-              }}
-            />
+            <AppToaster />
             <SpeedInsights />
           </Providers>
         </ThemeProvider>

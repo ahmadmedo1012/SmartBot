@@ -138,7 +138,7 @@ async def diagnostic_errors(limit: int = Query(20), _=Depends(get_current_user))
 
 @router.get("/api/diagnostics/logs")
 async def diagnostic_logs(level: str = Query(""), module: str = Query(""),
-                          since: str = Query(""), limit: int = Query(50),
+                          since: str = Query(""), limit: int = Query(50, ge=1, le=500),
                           _=Depends(get_current_user)):
     from monitor import get_logger
     return ok(
@@ -154,7 +154,7 @@ async def diagnostic_stats(_=Depends(get_current_user)):
 
 
 @router.get("/api/diagnostics/events")
-async def diagnostic_events(limit: int = Query(100), _=Depends(get_current_user)):
+async def diagnostic_events(limit: int = Query(100, ge=1, le=500), _=Depends(get_current_user)):
     from monitor import get_logger
     return ok({"events": get_logger().get_buffer(limit=limit)})
 

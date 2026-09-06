@@ -95,8 +95,8 @@ export default function PricingPage() {
         >
           {[
             { icon: Shield, text: "بدون بطاقة ائتمان" },
-            { icon: Zap, text: "إعداد في ٥ دقائق" },
-            { icon: MessageCircle, text: "دعم ٢٤/٧" },
+            { icon: Zap, text: "إعداد في 5 دقائق" },
+            { icon: MessageCircle, text: "دعم 24/7" },
             { icon: Users, text: "مجاني للأبد" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-1.5">
@@ -115,6 +115,7 @@ export default function PricingPage() {
         >
           <button
             onClick={() => setAnnual(false)}
+            aria-pressed={!annual}
             className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -123,6 +124,7 @@ export default function PricingPage() {
           </button>
           <button
             onClick={() => setAnnual(true)}
+            aria-pressed={annual}
             className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}

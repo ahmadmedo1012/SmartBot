@@ -2,12 +2,12 @@
 
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
+import { countPhrase } from "@/lib/format"
 import {
   Megaphone,
   AlertCircle,
   RefreshCw,
-  Loader2,
   Send,
   Users,
   Trash2,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { apiFetch } from "@/lib/csrf-client"
@@ -44,10 +45,10 @@ const AUDIENCES: { value: string; label: string; desc: string }[] = [
 
 const STATUS_STYLE: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  scheduled: "bg-blue-500/10 text-blue-500",
-  sent: "bg-green-500/10 text-green-600",
+  scheduled: "bg-info-soft text-info",
+  sent: "bg-success-soft text-success",
   sending: "bg-accent-foreground/10 text-accent-foreground",
-  failed: "bg-red-500/10 text-red-500",
+  failed: "bg-destructive-soft text-destructive",
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -95,11 +96,11 @@ export default function MarketingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
-      toast.success("تم إنشاء الحملة")
+      brandedToast.success("تم إنشاء الحملة")
       setShowForm(false)
       setForm({ name: "", message: "", audience: "all" })
     },
-    onError: (e: Error) => toast.error(e.message || "فشل إنشاء الحملة"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء الحملة"),
   })
 
   const sendMutation = useMutation({
@@ -111,9 +112,9 @@ export default function MarketingPage() {
     },
     onSuccess: (d) => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
-      toast.success(`تم إرسال الحملة إلى ${d?.data?.sent_count ?? 0} مشترك`)
+      brandedToast.success(`تم إرسال الحملة إلى ${d?.data?.sent_count ?? 0} مشترك`)
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الإرسال"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
   })
 
   const deleteMutation = useMutation({
@@ -125,9 +126,9 @@ export default function MarketingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
-      toast.success("تم حذف الحملة")
+      brandedToast.success("تم حذف الحملة")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الحذف"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
   })
 
   // v4 §2.2 — unwrapApi already returned the payload; the extra .data made the list always empty
@@ -177,11 +178,13 @@ export default function MarketingPage() {
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm font-semibold">الجمهور المستهدف</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="اختيار الجمهور">
                     {AUDIENCES.map((a) => (
                       <button
                         key={a.value}
                         type="button"
+                        role="radio"
+                        aria-checked={form.audience === a.value}
                         onClick={() => setForm((f) => ({ ...f, audience: a.value }))}
                         className={`p-3 rounded-lg border-2 text-right transition-all ${
                           form.audience === a.value
@@ -197,10 +200,10 @@ export default function MarketingPage() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
                     {audienceQuery.isLoading
-                      ? "جاري حساب حجم الجمهور..."
-                      : `ستصل الحملة إلى ${audienceCount} مشترك`}
+                      ? "جارٍ حساب حجم الجمهور..."
+                      : `ستصل الحملة إلى ${countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}`}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -232,7 +235,7 @@ export default function MarketingPage() {
             </div>
           ) : isError ? (
             <div className="text-center py-16">
-              <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+              <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
               <h2 className="text-sm font-bold mb-1">فشل تحميل الحملات</h2>
               <p className="text-xs text-muted-foreground mb-4">
                 {(error as Error)?.message || "تعذر الاتصال"}
@@ -243,11 +246,13 @@ export default function MarketingPage() {
             </div>
           ) : campaigns.length === 0 ? (
             <Card>
-              <CardContent className="p-8 text-center space-y-2">
-                <Megaphone className="size-8 mx-auto text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  لا توجد حملات بعد — أنشئ أول حملة تسويقية لعملائك
-                </p>
+              <CardContent className="p-0">
+                <EmptyState
+                  icon={Megaphone}
+                  size="sm"
+                  title="لا توجد حملات بعد"
+                  description="أنشئ أول حملة تسويقية لعملائك من زر حملة جديدة أعلى الصفحة وستظهر نتائجها هنا."
+                />
               </CardContent>
             </Card>
           ) : (
@@ -274,14 +279,10 @@ export default function MarketingPage() {
                           <Button
                             size="sm"
                             onClick={() => sendMutation.mutate(c.id)}
-                            disabled={sendMutation.isPending}
+                            loading={sendMutation.isPending && sendMutation.variables === c.id}
                             className="gap-1.5 h-7"
                           >
-                            {sendMutation.isPending ? (
-                              <Loader2 className="size-3 animate-spin" />
-                            ) : (
-                              <Send className="size-3 rtl:-scale-x-100" />
-                            )}
+                            <Send className="size-3 rtl:-scale-x-100" />
                             إرسال
                           </Button>
                         )}
@@ -290,9 +291,9 @@ export default function MarketingPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => deleteMutation.mutate(c.id)}
-                            disabled={deleteMutation.isPending}
+                            disabled={deleteMutation.isPending && deleteMutation.variables === c.id}
                             aria-label="حذف الحملة"
-                            className="h-7 text-muted-foreground hover:text-red-500"
+                            className="h-7 text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="size-3" />
                           </Button>

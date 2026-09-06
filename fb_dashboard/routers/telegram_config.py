@@ -55,7 +55,7 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
     """REAL save (was a stub): persists telegram_bot_token / telegram_chat_id
     to SystemConfig. Empty value clears the DB override (env fallback)."""
     if not body:
-        raise HTTPException(400, "JSON body required")
+        raise HTTPException(400, "جسم الطلب JSON مطلوب")
     token = str(body.get("botToken") or body.get("telegram_bot_token") or "").strip()
     chat_id = str(body.get("chatId") or body.get("telegram_chat_id") or "").strip()
 

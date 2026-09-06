@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { UserCheck, Plus, Trash2, Loader2, Stethoscope, CheckCircle2, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { apiFetch } from "@/lib/csrf-client"
 
 interface DiagnoseResult {
@@ -42,7 +42,7 @@ export function DiagnosticsSection({
   const [addingApprover, setAddingApprover] = useState(false)
 
   const handleAddApprover = async () => {
-    if (!newApproverId.trim()) { toast.error("يرجى إدخال معرف تليجرام"); return }
+    if (!newApproverId.trim()) { brandedToast.error("يرجى إدخال معرف تليجرام"); return }
     setAddingApprover(true)
     try {
       const res = await apiFetch("/api/admin/telegram/approvers", {
@@ -55,9 +55,9 @@ export function DiagnosticsSection({
       onApproversChange([json.data, ...approvers])
       setNewApproverId("")
       setNewApproverLabel("")
-      toast.success("تمت إضافة الموافق")
+      brandedToast.success("تمت إضافة الموافق")
     } catch (e: any) {
-      toast.error(e.message || "فشل إضافة الموافق")
+      brandedToast.error(e.message || "فشل إضافة الموافق")
     } finally { setAddingApprover(false) }
   }
 
@@ -67,9 +67,9 @@ export function DiagnosticsSection({
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحذف")
       onApproversChange(approvers.filter((x) => x.id !== id))
-      toast.success("تم حذف الموافق")
+      brandedToast.success("تم حذف الموافق")
     } catch (e: any) {
-      toast.error(e.message || "فشل حذف الموافق")
+      brandedToast.error(e.message || "فشل حذف الموافق")
     }
   }
 
@@ -115,10 +115,10 @@ export function DiagnosticsSection({
                   <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-background/50 border border-border/20">
                     <UserCheck className="size-4 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.label || `ID: ${a.telegramId}`}</p>
+                      <p className="text-sm font-medium truncate">{a.label || `المعرف: ${a.telegramId}`}</p>
                       <p className="text-xs font-mono text-muted-foreground" dir="ltr">
                         {a.telegramId}
-                        {a.addedBy && <span className="text-muted-foreground/60"> · أضيف بواسطة {a.addedBy.name}</span>}
+                        {a.addedBy && <span dir="rtl" className="font-sans text-muted-foreground/60"> · أضيف بواسطة {a.addedBy.name}</span>}
                       </p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteApprover(a.id)} className="rounded-xl" aria-label={`حذف المعتمد ${a.label}`}>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { motion } from "framer-motion"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
@@ -30,17 +30,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const handleLogout = async () => {
     try {
       await apiFetch("/api/logout", { method: "POST" })
-      toast.success("تم تسجيل الخروج")
+      brandedToast.success("تم تسجيل الخروج")
     } catch { /* ignore */ }
     router.push("/login")
   }
 
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block" style={{ zIndex: "var(--z-sticky, 30)" }}>
+      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
         <AdminSidebar onNavigate={handleNavigate} onLogout={handleLogout} onSubscribe={handleSubscribe} />
       </div>
+      {/* v8-B7: #page-content — the skip-link target. Sidebar (nav) stays
+       * OUTSIDE this wrapper so keyboard users land directly in the content. */}
       <motion.div
+        id="page-content"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springGentle}

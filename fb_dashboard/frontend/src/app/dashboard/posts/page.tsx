@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { toast } from "sonner"
+import { brandedToast } from "@/lib/premium-toast"
 import { Newspaper, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 
@@ -35,9 +36,9 @@ export default function PostsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
       setNewMessage("")
-      toast.success("تم إنشاء المنشور")
+      brandedToast.success("تم إنشاء المنشور")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل إنشاء المنشور"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء المنشور"),
   })
 
   const publishMut = useMutation({
@@ -45,9 +46,9 @@ export default function PostsPage() {
       apiFetch(`/api/scheduled-posts/${id}/publish`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
-      toast.success("تم النشر على فيسبوك")
+      brandedToast.success("تم النشر على فيسبوك")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل النشر"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل النشر"),
   })
 
   const deleteMut = useMutation({
@@ -55,9 +56,9 @@ export default function PostsPage() {
       apiFetch(`/api/scheduled-posts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
-      toast.success("تم حذف المنشور")
+      brandedToast.success("تم حذف المنشور")
     },
-    onError: (e: Error) => toast.error(e.message || "فشل الحذف"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
   })
 
   return (
@@ -81,6 +82,7 @@ export default function PostsPage() {
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
               placeholder="اكتب منشوراً جديداً..."
+              aria-label="نص المنشور"
               className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex justify-end mt-3">
@@ -105,16 +107,17 @@ export default function PostsPage() {
           </div>
         ) : isError ? (
           <div className="text-center py-12">
-            <AlertCircle className="size-12 mx-auto mb-3 text-red-500/50" />
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <p className="text-sm font-bold mb-1">فشل تحميل المنشورات</p>
             <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <Newspaper className="size-12 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">لا توجد منشورات بعد</p>
-          </div>
+          <EmptyState
+            icon={Newspaper}
+            title="لا توجد منشورات بعد"
+            description="اكتب أول منشور في النموذج أعلاه واضغط نشر — ستظهر منشوراتك هنا مع حالتها."
+          />
         ) : (
           <div className="space-y-3">
             {posts.map((p: any) => (

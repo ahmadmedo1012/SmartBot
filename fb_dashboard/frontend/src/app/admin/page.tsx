@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { fadeUp } from "@/lib/motion"
+import type { ApiErrorBody } from "@/lib/types"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
@@ -85,7 +86,7 @@ export default function AdminPage() {
         method: "POST",
         body: JSON.stringify({ id, status }),
       })
-      if (!r.ok) { const d = await r.json().catch(() => ({})); brandedToast.error((d as any)?.error || (d as any)?.detail || "فشل"); return }
+      if (!r.ok) { const d = await r.json().catch(() => ({})); brandedToast.error((d as ApiErrorBody)?.error || (d as ApiErrorBody)?.detail || "فشل"); return }
       brandedToast.success(status === "verified" ? "تم تأكيد الاشتراك" : "تم رفض الطلب")
       fetchPayments()
     } catch { brandedToast.error("خطأ في الاتصال") }
@@ -185,12 +186,12 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-right p-3 font-medium">المستخدم</th>
-                    <th className="text-right p-3 font-medium">الخطة</th>
-                    <th className="text-right p-3 font-medium">المبلغ</th>
-                    <th className="text-right p-3 font-medium">رقم الهاتف</th>
-                    <th className="text-right p-3 font-medium">الحالة</th>
-                    <th className="text-right p-3 font-medium">التاريخ</th>
+                    <th className="text-start p-3 font-medium">المستخدم</th>
+                    <th className="text-start p-3 font-medium">الخطة</th>
+                    <th className="text-start p-3 font-medium">المبلغ</th>
+                    <th className="text-start p-3 font-medium">رقم الهاتف</th>
+                    <th className="text-start p-3 font-medium">الحالة</th>
+                    <th className="text-start p-3 font-medium">التاريخ</th>
                     <th className="text-center p-3 font-medium">إجراءات</th>
                   </tr>
                 </thead>

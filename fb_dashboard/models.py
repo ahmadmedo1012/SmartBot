@@ -124,6 +124,8 @@ class User(Base):
     plan_id = Column(Integer, nullable=True)
     last_login_at = Column(DateTime, nullable=True)
     telegram_chat_id = Column(String(100), nullable=True)
+    # DEPRECATED v9: 2FA module removed (was never wired); column kept to avoid
+    # migration churn — remove with next schema reset.
     # 2FA (TOTP) — secret is encrypted via Fernet using FERNET_KEY, backup codes hashed via bcrypt
     twofa_enabled = Column(Boolean, default=False)
     twofa_secret_enc = Column(String(512), default="")  # Fernet-encrypted TOTP secret

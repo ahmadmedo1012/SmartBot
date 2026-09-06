@@ -124,7 +124,7 @@ function DemoHeader({ tab }: { tab: TabKey }) {
           </Button>
           <div>
             <h1 className="font-bold text-sm">{meta.title}</h1>
-            <p className="text-[11px] text-muted-foreground">{meta.subtitle}</p>
+            <p className="text-2xs text-muted-foreground">{meta.subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ function StatsTab() {
             summary="مخطط أعمدة لنشاط الردود على مدار 24 ساعة ببيانات تجريبية"
             data={mockStats.active_hours.map((v, i) => ({ label: `${i}:00`, value: v, hint: `الساعة ${i}:00` }))}
           />
-          <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
+          <div className="flex justify-between mt-2 text-3xs text-muted-foreground">
             <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
           </div>
         </CardContent>
@@ -200,7 +200,7 @@ function StatsTab() {
                   <p className="text-xs text-muted-foreground truncate">{r.text}</p>
                   <p className="text-xs text-accent-foreground truncate">{r.reply}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0">{r.time}</span>
+                <span className="text-3xs text-muted-foreground shrink-0">{r.time}</span>
               </div>
             ))}
           </CardContent>
@@ -216,8 +216,8 @@ function StatsTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs">
-                  <th className="text-right p-3 font-medium">القاعدة</th>
-                  <th className="text-right p-3 font-medium">الكلمة المفتاحية</th>
+                  <th className="text-start p-3 font-medium">القاعدة</th>
+                  <th className="text-start p-3 font-medium">الكلمة المفتاحية</th>
                   <th className="text-center p-3 font-medium">الردود</th>
                   <th className="text-center p-3 font-medium">الحالة</th>
                 </tr>
@@ -263,7 +263,7 @@ function RepliesTab() {
                 <p className="text-xs text-muted-foreground truncate">{c.last}</p>
               </div>
               <div className="shrink-0 text-end">
-                <p className="text-[10px] text-muted-foreground">{c.time}</p>
+                <p className="text-3xs text-muted-foreground">{c.time}</p>
                 {c.unread > 0 && (
                   <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold mt-0.5">
                     {c.unread}
@@ -318,16 +318,16 @@ function AudienceTab() {
         {mockStats.subscribers.map((s) => (
           <div key={s.id} className="flex items-center justify-between px-6 py-3 border-b border-border last:border-0">
             <div className="flex items-center gap-3">
-              <span className="size-8 rounded-full bg-accent-foreground/10 text-accent-foreground text-[10px] font-bold flex items-center justify-center">
+              <span className="size-8 rounded-full bg-accent-foreground/10 text-accent-foreground text-3xs font-bold flex items-center justify-center">
                 {s.name.split(" ").map((w) => w[0]).join("")}
               </span>
               <div>
                 <p className="text-sm font-medium">{s.name}</p>
-                <p className="text-[10px] text-muted-foreground">{s.platform} · آخر تفاعل: {s.last}</p>
+                <p className="text-3xs text-muted-foreground">{s.platform} · آخر تفاعل: {s.last}</p>
               </div>
             </div>
             <span className={cn(
-              "text-[10px] px-2 py-0.5 rounded-full",
+              "text-3xs px-2 py-0.5 rounded-full",
               s.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
             )}>
               {s.active ? "نشط" : "غير نشط"}
@@ -350,9 +350,9 @@ function ActivityTab() {
       <CardContent className="p-0">
         {mockStats.logs.map((l) => (
           <div key={l.id} className="flex items-center gap-3 px-6 py-3 border-b border-border last:border-0 text-sm">
-            <span className="text-[10px] text-muted-foreground w-10 shrink-0" dir="ltr">{l.time}</span>
+            <span className="text-3xs text-muted-foreground w-10 shrink-0" dir="ltr">{l.time}</span>
             <span className={cn(
-              "text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0",
+              "text-3xs font-bold px-1.5 py-0.5 rounded shrink-0",
               l.level === "WARN" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"
             )}>{l.level}</span>
             <p className="truncate">{l.text}</p>
@@ -409,7 +409,7 @@ function ScheduleTab() {
             <Clock className="size-4 text-muted-foreground shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm truncate">{p.text}</p>
-              <p className="text-[10px] text-muted-foreground">{p.at}</p>
+              <p className="text-3xs text-muted-foreground">{p.at}</p>
             </div>
             <Badge variant={p.status === "scheduled" ? "info" : "secondary"}>
               {p.status === "scheduled" ? "مجدول" : "مسودة"}
@@ -486,7 +486,10 @@ export default function DemoPage() {
         />
       </div>
 
-      <div className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0">
+      {/* v9-D3: #page-content — skip-link target, DashboardShell parity
+          (content column, past the sidebar nav). tabIndex lets the skip
+          link actually move focus here. */}
+      <div id="page-content" tabIndex={-1} className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0">
         <DemoHeader tab={tab} />
         <SectionContainer className="py-6 flex-1">
           {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS

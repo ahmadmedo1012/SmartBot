@@ -48,8 +48,11 @@ async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Dep
 async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
     body = await request.json()
-    ok = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    # v9-A5: local result var must NOT shadow the ok() envelope helper —
+    # `ok = await ...` made the success path return ok(...) → TypeError 500
+    # AFTER the update had already committed.
+    done = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
+    if not done:
         raise HTTPException(404, "Sequence not found")
     await db.commit()
     return ok({"ok": True})
@@ -58,8 +61,8 @@ async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), cur
 @router.delete("/api/sequences/{seq_id}")
 async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
-    ok = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Sequence not found")
     await db.commit()
     return ok({"ok": True})
@@ -78,8 +81,8 @@ async def add_sequence_step(seq_id: int, request: Request, db=Depends(get_db), c
 async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
     body = await request.json()
-    ok = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Step not found")
     await db.commit()
     return ok({"ok": True})
@@ -88,8 +91,8 @@ async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db
 @router.delete("/api/sequences/steps/{step_id}")
 async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
-    ok = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Step not found")
     await db.commit()
     return ok({"ok": True})
@@ -98,14 +101,14 @@ async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: U
 @router.post("/api/sequences/{seq_id}/subscribe/{sub_id}")
 async def subscribe_to_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
-    ok = await sequence_engine.subscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
+    done = await sequence_engine.subscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     await db.commit()
-    return ok({"ok": ok})
+    return ok({"ok": done})
 
 
 @router.post("/api/sequences/{seq_id}/unsubscribe/{sub_id}")
 async def unsubscribe_from_sequence(seq_id: int, sub_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
-    ok = await sequence_engine.unsubscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)
+    done = await sequence_engine.unsubscribe(sub_id, seq_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     await db.commit()
-    return ok({"ok": ok})
+    return ok({"ok": done})

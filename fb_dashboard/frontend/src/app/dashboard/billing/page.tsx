@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { PaymentBalance, PaymentRecord } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,12 +20,12 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 
 export default function BillingPage() {
-  const { data: balance, isLoading: balLoad, isError: balErr } = useQuery({
+  const { data: balance, isLoading: balLoad, isError: balErr, refetch: balRefetch } = useQuery({
     queryKey: ["balance"],
     queryFn: async () => {
       const res = await apiFetch("/api/payments/balance")
       if (!res.ok) throw new Error(`فشل تحميل الرصيد (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<PaymentBalance>(res)
     },
     retry: 1,
   })
@@ -34,7 +35,7 @@ export default function BillingPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/payments/history")
       if (!res.ok) throw new Error(`فشل تحميل سجل الدفع (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<PaymentRecord[]>(res)
     },
     retry: 1,
   })
@@ -50,7 +51,7 @@ export default function BillingPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الفواتير</h1>
-            <p className="text-[11px] text-muted-foreground">الرصيد وسجل الدفع</p>
+            <p className="text-2xs text-muted-foreground">الرصيد وسجل الدفع</p>
           </div>
           {/* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before) */}
           <Link href="/subscribe" className="ms-auto">
@@ -67,6 +68,13 @@ export default function BillingPage() {
             <p className="text-xs text-muted-foreground mb-1">الرصيد الحالي</p>
             {balLoad ? (
               <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+            ) : balErr ? (
+              /* v9-B11 — a balance load failure used to render "غير متاح"
+                  as if the balance were genuinely absent */
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-destructive">فشل تحميل الرصيد</p>
+                <Button size="sm" variant="outline" onClick={() => balRefetch()}>إعادة المحاولة</Button>
+              </div>
             ) : balance ? (
               <p className="text-3xl font-bold">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
             ) : (
@@ -84,22 +92,23 @@ export default function BillingPage() {
           ) : anyError ? (
             <div className="text-center py-8">
               <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(error as any)?.message || "تعذر الاتصال"}</p>
-              <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+              <p className="text-xs text-muted-foreground mb-3">{(error as Error)?.message || "تعذر الاتصال"}</p>
+              {/* v9-B11 — retry BOTH queries: either one may be the failed one */}
+              <Button size="sm" variant="outline" onClick={() => { balRefetch(); refetch() }}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
             </div>
-          ) : (history as any[]).length === 0 ? (
+          ) : history.length === 0 ? (
             <Card><CardContent className="p-0">
               <EmptyState icon={Receipt} size="sm" title="لا توجد معاملات سابقة" description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة." />
             </CardContent></Card>
           ) : (
-            <div className="space-y-2">
-              {(history as any[]).map((p: any) => (
-                <Card key={p.payment_id}>
+            <div className="space-y-2" role="list">
+              {history.map((p) => (
+                <Card key={p.payment_id} role="listitem">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{formatNumber(p.amount)} د.ل</p>
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
-                      <p className="text-[10px] text-muted-foreground">{formatDate(p.created_at)}</p>
+                      <p className="text-3xs text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       p.status === "completed" ? "bg-success-soft text-success" :

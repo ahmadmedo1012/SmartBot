@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly } from "@/lib/format"
 
 export default function LeadsPage() {
@@ -18,7 +19,7 @@ export default function LeadsPage() {
       // API returns a paginated envelope {total, page, per_page, items} —
       // this page maps the LIST. The old code mapped the envelope object
       // itself and crashed with "e.map is not a function" on first render.
-      const d = await unwrapApi(res)
+      const d = await unwrapApi<CrmCustomer[] | { items?: CrmCustomer[] }>(res)
       return Array.isArray(d) ? d : (d?.items ?? [])
     },
     retry: 1,
@@ -33,7 +34,7 @@ export default function LeadsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">العملاء المتوقعون</h1>
-            <p className="text-[11px] text-muted-foreground">إدارة العملاء المحتملين</p>
+            <p className="text-2xs text-muted-foreground">إدارة العملاء المحتملين</p>
           </div>
         </div>
       </header>
@@ -45,16 +46,16 @@ export default function LeadsPage() {
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل العملاء</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
-        ) : (customers as any[]).length === 0 ? (
+        ) : customers.length === 0 ? (
           <Card><CardContent className="p-0">
               <EmptyState icon={UserPlus} size="sm" title="لا يوجد عملاء متوقعون بعد" description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه." />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">
-            {(customers as any[]).map((c: any) => (
+            {customers.map((c) => (
               <Card key={c.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
@@ -66,10 +67,10 @@ export default function LeadsPage() {
                     {c.phone && <p>الهاتف: {c.phone}</p>}
                     {c.notes && <p>{c.notes}</p>}
                     {c.first_seen_at && (
-                      <p className="text-[10px]">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
+                      <p className="text-3xs">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
                     )}
                     {c.last_contacted_at && (
-                      <p className="text-[10px]">آخر تواصل: {formatDateOnly(c.last_contacted_at)}</p>
+                      <p className="text-3xs">آخر تواصل: {formatDateOnly(c.last_contacted_at)}</p>
                     )}
                   </div>
                 </CardContent>

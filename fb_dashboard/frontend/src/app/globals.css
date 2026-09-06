@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -25,10 +24,10 @@
      --font-heading is THE display face: "Readex Pro" FIRST (Smart-Menu
      literal stack) — @theme inline inlines this value into the font-heading
      utility, so headings render Readex Pro exactly like menu.smart-link.ly. ── */
-  --font-sans: var(--font-cairo), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
+  --font-sans: var(--font-cairo), "Cairo", system-ui, sans-serif;
   --font-mono: var(--font-cairo), "Cairo", "Courier New", monospace;
-  --font-arabic: var(--font-cairo), "Cairo", "Noto Sans Arabic", system-ui, sans-serif;
-  --font-heading: "Readex Pro", var(--font-cairo, "Cairo"), "Noto Sans Arabic", system-ui, sans-serif;
+  --font-arabic: var(--font-cairo), "Cairo", system-ui, sans-serif;
+  --font-heading: "Readex Pro", var(--font-cairo, "Cairo"), system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -39,8 +38,6 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-accent-soft: var(--accent-soft);
-  --color-accent-fg: var(--accent-fg);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -53,13 +50,7 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
-  --color-info-foreground: var(--info-foreground);
-  --color-overlay: var(--overlay);
-  --color-glass-bg: var(--glass-bg);
-  --color-glass-border: var(--glass-border);
-  --color-glass-border-strong: var(--glass-border-strong);
 
   /* Warm kitchen palette + external brand (Smart-Menu parity) */
   --color-flame: var(--c-flame);
@@ -68,8 +59,6 @@
   --color-ash-pale: var(--c-ash-pale);
   --color-night: var(--c-night);
   --color-basil: var(--c-basil);
-  --color-whatsapp: var(--whatsapp);
-  --color-whatsapp-deep: var(--whatsapp-deep);
 
   /* Saffron-heat warm palette — unified 2026-09-05 with Smart-Menu
      (smart-link.ly identity): flame gradient (ember→saffron), espresso
@@ -79,22 +68,16 @@
   --color-espresso: var(--c-espresso);
   --color-bloom: var(--c-bloom);
 
-  /* Radius scale — v8-D4: monotonic 8/12/16/20/28/36/44. The old scale
-     (xl=28, default 2xl=16) was non-monotonic: rounded-2xl < rounded-xl.
-     Large surfaces (cards/dialogs/sheets) unify on rounded-2xl=28px. */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
-  --radius-3xl: 36px;
-  --radius-4xl: 44px;
-
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
 
-  --shadow-glass: var(--glass-shadow);
-  --shadow-glass-lg: var(--glass-shadow-lg);
+  /* v9-C2 micro text scale — the ~123 raw text-[9-11px] sites migrate onto
+     these utilities in wave 2. Same emission pattern as the default --text-*
+     keys: text-2xs / text-3xs utilities carry their paired line-heights. */
+  --text-2xs: 0.6875rem;        /* 11px */
+  --text-2xs--line-height: 1.45;
+  --text-3xs: 0.625rem;         /* 10px */
+  --text-3xs--line-height: 1.4;
 
   /* v8-D2: status SOFT tints — the missing utilities that made ~105 raw
      Tailwind-palette classes (bg-green-500/10 …) the path of least
@@ -105,11 +88,33 @@
   --color-destructive-soft: var(--destructive-soft);
 }
 
+/* Radius scale — v8-D4 monotonic, updated v9-C1: --radius-4xl (44px)
+   deleted (zero consumers) and the scale moved OUT of @theme inline into
+   a plain @theme block. Static values inline identically inside utilities,
+   but only the non-inline form emits real runtime CSS custom properties
+   (--radius-sm…), which inline-style consumers (react-joyride borderRadius)
+   require — var(--radius-md) resolved to nothing under the old inline-only
+   definition (verified against the production build CSS). Scale:
+   sm 8 · md 12 · lg 16 · xl 20 · 2xl 28 · 3xl 36. The old scale
+   (xl=28, default 2xl=16) was non-monotonic: rounded-2xl < rounded-xl.
+   Large surfaces (cards/dialogs/sheets) unify on rounded-2xl=28px. */
+@theme {
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-3xl: 36px;
+}
+
 /* ═══════════════════════════════════════════════════════
-   !! ACCENT — SINGLE SOURCE OF TRUTH !!
-   --accent and --accent-fg are THE authoritative orange
-   tokens. Every other orange/primary/ring variable MUST
-   be derived from them, NEVER set independently.
+   !! BRAND ORANGE — SINGLE SOURCE OF TRUTH !!
+   --primary is THE authoritative solid brand token (buttons, rings,
+   identity elements). --accent is only a faint 12–15% hint for soft
+   hovers/tints, and --accent-foreground is the AA-tuned orange for
+   TEXT over warm surfaces. The legacy --accent-fg / --accent-soft
+   aliases were deleted in v9-C1 (zero consumers) — one token per role,
+   never a duplicate definition.
    ═══════════════════════════════════════════════════════ */
 :root {
   /* v7 §B — native UA rendering follows the active theme: scrollbars,
@@ -132,41 +137,8 @@
   --z-toast: 60;
   --z-tooltip: 70;
 
-  --scroll-offset: 6rem;
-  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
-
-  /* ═══════════════════════════════════════════════════════
-     CENTRALIZED SPECIAL-PURPOSE PALETTES (latest_plan Track D.1)
-     Festive confetti needs a natural multi-hue spread and the
-     iPhone mockup needs physical device tones — neither may be
-     scattered as raw hex in components; all values live HERE.
-     ═══════════════════════════════════════════════════════ */
-  --confetti-gold: #D4AF37;
-  --confetti-gold-bright: #FFD700;
-  --confetti-red: #ef4444;
-  --confetti-coral: #FF6B6B;
-  --confetti-green: #10b981;
-  --confetti-teal: #4ECDC4;
-  --confetti-sky: #45B7D1;
-  --confetti-sage: #96CEB4;
-  --confetti-violet: #8b5cf6;
-  --confetti-pink: #ec4899;
-  --confetti-plum: #DDA0DD;
-  --confetti-orange: #FF8C00;
-  --confetti-accent: oklch(0.55 0.19 45);
-
-  /* Physical device tones (iPhone mockup — not theme colors) */
-  --iphone-black: #0b0b0d;
-  --iphone-titanium: #837a72;
-  --iphone-natural-titanium: #a69a8a;
-  --iphone-screen: #000;
-
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
-  --ease-in-out-quart: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
-  --duration-fast: 0.2s;
-  --duration-base: 0.4s;
-  --duration-slow: 0.7s;
 
   /* Neutral surface scale — unified 2026-09-05 with Smart-Menu (warm-dark,
      hue 55-70) so both products render the identical smart-link.ly dark. */
@@ -195,8 +167,6 @@
    * (accent tint 4.93, 15% tint 4.76, plain card 5.41). Solid orange
    * buttons are --primary and are NOT affected by this token. */
   --accent-foreground: oklch(0.63 0.19 45);
-  --accent-soft: oklch(0.55 0.19 45 / 0.15);
-  --accent-fg: oklch(0.98 0 0);
 
   --secondary: oklch(0.14 0.008 60);
   --secondary-foreground: oklch(0.72 0.01 70);
@@ -212,9 +182,7 @@
   --success: oklch(0.62 0.18 145);
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.7 0.16 80);
-  --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.62 0.13 245); /* AA-tuned on dark — matches Smart-Menu */
-  --info-foreground: oklch(0.98 0 0);
   /* v8-D2: status soft tints (dark) — semantic bg-wash pair for
      bg-success-soft/text-success chips, replacing bg-green-500/10 etc. */
   --success-soft: oklch(0.62 0.18 145 / 0.14);
@@ -244,19 +212,9 @@
   --c-bloom: oklch(0.56 0.2 16);             /* brand pink heat */
   --image-shimmer: oklch(0.2 0 0 / 0.15);    /* image placeholder shimmer sweep */
 
-  /* External brand colors — theme-independent by definition (Smart-Menu parity) */
-  --whatsapp: #25D366;
-  --whatsapp-deep: #20bd5a;
-
   --grid-line: oklch(0.55 0.19 45 / 0.12);
-  --grid-fill: oklch(0.55 0.19 45 / 0.06);
-  --grid-square: oklch(0.55 0.19 45 / 0.12);
 
-  --surface-raised: oklch(0.14 0.008 60);
-  --surface-overlay: oklch(0.11 0.008 60);
   --surface-sunken: oklch(0.07 0.007 60);
-
-  --gradient-shine: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.06) 50%, transparent 100%);
 
   --glass-bg: oklch(0.11 0.01 60 / 0.52);
   --glass-bg-strong: oklch(0.14 0.012 60 / 0.68);
@@ -269,7 +227,6 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3);
   --shadow-xl: 0 24px 60px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.35);
-  --shadow-glow: 0 8px 24px oklch(0.55 0.19 45 / 0.14);
 }
 
 .light {
@@ -295,8 +252,6 @@
    * >= 5.04:1 on every combo (accent tint 5.40, 15% tint 5.04, plain card
    * 6.45) while staying clearly in the brand-orange family. */
   --accent-foreground: oklch(0.5 0.19 45);
-  --accent-soft: oklch(0.55 0.19 45 / 0.12);
-  --accent-fg: oklch(0.98 0 0);
 
   --secondary: oklch(0.92 0.008 70);
   --secondary-foreground: oklch(0.2 0.01 70);
@@ -311,9 +266,7 @@
   --success: oklch(0.48 0.15 150);
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.52 0.13 60);
-  --warning-foreground: oklch(0.1 0 0);
   --info: oklch(0.48 0.13 245);
-  --info-foreground: oklch(0.98 0 0);
   /* v8-D2: light soft tints — lighter alpha for paper surfaces */
   --success-soft: oklch(0.48 0.15 150 / 0.12);
   --warning-soft: oklch(0.52 0.13 60 / 0.12);
@@ -335,8 +288,6 @@
   --image-shimmer: oklch(0 0 0 / 0.08);      /* image placeholder shimmer sweep */
 
   --grid-line: oklch(0.55 0.19 45 / 0.08);
-  --grid-fill: oklch(0.55 0.19 45 / 0.04);
-  --grid-square: oklch(0.55 0.19 45 / 0.08);
   --glass-bg: oklch(1 0.002 70 / 0.72);
   --glass-bg-strong: oklch(1 0.002 70 / 0.88);
   --glass-border: oklch(0.86 0.008 70 / 0.55);
@@ -347,7 +298,6 @@
   --shadow-md: 0 4px 16px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.05);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
   --shadow-xl: 0 24px 60px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.08);
-  --shadow-glow: 0 8px 24px oklch(0.55 0.19 45 / 0.10);
 }
 
 @layer base {
@@ -373,7 +323,7 @@
   @supports (font-family: "Readex Pro") {
     [dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] h3 { letter-spacing: -0.03em; }
   }
-  p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.65; }
+  p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.75; }
   [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
   a { color: var(--foreground); text-decoration: none; transition: color 0.2s ease; }
   a:hover { color: var(--accent-foreground); } /* v4: orange token removed */
@@ -391,8 +341,9 @@
 ::-webkit-scrollbar-thumb { background: oklch(0.35 0.005 0); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
 * { scrollbar-width: thin; scrollbar-color: oklch(0.35 0.005 0) transparent; }
-html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+html.light::-webkit-scrollbar-thumb,
 .light ::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+html.light::-webkit-scrollbar-thumb:hover,
 .light ::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
 
 ::selection { background: oklch(0.55 0.19 45 / 0.25); color: inherit; }
@@ -411,20 +362,6 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
   backdrop-filter: blur(20px) saturate(1.2);
   border: 1px solid var(--glass-border-strong);
   box-shadow: var(--glass-shadow-lg);
-}
-
-.card-premium {
-  min-width: 0; background: var(--card);
-  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
-  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
-  transform: translateZ(0);
-  transition: background-color 0.3s var(--ease-out-quart), color 0.3s var(--ease-out-quart),
-    border-color 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart),
-    transform 0.3s var(--ease-out-quart);
-}
-.card-premium:hover {
-  transform: translateY(-3px); box-shadow: var(--shadow-lg), var(--shadow-glow);
-  border-color: color-mix(in oklab, var(--accent-foreground) 40%, var(--border)); /* v4: orange token removed */
 }
 
 .skeleton {
@@ -451,31 +388,17 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 @keyframes scale-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-@keyframes magnetic-float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-10px) scale(1.02); } }
 @keyframes breath { 0%,100% { opacity: 0.6; } 50% { opacity: 0.3; } }
-@keyframes pulse-glow { 0%,100% { box-shadow: 0 0 8px oklch(0.55 0.19 45 / 0.15); } 50% { box-shadow: 0 0 25px oklch(0.55 0.19 45 / 0.35); } }
 @keyframes pulse-dot { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
-@keyframes hero-glow-pulse { 0%,100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
-@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
-@keyframes confetti { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-@keyframes confetti-fall { 0% { transform: translateY(-10px) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
-@keyframes ring-drain { 0% { box-shadow: 0 0 0 0 oklch(0.55 0.19 45 / 0.4); } 70% { box-shadow: 0 0 0 20px oklch(0.55 0.19 45 / 0); } 100% { box-shadow: 0 0 0 0 oklch(0.55 0.19 45 / 0); } }
-@keyframes grain-anim { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-2%, -2%); } 20% { transform: translate(1%, -1%); } 30% { transform: translate(-1%, 2%); } 40% { transform: translate(2%, 1%); } 50% { transform: translate(-2%, 0); } 60% { transform: translate(0, -2%); } 70% { transform: translate(1%, 1%); } 80% { transform: translate(-1%, -1%); } 90% { transform: translate(2%, -2%); } }
 
-.animate-shimmer { background: linear-gradient(90deg, transparent 25%, var(--muted) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 2.5s infinite; }
 .animate-scale-in { animation: scale-in 0.5s var(--ease-out-quart) both; }
 .animate-fade-in { animation: fade-in 0.5s var(--ease-out-quart) both; }
 .animate-slide-up { animation: slide-up 0.6s var(--ease-out-quart) both; }
 .animate-float { animation: float 3s var(--ease-smooth) infinite; }
 .animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
-.animate-hero-glow-pulse { animation: hero-glow-pulse 4s var(--ease-smooth) infinite; }
-.animate-marquee { will-change: transform; transform: translateZ(0); animation: marquee 30s linear infinite; }
 
 /* Page/layout motion primitives (Smart-Menu parity — used by ported dashboard components) */
-.animate-page-enter { animation: fade-in 0.4s var(--ease-out-quart) both; }
 .animate-breath { animation: breath 1.5s ease-in-out infinite; }
 .delay-100 { animation-delay: 100ms; }
 
@@ -499,10 +422,19 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
   .animate-fade-in-150, .animate-fade-in-250, .animate-fade-in-400,
   .animate-fade-in-900, .animate-fade-in-1100, .animate-wipe-up { animation: none; }
 }
-.delay-200 { animation-delay: 200ms; }
+
+/* ── v9-C3 — pricing price swap (key-remount tween). The price span carries
+ * key={annual ? "y" : "m"} in pricing/page.tsx so toggling monthly/yearly
+ * re-mounts it and this entrance plays; the period label and the savings
+ * chip share the same key group. 0.35s var(--ease-smooth) mirrors
+ * lib/motion.ts easeSmooth — the page stays framer-free by design. */
+@keyframes price-swap-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.price-swap { animation: price-swap-in 0.35s var(--ease-smooth) both; }
+@media (prefers-reduced-motion: reduce) {
+  .price-swap { animation: none; }
+}
+
 .delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
 
 /* ── v6+ — framer-free reveal system (public pages critical path) ──
  * v6 left framer-motion (~190KB) in EVERY public page's first-load JS
@@ -577,17 +509,11 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
   .ai-icon:hover .front-copy, .ai-icon:hover .arrow-group, .ai-icon:hover .message-path { animation: none; }
 }
 
-.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
-.scrollbar-none::-webkit-scrollbar { display: none; }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-  .card-premium { transition: none !important; }
-  .card-premium:hover { transform: none !important; }
 }
 
 .text-balance { text-wrap: balance; }
-.gpu-layer { transform: translateZ(0); backface-visibility: hidden; }
 
 /* NOTE: no hand-written .font-heading override — Smart-Menu does not have one.
    The Tailwind @theme inline emission ("Readex Pro" first) is the single
@@ -599,15 +525,9 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 
 /* RTL utilities */
 [dir="rtl"] { --font-sans: var(--font-arabic); font-family: var(--font-arabic); }
-.rtl\:rotate-180 { rotate: y 180deg; }
 
 /* Section rhythm now lives in SectionContainer.tsx as Tailwind utilities
    (Smart-Menu literal port) — the under-spec'd .section-container pair was removed. */
-
-/* Eyebrow pattern */
-
-/* GlowPool utility */
-.glow-pool { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; filter: blur(100px); }
 
 /* ─── Custom Scrollbars (sidebar) ─── */
 .sidebar-scroll::-webkit-scrollbar { width: 3px; }

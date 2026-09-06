@@ -12,6 +12,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import jwt
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _schema_reconcile import reconcile_schema as _reconcile_schema
 from _utils import app_version, utcnow
 from config import settings
@@ -332,10 +333,10 @@ async def lifespan(app: FastAPI):
         if not _IS_VERCEL:
             from sequence_engine import SequenceScheduler
             _seq_scheduler = SequenceScheduler(sequence_engine)
-            asyncio.create_task(_seq_scheduler.start())
+            spawn(_seq_scheduler.start())
             from content_calendar import CalendarScheduler
             _calendar_scheduler = CalendarScheduler(content_calendar_engine)
-            asyncio.create_task(_calendar_scheduler.start())
+            spawn(_calendar_scheduler.start())
 
         # Bridge event bus → WebSocket (tenant-scoped)
         async def _ws_bridge(data, tenant_id: int | None = None):
@@ -371,7 +372,7 @@ async def lifespan(app: FastAPI):
                     pass
                 await asyncio.sleep(30)
         if not _IS_VERCEL:
-            asyncio.create_task(_health_push())
+            spawn(_health_push())
     except Exception as e:
         log.error(f"Startup error (app continues): {e}")
 
@@ -722,11 +723,21 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         # Handle subscription payment (sub_ prefix)
         if data.startswith("sub_"):
             new_status = "verified" if action == "sub_app" else "cancelled"
-            sp = await db.get(SubscriptionPayment, payment_id)
-            if not sp or sp.status != "pending":
+            # v9-A8: atomic claim — UPDATE ... WHERE status='pending' RETURNING
+            # (same pattern as the pay_ path below). The old read-check-write
+            # (`db.get` then `if sp.status != "pending"`) let two admins (or a
+            # double-tap) both pass the check and double-activate the plan.
+            sub_result = await db.execute(
+                update(SubscriptionPayment)
+                .where(SubscriptionPayment.id == payment_id,
+                       SubscriptionPayment.status == "pending")
+                .values(status=new_status)
+                .returning(SubscriptionPayment)
+            )
+            sp = sub_result.scalar_one_or_none()
+            if not sp:
                 await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
                 return {"ok": True}
-            sp.status = new_status
             if new_status == "verified":
                 # Activate plan for tenant
                 tenant = await db.get(Tenant, sp.tenant_id)
@@ -822,7 +833,10 @@ async def dashboard_page():
 
 
 # ── Static file & API caching headers ─────────────────────────────────────
-_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env", "/api/debug")
+# v9-A9: "/api/debug" REMOVED from the public cacheable prefixes — it is an
+# authenticated diagnostics surface; a shared/CDN-cached 200 could serve one
+# user's response to another. Only genuinely public config endpoints stay.
+_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env")
 
 
 @app.middleware("http")
@@ -1013,7 +1027,11 @@ async def webhook_verify(
     hub_challenge: str = Query("", alias="hub.challenge"),
 ):
     """Facebook subscription verification."""
-    if hub_mode == "subscribe" and hub_token == WEBHOOK_VERIFY_TOKEN:
+    # v9-A9: constant-time compare (hmac.compare_digest) — a plain == leaks
+    # the verify token byte-by-byte via timing. Fails CLOSED when the token
+    # is unconfigured (empty secret never matches, mirroring the cron guard).
+    if (hub_mode == "subscribe" and WEBHOOK_VERIFY_TOKEN
+            and hmac.compare_digest(hub_token, WEBHOOK_VERIFY_TOKEN)):
         return PlainTextResponse(hub_challenge)
     raise HTTPException(403, "Verification failed")
 

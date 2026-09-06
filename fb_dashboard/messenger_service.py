@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
 from database import AsyncSessionLocal
 from models import Conversation, Message
@@ -129,7 +130,9 @@ def _event_mid(messaging: dict) -> str:
     if isinstance(pb, dict):
         import hashlib
         raw = f"pb|{(messaging.get('sender') or {}).get('id','')}|{messaging.get('timestamp','')}|{pb.get('payload','')}"
-        return "pb_" + hashlib.sha1(raw.encode()).hexdigest()[:20]
+        # v9-A12: sha256 instead of sha1 (bandit B324) — same truncated
+        # dedup-key length, only used to synthesize a stable postback mid.
+        return "pb_" + hashlib.sha256(raw.encode()).hexdigest()[:20]
     return ""
 
 
@@ -302,8 +305,7 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
         try:
             from bot import ws_manager
             if ws_manager:
-                import asyncio
-                asyncio.create_task(ws_manager.broadcast_to_tenant(tenant_id, "alert", {
+                spawn(ws_manager.broadcast_to_tenant(tenant_id, "alert", {
                     "type": "new_message", "severity": "info",
                     "message": f"رسالة جديدة من {sender_id}",
                     "link": "/messages",

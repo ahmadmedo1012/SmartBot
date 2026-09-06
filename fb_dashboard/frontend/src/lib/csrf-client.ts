@@ -22,7 +22,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   }
   const res = await fetch(url, { ...options, headers, credentials: "include" })
   if (!res.ok) {
-    const body = await res.json().catch(() => null)
+    const body = await res.json().catch((): null => null)
     throw new ApiError(res.status, body)
   }
   return res

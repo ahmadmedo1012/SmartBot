@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { BroadcastRow } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 const BROADCAST_STATUS_LABELS: Record<string, string> = {
@@ -29,7 +30,7 @@ export default function BroadcastPage() {
 
   const { data: broadcasts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["broadcasts"],
-    queryFn: () => apiFetch("/api/broadcasts").then(unwrapApi),
+    queryFn: () => apiFetch("/api/broadcasts").then(unwrapApi<BroadcastRow[]>),
     refetchInterval: 30000,
   })
 
@@ -43,16 +44,16 @@ export default function BroadcastPage() {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.detail || `فشل الإنشاء (${res.status})`)
       }
-      return unwrapApi(res)
+      return unwrapApi<{ id: number }>(res)
     },
-    onSuccess: (data: any) => {
+    onSuccess: () => {
       brandedToast.success("تم إنشاء البث — يمكنك إرساله الآن")
       setName("")
       setMessage("")
       setShowForm(false)
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: any) => brandedToast.error(e.message || "فشل إنشاء البث"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء البث"),
   })
 
   const sendMut = useMutation({
@@ -62,13 +63,13 @@ export default function BroadcastPage() {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.detail || `فشل الإرسال (${res.status})`)
       }
-      return unwrapApi(res)
+      return unwrapApi<{ ok?: boolean }>(res)
     },
     onSuccess: () => {
       brandedToast.success("تم إرسال البث للمشتركين")
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: any) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
+    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
   })
 
   return (
@@ -80,7 +81,7 @@ export default function BroadcastPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">البث الجماعي</h1>
-            <p className="text-[11px] text-muted-foreground">إرسال رسائل جماعية</p>
+            <p className="text-2xs text-muted-foreground">إرسال رسائل جماعية</p>
           </div>
           <Button size="sm" className="ms-auto shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
             <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
@@ -110,7 +111,7 @@ export default function BroadcastPage() {
                   rows={3}
                   aria-label="نص الرسالة"
                 />
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-2xs text-muted-foreground">
                   ستُرسل الرسالة للمشتركين عبر الماسنجر — تأكد من ربط صفحتك أولًا
                 </p>
               </div>
@@ -133,7 +134,7 @@ export default function BroadcastPage() {
           </div>
         ) : isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
-        ) : (broadcasts as any[]).length === 0 ? (
+        ) : broadcasts.length === 0 ? (
           <EmptyState
             icon={Radio}
             title="لا توجد رسائل بث جماعي"
@@ -141,7 +142,7 @@ export default function BroadcastPage() {
             action={{ label: "بث جديد", icon: Plus, onClick: () => setShowForm(true) }}
           />
         ) : (
-          (broadcasts as any[]).map((b: any) => (
+          broadcasts.map((b) => (
             <Card key={b.id}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between gap-3">

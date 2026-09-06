@@ -13,6 +13,7 @@ import dynamic from "next/dynamic"
 import { Star } from "lucide-react"
 import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
 import { unwrapApi } from "@/lib/api"
+import type { Testimonial } from "@/lib/types"
 
 /* Below-fold sections load their JS lazily (SSR HTML intact): the landing
  * hydrated ALL sections up-front (TBT 1.7s on throttled mobile). */
@@ -27,7 +28,7 @@ export function HeroTrustBadge() {
   const { stats } = usePublicStats()
   const heroTrust = trustCopy(stats, true)
   return (
-    <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 relative overflow-hidden animate-fade-in">
+    <div className="inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 relative overflow-hidden animate-fade-in">
       <span className="size-1 rounded-full bg-primary animate-pulse-dot shrink-0" />
       {heroTrust}
       <span
@@ -61,7 +62,7 @@ export function FinalCTASectionLazy() {
 }
 
 export function LandingTestimonials() {
-  const [testimonials, setTestimonials] = useState<any[] | null>(null)
+  const [testimonials, setTestimonials] = useState<Testimonial[] | null>(null)
 
   useEffect(() => {
     fetch("/api/public/testimonials")
@@ -75,7 +76,7 @@ export function LandingTestimonials() {
     <section className="relative py-24">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-14 animate-fade-in">
-          <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-4">
+          <div className="inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-4">
             <Star className="size-3 fill-accent-foreground text-accent-foreground" />
             آراء حقيقية
           </div>
@@ -92,14 +93,14 @@ export function LandingTestimonials() {
               entries were removed (the comment above said "never fake" while
               the render ignored the payload entirely). Owner seeds real
               testimonials via the admin surfaces when available. */}
-          {testimonials.map((t: any, i: number) => (
+          {testimonials.map((t, i) => (
             <div
               key={t.id ?? i}
               className="group relative rounded-2xl p-6 bg-card border border-border/50 hover:border-accent-foreground/40 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-foreground/5 animate-fade-in-150"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               {t.metric && (
-                <div className="absolute top-4 left-4 text-[10px] font-bold text-accent-foreground/90 bg-accent-foreground/10 px-2.5 py-1 rounded-full border border-accent-foreground/20">
+                <div className="absolute top-4 left-4 text-3xs font-bold text-accent-foreground/90 bg-accent-foreground/10 px-2.5 py-1 rounded-full border border-accent-foreground/20">
                   {t.metric}
                 </div>
               )}

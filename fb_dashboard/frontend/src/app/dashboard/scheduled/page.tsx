@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
@@ -10,17 +10,33 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
 import { unwrapApi } from "@/lib/api"
+import type { ScheduledPost } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
+  // v9-B1 — the datetime-local `min` used to be computed during render from
+  // Date.now(): the server renders it in UTC while the client re-renders it
+  // in +02 → guaranteed hydration mismatch. Compute it client-side only,
+  // after mount; until then no `min` attribute is emitted at all.
+  const [minDateTime, setMinDateTime] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    setMinDateTime(
+      new Date(Date.now() + 60000 - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16),
+    )
+  }, [])
   const queryClient = useQueryClient()
 
-  const { data: posts = [], isLoading } = useQuery({
+  // v9-B2 — API failure previously rendered as "لا توجد منشورات مجدولة"
+  // (data looked empty instead of broken — same v4 §2.5 pattern posts fixed)
+  const { data: posts = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["scheduled-posts", "scheduled"],
-    queryFn: () => apiFetch("/api/scheduled-posts?status=scheduled").then(unwrapApi),
+    queryFn: () => apiFetch("/api/scheduled-posts?status=scheduled").then(unwrapApi<ScheduledPost[]>),
     refetchInterval: 30000,
+    retry: 1,
   })
 
   const createMut = useMutation({
@@ -72,7 +88,7 @@ export default function ScheduledPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">المجدول</h1>
-            <p className="text-[11px] text-muted-foreground">المنشورات المجدولة</p>
+            <p className="text-2xs text-muted-foreground">المنشورات المجدولة</p>
           </div>
         </div>
       </header>
@@ -94,7 +110,7 @@ export default function ScheduledPage() {
                   value={scheduledAt}
                   onChange={e => setScheduledAt(e.target.value)}
                   aria-label="وقت النشر"
-                  min={new Date(Date.now() + 60000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                  min={minDateTime}
                   className="text-sm"
                 />
               </div>
@@ -114,6 +130,13 @@ export default function ScheduledPage() {
               </CardContent></Card>
             ))}
           </div>
+        ) : isError ? (
+          <div className="text-center py-12">
+            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
+            <p className="text-sm font-bold mb-1">فشل تحميل المنشورات المجدولة</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
+          </div>
         ) : posts.length === 0 ? (
           <EmptyState
             icon={Clock}
@@ -122,7 +145,7 @@ export default function ScheduledPage() {
           />
         ) : (
           <div className="space-y-3">
-            {posts.map((p: any) => (
+            {posts.map((p) => (
               <Card key={p.id}>
                 <CardContent className="p-4">
                   <p className="text-sm mb-2">{p.message}</p>
@@ -132,10 +155,10 @@ export default function ScheduledPage() {
                       <span>{p.scheduled_at ? formatDate(p.scheduled_at) : "بدون تاريخ"}</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} aria-label="نشر المنشور المجدول الآن">
+                      <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} disabled={publishMut.isPending && publishMut.variables === p.id} aria-label="نشر المنشور المجدول الآن">
                         <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} aria-label="حذف المنشور المجدول">
+                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} disabled={deleteMut.isPending && deleteMut.variables === p.id} aria-label="حذف المنشور المجدول">
                         <Trash2 className="size-3" aria-hidden="true" />
                       </Button>
                     </div>

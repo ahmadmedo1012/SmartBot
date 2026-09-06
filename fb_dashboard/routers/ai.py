@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 """AI & Agent routes: suggest, analyze, generate-reply, analyze-image, status, agent interpret, memory."""
-import asyncio
 import logging
 import os
 import secrets
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import fail, ok
 from database import get_db
 from event_bus import event_bus
@@ -169,7 +169,7 @@ async def agent_interpret(
 
     # v8-A2: emit scoped to THIS tenant — the old global broadcast delivered
     # the full agent reply to every authenticated SSE subscriber.
-    asyncio.create_task(event_bus.emit("agent_message", {
+    spawn(event_bus.emit("agent_message", {
         "role": "agent", "text": result.get("response_ar", ""),
         "action": result.get("action", "unknown"),
         "success": result.get("success", False),
@@ -185,16 +185,17 @@ async def agent_interpret(
 
 @router.get("/api/agent/memory")
 async def agent_get_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
-    """View current agent session history + user memory."""
+    """View current agent session history + user memory (v9-A4: tenant-scoped keys)."""
     import agent_memory as amem
-    session = await amem.get_session(db, current_user.username)
-    user = await amem.get_user_memory(db, current_user.username)
+    tid = current_user._tenant_id
+    session = await amem.get_session(db, current_user.username, tid)
+    user = await amem.get_user_memory(db, current_user.username, tid)
     return ok({"session": session[-10:], "user_memory": user})
 
 
 @router.post("/api/agent/memory/clear")
 async def agent_clear_memory(db=Depends(get_db), current_user=Depends(get_current_user)):
-    """Reset session history (keeps user memory/preferences)."""
+    """Reset session history (keeps user memory/preferences) — tenant-scoped (v9-A4)."""
     import agent_memory as amem
-    await amem.clear_session(db, current_user.username)
+    await amem.clear_session(db, current_user.username, current_user._tenant_id)
     return ok({"ok": True, "message": "تم مسح الذاكرة المؤقتة ✅"})

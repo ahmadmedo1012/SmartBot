@@ -12,7 +12,7 @@ from _hash import hash_password, verify_password
 from _utils import iso_z, utcnow
 from config import settings
 from database import get_db
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from models import AuditLog, BlacklistedToken, SubscriptionPlan, Tenant, User
 from sqlalchemy import desc, func, or_, select
@@ -262,8 +262,9 @@ async def skip_onboarding(db=Depends(get_db), current_user: User = Depends(get_c
 
 
 @router.get("/api/audit/logs")
-async def get_audit_logs(page: int = 1, page_size: int = 50, db=Depends(get_db),
+async def get_audit_logs(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), db=Depends(get_db),
                           current_user: User = Depends(require_role("admin"))):
+    # v9-A9: bounded pagination (was unbounded — negative page/ huge page_size)
     offset = (page - 1) * page_size
     stmt = select(AuditLog).where(AuditLog.tenant_id == current_user._tenant_id)
     total = await db.scalar(select(func.count(AuditLog.id)).where(AuditLog.tenant_id == current_user._tenant_id)) or 0
@@ -338,8 +339,9 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
 
 
 @router.get("/api/users")
-async def list_users(page: int = 1, page_size: int = 50, db=Depends(get_db),
+async def list_users(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), db=Depends(get_db),
                      current_user: User = Depends(require_role("admin"))):
+    # v9-A9: bounded pagination (was unbounded — negative page/ huge page_size)
     offset = (page - 1) * page_size
     total = await db.scalar(select(func.count(User.id)).where(User.tenant_id == current_user._tenant_id)) or 0
     rows = await db.execute(

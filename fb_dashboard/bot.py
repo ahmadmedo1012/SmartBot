@@ -22,6 +22,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
@@ -427,7 +428,7 @@ class ReplyPipeline:
         try:
             urgency = classification.get("urgency", 0) if isinstance(classification, dict) else 0
             if ws_manager and (intent in ("complaint", "urgent", "negative") or urgency > 0.5):
-                asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "alert", {
+                spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "alert", {
                     "type": "urgent_comment", "severity": "warning",
                     "message": f"تعليق عاجل من {ctx.from_first}: {ctx.text[:100]}",
                     "link": f"/comments?comment_id={ctx.cid[:20]}"
@@ -624,11 +625,11 @@ class ReplyPipeline:
         # Notify WebSocket
         try:
             if ws_manager:
-                asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "new_reply", {
+                spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "new_reply", {
                     "commenter": ctx.from_name, "comment": ctx.text[:50],
                     "reply": reply[:50], "rule_id": rule_id,
                 }))
-                asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "notification", {
+                spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "notification", {
                     "type": "reply", "title": "رد جديد",
                     "message": f"تم الرد على {ctx.from_first}",
                     "link": "/replies",
@@ -807,8 +808,8 @@ class BotEngine:
                         ) or 0
                         payload = {"total_replies": total, "today_replies": today_val, "cycle": self._cycle}
                         if ws_manager:
-                            asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
-                        asyncio.create_task(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
+                            spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
+                        spawn(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
                 except Exception:
                     pass
 
@@ -1109,8 +1110,8 @@ class BotEngine:
             from event_bus import event_bus
             payload = {"source": "message", "sender": ctx.from_first}
             if ws_manager:
-                asyncio.create_task(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
-            asyncio.create_task(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
+                spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
+            spawn(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
         except Exception:
             pass
 

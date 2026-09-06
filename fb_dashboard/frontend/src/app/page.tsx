@@ -107,8 +107,11 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />
-      {/* v8-B7: skip-link target — lands past the Header nav */}
-      <span id="page-content" className="sr-only" aria-hidden="true" />
+      {/* v8-B7/v9-D3: skip-link target — lands past the Header nav.
+          tabIndex={-1} makes the browser actually MOVE focus here when the
+          skip link is activated (keyboard users land in the hero, not the
+          nav); no aria-hidden so the target counts for axe's skip-link rule. */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
 
       {/* Hero — scroll-craft treatment (latest_plan §G.4): static server
           markup + pure-CSS entrances (v6 §D). */}
@@ -133,7 +136,7 @@ export default function HomePage() {
                     (Pre-v6 KineticText split its text inside useEffect → the
                     h1 shipped EMPTY: an SEO + LCP + no-JS triple defect.) */}
                 <h1
-                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.02] tracking-tighter font-heading text-balance"
+                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.15] tracking-tighter font-heading text-balance"
                 >
                   إدارة تفاعل فيسبوك{" "}
                   <span className="relative inline-block text-accent-foreground">
@@ -166,12 +169,12 @@ export default function HomePage() {
                   <div className="flex items-center gap-2.5">
                     <div className="flex -space-x-2">
                       {["أ", "س", "م", "ن"].map((l, i) => (
-                        <div key={i} className="size-8 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-primary-foreground">{l}</div>
+                        <div key={i} className="size-8 rounded-full border-2 border-background flex items-center justify-center text-3xs font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-primary-foreground">{l}</div>
                       ))}
                     </div>
                     <div className="flex flex-col">
                       <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className="size-3 fill-accent-foreground/80 text-accent-foreground" />)}</div>
-                      <span className="text-[10px] text-muted-foreground font-medium">موثوق من مدراء الصفحات</span>
+                      <span className="text-3xs text-muted-foreground font-medium">موثوق من مدراء الصفحات</span>
                     </div>
                   </div>
                   <div className="h-8 w-px bg-border/60" aria-hidden="true" />

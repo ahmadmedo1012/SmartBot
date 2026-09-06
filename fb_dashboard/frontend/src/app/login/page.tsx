@@ -13,6 +13,7 @@ import Link from "next/link"
 import { LogIn, Eye, EyeOff } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
+import type { ApiErrorBody } from "@/lib/types"
 
 function FloatingShapes() {
   return (
@@ -92,7 +93,7 @@ function LoginForm() {
       setTimeout(() => window.location.replace(target), 150)
     } catch (e) {
       const msg = e instanceof ApiError
-        ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل تسجيل الدخول")
+        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "فشل تسجيل الدخول")
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
       brandedToast.error(msg)
@@ -117,6 +118,10 @@ function LoginForm() {
       </div>
 
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--accent-foreground)] via-[var(--accent-foreground)]/80 to-[var(--accent-foreground)]/60" />
+
+      {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
+          this page; same sr-only anchor pattern as the landing). */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
 
       <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         {/* Visually-hidden page heading — CardTitle is a div, so heading

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-"""Logs API router — structured log endpoints."""
+"""Logs API router — structured log endpoints.
+
+v9-A6: the StructuredLogger buffer is a GLOBAL in-memory ring — its events
+carry NO tenant marker (messages can embed other tenants' comment texts and
+usernames), so stream/realtime/stats are restricted to the platform admin.
+Tenant activity logs remain available through the DB-backed /api/logs
+(routers/bot.py), which filters BotLog by tenant_id.
+"""
 import asyncio
 import json
 
-import jwt
-from config import settings
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -13,39 +18,24 @@ from monitor import get_logger
 
 logs_router = APIRouter(prefix="/api/logs")
 
-ALGORITHM = "HS256"
 
-
-async def get_token_user(request: Request):
-    """DEPRECATED (2026-09-05): decodes the JWT WITHOUT checking the blacklist
-    or that the user still exists — logged-out tokens stayed valid. Kept only
-    as a compatibility alias; new endpoints use _require_user (full check).
-    """
-    token = request.cookies.get("token")
-    if not token:
-        raise HTTPException(401, "Not authenticated")
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub", "unknown")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(401, "Token expired") from None
-    except jwt.InvalidTokenError:
-        raise HTTPException(401, "Invalid token") from None
-
-
-async def _require_user(request: Request, db=Depends(get_db)):
-    """Lazy-import get_current_user to avoid circular import with runner."""
-    from runner import get_current_user
-    return await get_current_user(request, db)
+async def _require_platform_admin(request: Request, db=Depends(get_db)):
+    """v9-A6 guard: buffer entries are global (no tenant marker) — tenant
+    users must not read them. Lazy-import to avoid circular import with runner."""
+    from routers.auth import get_current_user, is_platform_admin
+    user = await get_current_user(request, db)
+    if not is_platform_admin(user):
+        raise HTTPException(403, "سجلات النظام الحية متاحة لمسؤول المنصة فقط")
+    return user
 
 
 @logs_router.get("/stream")
 async def stream_logs(
     level: str = Query(""),
     module: str = Query(""),
-    limit: int = Query(100),
+    limit: int = Query(100, ge=1, le=1000),
     since: str = Query(""),
-    _=Depends(_require_user),
+    _=Depends(_require_platform_admin),
 ):
     """Return filtered log events from StructuredLogger buffer."""
     logger = get_logger()
@@ -60,9 +50,11 @@ async def stream_logs(
 
 @logs_router.get("/realtime")
 async def realtime_logs(
-    _=Depends(_require_user),
+    _=Depends(_require_platform_admin),
 ):
-    """SSE endpoint streaming log events as they happen."""
+    """SSE endpoint streaming log events as they happen.
+
+    v9-A6: platform-admin only (global buffer, no tenant marker)."""
     from event_bus import event_bus
 
     async def sse_generator():
@@ -94,7 +86,7 @@ async def realtime_logs(
 
 
 @logs_router.get("/stats")
-async def log_stats(_=Depends(_require_user)):
-    """Log volume stats per level."""
+async def log_stats(_=Depends(_require_platform_admin)):
+    """Log volume stats per level (v9-A6: platform-admin only)."""
     logger = get_logger()
     return {"success": True, "data": logger.get_stats()}

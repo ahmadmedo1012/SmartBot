@@ -8,23 +8,24 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { AnalyticsOverview, Paginated, Subscriber, TopCommenter } from "@/lib/types"
 import { countPhrase, formatDateOnly } from "@/lib/format"
 
 export default function AudiencePage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
-    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi),
+    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi<AnalyticsOverview>),
     refetchInterval: 60000,
   })
   const topQuery = useQuery({
     queryKey: ["top-commenters"],
-    queryFn: () => apiFetch("/api/analytics/top-commenters?limit=5").then(unwrapApi),
+    queryFn: () => apiFetch("/api/analytics/top-commenters?limit=5").then(unwrapApi<TopCommenter[]>),
     refetchInterval: 60000,
   })
   // v4 §7.25 — real subscriber list (feed: messenger events)
   const subsQuery = useQuery({
     queryKey: ["subscribers", "audience"],
-    queryFn: () => apiFetch("/api/subscribers?per_page=10").then(unwrapApi),
+    queryFn: () => apiFetch("/api/subscribers?per_page=10").then(unwrapApi<Paginated<Subscriber>>),
     refetchInterval: 60000,
     retry: 1,
   })
@@ -38,7 +39,7 @@ export default function AudiencePage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الجمهور</h1>
-            <p className="text-[11px] text-muted-foreground">تحليل الجمهور والمتابعين</p>
+            <p className="text-2xs text-muted-foreground">تحليل الجمهور والمتابعين</p>
           </div>
         </div>
       </header>
@@ -95,8 +96,10 @@ export default function AudiencePage() {
               <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
             ) : (topQuery.data?.length || 0) > 0 ? (
               <div className="space-y-2">
-                {topQuery.data.map((c: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
+                {topQuery.data.map((c, i) => (
+                  /* v9-B12 — ranked list: positional keys corrupt React's
+                      diffing when the ranking shifts; commenter_id is stable */
+                  <div key={c.commenter_id ?? c.name ?? i} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                     <span>{c.name || `معلق #${c.commenter_id}`}</span>
                     <span className="text-muted-foreground">{countPhrase(c.count, "تعليق", "تعليقين", "تعليقات")}</span>
                   </div>
@@ -118,7 +121,7 @@ export default function AudiencePage() {
               <h3 className="font-bold text-sm">
                 المشتركون ({subsQuery.data?.total ?? 0})
               </h3>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-3xs text-muted-foreground">
                 يتغذّى تلقائياً من محادثات الماسنجر
               </span>
             </div>
@@ -145,21 +148,21 @@ export default function AudiencePage() {
               />
             ) : (
               <div className="space-y-1.5">
-                {(subsQuery.data?.items || []).map((s: any) => (
+                {(subsQuery.data?.items || []).map((s) => (
                   <div key={s.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="size-7 rounded-full bg-accent-foreground/10 text-accent-foreground text-[10px] font-bold flex items-center justify-center shrink-0">
+                      <span className="size-7 rounded-full bg-accent-foreground/10 text-accent-foreground text-3xs font-bold flex items-center justify-center shrink-0">
                         {(s.first_name || s.name || "؟").slice(0, 2)}
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm truncate">{s.name || `مشترك #${s.id}`}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">
+                        <p className="text-3xs text-muted-foreground truncate">
                           {s.platform === "messenger" ? "ماسنجر" : s.platform}
                           {s.last_interaction_at ? ` · آخر تفاعل ${formatDateOnly(s.last_interaction_at)}` : ""}
                         </p>
                       </div>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 ${
+                    <span className={`text-3xs px-2 py-0.5 rounded-full shrink-0 ${
                       s.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
                     }`}>
                       {s.status === "active" ? "نشط" : "غير نشط"}

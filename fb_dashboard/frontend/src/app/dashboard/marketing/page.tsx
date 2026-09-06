@@ -186,7 +186,7 @@ export default function MarketingPage() {
                         role="radio"
                         aria-checked={form.audience === a.value}
                         onClick={() => setForm((f) => ({ ...f, audience: a.value }))}
-                        className={`p-3 rounded-lg border-2 text-right transition-all ${
+                        className={`p-3 rounded-lg border-2 text-start transition-all ${
                           form.audience === a.value
                             ? "border-accent-foreground bg-accent-foreground/5"
                             : "border-border/50 hover:border-accent-foreground/30"
@@ -196,11 +196,11 @@ export default function MarketingPage() {
                           <Users className="size-3.5" />
                           {a.label}
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{a.desc}</p>
+                        <p className="text-3xs text-muted-foreground mt-0.5">{a.desc}</p>
                       </button>
                     ))}
                   </div>
-                  <p role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
+                  <p role="status" aria-live="polite" className="text-2xs text-muted-foreground">
                     {audienceQuery.isLoading
                       ? "جارٍ حساب حجم الجمهور..."
                       : `ستصل الحملة إلى ${countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}`}
@@ -265,7 +265,7 @@ export default function MarketingPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold truncate">{c.name}</p>
                           <span
-                            className={`text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 ${STATUS_STYLE[c.status] || STATUS_STYLE.draft}`}
+                            className={`text-3xs font-bold rounded-full px-2 py-0.5 shrink-0 ${STATUS_STYLE[c.status] || STATUS_STYLE.draft}`}
                           >
                             {STATUS_LABEL[c.status] || c.status}
                           </span>
@@ -303,7 +303,7 @@ export default function MarketingPage() {
 
                     {/* stats */}
                     {c.status === "sent" && (
-                      <div className="flex items-center gap-4 text-[11px] text-muted-foreground border-t border-border/40 pt-2.5">
+                      <div className="flex items-center gap-4 text-2xs text-muted-foreground border-t border-border/40 pt-2.5">
                         <span className="flex items-center gap-1">
                           <Send className="size-3 rtl:-scale-x-100" />
                           أُرسلت إلى {c.sent_count}

@@ -421,7 +421,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         type="button"
                         onClick={handleSuggestReply}
                         disabled={suggesting || !keyword.trim()}
-                        className="text-[11px] font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1"
+                        className="text-2xs font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1"
                       >
                         {suggesting ? (
                           <Loader2 className="size-3 animate-spin" />
@@ -439,7 +439,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       rows={3}
                       className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-3xs text-muted-foreground">
                       اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
                     </p>
                   </div>
@@ -471,8 +471,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       >
                         <p className="text-xs font-bold">{plan.name}</p>
                         <p className="text-lg font-bold text-accent-foreground">{plan.price}</p>
-                        <p className="text-[10px] text-muted-foreground">د.ل/شهر</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{plan.desc}</p>
+                        <p className="text-3xs text-muted-foreground">د.ل/شهر</p>
+                        <p className="text-3xs text-muted-foreground mt-1">{plan.desc}</p>
                       </div>
                     ))}
                   </div>
@@ -514,7 +514,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors"
                       >
                         <item.icon className="size-4 text-accent-foreground" />
-                        <span className="text-[10px] font-medium">{item.label}</span>
+                        <span className="text-3xs font-medium">{item.label}</span>
                       </button>
                     ))}
                   </div>

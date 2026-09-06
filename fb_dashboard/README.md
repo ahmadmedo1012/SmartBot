@@ -30,7 +30,6 @@ fb_dashboard/
   database.py                → SQLAlchemy async engine (NullPool for Vercel)
   config.py                  → Settings from env vars (fail-fast in prod)
   telegram_bot.py            → Telegram admin notification + payment approval
-  twofa.py                   → TOTP-based 2FA (Fernet-encrypted secrets)
   ws_manager.py              → WebSocket connection manager (tenant-scoped)
   event_bus.py               → Pub/sub event bus (tenant-filtered)
   monitor.py                 → Structured JSON logger

@@ -6,6 +6,8 @@ import json
 import time
 from functools import wraps
 
+from _async import spawn  # v9-A11: GC-safe background tasks
+
 # ponytail: process-local fallback — used when Redis is unreachable
 _cache_store: dict[str, tuple[float, str]] = {}
 _cache_locks: dict[str, asyncio.Lock] = {}
@@ -114,7 +116,7 @@ class APICache:
                     _cache_store.pop(k, None)
                     _cache_locks.pop(k, None)
                     _cache_ttl.pop(k, None)
-                    asyncio.create_task(_rcache_set(k, '', 1))  # immediate expiry
+                    spawn(_rcache_set(k, '', 1))  # immediate expiry
                 return result
             return wrapper
         return decorator

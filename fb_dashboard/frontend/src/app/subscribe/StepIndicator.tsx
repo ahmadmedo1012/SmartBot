@@ -69,7 +69,7 @@ export function StepIndicator({
               </div>
               <span
                 className={cn(
-                  "text-[11px] sm:text-xs font-medium transition-colors hidden sm:block",
+                  "text-2xs sm:text-xs font-medium transition-colors hidden sm:block",
                   isActive
                     ? "text-accent-foreground font-bold"
                     : isDone

@@ -23,26 +23,44 @@ async def pdf_reports_status(_=Depends(get_current_user)):
 
 
 @router.post("/api/reports/generate")
-async def generate_pdf_report(request: Request, _=Depends(require_role("editor"))):
-    """Generate a PDF report.  Returns PDF bytes directly."""
+async def generate_pdf_report(request: Request, current_user: User = Depends(require_role("editor"))):
+    """Generate a PDF report.  Returns PDF bytes directly.
+
+    v9-A1: the report is generated STRICTLY for the current user's tenant —
+    tenant_id is passed into every query of pdf_reports_engine (replies,
+    subscribers, top commenters PII, growth, campaign lookup). Previously the
+    engine queried globally: any tenant's PDF embedded every other tenant's
+    commenter names and campaign data (cross-tenant P1 leak).
+    """
     body = await request.json()
     rtype = body.get("type", "monthly")
     days = body.get("days", 30)
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "قيمة days غير صالحة") from None
+    if not 1 <= days <= 365:
+        raise HTTPException(400, "days يجب أن يكون بين 1 و 365")
+    tenant_id = current_user._tenant_id
     b = body.get("branding", {})
     from pdf_reports_engine import BrandingConfig
     branding = BrandingConfig(
-        logo_url=b.get("logo_url", ""),
-        company_name=b.get("company_name", "SmartBot"),
-        primary_color=b.get("primary_color", "#dc2626"),
+        logo_url=str(b.get("logo_url", ""))[:500],
+        company_name=str(b.get("company_name", "SmartBot"))[:200],
+        primary_color=str(b.get("primary_color", "#dc2626"))[:32],
     )
     if rtype == "monthly":
-        pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding)
+        pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding, tenant_id=tenant_id)
     elif rtype == "subscriber":
-        pdf_bytes = await pdf_engine.subscriber_report(days=days, branding=branding)
+        pdf_bytes = await pdf_engine.subscriber_report(days=days, branding=branding, tenant_id=tenant_id)
     elif rtype == "campaign":
         campaign_type = body.get("campaign_type", "broadcast")
-        campaign_id = body.get("campaign_id", "0")
-        pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding)
+        campaign_id = str(body.get("campaign_id", "0"))
+        if campaign_type not in ("broadcast", "flow"):
+            raise HTTPException(400, "نوع الحملة غير صالح")
+        if not campaign_id.isdigit():
+            raise HTTPException(400, "معرف الحملة غير صالح")
+        pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding, tenant_id=tenant_id)
     else:
         raise HTTPException(400, f"Unknown report type: {rtype}")
     return Response(content=pdf_bytes, media_type="application/pdf",

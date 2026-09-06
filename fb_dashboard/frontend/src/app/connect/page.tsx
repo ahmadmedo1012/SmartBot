@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiFetch } from "@/lib/csrf-client"
+import type { WebhookCheck } from "@/lib/types"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { countPhrase, formatNumber } from "@/lib/format"
@@ -25,11 +26,11 @@ export default function ConnectPage() {
   const [errorMsg, setErrorMsg] = useState("")
   const [existing, setExisting] = useState<{ page_id: string; connected: boolean; page_name?: string } | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
-  const [wh, setWh] = useState<any>(null)
+  const [wh, setWh] = useState<WebhookCheck | null>(null)
 
   useEffect(() => {
     apiFetch("/api/facebook/settings")
-      .then(unwrapApi)
+      .then(unwrapApi<{ page_id: string; connected: boolean; page_name?: string }>)
       .then((d) => {
         setExisting(d)
         if (d.page_id) setPageId(d.page_id)
@@ -39,7 +40,7 @@ export default function ConnectPage() {
     // Real webhook health (plan v3 §4.6) — shows the owner exactly what's
     // missing instead of the old "كل شيء يعمل" while events were rejected.
     apiFetch("/api/webhook/check")
-      .then(unwrapApi)
+      .then(unwrapApi<WebhookCheck>)
       .then(setWh)
       .catch(() => {})
   }, [])
@@ -86,7 +87,7 @@ export default function ConnectPage() {
       if (!r.ok) { brandedToast.error("فشل الحفظ"); setStatus("idle"); return }
       await r.json()
       setStatus("connected")
-      brandedToast.success("✅ تم حفظ البيانات وتفعيل webhook")
+      brandedToast.success("✅ تم حفظ البيانات وتفعيل الويبهوك")
     } catch {
       setStatus("idle")
       brandedToast.error("خطأ في الاتصال بالخادم")
@@ -131,7 +132,7 @@ export default function ConnectPage() {
                   <span className="flex items-center gap-2 text-muted-foreground"><Webhook className="size-3.5" /> عنوان الويبهوك</span>
                   <button
                     dir="ltr"
-                    className="flex items-center gap-1.5 font-mono text-[11px] text-foreground hover:text-accent-foreground transition-colors"
+                    className="flex items-center gap-1.5 font-mono text-2xs text-foreground hover:text-accent-foreground transition-colors"
                     onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); brandedToast.success("تم نسخ عنوان الويبهوك") }}
                   >
                     {wh.webhook_url} <Copy className="size-3" />
@@ -160,7 +161,7 @@ export default function ConnectPage() {
                   </span>
                 </div>
                 {(!secretOk || !messagesOk || !feedOk) && (
-                  <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-[11px] leading-relaxed text-foreground/80">
+                  <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-2xs leading-relaxed text-foreground/80">
                     سجّل في <span className="font-medium">developers.facebook.com ← تطبيقك ← Webhooks ← Page</span> بالعنوان أعلاه،
                     واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
                     بدون ذلك لا تصل الرسائل/التعليقات لحظيًا ولن يرد البوت تلقائيًا.
@@ -188,6 +189,9 @@ export default function ConnectPage() {
       {/* Visually-hidden page heading — the visible card title is a div (CardTitle),
           so heading navigation had no target on this route (v8-B5) */}
       <h1 className="sr-only">ربط صفحة فيسبوك</h1>
+      {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
+          this page; same sr-only anchor pattern as the landing). */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
       {/* Floating shapes */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -right-48 -top-48 h-72 w-72 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 blur-3xl" />
@@ -225,15 +229,15 @@ export default function ConnectPage() {
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <MessageCircle className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-[11px] font-medium text-foreground/80">ردود تلقائية</span>
+                  <span className="text-2xs font-medium text-foreground/80">ردود تلقائية</span>
                 </div>
                 <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <Zap className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-[11px] font-medium text-foreground/80">بوت ذكي</span>
+                  <span className="text-2xs font-medium text-foreground/80">بوت ذكي</span>
                 </div>
                 <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <Shield className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
-                  <span className="text-[11px] font-medium text-foreground/80">بيانات مشفرة</span>
+                  <span className="text-2xs font-medium text-foreground/80">بيانات مشفرة</span>
                 </div>
               </div>
 

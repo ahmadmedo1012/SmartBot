@@ -15,7 +15,7 @@ export function compressImage(file: File, maxDim = 1200, quality = 0.7): Promise
       const ctx = canvas.getContext("2d")!
       ctx.drawImage(img, 0, 0, w, h)
       canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("Image compress failed"))),
+        (b) => (b ? resolve(b) : reject(new Error("فشل ضغط الصورة"))),
         "image/jpeg",
         quality
       )

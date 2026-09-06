@@ -28,9 +28,13 @@ export async function register() {
 
 // Instrument client-side route navigations (SDK v10 requirement).
 // No-op without the SDK active — the guard mirrors register().
+// Next calls this as (url: string, navigationType: RouterTransitionType, event);
+// Sentry's recorder takes (href, navigationType) — narrow the unknown rest args.
 export const onRouterTransitionStart = async (...args: unknown[]) => {
   if (!resolveSentryDsn(process.env.NEXT_PUBLIC_SENTRY_DSN)) return
   const Sentry = await import("@sentry/nextjs")
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(Sentry as any).captureRouterTransitionStart?.(...args)
+  const [href, navigationType] = args
+  if (typeof href === "string" && typeof navigationType === "string") {
+    Sentry.captureRouterTransitionStart(href, navigationType)
+  }
 }

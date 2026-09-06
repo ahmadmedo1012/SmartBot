@@ -18,6 +18,7 @@ export default function SubscribePage() {
         </div>
       }
     >
+      <span id="page-content" className="sr-only" tabIndex={-1} />
       <SubscribeContent />
     </Suspense>
   )

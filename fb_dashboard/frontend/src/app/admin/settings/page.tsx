@@ -126,7 +126,7 @@ const FACEBOOK_FIELDS: Field[] = [
     key: "facebook_app_secret",
     label: "سر تطبيق فيسبوك (App Secret)",
     placeholder: "32 حرفاً سداسياً عشريًا",
-    hint: "من developers.facebook.com → تطبيقك → Settings → Basic — مطلوب لقبول أحداث الويبهوك (الرسائل والتعليقات) الموقّعة",
+    hint: "من developers.facebook.com ← تطبيقك ← Settings ← Basic — مطلوب لقبول أحداث الويبهوك (الرسائل والتعليقات) الموقّعة",
     ltr: true,
     type: "password",
   },
@@ -225,7 +225,7 @@ export default function AdminSettingsPage() {
         brandedToast.success("تم حفظ الإعدادات — تسري فوراً على الموقع")
         await load()
       } else {
-        const body = await r.json().catch(() => null)
+        const body = await r.json().catch((): null => null)
         brandedToast.error(body?.detail || "فشل الحفظ")
       }
     } catch {
@@ -241,7 +241,7 @@ export default function AdminSettingsPage() {
       if (r.ok) {
         brandedToast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
       } else {
-        const body = await r.json().catch(() => null)
+        const body = await r.json().catch((): null => null)
         brandedToast.error(body?.detail || "فشل الإرسال — احفظ رمز البوت أولاً")
       }
     } catch {

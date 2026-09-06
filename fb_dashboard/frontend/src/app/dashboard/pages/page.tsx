@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { unwrapApi } from "@/lib/api"
+import type { FacebookSettings, FacebookTestResult } from "@/lib/types"
 import { countPhrase, formatNumber } from "@/lib/format"
 
 export default function PagesPage() {
@@ -19,7 +20,7 @@ export default function PagesPage() {
   const [accessToken, setAccessToken] = useState("")
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<any>(null)
+  const [testResult, setTestResult] = useState<FacebookTestResult | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -27,7 +28,7 @@ export default function PagesPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/facebook/settings")
       if (!res.ok) throw new Error(`فشل التحميل (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<FacebookSettings>(res)
     },
     retry: 1,
   })
@@ -46,9 +47,9 @@ export default function PagesPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.detail || "فشل الحفظ")
       queryClient.invalidateQueries({ queryKey: ["facebook-settings"] })
-      brandedToast.success("تم حفظ بيانات فيسبوك والاشتراك في webhook")
-    } catch (e: any) {
-      brandedToast.error(e.message || "فشل الحفظ")
+      brandedToast.success("تم حفظ بيانات فيسبوك والاشتراك في الويبهوك")
+    } catch (e) {
+      brandedToast.error((e as Error).message || "فشل الحفظ")
     }
     setSaving(false)
   }
@@ -58,16 +59,16 @@ export default function PagesPage() {
     setTestResult(null)
     try {
       const res = await apiFetch("/api/facebook/test", { method: "POST" })
-      const json = await unwrapApi(res)
+      const json = await unwrapApi<FacebookTestResult>(res)
       setTestResult(json)
       if (json.connected) {
         brandedToast.success(`اتصال ناجح · ${countPhrase(json.fan_count, "متابع", "متابعين", "متابعين")}`)
       } else {
         brandedToast.error(json.error || "فشل الاتصال")
       }
-    } catch (e: any) {
-      setTestResult({ connected: false, error: e.message })
-      brandedToast.error(e.message || "فشل الاختبار")
+    } catch (e) {
+      setTestResult({ connected: false, error: (e as Error).message })
+      brandedToast.error((e as Error).message || "فشل الاختبار")
     }
     setTesting(false)
   }
@@ -83,7 +84,7 @@ export default function PagesPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الصفحات</h1>
-            <p className="text-[11px] text-muted-foreground">ربط وإدارة صفحات فيسبوك</p>
+            <p className="text-2xs text-muted-foreground">ربط وإدارة صفحات فيسبوك</p>
           </div>
         </div>
       </header>
@@ -139,7 +140,7 @@ export default function PagesPage() {
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (
-                          <Badge key={s} variant="info" className="text-[10px]">{s}</Badge>
+                          <Badge key={s} variant="info" className="text-3xs">{s}</Badge>
                         ))}
                       </div>
                     )}
@@ -188,7 +189,7 @@ export default function PagesPage() {
                     <li>pages_manage_metadata</li>
                     <li>pages_read_engagement</li>
                   </ul>
-                  <p className="mt-2">بعد الحفظ، سيتم الاشتراك في webhook تلقائياً لتلقي التعليقات والرسائل.</p>
+                  <p className="mt-2">بعد الحفظ، سيتم الاشتراك في الويبهوك تلقائياً لتلقي التعليقات والرسائل.</p>
                 </div>
               </div>
             </CardContent>

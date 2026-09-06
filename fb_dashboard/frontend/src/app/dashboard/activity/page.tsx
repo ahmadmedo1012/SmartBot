@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
+import type { LogEntry } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 /* v8-B13: the level dot was color-only — render a small text chip next to it
@@ -26,7 +27,7 @@ const LOG_LEVEL_TEXT: Record<string, string> = {
 export default function ActivityPage() {
   const { data: logs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["activity-logs"],
-    queryFn: () => apiFetch("/api/logs?limit=100").then(unwrapApi),
+    queryFn: () => apiFetch("/api/logs?limit=100").then(unwrapApi<LogEntry[] | { items?: LogEntry[] }>),
     refetchInterval: 15000,
   })
 
@@ -41,7 +42,7 @@ export default function ActivityPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">سجل النشاطات</h1>
-            <p className="text-[11px] text-muted-foreground">سجل أحداث النظام</p>
+            <p className="text-2xs text-muted-foreground">سجل أحداث النظام</p>
           </div>
         </div>
       </header>
@@ -59,21 +60,21 @@ export default function ActivityPage() {
             ) : logItems.length === 0 ? (
               <EmptyState icon={Activity} size="sm" title="لا توجد نشاطات بعد" description="ستظهر أحداث النظام هنا — الردود والتعليقات والإشعارات — فور حدوثها." />
             ) : (
-              <div className="divide-y divide-border">
-                {logItems.slice(0, 50).map((log: any, i: number) => (
-                  <div key={log.id || i} className="p-3 text-sm flex items-start gap-3">
+              <div className="divide-y divide-border" role="list">
+                {logItems.slice(0, 50).map((log, i) => (
+                  <div key={log.id || i} role="listitem" className="p-3 text-sm flex items-start gap-3">
                     <div className="mt-0.5 flex items-center gap-1.5 shrink-0">
                       <div className={`size-2 rounded-full ${
                         log.level === "error" ? "bg-destructive" :
                         log.level === "warning" ? "bg-warning" : "bg-success"
                       }`} aria-hidden="true" />
-                      <span className={`text-[10px] font-medium ${LOG_LEVEL_TEXT[log.level] || "text-muted-foreground"}`}>
+                      <span className={`text-3xs font-medium ${LOG_LEVEL_TEXT[log.level] || "text-muted-foreground"}`}>
                         {LOG_LEVEL_LABEL[log.level] || log.level}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">{log.message}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-2xs text-muted-foreground mt-0.5">
                         {log.created_at ? formatDate(log.created_at) : ""}
                       </p>
                     </div>

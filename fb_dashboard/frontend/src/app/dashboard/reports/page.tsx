@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { AnalyticsDashboard, TopCommenter } from "@/lib/types"
 import { formatNumber } from "@/lib/format"
 
 export default function ReportsPage() {
@@ -15,7 +16,7 @@ export default function ReportsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/dashboard?days=30")
       if (!res.ok) throw new Error(`فشل تحميل الإحصائيات (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<AnalyticsDashboard>(res)
     },
     retry: 1,
   })
@@ -25,7 +26,7 @@ export default function ReportsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/top-commenters?limit=10")
       if (!res.ok) throw new Error(`فشل تحميل المعلقين (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<TopCommenter[]>(res)
     },
     retry: 1,
   })
@@ -42,7 +43,7 @@ export default function ReportsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">التقارير</h1>
-            <p className="text-[11px] text-muted-foreground">التقارير والإحصائيات</p>
+            <p className="text-2xs text-muted-foreground">التقارير والإحصائيات</p>
           </div>
         </div>
       </header>
@@ -54,7 +55,7 @@ export default function ReportsPage() {
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل التقارير</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(dbError as any)?.message || "تعذر الاتصال"}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(dbError as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (
@@ -69,7 +70,7 @@ export default function ReportsPage() {
                   <div className="size-9 rounded-lg bg-info-soft flex items-center justify-center"><MessageSquare className="size-4 text-info" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_messages ?? 0)}</p>
-                    <p className="text-[10px] text-muted-foreground">إجمالي الرسائل</p>
+                    <p className="text-3xs text-muted-foreground">إجمالي الرسائل</p>
                   </div>
                 </CardContent>
               </Card>
@@ -78,7 +79,7 @@ export default function ReportsPage() {
                   <div className="size-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center"><Bot className="size-4 text-accent-foreground" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_replies ?? 0)}</p>
-                    <p className="text-[10px] text-muted-foreground">ردود البوت التلقائية</p>
+                    <p className="text-3xs text-muted-foreground">ردود البوت التلقائية</p>
                   </div>
                 </CardContent>
               </Card>
@@ -87,7 +88,7 @@ export default function ReportsPage() {
                   <div className="size-9 rounded-lg bg-success-soft flex items-center justify-center"><MessagesSquare className="size-4 text-success" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_conversations ?? 0)}</p>
-                    <p className="text-[10px] text-muted-foreground">المحادثات</p>
+                    <p className="text-3xs text-muted-foreground">المحادثات</p>
                   </div>
                 </CardContent>
               </Card>
@@ -96,7 +97,7 @@ export default function ReportsPage() {
                   <div className="size-9 rounded-lg bg-accent flex items-center justify-center"><Users className="size-4 text-accent-foreground" /></div>
                   <div>
                     <p className="text-xl font-bold">{formatNumber(dashboard?.total_customers ?? 0)}</p>
-                    <p className="text-[10px] text-muted-foreground">عملاء محفوظون (CRM)</p>
+                    <p className="text-3xs text-muted-foreground">عملاء محفوظون (CRM)</p>
                   </div>
                 </CardContent>
               </Card>
@@ -109,9 +110,9 @@ export default function ReportsPage() {
                   <div>
                     <p className="text-sm font-bold">
                       {formatNumber(dashboard?.today_replies ?? 0)}
-                      <span className="text-[10px] text-muted-foreground font-normal"> رد اليوم</span>
+                      <span className="text-3xs text-muted-foreground font-normal"> رد اليوم</span>
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-3xs text-muted-foreground">
                       {formatNumber(dashboard?.unique_commenters ?? 0)} معلّق فريد · {formatNumber(dashboard?.active_rules ?? 0)} قاعدة نشطة · آخر {formatNumber(dashboard?.period_days ?? 30)} يوماً
                     </p>
                   </div>
@@ -128,14 +129,16 @@ export default function ReportsPage() {
                 <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-3 animate-pulse h-10" /></Card>)}</div>
               ) : tcErr ? (
                 <Card><CardContent className="p-4 text-center text-xs text-muted-foreground">تعذر تحميل المعلقين</CardContent></Card>
-              ) : (topCommenters as any[]).length === 0 ? (
+              ) : topCommenters.length === 0 ? (
                 <Card><CardContent className="p-0">
                   <EmptyState icon={MessageSquare} size="sm" title="لا توجد بيانات كافية" description="ستظهر أسماء أكثر المعلقين تفاعلاً هنا بعد وصول تعليقات على منشوراتك." />
                 </CardContent></Card>
               ) : (
                 <div className="space-y-1">
-                  {(topCommenters as any[]).map((c: any, i: number) => (
-                    <Card key={i}>
+                  {topCommenters.map((c, i) => (
+                    /* v9-B12 — ranked list: positional keys corrupt React's
+                        diffing when the ranking shifts; commenter_id is stable */
+                    <Card key={c.commenter_id ?? c.name ?? i}>
                       <CardContent className="p-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-muted-foreground w-4 text-center">{i + 1}</span>

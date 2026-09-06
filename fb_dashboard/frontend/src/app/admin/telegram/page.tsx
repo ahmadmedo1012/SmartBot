@@ -1,17 +1,16 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import {
-  Bot, Save, Send, Stethoscope, CheckCircle2, XCircle, Loader2,
-  AlertTriangle, BotMessageSquare,
-} from "lucide-react"
+import { AlertTriangle, Loader2, RefreshCw } from "lucide-react"
 import { apiFetch } from "@/lib/csrf-client"
+import { Button } from "@/components/ui/button"
 import { TelegramConfigSection } from "./TelegramConfigSection"
 import { BroadcastTargetsSection } from "./BroadcastTargetsSection"
 import { DiagnosticsSection } from "./DiagnosticsSection"
 import { unwrapApi } from "@/lib/api"
+import type { ApiUser } from "@/lib/types"
 
 interface TelegramConfig {
   botToken: string
@@ -44,59 +43,79 @@ interface Approver {
 }
 
 export default function AdminTelegramPage() {
-  const [accessDenied, setAccessDenied] = useState(false)
+  const queryClient = useQueryClient()
+
+  /* v9-B10 — all loads migrated from raw useEffect fetch() (which never
+   * checked res.ok: 403/500 responses parsed as "no data" and failed
+   * silently) to useQuery + apiFetch/unwrapApi. apiFetch throws ApiError on
+   * !ok, unwrapApi throws on success:false — every failure is now a real
+   * loading/error state react-query can retry and refetch. */
+
+  // ── Access gate ──
+  const meQuery = useQuery({
+    queryKey: ["admin-telegram-me"],
+    queryFn: () => apiFetch("/api/me").then(unwrapApi<{ user?: ApiUser }>),
+    retry: 1,
+  })
+  const accessDenied = meQuery.isError || (meQuery.isSuccess && meQuery.data?.user?.role !== "admin")
+
+  // ── Bot config (editable local copy seeded from the query) ──
+  const configQuery = useQuery({
+    queryKey: ["telegram-config"],
+    queryFn: () => apiFetch("/api/telegram/config").then(unwrapApi<TelegramConfig>),
+    retry: 1,
+  })
   const [config, setConfig] = useState<TelegramConfig>({ botToken: "", chatId: "", events: [], isActive: false })
-  const [loading, setLoading] = useState(true)
+  const [showToken, setShowToken] = useState(false)
+  const [eventsInput, setEventsInput] = useState("")
+  useEffect(() => {
+    const d = configQuery.data
+    if (d) {
+      setConfig({ botToken: d.botTokenMasked ? "••••••••" : "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
+      setEventsInput((d.events ?? []).join(", "))
+    }
+  }, [configQuery.data])
+
+  // ── Broadcast targets ──
+  const targetsQuery = useQuery({
+    queryKey: ["telegram-broadcast-targets"],
+    queryFn: () => apiFetch("/api/telegram/broadcast-targets").then(unwrapApi<BroadcastTarget[]>),
+    retry: 1,
+  })
+  const targets: BroadcastTarget[] = Array.isArray(targetsQuery.data) ? targetsQuery.data : []
+  useEffect(() => {
+    if (targetsQuery.isError) brandedToast.error("فشل تحميل جهات الإرسال")
+  }, [targetsQuery.isError])
+
+  // ── Initial dry-run diagnose (health snapshot) ──
+  const diagnoseQuery = useQuery({
+    queryKey: ["telegram-diagnose", "dry"],
+    queryFn: () => apiFetch("/api/telegram/diagnose?dryRun=true").then(unwrapApi<DiagnoseResult>),
+    retry: 1,
+  })
+  const [diagnose, setDiagnose] = useState<DiagnoseResult | null>(null)
+  useEffect(() => {
+    if (diagnoseQuery.data) setDiagnose(diagnoseQuery.data)
+  }, [diagnoseQuery.data])
+  useEffect(() => {
+    if (diagnoseQuery.isError) brandedToast.error("فشل تحميل التشخيص الأولي")
+  }, [diagnoseQuery.isError])
+  const linkedAdmins = diagnose?.linkedAdmins ?? 0
+
+  // ── Subscription approvers ──
+  const approversQuery = useQuery({
+    queryKey: ["admin-telegram-approvers"],
+    queryFn: () => apiFetch("/api/admin/telegram/approvers").then(unwrapApi<Approver[]>),
+    retry: 1,
+  })
+  const approvers: Approver[] = Array.isArray(approversQuery.data) ? approversQuery.data : []
+  useEffect(() => {
+    if (approversQuery.isError) brandedToast.error("فشل تحميل الموافقين")
+  }, [approversQuery.isError])
+
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [diagnosing, setDiagnosing] = useState(false)
-  const [diagnose, setDiagnose] = useState<DiagnoseResult | null>(null)
-  const [showToken, setShowToken] = useState(false)
-  const [eventsInput, setEventsInput] = useState("")
-  const [targets, setTargets] = useState<BroadcastTarget[]>([])
-  const [linkedAdmins, setLinkedAdmins] = useState(0)
-  const [approvers, setApprovers] = useState<Approver[]>([])
-  const [approversLoading, setApproversLoading] = useState(true)
-
-  useEffect(() => {
-    apiFetch("/api/me")
-      .then(unwrapApi)
-      .then((d) => {
-        const role = d?.user?.role
-        if (role !== "admin") {
-          setAccessDenied(true); setLoading(false); return
-        }
-      })
-      .catch(() => { setAccessDenied(true); setLoading(false); return })
-
-    fetch("/api/telegram/config", { credentials: "include" })
-      .then(unwrapApi)
-      .then((json) => {
-        const d = json
-        if (d) {
-          setConfig({ botToken: d.botTokenMasked ? "••••••••" : "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
-          setEventsInput((d.events ?? []).join(", "))
-        }
-      })
-      .catch(() => brandedToast.error("فشل تحميل الإعدادات"))
-      .finally(() => setLoading(false))
-
-    fetch("/api/telegram/broadcast-targets", { credentials: "include" })
-      .then(unwrapApi)
-      .then((data) => { if (Array.isArray(data)) setTargets(data) })
-      .catch(() => {})
-
-    fetch("/api/telegram/diagnose?dryRun=true", { credentials: "include" })
-      .then(unwrapApi)
-      .then((data) => { if (data) { setLinkedAdmins(data.linkedAdmins ?? 0); setDiagnose(data) } })
-      .catch(() => {})
-
-    fetch("/api/admin/telegram/approvers", { credentials: "include" })
-      .then(unwrapApi)
-      .then((data) => { setApprovers(Array.isArray(data) ? data : []) })
-      .catch(() => {})
-      .finally(() => setApproversLoading(false))
-  }, [])
 
   const handleSave = async () => {
     if (!config.botToken.trim() || !config.chatId.trim()) { brandedToast.error("يرجى إدخال رمز البوت ومعرف المحادثة"); return }
@@ -108,8 +127,9 @@ export default function AdminTelegramPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحفظ")
+      queryClient.invalidateQueries({ queryKey: ["telegram-config"] })
       brandedToast.success("تم حفظ إعدادات تليجرام")
-    } catch (e: any) { brandedToast.error(e.message || "فشل حفظ الإعدادات") }
+    } catch (e) { brandedToast.error((e as Error).message || "فشل حفظ الإعدادات") }
     finally { setSaving(false) }
   }
 
@@ -120,18 +140,16 @@ export default function AdminTelegramPage() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الإرسال")
       brandedToast.success("تم إرسال رسالة الاختبار بنجاح!")
-    } catch (e: any) { brandedToast.error(e.message || "فشل إرسال رسالة الاختبار") }
+    } catch (e) { brandedToast.error((e as Error).message || "فشل إرسال رسالة الاختبار") }
     finally { setTesting(false) }
   }
 
   const handleDiagnose = async () => {
     setDiagnosing(true); setDiagnose(null)
     try {
-      const res = await apiFetch("/api/telegram/diagnose")
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل التشخيص")
-      setDiagnose(json.data); setLinkedAdmins(json.data.linkedAdmins ?? 0)
-    } catch (e: any) { brandedToast.error(e.message || "فشل التشخيص") }
+      const d = await apiFetch("/api/telegram/diagnose").then(unwrapApi<DiagnoseResult>)
+      setDiagnose(d)
+    } catch (e) { brandedToast.error((e as Error).message || "فشل التشخيص") }
     finally { setDiagnosing(false) }
   }
 
@@ -142,9 +160,9 @@ export default function AdminTelegramPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الإضافة")
-      setTargets((prev) => [json.data, ...prev])
+      queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
       brandedToast.success("تمت إضافة جهة الإرسال")
-    } catch (e: any) { brandedToast.error(e.message || "فشل إضافة جهة الإرسال") }
+    } catch (e) { brandedToast.error((e as Error).message || "فشل إضافة جهة الإرسال") }
   }
 
   const handleToggleTarget = async (id: number, isActive: boolean) => {
@@ -154,8 +172,8 @@ export default function AdminTelegramPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل التحديث")
-      setTargets((prev) => prev.map((t) => (t.id === id ? { ...t, isActive } : t)))
-    } catch (e: any) { brandedToast.error(e.message || "فشل تحديث الحالة") }
+      queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
+    } catch (e) { brandedToast.error((e as Error).message || "فشل تحديث الحالة") }
   }
 
   const handleDeleteTarget = async (id: number) => {
@@ -163,9 +181,9 @@ export default function AdminTelegramPage() {
       const res = await apiFetch(`/api/telegram/broadcast-targets/${id}`, { method: "DELETE" })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحذف")
-      setTargets((prev) => prev.filter((t) => t.id !== id))
+      queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
       brandedToast.success("تم حذف جهة الإرسال")
-    } catch (e: any) { brandedToast.error(e.message || "فشل حذف جهة الإرسال") }
+    } catch (e) { brandedToast.error((e as Error).message || "فشل حذف جهة الإرسال") }
   }
 
   if (accessDenied) return (
@@ -178,7 +196,7 @@ export default function AdminTelegramPage() {
     </div>
   )
 
-  if (loading) return (
+  if (meQuery.isLoading || configQuery.isLoading) return (
     <div className="flex items-center justify-center py-20" aria-live="polite">
       <Loader2 className="size-6 animate-spin text-muted-foreground" />
     </div>
@@ -189,6 +207,17 @@ export default function AdminTelegramPage() {
       {/* Visually-hidden page heading — the visible title below is h2 (v8-B5) */}
       <h1 className="sr-only">إعدادات تليجرام</h1>
       <h2 className="text-2xl font-bold tracking-tight">إعدادات تليجرام</h2>
+
+      {/* v9-B10 — config load failure is now a visible, retryable error state
+          (was a one-off toast + silently empty form) */}
+      {configQuery.isError && (
+        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-destructive">{(configQuery.error as Error)?.message || "فشل تحميل الإعدادات"}</p>
+          <Button size="sm" variant="outline" onClick={() => configQuery.refetch()}>
+            <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
+          </Button>
+        </div>
+      )}
 
       <TelegramConfigSection
         config={config} eventsInput={eventsInput} showToken={showToken}
@@ -204,8 +233,8 @@ export default function AdminTelegramPage() {
       />
 
       <DiagnosticsSection
-        diagnose={diagnose} approvers={approvers} approversLoading={approversLoading}
-        onApproversChange={setApprovers}
+        diagnose={diagnose} approvers={approvers} approversLoading={approversQuery.isLoading}
+        onApproversChange={() => { queryClient.invalidateQueries({ queryKey: ["admin-telegram-approvers"] }) }}
       />
 
       {/* Broadcast guide */}

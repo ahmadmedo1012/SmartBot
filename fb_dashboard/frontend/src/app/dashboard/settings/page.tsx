@@ -45,7 +45,7 @@ export default function SettingsPage() {
         setNewPw("")
         setShowPw(false)
       } else {
-        const body = await r.json().catch(() => null)
+        const body = await r.json().catch((): null => null)
         brandedToast.error(body?.detail || "تعذر تغيير كلمة المرور")
       }
     } catch {
@@ -82,7 +82,7 @@ export default function SettingsPage() {
                     <User className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-muted-foreground">اسم المستخدم</p>
+                    <p className="text-xs text-muted-foreground">اسم المستخدم</p>
                     <p className="font-medium truncate">{user.username}</p>
                   </div>
                 </div>
@@ -92,7 +92,7 @@ export default function SettingsPage() {
                       <Mail className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] text-muted-foreground">البريد الإلكتروني</p>
+                      <p className="text-xs text-muted-foreground">البريد الإلكتروني</p>
                       <p className="font-medium truncate" dir="ltr">{user.email}</p>
                     </div>
                   </div>
@@ -102,7 +102,7 @@ export default function SettingsPage() {
                     <Shield className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-muted-foreground">الصلاحية</p>
+                    <p className="text-xs text-muted-foreground">الصلاحية</p>
                     <p className="font-medium capitalize">{user.role === "admin" ? "مدير" : user.role === "owner" ? "مالك" : "مستخدم"}</p>
                   </div>
                 </div>

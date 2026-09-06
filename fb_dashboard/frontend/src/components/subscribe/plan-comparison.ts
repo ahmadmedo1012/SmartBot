@@ -50,17 +50,20 @@ export function repliesPhrase(plan: ComparisonPlan): string {
 }
 
 /** Maps SmartBot's snake_case API plan into the comparison shape. */
-export function toComparisonPlan(p: {
+/** Input shape of a plan row from GET /api/plans (trusted backend contract). */
+export type ComparisonPlanInput = {
   id: number
   name: string
   name_ar?: string
   price: number
-  features?: string[] | string
+  features?: string | string[]
   max_replies?: number
   max_pages?: number
-  max_rules?: number | string
+  max_rules?: string | number
   sort_order?: number
-}): ComparisonPlan {
+}
+
+export function toComparisonPlan(p: ComparisonPlanInput): ComparisonPlan {
   const features: string[] = Array.isArray(p.features)
     ? p.features
     : typeof p.features === "string" && p.features

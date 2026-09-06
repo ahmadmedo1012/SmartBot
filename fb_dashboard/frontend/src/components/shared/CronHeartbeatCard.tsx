@@ -76,7 +76,7 @@ export function CronHeartbeatCard() {
             </p>
           </div>
         </div>
-        <p className="text-[10px] text-muted-foreground" dir="auto">
+        <p className="text-3xs text-muted-foreground" dir="auto">
           {status?.last_heartbeat ? `آخر نبض: ${formatDate(status.last_heartbeat)}` : "—"}
         </p>
       </CardContent>

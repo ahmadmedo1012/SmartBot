@@ -392,6 +392,7 @@ export function PaymentDialog({
                         onClick={() => copyToClipboard(providerPhone)}
                         className="size-10 rounded-lg border border-border/30 flex items-center justify-center hover:bg-accent transition-colors"
                         title="نسخ الرقم"
+                        aria-label="نسخ الرقم"
                       >
                         <AnimatedCopy className="size-3.5" />
                       </button>
@@ -441,7 +442,7 @@ export function PaymentDialog({
                       className="h-11 rounded-xl mt-1.5 text-left font-mono"
                       dir="ltr"
                     />
-                    <p className="text-[11px] text-muted-foreground mt-1">
+                    <p className="text-2xs text-muted-foreground mt-1">
                       10 أرقام تبدأ بـ 09 — حتى نتمكن من التأكد من استلام التحويل
                     </p>
                   </div>
@@ -472,6 +473,7 @@ export function PaymentDialog({
                           onClick={() => copyToClipboard(row.value)}
                           className="size-10 rounded-lg border border-border/30 flex items-center justify-center hover:bg-accent transition-colors shrink-0"
                           title={`نسخ ${row.label}`}
+                          aria-label={`نسخ ${row.label}`}
                         >
                           <AnimatedCopy className="size-4" />
                         </button>
@@ -644,7 +646,7 @@ export function PaymentDialog({
                   <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
                   <span className="relative rounded-full size-2 bg-primary" />
                 </span>
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-2xs text-muted-foreground">
                   {provider === "liyana" ? "بانتظار تأكيد التحويل" : "بانتظار موافقة الإدارة"}
                 </span>
               </div>

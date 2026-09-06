@@ -72,7 +72,7 @@ export function SetupWarnings() {
       key: "fbsecret",
       critical: true,
       icon: AlertTriangle,
-      title: "لم يتم إعداد Facebook App Secret",
+      title: "لم يتم إعداد سر تطبيق فيسبوك (App Secret)",
       detail: "الويبهوك يرفض كل أحداث فيسبوك (401) — الصق السر من إعدادات التطبيق في فيسبوك.",
       cta: "الإعدادات",
       href: "/admin/settings",

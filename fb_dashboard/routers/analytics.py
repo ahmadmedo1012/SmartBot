@@ -164,13 +164,24 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
         return JSONResponse(items)
 
     # CSV
+    # v9-A9: formula-injection guard (OWASP CSV injection) — comment and
+    # reply text come from Facebook users; a cell starting with =, +, -, @
+    # would execute as a formula when the export is opened in Excel/Sheets.
+    def _safe_cell(value) -> str:
+        s = str(value if value is not None else "")
+        if s.startswith(("=", "+", "-", "@")):
+            return "'" + s
+        return s
+
     import csv
     import io
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(["id", "commenter", "comment", "reply", "rule_id", "fb_comment_id", "created_at"])
     for it in items:
-        w.writerow([it["id"], it["commenter"], it["comment"], it["reply"], it["rule_id"], it["fb_comment_id"], it["created_at"]])
+        w.writerow([it["id"], _safe_cell(it["commenter"]), _safe_cell(it["comment"]),
+                    _safe_cell(it["reply"]), it["rule_id"], _safe_cell(it["fb_comment_id"]),
+                    it["created_at"]])
     return Response(content=buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": f"attachment; filename=replies-export-{utcnow().date()}.csv"})
 

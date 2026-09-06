@@ -40,7 +40,7 @@ export default function HowItWorksSection() {
                   <div className="relative size-16 rounded-full bg-gradient-to-b from-accent-foreground/25 to-accent-foreground/10 border border-accent-foreground/30 flex items-center justify-center group-hover:border-accent-foreground/50 group-hover:scale-105 transition-all duration-500 shadow-lg shadow-accent-foreground/10">
                     <Icon className="size-6 text-accent-foreground" />
                     <div className="absolute -top-2 -end-2 size-6 rounded-full bg-primary flex items-center justify-center shadow-md">
-                      <span className="text-[10px] font-bold text-white">{step.num}</span>
+                      <span className="text-3xs font-bold text-white">{step.num}</span>
                     </div>
                   </div>
                 </div>

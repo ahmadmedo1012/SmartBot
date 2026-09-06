@@ -66,8 +66,9 @@ class AgentEngine:
         step = "load mem"
         try:
             mem = _get_mem()
-            session_history = await mem.get_session(db, username)
-            user_memory = await mem.get_user_memory(db, username)
+            # v9-A4: session/memory keys are tenant-scoped
+            session_history = await mem.get_session(db, username, tenant_id)
+            user_memory = await mem.get_user_memory(db, username, tenant_id)
 
             step = "build ctx"
             from models import Reply, Rule
@@ -135,12 +136,12 @@ class AgentEngine:
             step = "memory write"
             turn = {"role": "user", "text": text, "timestamp": utcnow().isoformat()}
             try:
-                await mem.append_to_session(db, username, turn)
+                await mem.append_to_session(db, username, turn, tenant_id)
                 if action != "unknown":
                     await mem.update_user_memory(db, username, {
                         "last_action": action,
                         "last_timestamp": utcnow().isoformat(),
-                    })
+                    }, tenant_id)
             except Exception as e:
                 log.warning(f"Memory write failed: {e}")
 

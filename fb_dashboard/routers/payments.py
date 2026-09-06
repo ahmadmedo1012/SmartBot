@@ -6,6 +6,7 @@ import secrets
 from datetime import timedelta
 from pathlib import Path
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import iso_z, utcnow
 from config import settings
 from database import AsyncSessionLocal, get_db
@@ -18,13 +19,33 @@ from models import (
     Tenant,
     User,
 )
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, update
 from telegram_bot import notify_admins_new_payment, notify_admins_new_subscription
 
 from routers.auth import get_current_user, is_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
+
+# v9-A8: app-level double-submit guard for pending subscription rows.
+# Durable fix would be a partial UNIQUE index (user_id WHERE status='pending')
+# but that needs a migration — explicitly out of scope for v9 §A8 (no schema
+# churn). This in-process lock serializes the check-then-insert critical
+# section within one app instance (single-worker uvicorn / one Vercel
+# invocation), so a double-click can no longer create two pending rows.
+# Multi-instance deployments should add the partial index at the next
+# schema reset.
+_SUB_PENDING_LOCKS: dict[int, asyncio.Lock] = {}
+
+
+def _pending_lock(user_id: int) -> asyncio.Lock:
+    lock = _SUB_PENDING_LOCKS.get(user_id)
+    if lock is None:
+        if len(_SUB_PENDING_LOCKS) > 1024:  # bound the registry (old users churn)
+            _SUB_PENDING_LOCKS.clear()
+        lock = asyncio.Lock()
+        _SUB_PENDING_LOCKS[user_id] = lock
+    return lock
 
 # Receipt uploads — plan §2.1 (receipt upload)
 # payments.py lives in fb_dashboard/routers/ → static/ is one level up
@@ -146,7 +167,7 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
     db.add(pr)
     await db.commit()
     await db.refresh(pr)
-    asyncio.create_task(
+    spawn(
         notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
     )
     instructions = (
@@ -267,31 +288,32 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
             "receipt_url": receipt_url,
         })
 
-    existing_pending = await db.execute(
-        select(SubscriptionPayment).where(
-            SubscriptionPayment.user_id == current_user.id,
-            SubscriptionPayment.status == "pending"
+    async with _pending_lock(current_user.id):
+        existing_pending = await db.execute(
+            select(SubscriptionPayment.id).where(
+                SubscriptionPayment.user_id == current_user.id,
+                SubscriptionPayment.status == "pending"
+            ).limit(1)
         )
-    )
-    if existing_pending.scalar_one_or_none():
-        raise HTTPException(400, "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه")
+        if existing_pending.scalars().first():
+            raise HTTPException(400, "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه")
 
-    sp = SubscriptionPayment(
-        user_id=current_user.id,
-        tenant_id=current_user._tenant_id,
-        phone=phone or "-",  # bank transfers don't require a phone
-        amount=amount,
-        provider=provider,
-        plan_id=plan_id,
-        plan_name=plan.name_ar,
-        status="pending",
-        extra_data=bank_extra,
-    )
-    db.add(sp)
-    await db.commit()
-    await db.refresh(sp)
+        sp = SubscriptionPayment(
+            user_id=current_user.id,
+            tenant_id=current_user._tenant_id,
+            phone=phone or "-",  # bank transfers don't require a phone
+            amount=amount,
+            provider=provider,
+            plan_id=plan_id,
+            plan_name=plan.name_ar,
+            status="pending",
+            extra_data=bank_extra,
+        )
+        db.add(sp)
+        await db.commit()  # inside the lock — the pending check stays atomic
+        await db.refresh(sp)
 
-    asyncio.create_task(
+    spawn(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", plan.name_ar)
     )
 
@@ -413,36 +435,37 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
         if not sender_account:
             raise HTTPException(400, "رقم الحساب مطلوب")
 
-    existing_pending = await db.execute(
-        select(SubscriptionPayment).where(
-            SubscriptionPayment.user_id == current_user.id,
-            SubscriptionPayment.status == "pending"
+    async with _pending_lock(current_user.id):
+        existing_pending = await db.execute(
+            select(SubscriptionPayment.id).where(
+                SubscriptionPayment.user_id == current_user.id,
+                SubscriptionPayment.status == "pending"
+            ).limit(1)
         )
-    )
-    if existing_pending.scalar_one_or_none():
-        raise HTTPException(400, "لديك طلب ترقية معلق")
+        if existing_pending.scalars().first():
+            raise HTTPException(400, "لديك طلب ترقية معلق")
 
-    extra: dict = {"username": current_user.username, "upgrade": True}
-    if provider == "bank":
-        extra.update({"sender_name": sender_name, "sender_account": sender_account, "receipt_url": receipt_url})
+        extra: dict = {"username": current_user.username, "upgrade": True}
+        if provider == "bank":
+            extra.update({"sender_name": sender_name, "sender_account": sender_account, "receipt_url": receipt_url})
 
-    sp = SubscriptionPayment(
-        user_id=current_user.id,
-        tenant_id=current_user._tenant_id,
-        phone=phone or "-",
-        amount=amount,
-        provider=provider,
-        plan_id=plan_id,
-        plan_name=new_plan.name_ar,
-        status="pending",
-        extra_data=extra,
-        upgraded_from=tenant.plan_id,
-    )
-    db.add(sp)
-    await db.commit()
-    await db.refresh(sp)
+        sp = SubscriptionPayment(
+            user_id=current_user.id,
+            tenant_id=current_user._tenant_id,
+            phone=phone or "-",
+            amount=amount,
+            provider=provider,
+            plan_id=plan_id,
+            plan_name=new_plan.name_ar,
+            status="pending",
+            extra_data=extra,
+            upgraded_from=tenant.plan_id,
+        )
+        db.add(sp)
+        await db.commit()  # inside the lock — the pending check stays atomic
+        await db.refresh(sp)
 
-    asyncio.create_task(
+    spawn(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", new_plan.name_ar)
     )
 
@@ -483,13 +506,23 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
     decision = body.get("status", "")
     if decision not in ("verified", "cancelled"):
         raise HTTPException(400, "القرار يجب أن يكون verified أو cancelled")
-    stmt = select(SubscriptionPayment).where(SubscriptionPayment.id == int(payment_id or 0)).limit(1)
+    # v9-A8: atomic claim — UPDATE ... WHERE status='pending' RETURNING
+    # (generalized from the telegram pay_ path). Two admins clicking approve
+    # at once: only the first UPDATE matches; the loser gets a clean 400
+    # instead of double-activating the tenant plan.
+    claim_conds = [SubscriptionPayment.id == int(payment_id or 0),
+                   SubscriptionPayment.status == "pending"]
     if not is_platform_admin(current_user):
-        stmt = stmt.where(SubscriptionPayment.tenant_id == current_user._tenant_id)
-    sp = (await db.execute(stmt)).scalars().first()
-    if not sp or sp.status != "pending":
+        claim_conds.append(SubscriptionPayment.tenant_id == current_user._tenant_id)
+    result = await db.execute(
+        update(SubscriptionPayment)
+        .where(*claim_conds)
+        .values(status=decision)
+        .returning(SubscriptionPayment)
+    )
+    sp = result.scalar_one_or_none()
+    if not sp:
         raise HTTPException(400, "الدفعة غير موجودة أو تمت معالجتها")
-    sp.status = decision
     if decision == "verified":
         tenant = await db.get(Tenant, sp.tenant_id)
         if tenant:

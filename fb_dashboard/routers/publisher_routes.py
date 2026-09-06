@@ -38,8 +38,8 @@ async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
     creds = data.get("credentials", {})
     if not platform or not creds:
         raise HTTPException(400, "platform and credentials required")
-    ok = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)
-    return ok({"ok": ok, "platform": platform})
+    saved = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    return ok({"ok": saved, "platform": platform})
 
 
 @router.post("/api/publisher/publish")

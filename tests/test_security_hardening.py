@@ -275,9 +275,23 @@ async def test_alerts_endpoints_enveloped(app_client):
     assert r.status_code == 200
     body = r.json()
     assert body["success"] is True and "data" in body, f"alerts not enveloped: {list(body)[:5]}"
+    # v9-A6: /api/logs/stats reads the GLOBAL in-memory log buffer (entries
+    # carry no tenant marker) — tenant users now get 403; platform admin 200.
     r = await ac.get("/api/logs/stats")
-    assert r.status_code == 200
-    assert "success" in r.json()
+    assert r.status_code == 403, "tenant user must NOT read the global log buffer"
+    from _hash import hash_password
+    from database import AsyncSessionLocal as ASL
+    from models import User as U
+    async with ASL() as db:
+        pa = U(username=f"alrplat_{uuid.uuid4().hex[:6]}", email="alrplat@t.ly",
+               password_hash=hash_password("Str0ngPass!ly"),
+               tenant_id=0, role="admin", is_platform_admin=False)
+        db.add(pa)
+        await db.commit()
+    await _login(ac, pa.username, "Str0ngPass!ly")
+    r = await ac.get("/api/logs/stats")
+    assert r.status_code == 200, r.text
+    assert r.json()["success"] is True
 
 
 # ── 10: setup-status surface (v3 final-launch §4.1) ─────────────────────────

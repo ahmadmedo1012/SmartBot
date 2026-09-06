@@ -125,6 +125,9 @@ export default function NotificationsPage() {
       return unwrapApi(res)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications-feed"] }),
+    // v9-B11 — clicking a notification whose mark-read fails was completely
+    // silent (stays unread forever with no feedback)
+    onError: (e: Error) => brandedToast.error(e.message || "فشل تحديد الإشعار كمقروء"),
   })
 
   // v4 §2.2 — payload already unwrapped; extra .data hid the feed and unread badge
@@ -189,7 +192,7 @@ export default function NotificationsPage() {
                 <BellRing className="size-4 text-accent-foreground" />
                 الإشعارات الأخيرة
                 {unread > 0 && (
-                  <span className="text-[10px] font-bold bg-primary text-white rounded-full px-2 py-0.5 min-w-5 text-center">
+                  <span className="text-3xs font-bold bg-primary text-white rounded-full px-2 py-0.5 min-w-5 text-center">
                     {unread}
                   </span>
                 )}
@@ -238,38 +241,40 @@ export default function NotificationsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2" role="list">
                 {notifications.map((n) => {
                   const meta = TYPE_ICONS[n.type] || TYPE_ICONS.system
                   const Icon = meta.icon
                   return (
-                    <Card
-                      key={n.id}
-                      interactive
-                      className={[
-                        "transition-all",
-                        n.read ? "opacity-70 border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
-                      ].join(" ")}
-                      aria-label={n.read ? `إشعار: ${n.title}` : `إشعار غير مقروء: ${n.title}`}
-                      onClick={() => {
-                        if (!n.read) markOneMutation.mutate(n.id)
-                        if (n.link) router.push(n.link)  // real navigation (was location.hash — did nothing)
-                      }}
-                    >
-                      <CardContent className="p-4 flex items-start gap-3.5">
-                        <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? "bg-muted" : "bg-accent-foreground/10"}`}>
-                          <Icon className={`size-4.5 ${meta.color}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold truncate">{n.title}</p>
-                            {!n.read && <span className="size-2 rounded-full bg-primary shrink-0" />}
+                    /* B18 — listitem wrapper keeps the interactive Card's role="button" semantics intact */
+                    <div role="listitem" key={n.id}>
+                      <Card
+                        interactive
+                        className={[
+                          "transition-all",
+                          n.read ? "opacity-70 border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
+                        ].join(" ")}
+                        aria-label={n.read ? `إشعار: ${n.title}` : `إشعار غير مقروء: ${n.title}`}
+                        onClick={() => {
+                          if (!n.read) markOneMutation.mutate(n.id)
+                          if (n.link) router.push(n.link)  // real navigation (was location.hash — did nothing)
+                        }}
+                      >
+                        <CardContent className="p-4 flex items-start gap-3.5">
+                          <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${n.read ? "bg-muted" : "bg-accent-foreground/10"}`}>
+                            <Icon className={`size-4.5 ${meta.color}`} />
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-1">{timeAgo(n.created_at)}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold truncate">{n.title}</p>
+                              {!n.read && <span className="size-2 rounded-full bg-primary shrink-0" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
+                            <p className="text-3xs text-muted-foreground/70 mt-1">{timeAgo(n.created_at)}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   )
                 })}
               </div>
@@ -349,7 +354,7 @@ export default function NotificationsPage() {
           )}
             </div>
           </section>
-          <p className="text-center text-[11px] text-muted-foreground pt-2">
+          <p className="text-center text-2xs text-muted-foreground pt-2">
             تُحفظ إعداداتك تلقائياً وتُطبق على جميع المنصات
           </p>
         </div>

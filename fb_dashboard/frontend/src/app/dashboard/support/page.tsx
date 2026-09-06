@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import type { SupportTicket } from "@/lib/types"
 
 const PRIORITY_STYLE: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -83,12 +84,12 @@ export default function SupportPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/support/tickets")
       if (!res.ok) throw new Error(`فشل تحميل التذاكر (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<SupportTicket[]>(res)
     },
     retry: 1,
   })
   // v4 §2.2 — unwrapApi already returned the payload; extra .data hid the ticket list
-  const tickets: any[] = ticketsQuery.data || []
+  const tickets: SupportTicket[] = ticketsQuery.data || []
   const [openTicketId, setOpenTicketId] = useState<number | null>(null)
 
   const ticketDetailQuery = useQuery({
@@ -96,7 +97,7 @@ export default function SupportPage() {
     queryFn: async () => {
       const res = await apiFetch(`/api/support/tickets/${openTicketId}`)
       if (!res.ok) throw new Error("فشل تحميل التذكرة")
-      return unwrapApi(res)
+      return unwrapApi<SupportTicket>(res)
     },
     enabled: openTicketId !== null,
   })
@@ -114,6 +115,9 @@ export default function SupportPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support-ticket", openTicketId] })
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
+      // v9-B5 — clear the reply box only after success; clearing it right
+      // after mutate() destroyed the user's text whenever the request failed.
+      setReplyText("")
       brandedToast.success("تم إرسال ردك")
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال الرد"),
@@ -122,7 +126,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     apiFetch("/api/support/info")
-      .then(unwrapApi)
+      .then(unwrapApi<SupportInfo>)
       .then((d) => {
         if (d) setInfo(d)
       })
@@ -136,7 +140,7 @@ export default function SupportPage() {
         method: "POST",
         body: JSON.stringify(payload),
       })
-      return unwrapApi(res)
+      return unwrapApi<{ message?: string }>(res)
     },
     onSuccess: (data) => {
       // v4 §2.2 — unwrapApi returns the payload or THROWS on success:false;
@@ -180,7 +184,7 @@ export default function SupportPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الدعم</h1>
-            <p className="text-[11px] text-muted-foreground">الدعم الفني والمساعدة</p>
+            <p className="text-2xs text-muted-foreground">الدعم الفني والمساعدة</p>
           </div>
         </div>
       </header>
@@ -293,7 +297,7 @@ export default function SupportPage() {
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
-                    <p id="message-error" role="alert" aria-live="polite" className="text-[11px] text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
+                    <p id="message-error" role="alert" aria-live="polite" className="text-xs text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
                   )}
                 </div>
                 <Button
@@ -336,7 +340,7 @@ export default function SupportPage() {
             <Ticket className="size-4 text-accent-foreground" />
             تذاكري
             {tickets.length > 0 && (
-              <span className="text-[10px] font-bold bg-accent-foreground/10 text-accent-foreground rounded-full px-2 py-0.5">
+              <span className="text-3xs font-bold bg-accent-foreground/10 text-accent-foreground rounded-full px-2 py-0.5">
                 {tickets.length}
               </span>
             )}
@@ -365,16 +369,16 @@ export default function SupportPage() {
                   <CardContent className="p-4">
                     <button
                       type="button"
-                      className="w-full flex items-center justify-between gap-3 text-right"
+                      className="w-full flex items-center justify-between gap-3 text-start"
                       onClick={() => setOpenTicketId(openTicketId === t.id ? null : t.id)}
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-bold truncate">#{t.id} {t.subject}</p>
-                          <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.medium}`}>
+                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.medium}`}>
                             {PRIORITY_LABEL[t.priority] || t.priority}
                           </span>
-                          <span className="text-[10px] font-bold rounded-full px-2 py-0.5 bg-muted text-muted-foreground">
+                          <span className="text-3xs font-bold rounded-full px-2 py-0.5 bg-muted text-muted-foreground">
                             {TICKET_STATUS_LABEL[t.status] || t.status}
                           </span>
                         </div>
@@ -397,10 +401,17 @@ export default function SupportPage() {
                           <div className="flex justify-center py-4">
                             <Loader2 className="size-4 animate-spin text-muted-foreground" />
                           </div>
+                        ) : ticketDetailQuery.isError ? (
+                          /* v9-B11 — a failed thread load used to render an empty
+                              replies list (looked like "no replies yet") */
+                          <div className="text-center py-3 space-y-2">
+                            <p className="text-xs text-muted-foreground">{(ticketDetailQuery.error as Error)?.message || "تعذر تحميل التذكرة"}</p>
+                            <Button size="sm" variant="outline" onClick={() => ticketDetailQuery.refetch()}>إعادة المحاولة</Button>
+                          </div>
                         ) : (
                           <>
                             <div className="space-y-2">
-                              {(ticketDetailQuery.data?.replies || []).map((r: any) => (
+                              {(ticketDetailQuery.data?.replies || []).map((r) => (
                                 <div
                                   key={r.id}
                                   className={`text-xs rounded-lg p-3 ${
@@ -409,7 +420,7 @@ export default function SupportPage() {
                                       : "bg-muted/50"
                                   }`}
                                 >
-                                  <p className="font-bold mb-1 text-[10px]">
+                                  <p className="font-bold mb-1 text-3xs">
                                     {r.is_admin ? "فريق الدعم" : "أنت"}
                                   </p>
                                   <p className="text-muted-foreground leading-relaxed">{r.message}</p>
@@ -436,7 +447,6 @@ export default function SupportPage() {
                                   disabled={replyMutation.isPending || replyText.trim().length < 2}
                                   onClick={() => {
                                     replyMutation.mutate({ id: t.id, message: replyText.trim() })
-                                    setReplyText("")
                                   }}
                                 >
                                   <Send className="size-3 rtl:-scale-x-100" />

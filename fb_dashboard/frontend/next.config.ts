@@ -38,7 +38,13 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT ?? "smartbot-web",
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
-  disableLogger: true,
+  // v9-D4: `disableLogger: true` was deprecated by @sentry/nextjs 10.x —
+  // the documented replacement is webpack.treeshake.removeDebugLogging
+  // (the old option is migrated onto exactly this field internally).
+  // Note: this only takes effect on webpack builds; on Turbopack (Next 16
+  // default) it is a harmless no-op — kept to silence the deprecation
+  // warning without behavior change.
+  webpack: { treeshake: { removeDebugLogging: true } },
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
   telemetry: false,
 })

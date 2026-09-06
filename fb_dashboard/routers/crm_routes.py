@@ -62,7 +62,11 @@ async def crm_create(
     db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     # ponytail: Customer at module level
-    existing = await db.execute(select(Customer).where(Customer.fb_user_id == fb_user_id))
+    # v9-A9: duplicate check is tenant-scoped — a global fb_user_id check let
+    # tenant A's customer wrongly block tenant B from creating the same one.
+    existing = await db.execute(
+        select(Customer).where(Customer.fb_user_id == fb_user_id,
+                               Customer.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "العميل موجود بالفعل")
     c = Customer(fb_user_id=fb_user_id, name=name, phone=phone,

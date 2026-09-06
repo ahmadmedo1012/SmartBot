@@ -8,6 +8,7 @@ import os
 import secrets
 from datetime import timedelta
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import fail, ok
 from _utils import iso_z, utcnow
 from config import settings
@@ -71,7 +72,7 @@ async def restart_bot(current_user: User = Depends(require_role("admin")), db=De
         _bt.cancel()
     from runner import _run_bot_loop
     _set_bot_task(asyncio.create_task(_run_bot_loop()))
-    asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
+    spawn(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_started", "title": "تم تشغيل البوت",
         "message": "تم إعادة تشغيل البوت بنجاح", "link": "/settings",
     }))
@@ -84,7 +85,7 @@ async def stop_bot(current_user: User = Depends(require_role("admin"))):
     if _bt and not _bt.done():
         _bt.cancel()
     _set_bot_task(None)
-    asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
+    spawn(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": "bot_stopped", "title": "تم إيقاف البوت",
         "message": "تم إيقاف البوت يدوياً", "link": "/settings",
     }))
@@ -311,5 +312,5 @@ async def clear_logs(payload: dict = None, db=Depends(get_db), current_user=Depe
 @router.post("/api/bot/trigger")
 async def trigger_manual_reply(_=Depends(require_role("admin"))):
     """Force one bot cycle NOW — useful after commenting on Facebook."""
-    asyncio.create_task(_run_single_cycle())
+    spawn(_run_single_cycle())
     return ok({"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"})

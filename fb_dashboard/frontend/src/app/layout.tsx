@@ -75,18 +75,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <Providers>
-            {/* Skip to content — Smart-Menu style (logical offset, brand chip).
-                v8-B7: target is #page-content — the per-page content anchor
-                (DashboardShell content column / landing hero). The old
-                #main-content target wrapped the 23-item sidebar too, so
-                skip-link users still tabbed through the whole nav. */}
-            <a
-              href="#page-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:end-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
-            >
-              تخطي إلى المحتوى الرئيسي
-            </a>
-
             {/* Grain overlay */}
             <div className="grain-overlay" aria-hidden="true" />
             {/* Grid pattern overlay — Smart-Menu component + tokens */}
@@ -98,6 +86,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
 
             <main id="main-content" className="flex-1 flex flex-col">
+              {/* Skip to content — Smart-Menu style (logical offset, brand chip).
+                  v8-B7: target is #page-content — the per-page content anchor
+                  (DashboardShell content column / landing hero). The old
+                  #main-content target wrapped the 23-item sidebar too, so
+                  skip-link users still tabbed through the whole nav.
+                  v9-D3: the link itself now lives INSIDE <main> (first child,
+                  before every page's header) — it was the last element outside
+                  any landmark, which tripped axe's region best-practice rule on
+                  every public page. Still the first focusable element in tab
+                  order (the overlays above are aria-hidden decoration). */}
+              <a
+                href="#page-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:end-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
+              >
+                تخطي إلى المحتوى الرئيسي
+              </a>
               {children}
             </main>
 

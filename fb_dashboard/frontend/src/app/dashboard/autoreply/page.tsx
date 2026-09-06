@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { ReplyRule } from "@/lib/types"
 
 export default function AutoReplyPage() {
   const [showForm, setShowForm] = useState(false)
@@ -25,7 +26,7 @@ export default function AutoReplyPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/rules")
       if (!res.ok) throw new Error(`فشل تحميل القواعد (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<ReplyRule[]>(res)
     },
     refetchInterval: 30000,
     retry: 1,
@@ -141,7 +142,7 @@ export default function AutoReplyPage() {
               <AlertCircle className="size-8 text-destructive" />
             </div>
             <h2 className="text-sm font-bold mb-1">فشل تحميل القواعد</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : rules.length === 0 ? (
@@ -152,7 +153,7 @@ export default function AutoReplyPage() {
           />
         ) : (
           <div className="space-y-2">
-            {rules.map((r: any) => (
+            {rules.map((r) => (
               <Card key={r.id} className="card-hover border-border/50 hover:border-accent-foreground/30 group">
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
@@ -165,24 +166,24 @@ export default function AutoReplyPage() {
                           {k}
                         </code>
                       ))}
-                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success"}`}>
+                      <span className={`inline-flex items-center gap-1 text-2xs font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success"}`}>
                         <span className={`size-1.5 rounded-full ${r.enabled === false ? "bg-muted-foreground" : "bg-success"}`} />
                         {r.enabled === false ? "متوقف" : "نشط"}
                       </span>
-                      <span className="text-[10px] text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
+                      <span className="text-3xs text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
                         أولوية {r.priority ?? 999}
                       </span>
                       {(r.replies_count ?? 0) > 0 && (
-                        <span className="text-[10px] text-muted-foreground">{countPhrase(r.replies_count, "رد", "ردين", "ردود")}</span>
+                        <span className="text-3xs text-muted-foreground">{countPhrase(r.replies_count, "رد", "ردين", "ردود")}</span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_template}</p>
                   </div>
                   <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} className="size-8 p-0" aria-label="تبديل">
+                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-label="تبديل">
                       {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} className="size-8 p-0 hover:text-destructive" aria-label="حذف">
+                    <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} disabled={deleteMut.isPending && deleteMut.variables === r.id} className="size-8 p-0 hover:text-destructive" aria-label="حذف">
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>

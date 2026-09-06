@@ -59,7 +59,7 @@ export function PageHeader({
             )}
             <div className="min-w-0 flex-1">
               {breadcrumbs && breadcrumbs.length > 0 && (
-                <nav aria-label="مسار التنقل" className="flex items-center gap-1 text-[11px] text-muted-foreground mb-0.5">
+                <nav aria-label="مسار التنقل" className="flex items-center gap-1 text-2xs text-muted-foreground mb-0.5">
                   {breadcrumbs.map((b, i) => {
                     const last = i === breadcrumbs.length - 1
                     return (
@@ -98,7 +98,7 @@ export function PageHeader({
                 {status && (
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border shrink-0",
+                      "inline-flex items-center gap-1.5 text-2xs font-medium px-2 py-0.5 rounded-full border shrink-0",
                       TONE_MAP[status.tone || "neutral"]
                     )}
                   >

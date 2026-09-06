@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import date, datetime, timedelta
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
@@ -108,7 +109,7 @@ class ContentCalendarEngine:
         post.fb_post_id = result.get("id", "")
         post.published_at = utcnow()
         await session.commit()
-        asyncio.create_task(self._track("post_published", {"scheduled_post_id": post_id}))
+        spawn(self._track("post_published", {"scheduled_post_id": post_id}))
         return True
 
     async def get_scheduled_count(self, d: date, session) -> int:

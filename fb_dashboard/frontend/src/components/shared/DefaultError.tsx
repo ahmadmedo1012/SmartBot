@@ -30,7 +30,18 @@ export function DefaultError({ error, reset, className }: { error: Error & { dig
       {/* v8-B19: route error boundaries replace the whole page tree, so this
           heading IS the page's h1 (was h2 — no h1 on error screens) */}
       <h1 className="text-lg font-semibold">حدث خطأ غير متوقع</h1>
-      <p className="text-sm text-muted-foreground max-w-md">{error?.message || "يرجى المحاولة مرة أخرى"}</p>
+      {/* v9-E9: raw error.message (often browser-English) is never shown to
+          users anymore — the raw message + stack already go to the console
+          and Sentry in the effect above. Fixed Arabic copy here; the digest
+          (a server-generated hash, not user text) stays visible for support. */}
+      <p className="text-sm text-muted-foreground max-w-md">
+        وقع خطأ أثناء تحميل هذه الصفحة. جرّب إعادة المحاولة، وإن استمرت المشكلة تواصل مع فريق الدعم.
+      </p>
+      {error?.digest && (
+        <p className="text-xs text-muted-foreground">
+          رمز الخطأ: <span dir="ltr" className="font-mono">{error.digest}</span>
+        </p>
+      )}
       {reset && <Button onClick={reset} variant="outline">إعادة المحاولة</Button>}
     </div>
   )

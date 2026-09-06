@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
+import type { ApiErrorBody } from "@/lib/types"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
@@ -70,7 +71,7 @@ function RegisterForm() {
       setTimeout(() => window.location.replace("/dashboard"), 150)
     } catch (e) {
       const msg = e instanceof ApiError
-        ? ((e.body as any)?.detail || (e.body as any)?.error || "فشل إنشاء الحساب")
+        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "فشل إنشاء الحساب")
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
       brandedToast.error(msg)

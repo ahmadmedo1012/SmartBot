@@ -109,7 +109,8 @@ async def list_replies(page: int = Query(1, ge=1), per_page: int = Query(20, ge=
 
 
 @router.get("/api/comments")
-async def list_comments(limit: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_comments(limit: int = Query(30, ge=1, le=200), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    # v9-A9: bounded limit (was unbounded — a client could ask for 10M rows)
     _tid = current_user._tenant_id
     # v4 §4.10 — DB-first: serve stored comments (webhook + sync + bot loop all
     # write here), then top up with a non-fatal live Graph sync.

@@ -13,6 +13,29 @@
 | `fb_dashboard/frontend/src/app/globals.css` | كل التوكنز: الألوان، المسافات، الحركة، الطبقات z-index، الباعثات الخاصة |
 | `fb_dashboard/frontend/tailwind…` عبر `@theme inline` | يربط التوكنز بأسماء Tailwind (`bg-card`, `text-accent`…) |
 
+### تحديثات v9 (المسار C — 2026-09-06)
+
+- **قلّم التوكنز الميتة (C1):** حُذف **55 تعريفًا / 48 اسمًا** بصفر مستهلكين
+  (تحقق grep لكل عائلة قبل الحذف، جرد v9-D4): `--confetti-*`×13 ·
+  `--iphone-*`×4 · عائلة whatsapp×4 (جذر+جسر) ·
+  `--accent-fg/--accent-soft`×6 (جذر+جسر) · `--info-foreground/--warning-foreground`×6
+  (جذر+جسر) · جسور `@theme` ميتة×6 (`--color-overlay`، `--color-glass-bg/border/border-strong`،
+  `--shadow-glass/--shadow-glass-lg`) · متفرقات×16 تعريفًا
+  (`--duration-fast/base/slow`، `--ease-out-expo`، `--ease-in-out-quart`،
+  `--gradient-shine`، `--grid-fill`×2، `--grid-square`×2، `--surface-raised`،
+  `--surface-overlay`، `--scroll-offset`، `--radius-4xl`، `--shadow-glow`×2) ·
+  9 كيفرامات ميتة · 13 صنفًا ميتًا. عائلة `--c-*` ومرساة `--z-*` بقيت
+  عمدًا (تكافؤ Smart-Menu / توثيق الطبقات).
+- **سلم النص المجاهري (C2):** `--text-2xs` (11px، line-height 1.45) و`--text-3xs`
+  (10px، 1.4) في `@theme` — يولّد صنفي `text-2xs`/`text-3xs` مع الارتفاع
+  المزدوج (ترحيل ~123 موضع `text-[9-11px]` يتم في موجة 2).
+- **أُزيل استيراد `tw-animate-css`** (صفر مستهلكين لصنوفه في src — لا
+  `animate-in/animate-out/slide-in-*` في أي ملف).
+- **مقياس الأنصاف أصبح توكنات وقت تشغيل فعلية:** انتقلت كتلة الأنصاف من
+  `@theme inline` إلى `@theme` عادية — `var(--radius-sm/md/…)` متاحة الآن
+  للأنماط المضمّنة (joyride) وليس للصنوف فقط (تحت inline كانت القيم
+  تُدمج حرفيًا ولا تُشحن المتغيرات).
+
 ## 2. الألوان الدلالية — متى تستخدم كل واحد
 
 > **تحديث 2026-09-05 (خطة التطابق v2 §2.3):** دلالة `--accent` توحّدت حرفيًا مع Smart-Menu.
@@ -40,17 +63,6 @@
 success = 0.48،
 warning = 0.52، info = 0.48).
 
-## 3. الباعثات الخاصة المركزية (أُضيفت في المسار D.1)
-
-### 3.1 الكونفيتي `--confetti-*` (13 لونًا)
-احتفال متعدد الألوان **بقصد** — لكن القيم تعيش في `globals.css` فقط:
-`--confetti-gold, --confetti-gold-bright, --confetti-red, --confetti-coral, --confetti-green, --confetti-teal, --confetti-sky, --confetti-sage, --confetti-violet, --confetti-pink, --confetti-plum, --confetti-orange, --confetti-accent`
-
-المستهلك الوحيد: `components/shared/Confetti.tsx` (يقرأ `var(--confetti-…)`).
-
-### 3.2 ألوان الجهاز `--iphone-*` (4)
-نغمات فيزيائية لمحاكاة الآيفون (ليست ألوان ثيم): `--iphone-black, --iphone-titanium, --iphone-natural-titanium, --iphone-screen`. المستهلك: `components/ui/iphone-mockup.tsx`.
-
 ## 4. الخطوط — سقف خطّين
 
 | التوكن | العائلة | الاستخدام |
@@ -64,9 +76,13 @@ warning = 0.52، info = 0.48).
 ## 5. التباعد والأنصاف
 
 - شبكة Tailwind الافتراضية (مقياس 4px) — `gap-4 = 16px` إلخ. لا قيم `px` خام خارج المكوّنات الأساسية.
-- مقياس الأنصاف الموحّد مع Smart-Menu: `--radius-sm/md/lg/xl = 8/12/18/28px`.
+- مقياس الأنصاف الموحّد (v8-D4، ومحدّث v9-C1 بحذف `--radius-4xl` الميت):
+  `--radius-sm/md/lg/xl/2xl/3xl = 8/12/16/20/28/36px` — كتلة `@theme` غير-inline
+  فالمتغيرات متاحة أيضًا في وقت التشغيل للأنماط المضمّنة.
   عمليًا: `rounded-lg` للمدخلات، `rounded-xl` للبطاقات، `rounded-full` للأزرار الدائرية والشارات النقطية.
 - عناصر اللمس في الشريط الجانبي: `min-h-11` (44px — نفس معيار Smart-Menu).
+- سلم النص المجاهري: `text-3xs` (10px/1.4) و`text-2xs` (11px/1.45) —
+  بديلا `text-[9-11px]` الخام (انظر §1-تحديثات v9).
 
 ## 6. الأيقونات — `lucide-react` حصرًا
 
@@ -97,8 +113,10 @@ grep -rn "bg-white\|text-black\|bg-black\|text-\[#\|bg-\[#" fb_dashboard/fronten
 
 ## 9. الحركة والطبقات
 
-- منحنيات الحركة: `--ease-out-expo` (افتراضي للدخول)، `--ease-smooth`، `--ease-in-out-quart` — لا `ease-in-out` الخام.
-- المدد: `--duration-fast/base/slow` (0.2s/0.4s/0.7s).
+- منحنيات الحركة: `--ease-out-quart` (افتراضي للدخول) و`--ease-smooth` فقط —
+  لا `ease-in-out` الخام. (حُذفت `--ease-out-expo` و`--ease-in-out-quart`
+  و`--duration-fast/base/slow` في v9-C1 — صفر مستهلكين.)
+- المُدد تُكتب قيمًا حرفية عند الحاجة (0.2s–0.7s) على غرار الصنوف الموجودة.
 - z-index هرمي مثبّت: dropdown(10) < sticky(20) < nav(30) < modal-backdrop(40) < modal(50) < toast(60) < tooltip(70).
 
 ## 9.5 منظومة السَّعفَر/الجمر (2026-09-05 — نقل حرفي من Smart-Menu)

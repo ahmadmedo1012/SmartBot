@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { AdAccount } from "@/lib/types"
 import { formatNumber } from "@/lib/format"
 
 export default function AdsPage() {
@@ -15,7 +16,7 @@ export default function AdsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/ads/accounts")
       if (!res.ok) throw new Error(`فشل تحميل حسابات الإعلانات (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<AdAccount[]>(res)
     },
     retry: 1,
   })
@@ -29,7 +30,7 @@ export default function AdsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الإعلانات</h1>
-            <p className="text-[11px] text-muted-foreground">إدارة الإعلانات</p>
+            <p className="text-2xs text-muted-foreground">إدارة الإعلانات</p>
           </div>
         </div>
       </header>
@@ -57,16 +58,16 @@ export default function AdsPage() {
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <h2 className="text-sm font-bold mb-1">فشل تحميل الحسابات</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
-        ) : (accounts as any[]).length === 0 ? (
+        ) : accounts.length === 0 ? (
           <Card><CardContent className="p-0">
               <EmptyState icon={Target} size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">
-            {(accounts as any[]).map((a: any) => (
+            {accounts.map((a) => (
               <Card key={a.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
@@ -74,7 +75,7 @@ export default function AdsPage() {
                     {/* v4 §7.26 — backend returns account_status as an INT (FB
                         Marketing API codes); the old a.status === "ACTIVE"
                         string check never matched → badge rendered a raw number */}
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${
+                    <span className={`text-2xs px-2 py-0.5 rounded-full ${
                       a.account_status === 1 ? "bg-success/15 text-success" :
                       a.account_status === 2 ? "bg-destructive/15 text-destructive" :
                       "bg-warning/15 text-warning"

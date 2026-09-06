@@ -127,7 +127,7 @@ export function AdminSidebar({
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-tight truncate">{title}</p>
-          <p className="text-[11px] text-muted-foreground leading-tight">لوحة التحكم</p>
+          <p className="text-2xs text-muted-foreground leading-tight">لوحة التحكم</p>
         </div>
       </div>
 
@@ -137,7 +137,12 @@ export function AdminSidebar({
       <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {navSections.map((section, si) => (
           <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 50}ms` }}>
-            <p className="px-3 pb-1.5 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.12em]">
+            {/* v9-D2: text-muted-foreground/70 measured 3.21-3.27:1 (axe
+             * color-contrast serious). Full-opacity --muted-foreground on the
+             * bg-card/80-over-background surface measures 5.62:1 (dark) /
+             * 6.49:1 (light) — both ≥ 4.5:1 AA. Size stays text-3xs;
+             * the site-wide 2xs/3xs migration is wave-2, not this fix. */}
+            <p className="px-3 pb-1.5 text-3xs font-bold text-muted-foreground uppercase tracking-[0.12em]">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -180,7 +185,7 @@ export function AdminSidebar({
                       <Badge
                         variant={active ? "outline" : "info"}
                         className={cn(
-                          "ms-auto text-[10px] px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
+                          "ms-auto text-3xs px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
                           active && "border-accent-foreground/40 text-accent-foreground"
                         )}
                       >

@@ -41,13 +41,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         <AdminSidebar onNavigate={handleNavigate} onLogout={handleLogout} onSubscribe={handleSubscribe} />
       </div>
       {/* v8-B7: #page-content — the skip-link target. Sidebar (nav) stays
-       * OUTSIDE this wrapper so keyboard users land directly in the content. */}
+       * OUTSIDE this wrapper so keyboard users land directly in the content.
+       * v9-B9: tabIndex={-1} — a div is not focusable by default, so the skip
+       * link scrolled here but focus stayed in the sidebar; -1 makes the
+       * container programmatically focusable so focus actually moves. */}
       <motion.div
         id="page-content"
+        tabIndex={-1}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springGentle}
-        className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0"
+        className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0 outline-none"
       >
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}

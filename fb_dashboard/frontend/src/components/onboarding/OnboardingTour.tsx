@@ -72,17 +72,14 @@ export function OnboardingTour({ autoStart = false, onComplete }: OnboardingTour
     [onComplete]
   )
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const steps: any[] = TOUR_STEPS
-
-  // Joyride is a class component with restrictive prop types from an old version;
-  // cast through unknown to bypass class-component prop diff issues.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const JoyrideAny: any = Joyride
+  // Joyride is a class component with restrictive prop types from an old
+  // version; cast through unknown to a loosely-typed component so our richer
+  // step definitions (ReactNode content) and style tokens compile.
+  const JoyrideAny = Joyride as unknown as React.ComponentType<Record<string, unknown>>
 
   return (
     <JoyrideAny
-      steps={steps}
+      steps={TOUR_STEPS}
       run={run}
       stepIndex={stepIndex}
       continuous
@@ -91,16 +88,28 @@ export function OnboardingTour({ autoStart = false, onComplete }: OnboardingTour
       disableOverlayClose
       spotlightClicks={false}
       callback={handleCallback}
+      /* v9-C4 — design-system tokens instead of hardcoded hex/rgba.
+       * joyride spreads these into React inline styles, so CSS var()
+       * strings resolve at computed time against :root (dark) / .light:
+       * --primary/--primary-foreground/--overlay/--muted-foreground live in
+       * :root + .light; --radius-md/--radius-sm are real runtime vars since
+       * v9-C1 moved the radius scale into a non-inline @theme block;
+       * --font-sans needs --font-cairo (E-track fix in fonts.css, same wave).
+       * Caveat: primaryColor feeds the beacon, and joyride's beaconOuter does
+       * hex math on it (rgba(hexToRGB(...))) — the pulse-ring bg ignores a
+       * var(). Harmless here: every step sets disableBeacon, so the beacon
+       * never renders (beaconInner/border would use it directly anyway). */
       styles={{
         options: {
-          arrowColor: "#ea580c",
+          arrowColor: "var(--primary)",
           beaconSize: 36,
-          overlayColor: "rgba(0, 0, 0, 0.45)",
-          spotlightShadow: "0 0 15px rgba(234, 88, 12, 0.5)",
+          overlayColor: "var(--overlay)",
+          primaryColor: "var(--primary)",
+          spotlightShadow: "0 0 15px color-mix(in oklch, var(--primary) 50%, transparent)",
         },
         tooltip: {
-          borderRadius: "12px",
-          fontFamily: "Cairo, sans-serif",
+          borderRadius: "var(--radius-md)",
+          fontFamily: "var(--font-sans)",
           textAlign: "right",
           direction: "rtl",
         },
@@ -108,11 +117,12 @@ export function OnboardingTour({ autoStart = false, onComplete }: OnboardingTour
           textAlign: "right",
         },
         buttonNext: {
-          backgroundColor: "#ea580c",
-          borderRadius: "8px",
+          backgroundColor: "var(--primary)",
+          color: "var(--primary-foreground)",
+          borderRadius: "var(--radius-sm)",
         },
         buttonBack: {
-          color: "#888",
+          color: "var(--muted-foreground)",
         },
       }}
       locale={{

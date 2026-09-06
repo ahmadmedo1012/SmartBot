@@ -16,6 +16,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
 import { countPhrase, formatDate, formatDateOnly, timeAgo } from "@/lib/format"
+import type { Conversation, ConversationList, Message } from "@/lib/types"
 
 function initials(name: string) {
   if (!name) return "?"
@@ -31,15 +32,16 @@ const FILTERS = [
 ]
 
 function ConvItem({ conv, selectedId, onSelect }: {
-  conv: any; selectedId: string | null; onSelect: (id: string) => void
+  conv: Conversation; selectedId: string | null; onSelect: (id: string) => void
 }) {
   const hasUnread = Number(conv.unread_count) > 0
   const selected = selectedId === conv.id
   return (
     <button
       onClick={() => onSelect(conv.id)}
+      role="listitem"
       aria-current={selected ? "true" : undefined}
-      className={`group w-full text-right p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
+      className={`group w-full text-start p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
         ${selected
           ? "bg-gradient-to-l from-accent-foreground/15 to-accent-foreground/5 border-s-[3px] border-s-primary"
           : "hover:bg-muted/40 border-r-[3px] border-r-transparent"}`}
@@ -61,15 +63,15 @@ function ConvItem({ conv, selectedId, onSelect }: {
             <p className={`text-sm truncate ${hasUnread ? "font-bold" : "font-medium"}`}>
               {conv.subject || conv.senders?.[0]?.name || "بدون موضوع"}
             </p>
-            <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(conv.updated_time)}</span>
+            <span className="text-2xs text-muted-foreground shrink-0">{timeAgo(conv.updated_time)}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate mt-1">
-            {conv.senders?.map((s: any) => s.name).join("، ") || "غير معروف"}
+            {conv.senders?.map((s) => s.name).join("، ") || "غير معروف"}
           </p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[11px] text-muted-foreground">{countPhrase(conv.message_count, "رسالة", "رسالتين", "رسائل")}</span>
+            <span className="text-2xs text-muted-foreground">{countPhrase(conv.message_count, "رسالة", "رسالتين", "رسائل")}</span>
             {hasUnread && (
-              <span className="inline-flex items-center justify-center text-[10px] h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
+              <span className="inline-flex items-center justify-center text-3xs h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
                 {conv.unread_count}
               </span>
             )}
@@ -83,6 +85,13 @@ function ConvItem({ conv, selectedId, onSelect }: {
 export default function MessagesPage() {
   const [filter, setFilter] = useState("all")
   const [search, setSearch] = useState("")
+  // v9-B3 — search used to feed the queryKey directly: every keystroke fired
+  // an HTTP request. Debounce 300ms so the list query only sees settled input.
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(t)
+  }, [search])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -90,8 +99,8 @@ export default function MessagesPage() {
   // v8 C8 — keepPreviousData: switching filters/search keeps the previous
   // list on screen (dimmed via isFetching) instead of flashing skeletons
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
-    queryKey: ["inbox-conversations", filter, search],
-    queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(search)}`).then(unwrapApi),
+    queryKey: ["inbox-conversations", filter, debouncedSearch],
+    queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(debouncedSearch)}`).then(unwrapApi<ConversationList>),
     placeholderData: (prev) => prev,
     refetchInterval: 15000,
     retry: (failureCount, err) => {
@@ -105,7 +114,7 @@ export default function MessagesPage() {
 
   const { data: messages = [], isLoading: msgLoading } = useQuery({
     queryKey: ["inbox-messages", selectedId],
-    queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi),
+    queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi<Message[]>),
     enabled: !!selectedId,
     refetchInterval: 10000,
   })
@@ -236,9 +245,11 @@ export default function MessagesPage() {
                   : "ستظهر محادثاتك مع العملاء هنا فور وصول أول رسالة إلى صفحتك"}
               />
             ) : (
-              conversations.map((conv: any) => (
-                <ConvItem key={conv.id} conv={conv} selectedId={selectedId} onSelect={setSelectedId} />
-              ))
+              <div role="list">
+                {conversations.map((conv) => (
+                  <ConvItem key={conv.id} conv={conv} selectedId={selectedId} onSelect={setSelectedId} />
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -279,7 +290,7 @@ export default function MessagesPage() {
                     description="اكتب أول رد من مربع الإرسال في الأسفل لبدء الحوار مع العميل."
                   />
                 ) : (
-                  messages.map((msg: any, i: number) => {
+                  messages.map((msg, i) => {
                     // v4 §2.4 — explicit backend flag; the old from?.id === "page"
                     // comparison never matched → page replies rendered as
                     // customer bubbles (wrong side + wrong color)
@@ -317,13 +328,13 @@ export default function MessagesPage() {
                             />
                           )}
                           {msg.postback_payload && !msg.message && (
-                            <p className="text-[11px] opacity-70 mb-0.5">اختيار: {msg.postback_payload}</p>
+                            <p className="text-2xs opacity-70 mb-0.5">اختيار: {msg.postback_payload}</p>
                           )}
                           {msg.message && <p>{msg.message}</p>}
                           {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
                             <p className="opacity-50">مرفق غير مدعوم</p>
                           )}
-                          <p className={`text-[10px] mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
+                          <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
                             {msg.created_time ? formatDate(msg.created_time) : ""}
                           </p>
                         </div>

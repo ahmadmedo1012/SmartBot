@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { ScheduledPost } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 const POST_STATUS_LABELS: Record<string, string> = {
@@ -21,7 +22,7 @@ export default function PostsPage() {
 
   const { data: posts = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["scheduled-posts"],
-    queryFn: () => apiFetch("/api/scheduled-posts").then(unwrapApi),
+    queryFn: () => apiFetch("/api/scheduled-posts").then(unwrapApi<ScheduledPost[]>),
     refetchInterval: 30000,
     retry: 1,
   })
@@ -70,7 +71,7 @@ export default function PostsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">المنشورات</h1>
-            <p className="text-[11px] text-muted-foreground">إدارة ونشر المنشورات</p>
+            <p className="text-2xs text-muted-foreground">إدارة ونشر المنشورات</p>
           </div>
         </div>
       </header>
@@ -109,7 +110,7 @@ export default function PostsPage() {
           <div className="text-center py-12">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
             <p className="text-sm font-bold mb-1">فشل تحميل المنشورات</p>
-            <p className="text-xs text-muted-foreground mb-4">{(error as any)?.message || "تعذر الاتصال"}</p>
+            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (
@@ -120,7 +121,7 @@ export default function PostsPage() {
           />
         ) : (
           <div className="space-y-3">
-            {posts.map((p: any) => (
+            {posts.map((p) => (
               <Card key={p.id}>
                 <CardContent className="p-4">
                   <p className="text-sm mb-2">{p.message}</p>
@@ -135,11 +136,11 @@ export default function PostsPage() {
                     </div>
                     <div className="flex gap-1">
                       {p.status !== "published" && (
-                        <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} aria-label="نشر المنشور الآن">
+                        <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} disabled={publishMut.isPending && publishMut.variables === p.id} aria-label="نشر المنشور الآن">
                           <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} aria-label="حذف المنشور">
+                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} disabled={deleteMut.isPending && deleteMut.variables === p.id} aria-label="حذف المنشور">
                         <Trash2 className="size-3" aria-hidden="true" />
                       </Button>
                     </div>

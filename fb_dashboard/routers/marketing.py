@@ -22,7 +22,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from models import MarketingCampaign, Subscriber, User
 from sqlalchemy import desc, func, or_, select
 
-from routers.auth import get_current_user
+from routers.auth import get_current_user, require_role
 from routers.notifications import push_notification
 
 log = logging.getLogger("fb-api")
@@ -137,9 +137,12 @@ async def audience_size(
 async def send_campaign(
     campaign_id: int,
     db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("editor")),
 ):
-    """Send (or queue) a campaign now (plan §4.4 steps 2-3)."""
+    """Send (or queue) a campaign now (plan §4.4 steps 2-3).
+
+    v9-A7: sending is a WRITE action with cost side-effects (broadcast fan-out
+    + notifications) — was open to any viewer role; now requires editor."""
     c = await db.get(MarketingCampaign, campaign_id)
     if not c or c.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الحملة غير موجودة")
@@ -242,8 +245,9 @@ async def campaign_stats(
 async def delete_campaign(
     campaign_id: int,
     db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("editor")),
 ):
+    """v9-A7: destructive action — requires editor (was any viewer)."""
     c = await db.get(MarketingCampaign, campaign_id)
     if not c or c.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الحملة غير موجودة")

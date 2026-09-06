@@ -2,9 +2,18 @@
 
 import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
+import dynamic from "next/dynamic"
 import OnboardingWizard from "@/app/onboarding/OnboardingWizard"
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
 import { unwrapApi } from "@/lib/api"
+
+/* v9-E5: react-joyride (~116KB) was statically imported here → it landed in
+ * EVERY dashboard route bundle (26 routes) even though the tour only runs
+ * once per fresh tenant. dynamic(ssr:false) keeps the same conditional
+ * render below, but the joyride chunk loads only when the tour shows. */
+const OnboardingTour = dynamic(
+  () => import("@/components/onboarding/OnboardingTour").then((m) => m.OnboardingTour),
+  { ssr: false, loading: () => null }
+)
 
 const TOUR_SEEN_KEY = "smartbot-tour-completed"
 
@@ -40,7 +49,7 @@ export default function AuthGuard({
           if (!r.ok) throw new Error(r.statusText)
           return unwrapApi(r)
         })
-        .then((d) => {
+        .then((d): void => {
           // unwrapApi already returned the payload: {user: {...}}
           // reaching here means 200 OK — i.e. authenticated
           const user = d?.user

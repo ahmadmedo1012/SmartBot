@@ -56,8 +56,8 @@ export function DiagnosticsSection({
       setNewApproverId("")
       setNewApproverLabel("")
       brandedToast.success("تمت إضافة الموافق")
-    } catch (e: any) {
-      brandedToast.error(e.message || "فشل إضافة الموافق")
+    } catch (e) {
+      brandedToast.error((e as Error).message || "فشل إضافة الموافق")
     } finally { setAddingApprover(false) }
   }
 
@@ -68,8 +68,8 @@ export function DiagnosticsSection({
       if (!json.success) throw new Error(json.error || "فشل الحذف")
       onApproversChange(approvers.filter((x) => x.id !== id))
       brandedToast.success("تم حذف الموافق")
-    } catch (e: any) {
-      brandedToast.error(e.message || "فشل حذف الموافق")
+    } catch (e) {
+      brandedToast.error((e as Error).message || "فشل حذف الموافق")
     }
   }
 

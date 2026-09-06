@@ -1,12 +1,12 @@
 """Shared state & helpers extracted from runner.py for router modules."""
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
 from datetime import datetime, timedelta
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _crypto import decrypt_token  # re-export: routers import it from here
 from _crypto import encrypt_token as encrypt_token
 from _lazy import lazy
@@ -29,7 +29,6 @@ broadcast_engine = lazy(lambda: __import__('broadcast_engine', fromlist=['Broadc
 subscriber_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['SubscriberEngine']).SubscriberEngine())
 tag_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['TagEngine']).TagEngine())
 analytics_engine = lazy(lambda: __import__('analytics_engine', fromlist=['AnalyticsEngine']).AnalyticsEngine())
-report_engine = lazy(lambda: __import__('report_engine', fromlist=['ReportEngine']).ReportEngine(analytics_engine))
 pdf_engine = lazy(lambda: __import__('pdf_reports_engine', fromlist=['PdfReportsEngine']).PdfReportsEngine())
 content_calendar_engine = lazy(lambda: __import__('content_calendar', fromlist=['ContentCalendarEngine']).ContentCalendarEngine(fb))
 team_engine = lazy(lambda: __import__('team_engine', fromlist=['TeamEngine']).TeamEngine())
@@ -183,7 +182,7 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
                 await s.commit()
         except Exception:
             pass
-    asyncio.create_task(_write())
+    spawn(_write())
     return
 
 # Webhook constants

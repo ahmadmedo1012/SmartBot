@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { ApiUser } from "@/lib/types"
 
 const ROLE_LABELS: Record<string, string> = {
   // v4 §2.3 — owner role existed in backend but had no label → raw English leaked
@@ -16,7 +17,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function TeamPage() {
   const { data: members = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["team-members"],
-    queryFn: () => apiFetch("/api/team/members").then(unwrapApi),
+    queryFn: () => apiFetch("/api/team/members").then(unwrapApi<ApiUser[]>),
     refetchInterval: 30000,
     retry: 1,
   })
@@ -38,7 +39,7 @@ export default function TeamPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الفريق</h1>
-            <p className="text-[11px] text-muted-foreground">إدارة أعضاء الفريق</p>
+            <p className="text-2xs text-muted-foreground">إدارة أعضاء الفريق</p>
           </div>
         </div>
       </header>
@@ -48,7 +49,7 @@ export default function TeamPage() {
         ) : isError ? (
           <div className="text-center py-8">
             <Users2 className="size-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground mb-3">{(error as any)?.message || "تعذر تحميل الفريق"}</p>
+            <p className="text-xs text-muted-foreground mb-3">{(error as Error)?.message || "تعذر تحميل الفريق"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : members.length === 0 ? (
@@ -56,23 +57,26 @@ export default function TeamPage() {
               <EmptyState icon={Users2} size="sm" title="لا يوجد أعضاء فريق بعد" description="عند إضافة أعضاء إلى فريقك سيظهرون هنا بأدوارهم وصلاحياتهم." />
             </CardContent></Card>
         ) : (
-          members.map((m: any) => (
-            <Card key={m.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground">
-                  {(m.username?.[0] || "?").toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{m.username}</p>
-                  <p className="text-xs text-muted-foreground">{m.email || ""}</p>
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  {roleIcon(m.role)}
-                  <span>{ROLE_LABELS[m.role] || m.role}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+          <div className="space-y-3" role="list">
+            {members.map((m) => (
+              <Card key={m.id} role="listitem">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground">
+                    {(m.username?.[0] || "?").toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{m.username}</p>
+                    <p className="text-xs text-muted-foreground">{m.email || ""}</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    {roleIcon(m.role)}
+                    {/* v9-B13 — unknown roles used to leak raw English; Arabic fallback */}
+                    <span>{ROLE_LABELS[m.role] || "مستخدم"}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
     </div>

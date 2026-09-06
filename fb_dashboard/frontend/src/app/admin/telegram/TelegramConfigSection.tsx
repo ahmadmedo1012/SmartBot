@@ -56,7 +56,7 @@ export function TelegramConfigSection({
             <div className="relative mt-1.5">
               <Input id="tg-bot-token" type={showToken ? "text" : "password"} value={config.botToken}
                 onChange={(e) => onConfigChange({ ...config, botToken: e.target.value })}
-                placeholder="123456789:ABCdefGHIjklmNOPqrstUVwxyz" className="h-11 rounded-xl text-left ltr pl-10" dir="ltr" />
+                placeholder="123456789:ABCdefGHIjklmNOPqrstUVwxyz" className="h-11 rounded-xl text-left pl-10" dir="ltr" />
               <button type="button" onClick={onToggleShowToken}
                 className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded active:scale-90"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>

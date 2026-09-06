@@ -12,7 +12,7 @@ import { premiumToast } from "@/lib/premium-toast"
 import { PlanSelector } from "./PlanSelector"
 import { ReviewSummary } from "./PaymentSection"
 import { StepIndicator, type WizardStep } from "./StepIndicator"
-import { toComparisonPlan, type ComparisonPlan } from "@/components/subscribe/plan-comparison"
+import { toComparisonPlan, type ComparisonPlan, type ComparisonPlanInput } from "@/components/subscribe/plan-comparison"
 import dynamic from "next/dynamic"
 
 /* Restructured onto Smart-Menu's subscribe architecture (smart-link.ly
@@ -45,7 +45,7 @@ export default function SubscribeContent() {
         const res = await apiFetch("/api/plans")
         const data = await unwrapApi<unknown[]>(res)
         const raw: unknown[] = Array.isArray(data) ? data : Array.isArray((data as { data?: unknown[] })?.data) ? (data as { data: unknown[] }).data : []
-        const p = raw.map(toComparisonPlan)
+        const p = (raw as ComparisonPlanInput[]).map(toComparisonPlan)
         setPlans(p)
         if (preselectedPlan) {
           // Try exact id first, then by position (ids may shift in DB)
@@ -80,7 +80,7 @@ export default function SubscribeContent() {
       .then((r) => r.json())
       .then((data) => {
         const raw = data?.data ?? data ?? []
-        const p = (Array.isArray(raw) ? raw : []).map(toComparisonPlan)
+        const p = (Array.isArray(raw) ? (raw as ComparisonPlanInput[]) : []).map(toComparisonPlan)
         setPlans(p)
         if (preselectedPlan) {
           const sorted = [...p].sort((a, b) => a.sortOrder - b.sortOrder)

@@ -47,7 +47,7 @@ export default function FeaturesSection() {
               {isLarge && (
                 <>
                   <div className="absolute -top-20 -end-20 size-48 rounded-full bg-accent-foreground/10 blur-3xl pointer-events-none" aria-hidden="true" />
-                  <div className="absolute top-4 end-4 text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary text-white flex items-center gap-1">
+                  <div className="absolute top-4 end-4 text-3xs font-bold px-2.5 py-1 rounded-full bg-primary text-white flex items-center gap-1">
                     <Zap className="size-2.5 fill-white" />
                     الأكثر طلباً
                   </div>

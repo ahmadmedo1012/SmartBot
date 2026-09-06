@@ -132,13 +132,15 @@ async def inbox_list(
             "tags": [],
         } for c in rows]
 
-        # Load tags from DB for all conversation IDs
+        # Load tags from DB for all conversation IDs (v9-A3: join also
+        # filtered by tenant so foreign labels/tags can never surface here)
         if items:
             ids = [it["id"] for it in items]
             lbls = await s.execute(
                 select(ConversationLabel, ConversationTag)
                 .join(ConversationTag, ConversationLabel.tag_id == ConversationTag.id)
-                .where(ConversationLabel.conversation_id.in_(ids))
+                .where(ConversationLabel.conversation_id.in_(ids),
+                       ConversationTag.tenant_id == tenant_id)
             )
             tag_map: dict[str, list] = {}
             for lbl, tag in lbls:
@@ -314,9 +316,23 @@ async def inbox_delete_tag(tag_id: int, db=Depends(get_db), current_user: User =
 @router.post("/api/inbox/conversations/{conv_id}/tags")
 async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
                            db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Assign a tag to a conversation."""
+    """Assign a tag to a conversation.
+
+    v9-A3 (BOLA fix): the conversation must belong to the CURRENT tenant
+    before any label is inserted — previously a tenant editor could tag any
+    other tenant's conversation id (and the label row itself had no tenant
+    context). The label now records the owning tenant as well.
+    """
+    tenant_id = current_user._tenant_id
+    convo = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conv_id)
+    )).scalar_one_or_none()
+    if not convo:
+        raise HTTPException(404, "المحادثة غير موجودة")
     tag = (await db.execute(
-        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == current_user._tenant_id)
+        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == tenant_id)
     )).scalar_one_or_none()
     if not tag:
         raise HTTPException(404, "الوسم غير موجود")
@@ -325,17 +341,37 @@ async def inbox_assign_tag(conv_id: str, tag_id: int = Form(...),
             and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id))
     )
     if not existing.scalar_one_or_none():
-        db.add(ConversationLabel(conversation_id=conv_id, tag_id=tag_id))
+        db.add(ConversationLabel(tenant_id=tenant_id, conversation_id=conv_id, tag_id=tag_id))
         await db.commit()
     return ok({"ok": True})
 
 
 @router.delete("/api/inbox/conversations/{conv_id}/tags/{tag_id}")
 async def inbox_remove_tag(conv_id: str, tag_id: int,
-                           db=Depends(get_db), _=Depends(require_role("editor"))):
+                           db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+    """Remove a tag from a conversation.
+
+    v9-A3 (BOLA fix): BOTH the conversation AND the tag must belong to the
+    current tenant — previously the delete was unscoped: any tenant could
+    strip labels off any other tenant's conversation.
+    """
+    tenant_id = current_user._tenant_id
+    convo = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conv_id)
+    )).scalar_one_or_none()
+    if not convo:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    tag = (await db.execute(
+        select(ConversationTag).where(ConversationTag.id == tag_id, ConversationTag.tenant_id == tenant_id)
+    )).scalar_one_or_none()
+    if not tag:
+        raise HTTPException(404, "الوسم غير موجود")
     await db.execute(
         ConversationLabel.__table__.delete().where(
-            and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id))
+            and_(ConversationLabel.conversation_id == conv_id, ConversationLabel.tag_id == tag_id,
+                 ConversationLabel.tenant_id == tenant_id))
     )
     await db.commit()
     return ok({"ok": True})

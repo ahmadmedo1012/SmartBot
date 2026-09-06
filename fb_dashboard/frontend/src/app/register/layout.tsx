@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "إنشاء حساب | SmartBot",
     description: "ابدأ مجاناً — أتمتة الردود وتحليلات صفحات فيسبوك",
+    url: `${siteUrl}/register`,
+    type: "website",
+    // v9-E2: child openGraph replaces the root object (shallow merge) —
+    // re-declare images + canonical og:url or the route loses its card.
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة روبوتات ميسنجر لليبيا" }],
   },
 }
 

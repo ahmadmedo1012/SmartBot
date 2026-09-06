@@ -1,8 +1,8 @@
 """Broadcast CRUD + send + cancel + estimate routes."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
-import asyncio
 import logging
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -50,8 +50,8 @@ async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = 
 async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import broadcast_engine
     body = await request.json()
-    ok = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Broadcast not found")
     return ok({"ok": True})
 
@@ -70,15 +70,15 @@ async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User =
     async def _send():
         async with AsyncSessionLocal() as s:
             await broadcast_engine.send_broadcast(bc_id, s)
-    asyncio.create_task(_send())
+    spawn(_send())
     return ok({"ok": True, "message": "Broadcast sending started"})
 
 
 @router.post("/api/broadcasts/{bcast_id}/cancel")
 async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     from _services import broadcast_engine
-    ok = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(400, "Broadcast not found or not cancellable")
     return ok({"ok": True})
 

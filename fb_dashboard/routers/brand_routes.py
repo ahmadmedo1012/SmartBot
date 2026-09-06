@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Form
 from models import BrandConfig
 from sqlalchemy import select
 
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_platform_admin
 
 router = APIRouter(prefix="", tags=["brand"])
 
@@ -46,8 +46,11 @@ async def update_brand(
     brand_name: str = Form(...), tagline: str = Form(""),
     copyright_text: str = Form(""), website: str = Form(""),
     whatsapp: str = Form(""), projects: str = Form(""),
-    db=Depends(get_db), _=Depends(require_role("admin")),
+    db=Depends(get_db), _=Depends(require_platform_admin),
 ):
+    """v9-A7: BrandConfig is a GLOBAL platform row (there is exactly one —
+    shared by every tenant). Any self-registered tenant admin could rewrite
+    the platform's public branding before; now it is platform-admin only."""
     # ponytail: BrandConfig at module level
     brand = await db.execute(select(BrandConfig).limit(1))
     brand = brand.scalar_one_or_none()

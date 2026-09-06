@@ -119,7 +119,7 @@ export function MobileBottomNav({
             />
             <div className="min-w-0">
               <span className="block text-sm font-bold leading-tight truncate">SmartBot</span>
-              <span className="block text-[11px] text-muted-foreground leading-tight">كل الأقسام</span>
+              <span className="block text-2xs text-muted-foreground leading-tight">كل الأقسام</span>
             </div>
           </div>
           <button
@@ -135,7 +135,7 @@ export function MobileBottomNav({
         <div className="p-4 space-y-5 pb-24">
           {defaultNavSections.map((section) => (
             <div key={section.label}>
-              <p className="text-[11px] font-bold text-muted-foreground mb-2">{section.label}</p>
+              <p className="text-2xs font-bold text-muted-foreground mb-2">{section.label}</p>
               <div className="grid grid-cols-4 gap-2">
                 {section.items.map((item) => {
                   const active = isActive(item.href, pathname)
@@ -145,7 +145,7 @@ export function MobileBottomNav({
                       type="button"
                       onClick={() => go(item.href)}
                       tabIndex={sheetOpen ? 0 : -1}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[color,background-color,border-color,transform] ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[color,background-color,border-color,transform] ${
                         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -182,7 +182,7 @@ export function MobileBottomNav({
                 type="button"
                 onClick={() => go(item.href)}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-3xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
                   active ? "text-accent-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -197,7 +197,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-3xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
           >
             <Menu className="size-5" />
             <span>المزيد</span>

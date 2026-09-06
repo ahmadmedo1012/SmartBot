@@ -33,7 +33,7 @@ export function unwrapBody<T = any>(body: unknown): T {
 
 /** Parse a Response then unwrap the envelope (throws on success:false). */
 export async function unwrapApi<T = any>(res: Response): Promise<T> {
-  const body = await res.json().catch(() => null)
+  const body = await res.json().catch((): null => null)
   return unwrapBody<T>(body)
 }
 

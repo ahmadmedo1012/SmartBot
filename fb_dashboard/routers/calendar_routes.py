@@ -46,24 +46,24 @@ async def calendar_create(request: Request, db=Depends(get_db), current_user: Us
 @router.put("/api/calendar/{post_id}")
 async def calendar_update(post_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     data = await request.json()
-    ok = await content_calendar_engine.update_post(post_id, data, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await content_calendar_engine.update_post(post_id, data, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Post not found")
     return ok({"ok": True})
 
 
 @router.delete("/api/calendar/{post_id}")
 async def calendar_delete(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await content_calendar_engine.delete_post(post_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await content_calendar_engine.delete_post(post_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Post not found")
     return ok({"ok": True})
 
 
 @router.post("/api/calendar/{post_id}/publish")
 async def calendar_publish(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await content_calendar_engine.publish_post(post_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await content_calendar_engine.publish_post(post_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Post not found or publish failed")
     return ok({"ok": True})
 

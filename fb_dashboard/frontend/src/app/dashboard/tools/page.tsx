@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { Offer, ReplyTemplate } from "@/lib/types"
 
 export default function ToolsPage() {
   const queryClient = useQueryClient()
@@ -18,7 +19,7 @@ export default function ToolsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/offers")
       if (!res.ok) throw new Error(`فشل تحميل العروض (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<Offer[]>(res)
     },
     retry: 1,
   })
@@ -28,7 +29,7 @@ export default function ToolsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/templates")
       if (!res.ok) throw new Error(`فشل تحميل القوالب (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<ReplyTemplate[]>(res)
     },
     retry: 1,
   })
@@ -74,7 +75,7 @@ export default function ToolsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">الأدوات</h1>
-            <p className="text-[11px] text-muted-foreground">قوالب الرد والعروض</p>
+            <p className="text-2xs text-muted-foreground">قوالب الرد والعروض</p>
           </div>
         </div>
       </header>
@@ -106,26 +107,26 @@ export default function ToolsPage() {
           ) : tmplErr ? (
             <div className="text-center py-8">
               <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(tmplError as any)?.message || "تعذر الاتصال"}</p>
+              <p className="text-xs text-muted-foreground mb-3">{(tmplError as Error)?.message || "تعذر الاتصال"}</p>
               <Button size="sm" variant="outline" onClick={() => tmplRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
             </div>
-          ) : (templates as any[]).length === 0 ? (
+          ) : templates.length === 0 ? (
             <Card><CardContent className="p-0">
               <EmptyState icon={FileText} size="sm" title="لا توجد قوالب بعد" description="أنشئ قالب رد جاهزاً لإعادة استخدامه في ردودك وتوفير الوقت." />
             </CardContent></Card>
           ) : (
             <div className="space-y-2">
-              {(templates as any[]).map((t: any) => (
+              {templates.map((t) => (
                 <Card key={t.id}>
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-bold">{t.name}</span>
-                        {t.category && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{t.category}</span>}
+                        {t.category && <span className="text-3xs bg-muted px-1.5 py-0.5 rounded">{t.category}</span>}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{t.text}</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => deleteTmpl.mutate(t.id)} aria-label="حذف القالب">
+                    <Button size="sm" variant="ghost" onClick={() => deleteTmpl.mutate(t.id)} disabled={deleteTmpl.isPending && deleteTmpl.variables === t.id} aria-label="حذف القالب">
                       <Trash2 className="size-3" aria-hidden="true" />
                     </Button>
                   </CardContent>
@@ -143,16 +144,16 @@ export default function ToolsPage() {
           ) : offErr ? (
             <div className="text-center py-8">
               <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(offError as any)?.message || "تعذر الاتصال"}</p>
+              <p className="text-xs text-muted-foreground mb-3">{(offError as Error)?.message || "تعذر الاتصال"}</p>
               <Button size="sm" variant="outline" onClick={() => offRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
             </div>
-          ) : (offers as any[]).length === 0 ? (
+          ) : offers.length === 0 ? (
             <Card><CardContent className="p-0">
               <EmptyState icon={Tag} size="sm" title="لا توجد عروض" description="أضف عروض صفحتك الحالية ليستخدمها البوت في الردود على استفسارات العملاء." />
             </CardContent></Card>
           ) : (
             <div className="space-y-2">
-              {(offers as any[]).map((o: any) => (
+              {offers.map((o) => (
                 <Card key={o.id}>
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -161,10 +162,10 @@ export default function ToolsPage() {
                       <p className="text-xs text-muted-foreground truncate">{o.description}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)} aria-label="تبديل">
+                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)} disabled={toggleOffer.isPending && toggleOffer.variables === o.id} aria-label="تبديل">
                         {o.is_active ? <ToggleRight className="size-4" /> : <ToggleLeft className="size-4" />}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} aria-label="حذف">
+                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} disabled={deleteOffer.isPending && deleteOffer.variables === o.id} aria-label="حذف">
                         <Trash2 className="size-3.5" />
                       </Button>
                     </div>

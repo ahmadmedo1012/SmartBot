@@ -10,13 +10,23 @@ export const metadata: Metadata = {
   title: "سياسة الخصوصية",
   description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها",
   alternates: { canonical: `${siteUrl}/privacy` },
-  openGraph: { title: "سياسة الخصوصية | SmartBot", description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها" },
+  openGraph: {
+    title: "سياسة الخصوصية | SmartBot",
+    description: "كيف تجمع منصة الربط الذكي SmartBot بياناتك وتحميها وتستخدمها",
+    // v9-E2: child openGraph replaces the root object (shallow merge) —
+    // re-declare url + images or the route loses its og:image card.
+    url: `${siteUrl}/privacy`,
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة روبوتات ميسنجر لليبيا" }],
+  },
 }
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
+          this page; same sr-only anchor pattern as the landing). */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="max-w-3xl mx-auto px-4 py-20">
         <h1 className="text-3xl font-bold mb-8">سياسة الخصوصية</h1>
         <div className="space-y-6 text-foreground/80 leading-relaxed">

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span className={cn(
-      "font-naskh inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-5",
+      "font-naskh inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-5",
       className,
     )}>
       {/* Animated pulsing dot — subtle premium indicator */}

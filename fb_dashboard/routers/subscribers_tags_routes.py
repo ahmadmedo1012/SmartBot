@@ -37,14 +37,14 @@ async def get_subscriber(sub_id: int, db=Depends(get_db), current_user: User = D
 @router.post("/api/subscribers/{sub_id}/tags")
 async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     body = await request.json()
-    ok = await subscriber_engine.add_tag(sub_id, body["tag_id"], db, tenant_id=current_user._tenant_id)
-    return ok({"ok": ok})
+    done = await subscriber_engine.add_tag(sub_id, body["tag_id"], db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    return ok({"ok": done})
 
 
 @router.delete("/api/subscribers/{sub_id}/tags/{tag_id}")
 async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    ok = await subscriber_engine.remove_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await subscriber_engine.remove_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Tag not assigned to subscriber")
     return ok({"ok": True})
 
@@ -66,7 +66,7 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
 
 @router.delete("/api/tags/{tag_id}")
 async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
-    ok = await tag_engine.delete_tag(tag_id, db, tenant_id=current_user._tenant_id)
-    if not ok:
+    done = await tag_engine.delete_tag(tag_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    if not done:
         raise HTTPException(404, "Tag not found")
     return ok({"ok": True})

@@ -12,10 +12,10 @@ Priorities: low | medium | high | urgent.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -100,7 +100,7 @@ async def create_ticket(
     # Telegram notify (non-blocking, best-effort)
     try:
         from telegram_bot import notify_admins_support_ticket
-        asyncio.create_task(notify_admins_support_ticket(subject[:80], body[:500], email))
+        spawn(notify_admins_support_ticket(subject[:80], body[:500], email))
     except Exception:
         pass
 

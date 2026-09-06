@@ -76,7 +76,7 @@ export function PlanSelector({
                 <MotionCheck className="size-3.5 text-white" />
               </span>
               {meta.recommended && (
-                <span className="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--c-ember)] to-[var(--c-saffron)] px-2.5 py-0.5 text-[10px] font-bold text-espresso shadow-sm">
+                <span className="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--c-ember)] to-[var(--c-saffron)] px-2.5 py-0.5 text-3xs font-bold text-espresso shadow-sm">
                   <Flame className="size-3" aria-hidden="true" />
                   الأكثر شعبية
                 </span>
@@ -101,7 +101,9 @@ export function PlanSelector({
                 ))}
                 {plan.features.length > 4 && (
                   <p className="text-xs text-primary font-medium">
-                    +{toArabicNumber(plan.features.length - 4)}{" "}
+                    {/* v9-E7: dir="ltr" keeps the "+" glued to the number — in the
+                        RTL paragraph it used to flip and render as "٣+" */}
+                    <span dir="ltr">+{toArabicNumber(plan.features.length - 4)}</span>{" "}
                     {getArabicPlural(plan.features.length - 4, "ميزة أخرى", "ميزتان أخريان", "ميزات أخرى")}
                   </p>
                 )}

@@ -39,10 +39,10 @@ export function HeroMockup() {
           <div className="size-7 rounded-lg bg-accent-foreground/15 flex items-center justify-center">
             <TrendingUp className="size-3.5 text-accent-foreground" />
           </div>
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">التفاعل</span>
+          <span className="text-3xs font-semibold text-muted-foreground uppercase tracking-wider">التفاعل</span>
         </div>
         <div className="text-2xl font-bold text-accent-foreground leading-none mb-1">+28%</div>
-        <div className="text-[11px] text-muted-foreground">هذا الأسبوع</div>
+        <div className="text-2xs text-muted-foreground">هذا الأسبوع</div>
       </div>
 
       {/* Floating reply counter — bottom left */}
@@ -52,7 +52,7 @@ export function HeroMockup() {
             <Bot className="size-4.5 text-white" />
           </div>
           <div>
-            <div className="text-[10px] text-muted-foreground font-medium">الردود الذكية</div>
+            <div className="text-3xs text-muted-foreground font-medium">الردود الذكية</div>
             <div className="text-sm font-bold leading-tight">1.247 <span className="text-accent-foreground text-xs">اليوم</span></div>
           </div>
         </div>
@@ -72,11 +72,11 @@ export function HeroMockup() {
             </div>
             <div className="flex items-center gap-2">
               <div className="size-2 rounded-full bg-success animate-pulse" />
-              <span className="text-[10px] font-semibold text-muted-foreground">نشط الآن</span>
+              <span className="text-3xs font-semibold text-muted-foreground">نشط الآن</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Sparkles className="size-3 text-accent-foreground" />
-              <span className="text-[10px] font-semibold text-accent-foreground">AI</span>
+              <span className="text-3xs font-semibold text-accent-foreground">AI</span>
             </div>
           </div>
 
@@ -89,7 +89,7 @@ export function HeroMockup() {
                 style={{ animationDelay: `${1200 + i * 150}ms` }}
               >
                 {msg.from === "user" ? (
-                  <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground/20 to-accent-foreground/5 border border-accent-foreground/20 flex items-center justify-center text-[11px] font-bold text-accent-foreground shrink-0">
+                  <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground/20 to-accent-foreground/5 border border-accent-foreground/20 flex items-center justify-center text-2xs font-bold text-accent-foreground shrink-0">
                     {msg.avatar}
                   </div>
                 ) : (
@@ -99,7 +99,7 @@ export function HeroMockup() {
                 )}
                 <div className={`flex-1 ${msg.from === "user" ? "items-start" : "items-end"} flex flex-col`}>
                   <div className="flex items-center gap-1.5 mb-1 px-1">
-                    <span className="text-[10px] font-bold text-foreground/80">{msg.from === "user" ? msg.name : "SmartBot"}</span>
+                    <span className="text-3xs font-bold text-foreground/80">{msg.from === "user" ? msg.name : "SmartBot"}</span>
                     <span className="text-[9px] text-muted-foreground/60">{msg.time}</span>
                   </div>
                   <div

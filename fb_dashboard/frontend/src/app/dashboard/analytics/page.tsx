@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
-import { ActivityBarChart, ComparisonBars } from "@/components/charts"
+import type { AnalyticsOverview } from "@/lib/types"
+/* v9-B14 — lazy recharts: the direct import pulled the ~344KB recharts chunk
+ * into this route's first-load JS; the lazy barrel defers it until render. */
+import { ActivityBarChart, ComparisonBars } from "@/components/charts/lazy"
 
 const SENTIMENT_LABELS: Record<string, string> = {
   positive: "إيجابي", negative: "سلبي", neutral: "محايد", mixed: "مختلط",
@@ -18,7 +21,7 @@ const SENTIMENT_LABELS: Record<string, string> = {
 export default function AnalyticsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
-    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi),
+    queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi<AnalyticsOverview>),
     refetchInterval: 60000,
   })
 
@@ -41,7 +44,7 @@ export default function AnalyticsPage() {
           </div>
           <div>
             <h1 className="font-bold text-sm">التحليلات</h1>
-            <p className="text-[11px] text-muted-foreground">إحصائيات الأداء</p>
+            <p className="text-2xs text-muted-foreground">إحصائيات الأداء</p>
           </div>
         </div>
       </header>
@@ -92,8 +95,10 @@ export default function AnalyticsPage() {
               <h2 className="font-bold text-sm mb-3">أفضل القواعد</h2>
               {data?.top_rules?.length > 0 ? (
                 <div className="space-y-2">
-                  {data.top_rules.map((r: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
+                  {data.top_rules.map((r, i) => (
+                    /* v9-B12 — sorted list: positional keys corrupt React's
+                        diffing when the order shifts; rule_id is the identity */
+                    <div key={r.rule_id ?? r.name ?? i} className="flex items-center justify-between text-sm">
                       {/* v4 §7.24 — backend now sends rule names (incl. DM replies) */}
                       <span>{r.name || `القاعدة #${r.rule_id}`}</span>
                       <span className="text-muted-foreground">{countPhrase(r.count, "رد", "ردين", "ردود")}</span>

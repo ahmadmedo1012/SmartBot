@@ -1,5 +1,5 @@
-import asyncio
 
+from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
 from _utils import utcnow
 from database import get_db
@@ -37,7 +37,7 @@ async def create_alert(
     await db.commit()
     # Broadcast via WebSocket (tenant-scoped)
     try:
-        asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "alert", {
+        spawn(ws_manager.broadcast_to_tenant(current_user._tenant_id, "alert", {
             "type": alert_type, "severity": severity, "message": message,
         }))
     except Exception:
@@ -66,7 +66,7 @@ async def broadcast_notification(
     current_user: User = Depends(require_role("admin")),
 ):
     """Broadcast a notification to all connected dashboard clients (tenant-scoped)."""
-    asyncio.create_task(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
+    spawn(ws_manager.broadcast_to_tenant(current_user._tenant_id, "notification", {
         "type": notif_type, "title": title, "message": message, "link": link or None,
     }))
     return ok({"sent": True})

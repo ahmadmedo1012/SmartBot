@@ -17,9 +17,19 @@ import { ChartCard } from "@/components/shared/ChartCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fadeUp, stagger } from "@/lib/motion"
-import { ActivityBarChart } from "@/components/charts"
+/* v9-B14 — lazy recharts: the direct import pulled the ~344KB recharts chunk
+ * into /dashboard's first-load JS; the lazy barrel defers it until render. */
+import { ActivityBarChart } from "@/components/charts/lazy"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import type {
+  BundleRule,
+  DashboardBundle,
+  DashboardConnection,
+  DashboardMessages,
+  DashboardStats,
+  RecentReply,
+} from "@/lib/types"
 import { countPhrase, toArabicNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
@@ -69,7 +79,7 @@ function ChartBars({ data }: { data: Record<string, number> }) {
         data={entries.map(([d, v]) => ({ label: d.slice(5), value: v, hint: d }))}
       />
       {entries.length > 1 && (
-        <div className="flex justify-between mt-2.5 text-[10px] text-muted-foreground tabular-nums">
+        <div className="flex justify-between mt-2.5 text-3xs text-muted-foreground tabular-nums">
           <span>{entries[0]?.[0]?.slice(5) || ""}</span>
           <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
         </div>
@@ -106,16 +116,16 @@ function NotConnectedCard() {
 export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-bundle"],
-    queryFn: () => apiFetch("/api/dashboard/bundle").then(unwrapApi),
+    queryFn: () => apiFetch("/api/dashboard/bundle").then(unwrapApi<DashboardBundle>),
     refetchInterval: 60000,
     refetchIntervalInBackground: false,
   })
 
-  const recentReplies = bundle?.recent_replies || []
-  const rulesList = bundle?.rules || []
-  const stats = bundle?.stats || {}
-  const connection = bundle?.connection || {}
-  const messages = bundle?.messages || {}
+  const recentReplies: RecentReply[] = bundle?.recent_replies || []
+  const rulesList: BundleRule[] = bundle?.rules || []
+  const stats: Partial<DashboardStats> = bundle?.stats || {}
+  const connection: Partial<DashboardConnection> = bundle?.connection || {}
+  const messages: Partial<DashboardMessages> = bundle?.messages || {}
   const connected = connection.connected !== false // absent flag = legacy assume true
 
   if (error && !isLoading) {
@@ -159,7 +169,7 @@ export default function DashboardPage() {
                 subtitle={`${toArabicNumber(messages.unread_conversations || 0)} غير مقروءة`}
                 iconBg="bg-info/10" iconColor="text-info" index={2}
                 href="/dashboard/messages" />
-              <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r: any) => r.enabled !== false).length}
+              <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r) => r.enabled !== false).length}
                 subtitle={`من ${countPhrase(rulesList.length, "قاعدة", "قاعدتين", "قواعد")}`}
                 iconBg="bg-accent" index={3}
                 href="/dashboard/autoreply" />
@@ -201,7 +211,7 @@ export default function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r: any) => (
+                    {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r) => (
                       <div key={r.id} className="flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                         <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
                           {(r.commenter_name || r.commenter || "?")[0]}
@@ -243,7 +253,7 @@ export default function DashboardPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {rulesList.slice(0, 5).map((r: any) => (
+                            {rulesList.slice(0, 5).map((r) => (
                               <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                                 <td className="p-3 font-medium">{r.name}</td>
                                 <td className="p-3 text-center">

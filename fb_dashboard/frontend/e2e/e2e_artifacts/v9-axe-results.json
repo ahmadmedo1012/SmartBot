@@ -1,0 +1,1344 @@
+{
+  "meta": {
+    "base": "http://localhost:3199",
+    "startedAt": "2026-09-06T12:32:33.294Z",
+    "durationSec": 110,
+    "tags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa",
+      "best-practice"
+    ],
+    "gateTags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa"
+    ],
+    "userAgent": "playwright-chromium"
+  },
+  "aggregate": {
+    "combos": 36,
+    "gateTotal": 0,
+    "advisoryTotal": 0,
+    "cleanCombos": 36,
+    "byRule": {},
+    "consoleErrors": 128,
+    "consoleWarnings": 0,
+    "pageErrors": 0
+  },
+  "results": [
+    {
+      "path": "/",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 25
+          }
+        ],
+        "inapplicable": 49
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/pricing",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/pricing",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 37,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 52
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/login",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/login",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/register",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/register",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 9
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/demo",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/demo",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/subscribe",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/subscribe",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 33,
+        "incomplete": [],
+        "inapplicable": 56
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/privacy",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/terms",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/terms",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/connect",
+      "theme": "light",
+      "viewport": "desktop",
+      "finalUrl": "/connect",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 35,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 11
+          }
+        ],
+        "inapplicable": 53
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 24
+          }
+        ],
+        "inapplicable": 49
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/pricing",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/pricing",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 37,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 52
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/login",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/login",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/register",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/register",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 9
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/demo",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/demo",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/subscribe",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/subscribe",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 33,
+        "incomplete": [],
+        "inapplicable": 56
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/privacy",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/terms",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/terms",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/connect",
+      "theme": "dark",
+      "viewport": "desktop",
+      "finalUrl": "/connect",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 35,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 11
+          }
+        ],
+        "inapplicable": 53
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 23
+          }
+        ],
+        "inapplicable": 49
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/pricing",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/pricing",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 37,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 52
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/login",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/login",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/register",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/register",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 9
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/demo",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/demo",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 51
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/subscribe",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/subscribe",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 33,
+        "incomplete": [],
+        "inapplicable": 56
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/privacy",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/terms",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/terms",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/connect",
+      "theme": "light",
+      "viewport": "mobile",
+      "finalUrl": "/connect",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 35,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 11
+          }
+        ],
+        "inapplicable": 53
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 22
+          }
+        ],
+        "inapplicable": 49
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/pricing",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/pricing",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 37,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 52
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/login",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/login",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 3
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/register",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/register",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 9
+          }
+        ],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/demo",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/demo",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 38,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 1
+          }
+        ],
+        "inapplicable": 51
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/subscribe",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/subscribe",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 33,
+        "incomplete": [],
+        "inapplicable": 56
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/privacy",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 41,
+        "incomplete": [],
+        "inapplicable": 48
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/terms",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/terms",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 39,
+        "incomplete": [],
+        "inapplicable": 50
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    {
+      "path": "/connect",
+      "theme": "dark",
+      "viewport": "mobile",
+      "finalUrl": "/connect",
+      "themeApplied": true,
+      "axe": {
+        "violations": {
+          "gate": [],
+          "advisory": []
+        },
+        "passes": 35,
+        "incomplete": [
+          {
+            "id": "color-contrast",
+            "nodes": 11
+          }
+        ],
+        "inapplicable": 53
+      },
+      "err": null,
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    }
+  ],
+  "authSection": {
+    "login": {
+      "ok": false,
+      "url": "/login",
+      "console": {
+        "errors": [
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "warnings": [],
+        "pageErrors": []
+      }
+    },
+    "pages": [],
+    "registerStatus": "404",
+    "loginError": "page.waitForURL: Timeout 25000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n============================================================"
+  },
+  "focusOrder": {
+    "/login": [
+      {
+        "tag": "input[password]#password",
+        "name": "كلمة المرور",
+        "sig": "input[password]#password|كلمة المرور"
+      },
+      {
+        "tag": "button[submit]",
+        "name": "تسجيل الدخول",
+        "sig": "button[submit]|تسجيل الدخول"
+      },
+      {
+        "tag": "a[href=/register]",
+        "name": "ليس لديك حساب؟ إنشاء حساب جديد",
+        "sig": "a/register|ليس لديك حساب؟ إنشاء حساب جديد"
+      },
+      {
+        "tag": "body",
+        "name": "",
+        "sig": "body"
+      },
+      {
+        "tag": "a[href=#page-content]",
+        "name": "تخطي إلى المحتوى الرئيسي",
+        "sig": "a#page-content|تخطي إلى المحتوى الرئيسي"
+      },
+      {
+        "tag": "a[href=/]",
+        "name": "العودة للرئيسية",
+        "sig": "a/|العودة للرئيسية"
+      },
+      {
+        "tag": "button",
+        "name": "العودة للرئيسية",
+        "sig": "button|العودة للرئيسية"
+      },
+      {
+        "tag": "button[button]",
+        "name": "الوضع النهاري",
+        "sig": "button[button]|الوضع النهاري"
+      },
+      {
+        "tag": "input[text]#username",
+        "name": "اسم المستخدم أو البريد الإلكتروني",
+        "sig": "input[text]#username|اسم المستخدم أو البريد الإلكتر"
+      },
+      {
+        "tag": "input[password]#password",
+        "name": "كلمة المرور",
+        "sig": "input[password]#password|كلمة المرور"
+      },
+      {
+        "tag": "button[submit]",
+        "name": "تسجيل الدخول",
+        "sig": "button[submit]|تسجيل الدخول"
+      },
+      {
+        "tag": "a[href=/register]",
+        "name": "ليس لديك حساب؟ إنشاء حساب جديد",
+        "sig": "a/register|ليس لديك حساب؟ إنشاء حساب جديد"
+      }
+    ],
+    "/subscribe": [
+      {
+        "tag": "a[href=#page-content]",
+        "name": "تخطي إلى المحتوى الرئيسي",
+        "sig": "a#page-content|تخطي إلى المحتوى الرئيسي"
+      },
+      {
+        "tag": "button",
+        "name": "العودة للرئيسية",
+        "sig": "button|العودة للرئيسية"
+      },
+      {
+        "tag": "button[button]",
+        "name": "الانتقال إلى خطوة اختر الخطة",
+        "sig": "button[button]|الانتقال إلى خطوة اختر الخطة"
+      },
+      {
+        "tag": "button",
+        "name": "إعادة المحاولة",
+        "sig": "button|إعادة المحاولة"
+      },
+      {
+        "tag": "li",
+        "name": "فشل تحميل الخطط",
+        "sig": "li|فشل تحميل الخطط"
+      },
+      {
+        "tag": "button",
+        "name": "إغلاق",
+        "sig": "button|إغلاق"
+      },
+      {
+        "tag": "li",
+        "name": "فشل تحميل الخطط",
+        "sig": "li|فشل تحميل الخطط"
+      },
+      {
+        "tag": "button",
+        "name": "إغلاق",
+        "sig": "button|إغلاق"
+      },
+      {
+        "tag": "button",
+        "name": "إعادة المحاولة",
+        "sig": "button|إعادة المحاولة"
+      },
+      {
+        "tag": "li",
+        "name": "فشل تحميل الخطط",
+        "sig": "li|فشل تحميل الخطط"
+      },
+      {
+        "tag": "button",
+        "name": "إغلاق",
+        "sig": "button|إغلاق"
+      },
+      {
+        "tag": "li",
+        "name": "فشل تحميل الخطط",
+        "sig": "li|فشل تحميل الخطط"
+      }
+    ]
+  },
+  "keyboardTrap": {
+    "/subscribe": {
+      "tabs": 30,
+      "consecutiveStuckMax": 0,
+      "loopSuspects": [
+        [
+          "button[إعادة المحاولة]",
+          6
+        ],
+        [
+          "li[فشل تحميل الخطط]",
+          11
+        ],
+        [
+          "button[إغلاق]",
+          10
+        ]
+      ],
+      "sequence": [
+        "a[تخطي إلى المحتوى الرئيسي]",
+        "button[العودة للرئيسية]",
+        "button[الانتقال إلى خطوة اختر الخطة]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "li[فشل تحميل الخطط]",
+        "button[إغلاق]",
+        "button[إعادة المحاولة]",
+        "li[فشل تحميل الخطط]"
+      ]
+    },
+    "/demo": {
+      "tabs": 30,
+      "consecutiveStuckMax": 0,
+      "loopSuspects": [],
+      "sequence": [
+        "a[تخطي إلى المحتوى الرئيسي]",
+        "div[لوحة التحكم]",
+        "div[الرسائل]",
+        "div[التعليقات]",
+        "div[المنشورات]",
+        "div[المجدول]",
+        "div#sidebar-analytics[التحليلات]",
+        "div#sidebar-subscribers[الجمهور]",
+        "div[العملاء المتوقعون]",
+        "div[الإعلانات]",
+        "div[البث الجماعي]",
+        "div[التسويق]",
+        "div[التقارير]",
+        "div#sidebar-pages[الصفحات]",
+        "div[الفريق]",
+        "div[تقويم المحتوى]",
+        "div#sidebar-rules[الردود التلقائية]",
+        "div[سجل النشاطات]",
+        "div[الإشعارات]",
+        "div[الأدوات]",
+        "div#subscribe-btn[الفواتير]",
+        "div[الدعم]",
+        "div[الإعدادات]",
+        "button[اشتراك]",
+        "button[تسجيل الخروج]",
+        "button[العودة]",
+        "svg[]",
+        "button[ابدأ الاشتراك]",
+        "body",
+        "a[تخطي إلى المحتوى الرئيسي]"
+      ]
+    }
+  },
+  "topOffenders": []
+}

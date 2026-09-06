@@ -40,6 +40,20 @@ class PdfReportsEngine:
     def __init__(self, db_session_factory=None):
         self._factory = db_session_factory
 
+    def _day_expr(self, col, session):
+        """Portable DATE truncation (v9-A1).
+
+        cast(col, Date) is correct on PostgreSQL, but SQLite's
+        CAST(... AS DATE) applies NUMERIC affinity and mangles the stored
+        ISO string into a bare integer (e.g. 2026) — SQLAlchemy's Date result
+        processor then raises TypeError on row fetch. func.date() is the
+        correct SQLite spelling and yields a 'YYYY-MM-DD' string.
+        """
+        bind = getattr(session, "bind", None)
+        if bind is not None and bind.dialect.name == "sqlite":
+            return func.date(col)
+        return cast(col, Date)
+
     @property
     def engine_name(self) -> str:
         if _WEASYPRINT:
@@ -181,39 +195,50 @@ class PdfReportsEngine:
         return pdf.output(dest="S").encode("latin-1")  # ponytail: fpdf fallback is degraded; upgrade to weasyprint
 
     # ── Data helpers ─────────────────────────────────────────────────────
+    # v9-A1 (cross-tenant P1 fix): EVERY query is tenant-scoped. Before this,
+    # the engine counted/leaked rows from ALL tenants — including commenter
+    # names (PII) and other tenants' campaigns — into any tenant's PDF.
 
-    async def _get_overview(self, days: int, session) -> dict:
+    async def _get_overview(self, days: int, session, tenant_id: int) -> dict:
         from models import Reply, Rule, Subscriber
         cutoff = utcnow() - timedelta(days=days)
-        total = await session.scalar(select(func.count(Reply.id)).where(Reply.created_at >= cutoff)) or 0
-        today = await session.scalar(select(func.count(Reply.id)).where(cast(Reply.created_at, Date) == utcnow().date())) or 0
-        rules = await session.scalar(select(func.count(Rule.id)).where(Rule.enabled == True)) or 0
-        subs = await session.scalar(select(func.count(Subscriber.id))) or 0
+        total = await session.scalar(
+            select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)) or 0
+        today = await session.scalar(
+            select(func.count(Reply.id)).where(
+                Reply.tenant_id == tenant_id,
+                self._day_expr(Reply.created_at, session) == utcnow().date())) or 0
+        rules = await session.scalar(
+            select(func.count(Rule.id)).where(Rule.tenant_id == tenant_id, Rule.enabled == True)) or 0
+        subs = await session.scalar(
+            select(func.count(Subscriber.id)).where(Subscriber.tenant_id == tenant_id)) or 0
         unique = await session.scalar(
             select(func.count(func.distinct(Reply.commenter_name)))
-            .where(Reply.commenter_name != "", Reply.created_at >= cutoff)
+            .where(Reply.tenant_id == tenant_id, Reply.commenter_name != "", Reply.created_at >= cutoff)
         ) or 0
         return {"total_replies": total, "today_replies": today, "active_rules": rules,
                 "total_subscribers": subs, "unique_commenters": unique}
 
-    async def _get_daily_trend(self, days: int, session) -> list[dict]:
+    async def _get_daily_trend(self, days: int, session, tenant_id: int) -> list[dict]:
         from models import Reply
         cutoff = utcnow() - timedelta(days=days)
+        day = self._day_expr(Reply.created_at, session)
         rows = await session.execute(
-            select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
-            .where(Reply.created_at >= cutoff)
-            .group_by(cast(Reply.created_at, Date))
-            .order_by(cast(Reply.created_at, Date))
+            select(day.label("d"), func.count(Reply.id).label("cnt"))
+            .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
+            .group_by(day)
+            .order_by(day)
         )
         return [{"date": str(r.d), "replies": r.cnt} for r in rows]
 
-    async def _get_top_rules(self, days: int, limit: int, session) -> list[dict]:
+    async def _get_top_rules(self, days: int, limit: int, session, tenant_id: int) -> list[dict]:
         from models import Reply, Rule
         cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(Reply.rule_id, Rule.name, func.count(Reply.id).label("cnt"))
             .join(Rule, Reply.rule_id == Rule.id)
-            .where(Reply.created_at >= cutoff, Reply.rule_id.isnot(None))
+            .where(Reply.tenant_id == tenant_id, Rule.tenant_id == tenant_id,
+                   Reply.created_at >= cutoff, Reply.rule_id.isnot(None))
             .group_by(Reply.rule_id, Rule.name)
             .order_by(desc("cnt")).limit(limit)
         )
@@ -223,15 +248,16 @@ class PdfReportsEngine:
             r["percentage"] = round(r["count"] / total * 100, 1)
         return results
 
-    async def _get_sentiment_trend(self, days: int, session) -> list[dict]:
+    async def _get_sentiment_trend(self, days: int, session, tenant_id: int) -> list[dict]:
         from models import AISuggestion
         cutoff = utcnow() - timedelta(days=days)
+        day = self._day_expr(AISuggestion.created_at, session)
         rows = await session.execute(
-            select(cast(AISuggestion.created_at, Date).label("d"),
+            select(day.label("d"),
                    AISuggestion.sentiment, func.count(AISuggestion.id).label("cnt"))
-            .where(AISuggestion.created_at >= cutoff)
-            .group_by(cast(AISuggestion.created_at, Date), AISuggestion.sentiment)
-            .order_by(cast(AISuggestion.created_at, Date))
+            .where(AISuggestion.tenant_id == tenant_id, AISuggestion.created_at >= cutoff)
+            .group_by(day, AISuggestion.sentiment)
+            .order_by(day)
         )
         trend: dict[str, dict] = {}
         for r in rows:
@@ -246,34 +272,39 @@ class PdfReportsEngine:
                 bucket["neutral"] += r.cnt
         return list(trend.values())
 
-    async def _get_top_commenters(self, days: int, limit: int, session) -> list[dict]:
+    async def _get_top_commenters(self, days: int, limit: int, session, tenant_id: int) -> list[dict]:
         from models import Reply
         cutoff = utcnow() - timedelta(days=days)
         rows = await session.execute(
             select(Reply.commenter_name, func.count(Reply.id).label("cnt"))
-            .where(Reply.created_at >= cutoff, Reply.commenter_name != "")
+            .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff, Reply.commenter_name != "")
             .group_by(Reply.commenter_name)
             .order_by(desc("cnt")).limit(limit)
         )
         return [{"name": r.commenter_name, "count": r.cnt} for r in rows]
 
-    async def _get_subscriber_growth(self, days: int, session) -> list[dict]:
+    async def _get_subscriber_growth(self, days: int, session, tenant_id: int) -> list[dict]:
         from models import Subscriber
         cutoff = utcnow() - timedelta(days=days)
+        day = self._day_expr(Subscriber.created_at, session)
         rows = await session.execute(
-            select(cast(Subscriber.created_at, Date).label("d"), func.count(Subscriber.id).label("cnt"))
-            .where(Subscriber.created_at >= cutoff)
-            .group_by(cast(Subscriber.created_at, Date))
-            .order_by(cast(Subscriber.created_at, Date))
+            select(day.label("d"), func.count(Subscriber.id).label("cnt"))
+            .where(Subscriber.tenant_id == tenant_id, Subscriber.created_at >= cutoff)
+            .group_by(day)
+            .order_by(day)
         )
         return [{"date": str(r.d), "subscribers": r.cnt} for r in rows]
 
-    async def _get_campaign_data(self, campaign_type: str, campaign_id: str, session) -> dict:
+    async def _get_campaign_data(self, campaign_type: str, campaign_id: str, session, tenant_id: int) -> dict:
+        """Campaign lookup — the id MUST belong to the requesting tenant,
+        otherwise the report renders an empty stub (no cross-tenant leak)."""
         result = {"name": "", "total_recipients": 0, "sent_count": 0, "failed_count": 0, "opened_count": 0,
                   "status": "", "created_at": "", "sent_at": ""}
         if campaign_type == "broadcast":
             from models import Broadcast
-            row = (await session.execute(select(Broadcast).where(Broadcast.id == int(campaign_id)))).scalar_one_or_none()
+            row = (await session.execute(
+                select(Broadcast).where(Broadcast.id == int(campaign_id),
+                                        Broadcast.tenant_id == tenant_id))).scalar_one_or_none()
             if row:
                 result.update(name=row.name, total_recipients=row.total_recipients, sent_count=row.sent_count,
                               failed_count=row.failed_count, opened_count=row.opened_count, status=row.status,
@@ -281,13 +312,19 @@ class PdfReportsEngine:
                               sent_at=row.sent_at.isoformat() if row.sent_at else "")
         elif campaign_type == "flow":
             from models import Flow, FlowExecution
-            row = (await session.execute(select(Flow).where(Flow.id == int(campaign_id)))).scalar_one_or_none()
+            row = (await session.execute(
+                select(Flow).where(Flow.id == int(campaign_id),
+                                   Flow.tenant_id == tenant_id))).scalar_one_or_none()
             if row:
                 total = (await session.scalar(
-                    select(func.count(FlowExecution.id)).where(FlowExecution.flow_id == int(campaign_id)))) or 0
+                    select(func.count(FlowExecution.id)).where(
+                        FlowExecution.flow_id == int(campaign_id),
+                        FlowExecution.tenant_id == tenant_id))) or 0
                 completed = (await session.scalar(
                     select(func.count(FlowExecution.id)).where(
-                        FlowExecution.flow_id == int(campaign_id), FlowExecution.status == "completed"))) or 0
+                        FlowExecution.flow_id == int(campaign_id),
+                        FlowExecution.tenant_id == tenant_id,
+                        FlowExecution.status == "completed"))) or 0
                 result.update(name=row.name, total_recipients=total, sent_count=completed, status=row.status,
                               created_at=row.created_at.isoformat() if row.created_at else "")
         return result
@@ -421,40 +458,49 @@ class PdfReportsEngine:
 
     # ── Public API ───────────────────────────────────────────────────────
 
-    async def monthly_report(self, days: int = 30, branding: BrandingConfig | None = None) -> bytes:
-        """Generate monthly performance PDF. Returns PDF bytes."""
+    async def monthly_report(self, days: int = 30, branding: BrandingConfig | None = None,
+                             tenant_id: int = 0) -> bytes:
+        """Generate monthly performance PDF. Returns PDF bytes.
+
+        v9-A1: tenant_id is REQUIRED in practice — callers must pass the
+        requesting user's tenant; 0 keeps legacy single-tenant behavior."""
         self._engine_check()
         brand = branding or BrandingConfig()
         from database import AsyncSessionLocal
         async with AsyncSessionLocal() as session:
-            overview = await self._get_overview(days, session)
-            daily_trend = await self._get_daily_trend(days, session)
-            top_rules = await self._get_top_rules(days, 10, session)
-            sentiment_trend = await self._get_sentiment_trend(days, session)
-            top_commenters = await self._get_top_commenters(days, 10, session)
-            subscriber_growth = await self._get_subscriber_growth(days, session)
+            overview = await self._get_overview(days, session, tenant_id)
+            daily_trend = await self._get_daily_trend(days, session, tenant_id)
+            top_rules = await self._get_top_rules(days, 10, session, tenant_id)
+            sentiment_trend = await self._get_sentiment_trend(days, session, tenant_id)
+            top_commenters = await self._get_top_commenters(days, 10, session, tenant_id)
+            subscriber_growth = await self._get_subscriber_growth(days, session, tenant_id)
             period = f"{utcnow().strftime('%B %Y')} | آخر {days} يوم"
             html = self._build_monthly_html(overview, daily_trend, top_rules, sentiment_trend,
                                             top_commenters, subscriber_growth, brand, days, period)
         return self._render(html)
 
-    async def campaign_report(self, campaign_type: str, campaign_id: str, branding: BrandingConfig | None = None) -> bytes:
-        """Generate campaign-specific PDF.  campaign_type in ('broadcast', 'flow')."""
+    async def campaign_report(self, campaign_type: str, campaign_id: str,
+                              branding: BrandingConfig | None = None, tenant_id: int = 0) -> bytes:
+        """Generate campaign-specific PDF.  campaign_type in ('broadcast', 'flow').
+
+        v9-A1: campaigns are looked up tenant-scoped — a foreign tenant's
+        campaign_id resolves to nothing and renders an empty report."""
         self._engine_check()
         brand = branding or BrandingConfig()
         from database import AsyncSessionLocal
         async with AsyncSessionLocal() as session:
-            data = await self._get_campaign_data(campaign_type, campaign_id, session)
+            data = await self._get_campaign_data(campaign_type, campaign_id, session, tenant_id)
             html = self._build_campaign_html(data, brand)
         return self._render(html)
 
-    async def subscriber_report(self, days: int = 30, branding: BrandingConfig | None = None) -> bytes:
-        """Generate subscriber growth PDF."""
+    async def subscriber_report(self, days: int = 30, branding: BrandingConfig | None = None,
+                                tenant_id: int = 0) -> bytes:
+        """Generate subscriber growth PDF (tenant-scoped, v9-A1)."""
         self._engine_check()
         brand = branding or BrandingConfig()
         from database import AsyncSessionLocal
         async with AsyncSessionLocal() as session:
-            growth = await self._get_subscriber_growth(days, session)
-            overview = await self._get_overview(days, session)
+            growth = await self._get_subscriber_growth(days, session, tenant_id)
+            overview = await self._get_overview(days, session, tenant_id)
             html = self._build_subscriber_html(growth, overview, brand, days)
         return self._render(html)

@@ -4,12 +4,13 @@ from __future__ import annotations
 Structured logging and diagnostics for SmartBot.
 JSON-formatted logs, health metrics, performance tracking.
 """
-import asyncio
 import json
 import logging
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+
+from _async import spawn  # v9-A11: GC-safe background tasks
 
 # BotLog batch buffer and async flush
 _botlog_batch: list[dict] = []
@@ -90,7 +91,7 @@ class StructuredLogger:
         # Broadcast via EventBus (router.py registers a WS bridge for log_event)
         try:
             from event_bus import event_bus
-            asyncio.create_task(event_bus.emit("log_event", event.to_dict()))
+            spawn(event_bus.emit("log_event", event.to_dict()))
         except Exception:
             pass
         # Batch-write to BotLog every 10 events
@@ -99,7 +100,7 @@ class StructuredLogger:
             payload = {"level": d.get("level", "INFO"), "message": d.get("message", "")}
             _botlog_batch.append(payload)
             if len(_botlog_batch) >= 10:
-                asyncio.create_task(_flush_botlog())
+                spawn(_flush_botlog())
         except Exception:
             pass
 

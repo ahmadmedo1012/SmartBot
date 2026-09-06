@@ -56,7 +56,7 @@ export default function PricingPage() {
       <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-30">
         <SectionContainer><div className="flex items-center justify-between h-14">
           <a href="/" className="flex items-center gap-2">
-            <Image src="/brand-icon.png" alt="SmartBot" width={56} height={56} className="size-7 rounded-md" priority />
+            <Image src="/brand-icon.png" alt="" width={56} height={56} className="size-7 rounded-md" priority />
             <span className="font-bold text-sm">SmartBot</span>
           </a>
           <div className="flex items-center gap-2">
@@ -67,11 +67,15 @@ export default function PricingPage() {
         </div></SectionContainer>
       </header>
 
+      {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
+          this page; same sr-only anchor pattern as the landing). */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
+
       <SectionContainer className="py-20 text-center relative">
         <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[50vmin]" color="orange/8" />
 
         <div
-          className="animate-fade-in-150 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
+          className="animate-fade-in-150 inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
         >
           <Sparkles className="size-3 text-accent-foreground" />
           خطط الأسعار
@@ -130,7 +134,7 @@ export default function PricingPage() {
             }`}
           >
             سنوي
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+            <span className={`text-3xs font-bold px-1.5 py-0.5 rounded-full ${
               annual ? "bg-primary-foreground/20 text-primary-foreground" : "bg-accent-foreground/15 text-accent-foreground"
             }`}>
               وفّر شهرين
@@ -190,7 +194,7 @@ export default function PricingPage() {
                 )}>
                   {isPopular && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white text-[10px] font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
+                      <div className="bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
                         <Crown className="size-3 fill-white" />
                         الأكثر شعبية
                       </div>
@@ -214,14 +218,16 @@ export default function PricingPage() {
                   </CardHeader>
 
                   <CardContent className="flex-1 flex flex-col px-6 pb-6">
-                    {/* Price */}
+                    {/* Price — v9-C3: key-remount swap. key={annual} re-mounts the
+                     * price/period nodes on billing toggle so the .price-swap
+                     * entrance (globals.css) plays — framer-free by design. */}
                     <div className="text-center mb-6 py-4 border-y border-border/40">
                       <div className="flex items-baseline justify-center gap-1.5">
                         {plan.price === 0 ? (
                           <span className="text-4xl font-extrabold">مجاني</span>
                         ) : (
                           <>
-                            <span className="text-5xl font-extrabold tracking-tighter text-accent-foreground">
+                            <span key={annual ? "y" : "m"} className="price-swap text-5xl font-extrabold tracking-tighter text-accent-foreground">
                               {/* Smart-Menu parity: yearly billing = 10× monthly (two months free) */}
                               {annual ? Math.round(plan.price * 10 * 100) / 100 : plan.price}
                             </span>
@@ -229,18 +235,18 @@ export default function PricingPage() {
                           </>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div key={annual ? "y" : "m"} className="price-swap text-xs text-muted-foreground mt-1">
                         {plan.price === 0 ? "للأبد، بدون حدود زمنية" : annual ? "سنوياً" : "شهرياً"}
                       </div>
                       {annual && plan.price > 0 && (
-                        <div className="text-[11px] text-accent-foreground mt-0.5">
+                        <div className="price-swap text-2xs text-accent-foreground mt-0.5">
                           وفر شهرين عند الاشتراك السنوي
                         </div>
                       )}
                     </div>
 
                     {/* Features */}
-                    <ul className="space-y-2.5 mb-6 flex-1 text-right">
+                    <ul className="space-y-2.5 mb-6 flex-1 text-start">
                       {plan.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm">
                           <div className="size-5 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0 mt-0.5">

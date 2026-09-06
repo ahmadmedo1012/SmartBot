@@ -78,6 +78,12 @@ if (cd fb_dashboard/frontend && node ../../scripts/check_a11y_labels.ts >/dev/nu
 else
   echo "❌ a11y: unnamed icon-only control(s) found"; CONTRACT_OK=0
 fi
+# 5e. v6 §B — WCAG AA contrast, measured (oklch -> sRGB -> WCAG ratio)
+if (cd fb_dashboard/frontend && node ../../scripts/check_contrast.mjs >/dev/null 2>&1); then
+  echo "✅ contrast: all core pairs >= 4.5:1 (AA)"
+else
+  echo "❌ contrast: pair(s) below AA"; CONTRACT_OK=0
+fi
 [[ $CONTRACT_OK -eq 1 ]] || FAILURES+=("contracts")
 
 echo "────────────────────────────────────────────────────────────────"

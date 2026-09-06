@@ -171,7 +171,13 @@
   /* ── ACCENT — Smart-Menu parity: faint 15% hint for soft hovers/tints,
        NOT a solid brand color. bg-accent/hover:bg-accent produce a whisper. ── */
   --accent: oklch(0.55 0.19 45 / 0.15);
-  --accent-foreground: oklch(0.55 0.19 45);
+  /* v6 §B contrast calibration (MEASURED, see scripts/check_contrast.mjs):
+   * at 0.55 the orange TEXT measured 3.55-3.67:1 on the accent/tint
+   * backgrounds it actually renders over (badges, active nav, step chips) —
+   * AA fail for normal text. 0.63 measures >= 4.76:1 on every real combo
+   * (accent tint 4.93, 15% tint 4.76, plain card 5.41). Solid orange
+   * buttons are --primary and are NOT affected by this token. */
+  --accent-foreground: oklch(0.63 0.19 45);
   --accent-soft: oklch(0.55 0.19 45 / 0.15);
   --accent-fg: oklch(0.98 0 0);
 
@@ -254,7 +260,11 @@
 
   /* ── ACCENT — Smart-Menu parity (light: 12% hint) ── */
   --accent: oklch(0.55 0.19 45 / 0.12);
-  --accent-foreground: oklch(0.55 0.19 45);
+  /* v6 §B contrast calibration (MEASURED): at 0.55 the orange text measured
+   * 4.20-4.37:1 on its real tint backgrounds — just under AA. 0.50 measures
+   * >= 5.04:1 on every combo (accent tint 5.40, 15% tint 5.04, plain card
+   * 6.45) while staying clearly in the brand-orange family. */
+  --accent-foreground: oklch(0.5 0.19 45);
   --accent-soft: oklch(0.55 0.19 45 / 0.12);
   --accent-fg: oklch(0.98 0 0);
 

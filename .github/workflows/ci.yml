@@ -68,6 +68,10 @@ jobs:
         # every icon-only interactive control must carry an accessible name
         run: cd fb_dashboard/frontend && node ../../scripts/check_a11y_labels.ts
 
+      - name: Gate 5c — WCAG AA contrast, measured (v6 §B)
+        # oklch tokens -> sRGB -> WCAG ratio; every core text/bg pair >= 4.5:1
+        run: cd fb_dashboard/frontend && node ../../scripts/check_contrast.mjs
+
       - name: Run tsc
         run: cd fb_dashboard/frontend && npx tsc --noEmit
 

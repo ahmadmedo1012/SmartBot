@@ -1,28 +1,47 @@
 "use client"
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { MotionConfig } from "framer-motion"
-import { ReactNode, useState } from "react"
+import { ThemeProvider } from "next-themes"
+import dynamic from "next/dynamic"
+import { ReactNode } from "react"
 
-/* v8-C2: reducedMotion="user" — every framer-motion animation in the tree now
- * automatically respects the OS "reduce motion" preference (springs, staggers,
- * sparkline draws, page entrances). The CSS keyframes in globals.css already
- * honored prefers-reduced-motion; this closes the gap for ALL JS-driven motion
- * (WCAG 2.3.3) in one line. */
+/* v12-E5.1/E5.2/E5.3 — the root providers went on a diet:
+ *
+ * 1. MotionConfig (framer-motion) REMOVED — it dragged the ~116KB motion
+ *    engine into the shared base chunk of EVERY route (public pages
+ *    included) for animations only 2 lazy components actually used.
+ *    The eager routes now use the CSS twins in
+ *    components/shared/enter-motion.css; the only JS-motion consumer
+ *    left (OnboardingWizard) wraps its own root in MotionConfig —
+ *    it is dynamic(ssr:false) via AuthGuard, so framer stays in ITS
+ *    lazy chunk only.
+ * 2. QueryClientProvider REMOVED — react-query was only consumed under
+ *    /dashboard (22 pages) + /admin (telegram). It now mounts in those
+ *    layouts via components/shared/QueryProvider, so public routes
+ *    (landing/pricing/login/register/…) stop shipping it entirely.
+ * 3. AppToaster (sonner) is now a client-only dynamic import mounted
+ *    here — ssr:false is not allowed in server components, and this
+ *    file is already the client boundary. The toaster chunk loads
+ *    after first paint; toasts are user-event driven (clicks /
+ *    mutations) so nothing can fire before it mounts.
+ *
+ * The ThemeProvider stays exactly as it was (attribute/defaultTheme/
+ * enableSystem/disableTransitionOnChange) — same props, just owned
+ * here so layout.tsx stays a pure server component. */
+const AppToaster = dynamic(
+  () => import("@/components/ui/app-toaster").then((m) => m.AppToaster),
+  { ssr: false },
+)
+
 export function Providers({ children }: { children: ReactNode }) {
-  // v9-B7 — useState factory: the QueryClient is created lazily on the first
-  // client render instead of at module scope. A module-scope instance is
-  // shared across every SSR request in the same Node process, leaking a
-  // user's cached API responses into other users' SSR output.
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
-      }),
-  )
   return (
-    <QueryClientProvider client={queryClient}>
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
-    </QueryClientProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
+      {children}
+      <AppToaster />
+    </ThemeProvider>
   )
 }

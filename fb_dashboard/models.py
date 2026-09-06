@@ -76,7 +76,14 @@ class BotLog(Base):
 
 class BotState(Base):
     __tablename__ = "bot_state"
-    __table_args__ = (UniqueConstraint('tenant_id', 'key', name='uq_botstate_tenant_key'),)
+    # v12 E1.7 (D9): plain (key, value) index — كل حدث webhook يبحث
+    # bot_state WHERE key='fb_page_id' AND value=:page_id (app/webhooks.py)
+    # وكان يمسح الجدول تسلسليًا؛ الفريد القائم (tenant_id, key) لا يخدم هذا
+    # الاستعلام. NOT unique — تكرارات قديمة محتملة في (key, value) نفسها.
+    __table_args__ = (
+        UniqueConstraint('tenant_id', 'key', name='uq_botstate_tenant_key'),
+        Index("ix_botstate_key_value", "key", "value"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -136,6 +143,10 @@ class User(Base):
     # (bootstrap admin) are implicitly platform admins; this flag delegates the
     # role to a real tenant owner without giving them a second account.
     is_platform_admin = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    # v12 E1.8 — token version: يُرفع عند تغيير/إعادة تعيين كلمة المرور
+    # فتُرفض رموز JWT القديمة فورًا (بلا انتظار انتهاء صلاحيتها) — يقرؤه
+    # make_token/get_current_user في routers/auth.py (توصيل E2).
+    token_ver = Column(Integer, nullable=False, default=0, server_default=text("0"))
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -158,6 +169,10 @@ class ReplyTemplate(Base):
 class AISuggestion(Base):
     """Log of AI-powered suggestion events."""
     __tablename__ = "ai_suggestions"
+    # v12 E1.7 (D9): جدول بلا أي فهرس — استعلامات التحليلات/الودجت
+    # (analytics.py، widgets_routes.py، analytics_engine.py) تفلتر بالعميل
+    # وتُرتب/تُجمّع بـ created_at.
+    __table_args__ = (Index("ix_ai_suggestion_tenant_created", "tenant_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -228,6 +243,8 @@ class AnalyticsEvent(Base):
 class BotAlert(Base):
     """Bot health alerts — low reply rate, errors, token issues."""
     __tablename__ = "bot_alerts"
+    # v12 E1.7 (D9): قائمة التنبيهات تفلتر (tenant_id, resolved) وترتب بـ created_at
+    __table_args__ = (Index("ix_bot_alert_tenant_resolved_created", "tenant_id", "resolved", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -285,6 +302,8 @@ class Subscriber(Base):
     __table_args__ = (
         Index("ix_sub_tenant_id", "tenant_id", "id"),
         Index("ix_sub_tenant_last_interaction", "tenant_id", "last_interaction_at"),  # v5 §4: audience list sort
+        # v12 E1.7 (D9): تقسيم الجمهور يفلتر (tenant, platform) ويرشّح status
+        Index("ix_sub_tenant_platform_status", "tenant_id", "platform", "status"),
         UniqueConstraint('tenant_id', 'fb_user_id', name='uq_sub_tenant_fbuser'),
     )
 
@@ -435,6 +454,8 @@ class SequenceSubscription(Base):
 class Broadcast(Base):
     """One-time broadcast message to a subscriber segment."""
     __tablename__ = "broadcasts"
+    # v12 E1.7 (D9): قائمة البث تُرتّب بـ created_at داخل المستأجر
+    __table_args__ = (Index("ix_broadcast_tenant_created", "tenant_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -630,6 +651,8 @@ class SubscriptionPayment(Base):
     __table_args__ = (
         Index("ix_sub_payment_user_pending", "user_id", unique=True,
               postgresql_where=text("status = 'pending'")),
+        # v12 E1.7 (D9): مسار الإدارة يفلتر (tenant, status) ويرتب بـ created_at
+        Index("ix_sub_payment_tenant_status_created", "tenant_id", "status", "created_at"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -726,6 +749,9 @@ class Customer(Base):
 class PaymentRequest(Base):
     """Subscription/topup payment with Telegram admin approval."""
     __tablename__ = "payment_requests"
+    # v12 E1.7 (D9): سجل الدفعات يُستعلم بـ (tenant, created_at) — كان الجدول
+    # بلا أي فهرس (مسح تسلسلي لكل طلب)
+    __table_args__ = (Index("ix_payment_request_tenant_created", "tenant_id", "created_at"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)

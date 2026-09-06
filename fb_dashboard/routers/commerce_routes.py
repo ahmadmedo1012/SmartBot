@@ -56,10 +56,17 @@ async def shopify_webhook(topic: str, request: Request):
 
 
 @router.get("/api/commerce/shopify/products")
-async def shopify_products(limit: int = Query(10), _=Depends(get_current_user)):
+async def shopify_products(limit: int = Query(10, ge=1, le=100), _=Depends(require_platform_admin)):
+    """Platform-admin only + bounded limit (v12-E2.2): the Shopify store is a
+    GLOBAL singleton (one BotState-backed store for the whole platform) — its
+    product catalog is the operator's data, not tenant data. The unbounded
+    ``limit`` also let a caller ask Shopify for the entire catalog."""
     return ok({"products": await commerce_engine.shopify.get_products(limit)})
 
 
 @router.get("/api/commerce/shopify/orders")
-async def shopify_orders(limit: int = Query(10), status: str = Query("any"), _=Depends(get_current_user)):
+async def shopify_orders(limit: int = Query(10, ge=1, le=100), status: str = Query("any"),
+                         _=Depends(require_platform_admin)):
+    """Platform-admin only + bounded limit (v12-E2.2): orders carry buyer PII
+    (names/emails/addresses) for the GLOBAL store — never tenant-visible."""
     return ok({"orders": await commerce_engine.shopify.get_orders(limit, status)})

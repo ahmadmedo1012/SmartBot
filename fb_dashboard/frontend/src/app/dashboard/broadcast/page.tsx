@@ -118,7 +118,7 @@ export default function BroadcastPage() {
                   aria-label="نص الرسالة"
                 />
                 <p className="text-2xs text-muted-foreground">
-                  ستُرسل الرسالة للمشتركين عبر الماسنجر — تأكد من ربط صفحتك أولًا
+                  ستُرسل الرسالة للمشتركين عبر الماسنجر — تأكد من ربط صفحتك أولاً
                 </p>
               </div>
               <Button

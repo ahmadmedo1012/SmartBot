@@ -166,7 +166,14 @@ async def test_save_credentials_writes_botstate_rows(v10_world):
         rows = {r.key: r.value for r in (await db.execute(
             select(BotState).where(BotState.tenant_id == 3,
                                    BotState.key.like("publisher_x_%")))).scalars()}
-        assert rows == {"publisher_x_api_key": "k1", "publisher_x_access_token": "t1"}
+        # v12-E1.5: publisher credentials are Fernet-encrypted at rest now —
+        # pin the ciphertext shape + the decrypt round-trip (not plaintext).
+        from _crypto import decrypt_token
+
+        assert set(rows) == {"publisher_x_api_key", "publisher_x_access_token"}
+        assert all(v.startswith("gAAAA") for v in rows.values()), rows
+        assert decrypt_token(rows["publisher_x_api_key"]) == "k1"
+        assert decrypt_token(rows["publisher_x_access_token"]) == "t1"
 
         # كتابة ثانية لنفس المفاتيح = تحديث لا صفوف جديدة
         assert await eng.save_credentials(db, "x", {"api_key": "k2"},
@@ -174,7 +181,7 @@ async def test_save_credentials_writes_botstate_rows(v10_world):
         rows = (await db.execute(
             select(BotState).where(BotState.tenant_id == 3,
                                    BotState.key == "publisher_x_api_key"))).scalars().all()
-        assert len(rows) == 1 and rows[0].value == "k2"
+        assert len(rows) == 1 and decrypt_token(rows[0].value) == "k2"
 
 
 # ── الناشر: المسارات ────────────────────────────────────────────────────────
@@ -208,11 +215,11 @@ async def test_publisher_publish_validation_guards(v10_seed):
     c = v10_seed.world.client
 
     r = await c.post("/api/publisher/publish", json={"message": "   "})
-    assert r.status_code == 400 and r.json()["detail"] == "Message required", r.text
+    assert r.status_code == 400 and r.json()["detail"] == "نص المنشور مطلوب", r.text  # v12: عربية
 
     r = await c.post("/api/publisher/publish", json={
         "message": "منشور", "scheduled_at": "غدًا"})
-    assert r.status_code == 400 and "Invalid date format" in r.json()["detail"], r.text
+    assert r.status_code == 400 and "صيغة التاريخ" in r.json()["detail"], r.text  # v12: عربية
 
 
 async def test_publisher_publish_facebook_immediate(v10_seed, monkeypatch):
@@ -227,7 +234,12 @@ async def test_publisher_publish_facebook_immediate(v10_seed, monkeypatch):
             calls.append(("post_to_page", message))
             return {"id": "fb_post_123"}
 
-    monkeypatch.setattr(pr_mod, "fb", RecorderFB())
+    # v12-E2.3: the route resolves the TENANT client via get_tenant_fb_client
+    # (the module-level `fb` global is gone) — patch that resolver instead.
+    async def _fake_tenant_fb(tenant_id):
+        return RecorderFB()
+
+    monkeypatch.setattr(pr_mod, "get_tenant_fb_client", _fake_tenant_fb)
 
     uname, tid, _uid = await v10_seed.tenant_user(role="editor", tenant_name="PUB-FB")
     await v10_seed.login(uname)
@@ -289,7 +301,10 @@ async def test_publisher_configure_saves_and_reports(v10_seed):
         rows = {r.key: r.value for r in (await db.execute(
             select(BotState).where(BotState.tenant_id == tid,
                                    BotState.key.like("publisher_x_%")))).scalars()}
-        assert rows["publisher_x_api_key"] == "k"
+        # v12-E1.5: encrypted at rest — decrypt to verify the round-trip
+        from _crypto import decrypt_token
+
+        assert decrypt_token(rows["publisher_x_api_key"]) == "k"
 
     r = await c.get("/api/publisher/status")
     assert r.json()["data"]["x"]["configured"] is True

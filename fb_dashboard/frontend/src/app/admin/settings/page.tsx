@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { motion } from "framer-motion"
 import { brandedToast } from "@/lib/premium-toast"
 import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -15,7 +14,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { fadeUp } from "@/lib/motion"
+/* v12-E5.1: framer-motion left this route — entrances are the CSS twins
+ * .sb-fade-up (components/shared/enter-motion.css): 1:1 copy of lib/motion.ts
+ * fadeUp (0.5s cubic-bezier(0.165,0.84,0.44,1), y24→0), delay 0 (custom was
+ * unset), guarded by prefers-reduced-motion. */
+import "@/components/shared/enter-motion.css"
 
 // ── Field descriptors ────────────────────────────────────────────────────────
 type Field = {
@@ -309,7 +312,7 @@ export default function AdminSettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2 items-start">
         {/* Payment section */}
-        <motion.div variants={fadeUp} initial="hidden" animate="visible">
+        <div className="sb-fade-up">
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -323,11 +326,11 @@ export default function AdminSettingsPage() {
               {PAYMENT_FIELDS.map(fieldRow)}
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
         <div className="space-y-6">
           {/* Support section */}
-          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+          <div className="sb-fade-up">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -345,10 +348,10 @@ export default function AdminSettingsPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Telegram notifications section (plan v3 §5.3) */}
-          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+          <div className="sb-fade-up">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -377,10 +380,10 @@ export default function AdminSettingsPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
           {/* Facebook webhook signature (plan v3 §4 final gap) */}
-          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+          <div className="sb-fade-up">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -399,9 +402,9 @@ export default function AdminSettingsPage() {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
           {/* AI provider keys (v4 §5.20) */}
-          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+          <div className="sb-fade-up">
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -415,7 +418,7 @@ export default function AdminSettingsPage() {
                 {AI_FIELDS.map(fieldRow)}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
       </div>
     </SectionContainer>

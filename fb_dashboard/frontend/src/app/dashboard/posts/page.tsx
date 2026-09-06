@@ -82,7 +82,7 @@ export default function PostsPage() {
             <textarea
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
-              placeholder="اكتب منشوراً جديداً..."
+              placeholder="اكتب منشوراً جديداً…"
               aria-label="نص المنشور"
               className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />

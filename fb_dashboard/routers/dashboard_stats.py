@@ -180,67 +180,9 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً") from None
 
 
-@router.get("/api/stats")
-async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    _tid = current_user._tenant_id
-    total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid)) or 0
-    today = utcnow().date()
-    today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == today)
-    ) or 0
-
-    top = None
-    try:
-        stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
-        top = (await db.execute(stmt)).first()
-    except Exception:
-        pass
-
-    fan_count = None
-    connected = False
-    try:
-        tenant_fb = await get_tenant_fb_client(_tid)
-        if tenant_fb is not None:
-            connected = True
-            fan_count = await tenant_fb.get_page_fan_count()  # None on failure (v4 §3.7)
-        else:
-            # v10-B3 — skip the legacy Graph call when env credentials are
-            # empty/zero (multi-tenant production): no wasted round-trip.
-            if has_global_fb_credentials():
-                fan_count = await fb.get_page_fan_count()
-    except Exception:
-        fan_count = None
-    if fan_count is None:
-        try:
-            from models import BotState as _BS
-            _snap = await db.execute(
-                select(_BS).where(_BS.tenant_id == _tid, _BS.key == "fb_fan_count"))
-            _sbs = _snap.scalar_one_or_none()
-            if _sbs and (_sbs.value or "").isdigit():
-                fan_count = int(_sbs.value)
-        except Exception:
-            pass
-    fan_count = fan_count or 0
-
-    chart_data = {}
-    try:
-        rows = await db.execute(
-            select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id))
-            .where(Reply.tenant_id == _tid, Reply.created_at >= utcnow() - timedelta(days=7))
-            .group_by(cast(Reply.created_at, Date))
-        )
-        chart_data = {str(row[0]): row[1] for row in rows if row[0]}
-    except Exception:
-        pass
-
-    return {"success": True, "data": {
-        "total_replies": total_replies,
-        "today_replies": today_replies,
-        "total_fan_count": fan_count,
-        "connected": connected,
-        "top_rule_id": int(top[0]) if top and top[0] is not None else None,
-        "reply_chart": chart_data,
-    }}
+# v12-E2.8: GET /api/stats + GET /api/stats/hourly REMOVED — dead legacy
+# routes (superseded by /api/dashboard/bundle; D4 consumer map: zero
+# frontend/e2e/test callers). The live system stats live at /api/system/stats.
 
 
 @router.get("/api/system/stats")
@@ -270,7 +212,8 @@ async def get_system_stats(db=Depends(get_db), current_user: User = Depends(requ
             .order_by(desc(User.created_at)).limit(5)
         )).scalars().all()
     ]
-    return {"success": True, "data": {
+    # v12-E2.9: mechanical ok() rename — byte-identical shape to the raw dict.
+    return ok({
         "totalUsers": total_users,
         "totalTenants": total_tenants,
         "totalReplies": total_replies,
@@ -281,17 +224,6 @@ async def get_system_stats(db=Depends(get_db), current_user: User = Depends(requ
         "revenueTrend": [],
         "recentSignups": recent_signups,
         "recentLogins": [],
-    }}
+    })
 
 
-@router.get("/api/stats/hourly")
-async def get_hourly_stats(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    _tid = current_user._tenant_id
-    cutoff = utcnow() - timedelta(days=7)
-    hour_label = func.extract("hour", Reply.created_at).label("h")
-    rows = await db.execute(
-        select(hour_label, func.count(Reply.id).label("count"))
-        .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(hour_label).order_by(hour_label)
-    )
-    return {"success": True, "data": [{"hour": int(r.h), "count": r.count} for r in rows]}

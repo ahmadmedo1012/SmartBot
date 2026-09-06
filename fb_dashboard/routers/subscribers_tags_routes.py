@@ -30,7 +30,7 @@ async def list_subscribers(
 async def get_subscriber(sub_id: int, db=Depends(get_db), current_user: User = Depends(get_current_user)):
     detail = await subscriber_engine.get_detail(sub_id, db, tenant_id=current_user._tenant_id)
     if not detail:
-        raise HTTPException(404, "Subscriber not found")
+        raise HTTPException(404, "المشترك غير موجود")
     return ok(detail)
 
 
@@ -45,7 +45,7 @@ async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db
 async def remove_subscriber_tag(sub_id: int, tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     done = await subscriber_engine.remove_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Tag not assigned to subscriber")
+        raise HTTPException(404, "الوسم غير معيّن لهذا المشترك")
     return ok({"ok": True})
 
 
@@ -68,5 +68,5 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
 async def delete_tag(tag_id: int, db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     done = await tag_engine.delete_tag(tag_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Tag not found")
+        raise HTTPException(404, "الوسم غير موجود")
     return ok({"ok": True})

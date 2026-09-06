@@ -48,7 +48,7 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
         select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not user:
-        raise HTTPException(404, "User not found")
+        raise HTTPException(404, "المستخدم غير موجود")
     if role not in _VALID_ROLES:
         raise HTTPException(400, "الدور يجب أن يكون admin أو editor أو viewer")
     if password and len(password) < 8:
@@ -67,9 +67,9 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
         select(User).where(User.id == user_id, User.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not user:
-        raise HTTPException(404, "User not found")
+        raise HTTPException(404, "المستخدم غير موجود")
     if user.id == current_user.id:
-        raise HTTPException(400, "Cannot delete yourself")
+        raise HTTPException(400, "لا يمكنك حذف حسابك")
     await db.delete(user)
     await db.commit()
     return ok({"ok": True})

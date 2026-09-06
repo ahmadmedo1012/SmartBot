@@ -259,7 +259,7 @@ async def get_post_detail(post_id: str, current_user: User = Depends(get_current
     fb = await _tenant_fb(current_user)
     detail = await fb.get_post_detail(post_id)
     if not detail:
-        raise HTTPException(404, "Post not found")
+        raise HTTPException(404, "المنشور غير موجود")
     return ok(detail)
 
 
@@ -268,7 +268,7 @@ async def delete_post(post_id: str, current_user: User = Depends(require_role("e
     fb = await _tenant_fb(current_user)
     result = await fb.delete_post(post_id)
     if not result:
-        raise HTTPException(400, "Failed to delete post")
+        raise HTTPException(400, "فشل حذف المنشور")
     return ok({"ok": True})
 
 
@@ -277,7 +277,7 @@ async def publish_post(message: str = Form(...), current_user: User = Depends(re
     fb = await _tenant_fb(current_user)
     result = await fb.post_to_page(message)
     if not result:
-        raise HTTPException(status_code=500, detail="Failed to post")
+        raise HTTPException(status_code=500, detail="فشل النشر")
     _track_event("post_published", {"post_id": (result or {}).get("id", "")[:40]},
                  tenant_id=current_user._tenant_id)
     return ok(result)

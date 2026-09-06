@@ -15,9 +15,11 @@ router = APIRouter(prefix="", tags=["widgets"])
 
 
 @router.get("/api/widgets/recent-activity")
-async def widget_recent_activity(limit: int = Query(10), db=Depends(get_db),
+async def widget_recent_activity(limit: int = Query(10, ge=1, le=100), db=Depends(get_db),
                                  current_user: User = Depends(get_current_user)):
-    """Recent activity timeline for the dashboard."""
+    """Recent activity timeline for the dashboard.
+
+    v12-E2.7: bounded limit (was a bare default 10 — unbounded from client)."""
     _tid = current_user._tenant_id
     recent_replies = await db.execute(
         select(Reply).where(Reply.tenant_id == _tid).order_by(desc(Reply.created_at)).limit(limit)

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import { timeAgo } from "@/lib/format"
+import { countPhrase, timeAgo } from "@/lib/format"
 import {
   Bell,
   MessageSquare,
@@ -179,7 +179,9 @@ export default function NotificationsPage() {
       <PageHeader
         icon={<Bell className="size-4" />}
         title="الإشعارات"
-        subtitle={`آخر التحديثات${unread > 0 ? ` — ${unread} غير مقروء` : ""}`}
+        /* v12-E4.13: unread count through countPhrase (dual/plural) instead
+           of the raw «N غير مقروء» interpolation. */
+        subtitle={`آخر التحديثات${unread > 0 ? ` — ${countPhrase(unread, "إشعار غير مقروء", "إشعاران غير مقروءان", "إشعارات غير مقروءة")}` : ""}`}
         compact
       />
 

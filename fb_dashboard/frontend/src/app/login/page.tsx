@@ -29,6 +29,16 @@ function safeRedirect(value: string | null) {
   return value
 }
 
+/* v12-E4.8: 429 lockout window — parse the backend's remaining seconds from
+ * its Arabic message ("… بعد 60 ثانية") when present, else assume 60s. */
+function parseLockoutSeconds(message: string): number {
+  const seconds = /(\d+)\s*(?:ثانية|ثوانٍ|ثواني)/.exec(message)
+  if (seconds) return Math.min(900, Math.max(1, Number(seconds[1])))
+  const minutes = /(\d+)\s*(?:دقيقة|دقائق)/.exec(message)
+  if (minutes) return Math.min(900, Math.max(1, Number(minutes[1]) * 60))
+  return 60
+}
+
 /* v10-B5 (G2-04): only the PLATFORM admin (role "admin" AND tenant_id 0)
  * lands on /admin. Registered business owners are role "admin" with a real
  * tenant (tenant_id > 0) — they land on /dashboard, consistent with the
@@ -53,6 +63,15 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [formError, setFormError] = useState("")
+  // v12-E4.8: 429 rate-limit lockout — seconds remaining before submit
+  // re-enables (backend 429 detail drives the window; 60s fallback).
+  const [lockoutSeconds, setLockoutSeconds] = useState(0)
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return
+    const t = setInterval(() => setLockoutSeconds((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [lockoutSeconds])
 
   useEffect(() => {
     apiFetch("/api/me")
@@ -72,7 +91,7 @@ function LoginForm() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background">
         <div className="flex flex-col items-center gap-3">
           <div className="size-10 animate-pulse rounded-full bg-accent-foreground/40" />
-          <span className="animate-breath text-sm text-muted-foreground">جارٍ التحميل...</span>
+          <span className="animate-breath text-sm text-muted-foreground">جارٍ التحميل…</span>
         </div>
       </div>
     )
@@ -81,6 +100,7 @@ function LoginForm() {
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
     setFormError("")
+    if (lockoutSeconds > 0) return
     if (!username.trim()) { setFormError("يرجى إدخال اسم المستخدم"); return }
     if (!password.trim()) { setFormError("يرجى إدخال كلمة المرور"); return }
     setLoading(true)
@@ -110,6 +130,11 @@ function LoginForm() {
       // v10-B7 (G2-07): one message, one place — the inline role=alert above
       // the submit button (the parallel error toast doubled it visually)
       setFormError(msg)
+      // v12-E4.8: rate-limited (429) → show the Arabic detail and lock the
+      // submit button for the remaining window with a live countdown.
+      if (e instanceof ApiError && e.status === 429) {
+        setLockoutSeconds(parseLockoutSeconds(msg))
+      }
     } finally {
       setLoading(false)
     }
@@ -159,6 +184,8 @@ function LoginForm() {
               <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="اسم المستخدم"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={formError ? "login-form-error" : undefined}
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0" />
               </div>
             </div>
@@ -168,23 +195,33 @@ function LoginForm() {
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" dir="auto"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={formError ? "login-form-error" : undefined}
                   className="border-0 bg-transparent ps-9 pe-10 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  tabIndex={-1} aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
+                      interactive control and must sit in the tab order (the
+                      only Level-A keyboard failure in the a11y audit). */}
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
             {formError && (
-              <p role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
+              <p id="login-form-error" role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
                 {formError}
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading}>
+            {lockoutSeconds > 0 && (
+              <p id="login-lockout" role="status" aria-live="polite" className="text-xs text-warning text-center">
+                يمكنك إعادة المحاولة بعد {lockoutSeconds} ثانية
+              </p>
+            )}
+            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
-                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جارٍ تسجيل الدخول...</span>
+                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جارٍ تسجيل الدخول…</span>
               ) : (
                 <span className="flex items-center gap-2"><LogIn className="size-4" /> تسجيل الدخول</span>
               )}

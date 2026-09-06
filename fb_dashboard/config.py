@@ -22,8 +22,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = ""
     FERNET_KEY: str = ""
     DEBUG: bool = False
-    LOG_LEVEL: str = "INFO"
-    REDIS_URL: str = ""
+    # v12: LOG_LEVEL and REDIS_URL Settings fields removed — zero readers.
+    # Log level is fixed at INFO via logging.basicConfig in runner/startup/_services;
+    # REDIS_URL is read directly from the environment by fb_dashboard/redis_cache.py.
     BOT_INTERVAL_SECONDS: int = 10
     START_BOT: bool = True
     # ── Payment providers (Libyan mobile wallets / bank transfer) — plan §2 ──

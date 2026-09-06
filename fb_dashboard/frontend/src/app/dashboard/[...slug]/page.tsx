@@ -25,7 +25,7 @@ function PageNotFound({ slug }: { slug: string }) {
           المسار <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded" dir="ltr">/{slug}</span> غير موجود ضمن لوحة التحكم
         </p>
         <p className="text-xs text-muted-foreground mb-6">
-          ربما كان رابطاً قديمًا — كل الأقسام متاحة من القائمة الجانبية
+          ربما كان رابطاً قديماً — كل الأقسام متاحة من القائمة الجانبية
         </p>
         <Button variant="outline" onClick={() => window.location.assign("/dashboard")}>
           العودة إلى لوحة التحكم

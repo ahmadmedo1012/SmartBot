@@ -13,6 +13,7 @@ import { PlanSelector } from "./PlanSelector"
 import { ReviewSummary } from "./PaymentSection"
 import { StepIndicator, type WizardStep } from "./StepIndicator"
 import { toComparisonPlan, type ComparisonPlan, type ComparisonPlanInput } from "@/components/subscribe/plan-comparison"
+import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 import dynamic from "next/dynamic"
 
 /* Restructured onto Smart-Menu's subscribe architecture (smart-link.ly
@@ -109,7 +110,7 @@ export default function SubscribeContent() {
   const currentPlan = plans.find((p) => p.id === selectedPlan)
 
   const handlePaymentSuccess = useCallback(async () => {
-    premiumToast("success", "تم تفعيل اشتراكك بنجاح! جارٍ نقلك إلى لوحة التحكم...")
+    premiumToast("success", "تم تفعيل اشتراكك بنجاح! جارٍ نقلك إلى لوحة التحكم…")
     router.push("/dashboard")
   }, [router])
 
@@ -191,6 +192,10 @@ export default function SubscribeContent() {
           )}
         </div>
       </SectionContainer>
+
+      {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): same one-tap WhatsApp help
+          affordance as the landing — same component, same fixed slot. */}
+      <FloatingWhatsApp />
     </div>
   )
 }

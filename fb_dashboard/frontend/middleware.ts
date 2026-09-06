@@ -20,6 +20,18 @@ const publicPrefixes = [
 const FONT_FILE_RE = /\.(?:woff2?|ttf|otf)$/i;
 const FONT_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400";
 
+/* v12-E5.4 (D8 live finding): the matcher's extension alternatives only
+ * exclude paths whose remainder STARTS with ".png" — so /opengraph-image.png,
+ * /favicon.ico, /apple-touch-icon.png, /icon-*.png, /brand-icon.png and
+ * /manifest.webmanifest DO hit this middleware and previously inherited the
+ * page-wide no-store (og:image re-fetched by every social crawler, icons by
+ * every navigation). These public/ assets are content-stable (og-image is a
+ * committed build artifact) → hard-cache them; the manifest is semi-live
+ * (name/short_name can change per deploy) → 1h SWR. */
+const IMMUTABLE_STATIC_RE =
+  /^\/(?:opengraph-image\.png|favicon\.ico|apple-touch-icon\.png|brand-icon\.png|icon-[^/]+\.(?:png|ico)|manifest\.webmanifest)$/;
+const MANIFEST_CACHE_CONTROL = "public, max-age=3600, stale-while-revalidate=86400";
+
 function setHeaders(resp: NextResponse, pathname: string) {
   resp.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   resp.headers.set("X-Content-Type-Options", "nosniff");
@@ -33,7 +45,13 @@ function setHeaders(resp: NextResponse, pathname: string) {
   resp.headers.set("Content-Security-Policy", `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self' blob:`);
   resp.headers.set(
     "Cache-Control",
-    FONT_FILE_RE.test(pathname) ? FONT_CACHE_CONTROL : "no-store, no-cache, must-revalidate"
+    FONT_FILE_RE.test(pathname)
+      ? FONT_CACHE_CONTROL
+      : IMMUTABLE_STATIC_RE.test(pathname)
+        ? "public, max-age=31536000, immutable"
+        : pathname === "/manifest.webmanifest"
+          ? MANIFEST_CACHE_CONTROL
+          : "no-store, no-cache, must-revalidate"
   );
   resp.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 }
@@ -63,7 +81,14 @@ export function middleware(request: NextRequest) {
       if (!token) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("redirect", pathname);
-        return NextResponse.redirect(loginUrl);
+        const redirect = NextResponse.redirect(loginUrl);
+        /* v12-E4.14: the 307 auth redirect carried NO security headers —
+         * setHeaders is now applied on this branch too (D8 live finding:
+         * every other response on the route ships the full CSP/HSTS set).
+         * The page-level Cache-Control (no-store) also lands here, which is
+         * correct for a personalized redirect. */
+        setHeaders(redirect, pathname);
+        return redirect;
       }
     }
 

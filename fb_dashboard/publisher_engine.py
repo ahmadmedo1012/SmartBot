@@ -5,6 +5,7 @@ Schedule and publish to Facebook, X (Twitter), LinkedIn, Instagram.
 """
 import logging
 
+from _crypto import decrypt_token, encrypt_token
 from models import BotState
 from sqlalchemy import select
 
@@ -115,7 +116,15 @@ class PublisherEngine:
         )).scalars().all()
         creds = {}
         for row in rows:
-            creds[row.key] = row.value
+            # v12 E1.5 (D2 P2): secret values are stored Fernet-encrypted (see
+            # save_credentials). Legacy rows written before this round hold
+            # plaintext — decryption fails with InvalidToken and we fall back
+            # to the raw value so existing tenants keep working (same
+            # dual-read contract as fb_access_token).
+            try:
+                creds[row.key] = decrypt_token(row.value)
+            except Exception:
+                creds[row.key] = row.value
         if creds.get("publisher_x_api_key"):
             self.x = XPublisher(
                 api_key=creds.get("publisher_x_api_key", ""),
@@ -162,18 +171,41 @@ class PublisherEngine:
         }
         return templates.get(platform, [])
 
+    def _secret_keys(self, platform: str) -> set[str]:
+        """Field keys that hold credentials for this platform (from the
+        settings template's password fields) — encrypted at rest (v12 E1.5).
+
+        Non-secret identifiers (e.g. linkedin organization_id) stay
+        plaintext; an unknown platform has no template → nothing to encrypt.
+        """
+        return {
+            f["key"]
+            for f in self.get_platform_settings_template(platform)
+            if f.get("type") == "password"
+        }
+
     async def save_credentials(self, db_session, platform: str, data: dict, tenant_id: int = 0) -> bool:
-        """Save platform credentials to BotState."""
+        """Save platform credentials to BotState.
+
+        v12 E1.5 (D2 P2): X/LinkedIn tokens were stored PLAINTEXT in
+        bot_state — a single DB read/exposure leaked live platform
+        credentials. Secret fields (password-type in the settings template:
+        api keys/tokens/secrets) are now Fernet-encrypted on save with the
+        same encrypt_token helper used for fb_access_token; load_credentials
+        decrypts with a legacy-plaintext fallback.
+        """
         prefix = f"publisher_{platform}"
+        secrets = self._secret_keys(platform)
         for key, value in data.items():
+            stored = encrypt_token(str(value)) if key in secrets else str(value)
             existing = await db_session.execute(
                 select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == f"{prefix}_{key}")
             )
             row = existing.scalar_one_or_none()
             if row:
-                row.value = str(value)
+                row.value = stored
             else:
-                db_session.add(BotState(tenant_id=tenant_id, key=f"{prefix}_{key}", value=str(value)))
+                db_session.add(BotState(tenant_id=tenant_id, key=f"{prefix}_{key}", value=stored))
         await db_session.commit()
         # Reload credentials
         await self.load_credentials(db_session, tenant_id=tenant_id)

@@ -5,35 +5,53 @@ import logging
 import os
 
 from _responses import ok
+from _utils import iso_z
 from database import AsyncSessionLocal, engine, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
 from models import (
     AISuggestion,
     AnalyticsEvent,
+    AuditLog,
     Base,
     BotAlert,
     BotLog,
     BotState,
     BrandConfig,
+    Broadcast,
     BroadcastRecipient,
+    Comment,
+    Conversation,
     ConversationAssignee,
     ConversationLabel,
     ConversationNote,
+    ConversationTag,
     Customer,
+    Flow,
     FlowExecution,
+    MarketingCampaign,
+    Message,
+    Notification,
+    NotificationPreference,
     Offer,
     OfferClaim,
+    PaymentRequest,
     Reply,
     ReplyTemplate,
+    ReportSchedule,
     Rule,
     ScheduledPost,
+    Sequence,
     SequenceStep,
     SequenceSubscription,
     Subscriber,
     SubscriberTag,
+    SubscriptionPayment,
+    SupportTicket,
+    SupportTicketReply,
     SystemConfig,
     Tag,
     Tenant,
+    UsageCounter,
     User,
 )
 from sqlalchemy import desc, func, or_, select
@@ -104,7 +122,7 @@ _SECRET_VALUE_KEYS = frozenset({
     "openai_api_key",
     "gemini_api_key",
 })
-_SECRET_MASK_PREFIX = "••••"  # لا يبدأ به سر حقيقي أبدًا — علامة القناع
+_SECRET_MASK_PREFIX = "••••"  # لا يبدأ به سر حقيقي أبداً — علامة القناع
 
 
 def _mask_secret(value: str) -> str:
@@ -135,10 +153,10 @@ async def admin_get_config(db=Depends(get_db), current_user: User = Depends(requ
     # last-4 suffix proves to the operator WHICH value is stored without
     # exposing it. Non-secret keys (bank details, phones, support contact)
     # stay raw: the admin needs to copy them.
-    return {"success": True, "data": {
+    return ok({
         r.key: _mask_secret(r.value) if (r.key in _SECRET_VALUE_KEYS and r.value) else r.value
         for r in rows.scalars().all()
-    }}
+    })
 
 
 @router.post("/api/admin/config")
@@ -154,7 +172,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
         raise HTTPException(400, "جسم الطلب JSON مطلوب")
     payload = body.get("config", body) if isinstance(body.get("config", body), dict) else None
     if not payload:
-        raise HTTPException(400, "config object required")
+        raise HTTPException(400, "الحقل مطلوب: config")
     invalid = [k for k in payload if k not in _ADMIN_CONFIG_KEYS]
     if invalid:
         raise HTTPException(400, f"مفاتيح غير مسموحة: {', '.join(invalid)}")
@@ -192,7 +210,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     if "facebook_app_secret" in payload and str(payload["facebook_app_secret"] or "").strip():
         sec = str(payload["facebook_app_secret"]).strip()
         if not _re.match(r'^[a-f0-9]{32}$', sec):
-            raise HTTPException(400, "facebook_app_secret غير صالح — 32 حرفًا سداسيًا عشريًا من إعدادات التطبيق في فيسبوك")
+            raise HTTPException(400, "facebook_app_secret غير صالح — 32 حرفاً سداسياً عشرياً من إعدادات التطبيق في فيسبوك")
     from _audit import log_audit
     await log_audit(db, "admin_set_config", actor_id=current_user.id,
                     tenant_id=current_user._tenant_id, metadata={"keys": sorted(payload.keys())})
@@ -221,7 +239,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
         api_cache.clear_all()
     except Exception:
         pass
-    return {"success": True, "data": {"updated": sorted(payload.keys())}}
+    return ok({"updated": sorted(payload.keys())})
 
 
 @router.get("/api/setup-status")
@@ -254,7 +272,7 @@ async def setup_status(db=Depends(get_db), current_user: User = Depends(get_curr
         fb_row = await db.scalar(select(SystemConfig).where(SystemConfig.key == "facebook_app_secret"))
         data["fb_webhook_secret_configured"] = bool(
             (fb_row and (fb_row.value or "").strip()) or os.environ.get("FACEBOOK_APP_SECRET", "").strip())
-    return {"success": True, "data": data}
+    return ok(data)
 
 
 from _bootstrap import seed_admin  # single source of truth (runner.py imports the same)
@@ -277,16 +295,20 @@ async def cron_status(current_user: User = Depends(require_platform_admin)):
         return ok({
             "last_heartbeat": None, "age_seconds": None, "stale": None,
             "never_beaten": True, "stale_after_seconds": STALE_AFTER_S,
-            "expected_interval": "5m via cron-job.org (Vercel native: daily 04:00)",
+            "expected_interval": "كل 5 دقائق عبر cron-job.org (الأصلي على Vercel: يوميًا 04:00)",
         })
     age = int((_now() - last).total_seconds())
     return ok({
-        "last_heartbeat": last.isoformat(),
+        # v12-E2.14: iso_z — the bare isoformat() had no Z suffix, so
+        # CronHeartbeatCard's timeAgo parsed it as LOCAL time and the "آخر
+        # نبض" text was off by the viewer's UTC offset (badge was safe: the
+        # server-side `stale` flag).
+        "last_heartbeat": iso_z(last),
         "age_seconds": age,
         "stale": age > STALE_AFTER_S,
         "never_beaten": False,
         "stale_after_seconds": STALE_AFTER_S,
-        "expected_interval": "5m via cron-job.org (Vercel native: daily 04:00)",
+        "expected_interval": "كل 5 دقائق عبر cron-job.org (الأصلي على Vercel: يوميًا 04:00)",
     })
 
 
@@ -305,7 +327,7 @@ async def cron_alert_test(current_user: User = Depends(require_platform_admin)):
         key="alert_test", cooldown_s=0.0,
     )
     return ok({"sent": bool(sent),
-               "hint": "إن لم تصل: تحقق من توكن BotFather في إعدادات الأدمن + معرفات المستلمين"})
+               "hint": "إن لم تصل: تحقق من توكن BotFather في إعدادات الإدارة + معرفات المستلمين"})
 
 
 @router.post("/api/repair")
@@ -333,11 +355,27 @@ async def delete_tenant(tenant_id: int, db=Depends(get_db), current_user: User =
     if not tenant:
         raise HTTPException(404, "المنظمة غير موجودة")
 
+    # v12-E2.6 (GDPR completion): the old list covered 24 tables but missed
+    # 16 more tenant-scoped ones — Flow/Sequence/Broadcast/Conversation/Message/
+    # Comment/PaymentRequest/SubscriptionPayment/UsageCounter/AuditLog/
+    # Notification/SupportTicket(+replies)/MarketingCampaign/
+    # NotificationPreference/ConversationTag/ReportSchedule rows SURVIVED a
+    # "complete" tenant deletion (PII retained indefinitely = GDPR breach).
+    # SupportTicketReply has no tenant_id — its rows are deleted via the
+    # tenant's ticket ids (subquery) BEFORE the tickets themselves.
+    ticket_ids = select(SupportTicket.id).where(SupportTicket.tenant_id == tenant_id)
+    await db.execute(
+        SupportTicketReply.__table__.delete().where(SupportTicketReply.ticket_id.in_(ticket_ids))
+    )
     tables = [
-        SequenceSubscription, SequenceStep, BroadcastRecipient, SubscriberTag,
-        Subscriber, Tag, FlowExecution, ConversationLabel, ConversationNote, ConversationAssignee,
-        Customer, OfferClaim, Offer, ScheduledPost, AISuggestion, ReplyTemplate,
-        Reply, BotLog, BotState, BrandConfig, Rule, AnalyticsEvent, BotAlert,
+        SequenceSubscription, SequenceStep, Sequence, BroadcastRecipient, Broadcast,
+        SubscriberTag, Subscriber, Tag, FlowExecution, Flow,
+        ConversationTag, ConversationLabel, ConversationNote, ConversationAssignee,
+        Conversation, Message, Comment, Customer, OfferClaim, Offer, ScheduledPost,
+        MarketingCampaign, PaymentRequest, SubscriptionPayment, UsageCounter,
+        AISuggestion, ReplyTemplate, Reply, BotLog, BotState, BrandConfig, Rule,
+        ReportSchedule, Notification, NotificationPreference, SupportTicket,
+        AuditLog, AnalyticsEvent, BotAlert,
     ]
     for table in tables:
         await db.execute(table.__table__.delete().where(table.tenant_id == tenant_id))
@@ -404,12 +442,14 @@ async def rule_categories(_=Depends(get_current_user)):
 
 @router.get("/api/admin/platform/users")
 async def platform_list_users(
-    q: str = "", page: int = 1, page_size: int = 50,
+    q: str = "", page: int = 1, per_page: int = 50,
     db=Depends(get_db), current_user: User = Depends(require_platform_admin),
 ):
     """Platform admin: paginated list of ALL users across tenants, searchable."""
+    # v12-E2.15: page_size → per_page (query param + response key — the 4th
+    # pagination convention unified; types.ts Paginated speaks per_page only).
     page = max(1, page)
-    page_size = min(100, max(10, page_size))
+    per_page = min(100, max(10, per_page))
     stmt = select(User)
     if q:
         like = f"%{q}%"
@@ -418,7 +458,7 @@ async def platform_list_users(
         select(func.count()).select_from(stmt.order_by(None).subquery())
     ) or 0
     rows = await db.execute(
-        stmt.order_by(desc(User.created_at)).offset((page - 1) * page_size).limit(page_size)
+        stmt.order_by(desc(User.created_at)).offset((page - 1) * per_page).limit(per_page)
     )
     items = []
     for u in rows.scalars().all():
@@ -429,7 +469,7 @@ async def platform_list_users(
             "delegated": bool(u.tenant_id not in (None, 0) and u.is_platform_admin),
             "created_at": u.created_at.isoformat() + "Z" if u.created_at else None,
         })
-    return ok({"items": items, "total": total, "page": page, "page_size": page_size})
+    return ok({"items": items, "total": total, "page": page, "per_page": per_page})
 
 
 @router.patch("/api/admin/platform/users/{user_id}")

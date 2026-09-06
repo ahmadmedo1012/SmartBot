@@ -114,7 +114,7 @@ export default function CommentsPage() {
                       <p className="text-sm mb-2">{c.message}</p>
 
                       {c.reply_text && (
-                        <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-r-2 border-accent-foreground">
+                        <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-s-2 border-accent-foreground">
                           <p className="text-2xs text-muted-foreground mb-1">الرد:</p>
                           <p>{c.reply_text}</p>
                         </div>
@@ -125,7 +125,7 @@ export default function CommentsPage() {
                           <input
                             value={replyText[c.id] || ""}
                             onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
-                            placeholder="رد سريع..."
+                            placeholder="رد سريع…"
                             aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
                             className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />

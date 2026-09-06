@@ -29,7 +29,12 @@ export async function register() {
   Sentry.init({
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? "production",
-    release: process.env.SENTRY_RELEASE,
+    // v12-E5.6: NEXT_PUBLIC_SENTRY_RELEASE fallback — the build script injects
+    // BOTH names (client inlines the NEXT_PUBLIC_ one at build time; this
+    // server path reads env at runtime, where the fallback keeps local
+    // `next start` runs tagged too). On Vercel, set SENTRY_RELEASE in the
+    // project env for full SSR tagging.
+    release: process.env.SENTRY_RELEASE ?? process.env.NEXT_PUBLIC_SENTRY_RELEASE,
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? "0.05"),
     sendDefaultPii: false,
   })

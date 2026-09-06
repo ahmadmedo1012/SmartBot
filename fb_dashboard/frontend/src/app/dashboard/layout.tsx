@@ -11,11 +11,17 @@ export const metadata: Metadata = {
 
 import DashboardShell from "./DashboardShell"
 import AuthGuard from "./AuthGuard"
+import { QueryProvider } from "@/components/shared/QueryProvider"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // v12-E5.2: QueryProvider lives HERE (not in the root providers) — all
+  // 22 react-query consumers are dashboard pages; public routes stop
+  // shipping @tanstack/react-query in their first-load JS.
   return (
-    <AuthGuard>
-      <DashboardShell>{children}</DashboardShell>
-    </AuthGuard>
+    <QueryProvider>
+      <AuthGuard>
+        <DashboardShell>{children}</DashboardShell>
+      </AuthGuard>
+    </QueryProvider>
   )
 }

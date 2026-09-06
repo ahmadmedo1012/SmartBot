@@ -14,6 +14,7 @@ import type { WebhookCheck } from "@/lib/types"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { countPhrase, formatNumber } from "@/lib/format"
+import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
 
@@ -65,7 +66,9 @@ export default function ConnectPage() {
         setFanCount(td.fan_count)
         setStatus("saving")
         if (td.scopes?.missing?.length) setScopeWarnings(td.scopes.missing)
-        brandedToast.success(`✅ الاتصال ناجح! عدد المتابعين: ${td.fan_count}`)
+        /* v12-E4.13: fan_count flows through countPhrase (dual/plural) —
+           same pattern as pages/page.tsx:65. */
+        brandedToast.success(`✅ الاتصال ناجح! ${countPhrase(td.fan_count, "متابع", "متابعين", "متابعين")}`)
       } else {
         setStatus("idle")
         setErrorMsg(td.error || "فشل الاتصال — تحقق من رمز الوصول والصفحة")
@@ -116,7 +119,7 @@ export default function ConnectPage() {
               <Check className="h-8 w-8 text-success" />
             </div>
             <CardTitle className="text-2xl">{existing.page_name || "الصفحة متصلة"}</CardTitle>
-            <CardDescription>{allOk ? "الحساب مرتبط والويبهوك يعمل بكامل قدرته" : "الحساب مرتبط — أكمل خطوات الويبهوك لاستقبال الأحداث لحظيًا"}</CardDescription>
+            <CardDescription>{allOk ? "الحساب مرتبط والويبهوك يعمل بكامل قدرته" : "الحساب مرتبط — أكمل خطوات الويبهوك لاستقبال الأحداث لحظياً"}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <span className="flex justify-center">
@@ -164,7 +167,7 @@ export default function ConnectPage() {
                   <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-2xs leading-relaxed text-foreground/80">
                     سجّل في <span className="font-medium">developers.facebook.com ← تطبيقك ← Webhooks ← Page</span> بالعنوان أعلاه،
                     واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
-                    بدون ذلك لا تصل الرسائل/التعليقات لحظيًا ولن يرد البوت تلقائيًا.
+                    بدون ذلك لا تصل الرسائل/التعليقات لحظياً ولن يرد البوت تلقائياً.
                   </div>
                 )}
               </div>
@@ -180,6 +183,10 @@ export default function ConnectPage() {
             </div>
           </CardContent>
         </Card>
+        {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): mounted on BOTH connect
+            states — the route keeps its help entry point whichever it
+            renders (same fixed slot as the landing). */}
+        <FloatingWhatsApp />
       </div>
     )
   }
@@ -310,7 +317,7 @@ export default function ConnectPage() {
                   onClick={handleTest}
                 >
                   {status === "testing" ? (
-                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جارٍ الاختبار...</>
+                    <><Loader2 className="me-2 h-4 w-4 animate-spin" /> جارٍ الاختبار…</>
                   ) : (
                     "اختبار الاتصال"
                   )}
@@ -321,7 +328,7 @@ export default function ConnectPage() {
                   onClick={handleSave}
                 >
                   {status === "saving" ? (
-                    <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جارٍ الحفظ...</>
+                    <><Loader2 className="me-2 h-4 w-4 animate-spin" /> جارٍ الحفظ…</>
                   ) : (
                     "حفظ وتفعيل"
                   )}
@@ -355,6 +362,11 @@ export default function ConnectPage() {
           </Card>
         </div>
       </div>
+
+      {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): same one-tap WhatsApp help
+          affordance as the landing — same component, same fixed slot.
+          (Also on the "already connected" state above.) */}
+      <FloatingWhatsApp />
     </div>
   )
 }

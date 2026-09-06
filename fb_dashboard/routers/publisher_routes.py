@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from _responses import ok
-from _services import _publisher, _track_event, fb
+from _services import _publisher, _track_event, get_tenant_fb_client
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException
 from models import ScheduledPost, User
@@ -37,7 +37,7 @@ async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
     platform = data.get("platform", "")
     creds = data.get("credentials", {})
     if not platform or not creds:
-        raise HTTPException(400, "platform and credentials required")
+        raise HTTPException(400, "الحقلان مطلوبان: المنصة وبيانات الاعتماد")
     saved = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     return ok({"ok": saved, "platform": platform})
 
@@ -51,13 +51,13 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
     scheduled_at = data.get("scheduled_at", "")
 
     if not message.strip():
-        raise HTTPException(400, "Message required")
+        raise HTTPException(400, "نص المنشور مطلوب")
 
     if scheduled_at:
         try:
             sched = datetime.fromisoformat(scheduled_at)
         except ValueError:
-            raise HTTPException(400, "Invalid date format — use ISO 8601") from None
+            raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601") from None
         await _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
@@ -72,6 +72,12 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
 
     # Publish immediately
     if platform == "facebook":
+        # v12-E2.3: the tenant's own page client — was the GLOBAL env client
+        # (``_services.fb``), which is unset in multi-tenant production, so an
+        # immediate publish posted with the PLATFORM token (or failed outright).
+        fb = await get_tenant_fb_client(current_user._tenant_id)
+        if fb is None:
+            raise HTTPException(400, "لا توجد صفحة فيسبوك مرتبطة بحسابك — اربط صفحتك أولاً")
         result = await fb.post_to_page(message)
         if not result:
             raise HTTPException(400, "فشل النشر على فيسبوك")

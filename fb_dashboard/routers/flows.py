@@ -52,7 +52,7 @@ async def get_flow(flow_id: int, db=Depends(get_db), current_user: User = Depend
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not flow:
-        raise HTTPException(404, "Flow not found")
+        raise HTTPException(404, "التدفق غير موجود")
     return ok(
         {
         "id": flow.id, "name": flow.name, "description": flow.description,
@@ -73,7 +73,7 @@ async def update_flow(flow_id: int, request: Request, db=Depends(get_db), curren
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not flow:
-        raise HTTPException(404, "Flow not found")
+        raise HTTPException(404, "التدفق غير موجود")
     body = await request.json()
     for key in ("name", "description", "nodes", "edges", "status"):
         if key in body:
@@ -88,7 +88,7 @@ async def delete_flow(flow_id: int, db=Depends(get_db), current_user: User = Dep
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not flow:
-        raise HTTPException(404, "Flow not found")
+        raise HTTPException(404, "التدفق غير موجود")
     await db.execute(FlowExecution.__table__.delete().where(FlowExecution.flow_id == flow_id))
     await db.delete(flow)
     await db.commit()
@@ -101,7 +101,7 @@ async def toggle_flow(flow_id: int, db=Depends(get_db), current_user: User = Dep
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not flow:
-        raise HTTPException(404, "Flow not found")
+        raise HTTPException(404, "التدفق غير موجود")
     flow.status = ST_CYCLE.get(flow.status, "active")
     await db.commit()
     return ok({"status": flow.status})
@@ -114,7 +114,7 @@ async def test_flow(flow_id: int, request: Request, db=Depends(get_db), current_
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not flow:
-        raise HTTPException(404, "Flow not found")
+        raise HTTPException(404, "التدفق غير موجود")
     from _services import flow_engine
     from flow_engine import FlowContext
     ctx = FlowContext(

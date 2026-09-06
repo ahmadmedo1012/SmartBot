@@ -85,7 +85,10 @@ export default function AuthGuard({
             attempts.current++
             retryTimer = setTimeout(check, 500)
           } else {
-            window.location.href = "/login"
+            /* v12-E4.10: carry the current path — /login's safeRedirect
+             * (login/page.tsx) validates it and lands the user back here
+             * after re-authenticating instead of the bare /dashboard. */
+            window.location.href = "/login?redirect=" + encodeURIComponent(pathname)
           }
         })
     }
@@ -101,7 +104,7 @@ export default function AuthGuard({
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 animate-spin rounded-full border-2 border-accent-foreground border-t-transparent" />
-          <span className="text-sm text-muted-foreground">جارٍ التحميل...</span>
+          <span className="text-sm text-muted-foreground">جارٍ التحميل…</span>
         </div>
       </div>
     )

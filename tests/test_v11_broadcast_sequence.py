@@ -195,7 +195,7 @@ async def test_broadcast_send_http_guards(v10_seed):
         b.status = "sent"
         await db.commit()
     r = await c.post(f"/api/broadcasts/{bid}/send")
-    assert r.status_code == 400 and "draft" in r.json()["detail"], r.text
+    assert r.status_code == 400 and "مسودة" in r.json()["detail"], r.text  # v12: عربية
 
 
 async def test_broadcast_cancel_http_and_engine(v10_seed):
@@ -210,7 +210,7 @@ async def test_broadcast_cancel_http_and_engine(v10_seed):
     r = await c.post(f"/api/broadcasts/{bid}/cancel")
     assert r.status_code == 200, r.text
     r = await c.post(f"/api/broadcasts/{bid}/cancel")
-    assert r.status_code == 400 and "cancellable" in r.json()["detail"], r.text
+    assert r.status_code == 400 and "إلغاؤه" in r.json()["detail"], r.text  # v12: عربية
     r = await c.post("/api/broadcasts/999999/cancel")
     assert r.status_code == 400, r.text
 

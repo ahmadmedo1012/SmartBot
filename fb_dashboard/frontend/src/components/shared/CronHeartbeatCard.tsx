@@ -5,7 +5,7 @@ import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { formatDate, timeAgo } from "@/lib/format"
+import { formatDate, formatNumber, timeAgo } from "@/lib/format"
 
 interface CronStatus {
   last_heartbeat: string | null
@@ -77,8 +77,10 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
                 : status?.never_beaten
                   ? "لم يسجل أي نبض بعد — شغّل /api/cron/heartbeat أو اضبط cron-job.org"
                   : stale
-                    ? `متوقف ${timeAgo(status?.last_heartbeat ?? null)} (الحد: ${Math.floor((status?.stale_after_seconds ?? 900) / 60)} دقيقة) — تحقق من cron-job.org`
-                    : `حديث — آخر نبض ${timeAgo(status?.last_heartbeat ?? null)} (متوقع كل ${status?.expected_interval ?? "5 د"})`}
+                    ? `متوقف ${timeAgo(status?.last_heartbeat ?? null)} (الحد: ${formatNumber(Math.floor((status?.stale_after_seconds ?? 900) / 60))} دقيقة) — تحقق من cron-job.org`
+                    /* v12-E4.13: «5 د» abbreviation dropped for the full word;
+                       the minutes count flows through formatNumber. */
+                    : `حديث — آخر نبض ${timeAgo(status?.last_heartbeat ?? null)} (متوقع كل ${status?.expected_interval ?? "5 دقائق"})`}
             </p>
           </div>
         </div>

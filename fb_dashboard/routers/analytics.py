@@ -8,12 +8,12 @@ from datetime import timedelta
 from _responses import ok
 from _utils import iso_z, utcnow
 from database import get_db
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 from models import AISuggestion, Message, Reply, Rule, ScheduledPost, User
 from sqlalchemy import Date, cast, desc, func, select, text
 
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["analytics"])
@@ -186,11 +186,16 @@ async def analytics_export(format: str = Query("csv"), days: int = Query(30),
                     headers={"Content-Disposition": f"attachment; filename=replies-export-{utcnow().date()}.csv"})
 
 
-@router.get("/api/analytics/scheduler-check")
-async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Check and publish overdue scheduled posts."""
-    from _services import _publisher
-    from _services import fb as _fb
+@router.post("/api/analytics/scheduler-check")
+async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Depends(require_platform_admin)):
+    """Check and publish overdue scheduled posts (mutates post rows → POST).
+
+    v12-E2.1: platform-admin only + POST (was GET on a state-mutating route).
+    v12-E2.3: the immediate-facebook branch used the GLOBAL platform client
+    (``_services.fb``) — the tenant's stored page token is now resolved via
+    get_tenant_fb_client (same pattern as scheduled_posts_routes.publish).
+    """
+    from _services import _publisher, get_tenant_fb_client
 
     _tid = current_user._tenant_id
     now = utcnow()
@@ -205,7 +210,10 @@ async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Dep
     for post in due.scalars().all():
         platform = getattr(post, "platform", "facebook") or "facebook"
         if platform == "facebook":
-            result = await _fb.post_to_page(post.message)
+            fb = await get_tenant_fb_client(_tid)
+            if fb is None:
+                raise HTTPException(400, "لا توجد صفحة فيسبوك مرتبطة بحسابك — اربط صفحتك أولاً")
+            result = await fb.post_to_page(post.message)
         else:
             await _publisher.load_credentials(db, tenant_id=_tid)
             result = await _publisher.publish_to_platform(platform, post.message, post.image_url)

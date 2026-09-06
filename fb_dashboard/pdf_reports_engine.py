@@ -8,9 +8,11 @@ Kept for future use; do not build new features on top of it.]
 """
 import html
 import logging
+import re
 from datetime import timedelta
 
 from _utils import utcnow
+from ai_service import _assert_safe_image_url
 from sqlalchemy import Date, cast, desc, func, select
 
 log = logging.getLogger("fb-pdf-reports")
@@ -29,7 +31,26 @@ except ImportError:
 
 
 class BrandingConfig:
+    """White-label branding for a report request.
+
+    v12 E1.4 (D2 P1): BOTH user-controlled fields are validated at the
+    engine boundary (defense close to use — the router may truncate but
+    must not be the only validator):
+    - logo_url: WeasyPrint fetches it server-side when it lands in
+      <img src=…> — run the ai_service SSRF guard (https-only, no
+      private/loopback/link-local hosts) so a crafted logo_url cannot
+      probe internal endpoints from the PDF renderer.
+    - primary_color: interpolated raw into _css(); anything outside
+      a plain #RGB/#RRGGBB… hex token injected arbitrary CSS into the
+      document. Now re.fullmatch(r"#[0-9a-fA-F]{3,8}") or ValueError.
+    """
+
     def __init__(self, logo_url: str = "", company_name: str = "SmartBot", primary_color: str = "#dc2626"):
+        if logo_url:
+            # يرفع UnsafeImageUrlError (فرع ValueError) عند رابط غير آمن
+            _assert_safe_image_url(logo_url)
+        if not re.fullmatch(r"#[0-9a-fA-F]{3,8}", primary_color or ""):
+            raise ValueError("لون العلامة التجارية غير صالح — يجب أن يكون كود لون hex مثل #dc2626")
         self.logo_url = logo_url
         self.company_name = company_name
         self.primary_color = primary_color

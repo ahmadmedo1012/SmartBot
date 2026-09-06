@@ -48,7 +48,7 @@ async def calendar_update(post_id: int, request: Request, db=Depends(get_db), cu
     data = await request.json()
     done = await content_calendar_engine.update_post(post_id, data, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Post not found")
+        raise HTTPException(404, "المنشور غير موجود")
     return ok({"ok": True})
 
 
@@ -56,7 +56,7 @@ async def calendar_update(post_id: int, request: Request, db=Depends(get_db), cu
 async def calendar_delete(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     done = await content_calendar_engine.delete_post(post_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Post not found")
+        raise HTTPException(404, "المنشور غير موجود")
     return ok({"ok": True})
 
 
@@ -64,7 +64,7 @@ async def calendar_delete(post_id: int, db=Depends(get_db), current_user: User =
 async def calendar_publish(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     done = await content_calendar_engine.publish_post(post_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Post not found or publish failed")
+        raise HTTPException(404, "المنشور غير موجود أو فشل نشره")
     return ok({"ok": True})
 
 

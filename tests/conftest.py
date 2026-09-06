@@ -25,6 +25,36 @@ if _FB_DIR not in sys.path:
 
 V10_TEST_PASSWORD = "pass123456"
 
+# ── v12-E3.3 compat: CSRF double-submit across ALL test clients ────────────
+# The backend now enforces double-submit CSRF whenever the request carries
+# the csrf_token cookie. 24 test files build their own httpx.AsyncClient and
+# legitimately mix GET (which issues the cookie) + mutations — instead of
+# editing every file, this construction patch mirrors the REAL frontend
+# (src/lib/csrf-client.ts apiFetch): every mutation automatically attaches
+# X-CSRF-Token from the sending client's cookie jar. Tests that explicitly
+# set the header (even empty) are left untouched (setdefault semantics).
+import httpx as _httpx
+
+_orig_asyncclient_init = _httpx.AsyncClient.__init__
+
+
+def _csrf_aware_asyncclient_init(self, *args, **kwargs):
+    async def _attach_csrf(request: _httpx.Request) -> None:
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            token = self.cookies.get("csrf_token")
+            if token:
+                request.headers.setdefault("X-CSRF-Token", token)
+
+    hooks = dict(kwargs.get("event_hooks") or {})
+    req_hooks = list(hooks.get("request") or [])
+    req_hooks.append(_attach_csrf)
+    hooks["request"] = req_hooks
+    kwargs["event_hooks"] = hooks
+    _orig_asyncclient_init(self, *args, **kwargs)
+
+
+_httpx.AsyncClient.__init__ = _csrf_aware_asyncclient_init
+
 
 @pytest.fixture
 async def v10_world():

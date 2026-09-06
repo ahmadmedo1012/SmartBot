@@ -93,7 +93,7 @@ export default function ToolsPage() {
               <CardContent className="p-4 space-y-3">
                 <input value={tmplName} onChange={e => setTmplName(e.target.value)} placeholder="اسم القالب" aria-label="اسم القالب" className="w-full h-9 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30" />
                 <input value={tmplCategory} onChange={e => setTmplCategory(e.target.value)} placeholder="تصنيف (اختياري)" aria-label="تصنيف القالب (اختياري)" className="w-full h-9 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30" />
-                <textarea value={tmplText} onChange={e => setTmplText(e.target.value)} placeholder="نص القالب..." aria-label="نص القالب" className="w-full min-h-[60px] rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none" />
+                <textarea value={tmplText} onChange={e => setTmplText(e.target.value)} placeholder="نص القالب…" aria-label="نص القالب" className="w-full min-h-[60px] rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none" />
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowTmplForm(false)}>إلغاء</Button>
                   <Button size="sm" onClick={() => createTmpl.mutate()} disabled={!tmplName.trim() || !tmplText.trim() || createTmpl.isPending}>حفظ</Button>

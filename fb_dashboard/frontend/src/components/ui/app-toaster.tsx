@@ -17,6 +17,11 @@ export function AppToaster() {
     <Toaster
       position="top-center"
       dir="rtl"
+      /* v12-E4.4: sonner's default container label is the English
+       * "Notifications" — screen-reader-only English on an all-Arabic app.
+       * The per-card roles live on premiumToast's custom card
+       * (role=alert for errors, role=status otherwise). */
+      containerAriaLabel="الإشعارات"
       theme={resolvedTheme === "light" ? "light" : "dark"}
       duration={5000}
       toastOptions={{

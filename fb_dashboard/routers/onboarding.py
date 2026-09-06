@@ -120,8 +120,10 @@ async def test_connection(
                 token = ""
 
     if not page_id or not token:
-        # NOTE: raw dict — extended envelope (v11 audit)
-        return {"success": False, "data": {"connected": False, "error": "أدخل معرف الصفحة ورمز الوصول"}}
+        # v12-E2.11: unified ok() envelope (was a raw success:False dict) —
+        # the connection outcome lives INSIDE data ({connected, error}),
+        # same shape as facebook_routes.test_facebook_connection.
+        return ok({"connected": False, "error": "أدخل معرف الصفحة ورمز الوصول"})
 
     try:
         import httpx
@@ -137,15 +139,15 @@ async def test_connection(
                 detail = err.get("message", "")[:150]
             except Exception:
                 pass
-            # NOTE: raw dict — extended envelope (v11 audit)
-            return {"success": False, "data": {"connected": False,
-                    "error": f"فشل التحقق من فيسبوك: {detail or r.status_code}"}}
+            # v12-E2.11: ok() envelope (see above)
+            return ok({"connected": False,
+                    "error": f"فشل التحقق من فيسبوك: {detail or r.status_code}"})
         data = r.json()
         return ok({"connected": True,
                 "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)})
     except Exception as e:
-        # NOTE: raw dict — extended envelope (v11 audit)
-        return {"success": False, "data": {"connected": False, "error": f"تعذر الاتصال بفيسبوك: {str(e)[:150]}"}}
+        # v12-E2.11: ok() envelope (see above)
+        return ok({"connected": False, "error": f"تعذر الاتصال بفيسبوك: {str(e)[:150]}"})
 
 
 # Deterministic fallbacks so the wizard works with zero AI configuration

@@ -361,12 +361,13 @@ async def test_marketing_campaign_flow():
 
         # القائمة
         r = await client.get("/api/marketing/campaigns")
-        assert len(r.json()["data"]) == 2
+        # v12-E2.12: campaigns envelope unified — data is {items, total}
+        assert len(r.json()["data"]["items"]) == 2
 
         # عزل: مستأجر B لا يرى حملات A
         client_b = await client_for("user_b", tid_b)
         r = await client_b.get("/api/marketing/campaigns")
-        assert r.json()["data"] == []
+        assert r.json()["data"] == {"items": [], "total": 0}
         r = await client_b.get(f"/api/marketing/campaigns/{cid}/stats")
         assert r.status_code == 404
         await client_b.aclose()

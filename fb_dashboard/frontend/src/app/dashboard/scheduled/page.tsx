@@ -99,7 +99,7 @@ export default function ScheduledPage() {
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder="محتوى المنشور..."
+              placeholder="محتوى المنشور…"
               aria-label="نص المنشور"
               className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />

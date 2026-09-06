@@ -44,7 +44,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
       className={`group w-full text-start p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
         ${selected
           ? "bg-gradient-to-l from-accent-foreground/15 to-accent-foreground/5 border-s-[3px] border-s-primary"
-          : "hover:bg-muted/40 border-r-[3px] border-r-transparent"}`}
+          : "hover:bg-muted/40 border-s-[3px] border-s-transparent"}`}
     >
       <div className="flex gap-3 items-start">
         <div className="relative shrink-0">
@@ -158,18 +158,18 @@ export default function MessagesPage() {
          * was fixed w-96 swallowing the whole mobile screen; now full-width
          * on mobile and hidden while a conversation is open (back button returns). */}
         <div className={cn(
-          "w-full md:w-96 md:max-w-96 border-l border-border flex-col bg-card/50",
+          "w-full md:w-96 md:max-w-96 border-e border-border flex-col bg-card/50",
           selectedId ? "hidden md:flex" : "flex"
         )}>
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="بحث في المحادثات..."
+                placeholder="بحث في المحادثات…"
                 aria-label="البحث في المحادثات"
-                className="pr-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
+                className="ps-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
               />
             </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -300,7 +300,7 @@ export default function MessagesPage() {
                     return (
                       <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
                         <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
-                          isPage ? "bg-muted rounded-tr-sm" : "bg-primary text-primary-foreground rounded-tl-sm"
+                          isPage ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
                         }`}>
                           {/* v4 §4.11 — attachments/stickers are persisted now;
                               render them instead of an empty text bubble */}
@@ -360,7 +360,7 @@ export default function MessagesPage() {
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                      placeholder="اكتب رداً..."
+                      placeholder="اكتب رداً…"
                       aria-label="نص الرد"
                       className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}

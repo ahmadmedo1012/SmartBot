@@ -35,7 +35,9 @@ export function DefaultError({ error, reset, className }: { error: Error & { dig
           and Sentry in the effect above. Fixed Arabic copy here; the digest
           (a server-generated hash, not user text) stays visible for support. */}
       <p className="text-sm text-muted-foreground max-w-md">
-        وقع خطأ أثناء تحميل هذه الصفحة. جرّب إعادة المحاولة، وإن استمرت المشكلة تواصل مع فريق الدعم.
+        {/* v12-E4.13: «وقع» → «حدث» — matches the h1 verb above (same-word
+            drift inside one component). */}
+        حدث خطأ أثناء تحميل هذه الصفحة. جرّب إعادة المحاولة، وإن استمرت المشكلة تواصل مع فريق الدعم.
       </p>
       {error?.digest && (
         <p className="text-xs text-muted-foreground">

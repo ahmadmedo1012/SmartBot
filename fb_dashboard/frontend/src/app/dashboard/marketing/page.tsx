@@ -37,7 +37,7 @@ interface Campaign {
 }
 
 const AUDIENCES: { value: string; label: string; desc: string }[] = [
-  { value: "all", label: "جميع المتابعين", desc: "كل مشتركي الصفحة" },
+  { value: "all", label: "جميع المشتركين", desc: "كل مشتركي الصفحة" },
   { value: "active", label: "النشطون", desc: "تفاعلوا خلال 30 يوماً" },
   { value: "engaged", label: "المتفاعلون", desc: "لديهم ردود أو تعليقات" },
   { value: "new", label: "الجدد", desc: "انضموا خلال 14 يوماً" },
@@ -64,12 +64,16 @@ export default function MarketingPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: "", message: "", audience: "all" })
 
+  /* v12-E5.5 (pairs with E2.12): the backend now answers ok({items, total}).
+   * queryFn keeps the LEGACY array shape in the union so a Vercel/BE deploy
+   * skew (old backend answering a bare array) degrades gracefully — the
+   * campaigns guard below normalizes both. */
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["marketing-campaigns"],
     queryFn: async () => {
       const res = await apiFetch("/api/marketing/campaigns")
       if (!res.ok) throw new Error(`فشل تحميل الحملات (${res.status})`)
-      return unwrapApi(res)
+      return unwrapApi<Campaign[] | { items: Campaign[]; total: number }>(res)
     },
     retry: 1,
   })
@@ -112,7 +116,10 @@ export default function MarketingPage() {
     },
     onSuccess: (d) => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
-      brandedToast.success(`تم إرسال الحملة إلى ${d?.data?.sent_count ?? 0} مشترك`)
+      // v12-E5.5: Arabic plural via countPhrase (was raw `${n} مشترك` —
+      // broken for 0/1/2 and non-Arabic numeral shaping; D10 i18n finding).
+      const sent = d?.data?.sent_count ?? 0
+      brandedToast.success(`تم إرسال الحملة إلى ${countPhrase(sent, "مشترك", "مشتركين", "مشتركين")}`)
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
   })
@@ -131,8 +138,10 @@ export default function MarketingPage() {
     onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
   })
 
-  // v4 §2.2 — unwrapApi already returned the payload; the extra .data made the list always empty
-  const campaigns: Campaign[] = data || []
+  // v4 §2.2 + v12-E5.5 — unwrapApi returns the payload; normalize the two
+  // envelope generations (bare array ↔ ok({items, total})) so a deploy skew
+  // never renders an empty list.
+  const campaigns: Campaign[] = Array.isArray(data) ? data : (data?.items ?? [])
   const audienceCount: number = audienceQuery.data?.count ?? 0
 
   return (

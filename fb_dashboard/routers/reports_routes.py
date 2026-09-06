@@ -44,11 +44,18 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
     tenant_id = current_user._tenant_id
     b = body.get("branding", {})
     from pdf_reports_engine import BrandingConfig
-    branding = BrandingConfig(
-        logo_url=str(b.get("logo_url", ""))[:500],
-        company_name=str(b.get("company_name", "SmartBot"))[:200],
-        primary_color=str(b.get("primary_color", "#dc2626"))[:32],
-    )
+    # v12-E1.4 (coordination with E1): the engine validates logo_url (SSRF
+    # guard) and primary_color (strict hex) at its boundary and raises
+    # ValueError with an Arabic message — wrap the construction so the user
+    # gets a 400, not the catch-all 500.
+    try:
+        branding = BrandingConfig(
+            logo_url=str(b.get("logo_url", ""))[:500],
+            company_name=str(b.get("company_name", "SmartBot"))[:200],
+            primary_color=str(b.get("primary_color", "#dc2626"))[:32],
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from None
     if rtype == "monthly":
         pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding, tenant_id=tenant_id)
     elif rtype == "subscriber":
@@ -62,7 +69,7 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
             raise HTTPException(400, "معرف الحملة غير صالح")
         pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding, tenant_id=tenant_id)
     else:
-        raise HTTPException(400, f"Unknown report type: {rtype}")
+        raise HTTPException(400, f"نوع التقرير غير معروف: {rtype}")
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{utcnow().strftime('%Y%m%d')}.pdf"})
 

@@ -19,7 +19,11 @@ export async function register() {
   const Sentry = await import("@sentry/nextjs")
   Sentry.init({
     dsn,
-    environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? "production",
+    // v12-E5.6: no unconditional "production" — local dev/preview builds
+    // used to tag every event as production (D12 finding). Explicit
+    // NEXT_PUBLIC_SENTRY_ENVIRONMENT wins, then Next's own NODE_ENV, and
+    // only then the safe production default.
+    environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? "production",
     release: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
     tracesSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? "0.05"),
     sendDefaultPii: false,

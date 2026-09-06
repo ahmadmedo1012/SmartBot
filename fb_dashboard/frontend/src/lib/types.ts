@@ -62,17 +62,6 @@ export interface ApiUser {
   onboardingCompleted?: boolean
 }
 
-/** GET /api/me full response — the ONLY endpoint whose {success, data}
- *  envelope carries an extra `authenticated` sibling next to `data`
- *  (documented by the v10 S2 api-contract audit; every other endpoint
- *  sticks to the standard {success, data} shape). */
-export interface MeEnvelope {
-  success: boolean
-  /** Non-standard envelope sibling — `true` on a 200 /api/me. */
-  authenticated?: boolean
-  data: { user: ApiUser }
-}
-
 // ── Inbox (conversations & messages) ────────────────────────────────────────
 
 /** Participant of a conversation (inbox_list "senders[]"). (v10-W4: export dropped — nested in Conversation only) */

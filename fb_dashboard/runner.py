@@ -182,6 +182,16 @@ async def api_health_ready():
         return {"ok": True, "database": "ok", "latency_ms": round(latency_ms), "version": app_version()}
     except Exception as e:
         log.error("Readiness probe failed: %s", e)
+        # v12-E3.7 — DB outages must reach Sentry too: the 503 body is
+        # deliberately error-free (E2 contract), so the dashboard/GlitchTip
+        # would otherwise never see WHY readiness failed. (The /healthz
+        # router-local capture in plans_config.py is E2's file — handed off.)
+        try:
+            from _observability import capture_exception
+
+            capture_exception(e)
+        except Exception:
+            pass
         return JSONResponse(
             status_code=503,
             content={"ok": False, "database": "unreachable"},
@@ -204,7 +214,12 @@ app.add_middleware(
     allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Telegram-Bot-Api-Secret-Token", "X-Hub-Signature-256", "X-Vercel-Cron-Shard"],
+    # v12-E3.3: X-CSRF-Token allowed for cross-origin SPA deployments (the
+    # production bot-domain flow is same-origin via the vercel.json rewrite
+    # proxy, but direct cross-origin (e.g. dev without LOCAL_API_PROXY) would
+    # preflight-reject the double-submit header and silently break mutations).
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token",
+                   "X-Telegram-Bot-Api-Secret-Token", "X-Hub-Signature-256", "X-Vercel-Cron-Shard"],
 )
 app.middleware("http")(dedup_middleware)
 app.middleware("http")(rate_limit_middleware)

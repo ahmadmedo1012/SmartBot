@@ -20,6 +20,25 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
   if (!headers.has("Content-Type") && !isForm) {
     headers.set("Content-Type", "application/json")
   }
+  // v12-E4 (CSRF double-submit, pairs with app/middleware.py): every GET /api/*
+  // response plants a non-HttpOnly `csrf_token` cookie (SameSite=Strict); the
+  // mutating methods must echo it in X-CSRF-Token. If the cookie is absent
+  // (first cold visit, or a backend that has not issued one yet) we simply
+  // send nothing — the server only validates when it set the cookie.
+  const method = (options.method ?? "GET").toUpperCase()
+  if (
+    ["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
+    !headers.has("X-CSRF-Token") &&
+    typeof document !== "undefined"
+  ) {
+    const csrf = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("csrf_token="))
+      ?.split("=")
+      .slice(1)
+      .join("=")
+    if (csrf) headers.set("X-CSRF-Token", csrf)
+  }
   const res = await fetch(url, { ...options, headers, credentials: "include" })
   if (!res.ok) {
     const body = await res.json().catch((): null => null)

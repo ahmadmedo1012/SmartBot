@@ -7,5 +7,25 @@
     { "source": "/api/:path*", "destination": "https://api.smart-link.ly/api/:path*" },
     { "source": "/webhook", "destination": "https://api.smart-link.ly/webhook" },
     { "source": "/healthz", "destination": "https://api.smart-link.ly/healthz" }
+  ],
+  "headers": [
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/(opengraph-image\\.png|favicon\\.(?:png|ico)|apple-touch-icon\\.png|brand-icon\\.png|icon-.*\\.(?:png|ico))",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/manifest\\.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+      ]
+    }
   ]
 }

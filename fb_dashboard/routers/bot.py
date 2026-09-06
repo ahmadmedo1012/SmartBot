@@ -14,11 +14,12 @@ from _utils import iso_z, utcnow
 from config import settings
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from models import BotLog, BotState, Tenant, User
 from sqlalchemy import desc, func, select
 from ws_manager import ws_manager
 
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["bot"])
@@ -66,7 +67,10 @@ async def bot_status(_=Depends(get_current_user)):
 
 
 @router.post("/api/bot/restart")
-async def restart_bot(current_user: User = Depends(require_role("admin")), db=Depends(get_db)):
+async def restart_bot(current_user: User = Depends(require_platform_admin), db=Depends(get_db)):
+    # v12-E2.1: platform-admin only — restart kills the GLOBAL bot loop that
+    # serves every tenant; a tenant admin must not be able to stop the
+    # platform for everyone.
     _bt = _get_bot_task()
     if _bt:
         _bt.cancel()
@@ -80,7 +84,8 @@ async def restart_bot(current_user: User = Depends(require_role("admin")), db=De
 
 
 @router.post("/api/bot/stop")
-async def stop_bot(current_user: User = Depends(require_role("admin"))):
+async def stop_bot(current_user: User = Depends(require_platform_admin)):
+    # v12-E2.1: platform-admin only — stop halts the GLOBAL loop (all tenants).
     _bt = _get_bot_task()
     if _bt and not _bt.done():
         _bt.cancel()
@@ -93,7 +98,8 @@ async def stop_bot(current_user: User = Depends(require_role("admin"))):
 
 
 @router.post("/api/bot/interval")
-async def set_bot_interval(interval: int = Form(...), _=Depends(require_role("admin"))):
+async def set_bot_interval(interval: int = Form(...), _=Depends(require_platform_admin)):
+    # v12-E2.1: platform-admin only — the interval is a GLOBAL engine setting.
     if interval < 3 or interval > 3600:
         raise HTTPException(400, "الفاصل الزمني يجب أن يكون بين 3 و 3600 ثانية")
     settings.BOT_INTERVAL_SECONDS = interval
@@ -110,13 +116,17 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
     plan usage limits, same as the engine itself."""
     secret = os.getenv("CRON_SECRET", "")
     auth_header = request.headers.get("authorization", "")
-    # Constant-time compare (timing-attack hygiene); empty secret never validates
-    valid = bool(secret) and (
-        secrets.compare_digest(auth_header, f"Bearer {secret}")
-        or secrets.compare_digest(token, secret)
-    )
+    # v12-E2.5 — the secret is accepted via the Authorization: Bearer header
+    # (what Vercel Cron / modern providers send). The legacy ?token= query
+    # param still validates so the EXISTING cron-job.org setup keeps beating,
+    # but every fallback use logs a deprecation warning. Constant-time compare;
+    # an empty secret never validates.
+    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
+    if not valid and secret and token and secrets.compare_digest(token, secret):
+        log.warning("cron auth via ?token= query param is deprecated — move the cron provider to the Authorization: Bearer header")
+        valid = True
     if not valid:
-        raise HTTPException(403, "Unauthorized cron")
+        raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     raw_shard = request.headers.get("x-vercel-cron-shard", "0") if not token.isdigit() else token
     shard = int(raw_shard) % _CRON_SHARDS
     try:
@@ -152,7 +162,7 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
         return ok({"ok": True, "tenants_processed": len(results), "shard": shard})
     except Exception as e:
         log.error("Cron bot cycle error", exc_info=True)
-        return fail(f"cron cycle failed: {str(e)[:120]}")
+        return fail(f"فشل دورة الجدولة: {str(e)[:120]}")
 
 
 @router.get("/api/cron/heartbeat")
@@ -171,22 +181,33 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     """
     secret = os.getenv("CRON_SECRET", "")
     auth_header = request.headers.get("authorization", "")
-    valid = bool(secret) and (
-        secrets.compare_digest(auth_header, f"Bearer {secret}")
-        or secrets.compare_digest(token, secret)
-    )
+    # v12-E2.5 — Authorization header first; ?token= kept as a deprecated
+    # fallback for the existing cron-job.org beats (logs a warning per use).
+    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
+    if not valid and secret and token and secrets.compare_digest(token, secret):
+        log.warning("cron auth via ?token= query param is deprecated — move the cron provider to the Authorization: Bearer header")
+        valid = True
     if not valid:
-        raise HTTPException(403, "Unauthorized cron")
+        raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from _utils import utcnow as _now
     report = {"published_posts": 0, "fan_refreshed": 0, "cycles": 0, "errors": []}
+    # v12-E3.6 (handed to E2 — this router is E2-owned): core failures are
+    # SWEEP-level crashes (not per-post/per-tenant errors, which are recorded
+    # in report["errors"] and do not fail the beat). A beat that cannot do
+    # its job answers 503 so cron-job.org alerts instead of seeing green.
+    core_failures = 0
 
     # v6 §E — staleness detection BEFORE this beat is recorded: reads the
     # PREVIOUS beat. The daily Vercel-native cron (vercel.json 04:00) is the
     # independent second channel: if cron-job.org (5-min beats) dies, this
     # daily run sees a >15-min gap and alerts the admin on Telegram.
     from _observability import check_cron_staleness_and_alert, record_heartbeat
-    stall = await check_cron_staleness_and_alert()
-    report["previous_beat"] = stall
+    try:
+        stall = await check_cron_staleness_and_alert()
+        report["previous_beat"] = stall
+    except Exception as e:
+        report["errors"].append(f"staleness check: {str(e)[:120]}")
+        core_failures += 1
 
     # ── 1. Publish due scheduled posts (tenant-scoped) ──
     try:
@@ -224,6 +245,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
                 report["errors"].append(f"post {post.id}: {str(e)[:80]}")
     except Exception as e:
         report["errors"].append(f"publish sweep: {str(e)[:120]}")
+        core_failures += 1
 
     # ── 2. Refresh fan_count snapshots for connected tenants ──
     try:
@@ -261,6 +283,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
                 report["errors"].append(f"fan {tenant_id}: {str(e)[:80]}")
     except Exception as e:
         report["errors"].append(f"fan sweep: {str(e)[:120]}")
+        core_failures += 1
 
     # ── 3. One bot comment cycle for connected tenants (gated by engine) ──
     try:
@@ -277,11 +300,33 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
                 report["errors"].append(f"cycle {tenant_id}: {str(e)[:80]}")
     except Exception as e:
         report["errors"].append(f"cycle sweep: {str(e)[:120]}")
+        core_failures += 1
 
     # v6 §E — ledger: every authenticated beat is persisted (timestamp +
     # report) so staleness checks and the admin console can see the truth.
-    await record_heartbeat(report)
-    return ok(report)
+    # v12-E3.6: record_heartbeat swallows its own DB errors (log-only), so
+    # VERIFY the write by reading the ledger back — the stored timestamp must
+    # match THIS beat (within a small window). A missing/stale ledger row
+    # means the DB is down → 503 (cron-job.org alerts; the old 200 made the
+    # outage invisible).
+    beat_at = _now()
+    try:
+        await record_heartbeat(report)
+    except Exception as e:
+        log.error(f"record_heartbeat raised: {e}")
+        report["errors"].append(f"heartbeat ledger: {str(e)[:120]}")
+    from _observability import get_last_heartbeat
+    last_beat = await get_last_heartbeat()
+    ledger_ok = (
+        last_beat is not None
+        and abs((last_beat - beat_at).total_seconds()) < 30
+    )
+    if ledger_ok and core_failures == 0:
+        return ok(report)
+    log.error("cron heartbeat FAILED (ledger_ok=%s core_failures=%d) — answering 503",
+              ledger_ok, core_failures)
+    return JSONResponse(status_code=503, content=fail(
+        "فشل نبض الجدولة — راجع سجلات الخادم", data=report))
 
 
 @router.get("/api/logs")
@@ -310,7 +355,8 @@ async def clear_logs(payload: dict = None, db=Depends(get_db), current_user=Depe
 
 
 @router.post("/api/bot/trigger")
-async def trigger_manual_reply(_=Depends(require_role("admin"))):
-    """Force one bot cycle NOW — useful after commenting on Facebook."""
+async def trigger_manual_reply(_=Depends(require_platform_admin)):
+    """Force one bot cycle NOW — platform admin only (v12-E2.1: the forced
+    cycle runs the GLOBAL engine loop, not a single tenant's)."""
     spawn(_run_single_cycle())
     return ok({"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"})

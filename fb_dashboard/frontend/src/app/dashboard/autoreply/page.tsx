@@ -115,7 +115,7 @@ export default function AutoReplyPage() {
                   id="rule-reply"
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
-                  placeholder="النص الذي سيرد به البوت عند تطابق الكلمة..."
+                  placeholder="النص الذي سيرد به البوت عند تطابق الكلمة…"
                   rows={3}
                   className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
@@ -133,7 +133,7 @@ export default function AutoReplyPage() {
               <div className="flex justify-end gap-2 pt-1">
                 <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
                 <Button size="sm" onClick={() => createMut.mutate()} disabled={!keyword.trim() || !replyText.trim() || createMut.isPending}>
-                  {createMut.isPending ? "جارٍ الحفظ..." : "حفظ القاعدة"}
+                  {createMut.isPending ? "جارٍ الحفظ…" : "حفظ القاعدة"}
                 </Button>
               </div>
             </CardContent>

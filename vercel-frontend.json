@@ -13,6 +13,24 @@
       ]
     },
     {
+      "source": "/fonts/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/opengraph-image.png",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
       "source": "/(favicon.ico|apple-touch-icon.png|icon-192.png|icon-512.png|icon-192-maskable.png|icon-512-maskable.png|brand-icon.png|botlogo.png)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=86400" }

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { motion } from "framer-motion"
 import { brandedToast } from "@/lib/premium-toast"
 import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -14,12 +13,16 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { fadeUp } from "@/lib/motion"
+/* v12-E5.1: framer-motion left this route — the entrance is now the CSS
+ * twin .sb-fade-up (components/shared/enter-motion.css), the 1:1 copy of
+ * lib/motion.ts fadeUp (0.5s cubic-bezier(0.165,0.84,0.44,1), y24→0),
+ * guarded by prefers-reduced-motion. */
+import "@/components/shared/enter-motion.css"
 import type { ApiErrorBody } from "@/lib/types"
 import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
-import { formatDateOnly } from "@/lib/format"
+import { formatDateOnly, formatNumber } from "@/lib/format"
 import { CronHeartbeatCard } from "@/components/shared/CronHeartbeatCard"
 
 interface Payment {
@@ -103,12 +106,12 @@ export default function AdminPage() {
   if (!roleLoading && role !== "admin") {
     return (
       <SectionContainer className="min-h-screen flex items-center justify-center">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md">
+        <div className="text-center max-w-md sb-fade-up">
           <AlertTriangle className="size-16 text-destructive mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">غير مصرح</h1>
           <p className="text-muted-foreground mb-6">هذه الصفحة مخصصة للمشرفين فقط. ليس لديك صلاحيات كافية للوصول.</p>
           <Button onClick={() => window.location.href = "/dashboard"}>العودة للوحة التحكم</Button>
-        </motion.div>
+        </div>
       </SectionContainer>
     )
   }
@@ -192,25 +195,28 @@ export default function AdminPage() {
             />
           ) : (
             <div className={cn("overflow-x-auto transition-opacity", loading && "opacity-60")}>
-              <table className="w-full text-sm">
+              {/* v12-E5.5 (E4.7 parity): table gets an accessible name via
+                  aria-labelledby — sr-only h2 because SectionHeader's visible
+                  h2 has no id we can reference. */}
+              <h2 id="admin-payments-heading" className="sr-only">جدول طلبات الاشتراك</h2>
+              <table aria-labelledby="admin-payments-heading" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-start p-3 font-medium">المستخدم</th>
-                    <th className="text-start p-3 font-medium">الخطة</th>
-                    <th className="text-start p-3 font-medium">المبلغ</th>
-                    <th className="text-start p-3 font-medium">رقم الهاتف</th>
-                    <th className="text-start p-3 font-medium">الحالة</th>
-                    <th className="text-start p-3 font-medium">التاريخ</th>
-                    <th className="text-center p-3 font-medium">إجراءات</th>
+                    <th scope="col" className="text-start p-3 font-medium">المستخدم</th>
+                    <th scope="col" className="text-start p-3 font-medium">الخطة</th>
+                    <th scope="col" className="text-start p-3 font-medium">المبلغ</th>
+                    <th scope="col" className="text-start p-3 font-medium">رقم الهاتف</th>
+                    <th scope="col" className="text-start p-3 font-medium">الحالة</th>
+                    <th scope="col" className="text-start p-3 font-medium">التاريخ</th>
+                    <th scope="col" className="text-center p-3 font-medium">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payments.map((p) => (
-                    <motion.tr key={p.id} variants={fadeUp} custom={0} initial="hidden" animate="visible"
-                      className="border-b border-border hover:bg-muted/30 transition-colors">
+                    <tr key={p.id} className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
                       <td className="p-3 font-medium" data-label="المستخدم">{p.username}</td>
                       <td className="p-3" data-label="الخطة">{p.plan}</td>
-                      <td className="p-3" data-label="المبلغ">{p.amount} د.ل</td>
+                      <td className="p-3" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
                       <td className="p-3 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
                       <td className="p-3" data-label="الحالة">
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
@@ -237,7 +243,7 @@ export default function AdminPage() {
                           )}
                         </div>
                       </td>
-                    </motion.tr>
+                    </tr>
                   ))}
                 </tbody>
               </table>

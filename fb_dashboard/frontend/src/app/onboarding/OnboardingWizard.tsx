@@ -1,7 +1,12 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+/* v12-E5.1: the ROOT MotionConfig in app/providers.tsx is gone (it shipped
+ * framer-motion into every route's base chunk). This wizard is the LAST
+ * JS-motion consumer and it already loads via dynamic(ssr:false) from
+ * AuthGuard — so it carries its OWN reducedMotion="user" config here and
+ * the motion engine stays inside this lazy chunk only (v8-C2 parity). */
+import { motion, AnimatePresence, MotionConfig } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 import {
@@ -146,10 +151,20 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         method: "POST",
         body: JSON.stringify({ page_id: pageId, access_token: accessToken }),
       })
-      const d = await res.json()
-      setTestResult(d?.data ?? d)
-      if (d?.data?.connected && d?.data?.page_name && !pageName) {
-        setPageName(d.data.page_name)
+      /* v12-E5.5 (pairs with E2.11): the backend now answers with the ok()
+       * envelope — unwrapApi returns {connected, page_name?, fan_count?,
+       * error?} directly (it also throws on legacy success:false bodies and
+       * apiFetch itself throws ApiError on non-2xx — both land in catch).
+       * The old dual-shape res.json() + `d?.data ?? d` tolerance is retired. */
+      const d = await unwrapApi<{
+        connected: boolean
+        page_name?: string
+        fan_count?: number
+        error?: string
+      }>(res)
+      setTestResult(d ?? { connected: false, error: "استجابة غير متوقعة من الخادم" })
+      if (d?.connected && d?.page_name && !pageName) {
+        setPageName(d.page_name)
       }
     } catch (e) {
       setTestResult({ connected: false, error: "تعذر الاتصال — تحقق من البيانات" })
@@ -252,6 +267,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   }, [handleBack])
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
       ref={panelRef}
       role="dialog"
@@ -563,5 +579,6 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         </div>
       </motion.div>
     </div>
+    </MotionConfig>
   )
 }

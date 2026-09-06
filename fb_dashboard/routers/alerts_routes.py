@@ -93,14 +93,10 @@ async def get_notification_preferences(db=Depends(get_db), current_user: User = 
     )
     pref = row.scalar_one_or_none()
     if not pref:
-        return {"success": True, "data": {"preferences": dict(DEFAULT_NOTIF_PREFS)}}
+        # v12-E2.9: mechanical ok() rename (raw dict was shape-identical).
+        return ok({"preferences": dict(DEFAULT_NOTIF_PREFS)})
     # Merge saved prefs with defaults so new keys get default values
-    return {
-        "success": True,
-        "data": {
-            "preferences": {**DEFAULT_NOTIF_PREFS, **(pref.preferences or {})}
-        },
-    }
+    return ok({"preferences": {**DEFAULT_NOTIF_PREFS, **(pref.preferences or {})}})
 
 
 @router.put("/api/notifications/settings")
@@ -132,4 +128,4 @@ async def update_notification_preferences(
         )
         db.add(pref)
     await db.commit()
-    return {"success": True, "data": {"preferences": clean}}
+    return ok({"preferences": clean})

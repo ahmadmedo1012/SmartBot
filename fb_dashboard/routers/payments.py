@@ -13,7 +13,6 @@ from config import settings
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
 from models import (
-    BotState,
     PaymentRequest,
     SubscriptionPayment,
     SubscriptionPlan,
@@ -203,7 +202,7 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
     )
     instructions = (
         f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
-        f"— بعد الإرسال، انتظر موافقة الأدمن"
+        f"— بعد الإرسال، انتظر موافقة الإدارة"
     )
     return ok({"payment_id": pr.id, "instructions": instructions})
 
@@ -222,19 +221,21 @@ async def payment_confirm(request: Request, body: dict = Body(...), db=Depends(g
     if pr.status != "pending":
         raise HTTPException(400, "الدفعة تم تأكيدها مسبقاً")
     pr.reference = ref
-    pr.note = "انتظار موافقة الأدمن"
+    pr.note = "انتظار موافقة الإدارة"
     await db.commit()
-    return ok({"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"})
+    return ok({"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الإدارة"})
 
 
 @router.get("/api/payments/balance")
 async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    existing = await db.execute(
-        select(BotState).where(BotState.tenant_id == current_user._tenant_id, BotState.key == "balance")
-    )
-    bs = existing.scalar_one_or_none()
-    balance = int(bs.value) if bs and bs.value else 0
-    return ok({"balance": balance, "currency": "LYD"})
+    # v12-E1.6/E2: the wallet read goes through the atomic _wallet helper
+    # (Decimal-safe LYD math + the single read path E1 owns) — was a direct
+    # BotState "balance" read with int(bs.value) (truncated qirsh + a second
+    # read path racing the atomic credit).
+    from _wallet import get_wallet_balance
+
+    balance = await get_wallet_balance(db, current_user._tenant_id)
+    return ok({"balance": float(balance), "currency": "LYD"})
 
 
 @router.get("/api/payments/history")
@@ -351,7 +352,7 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     if provider == "bank":
         msg = "تم استلام طلب التحويل البنكي — سيتم التفعيل بعد موافقة الإدارة"
     else:
-        msg = f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الأدمن"
+        msg = f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الإدارة"
     return ok({
         "payment_id": sp.id,
         "status": "pending",

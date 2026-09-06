@@ -46,13 +46,41 @@ async def dashboard_page():
     return HTMLResponse(_get_spa())
 
 
-async def spa_catch_all(path: str):
+async def spa_catch_all(path: str, request: Request):
+    # NOTE: `request` is REQUIRED (FastAPI injects it on the real route).
+    # It is only read on the api/static-prefixed branch below; direct unit
+    # calls may pass any placeholder (e.g. None) for non-api paths.
     # Don't catch API/system paths — let FastAPI handle or 404.
     # v10-D3 — these prefixes now answer with the unified {detail} JSON error
     # contract instead of an empty text/html body that the frontend's
     # ApiErrorBody parser cannot read (S2 deviation #3: empty 404 + English
     # 405). SPA page serving below is untouched.
     if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
+        # v12-E2.1 — GET on a known POST-only route used to fall through to
+        # this branch and answer a misleading 404. Do the same route-table
+        # lookup the non-GET catch-all does: a REAL path with a different
+        # method answers 405 {detail} + Allow (uniform Arabic contract —
+        # e.g. GET /api/analytics/scheduler-check, POST-only since v12).
+        # (request is optional so direct unit calls with just `path` keep
+        # working — FastAPI always injects it on the real route.)
+        allowed = _route_table_lookup(request) if request is not None else None
+        if allowed:
+            headers = {"Allow": ", ".join(sorted(allowed))} if allowed else None
+            return JSONResponse(
+                status_code=405,
+                content={"detail": "الطريقة غير مسموح بها لهذا المسار"},
+                headers=headers,
+            )
+        return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
+    # v12-E3.1 — path traversal defense (defense-in-depth). Untrusted path
+    # segments were concatenated into STATIC_DIR/path/index.html: a crafted
+    # ``..``-laden path (e.g. %2e%2e%2f) could make the filesystem walk
+    # OUTSIDE STATIC_DIR before the .exists() check (Vercel's edge blocks it
+    # with a 400, but the code path stays latent — D8 finding #4). Normalize
+    # cheaply and refuse: absolute paths, dot-prefixed paths, ``..`` segments
+    # and empty segments (double slashes). Legitimate Next.js export routes
+    # never contain any of those, so behavior is identical for all real paths.
+    if path.startswith(("/", ".")) or any(seg in ("..", "") for seg in path.split("/")):
         return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
     # Check if the Next.js static export has a page for this path
     path_page = STATIC_DIR / path / "index.html"

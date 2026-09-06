@@ -29,6 +29,7 @@ import {
  *      just the active tab, so no eager render pulls it). */
 import { ActivityBarChart } from "@/components/charts/lazy"
 import { countPhrase, formatNumber } from "@/lib/format"
+import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * v4 radical plan §3 — REBUILT on the REAL dashboard architecture.
@@ -76,10 +77,10 @@ const mockStats = {
   replies_today: 327, replies_week: 1284, followers: 12500, rules: 3,
   active_hours: [45, 62, 38, 55, 70, 85, 92, 110, 88, 65, 42, 30, 48, 55, 72, 95, 130, 145, 120, 90, 65, 50, 35, 25],
   recent_replies: [
-    { id: 1, commenter: "أحمد سالم", text: "كم سعر المنتج؟", reply: "سعر المنتج 120 د.ل", time: "منذ دقيقتين" },
-    { id: 2, commenter: "مريم النفاتي", text: "هل يتوفر توصيل؟", reply: "نعم التوصيل متوفر", time: "منذ 5 دقائق" },
-    { id: 3, commenter: "خالد المزوغي", text: "أريد تفاصيل أكثر", reply: "تفضل بزيارة موقعنا", time: "منذ 10 دقائق" },
-    { id: 4, commenter: "فاطمة الصغير", text: "ممتاز", reply: "شكراً لك", time: "منذ 15 دقيقة" },
+    { id: 1, commenter: "أحمد سالم", text: "كم سعر المنتج؟", reply: "سعر المنتج 120 د.ل", time: "قبل دقيقتين" },
+    { id: 2, commenter: "مريم النفاتي", text: "هل يتوفر توصيل؟", reply: "نعم التوصيل متوفر", time: "قبل 5 دقائق" },
+    { id: 3, commenter: "خالد المزوغي", text: "أريد تفاصيل أكثر", reply: "تفضل بزيارة موقعنا", time: "قبل 10 دقائق" },
+    { id: 4, commenter: "فاطمة الصغير", text: "ممتاز", reply: "شكراً لك", time: "قبل 15 دقيقة" },
   ],
   rules_data: [
     { name: "سعر", keyword: "سعر", count: 142, status: "active" },
@@ -253,18 +254,18 @@ function StatsTab() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle id="demo-rules-title" className="flex items-center gap-2 text-base">
               <Bot className="size-4 text-accent-foreground" /> قواعد الرد
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <table className="w-full text-sm">
+            <table aria-labelledby="demo-rules-title" className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs">
-                  <th className="text-start p-3 font-medium">القاعدة</th>
-                  <th className="text-start p-3 font-medium">الكلمة المفتاحية</th>
-                  <th className="text-center p-3 font-medium">الردود</th>
-                  <th className="text-center p-3 font-medium">الحالة</th>
+                  <th scope="col" className="text-start p-3 font-medium">القاعدة</th>
+                  <th scope="col" className="text-start p-3 font-medium">الكلمة المفتاحية</th>
+                  <th scope="col" className="text-center p-3 font-medium">الردود</th>
+                  <th scope="col" className="text-center p-3 font-medium">الحالة</th>
                 </tr>
               </thead>
               <tbody>
@@ -330,7 +331,7 @@ function RepliesTab() {
             <div key={i} className={cn("flex", m.from === "bot" ? "justify-start" : "justify-end")}>
               <div className={cn(
                 "max-w-[70%] rounded-xl px-4 py-2.5 text-sm",
-                m.from === "bot" ? "bg-muted rounded-tr-sm" : "bg-primary text-primary-foreground rounded-tl-sm"
+                m.from === "bot" ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
               )}>
                 <p>{m.text}</p>
               </div>
@@ -534,7 +535,7 @@ export default function DemoPage() {
       {/* v9-D3: #page-content — skip-link target, DashboardShell parity
           (content column, past the sidebar nav). tabIndex lets the skip
           link actually move focus here. */}
-      <div id="page-content" tabIndex={-1} className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0">
+      <div id="page-content" tabIndex={-1} className="flex-1 md:ps-60 flex flex-col pb-16 md:pb-0">
         <DemoHeader tab={tab} />
         <SectionContainer className="py-6 flex-1">
           {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS
@@ -564,6 +565,11 @@ export default function DemoPage() {
       </div>
 
       <MobileBottomNav onNavigate={handleNavigate} onLogout={() => router.push("/login")} />
+
+      {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): same one-tap WhatsApp help
+          affordance as the landing — same component, same fixed slot
+          (sits above the mobile nav: z-[60] vs nav z-30). */}
+      <FloatingWhatsApp />
     </div>
   )
 }

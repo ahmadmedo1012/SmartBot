@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     type: "website",
     // v9-E2: a child openGraph object REPLACES the root one (shallow merge)
     // — without this images[] the route loses its og:image card entirely.
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة روبوتات ميسنجر لليبيا" }],
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة روبوتات ماسنجر لليبيا" }],
   },
 }
 

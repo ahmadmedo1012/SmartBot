@@ -69,7 +69,7 @@ async def test_flows_test_endpoint_never_500s(app_client):
     assert r.status_code in (200, 404), f"endpoint crashed or misbehaves: {r.status_code} {r.text[:200]}"
     if r.status_code == 404:
         body = r.json()
-        assert body.get("detail") == "Flow not found"
+        assert body.get("detail") == "التدفق غير موجود"
 
 
 async def test_flows_crud_roundtrip(app_client):

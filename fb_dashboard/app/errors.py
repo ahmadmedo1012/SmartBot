@@ -28,7 +28,13 @@ async def validation_handler(request: Request, exc: RequestValidationError):
 # ponytail: catch-all 500 — log full traceback server-side, return generic message
 async def global_500_handler(request: Request, exc: Exception):
     import traceback
-    log.error(f"Unhandled 500 | {request.method} {request.url.path} | {traceback.format_exc()}")
+    # v12-E3.2 — rid in the traceback line: request_logging_middleware binds
+    # request.state.request_id (the same id echoed in the X-Request-Id response
+    # header and the rid= access log), so one grep for a user-reported id now
+    # hits this traceback too (the getattr pattern is _observability-safe:
+    # state may lack the attr when the request never reached that middleware).
+    rid = getattr(request.state, "request_id", "-")
+    log.error(f"Unhandled 500 | {request.method} {request.url.path} | rid={rid} | {traceback.format_exc()}")
     # v6 §C — Sentry capture + critical Telegram alert (never raises;
     # cooldown-guarded so an error storm sends one alert, not hundreds)
     from _observability import report_critical

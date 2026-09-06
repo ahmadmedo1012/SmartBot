@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
 import type { AnalyticsDashboard, TopCommenter } from "@/lib/types"
-import { formatNumber } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 export default function ReportsPage() {
   const { data: dashboard, isLoading: dbLoad, isError: dbErr, error: dbError, refetch: dbRefetch } = useQuery({
@@ -144,7 +144,9 @@ export default function ReportsPage() {
                           <span className="text-xs text-muted-foreground w-4 text-center">{i + 1}</span>
                           <span className="text-sm">{c.name}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{c.count} تعليق</span>
+                        {/* v12-E4.13: countPhrase — same dual/plural phrasing as
+                            audience/page.tsx:104 (was «N تعليق»). */}
+                        <span className="text-xs text-muted-foreground">{countPhrase(c.count, "تعليق", "تعليقين", "تعليقات")}</span>
                       </CardContent>
                     </Card>
                   ))}

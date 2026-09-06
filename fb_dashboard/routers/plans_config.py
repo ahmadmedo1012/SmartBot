@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -14,10 +15,9 @@ from fastapi.responses import JSONResponse
 from models import BotLog, RateLimitEntry, Reply, SubscriptionPlan, SystemConfig
 from sqlalchemy import delete, func, select, text
 
-from routers.auth import get_current_user
-
 BASE_DIR = Path(__file__).resolve().parent.parent  # ponytail: match runner.py's BASE_DIR (fb_dashboard/)
 
+log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["plans"])
 
 
@@ -163,31 +163,33 @@ async def healthz():
             checks["plans"] = plan_count
     except Exception as e:
         # 503 (was: 200 with ok=false) — uptime monitors now actually see outages.
-        # Root cause goes to server logs, not the response body.
+        # v12-E2.5: root cause goes to SERVER LOGS only — the old
+        # checks["error"] = str(e) leaked internal exception text (table names,
+        # driver paths) to an unauthenticated public endpoint.
+        # v12-E3.7(b) (handed to E2 — the healthz check is router-local):
+        # capture to Sentry (never raises, no-op when SENTRY_DSN is off) so
+        # the outage is visible in the error tracker, not just the logs.
+        log.error("healthz database check failed", exc_info=True)
+        from _observability import capture_exception
+        capture_exception(e)
         checks["database"] = "unreachable"
         checks["ok"] = False
-        checks["error"] = str(e)[:120]
     checks["version"] = app_version()
     checks["timestamp"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
     checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
     status_code = 200 if checks["ok"] else 503
-    # NOTE: raw dict — extended envelope (v11 audit)
+    # v12-E2.13: PERMANENT infra exemption (documented in _responses.py) —
+    # uptime monitors need a stable 200/503 + {success, data: checks} body;
+    # this is NOT part of the ok() unification (D4 decision).
     return JSONResponse(status_code=status_code, content={"success": checks["ok"], "data": checks})
 
 
-@router.get("/api/env")
-async def get_env(_=Depends(get_current_user)):
-    # v6+ — single canonical source (same file every health endpoint reads)
-    version = app_version()
-    return ok({
-        "version": version,
-        "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",
-        "bot_interval": settings.BOT_INTERVAL_SECONDS,
-        "debug": settings.DEBUG,
-        "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
-        "webhook_url": (os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or "") + "/webhook",
-    })
+# v12-E2.8: GET /api/env REMOVED — dead route (zero consumers in src/tests/
+# vercel.json; env facts are served by /api/diagnostics/status for the
+# platform admin). NOTE: app/middleware.py still lists "/api/env" among
+# _CACHEABLE_API_PREFIXES — harmless (a prefix with no matching route never
+# matches), the prefix entry can be dropped by the app/-owner in a follow-up.
 
 
 # NOTE (phase D cleanup): the duplicate /api/system/stats and second
@@ -220,7 +222,7 @@ async def cleanup_old_logs(request: Request, token: str = Form("")):
         _secrets.compare_digest(token, CRON_SECRET)
         or _secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
     ):
-        raise HTTPException(403, "Unauthorized")
+        raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from models import BlacklistedToken
     async with AsyncSessionLocal() as db:
         cutoff = utcnow() - timedelta(days=30)

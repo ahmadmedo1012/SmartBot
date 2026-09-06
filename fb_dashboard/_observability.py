@@ -33,10 +33,57 @@ Three cooperating pieces, all no-op safe:
 
 import logging
 import os
+import re
 import time
 from datetime import datetime
 
 log = logging.getLogger("fb-obs")
+
+# ── v12-E3.7 — PII scrubber for outgoing Sentry events ───────────────────
+# Conservative, pattern-based redaction applied in before_send: obvious
+# emails and phone numbers in the message-bearing parts of an event
+# (logentry.message for capture_message, exception values for raised errors).
+# Deliberately NOT touched: breadcrumbs, request data, tags — send_default_pii
+# is already False and those structures rarely carry free-form user input here.
+# The scrubber must never raise and never drop an event (worst case: a match
+# is missed — never the reverse).
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+# Sentry's own documented example pattern for phone-shaped text (optional
+# country prefix, 8+ digits with spaces/dashes/dots/parens). Bare short digit
+# runs (ids, counters) do not match; only long or separated digit strings do.
+_PHONE_RE = re.compile(r"\+?\d[\d\s\-().]{7,}\d")
+
+
+def scrub_pii_text(text: str) -> str:
+    """Redact obvious emails/phone numbers from a free-text string."""
+    text = _EMAIL_RE.sub("[REDACTED-EMAIL]", text)
+    return _PHONE_RE.sub("[REDACTED-PHONE]", text)
+
+
+def _scrub_event(event: dict) -> dict:
+    """Apply scrub_pii_text to the message-bearing parts of a Sentry event.
+
+    Returns the event unchanged on ANY internal error — redaction is
+    best-effort and must never lose the error report itself.
+    """
+    try:
+        logentry = event.get("logentry")
+        if isinstance(logentry, dict) and isinstance(logentry.get("message"), str):
+            logentry["message"] = scrub_pii_text(logentry["message"])
+        values = event.get("exception", {}).get("values") or []
+        if isinstance(values, list):
+            for exc in values:
+                if isinstance(exc, dict) and isinstance(exc.get("value"), str):
+                    exc["value"] = scrub_pii_text(exc["value"])
+    except Exception:
+        pass
+    return event
+
+
+def _before_send(event: dict, hint: dict | None) -> dict:
+    """sentry_sdk init hook: scrub PII right before the event is enqueued."""
+    return _scrub_event(event)
+
 
 # ─────────────────────────────────────────────────────────────
 # 1. Sentry / GlitchTip
@@ -118,6 +165,10 @@ def init_sentry() -> bool:
             "environment": environment,
             "traces_sample_rate": float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
             "send_default_pii": False,
+            # v12-E3.7 — PII hygiene on the wire: emails/phone numbers that
+            # leaked into exception messages or capture_message texts are
+            # redacted before the event leaves the process.
+            "before_send": _before_send,
         }
         if release:
             kwargs["release"] = release

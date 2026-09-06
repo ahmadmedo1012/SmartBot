@@ -10,7 +10,14 @@ export const metadata: Metadata = {
 }
 
 import AuthGuard from "../dashboard/AuthGuard"
+import { QueryProvider } from "@/components/shared/QueryProvider"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGuard requiredRole="admin">{children}</AuthGuard>
+  // v12-E5.2: QueryProvider here for the admin react-query consumers
+  // (admin/telegram) — see components/shared/QueryProvider.tsx.
+  return (
+    <QueryProvider>
+      <AuthGuard requiredRole="admin">{children}</AuthGuard>
+    </QueryProvider>
+  )
 }

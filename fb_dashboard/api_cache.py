@@ -48,7 +48,7 @@ class APICache:
         async def my_endpoint(req, db=Depends(get_db)):
             ...
 
-        @cache.invalidate_on_write("/api/stats")
+        @cache.invalidate_on_write("/api/dashboard/bundle")
         async def write_endpoint(req, db=Depends(get_db)):
             ...
     """

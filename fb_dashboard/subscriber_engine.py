@@ -23,14 +23,24 @@ class SubscriberEngine:
         platform: str = "messenger",
         page_id: str = "",
         session=None,
+        tenant_id: int = 0,
     ) -> Subscriber:
-        """Find subscriber by fb_user_id or create one."""
+        """Find subscriber by fb_user_id or create one.
+
+        v12 E1.2 (D9): was a GLOBAL fb_user_id lookup — tenant B reused (and
+        mutated) tenant A's subscriber row for the same Facebook user, and the
+        create path left tenant_id unset. Now the lookup is tenant-scoped and
+        the created row carries tenant_id; 0 keeps the legacy global shape.
+        """
         close = False
         if session is None:
             session = AsyncSessionLocal()
             close = True
         try:
-            r = await session.execute(select(Subscriber).where(Subscriber.fb_user_id == fb_user_id))
+            stmt = select(Subscriber).where(Subscriber.fb_user_id == fb_user_id)
+            if tenant_id:
+                stmt = stmt.where(Subscriber.tenant_id == tenant_id)
+            r = await session.execute(stmt)
             sub = r.scalar_one_or_none()
             if sub:
                 sub.last_interaction_at = utcnow()
@@ -45,6 +55,7 @@ class SubscriberEngine:
                     first_name=first,
                     platform=platform,
                     page_id=page_id,
+                    tenant_id=tenant_id,
                     first_seen_at=utcnow(),
                     last_interaction_at=utcnow(),
                 )
@@ -97,6 +108,10 @@ class SubscriberEngine:
                     .join(Tag, SubscriberTag.tag_id == Tag.id)
                     .where(Tag.name == tag)
                 )
+                # v12 E1.1: نفس عقدة get_detail — وسم بنفس الاسم عند مستأجر
+                # آخر لا ينبغي أن يُدخل مشتركي هذا المستأجر في التصفية
+                if tenant_id:
+                    tag_exists = tag_exists.where(Tag.tenant_id == tenant_id)
                 base = base.where(Subscriber.id.in_(tag_exists))
                 count_base = count_base.where(Subscriber.id.in_(tag_exists))
 
@@ -164,12 +179,18 @@ class SubscriberEngine:
         if not sub:
             return None
 
-        # tags
-        tag_r = await session.execute(
+        # tags — v12 E1.1 (D2 P1): the join must also honor Tag.tenant_id;
+        # legacy cross-tenant subscriber_tags rows (created before the add_tag
+        # ownership check) would otherwise leak another tenant's tag names
+        # into this tenant's subscriber detail.
+        tag_stmt = (
             select(Tag.id, Tag.name, Tag.color)
             .join(SubscriberTag, Tag.id == SubscriberTag.tag_id)
             .where(SubscriberTag.subscriber_id == sub.id)
         )
+        if tenant_id:
+            tag_stmt = tag_stmt.where(Tag.tenant_id == tenant_id)
+        tag_r = await session.execute(tag_stmt)
         tags = [{"id": t.id, "name": t.name, "color": t.color} for t in tag_r]
 
         # recent replies (last 10)
@@ -227,8 +248,33 @@ class SubscriberEngine:
         }
 
     async def add_tag(self, subscriber_id: int, tag_id: int, session, tenant_id: int = 0) -> bool:
-        """Assign tag to subscriber. Returns True on success or if already exists."""
+        """Assign tag to subscriber. Returns True on success or if already exists.
+
+        v12 E1.1 (D2 P1 — cross-tenant BOLA): the old body accepted tenant_id
+        and never used it, so a tenant could link ANY subscriber id to ANY tag
+        id (both owned by other tenants). Both ids are now verified to belong
+        to tenant_id before the insert; foreign ids → False (no row written).
+        """
         try:
+            if tenant_id:
+                sub_ok = await session.scalar(
+                    select(Subscriber.id).where(
+                        Subscriber.id == subscriber_id,
+                        Subscriber.tenant_id == tenant_id,
+                    )
+                )
+                tag_ok = await session.scalar(
+                    select(Tag.id).where(
+                        Tag.id == tag_id,
+                        Tag.tenant_id == tenant_id,
+                    )
+                )
+                if sub_ok is None or tag_ok is None:
+                    log.warning(
+                        "add_tag rejected cross-tenant link: sub=%s tag=%s tenant=%s",
+                        subscriber_id, tag_id, tenant_id,
+                    )
+                    return False
             st = SubscriberTag(subscriber_id=subscriber_id, tag_id=tag_id)
             session.add(st)
             await session.commit()
@@ -242,7 +288,30 @@ class SubscriberEngine:
             return False
 
     async def remove_tag(self, subscriber_id: int, tag_id: int, session, tenant_id: int = 0) -> bool:
-        """Remove tag from subscriber. Returns False if not found."""
+        """Remove tag from subscriber. Returns False if not found.
+
+        v12 E1.1 (D2 P1): same ownership check as add_tag — a tenant can only
+        remove a link between ITS OWN subscriber and ITS OWN tag.
+        """
+        if tenant_id:
+            sub_ok = await session.scalar(
+                select(Subscriber.id).where(
+                    Subscriber.id == subscriber_id,
+                    Subscriber.tenant_id == tenant_id,
+                )
+            )
+            tag_ok = await session.scalar(
+                select(Tag.id).where(
+                    Tag.id == tag_id,
+                    Tag.tenant_id == tenant_id,
+                )
+            )
+            if sub_ok is None or tag_ok is None:
+                log.warning(
+                    "remove_tag rejected cross-tenant unlink: sub=%s tag=%s tenant=%s",
+                    subscriber_id, tag_id, tenant_id,
+                )
+                return False
         r = await session.execute(
             select(SubscriberTag).where(
                 SubscriberTag.subscriber_id == subscriber_id,
@@ -281,8 +350,15 @@ class TagEngine:
         return result
 
     async def create_tag(self, name: str, color: str, session, tenant_id: int = 0) -> dict:
-        """Create a new tag. Returns dict or raises on duplicate."""
-        existing = await session.execute(select(Tag).where(Tag.name == name))
+        """Create a new tag. Returns dict or raises on duplicate.
+
+        v12 E1.2 (D9): the name-uniqueness check was GLOBAL — tenant B got a
+        false «already exists» rejection whenever tenant A had the same tag
+        name, even though the DB unique constraint is (tenant_id, name).
+        """
+        existing = await session.execute(
+            select(Tag).where(Tag.name == name, Tag.tenant_id == tenant_id)
+        )
         if existing.scalar_one_or_none():
             raise ValueError(f"Tag '{name}' already exists")
         tag = Tag(name=name, color=color, tenant_id=tenant_id)

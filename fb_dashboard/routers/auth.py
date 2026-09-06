@@ -25,11 +25,15 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
 
 
-def make_token(username: str, tenant_id: int = 0) -> str:
+def make_token(username: str, tenant_id: int = 0, token_ver: int = 0) -> str:
+    """Mint a session JWT. ``ver`` (v12-E2.4) pins the user's token version —
+    bumping ``User.token_ver`` (password change/reset) instantly revokes every
+    previously minted token for that user without waiting for expiry/blacklist.
+    """
     jti = secrets.token_hex(16)
     now = datetime.now(UTC)
     return jwt.encode(
-        {"sub": username, "tid": tenant_id, "jti": jti,
+        {"sub": username, "tid": tenant_id, "jti": jti, "ver": int(token_ver),
          "iat": now, "nbf": now,
          "exp": now + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY, algorithm=ALGORITHM,
@@ -67,6 +71,12 @@ async def get_current_user(request: Request, db=Depends(get_db)):
     user = (await db.execute(stmt.order_by(User.id).limit(1))).scalars().first()
     if not user:
         raise HTTPException(401, "المستخدم غير موجود")
+    # v12-E2.4: token version check — a token minted before the user's
+    # token_ver was bumped (password change / admin reset) is rejected even
+    # though its signature/expiry are still valid. getattr keeps legacy DBs
+    # (pre-migration) treating the column as 0 = accept.
+    if int(payload.get("ver", 0) or 0) != int(getattr(user, "token_ver", 0) or 0):
+        raise HTTPException(401, "تم تحديث بيانات الدخول — يرجى تسجيل الدخول مرة أخرى")
     if user.tenant_id:
         tenant = await db.get(Tenant, user.tenant_id)
         if not tenant or not tenant.is_active:
@@ -134,7 +144,7 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
         )).scalars().first()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
-    token = make_token(user.username, user.tenant_id)
+    token = make_token(user.username, user.tenant_id, getattr(user, "token_ver", 0))
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     secure = not getattr(settings, 'DEBUG', False)
@@ -212,7 +222,7 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     await db.flush()
     await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
     await db.commit()
-    token = make_token(username, tenant.id)
+    token = make_token(username, tenant.id, getattr(user, "token_ver", 0))
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok({
         "user": {"id": user.id, "username": username, "name": name, "tenant_id": tenant.id, "role": "admin"}
@@ -232,8 +242,9 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
         if tenant:
             plan = tenant.plan or "free"
             onboarding_completed = bool(tenant.onboarding_completed)
-    # NOTE: raw dict — extended envelope (v11 audit)
-    return {"success": True, "authenticated": True, "data": {
+    # v12-E2.10: unified ok() envelope — the `authenticated` sibling is dropped
+    # (D4 map: zero runtime consumers of that key; AuthGuard relies on HTTP status).
+    return ok({
         "user": {
             "id": current_user.id, "username": current_user.username,
             "name": current_user.email or current_user.username,
@@ -244,7 +255,7 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             "roleLabel": current_user.role,
             "onboardingCompleted": onboarding_completed,
         }
-    }}
+    })
 
 
 @router.post("/api/onboarding/complete")
@@ -280,13 +291,15 @@ async def skip_onboarding(db=Depends(get_db), current_user: User = Depends(get_c
 
 
 @router.get("/api/audit/logs")
-async def get_audit_logs(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), db=Depends(get_db),
+async def get_audit_logs(page: int = Query(1, ge=1), per_page: int = Query(50, ge=1, le=200), db=Depends(get_db),
                           current_user: User = Depends(require_role("admin"))):
     # v9-A9: bounded pagination (was unbounded — negative page/ huge page_size)
-    offset = (page - 1) * page_size
+    # v12-E2.15: page_size → per_page (unify the 4th pagination convention with
+    # replies/crm/inbox/fb — types.ts Paginated already speaks per_page only).
+    offset = (page - 1) * per_page
     stmt = select(AuditLog).where(AuditLog.tenant_id == current_user._tenant_id)
     total = await db.scalar(select(func.count(AuditLog.id)).where(AuditLog.tenant_id == current_user._tenant_id)) or 0
-    rows = await db.execute(stmt.order_by(desc(AuditLog.created_at)).offset(offset).limit(page_size))
+    rows = await db.execute(stmt.order_by(desc(AuditLog.created_at)).offset(offset).limit(per_page))
     return ok({
         "items": [{
             "id": r.id, "action": r.action, "actor_id": r.actor_id,
@@ -294,7 +307,7 @@ async def get_audit_logs(page: int = Query(1, ge=1), page_size: int = Query(50, 
             "metadata": r.data, "ip": r.ip,
             "created_at": iso_z(r.created_at),
         } for r in rows.scalars().all()],
-        "total": total, "page": page, "page_size": page_size,
+        "total": total, "page": page, "per_page": per_page,
     })
 
 
@@ -321,6 +334,9 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     if not user:
         raise HTTPException(404, "المستخدم غير موجود في مساحة عملك")
     user.password_hash = hash_password(new_password)
+    # v12-E2.4: bump the token version — every session JWT minted for this
+    # user (including one stolen before the reset) dies on its next request.
+    user.token_ver = int(getattr(user, "token_ver", 0) or 0) + 1
     await db.commit()
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "reset_password", actor_id=current_user.id, target_type="user",
@@ -349,6 +365,9 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     if verify_password(new_password, current_user.password_hash):
         raise HTTPException(400, "كلمة المرور الجديدة مطابقة للحالية")
     current_user.password_hash = hash_password(new_password)
+    # v12-E2.4: bump the token version — old sessions (incl. this cookie on
+    # other devices) are revoked; the login flow re-mints a fresh token.
+    current_user.token_ver = int(getattr(current_user, "token_ver", 0) or 0) + 1
     await db.commit()
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "change_password", actor_id=current_user.id, ip=ip,
@@ -357,14 +376,15 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
 
 
 @router.get("/api/users")
-async def list_users(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=200), db=Depends(get_db),
+async def list_users(page: int = Query(1, ge=1), per_page: int = Query(50, ge=1, le=200), db=Depends(get_db),
                      current_user: User = Depends(require_role("admin"))):
     # v9-A9: bounded pagination (was unbounded — negative page/ huge page_size)
-    offset = (page - 1) * page_size
+    # v12-E2.15: page_size → per_page (see /api/audit/logs).
+    offset = (page - 1) * per_page
     total = await db.scalar(select(func.count(User.id)).where(User.tenant_id == current_user._tenant_id)) or 0
     rows = await db.execute(
         select(User).where(User.tenant_id == current_user._tenant_id)
-        .order_by(desc(User.created_at)).offset(offset).limit(page_size)
+        .order_by(desc(User.created_at)).offset(offset).limit(per_page)
     )
     return ok({
         "items": [{
@@ -372,7 +392,7 @@ async def list_users(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1
             "role": u.role, "email": u.email, "phone": u.phone or "",
             "created_at": iso_z(u.created_at),
         } for u in rows.scalars().all()],
-        "total": total, "page": page, "page_size": page_size,
+        "total": total, "page": page, "per_page": per_page,
     })
 
 

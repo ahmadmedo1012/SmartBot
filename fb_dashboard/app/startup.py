@@ -41,6 +41,17 @@ from _services import content_calendar_engine, fb, sequence_engine
 # ponytail: detect Vercel to skip long-running background tasks
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 
+
+class SecurityConfigError(RuntimeError):
+    """v12-E3.5 — fail-fast guard for unsafe production configuration.
+
+    Raised by the lifespan's SECRET_KEY check. Subclasses RuntimeError (the
+    guard's historical class) but is EXEMPT from the lifespan's catch-all
+    "app continues" except: a default production SECRET_KEY must crash the
+    process, not boot a forgeable-token server that only logs a warning.
+    """
+
+
 # fb_dashboard/ — this module lives one level deeper than the old runner.py
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -167,7 +178,9 @@ async def lifespan(app: FastAPI):
     try:
         # ponytail: fail-fast if default SECRET_KEY in production (belt-and-suspenders with config.py)
         if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
-            raise RuntimeError("SECRET_KEY is default — set SECRET_KEY env var for production")
+            raise SecurityConfigError(
+                "SECRET_KEY is default — set SECRET_KEY env var for production"
+            )
         async with engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
             # ponytail: self-heal legacy (pre-rebuild) tables — add missing model
@@ -245,8 +258,16 @@ async def lifespan(app: FastAPI):
                 await ws_manager.broadcast_to_tenant(tenant_id, "stats_update", data)
         event_bus.subscribe("stats_update", _ws_bridge)
 
-        # Bridge bot_health (cross-tenant platform health) to all WS clients
+        # Bridge bot_health to WS clients. v12-E3.5 — tenant-scoped emits now
+        # go ONLY to that tenant's connections (the old bridge fanned EVERY
+        # emit out to ALL connections, which is exactly why the health push
+        # below had to stay global — and why its cross-tenant reply count
+        # leaked to every dashboard). tenant_id=None keeps the legacy
+        # every-connection broadcast for genuine platform-wide emits.
         async def _ws_bridge_global(data, tenant_id: int | None = None):
+            if tenant_id is not None:
+                await ws_manager.broadcast_to_tenant(tenant_id, "bot_health", data)
+                return
             # tenant_id is None for global emit — broadcast to every connected tenant
             for conn in ws_manager._connections:
                 try:
@@ -264,20 +285,60 @@ async def lifespan(app: FastAPI):
                 try:
                     async with AsyncSessionLocal() as db:
                         hour_ago = utcnow() - timedelta(hours=1)
-                        recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
+                        # v12-E3.5 — PER-TENANT reply counts (was: one GLOBAL
+                        # count broadcast to every tenant's dashboard — a
+                        # cross-tenant info leak). Only tenants holding a live
+                        # subscriber (WS connection or SSE filter) get an emit,
+                        # each carrying that tenant's own count.
+                        subscribed_tenants: set[int] = {
+                            c.tenant_id for c in ws_manager._connections
+                        }
+                        # SSE-only subscribers have no WS connection — their
+                        # tenant filters live on the bus's bot_health entry.
+                        for _cb, sub_tid in event_bus._subscribers.get("bot_health", []):
+                            if sub_tid is not None:
+                                subscribed_tenants.add(sub_tid)
+                        counts: dict[int, int] = {}
+                        if subscribed_tenants:
+                            rows = (await db.execute(
+                                select(Reply.tenant_id, func.count(Reply.id))
+                                .where(
+                                    Reply.created_at >= hour_ago,
+                                    Reply.tenant_id.in_(subscribed_tenants),
+                                )
+                                .group_by(Reply.tenant_id)
+                            )).all()
+                            counts = {tid: cnt for tid, cnt in rows}
                         import runner  # deferred — canonical _bot_task handle
                         _bt = runner._bot_task
                         running = _bt is not None and not _bt.done() if _bt else False
-                        payload = {"replies_last_hour": recent, "running": running,
-                                   "timestamp": utcnow().isoformat() + "Z"}
-                        await event_bus.emit("bot_health", payload)
+                        stamp = utcnow().isoformat() + "Z"
+                        for tid in subscribed_tenants:
+                            await event_bus.emit(
+                                "bot_health",
+                                {"replies_last_hour": counts.get(tid, 0), "running": running,
+                                 "timestamp": stamp},
+                                tenant_id=tid,
+                            )
                 except Exception:
-                    pass
+                    # v12-E3.5 — was a bare `pass`: DB outages made every 30s
+                    # push die silently forever. One warning per failure keeps
+                    # the loop alive but visible in the logs.
+                    log.warning("bot_health push failed", exc_info=True)
                 await asyncio.sleep(30)
         if not _IS_VERCEL:
             spawn(_health_push())
     except Exception as e:
-        log.error(f"Startup error (app continues): {e}")
+        # v12-E3.5 — capture startup failures to Sentry (previously a local
+        # log line only — invisible in production) and re-raise ONLY the
+        # fail-fast security guard: the SecurityConfigError raised above used
+        # to be swallowed by this very handler, defeating the guard. Every
+        # other startup error keeps the degraded "app continues" behavior.
+        from _observability import capture_exception
+        capture_exception(e)
+        if isinstance(e, SecurityConfigError):
+            raise
+        log.error(f"Startup error (app continues): {e}", exc_info=True)
 
     yield
 

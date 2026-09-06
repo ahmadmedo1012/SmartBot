@@ -121,11 +121,11 @@ async def list_approvers(db=Depends(get_db), _=Depends(require_platform_admin)):
 async def add_approver(body: dict = Body(None), db=Depends(get_db),
                         current_user=Depends(require_platform_admin)):
     if not body or "telegramId" not in body:
-        raise HTTPException(400, "telegramId required")
+        raise HTTPException(400, "الحقل مطلوب: telegramId")
     tid = str(body["telegramId"])
     existing = await db.execute(select(TelegramApprover).where(TelegramApprover.telegram_id == tid))
     if existing.scalar_one_or_none():
-        raise HTTPException(409, "Approver already exists")
+        raise HTTPException(409, "المعتمد موجود مسبقاً")
     a = TelegramApprover(telegram_id=tid, label=body.get("label", ""), added_by_id=current_user.id)
     db.add(a)
     await db.commit()
@@ -149,7 +149,7 @@ async def list_targets(db=Depends(get_db), _=Depends(require_platform_admin)):
 @router.post("/telegram/broadcast-targets")
 async def add_target(body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
     if not body or "chatId" not in body:
-        raise HTTPException(400, "chatId required")
+        raise HTTPException(400, "الحقل مطلوب: chatId")
     t = TelegramBroadcastTarget(label=body.get("label", ""), chat_id=str(body["chatId"]))
     db.add(t)
     await db.commit()
@@ -160,7 +160,7 @@ async def add_target(body: dict = Body(None), db=Depends(get_db), _=Depends(requ
 async def update_target(target_id: int, body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
     t = await db.get(TelegramBroadcastTarget, target_id)
     if not t:
-        raise HTTPException(404)
+        raise HTTPException(404, "هدف البث غير موجود")
     if "isActive" in body:
         t.is_active = body["isActive"]
     await db.commit()

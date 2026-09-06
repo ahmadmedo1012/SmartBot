@@ -40,7 +40,7 @@ async def get_sequence(seq_id: int, db=Depends(get_db), current_user: User = Dep
     from _services import sequence_engine
     seq = await sequence_engine.get_sequence(seq_id, db, tenant_id=current_user._tenant_id)
     if not seq:
-        raise HTTPException(404, "Sequence not found")
+        raise HTTPException(404, "التسلسل غير موجود")
     return ok(seq)
 
 
@@ -53,7 +53,7 @@ async def update_sequence(seq_id: int, request: Request, db=Depends(get_db), cur
     # AFTER the update had already committed.
     done = await sequence_engine.update_sequence(seq_id, body, db, tenant_id=current_user._tenant_id)
     if not done:
-        raise HTTPException(404, "Sequence not found")
+        raise HTTPException(404, "التسلسل غير موجود")
     await db.commit()
     return ok({"ok": True})
 
@@ -63,7 +63,7 @@ async def delete_sequence(seq_id: int, db=Depends(get_db), current_user: User = 
     from _services import sequence_engine
     done = await sequence_engine.delete_sequence(seq_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Sequence not found")
+        raise HTTPException(404, "التسلسل غير موجود")
     await db.commit()
     return ok({"ok": True})
 
@@ -83,7 +83,7 @@ async def update_sequence_step(step_id: int, request: Request, db=Depends(get_db
     body = await request.json()
     done = await sequence_engine.update_step(step_id, body, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Step not found")
+        raise HTTPException(404, "الخطوة غير موجودة")
     await db.commit()
     return ok({"ok": True})
 
@@ -93,7 +93,7 @@ async def delete_sequence_step(step_id: int, db=Depends(get_db), current_user: U
     from _services import sequence_engine
     done = await sequence_engine.delete_step(step_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Step not found")
+        raise HTTPException(404, "الخطوة غير موجودة")
     await db.commit()
     return ok({"ok": True})
 

@@ -51,7 +51,7 @@ jobs:
         # the floor blocks the merge, coverage can only ratchet up.
         run: |
           # Forward order...
-          pytest -q --cov=fb_dashboard --cov-fail-under=50
+          pytest -q --cov=fb_dashboard --cov-fail-under=60
           # ...and reverse order — hermeticity is a GATE, not a hope (v5 §0).
           pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
 

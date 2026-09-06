@@ -27,6 +27,9 @@ interface WalletInstructionsProps {
   providerPhone: string
   quickTransferCode: string
   encodedUSSD: string
+  /** v12-E4.11: false → the encoded payload failed the USSD charset guard;
+   *  copy still works, the dialer is not opened. */
+  ussdSafe: boolean
   onCopy: (text: string) => Promise<boolean>
   phone: string
   onPhoneChange: (phone: string) => void
@@ -37,6 +40,7 @@ export function WalletInstructions({
   providerPhone,
   quickTransferCode,
   encodedUSSD,
+  ussdSafe,
   onCopy,
   phone,
   onPhoneChange,
@@ -72,7 +76,9 @@ export function WalletInstructions({
               type="button"
               onClick={async () => {
                 const ok = await onCopy(quickTransferCode)
-                if (!ok) return
+                /* v12-E4.11: open the dialer only when the encoded payload
+                 * passed the USSD charset guard (see PaymentDialog). */
+                if (!ok || !ussdSafe) return
                 setTimeout(() => {
                   window.location.href = `tel:${encodedUSSD}`
                 }, 150)
@@ -171,9 +177,14 @@ export function BankInstructions({
       {/* Bank amount — no wallet cap (server enforces plan price) */}
       <div>
         <Label htmlFor={bankAmountId}>المبلغ (د.ل)</Label>
+        {/* v12-E4.14: type="text" + inputMode="decimal" — numeric keyboards
+            still show, but the field no longer submits a locale-formatted
+            shadow value; the onChange Number() guard below stays the
+            validation seam (rejects NaN/negatives). */}
         <Input
           id={bankAmountId}
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={bankAmount}
           onChange={(e) => {
             const v = Number(e.target.value)
@@ -239,7 +250,7 @@ export function BankInstructions({
             ) : (
               <AnimatedUpload className="size-4 text-muted-foreground" />
             )}
-            {uploadingReceipt ? "جارٍ الرفع..." : "اختر صورة"}
+            {uploadingReceipt ? "جارٍ الرفع…" : "اختر صورة"}
           </label>
           {receiptImageUrl && (
             <button

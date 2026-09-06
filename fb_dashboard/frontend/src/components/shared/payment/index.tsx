@@ -34,6 +34,7 @@ import { premiumToast } from "@/lib/premium-toast"
 import { Smartphone } from "lucide-react"
 import { useConfig } from "@/hooks/useConfig"
 import { compressImage } from "@/lib/image-compress"
+import { formatNumber } from "@/lib/format"
 import { PaymentMethodTabs } from "./payment-methods"
 import { WalletInstructions, BankInstructions } from "./payment-instructions"
 import { WaitingScreen, ApprovedScreen, RejectedScreen, SuccessScreen } from "./payment-status"
@@ -116,7 +117,14 @@ export function PaymentDialog({
       ? `*122*218${LIBYANA_PHONE.slice(1)}*${price * 1000}*1#`
       : `*140*4*1*${price}*${MADAR_PHONE}#`
 
-  const encodedUSSD = quickTransferCode.replace(/#/g, "%23")
+  /* v12-E4.11: full encodeURIComponent for the tel: payload (the old
+   * hand-rolled replace only escaped "#") + a client-side USSD guard —
+   * post-encode the payload may only contain digits, "*", "#" and "%"
+   * percent-sequences. Anything else (e.g. a decimal point from a
+   * fractional price) fails the guard and the dialer is simply not opened;
+   * the copy action still works and the raw code stays visible. */
+  const encodedUSSD = encodeURIComponent(quickTransferCode)
+  const ussdSafe = /^[\d*#%]+$/.test(encodedUSSD)
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -132,7 +140,7 @@ export function PaymentDialog({
   // Receipt upload — compress client-side, POST to /api/upload, keep the URL
   const handleReceiptFileSelected = async (file: File) => {
     setUploadingReceipt(true)
-    premiumToast("info", "جارٍ رفع الصورة...")
+    premiumToast("info", "جارٍ رفع الصورة…")
     try {
       const compressed = await compressImage(file)
       const fd = new FormData()
@@ -394,7 +402,7 @@ export function PaymentDialog({
           <div className="rounded-xl bg-accent/50 dark:bg-accent/20 border border-accent-foreground/15 p-4">
             <div className="flex justify-between items-center">
               <span className="font-bold">{planNameAr}</span>
-              <span className="text-lg font-bold text-accent-foreground">{price} د.ل</span>
+              <span className="text-lg font-bold text-accent-foreground">{formatNumber(price)} د.ل</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">اشتراك شهري</p>
           </div>
@@ -415,6 +423,7 @@ export function PaymentDialog({
                   providerPhone={providerPhone}
                   quickTransferCode={quickTransferCode}
                   encodedUSSD={encodedUSSD}
+                  ussdSafe={ussdSafe}
                   onCopy={copyToClipboard}
                   phone={phone}
                   onPhoneChange={setPhone}
@@ -447,7 +456,7 @@ export function PaymentDialog({
               {provider !== "bank" && (
                 <div className="rounded-xl bg-muted/30 border border-border/20 p-3 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
-                  <span className="text-lg font-bold text-accent-foreground">{price} د.ل</span>
+                  <span className="text-lg font-bold text-accent-foreground">{formatNumber(price)} د.ل</span>
                 </div>
               )}
 
@@ -456,7 +465,7 @@ export function PaymentDialog({
                 onClick={handleSent}
                 disabled={submitting || (provider !== "bank" && !phone.trim())}
               >
-                {submitting ? "جارٍ الإرسال..." : "إرسال طلب الدفع"}
+                {submitting ? "جارٍ الإرسال…" : "إرسال طلب الدفع"}
               </Button>
             </>
           )}

@@ -16,6 +16,8 @@ import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { apiFetch } from "@/lib/csrf-client"
 import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
+import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 /* v6+ — framer-free: entrance animations use ScrollReveal (CSS tween) and
  * animate-* utility classes; hover lifts use CSS shadow. The h1 KineticText
@@ -232,10 +234,12 @@ export default function PricingPage() {
                           <span className="text-4xl font-extrabold">مجاني</span>
                         ) : (
                           <>
-                            <span key={annual ? "y" : "m"} className="price-swap text-5xl font-extrabold tracking-tighter text-accent-foreground">
-                              {/* Smart-Menu parity: yearly billing = 10× monthly (two months free) */}
-                              {annual ? Math.round(plan.price * 10 * 100) / 100 : plan.price}
-                            </span>
+                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-extrabold tracking-tighter text-accent-foreground">
+                            {/* Smart-Menu parity: yearly billing = 10× monthly (two months free).
+                                v12-E4.13: formatNumber — prices flow through the
+                                single i18n formatting seam like every other number. */}
+                            {formatNumber(annual ? Math.round(plan.price * 10 * 100) / 100 : plan.price)}
+                          </span>
                             <span className="text-base text-muted-foreground font-medium">د.ل</span>
                           </>
                         )}
@@ -291,6 +295,11 @@ export default function PricingPage() {
           <p>جميع الخطط تشمل: تشفير SSL، دعم بريد إلكتروني، تحديثات مجانية مدى الحياة.</p>
         </ScrollReveal>
       </SectionContainer>
+
+      {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): the money path now carries
+          the same one-tap WhatsApp help affordance the landing has — same
+          component, same fixed end-4/bottom slot, same z-index. */}
+      <FloatingWhatsApp />
     </div>
   )
 }

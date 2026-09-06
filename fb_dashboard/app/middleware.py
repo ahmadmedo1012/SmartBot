@@ -9,9 +9,12 @@ passes back through it).
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import os
+import re
+import secrets
 import time
 
 from config import settings
@@ -107,12 +110,48 @@ async def rate_limit_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+# ── v12-E3.3: CSRF double-submit constants ──────────────────────────────
+CSRF_COOKIE = "csrf_token"
+CSRF_HEADER = "X-CSRF-Token"
+# Machine-to-machine / pre-session surfaces: no cookie issuance, no token
+# validation (the Origin allowlist above still guards the mutating ones).
+CSRF_EXEMPT_PREFIXES = (
+    "/api/login",     # pre-session — no csrf cookie could exist yet
+    "/api/register",  # pre-session
+    "/api/telegram/",  # Telegram payment webhook (server-to-server)
+    "/api/webhook/",   # Facebook webhooks (signature-verified server-to-server)
+    "/api/cron/",      # CRON_SECRET Bearer-authed machine calls
+    "/healthz",        # infra probe
+    "/api/health",     # infra probe (liveness + readiness)
+)
+
+
+def _csrf_exempt(path: str) -> bool:
+    """True when a path is outside the CSRF double-submit layer."""
+    return path.startswith(CSRF_EXEMPT_PREFIXES)
+
+
 async def csrf_origin_check(request: Request, call_next):
     """Validate Origin/Referer on state-changing requests to /api/*.
 
     SECURITY (2026-09-05): the old substring match (`"bot.smart-link.ly" in origin`)
     was bypassable with e.g. https://bot.smart-link.ly.evil.com. Now the origin
     host is parsed and compared EXACTLY against the allowlist.
+
+    v12-E3.3 — CSRF double-submit layer (same middleware, same stack position,
+    so ordering is untouched):
+      * safe methods (GET/HEAD/OPTIONS) on non-exempt /api/* responses
+        idempotently issue a ``csrf_token`` cookie (SameSite=Strict, NOT
+        HttpOnly — the frontend's apiFetch must read it);
+      * mutating methods on non-exempt /api/* must send X-CSRF-Token == the
+        csrf cookie (constant-time compare) → 403 Arabic JSON otherwise.
+    Additive-safe rollout: validation is only active once the request CARRIES
+    a csrf cookie (a browser that never got one cannot be expected to send
+    the header). Login/register are exempt (pre-session); machine-to-machine
+    prefixes (/api/telegram/, /api/webhook/, /api/cron/, /healthz,
+    /api/health) and any request bearing an Authorization header (Bearer
+    cron secret) skip the layer entirely. Origin allowlisting above still
+    applies to every mutating call regardless of exemptions.
     """
     from urllib.parse import urlparse
     if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
@@ -129,7 +168,30 @@ async def csrf_origin_check(request: Request, call_next):
             host = urlparse(referer).hostname or ""
             if host and host not in allowed_hosts:
                 return JSONResponse(status_code=403, content={"detail": "Invalid referer"})
-    return await call_next(request)
+        # v12-E3.3(b) — double-submit token check (see module docstring above)
+        if not _csrf_exempt(request.url.path) and not request.headers.get("authorization", ""):
+            cookie_token = request.cookies.get(CSRF_COOKIE)
+            if cookie_token:
+                header_token = request.headers.get(CSRF_HEADER, "")
+                if not hmac.compare_digest(header_token, cookie_token):
+                    return JSONResponse(status_code=403, content={"detail": "طلب غير موثوق (CSRF)"})
+    response = await call_next(request)
+    # v12-E3.3(a) — idempotent cookie issuance on safe-method /api/* responses
+    if (
+        request.method in ("GET", "HEAD", "OPTIONS")
+        and request.url.path.startswith("/api/")
+        and not _csrf_exempt(request.url.path)
+        and CSRF_COOKIE not in request.cookies
+    ):
+        response.set_cookie(
+            CSRF_COOKIE,
+            secrets.token_urlsafe(32),
+            samesite="strict",
+            secure=not getattr(settings, "DEBUG", False),
+            httponly=False,  # MUST stay JS-readable: apiFetch echoes it in X-CSRF-Token
+            path="/",
+        )
+    return response
 
 
 async def request_logging_middleware(request: Request, call_next):
@@ -145,6 +207,12 @@ async def request_logging_middleware(request: Request, call_next):
     import time as _time
     import uuid as _uuid
     request_id = _uuid.uuid4().hex[:8]
+    # v12-E3.2 — bind the rid to request.state so DOWNSTREAM consumers see it:
+    # the 500 traceback (app/errors.py), Sentry tags (_observability.capture_exception
+    # reads request.state.request_id) and the critical Telegram alert
+    # (_observability.report_critical). Previously the id existed only in this
+    # middleware's log line + response header — dead correlation everywhere else.
+    request.state.request_id = request_id
     start = _time.perf_counter()
     response = await call_next(request)
     duration_ms = (_time.perf_counter() - start) * 1000
@@ -163,6 +231,11 @@ async def request_logging_middleware(request: Request, call_next):
 # authenticated diagnostics surface; a shared/CDN-cached 200 could serve one
 # user's response to another. Only genuinely public config endpoints stay.
 _CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env")
+# v12-E5.4: committed root statics served headerless on the api domain.
+_ROOT_STATIC_RE = re.compile(
+    r"^/(?:opengraph-image\.png|favicon\.(?:png|ico)|apple-touch-icon\.png|"
+    r"brand-icon\.png|icon-[^/]+\.(?:png|ico)|manifest\.webmanifest)$"
+)
 
 
 async def static_cache_middleware(request: Request, call_next):
@@ -173,9 +246,22 @@ async def static_cache_middleware(request: Request, call_next):
     # changing asset — cache it hard on BOTH domains (any extension).
     if request.url.path.startswith("/fonts/"):
         response.headers["Cache-Control"] = "public, max-age=604800, stale-while-revalidate=86400"
+    # v12-E5.4 (D8 live finding): api-domain /_next/static/chunks/* shipped
+    # max-age=0, must-revalidate — every hashed chunk revalidated on every
+    # load of the api-domain SPA (bot-domain chunks are edge-immutable).
+    # /_next/ content is build-hash-named → safe to treat as immutable.
+    elif request.url.path.startswith("/_next/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     # ponytail: vite hashed assets under /static/assets/, immutable
     elif request.url.path.startswith("/static/assets/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    # v12-E5.4: committed root statics (og-image, icons, manifest) were
+    # headerless on the api domain — same immutable policy as the chunks.
+    elif _ROOT_STATIC_RE.match(request.url.path):
+        response.headers["Cache-Control"] = (
+            "public, max-age=3600" if request.url.path == "/manifest.webmanifest"
+            else "public, max-age=31536000, immutable"
+        )
     elif request.url.path in ("/", "/index.html"):
         response.headers["Cache-Control"] = "no-cache"
     # API GET responses that don't need real-time freshness
@@ -212,15 +298,23 @@ async def security_headers(request: Request, call_next):
     # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
     response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     # Content-Security-Policy — restrict sources for XSS protection
-    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner;
-    # 'unsafe-eval' REMOVED 2026-09-05 (dev-only need — production Next.js does not eval).
+    # 'unsafe-inline' for script-src/style-src is required by Next.js inline
+    # styles and its inline bootstrap script; 'unsafe-eval' REMOVED
+    # 2026-09-05 (dev-only need — production Next.js does not eval).
+    # v12-E3.4 — NARROWED (D8 #4/D3): script-src dropped the Facebook SDK
+    # hosts (https://connect.facebook.net + https://*.facebook.com) — the SPA
+    # loads NO Facebook scripts (grep-verified: all FB traffic is server-side;
+    # <img> avatars from the FB CDN stay allowed via img-src https:).
+    # connect-src narrowed from "https: wss:" to the hosts actually used:
+    # same-origin API + api.smart-link.ly (bot-domain SPA calls) + the Sentry
+    # ingest (*.ingest.de.sentry.io) + wss: for the same-origin /ws endpoint.
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.facebook.com; "
+        "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "img-src 'self' data: blob: https:; "
         "font-src 'self' data: https://fonts.gstatic.com; "
-        "connect-src 'self' https: wss:; "
+        "connect-src 'self' https://api.smart-link.ly https://*.ingest.de.sentry.io wss:; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
         "form-action 'self';"

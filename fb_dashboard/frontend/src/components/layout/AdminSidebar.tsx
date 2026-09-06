@@ -108,7 +108,7 @@ export function AdminSidebar({
   const pathname = usePathname() ?? ""
 
   return (
-    <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-l border-border/50 shadow-sm", className)}>
+    <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-e border-border/50 shadow-sm", className)}>
       {/* Logo — the REAL brand image (v3 §5.1): same /brand-icon.png asset
           Header.tsx already serves, ending the text-"S" placeholder era. */}
       <div className="flex items-center gap-3 border-b border-border/20 px-5 py-5 min-h-[72px]">

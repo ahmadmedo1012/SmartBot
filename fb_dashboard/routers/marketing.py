@@ -60,17 +60,22 @@ async def list_campaigns(
         select(func.count(MarketingCampaign.id)).where(
             MarketingCampaign.tenant_id == current_user._tenant_id)
     ) or 0
-    # NOTE: raw dict — extended envelope (v11 audit)
-    return {"success": True, "data": [
-        {
-            "id": c.id, "name": c.name, "message": c.message, "audience": c.audience,
-            "status": c.status,
-            "scheduled_at": iso_z(c.scheduled_at),
-            "sent_count": c.sent_count, "delivered_count": c.delivered_count,
-            "opened_count": c.opened_count, "clicked_count": c.clicked_count,
-            "created_at": iso_z(c.created_at),
-        } for c in rows.scalars().all()
-    ], "total": total}
+    # v12-E2.12: ok() envelope with {items, total} — the campaign rows moved
+    # from a bare array to data.items (the top-level `total` sibling is now
+    # INSIDE data; frontend dual-shape guard shipped in the same round).
+    return ok({
+        "items": [
+            {
+                "id": c.id, "name": c.name, "message": c.message, "audience": c.audience,
+                "status": c.status,
+                "scheduled_at": iso_z(c.scheduled_at),
+                "sent_count": c.sent_count, "delivered_count": c.delivered_count,
+                "opened_count": c.opened_count, "clicked_count": c.clicked_count,
+                "created_at": iso_z(c.created_at),
+            } for c in rows.scalars().all()
+        ],
+        "total": total,
+    })
 
 
 @router.post("/campaigns")

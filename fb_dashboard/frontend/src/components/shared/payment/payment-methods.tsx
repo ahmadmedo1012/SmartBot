@@ -8,6 +8,7 @@
 import { Smartphone, Landmark } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { formatNumber } from "@/lib/format"
 import type { Provider } from "./payment-constants"
 import { LIBYANA_LABEL, MADAR_LABEL, BANK_TRANSFER_LABEL } from "./payment-constants"
 
@@ -59,7 +60,7 @@ export function PaymentMethodTabs({
       </div>
       {requiresBank && (
         <p className="text-xs text-accent-foreground mt-2">
-          المبالغ فوق {walletCap} د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot; لإتمام الدفع
+          المبالغ فوق {formatNumber(walletCap)} د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot; لإتمام الدفع
         </p>
       )}
     </div>

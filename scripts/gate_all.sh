@@ -23,7 +23,7 @@ fi
 # ── Gate 2: pytest (hermetic suite) ─────────────────────────────────
 echo "── [2/5] pytest (full suite) ──"
 # v10-F3: coverage floor 50% (measured 52% at v10) — ratchets up only
-if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=50; then
+if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=60; then
   echo "✅ pytest: all green"
 else
   FAILURES+=("pytest")

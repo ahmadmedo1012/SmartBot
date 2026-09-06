@@ -48,12 +48,19 @@ function ToastIconChip({ icon }: { icon: ToastIcon }) {
   )
 }
 
+/* v12-E4.4: ARIA role split by severity — the error family (destructive
+ * outcomes the user must hear immediately) announces with role="alert"
+ * (implicit aria-live="assertive"); every other variant (success/info/…)
+ * is a polite status update with role="status" (implicit aria-live="polite").
+ * The old explicit aria-live="polite" next to role="alert" was redundant AND
+ * self-contradictory (it downgraded the assertive role to polite). */
+const ALERT_ICONS: readonly ToastIcon[] = ["error", "trash"]
+
 export function premiumToast(icon: ToastIcon, title: string, description?: string, opts?: { duration?: number }) {
   return toast.custom(
     (t) => (
       <div
-        role="alert"
-        aria-live="polite"
+        role={ALERT_ICONS.includes(icon) ? "alert" : "status"}
         onClick={() => toast.dismiss(t)}
         className="pointer-events-auto flex w-full cursor-pointer items-start gap-3 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-xl rtl:flex-row-reverse animate-slide-up"
         style={{ animationDuration: "0.35s" }}

@@ -90,11 +90,24 @@ async def websocket_endpoint(ws: WebSocket):
                             "event": "stats_update",
                             "data": {"total_replies": total, "today_replies": today}
                         }, default=str))
-                except Exception:
-                    pass
+                except Exception as e:
+                    # v12-E3.5 — was a bare `pass`: a failing stats query
+                    # (e.g. DB outage) silently returned nothing to the client.
+                    log.warning("WS stats query failed tenant=%s: %s", ws_tid, e, exc_info=True)
     except WebSocketDisconnect:
         ws_manager.disconnect(ws)
-    except Exception:
+    except Exception as e:
+        # v12-E3.5 — non-disconnect WS failures were a bare silent discard
+        # (no log, no Sentry event — an auth-adjacent or stats-query bug in
+        # the receive loop simply vanished). Log with the full traceback and
+        # capture, then keep the historical cleanup behavior.
+        log.warning("WebSocket handler error tenant=%s: %s", ws_tid, e, exc_info=True)
+        try:
+            from _observability import capture_exception
+
+            capture_exception(e)
+        except Exception:
+            pass
         ws_manager.disconnect(ws)
 
 

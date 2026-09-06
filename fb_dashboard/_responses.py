@@ -13,7 +13,17 @@ HTTP-level failures keep using ``HTTPException`` (transport errors: 401/403/404/
 
 Rule (CLAUDE.md / latest_plan.md §3 Track A): any NEW router imports these
 helpers — raw dict/list returns are forbidden outside the documented
-exceptions in docs/design-system-adjacent API docs.
+exceptions.
+
+Documented exceptions (v12-E3.7 recount — was 6 in the v11 report):
+  * ``/healthz``  — PERMANENT infra exemption (E2.13): uptime monitors and
+                    Vercel probes parse its literal ``{"success", "data"}``
+                    JSONResponse shape; it is machine contract, never rendered.
+The other five former exceptions (the extended envelopes: ``/api/me``
+``authenticated`` flag, marketing ``total`` shape, onboarding ×3
+test-connection shapes) were unified to ``ok()`` in v12 (E2.10/E2.11/E2.12) —
+the frontend consumers were updated in the same round, so no extended
+envelope may be introduced again without a new documented reason.
 """
 
 from typing import Any

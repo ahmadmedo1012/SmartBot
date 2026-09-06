@@ -99,7 +99,7 @@ export default function PagesPage() {
         ) : isLoading ? (
           <Card><CardContent className="p-6 flex items-center gap-4">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">جارٍ التحميل...</span>
+            <span className="text-sm text-muted-foreground">جارٍ التحميل…</span>
           </CardContent></Card>
         ) : (
           <>
@@ -184,7 +184,7 @@ export default function PagesPage() {
                 <HelpCircle className="size-5 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p>تحتاج إلى رمز وصول من فيسبوك مع الصلاحيات التالية:</p>
-                  <ul className="list-disc pr-4 space-y-0.5">
+                  <ul className="list-disc ps-4 space-y-0.5">
                     <li>pages_messaging</li>
                     <li>pages_manage_metadata</li>
                     <li>pages_read_engagement</li>

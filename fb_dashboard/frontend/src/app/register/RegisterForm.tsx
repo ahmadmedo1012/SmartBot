@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,23 @@ import { UserPlus, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/* v12-E4.8: 429 lockout window — parse the backend's remaining seconds from
+ * its Arabic message ("… بعد 60 ثانية") when present, else assume 60s. */
+function parseLockoutSeconds(message: string): number {
+  const seconds = /(\d+)\s*(?:ثانية|ثوانٍ|ثواني)/.exec(message)
+  if (seconds) return Math.min(900, Math.max(1, Number(seconds[1])))
+  const minutes = /(\d+)\s*(?:دقيقة|دقائق)/.exec(message)
+  if (minutes) return Math.min(900, Math.max(1, Number(minutes[1]) * 60))
+  return 60
+}
+
+/* v12-E4.14: compose aria-describedby — the form-level error id plus the
+ * per-field validity icon id (so the check/x verdict is announced). */
+function describedBy(...ids: (string | false | undefined)[]) {
+  const list = ids.filter(Boolean).join(" ")
+  return list || undefined
+}
 
 function FloatingShapes() {
   return (
@@ -32,9 +49,11 @@ function validate(fields: { username: string; email: string; password: string; c
   if (!fields.username.trim()) return "يرجى إدخال اسم المستخدم"
   if (fields.username.trim().length < 3) return "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"
   if (!fields.email.trim()) return "يرجى إدخال البريد الإلكتروني"
-  if (!EMAIL_RE.test(fields.email.trim())) return "أدخل بريدًا إلكترونيًا صالحًا"
+  if (!EMAIL_RE.test(fields.email.trim())) return "أدخل بريداً إلكترونياً صالحاً"
   if (!fields.password) return "يرجى إدخال كلمة المرور"
-  if (fields.password.length < 6) return "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+  /* v12-E4.9: minimum 8 characters (was 6) — aligns the client gate with
+   * the backend's password policy. */
+  if (fields.password.length < 8) return "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
   if (!fields.confirm) return "يرجى تأكيد كلمة المرور"
   if (fields.password !== fields.confirm) return "كلمتا المرور غير متطابقتين"
   return ""
@@ -49,13 +68,23 @@ function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [formError, setFormError] = useState("")
+  // v12-E4.8: 429 rate-limit lockout — seconds remaining before submit
+  // re-enables (backend 429 detail drives the window; 60s fallback).
+  const [lockoutSeconds, setLockoutSeconds] = useState(0)
+
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return
+    const t = setInterval(() => setLockoutSeconds((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [lockoutSeconds])
 
   const usernameOk = username.length >= 3
   const emailOk = EMAIL_RE.test(email)
-  const passwordOk = password.length >= 6
+  const passwordOk = password.length >= 8
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault()
+    if (lockoutSeconds > 0) return
     const err = validate({ username, email, password, confirm })
     if (err) { setFormError(err); return }
     setFormError("")
@@ -82,6 +111,11 @@ function RegisterForm() {
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
       brandedToast.error(msg)
+      // v12-E4.8: rate-limited (429) → show the Arabic detail and lock the
+      // submit button for the remaining window with a live countdown.
+      if (e instanceof ApiError && e.status === 429) {
+        setLockoutSeconds(parseLockoutSeconds(msg))
+      }
     } finally {
       setLoading(false)
     }
@@ -124,9 +158,11 @@ function RegisterForm() {
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={describedBy(formError && "register-form-error", username.length > 0 && "username-validity")}
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
-                  <span className="absolute end-2 top-1/2 -translate-y-1/2">
+                  <span id="username-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
                     {usernameOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
@@ -138,9 +174,11 @@ function RegisterForm() {
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="email" type="email" autoComplete="email" placeholder="البريد الإلكتروني" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={describedBy(formError && "register-form-error", email.length > 0 && "email-validity")}
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
-                  <span className="absolute end-2 top-1/2 -translate-y-1/2">
+                  <span id="email-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
                     {emailOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
@@ -152,15 +190,19 @@ function RegisterForm() {
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={describedBy(formError && "register-form-error", password.length > 0 && "password-validity")}
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {password.length > 0 && (
-                  <span className="absolute end-8 top-1/2 -translate-y-1/2">
+                  <span id="password-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
                     {passwordOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  tabIndex={-1} aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
+                      interactive control and must sit in the tab order. */}
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
@@ -171,28 +213,37 @@ function RegisterForm() {
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="تأكيد كلمة المرور" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
+                  aria-invalid={formError ? true : undefined}
+                  aria-describedby={describedBy(formError && "register-form-error", confirm.length > 0 && "confirm-validity")}
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {confirm.length > 0 && (
-                  <span className="absolute end-8 top-1/2 -translate-y-1/2">
+                  <span id="confirm-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
                     {password === confirm ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                  tabIndex={-1} aria-label={showConfirm ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  aria-label={showConfirm ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
+                  {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
+                      interactive control and must sit in the tab order. */}
                   {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
             {formError && (
-              <p role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
+              <p id="register-form-error" role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
                 {formError}
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading}>
+            {lockoutSeconds > 0 && (
+              <p id="register-lockout" role="status" aria-live="polite" className="text-xs text-warning text-center">
+                يمكنك إعادة المحاولة بعد {lockoutSeconds} ثانية
+              </p>
+            )}
+            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
-                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جارٍ إنشاء الحساب...</span>
+                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جارٍ إنشاء الحساب…</span>
               ) : (
                 <span className="flex items-center gap-2"><UserPlus className="size-4" /> إنشاء حساب</span>
               )}

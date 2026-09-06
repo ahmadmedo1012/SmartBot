@@ -2,6 +2,39 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  // ── v12-E5.4: static asset cache headers (bot-domain Next deployment) ──
+  // D8 live finding: /opengraph-image.png answered `no-store, no-cache` on
+  // bot.smart-link.ly (middleware.ts page default) — every social preview
+  // fetch revalidated. Same class for the public icons + manifest. These
+  // rules give the content-stable branding assets a 1y immutable cache and
+  // the PWA manifest a short 1h cache. NOTE precedence caveat: middleware.ts
+  // still matches .png/.webmanifest paths (its extension-exclusion
+  // alternatives lack the `.*` prefix) and sets its own Cache-Control —
+  // middleware response headers can override config headers, so the durable
+  // og-image fix additionally needs middleware.ts to treat these as cached
+  // statics (reported to the coordinator for the middleware owner).
+  // Fonts: the effective live rule is middleware's 604800 + SWR (v10-C1
+  // deliberately avoided immutable because fonts are not hash-named); the
+  // rule below raises the ceiling where middleware doesn't apply.
+  headers: async () => [
+    {
+      source: "/fonts/:path*",
+      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+    },
+    {
+      source: "/opengraph-image.png",
+      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+    },
+    {
+      source:
+        "/(apple-touch-icon.png|favicon.ico|favicon.png|brand-icon.png|icon-192.png|icon-512.png|icon-192-maskable.png|icon-512-maskable.png)",
+      headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+    },
+    {
+      source: "/manifest.webmanifest",
+      headers: [{ key: "Cache-Control", value: "public, max-age=3600" }],
+    },
+  ],
   // output: "export" was removed — it broke API routes in Next.js 16.
   // The Next.js app builds normally to .next/ and the backend (FastAPI)
   // serves it via SPA catch-all. API calls go directly to api.smart-link.ly.

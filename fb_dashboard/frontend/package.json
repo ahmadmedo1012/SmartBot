@@ -5,13 +5,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "r=$(git rev-parse --short HEAD 2>/dev/null || echo unknown); SENTRY_RELEASE=$r NEXT_PUBLIC_SENTRY_RELEASE=$r next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "verify": "npm run typecheck && next build"
+    "verify": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

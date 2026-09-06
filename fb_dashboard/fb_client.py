@@ -9,6 +9,7 @@ import json
 import logging
 
 import httpx
+from ai_service import UnsafeImageUrlError, _assert_safe_image_url
 
 log = logging.getLogger("fb-client")
 
@@ -94,7 +95,22 @@ class FBClient:
         return await self._post(f"{self.page_id}/feed", {"message": message})
 
     async def post_to_page_with_image(self, message: str, image_url: str) -> dict | None:
-        """Post with attached image. Uploads photo first, then publishes with attachment."""
+        """Post with attached image. Uploads photo first, then publishes with attachment.
+
+        v12 E1.3 (D2 P1 — SSRF): image_url comes from user-controlled JSON
+        (publisher/scheduler/agent) and was fetched server-side with NO
+        validation — an attacker-supplied URL reached cloud metadata
+        endpoints and the internal network from our server. The ai_service
+        SSRF guard (v10-A8) now runs BEFORE any HTTP client is built; an
+        unsafe URL (non-https scheme, private/loopback/link-local host) is
+        never fetched and the post degrades to text-only — the method's
+        existing failure contract for unusable images.
+        """
+        try:
+            _assert_safe_image_url(image_url)
+        except UnsafeImageUrlError as e:
+            log.warning(f"image_url rejected by SSRF guard, posting text only: {e}")
+            return await self.post_to_page(message)
         # Upload photo to get media_fbid
         client = await _ensure_client()
         resp = await client.get(image_url)

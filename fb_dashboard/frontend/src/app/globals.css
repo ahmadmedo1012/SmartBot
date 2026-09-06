@@ -320,7 +320,11 @@
     -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
-  html { overflow-x: hidden; max-width: 100vw; scroll-behavior: smooth; }
+  /* v12-E4.2 (WCAG 2.2 — 2.4.11 Focus Not Obscured): sticky/fixed headers
+     (h-16 Header, sticky PageHeader h-14) sit above focus targets; without
+     scroll-padding the browser scrolls a focused element fully under them.
+     5rem clears the h-16 (4rem) bar + breathing room. */
+  html { overflow-x: hidden; max-width: 100vw; scroll-behavior: smooth; scroll-padding-top: 5rem; }
   html[dir="rtl"] { letter-spacing: 0; }
   h1, h2 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; }
   h3, h4, h5 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }

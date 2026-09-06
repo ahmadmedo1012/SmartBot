@@ -35,7 +35,9 @@ async def resolve_alert(alert_id: int, db=Depends(get_db), current_user: User = 
         select(BotAlert).where(BotAlert.id == alert_id, BotAlert.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not alert:
-        raise HTTPException(404, "Alert not found")
+        # v12-E2.16: arabized (D10's list missed this one — same wording as
+        # alerts_routes.resolve_alert).
+        raise HTTPException(404, "التنبيه غير موجود")
     alert.resolved = True
     alert.resolved_at = utcnow()
     await db.commit()

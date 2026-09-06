@@ -36,7 +36,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     target: "#sidebar-subscribers",
     disableBeacon: true,
-    content: "قائمة المشتركين والتابعين — أرسل رسائل جماعية مستهدفة.",
+    content: "قائمة المشتركين والمتابعين — أرسل رسائل جماعية مستهدفة.",
     placement: "right",
   },
   {

@@ -243,18 +243,18 @@ export default function DashboardPage() {
               <div className="sb-fade-up" style={{ animationDelay: "0.53s" }}>
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle id="dashboard-rules-title" className="flex items-center gap-2">
                       <Activity className="size-4 text-accent-foreground" /> قواعد الرد
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     {rulesList.length > 0 ? (
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table aria-labelledby="dashboard-rules-title" className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-border text-muted-foreground text-xs">
-                              <th className="text-start p-3 font-medium">القاعدة</th>
-                              <th className="text-center p-3 font-medium">الحالة</th>
+                              <th scope="col" className="text-start p-3 font-medium">القاعدة</th>
+                              <th scope="col" className="text-center p-3 font-medium">الحالة</th>
                             </tr>
                           </thead>
                           <tbody>

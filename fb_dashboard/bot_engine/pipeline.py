@@ -282,8 +282,15 @@ class ReplyPipeline:
                 ctx_engine.tag_user(ctx.from_id, "potential_buyer")
                 # Auto-create/update CRM record in DB
                 try:
+                    # v12 E1.2 (D9): scope the upsert by the pipeline's tenant —
+                    # was a GLOBAL fb_user_id lookup, so the first tenant that
+                    # saw a Facebook user "owned" the CRM row forever and every
+                    # other tenant's pipeline updated (and read) it.
                     existing = await session.execute(
-                        select(Customer).where(Customer.fb_user_id == ctx.from_id)
+                        select(Customer).where(
+                            Customer.fb_user_id == ctx.from_id,
+                            Customer.tenant_id == self._tenant_id,
+                        )
                     )
                     c = existing.scalar_one_or_none()
                     if c:

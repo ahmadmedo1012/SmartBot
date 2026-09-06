@@ -21,11 +21,11 @@ from datetime import timedelta
 
 from _services import get_bot_engine, get_tenant_fb_client
 from _utils import utcnow
+from _wallet import credit_wallet, to_wallet_decimal
 from config import settings
 from database import AsyncSessionLocal
 from fastapi import Body, HTTPException, Request
 from models import (
-    BotState,
     PaymentRequest,
     SubscriptionPayment,
     SubscriptionPlan,
@@ -136,16 +136,14 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
             return {"ok": True}
         if action == "pay_app":
-            # Credit balance
-            existing = await db.execute(
-                select(BotState).where(BotState.tenant_id == pr.tenant_id, BotState.key == "balance")
-            )
-            bs = existing.scalar_one_or_none()
-            new_bal = (int(float(bs.value)) if bs and bs.value else 0) + int(float(pr.amount))
-            if bs:
-                bs.value = str(new_bal)
-            else:
-                db.add(BotState(tenant_id=pr.tenant_id, key="balance", value=str(new_bal)))
+            # Credit balance — v12 E1.6 (D9):
+            # 1) Decimal بدل int(float(...)): الدينار الليبي بثلاث منازل
+            #    (Payments Numeric(10,3)) والاقتطاع القديم يأكل القروش.
+            # 2) credit_wallet ينفّذ UPDATE ذرّيًا واحدًا على مستوى SQL بدل
+            #    اقرأ→عدّل→اكتب الذي يفقد قرضًا كاملًا عند موافقتين متزامنتين؛
+            #    الـ commit هنا يغطي الدفعة والقرض معًا (معاملة واحدة).
+            amount = to_wallet_decimal(pr.amount)
+            await credit_wallet(db, pr.tenant_id, amount)
             await db.commit()
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
@@ -176,5 +174,15 @@ async def _run_bot_loop():
                 engine = get_bot_engine(fb, tenant_id=tenant.id)
                 await engine.cycle()
         except Exception as e:
-            log.error(f"Bot loop err: {e}")
+            # v12-E3.5b (D12): the bot loop is the revenue path — a cycle
+            # failure must reach Sentry with its traceback, not just a
+            # one-line message (it could error for days while dashboards
+            # stay green).
+            log.error("Bot loop error", exc_info=True)
+            try:
+                from _observability import capture_exception
+
+                capture_exception(e)
+            except Exception:
+                pass
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)

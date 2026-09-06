@@ -42,7 +42,7 @@ async def get_broadcast(bcast_id: int, db=Depends(get_db), current_user: User = 
     from _services import broadcast_engine
     bcast = await broadcast_engine.get_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)
     if not bcast:
-        raise HTTPException(404, "Broadcast not found")
+        raise HTTPException(404, "البث غير موجود")
     return ok(bcast)
 
 
@@ -52,7 +52,7 @@ async def update_broadcast(bcast_id: int, request: Request, db=Depends(get_db), 
     body = await request.json()
     done = await broadcast_engine.update_broadcast(bcast_id, body, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "Broadcast not found")
+        raise HTTPException(404, "البث غير موجود")
     return ok({"ok": True})
 
 
@@ -63,9 +63,9 @@ async def send_broadcast(bcast_id: int, db=Depends(get_db), current_user: User =
         select(Broadcast).where(Broadcast.id == bcast_id, Broadcast.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not bcast:
-        raise HTTPException(404, "Broadcast not found")
+        raise HTTPException(404, "البث غير موجود")
     if bcast.status != "draft":
-        raise HTTPException(400, "Only draft broadcasts can be sent")
+        raise HTTPException(400, "يُرسل البث في حالة المسودة فقط")
     bc_id = bcast_id
     async def _send():
         async with AsyncSessionLocal() as s:
@@ -79,7 +79,7 @@ async def cancel_broadcast(bcast_id: int, db=Depends(get_db), current_user: User
     from _services import broadcast_engine
     done = await broadcast_engine.cancel_broadcast(bcast_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(400, "Broadcast not found or not cancellable")
+        raise HTTPException(400, "البث غير موجود أو لا يمكن إلغاؤه")
     return ok({"ok": True})
 
 

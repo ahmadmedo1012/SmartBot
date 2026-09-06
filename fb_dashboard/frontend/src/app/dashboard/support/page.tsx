@@ -39,13 +39,17 @@ const TICKET_STATUS_LABEL: Record<string, string> = {
   closed: "مغلقة",
 }
 
+/* v12-E4.5: the four priority options in visual order (RTL grid runs
+ * right→left, so index 0 sits rightmost). */
+const PRIORITY_KEYS = ["low", "medium", "high", "urgent"]
+
 const FAQS = [
   {
     q: "كيف أربط صفحة فيسبوك؟",
     a: "انتقل إلى صفحة الصفحات وأدخل معرف الصفحة ورمز الوصول من فيسبوك، ثم احفظ البيانات.",
   },
   {
-    q: "كيف أنشئ ردًّا تلقائيًا؟",
+    q: "كيف أنشئ ردّاً تلقائياً؟",
     a: "من صفحة الردود التلقائية، أضف قاعدة جديدة بكلمة مفتاحية ونص الرد الذي تريده.",
   },
   {
@@ -249,7 +253,7 @@ export default function SupportPage() {
                   id="subject"
                   value={form.subject}
                   onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                  placeholder="مشكلة في الردود التلقائية..."
+                  placeholder="مشكلة في الردود التلقائية…"
                 />
                 <Input dir="auto"
                   label="البريد الإلكتروني (اختياري)"
@@ -262,13 +266,38 @@ export default function SupportPage() {
                 />
                 <div className="space-y-1">
                   <label className="text-sm font-semibold leading-none">الأولوية</label>
-                  <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="مستوى الأولوية">
-                    {["low", "medium", "high", "urgent"].map((p) => (
+                  <div
+                    className="grid grid-cols-4 gap-1.5"
+                    role="radiogroup"
+                    aria-label="مستوى الأولوية"
+                    onKeyDown={(e) => {
+                      /* v12-E4.5: ARIA radio-group keyboard contract — arrow
+                       * keys move selection AND focus (selection-follows-focus,
+                       * wrap-around). The RTL grid runs right→left, so "forward"
+                       * (low→medium→high→urgent) is visually LEFTWARD:
+                       * ArrowLeft/ArrowDown advance, ArrowRight/ArrowUp go back
+                       * (keydown-first pattern, cf. MobileBottomNav.tsx). */
+                      if (
+                        e.key !== "ArrowUp" && e.key !== "ArrowDown" &&
+                        e.key !== "ArrowLeft" && e.key !== "ArrowRight"
+                      ) return
+                      e.preventDefault()
+                      const forward = e.key === "ArrowDown" || e.key === "ArrowLeft" ? 1 : -1
+                      const idx = PRIORITY_KEYS.indexOf(form.priority)
+                      const next = PRIORITY_KEYS[(idx + forward + PRIORITY_KEYS.length) % PRIORITY_KEYS.length]
+                      setForm((f) => ({ ...f, priority: next }))
+                      e.currentTarget
+                        .querySelector<HTMLButtonElement>(`button[data-priority="${next}"]`)
+                        ?.focus()
+                    }}
+                  >
+                    {PRIORITY_KEYS.map((p) => (
                       <button
                         key={p}
                         type="button"
                         role="radio"
                         aria-checked={form.priority === p}
+                        data-priority={p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
                         className={`h-8 rounded-sm border text-xs font-medium transition-all ${
                           form.priority === p
@@ -290,16 +319,20 @@ export default function SupportPage() {
                   </label>
                   <textarea
                     id="message"
+                    required
                     aria-describedby={form.message && form.message.trim().length < 10 ? "message-error" : undefined}
                     aria-invalid={form.message && form.message.trim().length < 10 ? true : undefined}
                     value={form.message}
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                    placeholder="صف مشكلتك بالتفصيل..."
+                    placeholder="صف مشكلتك بالتفصيل…"
                     rows={5}
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
-                    <p id="message-error" role="alert" aria-live="polite" className="text-xs text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
+                    /* v12-E4.4: role="alert" alone carries implicit
+                     * aria-live="assertive" — the explicit polite live
+                     * region was downgrading it and is dropped. */
+                    <p id="message-error" role="alert" className="text-xs text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
                   )}
                 </div>
                 <Button
@@ -309,7 +342,7 @@ export default function SupportPage() {
                   disabled={mutation.isPending || !form.message.trim() || form.message.trim().length < 10}
                 >
                   <Send className="size-4 rtl:-scale-x-100" />
-                  {mutation.isPending ? "جارٍ الإرسال..." : "إرسال الطلب"}
+                  {mutation.isPending ? "جارٍ الإرسال…" : "إرسال الطلب"}
                 </Button>
               </form>
             </CardContent>
@@ -439,7 +472,7 @@ export default function SupportPage() {
                                 <input
                                   value={replyText}
                                   onChange={(e) => setReplyText(e.target.value)}
-                                  placeholder="اكتب رداً..."
+                                  placeholder="اكتب رداً…"
                                   aria-label="نص الرسالة"
                                   className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />

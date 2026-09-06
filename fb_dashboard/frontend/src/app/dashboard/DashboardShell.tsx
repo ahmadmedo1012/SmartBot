@@ -54,7 +54,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div
         id="page-content"
         tabIndex={-1}
-        className="sb-page-enter flex-1 md:pr-60 flex flex-col pb-16 md:pb-0 outline-none"
+        className="sb-page-enter flex-1 md:ps-60 flex flex-col pb-16 md:pb-0 outline-none"
       >
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}

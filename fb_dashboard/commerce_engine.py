@@ -16,6 +16,16 @@ from fastapi import Request
 
 log = logging.getLogger("fb-commerce")
 
+
+def _clamp_limit(limit) -> int:
+    """v12 E1.9 — تقييد حد الصفحات 1..100 مع تحمّل قيم غير رقمية."""
+    try:
+        value = int(limit)
+    except (TypeError, ValueError):
+        return 10
+    return min(max(value, 1), 100)
+
+
 class ShopifyIntegration:
     """Shopify webhook integration for e-commerce flows."""
 
@@ -89,7 +99,11 @@ class ShopifyIntegration:
         return ctx
 
     async def get_products(self, limit: int = 10) -> list[dict]:
-        """Fetch products from Shopify store (for flow builder product picker)."""
+        """Fetch products from Shopify store (for flow builder product picker).
+
+        v12 E1.9: limit مقيّد 1..100 — قيمة شبحية كبيرة من العميل كانت تُمرَّر
+        كما هي إلى Shopify (طلب ضخم + استجابة عملاقة)."""
+        limit = _clamp_limit(limit)
         if not self.is_configured():
             return []
         try:
@@ -117,7 +131,10 @@ class ShopifyIntegration:
         return []
 
     async def get_orders(self, limit: int = 10, status: str = "any") -> list[dict]:
-        """Fetch recent orders."""
+        """Fetch recent orders.
+
+        v12 E1.9: limit مقيّد 1..100 (نفس حارس get_products)."""
+        limit = _clamp_limit(limit)
         if not self.is_configured():
             return []
         try:

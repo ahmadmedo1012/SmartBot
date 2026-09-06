@@ -9,7 +9,7 @@ from typing import Any
 from _responses import ok
 from _utils import iso_z
 from database import get_db
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from models import BotLog
 from sqlalchemy import select
 
@@ -32,11 +32,14 @@ APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
 
 @router.get("/api/webhook/events")
 async def get_webhook_events(
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=200),
     db=Depends(get_db),
     current_user: Any = Depends(get_current_user),
 ):
-    """Return recent webhook events."""
+    """Return recent webhook events.
+
+    v12-E2.7: bounded limit (was a bare default 20 — a caller could pass
+    limit=1000000 and force the tenant's whole BotLog scan)."""
     rows = await db.execute(
         select(BotLog).where(
             BotLog.tenant_id == current_user._tenant_id,

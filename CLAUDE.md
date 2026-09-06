@@ -34,6 +34,12 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 ### API Backend
 - Live at `https://api.smart-link.ly`
 
+## Module Conventions (اصطلاحات الوحدات)
+
+1. **`_`-prefix = internal plumbing, never public API** (`fb_dashboard/_*.py`): `_utils`, `_services`, `_crypto`, `_responses`, `_observability`, `_async`, `_bootstrap`, `_lazy`, `_hash`, `_rate_limit`, `_schema_reconcile`, and `_wallet` (v12). Public engines (`bot_engine/`, `flow_engine`, `subscriber_engine`…) are importable business logic; `_*` modules exist to serve them — import from engines freely, never re-export a `_*` symbol as a public name.
+2. **Router naming:** both styles exist (`auth.py`, `payments.py`… and `*_routes.py`). New routers follow `*_routes.py` (`admin_routes.py` is the precedent). The envelope contract lives ONLY in `_responses.py` (`ok()`/`fail()`) — see Strict Rules #5.
+3. **CSRF (double-submit, since v12):** every mutating request (POST/PUT/PATCH/DELETE) must carry header `X-CSRF-Token` matching the non-HttpOnly `csrf_token` cookie issued on safe GETs — `apiFetch()` in `src/lib/csrf-client.ts` does this automatically; exemptions only via the middleware's documented prefix list (`/api/telegram/`, `/api/webhook/`, `/api/cron/`, `/healthz`, pre-session login/register).
+
 ## Strict Rules (do not violate)
 
 ### DO NOT

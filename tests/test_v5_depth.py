@@ -1,23 +1,23 @@
 """v5 §3 — depth tests: previously-uncovered critical paths.
 
 Coverage-driven (measured with pytest-cov before writing):
-  - subscription_decisions.py was at 0% — the money-path (plan activation on
-    admin verification, rejection on cancel, idempotency on already-handled).
   - routers/flows.py was at 38% and shipped a live 500: POST /api/flows/{id}/test
     referenced an undefined ``current_user`` (found by ruff F821 in v5 §2).
     This file locks that regression closed.
   - webhook verification GET handshake (hub.challenge echo + token mismatch).
+
+v10-W4: section 1 (subscription_decisions — dead copy of the live atomic-claim
+resolve in payments.py/runner.py) and section 5 (inbox_engine — dead copy of
+routers/inbox.py DB-first) were removed together with those dead modules.
 """
 from __future__ import annotations
 
 import uuid
 
 import pytest
-from database import AsyncSessionLocal
 from database import engine as db_engine
 from httpx import ASGITransport, AsyncClient
-from models import Base, SubscriptionPayment, SubscriptionPlan, Tenant, User
-from subscription_decisions import resolve_subscription_payment
+from models import Base
 
 
 @pytest.fixture(scope="module")
@@ -52,127 +52,6 @@ async def _register(ac: AsyncClient, prefix: str) -> dict:
 async def _login(ac: AsyncClient, username: str, password: str = "Str0ngPass!ly") -> None:
     r = await ac.post("/api/login", json={"username": username, "password": password})
     assert r.status_code == 200, r.text
-
-
-# ══════════════════════════════════════════════════════════════════
-# 1. subscription_decisions — the money path (was 0% covered)
-# ══════════════════════════════════════════════════════════════════
-
-async def _mk_plan(period_days: int = 30) -> int:
-    async with AsyncSessionLocal() as db:
-        plan = SubscriptionPlan(
-            name=f"v5_{uuid.uuid4().hex[:6]}", name_ar="تجريبي",
-            price=19.0, period_days=period_days, is_active=True,
-        )
-        db.add(plan)
-        await db.commit()
-        await db.refresh(plan)
-        return plan.id
-
-
-async def _mk_pending_payment(user_id: int, tenant_id: int, plan_id: int) -> int:
-    async with AsyncSessionLocal() as db:
-        sp = SubscriptionPayment(
-            user_id=user_id, tenant_id=tenant_id, phone="0910000000",
-            amount=19.0, plan_id=plan_id, status="pending",
-        )
-        db.add(sp)
-        await db.commit()
-        await db.refresh(sp)
-        return sp.id
-
-
-async def test_subscription_verify_activates_tenant_and_user(app_client):
-    plan_id = await _mk_plan(period_days=30)
-    async with AsyncSessionLocal() as db:
-        tenant = Tenant(name=f"t_{uuid.uuid4().hex[:8]}")
-        db.add(tenant)
-        await db.flush()
-        user = User(username=f"subv_{uuid.uuid4().hex[:8]}", email=f"s{uuid.uuid4().hex[:8]}@t.ly",
-                    password_hash="x", role="admin", tenant_id=tenant.id)
-        db.add(user)
-        await db.flush()
-        sp = SubscriptionPayment(user_id=user.id, tenant_id=tenant.id,
-                                 phone="0910000001", amount=19.0,
-                                 plan_id=plan_id, status="pending")
-        db.add(sp)
-        await db.commit()
-        await db.refresh(sp)
-        pid, uid, tid = sp.id, user.id, tenant.id
-
-    async with AsyncSessionLocal() as db:
-        ok, msg = await resolve_subscription_payment(db, pid, "verified")
-    assert ok is True, msg
-    assert "تفعيل" in msg
-
-    async with AsyncSessionLocal() as db:
-        tenant = await db.get(Tenant, tid)
-        assert tenant.subscription_status == "PAID"
-        assert tenant.plan_id == plan_id
-        assert tenant.plan_end is not None and tenant.plan_end > tenant.plan_start
-        user = await db.get(User, uid)
-        assert user.subscription_status == "PAID"
-        assert user.plan_id == plan_id
-
-
-async def test_subscription_cancel_rejects_user_only(app_client):
-    plan_id = await _mk_plan()
-    async with AsyncSessionLocal() as db:
-        tenant = Tenant(name=f"tc_{uuid.uuid4().hex[:8]}")
-        db.add(tenant)
-        await db.flush()
-        user = User(username=f"subc_{uuid.uuid4().hex[:8]}", email=f"c{uuid.uuid4().hex[:8]}@t.ly",
-                    password_hash="x", role="admin", tenant_id=tenant.id)
-        db.add(user)
-        await db.flush()
-        sp = SubscriptionPayment(user_id=user.id, tenant_id=tenant.id,
-                                 phone="0910000002", amount=19.0,
-                                 plan_id=plan_id, status="pending")
-        db.add(sp)
-        await db.commit()
-        await db.refresh(sp)
-        pid, uid, tid = sp.id, user.id, tenant.id
-
-    async with AsyncSessionLocal() as db:
-        ok, msg = await resolve_subscription_payment(db, pid, "cancelled")
-    assert ok is True, msg
-    async with AsyncSessionLocal() as db:
-        user = await db.get(User, uid)
-        assert user.subscription_status == "REJECTED"
-        tenant = await db.get(Tenant, tid)
-        assert tenant.subscription_status != "PAID"  # cancellation must NOT activate
-
-
-async def test_subscription_resolution_is_idempotent_on_handled(app_client):
-    """A second decision on an already-processed payment is refused."""
-    plan_id = await _mk_plan()
-    async with AsyncSessionLocal() as db:
-        user = User(username=f"subi_{uuid.uuid4().hex[:8]}", email=f"i{uuid.uuid4().hex[:8]}@t.ly",
-                    password_hash="x", role="admin")
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-        sp = SubscriptionPayment(user_id=user.id, phone="0910000003",
-                                 amount=19.0, plan_id=plan_id, status="pending")
-        db.add(sp)
-        await db.commit()
-        await db.refresh(sp)
-        pid = sp.id
-
-    async with AsyncSessionLocal() as db:
-        ok1, _ = await resolve_subscription_payment(db, pid, "cancelled")
-        assert ok1 is True
-    async with AsyncSessionLocal() as db:
-        ok2, msg2 = await resolve_subscription_payment(db, pid, "verified")
-    assert ok2 is False, "double-processing must be rejected"
-    assert "معالج" in msg2 or "موجود" in msg2
-
-
-async def test_subscription_missing_payment_returns_false(app_client):
-    async with AsyncSessionLocal() as db:
-        ok, msg = await resolve_subscription_payment(db, 999_999_999, "verified")
-    assert ok is False
-    assert msg
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -294,62 +173,6 @@ async def test_replydedup_roundtrip_and_ttl_reset():
     # TTL reset clears the set without dropping recent marks semantics
     d._loaded_at = _t.time() - 61
     assert await d.is_dup("c9") is False, "expired window must forget everything"
-
-
-# ══════════════════════════════════════════════════════════════════
-# 5. inbox_engine — stats + notes (uncovered happy/fallback paths)
-# ══════════════════════════════════════════════════════════════════
-
-async def test_conversation_stats_counts_and_fallback():
-    from unittest.mock import AsyncMock
-
-    from inbox_engine import InboxEngine
-
-    fb = AsyncMock()
-    eng = InboxEngine(fb)
-
-    session = AsyncMock()
-    session.scalar.return_value = 7
-
-    # get_conversation_stats reads fb.get_conversations directly
-    fb.get_conversations = AsyncMock(return_value=[
-        {"id": "a", "unread_count": 2}, {"id": "b", "unread_count": 0}])
-    stats = await eng.get_conversation_stats(session)
-    assert stats["total_conversations"] == 2
-    assert stats["unread_count"] == 1  # count of conversations with unread>0
-    assert stats["messages_today"] == 7
-    assert stats["platform_breakdown"]["messenger"] == 2
-
-    # fallback: any exception returns a safe zero shape, never raises
-    fb.get_conversations = AsyncMock(side_effect=RuntimeError("x"))
-    stats = await eng.get_conversation_stats(session)
-    assert stats["total_conversations"] == 0 and stats["messages_today"] == 0
-
-
-async def test_notes_roundtrip():
-    from datetime import datetime
-    from unittest.mock import AsyncMock
-
-    from inbox_engine import InboxEngine
-
-    fb = AsyncMock()
-    eng = InboxEngine(fb)
-
-    class Row:
-        id = 1
-        content = "زبون يفضل التواصل مساءً"
-        created_by = "ahmad"
-        created_at = datetime(2026, 9, 6, 12, 0)
-
-    from unittest.mock import MagicMock
-    session = AsyncMock()
-    result_mock = MagicMock()
-    result_mock.scalars.return_value = [Row()]
-    session.execute.return_value = result_mock
-
-    notes = await eng.get_notes("conv_1", session)
-    assert notes[0]["content"] == "زبون يفضل التواصل مساءً"
-    assert notes[0]["created_at"].startswith("2026-09-06")
 
 
 # ══════════════════════════════════════════════════════════════════

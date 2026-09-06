@@ -17,8 +17,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from facebook_engine import tools  # noqa: E402
-from facebook_engine.client import GraphClient  # noqa: E402
+from facebook_engine import tools
+from facebook_engine.client import GraphClient
 
 
 def build_server(tenant_id: int, access_token: str, page_id: str):

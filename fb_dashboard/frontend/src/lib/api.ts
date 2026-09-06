@@ -4,19 +4,13 @@
  * Backend contract: every /api endpoint returns
  *   {"success": boolean, "data": ..., "error"?: string}
  *
- * `unwrapApi` accepts the fetch Response (or an already-parsed body) and
- * returns the `data` payload directly. During the migration window it also
- * accepts raw (un-enveloped) bodies and returns them as-is, so call sites
- * can be converted before every router is wrapped — but the end state is:
- * ALL call sites go through unwrapApi, ALL routers return the envelope.
- *
- * Business failures (`success: false`) throw ApiError so react-query /
- * handlers treat them like failures.
+ * v10-W4: apiJson (fetch+unwrap sugar, zero importers) deleted and
+ * unwrapBody un-exported (internal helper of unwrapApi only).
  */
 import { ApiError } from "./csrf-client"
 
 /** Unwrap an already-parsed body (dual-shape, migration-safe). */
-export function unwrapBody<T = any>(body: unknown): T {
+function unwrapBody<T = any>(body: unknown): T {
   if (
     body !== null &&
     typeof body === "object" &&
@@ -35,11 +29,4 @@ export function unwrapBody<T = any>(body: unknown): T {
 export async function unwrapApi<T = any>(res: Response): Promise<T> {
   const body = await res.json().catch((): null => null)
   return unwrapBody<T>(body)
-}
-
-/** fetch + unwrap in one call (adds Content-Type + credentials like apiFetch). */
-export async function apiJson<T = any>(url: string, options: RequestInit = {}): Promise<T> {
-  const { apiFetch } = await import("./csrf-client")
-  const res = await apiFetch(url, options)
-  return unwrapApi<T>(res)
 }

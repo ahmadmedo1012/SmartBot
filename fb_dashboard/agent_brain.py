@@ -45,10 +45,6 @@ def register_handler(action: str, handler: callable):
     _action_handlers[action] = handler
 
 
-def get_handler(action: str) -> callable | None:
-    return _action_handlers.get(action)
-
-
 _ai = None
 
 

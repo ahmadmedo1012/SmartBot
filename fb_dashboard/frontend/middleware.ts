@@ -8,7 +8,19 @@ const publicPrefixes = [
   "/login", "/register", "/pricing", "/subscribe", "/demo",
 ];
 
-function setHeaders(resp: NextResponse) {
+/* v10-C1 (G3 rec §8-1) — font files must NOT inherit the page-wide no-store:
+ * the matcher below does not exclude /fonts/*.woff2, so every internal
+ * navigation re-downloaded ~117-210KB of self-hosted fonts (G3 resource
+ * timing, login→dashboard→messages). The fonts are content-stable but NOT
+ * hash-named, so they get 7d + stale-while-revalidate (never immutable — a
+ * font update still propagates within a day of max-age expiring).
+ * Hash-named /_next/static assets never reach this middleware at all (the
+ * matcher already excludes them) and keep Next's own immutable caching —
+ * verified, nothing to change there. API responses keep no-store. */
+const FONT_FILE_RE = /\.(?:woff2?|ttf|otf)$/i;
+const FONT_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400";
+
+function setHeaders(resp: NextResponse, pathname: string) {
   resp.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   resp.headers.set("X-Content-Type-Options", "nosniff");
   resp.headers.set("X-Frame-Options", "DENY");
@@ -19,7 +31,10 @@ function setHeaders(resp: NextResponse) {
   const isDev = process.env.NODE_ENV === "development";
   const scriptSrc = `'self' 'unsafe-inline' https://va.vercel-scripts.com${isDev ? " 'unsafe-eval'" : ""}`;
   resp.headers.set("Content-Security-Policy", `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self' blob:`);
-  resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set(
+    "Cache-Control",
+    FONT_FILE_RE.test(pathname) ? FONT_CACHE_CONTROL : "no-store, no-cache, must-revalidate"
+  );
   resp.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 }
 
@@ -30,12 +45,12 @@ export function middleware(request: NextRequest) {
     // Static/public — headers only
     if (publicPrefixes.some(p => pathname.startsWith(p)) || pathname === "/") {
       const resp = NextResponse.next();
-      setHeaders(resp);
+      setHeaders(resp, pathname);
       return resp;
     }
 
     const response = NextResponse.next();
-    setHeaders(response);
+    setHeaders(response, pathname);
 
     // API routes — CSRF handled by SameSite=Lax session cookie
     if (pathname.startsWith("/api")) {

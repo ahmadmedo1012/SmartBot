@@ -49,3 +49,4 @@ fb_dashboard/frontend/e2e_artifacts/
 *.bak
 *.old
 *.orig
+.coverage

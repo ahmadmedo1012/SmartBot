@@ -81,7 +81,12 @@ export default function AutoReplyPage() {
         </div>
 
         {showForm && (
-          <Card className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5">
+          <Card
+            className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5"
+            /* v10-B7 (G2-05): Escape closes the inline form (same as «إلغاء») —
+               the first field is focused on open so the key lands inside */
+            onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false) } }}
+          >
             <CardContent className="p-4 space-y-3">
               <div>
                 <label htmlFor="rule-name" className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم القاعدة</label>
@@ -90,6 +95,7 @@ export default function AutoReplyPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="مثال: الرد على الاستفسارات"
+                  autoFocus
                   className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>

@@ -13,7 +13,7 @@ from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import AnalyticsEvent, ScheduledPost
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 log = logging.getLogger("fb-calendar")
 
@@ -111,14 +111,6 @@ class ContentCalendarEngine:
         await session.commit()
         spawn(self._track("post_published", {"scheduled_post_id": post_id}))
         return True
-
-    async def get_scheduled_count(self, d: date, session) -> int:
-        rows = await session.execute(
-            select(func.count(ScheduledPost.id))
-            .where(ScheduledPost.scheduled_at >= d,
-                   ScheduledPost.scheduled_at < d + timedelta(days=1))
-        )
-        return rows.scalar() or 0
 
     async def get_month_summary(self, year: int, month: int, session, tenant_id: int = 0) -> dict:
         start_date = date(year, month, 1)

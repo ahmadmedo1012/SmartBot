@@ -50,8 +50,20 @@ async def get_current_user(request: Request, db=Depends(get_db)):
         blacklisted = await db.execute(select(BlacklistedToken).where(BlacklistedToken.jti == jti))
         if blacklisted.scalar_one_or_none():
             raise HTTPException(401, "تم إلغاء الجلسة")
-    user = await db.execute(select(User).where(User.username == payload["sub"]))
-    user = user.scalar_one_or_none()
+    # v10-A1 (HIGH#3): username uniqueness is PER-TENANT (uq_user_tenant_username),
+    # so a global username lookup can match rows from several tenants — and
+    # scalar_one_or_none() then raises MultipleResultsFound → a 500 on EVERY
+    # authenticated request for BOTH users (mutual lockout). The JWT carries
+    # the minting tenant (tid from make_token), so scope the lookup to it.
+    # Fallback for legacy tokens without tid: bounded first-match — ambiguity
+    # is resolved deterministically (oldest row = bootstrap admin first),
+    # and can never raise again.
+    sub = payload.get("sub", "")
+    tid = payload.get("tid")
+    stmt = select(User).where(User.username == sub)
+    if isinstance(tid, int):
+        stmt = stmt.where(User.tenant_id == tid)
+    user = (await db.execute(stmt.order_by(User.id).limit(1))).scalars().first()
     if not user:
         raise HTTPException(401, "المستخدم غير موجود")
     if user.tenant_id:
@@ -110,11 +122,15 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     # The old or_() + scalar_one_or_none() raised MultipleResultsFound (500)
     # when two tenants reuse a username or an email is shared — and username
     # uniqueness is per-tenant, so ambiguity is a normal state, not an error.
-    user = await db.execute(select(User).where(User.username == username).limit(1))
-    user = user.scalars().first()
+    # v10-A1: order_by(id) makes the pick deterministic (bootstrap/platform
+    # admin is always the oldest row) instead of engine-order luck.
+    user = (await db.execute(
+        select(User).where(User.username == username).order_by(User.id).limit(1)
+    )).scalars().first()
     if not user and email_lookup:
-        user = await db.execute(select(User).where(User.email == email_lookup).limit(1))
-        user = user.scalars().first()
+        user = (await db.execute(
+            select(User).where(User.email == email_lookup).order_by(User.id).limit(1)
+        )).scalars().first()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
     token = make_token(user.username, user.tenant_id)

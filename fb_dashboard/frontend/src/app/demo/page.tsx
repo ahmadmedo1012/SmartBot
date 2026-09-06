@@ -16,14 +16,18 @@ import {
   Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
   Sparkles, CheckCircle, Send, Bell, Settings as SettingsIcon,
 } from "lucide-react"
-import dynamic from "next/dynamic"
-/* v6+ — recharts (~340KB) was eager-imported into /demo's first load (the
- * biggest public page in the bundle). The chart renders client-side only,
- * so an ssr:false dynamic import defers the whole recharts chunk. */
-const ActivityBarChart = dynamic(
-  () => import("@/components/charts").then(m => m.ActivityBarChart),
-  { ssr: false, loading: () => <div className="h-32 rounded-xl bg-muted/30 animate-pulse" aria-hidden="true" /> }
-)
+/* v10-C4 (G3 rec §8-4) — recharts (352KB raw / 113KB wire) still shipped in
+ * /demo's first load: the old inline dynamic() deferred SSR, but the chart
+ * RENDERED immediately in the DEFAULT tab, so the chunk fetched
+ * during page load (G3 resource timing — heaviest public page, 987KB raw
+ * JS). Two moves now:
+ *   1. stats tab (the default): DemoActivityBars — a token-pure, zero-dep
+ *      CSS bar chart (the data is mock anyway).
+ *   2. analytics tab (NOT the default): the real recharts chart through the
+ *      v9 shared lazy boundary (@/components/charts/lazy) — the chunk loads
+ *      only on the user's FIRST switch to that tab (TAB_CONTENT renders
+ *      just the active tab, so no eager render pulls it). */
+import { ActivityBarChart } from "@/components/charts/lazy"
 import { countPhrase, formatNumber } from "@/lib/format"
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -139,6 +143,45 @@ function DemoHeader({ tab }: { tab: TabKey }) {
   )
 }
 
+/* v10-C4 — dependency-free bar chart for the DEFAULT tab (see import note):
+ * same tokens as the recharts twin (bg-primary bars = var(--primary), the
+ * sr-only summary, a native title per bar for hover), same rounded-top bar
+ * shape for the 24 mock values — at ~1KB of JSX instead of 352KB of recharts. */
+function DemoActivityBars({
+  data,
+  height = 128,
+  summary,
+}: {
+  data: { label: string; value: number; hint?: string }[]
+  height?: number
+  /** sr-only text alternative for screen readers (v8-B14 parity) */
+  summary?: string
+}) {
+  if (data.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-xs text-muted-foreground" style={{ height }}>
+        لا توجد بيانات لعرضها
+      </div>
+    )
+  }
+  const max = Math.max(...data.map((d) => d.value), 1)
+  return (
+    <div>
+      {summary ? <p className="sr-only">{summary}</p> : null}
+      <div className="flex items-end gap-1.5" style={{ height }} aria-hidden="true">
+        {data.map((d, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-t bg-primary"
+            style={{ height: `${Math.max((d.value / max) * 100, 4)}%` }}
+            title={`${d.hint ?? d.label}: ${d.value}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function StatsTab() {
   return (
     <div className="space-y-6">
@@ -171,7 +214,9 @@ function StatsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ActivityBarChart
+          {/* v10-C4 — default tab renders the zero-dep CSS twin; recharts stays
+              behind the lazy boundary for the analytics tab. */}
+          <DemoActivityBars
             height={128}
             summary="مخطط أعمدة لنشاط الردود على مدار 24 ساعة ببيانات تجريبية"
             data={mockStats.active_hours.map((v, i) => ({ label: `${i}:00`, value: v, hint: `الساعة ${i}:00` }))}

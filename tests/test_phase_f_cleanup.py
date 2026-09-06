@@ -33,7 +33,7 @@ def test_alive_engines_present():
     """المحركات الحية (الخطة 6.1 ALIVE) موجودة وسليمة."""
     base = FB_DIR
     for engine in ("bot.py", "analytics_engine.py", "broadcast_engine.py",
-                   "subscriber_engine.py", "inbox_engine.py",
+                   "subscriber_engine.py",
                    "offer_engine.py", "team_engine.py"):
         src = open(os.path.join(base, engine), encoding="utf-8").read()
         assert "class " in src, f"{engine} لا يحتوي صنفاً — مكسور؟"

@@ -162,7 +162,8 @@ export function AdminSidebar({
                       "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow,translate,scale] duration-200 outline-none",
                       "hover:translate-x-[3px] active:scale-[0.97]",
                       "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
-                      /* Active/hover treatment unified with Smart-Menu NavLink:
+                      /* Active/hover treatment (Smart-Menu NavLink legacy — component
+                         removed v10-W4, treatment survives inline):
                          soft orange tint + end-side spring indicator, not a solid fill */
                       active
                         ? "bg-accent-foreground/12 text-foreground shadow-xs"

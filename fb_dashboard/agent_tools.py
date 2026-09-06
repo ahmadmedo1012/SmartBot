@@ -103,10 +103,6 @@ TOOL_DEFINITIONS = [
 TOOL_MAP: dict[str, dict] = {t["name"]: t for t in TOOL_DEFINITIONS}
 
 
-def get_tool(name: str) -> dict | None:
-    """Get tool definition by name."""
-    return TOOL_MAP.get(name)
-
 
 def get_tool_schema(name: str) -> dict | None:
     """Return JSON Schema for a tool's params (for jsonschema validation)."""

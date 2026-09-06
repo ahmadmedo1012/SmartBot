@@ -397,24 +397,3 @@ class BroadcastEngine:
         log.info(f"Broadcast #{broadcast_id} cancelled")
         return True
 
-    async def get_broadcast_stats(self, broadcast_id: int, session) -> dict | None:
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
-        b = q.scalar_one_or_none()
-        if not b:
-            return None
-
-        total = b.total_recipients or 0
-        progress_pct = round((b.sent_count / total) * 100, 1) if total > 0 else 0.0
-        return {
-            "id": b.id,
-            "name": b.name,
-            "status": b.status,
-            "total": total,
-            "sent": b.sent_count,
-            "failed": b.failed_count,
-            "opened": b.opened_count,
-            "pending": total - b.sent_count - b.failed_count,
-            "progress_pct": progress_pct,
-        }

@@ -9,7 +9,7 @@ from datetime import timedelta
 from typing import Any
 
 from _utils import iso_z, utcnow
-from models import AnalyticsEvent, BotLog, ConversationLabel, ConversationTag, Reply, User
+from models import AnalyticsEvent, BotLog, Reply, User
 from sqlalchemy import desc, func, or_, select
 
 log = logging.getLogger("fb-team")
@@ -127,46 +127,6 @@ class TeamEngine:
         activities.sort(key=lambda a: a.get("time", ""), reverse=True)
         return activities[:50]
 
-    async def get_pending_approvals(self, session) -> list[dict]:
-        """Items needing approval — placeholder structure.
-        Full flow requires: approval_items table + broadcast threshold logic.
-        """
-        # ponytail: static empty list — add approval_items DB table when approval workflow is built
-        return []
-
-    async def approve_item(self, approval_id: int, approved_by: str, session) -> bool:
-        """Approve a pending item. Placeholder — always succeeds."""
-        return True
-
-    async def reject_item(self, approval_id: int, rejected_by: str, reason: str, session) -> bool:
-        """Reject with reason. Placeholder — always succeeds."""
-        return True
-
-    async def get_activity_log(self, days: int, page: int, per_page: int, session) -> dict:
-        """Comprehensive activity log with pagination — AnalyticsEvents."""
-        cutoff = utcnow() - timedelta(days=days)
-        base = select(AnalyticsEvent).where(AnalyticsEvent.created_at >= cutoff)
-        total = await session.scalar(select(func.count(AnalyticsEvent.id)).where(AnalyticsEvent.created_at >= cutoff)) or 0
-        offset = (page - 1) * per_page
-        rows = await session.execute(
-            base.order_by(desc(AnalyticsEvent.created_at)).offset(offset).limit(per_page)
-        )
-        items = []
-        for e in rows.scalars().all():
-            meta = {}
-            try:
-                meta = json.loads(e.metadata_json or "{}")
-            except Exception:
-                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
-                meta = {}
-            items.append({
-                "id": e.id,
-                "event_type": e.event_type,
-                "metadata": meta,
-                "created_at": iso_z(e.created_at),
-            })
-        return {"items": items, "total": total, "page": page, "per_page": per_page}
-
     async def get_user_role_summary(self, session) -> dict:
         """Count users by role."""
         rows = await session.execute(
@@ -208,61 +168,6 @@ class TeamEngine:
                 "online_status": "offline",
             })
         return result
-
-    async def add_internal_note(self, conversation_id: str, note: str, author: str, session) -> dict:
-        """Add an internal note to a conversation using ConversationLabel + custom tag.
-        Creates a 'ملاحظة داخلية' tag if it doesn't exist, then labels the conversation.
-        ponytail: Uses existing ConversationLabel machinery — no new DB table.
-        For rich note history with editing, add a ConversationNotes table.
-        """
-        tag_name = "_internal_note"
-        tag = await session.execute(
-            select(ConversationTag).where(ConversationTag.name == tag_name)
-        )
-        tag = tag.scalar_one_or_none()
-        if not tag:
-            tag = ConversationTag(name=tag_name, color="#f59e0b")
-            session.add(tag)
-            await session.commit()
-            await session.refresh(tag)
-
-        # Store note as a label entry so it appears in conversation tag UI
-        label = ConversationLabel(conversation_id=conversation_id, tag_id=tag.id)
-        session.add(label)
-        # Log the note
-        session.add(BotLog(
-            level="INFO",
-            message=f"User {author} added note to conv {conversation_id}: {note[:500]}",
-        ))
-        await session.commit()
-        return {"ok": True, "note": note, "author": author}
-
-    async def get_internal_notes(self, conversation_id: str, session) -> list[dict]:
-        """Get internal notes for a conversation by scanning BotLog."""
-        tag = await session.execute(
-            select(ConversationTag).where(ConversationTag.name == "_internal_note")
-        )
-        tag = tag.scalar_one_or_none()
-        if not tag:
-            return []
-        rows = await session.execute(
-            select(BotLog)
-            .where(
-                BotLog.message.contains(f"added note to conv {conversation_id}"),
-                BotLog.level == "INFO",
-            )
-            .order_by(desc(BotLog.created_at))
-        )
-        notes = []
-        for r in rows.scalars().all():
-            user = self._extract_username(r.message)
-            note_text = r.message.split(": ", 1)[1] if ": " in r.message else r.message[:500]
-            notes.append({
-                "author": user,
-                "note": note_text,
-                "created_at": iso_z(r.created_at),
-            })
-        return notes
 
     def _extract_username(self, message: str) -> str:
         """Extract username from BotLog message like 'User admin replied to ...'"""

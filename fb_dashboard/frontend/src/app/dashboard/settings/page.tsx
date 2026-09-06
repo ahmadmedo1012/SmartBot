@@ -131,7 +131,18 @@ export default function SettingsPage() {
                 </div>
 
                 {showPw ? (
-                  <div className="space-y-3 mt-3">
+                  <div
+                    className="space-y-3 mt-3"
+                    /* v10-B7 (G2-05/06): Escape closes the form (same as «إلغاء»);
+                       autoFocus on the first field moves focus INTO the form on
+                       open (was falling on BODY) and makes the Escape key land */
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape" && !pwBusy) {
+                        e.preventDefault();
+                        setShowPw(false)
+                      }
+                    }}
+                  >
                     <Input
                       id="current-password"
                       type="password"
@@ -139,6 +150,7 @@ export default function SettingsPage() {
                       autoComplete="current-password"
                       value={currentPw}
                       onChange={(e) => setCurrentPw(e.target.value)}
+                      autoFocus
                     />
                     <Input
                       id="new-password"

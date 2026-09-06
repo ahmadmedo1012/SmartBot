@@ -36,7 +36,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced
 }
 
-export interface BarDatum {
+interface BarDatum {
   label: string
   value: number
   hint?: string

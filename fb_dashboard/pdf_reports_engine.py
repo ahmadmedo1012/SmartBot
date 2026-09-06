@@ -6,6 +6,7 @@ Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 [DEPRECATED — plan §6.1: activated but not invoked in the production flow.
 Kept for future use; do not build new features on top of it.]
 """
+import html
 import logging
 from datetime import timedelta
 
@@ -149,28 +150,34 @@ class PdfReportsEngine:
         """
 
     def _header_html(self, brand: BrandingConfig, title: str, subtitle: str = "") -> str:
-        logo = f'<img src="{brand.logo_url}" height="42" style="margin-bottom:4px">' if brand.logo_url else ""
+        # v10-A7: html.escape everywhere a NON-CONTROLLED string enters the
+        # document (branding comes from the requesting user's JSON body; the
+        # title embeds campaign names). Otherwise an editor-controlled
+        # company_name / logo_url or a commenter-named rule injects markup
+        # into the weasyprint DOM (tracking pixels, layout breakage).
+        logo = f'<img src="{html.escape(brand.logo_url, quote=True)}" height="42" style="margin-bottom:4px">' if brand.logo_url else ""
         return f"""
         <div class="header">
           {logo}
-          <h1>{brand.company_name}</h1>
-          <div class="sub">{title}<br>{subtitle}</div>
+          <h1>{html.escape(str(brand.company_name))}</h1>
+          <div class="sub">{html.escape(str(title))}<br>{html.escape(str(subtitle))}</div>
         </div>"""
 
     def _kpi_card(self, label: str, value) -> str:
-        return f'<div class="kpi"><div class="val">{value}</div><div class="lbl">{label}</div></div>'
+        # v10-A7: values may carry DB strings (campaign status) — escape both.
+        return f'<div class="kpi"><div class="val">{html.escape(str(value))}</div><div class="lbl">{html.escape(str(label))}</div></div>'
 
     def _footer_html(self, brand: BrandingConfig) -> str:
-        return f'<div class="footer">{brand.company_name} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {utcnow().strftime("%Y-%m-%d %H:%M")} UTC</div>'
+        return f'<div class="footer">{html.escape(str(brand.company_name))} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {utcnow().strftime("%Y-%m-%d %H:%M")} UTC</div>'
 
     def _build_html(self, body_parts: list[str], brand: BrandingConfig, title: str, subtitle: str = "") -> str:
         parts = [
             "<!DOCTYPE html>",
             '<html dir="rtl">',
             "<head><meta charset='utf-8'><title>",
-            brand.company_name,
+            html.escape(str(brand.company_name)),
             " - ",
-            title,
+            html.escape(str(title)),
             "</title><style>",
             self._css(brand.primary_color),
             "</style></head><body>",
@@ -373,7 +380,8 @@ class PdfReportsEngine:
         if top_rules:
             rules_html = '<div class="section"><h2>أفضل القواعد</h2><table><tr><th>#</th><th>القاعدة</th><th>الردود</th><th>%</th></tr>'
             for i, r in enumerate(top_rules, 1):
-                rules_html += f"<tr><td>{i}</td><td>{r['name']}</td><td>{r['count']}</td><td>{r['percentage']}%</td></tr>"
+                # v10-A7: rule names are user-controlled strings
+                rules_html += f"<tr><td>{i}</td><td>{html.escape(str(r['name']))}</td><td>{r['count']}</td><td>{r['percentage']}%</td></tr>"
             rules_html += "</table></div>"
             bodies.append(rules_html)
 
@@ -389,7 +397,12 @@ class PdfReportsEngine:
         if top_commenters:
             cmt_html = '<div class="section"><h2>أكثر المعلقين نشاطا</h2><table><tr><th>#</th><th>الاسم</th><th>التعليقات</th></tr>'
             for i, c in enumerate(top_commenters, 1):
-                cmt_html += f"<tr><td>{i}</td><td>{c['name']}</td><td>{c['count']}</td></tr>"
+                # v10-A7 (G1#8): commenter display names are ATTACKER-CONTROLLED
+                # (any Facebook user names themselves arbitrary HTML). Escape
+                # before interpolation — an unescaped `<img src=https://evil…>`
+                # here made every report render fire a tracking request
+                # from the server and mangled the client's PDF.
+                cmt_html += f"<tr><td>{i}</td><td>{html.escape(str(c['name']))}</td><td>{c['count']}</td></tr>"
             cmt_html += "</table></div>"
             bodies.append(cmt_html)
 
@@ -430,6 +443,7 @@ class PdfReportsEngine:
         </div>""")
 
         title = f'تقرير الحملة: {data.get("name", "—")}'
+        # Campaign names are user-controlled — the header helper escapes them.
         return self._build_html(bodies, brand, title)
 
     def _build_subscriber_html(self, growth: list, overview: dict, brand: BrandingConfig, days: int) -> str:

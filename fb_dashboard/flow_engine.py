@@ -114,34 +114,6 @@ class FlowEngine:
             node_map=node_map, edge_map=edge_map,
         )
 
-    # ── Flow discovery ───────────────────────────────────────────────────────
-
-    async def find_matching_flows(self, trigger_type: str, text: str = "",
-                                  session=None) -> list[dict]:
-        """Find active flows whose trigger nodes match the event."""
-        result = await session.execute(
-            select(Flow).where(
-                Flow.tenant_id == self.tenant_id,
-                Flow.status == "active",
-            ).order_by(Flow.updated_at.desc())
-        )
-        flows = result.scalars().all()
-        matches = []
-        for flow in flows:
-            nodes = flow.nodes if isinstance(flow.nodes, list) else json.loads(flow.nodes or "[]")
-            for node in nodes:
-                if node.get("type") != "TRIGGER":
-                    continue
-                config = node.get("data", {})
-                if self._match_trigger(config, trigger_type, text):
-                    matches.append({
-                        "flow_id": flow.id,
-                        "flow_name": flow.name,
-                        "trigger_node": node,
-                    })
-                    break  # one trigger match per flow is enough
-        return matches
-
     @staticmethod
     def _match_trigger(config: dict, trigger_type: str, text: str = "") -> bool:
         """Check if a trigger node config matches the incoming event."""

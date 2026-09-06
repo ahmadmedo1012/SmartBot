@@ -51,15 +51,21 @@ export function PaymentDialog({
   onSuccess,
 }: PaymentDialogProps) {
   const [provider, setProvider] = useState<Provider>("liyana")
-  // Mobile wallets (liyana/madar) cap at 99 LYD — plans above that require bank transfer
-  const requiresBank = Number(price) > 99
+  const { config } = useConfig()
+  /* v10-D1 (S2 CRITICAL): the mobile-wallet ceiling comes from /api/config
+   * (`mobile_wallet_cap`, admin-editable, arrives as a string) — the same key
+   * the backend topup guard reads. No more hard-coded 99 drift in either
+   * direction. Fallback 99 while the config loads / if the key is absent. */
+  const capNumber = Number(config?.mobile_wallet_cap ?? 99)
+  const walletCap = Number.isFinite(capNumber) && capNumber > 0 ? capNumber : 99
+  // Mobile wallets (liyana/madar) cap at walletCap LYD — plans above that require bank transfer
+  const requiresBank = Number(price) > walletCap
   // Auto-switch to bank when the plan exceeds the wallet cap
   useEffect(() => {
     if (requiresBank && (provider === "liyana" || provider === "madar")) {
       setProvider("bank")
     }
   }, [requiresBank, provider])
-  const { config } = useConfig()
   const MADAR_PHONE = (config?.balance_transfer_phone_1 as string) || "0910089975"
   const LIBYANA_PHONE = (config?.balance_transfer_phone_2 as string) || "0942119637"
 
@@ -373,7 +379,7 @@ export function PaymentDialog({
                 </div>
                 {requiresBank && (
                   <p className="text-xs text-accent-foreground mt-2">
-                    المبالغ فوق 99 د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot; لإتمام الدفع
+                    المبالغ فوق {walletCap} د.ل تتطلب تحويل بنكي — اختر &quot;تحويل بنكي&quot; لإتمام الدفع
                   </p>
                 )}
               </div>
@@ -481,7 +487,7 @@ export function PaymentDialog({
                     ))}
                   </div>
 
-                  {/* Bank amount — no 99 cap (server enforces plan price) */}
+                  {/* Bank amount — no wallet cap (server enforces plan price) */}
                   <div>
                     <Label htmlFor={bankAmountId}>المبلغ (د.ل)</Label>
                     <Input

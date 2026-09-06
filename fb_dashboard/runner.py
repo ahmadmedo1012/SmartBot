@@ -172,17 +172,24 @@ async def seed_admin(db):
     await _seed(db)
 
 
+def _read_dm_json_rules() -> dict[str, str]:
+    """Blocking file read for _seed_dm_templates — executed via
+    asyncio.to_thread (v10-F1, ASYNC230/240): exists()/open()/json.load()
+    must stay off the event loop inside the async startup path."""
+    json_path = Path(__file__).resolve().parent / "facebook_automation.json"
+    if not json_path.exists():
+        return {}
+    with open(json_path, encoding='utf-8') as f:
+        data = json.load(f)
+    return {r.get("name", ""): r.get("dm_template", "") for r in data.get("rules", [])}
+
+
 async def _seed_dm_templates(db):
     """Copy dm_template from JSON to DB rows where DB dm_template is empty."""
-    json_path = (Path(__file__).resolve().parent / "facebook_automation.json")
-    if not json_path.exists():
-        return
     try:
-        with open(json_path, encoding='utf-8') as f:
-            data = json.load(f)
+        json_rules = await asyncio.to_thread(_read_dm_json_rules)
     except Exception:
         return
-    json_rules = {r.get("name", ""): r.get("dm_template", "") for r in data.get("rules", [])}
     if not json_rules:
         return
     # ponytail: local imports — already at module level, kept for clarity
@@ -293,14 +300,24 @@ async def lifespan(app: FastAPI):
             log.info("DB schema reconciled: %s", ", ".join(_added_cols))
         # Run pending Alembic migrations via to_thread (no subprocess)
         try:
-            _alembic_root = Path(__file__).resolve().parent.parent
+            # v10-F1 (ASYNC240): Path.resolve() touches the filesystem — run it
+            # off the event loop; the alembic upgrade below already runs in to_thread.
+            _alembic_root = await asyncio.to_thread(
+                lambda: Path(__file__).resolve().parent.parent
+            )
             _cfg = __import__("alembic.config", fromlist=["Config"]).Config(
                 str(_alembic_root / "alembic.ini")
             )
             _cfg.set_main_option("script_location", str(_alembic_root / "alembic"))
             # command.upgrade calls env.py which uses asyncio.run() internally —
-            # safe in non-main thread (Python 3.12+), avoids subprocess spawn
-            await asyncio.to_thread(__import__("alembic.command").upgrade, _cfg, "head")
+            # safe in non-main thread (Python 3.12+), avoids subprocess spawn.
+            # v10-B2: __import__ without fromlist returns the ROOT alembic
+            # package (no .upgrade attribute) → AttributeError was silently
+            # swallowed below and migrations NEVER ran (G7 §2.3). fromlist=["upgrade"]
+            # mirrors the correct adjacent Config import (line ~297 pre-v10).
+            await asyncio.to_thread(
+                __import__("alembic.command", fromlist=["upgrade"]).upgrade, _cfg, "head"
+            )
             log.info("Alembic migrations applied")
         except Exception as e:
             log.warning(f"Alembic upgrade skipped: {e}")
@@ -913,10 +930,22 @@ async def websocket_endpoint(ws: WebSocket):
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         await ws.close(code=4001, reason="Invalid or expired token")
         return
+    sub = payload.get("sub", "")
+    tid = payload.get("tid")
     async with AsyncSessionLocal() as db:
-        user = await db.execute(select(User).where(User.username == payload["sub"]))
-        user = user.scalar_one_or_none()
-        if not user or not user.tenant_id or user.tenant_id != payload.get("tid", 0):
+        # v10-A1-WS — tenant-scoped lookup (same treatment as get_current_user):
+        # usernames are unique PER TENANT only, so the old unscoped username
+        # query could raise MultipleResultsFound (crashing the WS handshake)
+        # or resolve a namesake from a different tenant. make_token always
+        # embeds {"sub", "tid"}; legacy tokens without tid take the safe
+        # .limit(1) fallback — MultipleResultsFound can never escape.
+        _stmt = select(User).where(User.username == sub)
+        if tid is not None:
+            _stmt = _stmt.where(User.tenant_id == tid)
+        else:
+            _stmt = _stmt.limit(1)
+        user = (await db.execute(_stmt)).scalar_one_or_none()
+        if not user or not user.tenant_id:
             await ws.close(code=4001, reason="Invalid tenant")
             return
         tenant = await db.get(Tenant, user.tenant_id)
@@ -1196,12 +1225,74 @@ async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: s
 # ── SPA catch-all: serve Next.js index.html for unmatched browser routes ────
 @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
 async def spa_catch_all(path: str):
-    # Don't catch API/system paths — let FastAPI handle or 404
+    # Don't catch API/system paths — let FastAPI handle or 404.
+    # v10-D3 — these prefixes now answer with the unified {detail} JSON error
+    # contract instead of an empty text/html body that the frontend's
+    # ApiErrorBody parser cannot read (S2 deviation #3: empty 404 + English
+    # 405). SPA page serving below is untouched.
     if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
-        return HTMLResponse("", status_code=404)
+        return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
     # Check if the Next.js static export has a page for this path
     path_page = STATIC_DIR / path / "index.html"
     if path_page.exists():
         return HTMLResponse(path_page.read_text(encoding="utf-8"))
     # Fallback: serve the root Next.js index.html (handles client-side routing)
     return HTMLResponse(_get_spa())
+
+
+def _iter_real_routes(routes):
+    """v10-D3 — flatten the route table, transparently descending into
+    FastAPI's _IncludedRouter wrappers (include_router keeps them as single
+    entries wrapping the original APIRouter) and yielding real routes only."""
+    for r in routes:
+        # skip the two catch-alls themselves (they match every path/method)
+        if getattr(r, "path", None) == "/{path:path}" and getattr(r, "methods", None):
+            continue
+        included = getattr(r, "original_router", None)  # _IncludedRouter
+        if included is not None:
+            yield from _iter_real_routes(included.routes)
+        else:
+            yield r
+
+
+def _route_table_lookup(request: Request) -> set[str] | None:
+    """v10-D3 — route-table introspection for the non-GET catch-all.
+
+    Returns the set of HTTP methods REAL routes serve at this path, or None
+    when the path is unknown to the app. Lets us keep an informative 405
+    (Arabic {detail} + Allow header) for wrong-method calls on REAL
+    endpoints, while truly unknown paths answer 404 {detail} JSON."""
+    allowed: set[str] = set()
+    known = False
+    for r in _iter_real_routes(app.routes):
+        regex = getattr(r, "path_regex", None)
+        if regex is not None and regex.match(request.url.path):
+            known = True
+            allowed |= set(getattr(r, "methods", None) or ())
+    if not known:
+        return None
+    allowed.discard("HEAD")
+    allowed.discard("OPTIONS")
+    return allowed
+
+
+@app.api_route(
+    "/{path:path}",
+    methods=["POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+async def unknown_method_catch_all(path: str, request: Request):
+    """v10-D3 — unknown non-GET paths used to leak Starlette's English
+    textual 405 ``{"detail": "Method Not Allowed"}`` (S2 deviation #3).
+
+    Contract now (mirrors the rest of the app's Arabic {detail} errors):
+      - unknown path + non-GET  → 404 {"detail": "المسار غير موجود"}
+      - known path, wrong method → 405 {"detail": "..."} with Allow header
+
+    Registered LAST: real routes always win (Starlette prefers a later FULL
+    match over an earlier PARTIAL one), so no endpoint is shadowed."""
+    allowed = _route_table_lookup(request)
+    if allowed is None:
+        return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
+    headers = {"Allow": ", ".join(sorted(allowed))} if allowed else None
+    raise HTTPException(405, "الطريقة غير مسموح بها لهذا المسار", headers=headers)

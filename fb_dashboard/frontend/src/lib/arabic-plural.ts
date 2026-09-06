@@ -16,8 +16,8 @@
  * both projects must pluralize Arabic identically.
  */
 
-/** Number state used to pick the noun form. */
-export type ArabicNumberState = "zero" | "one" | "two" | "few" | "many"
+/** Number state used to pick the noun form. (v10-W4: export dropped — internal only) */
+type ArabicNumberState = "zero" | "one" | "two" | "few" | "many"
 
 /**
  * Classifies a non-negative integer into the Arabic number state.
@@ -45,7 +45,7 @@ function soundDual(singular: string): string {
   return `${singular}ان`
 }
 
-export interface ArabicPluralForms {
+interface ArabicPluralForms {
   /** Form used with 0. Default 'لا ' + plural. */
   zero?: string
   /** Form used with 1. Defaults to the singular itself. */

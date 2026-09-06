@@ -20,12 +20,17 @@ interface CronStatus {
  * v6 §E — cron heartbeat truth, visible in the platform-admin console.
  * The backend also alerts Telegram on stalls; this card gives the operator
  * an at-a-glance answer to "are the scheduled posts actually running?".
+ *
+ * v10-B4 (G2-02): `enabled` gates both the /api/cron/status polling and the
+ * render — the endpoint is platform-admin-only (403 for tenant admins),
+ * so the page passes `enabled={tenant_id === 0}` from /api/me.
  */
-export function CronHeartbeatCard() {
+export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
   const [status, setStatus] = useState<CronStatus | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
+    if (!enabled) return
     let alive = true
     apiFetch("/api/cron/status")
       .then(unwrapApi)
@@ -38,8 +43,9 @@ export function CronHeartbeatCard() {
         .catch(() => { if (alive) setFailed(true) })
     }, 60_000)
     return () => { alive = false; clearInterval(t) }
-  }, [])
+  }, [enabled])
 
+  if (!enabled) return null
   if (failed && !status) return null // silent when the operator lacks platform-admin rights
 
   const ageMin = status?.age_seconds != null ? Math.floor(status.age_seconds / 60) : null

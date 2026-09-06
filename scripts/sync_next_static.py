@@ -65,7 +65,11 @@ def main() -> int:
             copied += 1
 
     # 3) hashed chunks
-    dst_next = STATIC / "_next"
+    # v10-B1: `.next/static/**` must land under `static/_next/static/**` —
+    # the built HTML references /_next/static/chunks/..., and runner mounts
+    # /_next → static/_next. The previous one-level-short copy (v6 2b3b4590)
+    # served /_next/chunks instead → every JS/CSS asset on the api domain 404.
+    dst_next = STATIC / "_next" / "static"
     shutil.copytree(NEXT_STATIC, dst_next)
     copied += sum(1 for _ in dst_next.rglob("*") if _.is_file())
 

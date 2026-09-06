@@ -81,8 +81,13 @@ export default function PricingPage() {
           خطط الأسعار
         </div>
 
+        {/* v10-C3 — the h1 wrapper no longer carries animate-fade-in-250: that
+            parent opacity animation gated the whole heading (lead word
+            included) behind 250ms + a 0.5s fade and voided the
+            kinetic-unit-lead first-paint fix. The kinetic words themselves
+            still animate; only the redundant outer fade is gone. */}
         <h1
-          className="animate-fade-in-250 text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
+          className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
         >
           <KineticText mode="words" duration={800} delay={100}>خطط تناسب كل الأحجام</KineticText>
         </h1>

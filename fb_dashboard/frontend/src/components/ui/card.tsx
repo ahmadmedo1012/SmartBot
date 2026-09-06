@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
  * rounded-2xl radius (28px — v8-D4: unified large-surface corner),
  * --card-spacing system (16px default / 12px sm),
  * elevation tiers (elevated/flat/outlined), interactive mode, spotlight
- * conic border, grid CardHeader with CardAction, muted CardFooter.
+ * conic border, grid CardHeader (CardAction/CardFooter removed v10-W4).
  * Replaces the old shadcn-style card (rounded-sm + fixed p-6). */
 
 function Card({
@@ -112,19 +112,6 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardAction({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-action"
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -135,25 +122,11 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="card-footer"
-      className={cn(
-        "flex items-center rounded-b-2xl border-t border-border/40 bg-muted/25 p-(--card-spacing)",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
+/* v10-W4: CardFooter + CardAction deleted (zero importers each). */
 export {
   Card,
   CardHeader,
-  CardFooter,
   CardTitle,
-  CardAction,
   CardDescription,
   CardContent,
 }

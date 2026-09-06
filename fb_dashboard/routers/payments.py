@@ -113,16 +113,46 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
         raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى") from e
 
 
-def _reject_wallet_above_cap(provider: str, amount: float) -> None:
-    """Plan §2.2: amounts above MOBILE_WALLET_CAP (99 LYD) must go via bank transfer.
+async def _reject_wallet_above_cap(provider: str, amount: float, db) -> None:
+    """Plan §2.2 + v10-D1: amounts above the mobile-wallet cap must go via bank transfer.
 
     Server-side enforcement — the frontend auto-switch is UX only and can be bypassed.
+    v10-D1 (S2 #1 CRITICAL, three-way drift): the cap now reads the SAME
+    SystemConfig key (mobile_wallet_cap) that /api/admin/config writes and
+    /api/config exports — an admin's change used to be cosmetic-only while
+    the real gate stayed frozen at the env value (financial risk in both
+    directions). Fallback: env MOBILE_WALLET_CAP when no/invalid DB row.
     """
-    if provider in ("liyana", "madar") and float(amount) > float(settings.MOBILE_WALLET_CAP):
+    if provider not in ("liyana", "madar"):
+        return
+    cap = await _get_mobile_wallet_cap(db)
+    if float(amount) > cap:
         raise HTTPException(
             400,
-            f"المبالغ فوق {settings.MOBILE_WALLET_CAP} د.ل تتطلب تحويل بنكي — اختر مزود التحويل البنكي",
+            f"المبالغ فوق {cap:g} د.ل تتطلب تحويل بنكي — اختر مزود التحويل البنكي",
         )
+
+
+# Same bounds the admin setter enforces in /api/admin/config (1..10000 LYD)
+# — a drifted/invalid DB row falls back to the env value instead of blocking
+# or opening payments.
+_WALLET_CAP_MIN, _WALLET_CAP_MAX = 1, 10000
+
+
+async def _get_mobile_wallet_cap(db) -> float:
+    from models import SystemConfig
+
+    try:
+        row = await db.scalar(select(SystemConfig).where(SystemConfig.key == "mobile_wallet_cap"))
+        value = (row.value or "").strip() if row is not None else ""
+        if value:
+            cap = float(value)
+            if _WALLET_CAP_MIN <= cap <= _WALLET_CAP_MAX:
+                return cap
+            log.warning("mobile_wallet_cap out of bounds (%r) — env fallback", value)
+    except Exception:
+        log.warning("wallet-cap read failed — env fallback", exc_info=True)
+    return float(settings.MOBILE_WALLET_CAP)
 
 
 async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10, window: int = 60) -> None:
@@ -153,7 +183,7 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
         raise HTTPException(400, "المبلغ غير صالح (1-10000)")
     if provider not in ("liyana", "madar"):
         raise HTTPException(400, "مزود الدفع غير صالح")
-    _reject_wallet_above_cap(provider, amount)
+    await _reject_wallet_above_cap(provider, amount, db)
     if not phone or len(phone) < 7:
         raise HTTPException(400, "رقم الهاتف غير صالح")
     pr = PaymentRequest(
@@ -262,8 +292,8 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         raise HTTPException(400, "الباقة غير موجودة")
     if provider != "bank" and float(amount) != float(plan.price):
         raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
-    # غلاف المحافظ (فرض على الخادم — التحويل فوق 99 د.ل بنكي فقط)
-    _reject_wallet_above_cap(provider, amount if provider != "bank" else 0)
+    # غلاف المحافظ (فرض على الخادم — التحويل فوق السقف بنكي فقط؛ v10-D1: القيمة من DB)
+    await _reject_wallet_above_cap(provider, amount if provider != "bank" else 0, db)
     if provider != "bank" and (not phone or len(phone) < 7):
         raise HTTPException(400, "رقم الهاتف غير صالح")
 
@@ -425,7 +455,7 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
             raise HTTPException(400, "رقم الهاتف غير صالح")
         if float(amount) != float(new_plan.price):
             raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
-        _reject_wallet_above_cap(provider, amount)
+        await _reject_wallet_above_cap(provider, amount, db)
     else:
         amount = float(amount) if amount else float(new_plan.price)
         if amount < float(new_plan.price) * 0.5:

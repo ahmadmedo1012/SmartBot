@@ -210,10 +210,11 @@ async def test_support_ticket_lifecycle():
         assert r.status_code == 200
         assert "email" in r.json()["data"]
 
-        # قائمة تذاكر المستأجر
+        # قائمة تذاكر المستأجر (v10-D2: total داخل data — شكل Paginated)
         r = await client.get("/api/support/tickets")
         assert r.status_code == 200
-        tickets = r.json()["data"]
+        tickets = r.json()["data"]["items"]
+        assert r.json()["data"]["total"] == 1
         assert len(tickets) == 1
         assert tickets[0]["priority"] == "high"
         assert tickets[0]["status"] == "open"

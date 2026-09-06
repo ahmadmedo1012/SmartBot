@@ -35,25 +35,54 @@ export interface Paginated<T> {
 export interface ApiUser {
   id: number
   username: string
+  /** Display name — /api/me sends it (email or username); team list does not. */
+  name?: string
+  /** Owning tenant — 0 = platform (bootstrap) admin, > 0 = tenant member.
+   *  Sent by /api/me and /api/login; the team list serializer does not. */
+  tenant_id?: number
   /** /api/me sends it; the team list serializer does not */
   email?: string | null
+  /** /api/me sends "" when unset. */
+  phone?: string
   role?: string
   created_at?: string
   /** team-members only — reply-count proxy via BotLog mentions */
   replies_count?: number
   last_active?: string | null
+  /** Tenant plan from /api/me ("free" | …). camelCase inherited from the
+   *  backend serializer — one of only two camelCase fields in the whole API
+   *  (with onboardingCompleted); documented quirk, kept as-sent. */
+  subscriptionStatus?: string
+  /** Reserved permissions list from /api/me (currently always []). */
+  permissions?: string[]
+  /** Role label from /api/me (mirrors `role` today). */
+  roleLabel?: string
+  /** Onboarding wizard completion flag from /api/me (camelCase — see
+   *  subscriptionStatus). AuthGuard consumes it to re-show the wizard. */
+  onboardingCompleted?: boolean
+}
+
+/** GET /api/me full response — the ONLY endpoint whose {success, data}
+ *  envelope carries an extra `authenticated` sibling next to `data`
+ *  (documented by the v10 S2 api-contract audit; every other endpoint
+ *  sticks to the standard {success, data} shape). */
+export interface MeEnvelope {
+  success: boolean
+  /** Non-standard envelope sibling — `true` on a 200 /api/me. */
+  authenticated?: boolean
+  data: { user: ApiUser }
 }
 
 // ── Inbox (conversations & messages) ────────────────────────────────────────
 
-/** Participant of a conversation (inbox_list "senders[]"). */
-export interface ConversationSender {
+/** Participant of a conversation (inbox_list "senders[]"). (v10-W4: export dropped — nested in Conversation only) */
+interface ConversationSender {
   id?: string
   name?: string
 }
 
-/** Tag attached to a conversation (inbox_list "tags[]"). */
-export interface ConversationTag {
+/** Tag attached to a conversation (inbox_list "tags[]"). (v10-W4: export dropped — nested in Conversation/Subscriber only) */
+interface ConversationTag {
   id: number
   name: string
   color?: string
@@ -223,8 +252,8 @@ export interface TopCommenter {
   commenter_id?: number | string
 }
 
-/** Row of /api/analytics/overview → data.top_rules. */
-export interface TopRule {
+/** Row of /api/analytics/overview → data.top_rules. (v10-W4: export dropped — nested in AnalyticsOverview only) */
+interface TopRule {
   rule_id?: number | null
   name?: string
   count: number
@@ -262,8 +291,8 @@ export interface AnalyticsDashboard {
 
 // ── Dashboard bundle (/api/dashboard/bundle) ────────────────────────────────
 
-/** Reply-count trend percentages (vs yesterday / prior week). */
-export interface TrendData {
+/** Reply-count trend percentages (vs yesterday / prior week). (v10-W4: export dropped — nested in DashboardStats only) */
+interface TrendData {
   today?: number
   week?: number
 }
@@ -379,8 +408,8 @@ export interface SupportTicket {
   replies?: SupportTicketReply[]
 }
 
-/** Row of the ticket-detail "replies[]" thread. */
-export interface SupportTicketReply {
+/** Row of the ticket-detail "replies[]" thread. (v10-W4: export dropped — nested in SupportTicket only) */
+interface SupportTicketReply {
   id: number
   message?: string
   is_admin?: boolean

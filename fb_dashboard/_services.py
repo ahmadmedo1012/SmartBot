@@ -24,6 +24,23 @@ _post_cursors: dict[int, str] = {}
 # Lazy engine proxies
 fb = lazy(lambda: __import__('fb_client', fromlist=['FBClient']).FBClient(
     settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID))
+
+
+def has_global_fb_credentials() -> bool:
+    """v10-B3 — True when the legacy single-tenant env credentials exist.
+
+    Callers must check this BEFORE any Graph call through the global ``fb``
+    client (constructed above): in multi-tenant production both env values
+    are empty, and every call through the tokenless client was a wasted
+    100-600ms round-trip + ERROR log line per dashboard load (G7 §2.4).
+    Stats routes answer null fan_count instead — zero network. A page id of
+    "0" is the canonical "no page" marker (tests/seed conventions), so it
+    counts as unconfigured too."""
+    token = (settings.FACEBOOK_ACCESS_TOKEN or "").strip()
+    page = str(settings.FACEBOOK_PAGE_ID or "").strip()
+    return bool(token) and bool(page) and page != "0"
+
+
 sequence_engine = lazy(lambda: __import__('sequence_engine', fromlist=['SequenceEngine']).SequenceEngine(fb))
 broadcast_engine = lazy(lambda: __import__('broadcast_engine', fromlist=['BroadcastEngine']).BroadcastEngine(fb))
 subscriber_engine = lazy(lambda: __import__('subscriber_engine', fromlist=['SubscriberEngine']).SubscriberEngine())

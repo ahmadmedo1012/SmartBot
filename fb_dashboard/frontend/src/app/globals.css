@@ -177,7 +177,14 @@
   --muted-foreground: oklch(0.62 0.015 70);
   --destructive: oklch(0.6 0.22 25);
   --border: oklch(0.23 0.01 60);
-  --input: oklch(0.23 0.01 60);
+  /* v10-I3 (G4 F3 / WCAG 1.4.11) — the old 0.23 measured 1.16–1.24:1 against
+   * the dark surfaces a field border touches (background 0.045 / card 0.115) —
+   * unfocused fields visually "disappeared" (VLM-confirmed on the login
+   * password field). 0.48 is the minimal 2-decimal lightness measuring >= 3:1
+   * on every such surface (background 3.20, card 3.11, muted 3.04 — computed
+   * via oklch→sRGB→WCAG). --border stays 0.23: card dividers are decorative,
+   * not interactive boundaries. */
+  --input: oklch(0.48 0.01 60);
 
   --success: oklch(0.62 0.18 145);
   --success-foreground: oklch(0.98 0 0);
@@ -426,8 +433,9 @@ html.light::-webkit-scrollbar-thumb:hover,
 /* ── v9-C3 — pricing price swap (key-remount tween). The price span carries
  * key={annual ? "y" : "m"} in pricing/page.tsx so toggling monthly/yearly
  * re-mounts it and this entrance plays; the period label and the savings
- * chip share the same key group. 0.35s var(--ease-smooth) mirrors
- * lib/motion.ts easeSmooth — the page stays framer-free by design. */
+ * chip share the same key group. 0.35s var(--ease-smooth) mirrors the
+ * former lib/motion.ts easeSmooth (export purged v10-W4 — same curve
+ * value) — the page stays framer-free by design. */
 @keyframes price-swap-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .price-swap { animation: price-swap-in 0.35s var(--ease-smooth) both; }
 @media (prefers-reduced-motion: reduce) {
@@ -455,6 +463,13 @@ html.light::-webkit-scrollbar-thumb:hover,
 /* kinetic unit reveal (KineticText CSS twin) — words/lines rise from a mask */
 .kinetic-unit { display: inline-block; transform: translate3d(0, 110%, 0); opacity: 0; transition: transform var(--kt-dur, 0.8s) var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); transition-delay: var(--kt-delay, 0ms); }
 .kinetic-in .kinetic-unit { transform: none; opacity: 1; }
+/* v10-C3 (G3 rec §8-3) — the LEAD unit (first visible word) paints at first
+ * paint: no mask rise, no transition, no IntersectionObserver/hydration gate.
+ * Prod /pricing LCP was 2563ms waiting for the entrance; the lead word ships
+ * in the SSR HTML and renders immediately while the remaining units keep the
+ * staggered reveal. Source order after .kinetic-in wins the equal-specificity
+ * race; the .kinetic-in end-state is identical anyway. */
+.kinetic-unit-lead { transform: none; opacity: 1; transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .kinetic-unit { transform: none; opacity: 1; transition: none; }
 }

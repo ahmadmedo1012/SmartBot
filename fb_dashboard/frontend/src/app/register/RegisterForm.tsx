@@ -26,9 +26,16 @@ function FloatingShapes() {
 }
 
 function validate(fields: { username: string; email: string; password: string; confirm: string }) {
+  /* v10-B6 (G2-03): Arabic-first checks — the form is noValidate, so these
+   * replace the browser's native English bubbles. Empty fields get their
+   * own message before the format/length checks. */
+  if (!fields.username.trim()) return "يرجى إدخال اسم المستخدم"
   if (fields.username.trim().length < 3) return "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"
-  if (!EMAIL_RE.test(fields.email.trim())) return "البريد الإلكتروني غير صالح"
+  if (!fields.email.trim()) return "يرجى إدخال البريد الإلكتروني"
+  if (!EMAIL_RE.test(fields.email.trim())) return "أدخل بريدًا إلكترونيًا صالحًا"
+  if (!fields.password) return "يرجى إدخال كلمة المرور"
   if (fields.password.length < 6) return "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
+  if (!fields.confirm) return "يرجى تأكيد كلمة المرور"
   if (fields.password !== fields.confirm) return "كلمتا المرور غير متطابقتين"
   return ""
 }
@@ -87,7 +94,7 @@ function RegisterForm() {
 
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
+          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/80 hover:text-foreground">
             <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
           </Button>
@@ -111,7 +118,7 @@ function RegisterForm() {
         </CardHeader>
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
@@ -193,12 +200,12 @@ function RegisterForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-xs text-accent-foreground/80 hover:text-accent-foreground transition-colors">
+            <Link href="/login" className="text-xs text-accent-foreground/80 hover:text-accent-foreground hover:underline transition-colors">
               لديك حساب؟ تسجيل الدخول
             </Link>
           </div>
 
-          <p className="mt-4 text-center text-xs text-muted-foreground/60">SmartBot — منصة إدارة التفاعل الذكية</p>
+          <p className="mt-4 text-center text-xs text-muted-foreground/80">SmartBot — منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
     </div>

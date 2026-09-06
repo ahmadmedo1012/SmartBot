@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta
 
 from _responses import ok
-from _services import _get_trend_data, fb, get_ai, get_tenant_fb_client
+from _services import _get_trend_data, fb, get_ai, get_tenant_fb_client, has_global_fb_credentials
 from _utils import iso_z, utcnow
 from config import settings
 from database import get_db
@@ -48,9 +48,14 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
                 connected = True
                 fan_count = await tenant_fb.get_page_fan_count()  # None on failure (v4 §3.7)
             else:
-                # legacy single-tenant env fallback (bootstrap mode only)
-                fan_count = await fb.get_page_fan_count()
-                connected = bool(fan_count) or bool(settings.FACEBOOK_ACCESS_TOKEN and settings.FACEBOOK_PAGE_ID)
+                # legacy single-tenant env fallback (bootstrap mode only).
+                # v10-B3 — only when env credentials actually exist: with them
+                # empty (multi-tenant production) the old code fired a wasted
+                # Graph round-trip (100-600ms + ERROR log) on EVERY dashboard
+                # load (G7 §2.4). Now fan_count stays None → snapshot fallback.
+                if has_global_fb_credentials():
+                    fan_count = await fb.get_page_fan_count()
+                    connected = True
         except Exception as e:
             connection_error = str(e)[:120]
 
@@ -199,7 +204,10 @@ async def get_stats(db=Depends(get_db), current_user: User = Depends(get_current
             connected = True
             fan_count = await tenant_fb.get_page_fan_count()  # None on failure (v4 §3.7)
         else:
-            fan_count = await fb.get_page_fan_count()
+            # v10-B3 — skip the legacy Graph call when env credentials are
+            # empty/zero (multi-tenant production): no wasted round-trip.
+            if has_global_fb_credentials():
+                fan_count = await fb.get_page_fan_count()
     except Exception:
         fan_count = None
     if fan_count is None:

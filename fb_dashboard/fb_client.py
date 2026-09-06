@@ -35,7 +35,7 @@ class FBClient:
 
     # ── Low-level HTTP ───────────────────────────────────────────
 
-    async def _get(self, path: str, params: dict = None) -> dict | None:
+    async def _get(self, path: str, params: dict | None = None) -> dict | None:
         client = await _ensure_client()
         p = {"access_token": self.token, **(params or {})}
         try:
@@ -51,7 +51,7 @@ class FBClient:
             log.error(f"GET err: {e}")
             return None
 
-    async def _post(self, path: str, data: dict = None,
+    async def _post(self, path: str, data: dict | None = None,
                     max_retries: int = 3) -> dict | None:
         client = await _ensure_client()
         d = {"access_token": self.token, **(data or {})}
@@ -81,7 +81,7 @@ class FBClient:
 
     # ── Posts ─────────────────────────────────────────────────────
 
-    async def get_page_posts(self, limit: int = 10, after: str = None
+    async def get_page_posts(self, limit: int = 10, after: str | None = None
                              ) -> tuple[list, dict | None]:
         params = {"limit": limit, "fields": "id,message,created_time,"
                    "likes.summary(true),shares,comments.summary(true)"}
@@ -220,7 +220,7 @@ class FBClient:
             return None
         return await self.send_dm(user_id, message)
 
-    async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE", tag: str = None) -> dict | None:
+    async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE", tag: str | None = None) -> dict | None:
         if not user_id or user_id == "None":
             return None
         data = {

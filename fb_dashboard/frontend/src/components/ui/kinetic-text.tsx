@@ -77,6 +77,16 @@ export function KineticText({
   // the HTML). Non-string children render as-is inside the mask container.
   const units = typeof children === "string" ? splitUnits(children, mode) : null
   const staggerDelay = duration / Math.max(units?.length ?? 1, 1) * 0.62
+  // v10-C3 (G3 rec §8-3) — the LEAD unit (first visible word/line/char) is
+  // exempt from the entrance: it ships in the SSR HTML and paints at first
+  // paint (`.kinetic-unit-lead` — no transition, no IntersectionObserver /
+  // hydration gate). G3 measured prod /pricing LCP at 2563ms because the
+  // whole h1 waited for hydration + the 0.8s mask rise; the remaining units
+  // keep the staggered reveal. prefers-reduced-motion is unchanged (it
+  // already shows every unit instantly).
+  const leadIndex = units
+    ? Math.max(units.findIndex((u) => u.trim().length > 0), 0)
+    : -1
 
   return (
     <div
@@ -98,7 +108,7 @@ export function KineticText({
             }}
           >
             <span
-              className="kinetic-unit"
+              className={index === leadIndex ? "kinetic-unit kinetic-unit-lead" : "kinetic-unit"}
               style={{
                 "--kt-dur": `${duration / 1000}s`,
                 "--kt-delay": `${delay + index * staggerDelay}ms`,
@@ -117,25 +127,5 @@ export function KineticText({
         </span>
       )}
     </div>
-  )
-}
-
-// Wrapper component for headings with kinetic animation
-interface KineticHeadingProps extends Omit<KineticTextProps, "children"> {
-  as?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
-  children: ReactNode
-}
-
-export function KineticHeading({
-  as: Component = "h2",
-  mode = "lines",
-  ...props
-}: KineticHeadingProps) {
-  return (
-    <Component className={props.className} style={props.style}>
-      <KineticText mode={mode} delay={props.delay} duration={props.duration}>
-        {props.children}
-      </KineticText>
-    </Component>
   )
 }

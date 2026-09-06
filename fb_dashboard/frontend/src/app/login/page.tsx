@@ -29,6 +29,19 @@ function safeRedirect(value: string | null) {
   return value
 }
 
+/* v10-B5 (G2-04): only the PLATFORM admin (role "admin" AND tenant_id 0)
+ * lands on /admin. Registered business owners are role "admin" with a real
+ * tenant (tenant_id > 0) — they land on /dashboard, consistent with the
+ * post-register landing, and both flows honor ?redirect= alike. */
+function landingFor(
+  user: { role?: string; tenant_id?: number } | null | undefined,
+  redirect: string | null,
+) {
+  const isPlatformAdmin =
+    user?.role === "admin" && typeof user.tenant_id === "number" && user.tenant_id === 0
+  return safeRedirect(redirect) || (isPlatformAdmin ? "/admin" : "/dashboard")
+}
+
 function LoginForm() {
   const [rawRedirect] = useState<string | null>(() =>
     typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null
@@ -46,8 +59,7 @@ function LoginForm() {
       .then(unwrapApi)
       .then(d => {
         if (d?.user) {
-          const role = d.user.role
-          window.location.replace(role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : "/dashboard")
+          window.location.replace(landingFor(d.user, rawRedirect))
         } else {
           setCheckingAuth(false)
         }
@@ -80,23 +92,24 @@ function LoginForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        const msg = data.detail || "فشل تسجيل الدخول"
-        setFormError(msg)
-        brandedToast.error(msg)
+        // v10-B7 (G2-07): inline alert only — the error toast was a second,
+        // simultaneous copy of the same message on /login
+        setFormError(data.detail || "فشل تسجيل الدخول")
         return
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
       // message (e.g. "بيانات تسجيل الدخول غير صحيحة") instead of a generic one.
       brandedToast.success("تم تسجيل الدخول بنجاح")
-      const role = data.data?.user?.role || data.role
-      const target = role === "admin" ? (safeRedirect(rawRedirect) || "/admin") : (safeRedirect(rawRedirect) || "/dashboard")
+      // v10-B5: platform admin (tenant_id 0) → /admin, tenant admin → /dashboard
+      const target = landingFor(data.data?.user, rawRedirect)
       setTimeout(() => window.location.replace(target), 150)
     } catch (e) {
       const msg = e instanceof ApiError
         ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "فشل تسجيل الدخول")
         : "خطأ في الاتصال بالخادم"
+      // v10-B7 (G2-07): one message, one place — the inline role=alert above
+      // the submit button (the parallel error toast doubled it visually)
       setFormError(msg)
-      brandedToast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -109,7 +122,7 @@ function LoginForm() {
 
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
+          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/80 hover:text-foreground">
             <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
           </Button>
@@ -138,7 +151,9 @@ function LoginForm() {
         </CardHeader>
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* v10-B6 (G2-03): noValidate — the browser's native bubbles are
+              English; the Arabic checks in handleSubmit own the messaging. */}
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
               <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
@@ -177,11 +192,11 @@ function LoginForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/register" className="text-xs text-accent-foreground/80 hover:text-accent-foreground transition-colors">
+            <Link href="/register" className="text-xs text-accent-foreground/80 hover:text-accent-foreground hover:underline transition-colors">
               ليس لديك حساب؟ إنشاء حساب جديد
             </Link>
           </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground/60">SmartBot - منصة إدارة التفاعل الذكية</p>
+          <p className="mt-4 text-center text-xs text-muted-foreground/80">SmartBot - منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
     </div>

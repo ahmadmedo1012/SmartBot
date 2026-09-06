@@ -91,7 +91,12 @@ export default function BroadcastPage() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {showForm && (
-          <Card>
+          <Card
+            /* v10-B7 (G2-05): Escape closes the inline form (same as the
+               «إلغاء» toggle) — the first field is focused on open so the
+               key lands inside the container */
+            onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false) } }}
+          >
             <CardHeader>
               <CardTitle>إنشاء بث جماعي</CardTitle>
             </CardHeader>
@@ -102,6 +107,7 @@ export default function BroadcastPage() {
                 placeholder="مثال: عرض نهاية الأسبوع"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                autoFocus
               />
               <div className="space-y-1">
                 <Textarea

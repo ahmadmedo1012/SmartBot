@@ -12,6 +12,19 @@ from sqlalchemy import func, select
 
 log = logging.getLogger("fb-agent")
 
+# v10-A2 — tools that mutate PLATFORM-level state. They run with the
+# platform Facebook client (_fb_client) or against the platform bot task
+# (runner._bot_task), i.e. they affect EVERY tenant — so they require the
+# caller's role to be "admin", exactly like the dedicated routes
+# (bot.py stop_bot / restart_bot). Tenant-scoped tools (create_rule,
+# list_stats) stay open to editors.
+_ADMIN_ONLY_TOOLS = frozenset({
+    "toggle_bot",       # يوقف/يشغّل بوت المنصة العام
+    "publish_post",     # ينشر عبر توكن صفحة المنصة
+    "reply_to_comment", # يعلّق علنًا عبر توكن صفحة المنصة
+    "system",           # تعديل إعدادات المنصة
+})
+
 # Lazy imports for new modules
 _agent_brain = None
 _agent_memory = None
@@ -57,8 +70,14 @@ class AgentEngine:
         self._history: list[dict] = []  # ponytail: in-memory fallback, DB is primary
 
     async def process(self, text: str, image_url: str = "", username: str = "admin",
-                      db=None, tenant_id: int = 0) -> dict:
-        """Main entry: load context → reason → execute → remember → return."""
+                      db=None, tenant_id: int = 0, role: str = "viewer") -> dict:
+        """Main entry: load context → reason → execute → remember → return.
+
+        v10-A2: `role` is the CALLING user's role (least-privilege default
+        "viewer") — the tool gate in _execute refuses platform-level actions
+        for non-admins. Without it an editor could stop the PLATFORM bot
+        (runner._bot_task) for every tenant at once (HIGH#4).
+        """
         if db is None:
             log.error("process called without db session")
             return self._error("خطأ في قاعدة البيانات")
@@ -130,7 +149,8 @@ class AgentEngine:
             step = "execute"
             result = {"success": True, "data": {}, "message_ar": response_ar}
             if action != "unknown":
-                exec_result = await self._execute(action, params, db)
+                exec_result = await self._execute(action, params, db,
+                                                  tenant_id=tenant_id, role=role)
                 result = {**result, **exec_result}
 
             step = "memory write"
@@ -160,10 +180,24 @@ class AgentEngine:
             log.error(f"process failed at step={step}: {e}")
             import traceback
             log.error(traceback.format_exc())
-            return {"action": "error", "params": {}, "response_ar": f"خطأ في ({step}): {str(e)[:150]}", "data": {"step": step}, "success": False}
+            # v10-A9: the step name + raw str(e) leaked internal details
+            # (DB errors, paths) to the client — generic Arabic message only.
+            return {"action": "error", "params": {},
+                    "response_ar": "حدث خطأ داخلي أثناء تنفيذ طلب المساعد الذكي — حاول مرة أخرى",
+                    "data": {"step": step}, "success": False}
 
-    async def _execute(self, action: str, params: dict, db) -> dict:
-        """Execute a tool action. Handles all registered tools."""
+    async def _execute(self, action: str, params: dict, db,
+                       tenant_id: int = 0, role: str = "viewer") -> dict:
+        """Execute a tool action. Handles all registered tools.
+
+        v10-A2 permission gate: these tools act with the PLATFORM's Facebook
+        client (_fb_client) or on the PLATFORM bot task — the tenant-scoped
+        equivalents don't exist yet, so until they do the gate matches the
+        dedicated routes (bot.py stop_bot/restart_bot = admin-only).
+        """
+        if action in _ADMIN_ONLY_TOOLS and role != "admin":
+            return {"success": False,
+                    "message_ar": "هذا الإجراء يتطلب صلاحيات مسؤول — اطلبه من مدير مساحة عملك"}
         try:
             fb = _get_fb()
 
@@ -214,8 +248,11 @@ class AgentEngine:
                 name = params.get("name", f"قاعدة {raw[:30]}")
                 kw = params.get("keywords", [raw])
                 tmpl = params.get("reply_template", raw)
+                # v10-A5: without tenant_id the rule defaulted to 0 (platform
+                # space) — invisible to its creator and unmanageable from the
+                # UI. Same one-line pattern as onboarding.py create_first_rule.
                 rule = Rule(name=name, keywords=kw if isinstance(kw, list) else [kw],
-                            reply_template=tmpl)
+                            reply_template=tmpl, tenant_id=tenant_id)
                 db.add(rule)
                 await db.commit()
                 return {"success": True, "data": {"rule_id": rule.id},
@@ -223,8 +260,13 @@ class AgentEngine:
 
             elif action == "list_stats":
                 from models import Reply, Rule
-                total = await db.scalar(select(func.count(Reply.id))) or 0
-                rules = await db.scalar(select(func.count(Rule.id))) or 0
+                # v10-A4: tenant-scoped counts (v4 §3.6 pattern — the ctx
+                # build above already filtered, this branch leaked all
+                # tenants' totals to any editor).
+                total = await db.scalar(
+                    select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id)) or 0
+                rules = await db.scalar(
+                    select(func.count(Rule.id)).where(Rule.tenant_id == tenant_id)) or 0
                 return {"success": True, "data": {"total_replies": total, "rules_count": rules},
                         "message_ar": f"إحصائيات: {total} رد, {rules} قاعدة"}
 
@@ -241,11 +283,16 @@ class AgentEngine:
                         "message_ar": "تم تحسين النص ✅"}
 
             elif action == "image_analyze":
-                from ai_service import AIService
+                from ai_service import AIService, UnsafeImageUrlError
                 ai = AIService()
                 img_url = params.get("image_url", "")
                 if img_url and ai.available:
-                    analysis = await ai.analyze_image(img_url)
+                    try:
+                        analysis = await ai.analyze_image(img_url)
+                    except UnsafeImageUrlError as e:
+                        # v10-A8: OUR controlled Arabic rejection — safe to
+                        # surface (unlike raw provider/stack errors).
+                        return {"success": False, "message_ar": str(e)}
                     return {"success": True, "data": {"analysis": analysis},
                             "message_ar": f"تحليل الصورة: {analysis[:150]}"}
                 return {"success": True, "data": {"analysis": ""},
@@ -253,8 +300,10 @@ class AgentEngine:
 
             return {"success": False, "message_ar": f"إجراء غير معروف: {action}"}
         except Exception as e:
-            log.error(f"Execute {action} error: {e}")
-            return {"success": False, "message_ar": f"خطأ: {str(e)[:100]}"}
+            log.error(f"Execute {action} error: {e}", exc_info=True)
+            # v10-A9: no str(e) to the client — generic Arabic message only.
+            return {"success": False,
+                    "message_ar": "حدث خطأ أثناء تنفيذ الإجراء — حاول مرة أخرى"}
 
     def _error(self, msg: str) -> dict:
         return {"action": "unknown", "params": {}, "response_ar": msg, "success": False}

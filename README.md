@@ -4,7 +4,7 @@
 
 **المكدّس التقني:** FastAPI (Python 3.12) + Next.js 16 (App Router) + SQLAlchemy/Alembic + Neon PostgreSQL (إنتاج) / SQLite (تطوير) + Vercel.
 
-**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 297 hermetic tests, CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
+**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 389 hermetic tests, CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
 
 ---
 
@@ -22,7 +22,7 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 297 اختبار pytest (منقولون من جذر الحزمة — v5 §1)
+tests/                      ← 389 اختبار pytest (انحدارات v10 الأمنية ضمنها — v5 §1)
 alembic/versions/           ← ترحيلات Alembic (حتى 010: فهارات المسارات الساخنة)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
@@ -33,12 +33,15 @@ docs/                       ← التوثيق المنظَّم — انظر doc
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env                          # ثم عدّل القيم
-.venv/bin/python -m fb_dashboard.runner       # الخلفية على :8000
+cp .env.example .env                          # الإعدادات الافتراضية للتطوير جاهزة (DEBUG=true)
+.venv/bin/python -m uvicorn runner:app --app-dir fb_dashboard --port 8000   # الخلفية على :8000
 
 cd fb_dashboard/frontend
-npm install && npm run dev                    # الواجهة على :3000 (توكيل /api)
+npm install
+LOCAL_API_PROXY=http://127.0.0.1:8000 npm run dev   # الواجهة على :3000 مع توكيل /api للخلفية
 ```
+
+> **ملاحظة الوكيل (v10-H3):** توكيل `/api` في التطوير المحلي يتطلب متغير `LOCAL_API_PROXY` (يعكس توكيل vercel.json في الإنتاج) — بدون سترد نداءات الواجهة 404. بدون الوكيل استخدم `NEXT_PUBLIC_API_HOST`.
 
 ## بوابات الجودة (v5 + v6 — تعمل آليًا على كل push/PR عبر GitHub Actions)
 
@@ -49,7 +52,7 @@ bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **297 passed** (محكمّة: أمامي/عكسي/عشوائي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **389 passed** (محكمّة: أمامي/عكسي/عشوائي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
 | بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |

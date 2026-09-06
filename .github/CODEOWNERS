@@ -1,0 +1,3 @@
+# v10-E10 (gstack /cso Phase 4): CODEOWNERS protects CI + config from silent drift
+* @ahmadmedo1012
+.github/ @ahmadmedo1012

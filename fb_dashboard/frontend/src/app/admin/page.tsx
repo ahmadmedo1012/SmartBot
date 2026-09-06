@@ -47,6 +47,8 @@ const statusConfig: Record<string, { label: string; variant: "warning" | "succes
 
 export default function AdminPage() {
   const [role, setRole] = useState<string | null>(null)
+  // v10-B4 (G2-02): platform admin = tenant_id 0 — gates the cron card
+  const [tenantId, setTenantId] = useState<number | null>(null)
   const [payments, setPayments] = useState<Payment[]>([])
   const [filter, setFilter] = useState("pending")
   const [loading, setLoading] = useState(true)
@@ -64,7 +66,11 @@ export default function AdminPage() {
   useEffect(() => {
     apiFetch("/api/me")
       .then(unwrapApi)
-      .then((d) => { setRole(d?.user?.role || null); setRoleLoading(false) })
+      .then((d) => {
+        setRole(d?.user?.role || null)
+        setTenantId(typeof d?.user?.tenant_id === "number" ? d.user.tenant_id : null)
+        setRoleLoading(false)
+      })
       .catch(() => { setRole(null); setRoleLoading(false) })
   }, [])
 
@@ -132,9 +138,12 @@ export default function AdminPage() {
       </div>
 
       {/* v6 §E — cron heartbeat truth at a glance (Telegram alerts fire on
-          stalls; this card answers "are scheduled posts running?" instantly) */}
+          stalls; this card answers "are scheduled posts running?" instantly).
+          v10-B4 (G2-02): /api/cron/status is platform-admin-only — tenant
+          admins (tenant_id ≠ 0) got 403 + console/network noise; the card is
+          now platform-admin exclusive. */}
       <div className="mb-6">
-        <CronHeartbeatCard />
+        <CronHeartbeatCard enabled={role === "admin" && tenantId === 0} />
       </div>
 
       {/* Filters */}

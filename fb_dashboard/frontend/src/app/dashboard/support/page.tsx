@@ -84,7 +84,9 @@ export default function SupportPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/support/tickets")
       if (!res.ok) throw new Error(`فشل تحميل التذاكر (${res.status})`)
-      return unwrapApi<SupportTicket[]>(res)
+      // v10-D2: backend wraps the list as {items, total} inside the envelope
+      const payload = await unwrapApi<{ items: SupportTicket[]; total: number }>(res)
+      return payload.items
     },
     retry: 1,
   })

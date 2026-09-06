@@ -157,8 +157,13 @@ async def agent_interpret(
             image_url = f"/static/uploads/{img_filename}"
 
     try:
-        # v4 §3.6 — pass the tenant so agent context counts are scoped
-        result = await agent.process(text, image_url=image_url, username=current_user.username, db=db, tenant_id=current_user._tenant_id)
+        # v4 §3.6 — pass the tenant so agent context counts are scoped.
+        # v10-A2 — pass the CALLER's role so the engine's tool gate can
+        # refuse platform-level actions (stop platform bot, publish via the
+        # platform token) for non-admin callers (HIGH#4).
+        result = await agent.process(text, image_url=image_url, username=current_user.username,
+                                     db=db, tenant_id=current_user._tenant_id,
+                                     role=current_user.role)
     except Exception as e:
         import traceback
         tb = traceback.format_exc()

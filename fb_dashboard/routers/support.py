@@ -30,6 +30,18 @@ router = APIRouter(prefix="/api/support", tags=["support"])
 
 _PRIORITIES = {"low", "medium", "high", "urgent"}
 
+# v10-A3: PUBLIC route with NO auth — an explicit allowlist (same pattern as
+# /api/config, v8-A1) is the only safe read. The previous "every non-secret
+# SystemConfig row" scan leaked heartbeat keys / telegram_chat_id and would
+# leak any future key added to the table. New keys can never appear here
+# by default.
+_SUPPORT_INFO_CONFIG_KEYS = frozenset({
+    "support_email",
+    "support_phone",
+    "support_whatsapp",
+    "support_working_hours",
+})
+
 
 @router.get("/info")
 async def support_info(db=Depends(get_db)):
@@ -48,7 +60,9 @@ async def support_info(db=Depends(get_db)):
     from models import SystemConfig
     config: dict = {}
     try:
-        rows = await db.execute(select(SystemConfig))
+        rows = await db.execute(
+            select(SystemConfig).where(SystemConfig.key.in_(_SUPPORT_INFO_CONFIG_KEYS))
+        )
         for r in rows.scalars().all():
             if not r.is_secret:
                 config[r.key] = r.value
@@ -129,14 +143,21 @@ async def list_tickets(
     total = await db.scalar(
         select(func.count(SupportTicket.id)).where(SupportTicket.tenant_id == current_user._tenant_id)
     ) or 0
-    return {"success": True, "data": [
-        {
-            "id": t.id, "subject": t.subject, "priority": t.priority, "status": t.status,
-            "email": t.email, "body": t.body,
-            "created_at": iso_z(t.created_at),
-            "updated_at": iso_z(t.updated_at),
-        } for t in tickets
-    ], "total": total}
+    # v10-D2: total moves INSIDE the envelope's data (was a sibling key —
+    # the only endpoint breaking the unwrapApi structural contract). Shape
+    # matches the platform's Paginated<T> ({items, total}).
+    # FRONTEND NOTE: dashboard/support/page.tsx must read data.items now.
+    return {"success": True, "data": {
+        "items": [
+            {
+                "id": t.id, "subject": t.subject, "priority": t.priority, "status": t.status,
+                "email": t.email, "body": t.body,
+                "created_at": iso_z(t.created_at),
+                "updated_at": iso_z(t.updated_at),
+            } for t in tickets
+        ],
+        "total": total,
+    }}
 
 
 @router.get("/tickets/{ticket_id}")

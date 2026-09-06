@@ -249,30 +249,6 @@ class SequenceEngine:
         if seq and seq.total_subscribers > 0:
             seq.total_subscribers -= 1
         return True
-
-    async def get_subscription(
-        self, subscriber_id: int, sequence_id: int, session
-    ) -> dict | None:
-        """Get subscription details: current_step, status, entered_at."""
-        result = await session.execute(
-            select(SequenceSubscription).where(
-                SequenceSubscription.subscriber_id == subscriber_id,
-                SequenceSubscription.sequence_id == sequence_id,
-            )
-        )
-        sub = result.scalar_one_or_none()
-        if not sub:
-            return None
-        return {
-            "id": sub.id,
-            "subscriber_id": sub.subscriber_id,
-            "sequence_id": sub.sequence_id,
-            "current_step": sub.current_step,
-            "status": sub.status,
-            "entered_at": iso_z(sub.entered_at),
-            "completed_at": iso_z(sub.completed_at),
-        }
-
     async def advance(
         self, subscriber_id: int, sequence_id: int, session
     ) -> int | None:

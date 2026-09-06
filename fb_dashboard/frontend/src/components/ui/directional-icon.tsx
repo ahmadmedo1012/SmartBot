@@ -28,8 +28,9 @@
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, type LucideProps } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type SemanticDirection = "back" | "forward"
-export type DirectionalVariant = "arrow" | "chevron"
+/* v10-W4: SemanticDirection/DirectionalVariant un-exported (internal only) */
+type SemanticDirection = "back" | "forward"
+type DirectionalVariant = "arrow" | "chevron"
 
 const GLYPHS: Record<SemanticDirection, Record<DirectionalVariant, typeof ArrowLeft>> = {
   back: { arrow: ArrowLeft, chevron: ChevronLeft },

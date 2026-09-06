@@ -1,8 +1,8 @@
 import { Bot, MessageCircle, BarChart3, Calendar, Target, ShieldCheck, Globe, Users, Smartphone, Share2, CheckCircle } from "lucide-react"
 
-export type Benefit = { icon: typeof Bot; title: string; desc: string }
-export type Step = { num: string; title: string; desc: string }
-export type Faq = { q: string; a: string }
+type Benefit = { icon: typeof Bot; title: string; desc: string } // v10-W4: exports dropped — internal only
+type Step = { num: string; title: string; desc: string }
+type Faq = { q: string; a: string }
 
 export const BENEFITS: Benefit[] = [
   { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },

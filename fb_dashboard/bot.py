@@ -21,6 +21,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import ClassVar
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
@@ -142,13 +143,6 @@ class TemplateRenderer:
     def validate(cls, template: str) -> bool:
         return bool(template and template.strip())
 
-    @classmethod
-    def render_with_offer(cls, template: str, ctx: CommentContext, offer_text: str = "") -> str:
-        reply = cls.render(template, ctx)
-        if offer_text:
-            reply += offer_text
-        return reply
-
 # -------------------------------------------------------------------
 # Stop words
 # -------------------------------------------------------------------
@@ -220,7 +214,9 @@ class IntentAwareMatcher:
         self._precompute()
 
     # intent → rule name prefix map for phase-1 matching
-    INTENT_RULE_MAP = {
+    # v10-F2 (RUF012): read-only class constant — annotated ClassVar so the
+    # mutable dict default is an explicit, never-reassigned mapping.
+    INTENT_RULE_MAP: ClassVar[dict[str, str]] = {
         "complaint": "frustrated_complaint",
         "problem": "problem_issue",
         "price_inquiry": "price_inquiry",
@@ -1153,9 +1149,13 @@ class BotEngine:
         now = time.time()
         if self._dm_map_cache is not None and (now - self._dm_map_loaded_at) < 300:
             return self._dm_map_cache
-        from pathlib import Path
-        json_path = Path(__file__).resolve().parent / "facebook_automation.json"
-        try:
+
+        def _read_dm_map() -> dict[str, str]:
+            # v10-F1 (ASYNC230/240) — the blocking exists()/open()/json.load()
+            # run off the event loop via asyncio.to_thread; failures raise so
+            # the (uncached) empty-dict fallback below keeps the old semantics.
+            from pathlib import Path
+            json_path = Path(__file__).resolve().parent / "facebook_automation.json"
             with open(json_path, encoding='utf-8') as f:
                 data = json.load(f)
             dm = {}
@@ -1164,6 +1164,10 @@ class BotEngine:
                 if tmpl:
                     key = str(r["id"])
                     dm[key] = tmpl
+            return dm
+
+        try:
+            dm = await asyncio.to_thread(_read_dm_map)
             self._dm_map_cache = dm
             self._dm_map_loaded_at = now
             return dm

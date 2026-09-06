@@ -6,7 +6,6 @@ JSON-formatted logs, health metrics, performance tracking.
 """
 import json
 import logging
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 
@@ -141,18 +140,3 @@ def get_logger(name: str = "fb-bot") -> StructuredLogger:
         bot_log = StructuredLogger(name)
     return bot_log
 
-
-# ── Performance Timer ─────────────────────────────────────────────
-
-@dataclass
-class Timer:
-    label: str = ""
-    _start: float = field(default_factory=time.time)
-
-    def elapsed(self) -> float:
-        return (time.time() - self._start) * 1000  # ms
-
-    def log(self, logger: StructuredLogger | None = None, **kw):
-        ms = self.elapsed()
-        (logger or get_logger()).info(f"[timer] {self.label}", latency_ms=ms, **kw)
-        return ms

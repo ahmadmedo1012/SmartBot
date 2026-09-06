@@ -84,7 +84,7 @@ def _send_boot_canary() -> None:
         with sentry_sdk.new_scope() as scope:
             scope.set_tag("canary", "boot")
             sentry_sdk.capture_message("SmartBot API booted", level="info")
-    except Exception:  # noqa: BLE001 — never break startup
+    except Exception:  # never break startup
         pass
 
 
@@ -127,7 +127,7 @@ def init_sentry() -> bool:
                  environment, release)
         _send_boot_canary()
         return True
-    except Exception as e:  # noqa: BLE001 — observability must never take the app down
+    except Exception as e:  # observability must never take the app down
         log.warning("observability: sentry init failed, continuing without it: %s", e)
         _sentry_enabled = False
     return False
@@ -146,7 +146,7 @@ def capture_exception(exc: BaseException, *, request=None) -> None:
                     scope.set_tag("request_id", getattr(request.state, "request_id", ""))
                     scope.set_tag("path", request.url.path)
                     scope.set_tag("method", request.method)
-                except Exception:  # noqa: BLE001
+                except Exception:
                     pass
             sentry_sdk.capture_exception(exc)
         # Serverless freeze guard: the background transport batches events
@@ -157,9 +157,9 @@ def capture_exception(exc: BaseException, *, request=None) -> None:
             client = sentry_sdk.get_client()
             if client is not None:
                 client.flush(timeout=1.0)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
 
 
@@ -220,7 +220,7 @@ async def telegram_alert(text: str, *, key: str, cooldown_s: float = ALERT_COOLD
             if res is not None:
                 delivered += 1
         return delivered > 0
-    except Exception as e:  # noqa: BLE001 — alerting must never break the request
+    except Exception as e:  # alerting must never break the request
         log.warning("critical alert failed: %s", e)
         return False
 
@@ -235,7 +235,7 @@ async def report_critical(request, exc: BaseException) -> None:
         try:
             from _utils import utcnow as _now
             stamp = _now().strftime("%Y-%m-%d %H:%M") + " UTC"
-        except Exception:  # noqa: BLE001
+        except Exception:
             stamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M") + " UTC"
         rid = "-"
         path = method = "?"
@@ -243,7 +243,7 @@ async def report_critical(request, exc: BaseException) -> None:
             rid = str(getattr(request.state, "request_id", "-"))
             path = request.url.path
             method = request.method
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         fingerprint = f"500:{path}:{type(exc).__name__}"
         text = (
@@ -254,7 +254,7 @@ async def report_critical(request, exc: BaseException) -> None:
             f"الوقت: {stamp}"
         )
         await telegram_alert(text, key=fingerprint)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.warning("report_critical double-fault guard: %s", e)
 
 
@@ -295,7 +295,7 @@ async def record_heartbeat(report: dict) -> None:
             await _upsert_config(db, HEARTBEAT_REPORT_KEY,
                                  _json.dumps(report, ensure_ascii=False, default=str)[:2000],
                                  "v6 §E — last heartbeat report (posts/fans/cycles)")
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.warning("record_heartbeat failed: %s", e)
 
 
@@ -314,7 +314,7 @@ async def get_last_heartbeat() -> datetime | None:
             ).scalar_one_or_none()
             if row and row.value:
                 return datetime.fromisoformat(row.value)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.warning("get_last_heartbeat failed: %s", e)
     return None
 

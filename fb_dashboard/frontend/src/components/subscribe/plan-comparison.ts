@@ -27,20 +27,6 @@ const UNLIMITED_PAGES = 999
 const UNLIMITED_RULES = 999
 
 /**
- * Formats a numeric cap as an Arabic phrase with correct plural forms.
- */
-export function formatCap(count: number, singular: string, plural: string): string {
-  if (count >= UNLIMITED_PAGES) return "غير محدود"
-  const noun = getArabicPlural(count, singular, undefined, plural)
-  if (count === 1) return `${noun} واحد`
-  if (count === 2) {
-    // Mechanical dual already ends in ان — don't append a digit.
-    return noun.endsWith("ان") ? noun : `${noun} اثنان`
-  }
-  return `${toArabicNumber(count)} ${noun}`
-}
-
-/**
  * The headline differentiator phrase under the plan price — SmartBot's
  * equivalent of Smart-Menu's itemsPhrase (menu items → bot replies).
  */

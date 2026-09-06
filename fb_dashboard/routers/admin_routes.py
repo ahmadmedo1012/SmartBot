@@ -93,6 +93,34 @@ _ADMIN_CONFIG_KEYS = (
     | _FACEBOOK_CONFIG_KEYS | _AI_CONFIG_KEYS
 )
 
+# v10-A6: keys whose stored values are credentials. GET /api/admin/config
+# returns them MASKED (never raw) — the old raw passthrough handed the
+# telegram token / FB app secret / AI keys to the browser. POST ignores a
+# value that is just the mask echoed back unchanged (the settings form
+# round-trip), so an untouched secret stays intact.
+_SECRET_VALUE_KEYS = frozenset({
+    "telegram_bot_token",
+    "facebook_app_secret",
+    "openai_api_key",
+    "gemini_api_key",
+})
+_SECRET_MASK_PREFIX = "••••"  # لا يبدأ به سر حقيقي أبدًا — علامة القناع
+
+
+def _mask_secret(value: str) -> str:
+    """(•••• + آخر ٤) — يكفي للتأكد أن القيمة المحفوظة هي المتوقعة دون كشفها."""
+    v = (value or "").strip()
+    if not v:
+        return ""
+    if len(v) <= 4:
+        return _SECRET_MASK_PREFIX
+    return f"{_SECRET_MASK_PREFIX}{v[-4:]}"
+
+
+def _is_masked_secret_value(value: str) -> bool:
+    v = str(value or "").strip()
+    return bool(v) and v.startswith(_SECRET_MASK_PREFIX)
+
 
 @router.get("/api/admin/config")
 async def admin_get_config(db=Depends(get_db), current_user: User = Depends(require_platform_admin)):
@@ -103,7 +131,14 @@ async def admin_get_config(db=Depends(get_db), current_user: User = Depends(requ
     platform payments to their own wallet. Now platform-admin only.
     """
     rows = await db.execute(select(SystemConfig).where(SystemConfig.key.in_(_ADMIN_CONFIG_KEYS)))
-    return {"success": True, "data": {r.key: r.value for r in rows.scalars().all()}}
+    # v10-A6: credential-shaped values leave the server masked only — the
+    # last-4 suffix proves to the operator WHICH value is stored without
+    # exposing it. Non-secret keys (bank details, phones, support contact)
+    # stay raw: the admin needs to copy them.
+    return {"success": True, "data": {
+        r.key: _mask_secret(r.value) if (r.key in _SECRET_VALUE_KEYS and r.value) else r.value
+        for r in rows.scalars().all()
+    }}
 
 
 @router.post("/api/admin/config")
@@ -123,6 +158,13 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     invalid = [k for k in payload if k not in _ADMIN_CONFIG_KEYS]
     if invalid:
         raise HTTPException(400, f"مفاتيح غير مسموحة: {', '.join(invalid)}")
+    # v10-A6: the settings form round-trips the MASKED values it loaded from
+    # GET. Drop those echoes BEFORE validation/writing — otherwise the shape
+    # validators would 400 the whole save (or worse, a raw-key validator like
+    # openai_api_key would silently STORE the mask over the real secret).
+    # "" (clear override) and a genuinely NEW value both still apply.
+    payload = {k: v for k, v in payload.items()
+               if not (k in _SECRET_VALUE_KEYS and _is_masked_secret_value(v))}
     # validate wallet cap value
     if "mobile_wallet_cap" in payload:
         try:
@@ -158,12 +200,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     # never leak through non-secret config reads (support/info pattern).
     # v8-A1: openai/gemini keys are credentials too — previously stored
     # non-secret, which leaked them via the public GET /api/config.
-    _SECRET_KEYS = {
-        "telegram_bot_token",
-        "facebook_app_secret",
-        "openai_api_key",
-        "gemini_api_key",
-    }
+    # v10-A6: unified with the GET-side masking set (_SECRET_VALUE_KEYS).
     for k, v in payload.items():
         v = str(v or "").strip()
         existing = await db.execute(select(SystemConfig).where(SystemConfig.key == k))
@@ -174,9 +211,9 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
             continue
         if row:
             row.value = v
-            row.is_secret = k in _SECRET_KEYS
+            row.is_secret = k in _SECRET_VALUE_KEYS
         else:
-            db.add(SystemConfig(key=k, value=v, is_secret=k in _SECRET_KEYS))
+            db.add(SystemConfig(key=k, value=v, is_secret=k in _SECRET_VALUE_KEYS))
     await db.commit()
     # invalidate the cached public /api/config so new values show immediately
     try:

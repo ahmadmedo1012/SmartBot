@@ -9,6 +9,7 @@ Usage:
     suggestions = await ai.suggest_replies(comment_text, page_context)
     tone = await ai.analyze_tone(comment_text)
 """
+import asyncio
 import json
 import logging
 import os
@@ -56,6 +57,57 @@ def _lazy_google():
 PROVIDER_NONE = "none"
 PROVIDER_OPENAI = "openai"
 PROVIDER_GEMINI = "gemini"
+
+
+# ---------------------------------------------------------------------------
+# v10-A8: SSRF guard for URL-fetched images
+# ---------------------------------------------------------------------------
+class UnsafeImageUrlError(ValueError):
+    """رابط صورة رفضه حارس SSRF — مخطط غير https أو مضيف شبكة داخلية.
+
+    رسالة عربية مُحكمة من عندنا (ليست تفاصيل داخلية) فيجوز عرضها للمستخدم.
+    """
+
+
+def _is_private_or_local_host(host: str) -> bool:
+    """True إذا كان المضيف محليًا/خاصًا/غير قابل للجلب من الخادم."""
+    import ipaddress
+
+    if not host:
+        return True
+    if host == "localhost" or host.endswith(".localhost"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        # ليس IP حرفيًا. نرفض الأسماء ذات الترميز الرقمي ("127.1"، "2130706433"،
+        # "0x7f000001") لأن مقابس بايثون تحلها إلى loopback رغم أنها ليست IP
+        # سليمًا بصيغته — ولا يستعملها اسم مضيف مشروع أبدًا.
+        digits_dots = host.replace(".", "")
+        return digits_dots.isdigit() or host.startswith("0x")
+    return (
+        ip.is_private        # 10/8, 172.16/12, 192.168/16, IPv6 ULA…
+        or ip.is_loopback    # 127/8, ::1
+        or ip.is_link_local  # 169.254/16, fe80::/10
+        or ip.is_reserved
+        or ip.is_unspecified
+    )
+
+
+def _assert_safe_image_url(url: str) -> None:
+    """حراسة SSRF قبل أي جلب/تمرير لرابط صورة خارجي (v10-A8، G1#9).
+
+    المسار الخطر: رابط يقرره دماغ LLM من نص المستخدم → أداة image_analyze
+    تجلبه من الخادم. القواعد: مخطط https فقط (http قابل للاعتراض)، ورفض
+    المضيفات الخاصة/المحلية بأي صيغة ترميز.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise UnsafeImageUrlError("رابط الصورة مرفوض — يُسمح فقط بروابط https")
+    if _is_private_or_local_host((parsed.hostname or "").lower()):
+        raise UnsafeImageUrlError("رابط الصورة مرفوض — لا يمكن جلب صور من مضيفات داخلية أو خاصة")
 
 # ---------------------------------------------------------------------------
 # Prompt templates
@@ -252,11 +304,20 @@ class AIService:
         # Determine if local file or remote URL
         is_url = image_path_or_url.startswith(("http://", "https://", "/static/"))
         image_url = image_path_or_url
+        if image_path_or_url.startswith(("http://", "https://")):
+            # v10-A8: remote URL — validated BEFORE any fetch or forwarding
+            # (Gemini fetches server-side; OpenAI receives the URL). Rejects
+            # non-https schemes and private/loopback hosts with a controlled
+            # Arabic message (raises UnsafeImageUrlError).
+            _assert_safe_image_url(image_path_or_url)
         if not is_url:
             try:
-                with open(image_path_or_url, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("utf-8")
-                    image_url = f"data:image/jpeg;base64,{b64}"
+                # v10-F1: disk reads block the event loop — offload to a worker thread
+                def _read_image_b64() -> str:
+                    with open(image_path_or_url, "rb") as f:
+                        return base64.b64encode(f.read()).decode("utf-8")
+
+                image_url = f"data:image/jpeg;base64,{await asyncio.to_thread(_read_image_b64)}"
             except Exception as e:
                 log.error(f"analyze_image read error: {e}")
                 return ""

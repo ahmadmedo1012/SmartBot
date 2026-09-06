@@ -71,11 +71,5 @@ class ConnectionManager:
     def count(self) -> int:
         return len(self._connections)
 
-    @property
-    def is_enabled(self) -> bool:
-        if _IS_VERCEL:
-            return False
-        return len(self._connections) > 0
-
 
 ws_manager = ConnectionManager()

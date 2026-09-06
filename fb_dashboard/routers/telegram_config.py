@@ -11,6 +11,7 @@ import logging
 import os
 
 import httpx
+from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -39,14 +40,14 @@ async def get_config(db=Depends(get_db), _=Depends(require_platform_admin)):
     cfg = await _db_config(db)
     token = cfg.get("telegram_bot_token") or BOT_TOKEN
     chat_id = cfg.get("telegram_chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
-    return {"success": True, "data": {
+    return ok({
         "chatId": chat_id,
         "botTokenConfigured": bool(token),
         "botTokenSource": "db" if cfg.get("telegram_bot_token") else ("env" if BOT_TOKEN else ""),
         "events": ["new_order", "payment", "settings_change"],
         "isActive": bool(token),
         "botTokenMasked": bool(token),
-    }}
+    })
 
 
 @router.post("/telegram/config")
@@ -80,7 +81,7 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
             db.add(SystemConfig(key=key, value=value, is_secret=True))
         updated.append(key)
     await db.commit()
-    return {"success": True, "data": {"updated": updated or "no-change"}}
+    return ok({"updated": updated or "no-change"})
 
 
 @router.get("/telegram/diagnose")
@@ -105,16 +106,16 @@ async def diagnose(dry_run: bool = Query(False), db=Depends(get_db), _=Depends(r
                 result["dryRunResult"] = "ok" if r.is_success else f"fail: {r.text[:200]}"
             except Exception as e:
                 result["dryRunResult"] = f"err: {e}"
-    return {"success": True, "data": result}
+    return ok(result)
 
 @router.get("/admin/telegram/approvers")
 async def list_approvers(db=Depends(get_db), _=Depends(require_platform_admin)):
     rows = await db.execute(select(TelegramApprover).order_by(TelegramApprover.created_at.desc()))
-    return {"success": True, "data": [{
+    return ok([{
         "id": a.id, "telegramId": a.telegram_id, "label": a.label,
         "addedBy": {"id": a.added_by_id} if a.added_by_id else None,
         "createdAt": iso_z(a.created_at),
-    } for a in rows.scalars().all()]}
+    } for a in rows.scalars().all()])
 
 @router.post("/admin/telegram/approvers")
 async def add_approver(body: dict = Body(None), db=Depends(get_db),
@@ -129,21 +130,21 @@ async def add_approver(body: dict = Body(None), db=Depends(get_db),
     db.add(a)
     await db.commit()
     await db.refresh(a)
-    return {"success": True, "data": {"id": a.id, "telegramId": a.telegram_id, "label": a.label}}
+    return ok({"id": a.id, "telegramId": a.telegram_id, "label": a.label})
 
 @router.delete("/admin/telegram/approvers/{approver_id}")
 async def remove_approver(approver_id: int, db=Depends(get_db), _=Depends(require_platform_admin)):
     await db.execute(sa_delete(TelegramApprover).where(TelegramApprover.id == approver_id))
     await db.commit()
-    return {"success": True}
+    return ok()
 
 @router.get("/telegram/broadcast-targets")
 async def list_targets(db=Depends(get_db), _=Depends(require_platform_admin)):
     rows = await db.execute(select(TelegramBroadcastTarget).order_by(TelegramBroadcastTarget.created_at.desc()))
-    return {"success": True, "data": [{
+    return ok([{
         "id": t.id, "label": t.label, "chatId": t.chat_id,
         "isActive": t.is_active, "createdAt": iso_z(t.created_at),
-    } for t in rows.scalars().all()]}
+    } for t in rows.scalars().all()])
 
 @router.post("/telegram/broadcast-targets")
 async def add_target(body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
@@ -153,7 +154,7 @@ async def add_target(body: dict = Body(None), db=Depends(get_db), _=Depends(requ
     db.add(t)
     await db.commit()
     await db.refresh(t)
-    return {"success": True, "data": {"id": t.id, "label": t.label, "chatId": t.chat_id, "isActive": t.is_active}}
+    return ok({"id": t.id, "label": t.label, "chatId": t.chat_id, "isActive": t.is_active})
 
 @router.patch("/telegram/broadcast-targets/{target_id}")
 async def update_target(target_id: int, body: dict = Body(None), db=Depends(get_db), _=Depends(require_platform_admin)):
@@ -163,13 +164,13 @@ async def update_target(target_id: int, body: dict = Body(None), db=Depends(get_
     if "isActive" in body:
         t.is_active = body["isActive"]
     await db.commit()
-    return {"success": True}
+    return ok()
 
 @router.delete("/telegram/broadcast-targets/{target_id}")
 async def delete_target(target_id: int, db=Depends(get_db), _=Depends(require_platform_admin)):
     await db.execute(sa_delete(TelegramBroadcastTarget).where(TelegramBroadcastTarget.id == target_id))
     await db.commit()
-    return {"success": True}
+    return ok()
 
 @router.post("/telegram/test")
 async def test_telegram(db=Depends(get_db), _=Depends(require_platform_admin)):
@@ -196,4 +197,4 @@ async def test_telegram(db=Depends(get_db), _=Depends(require_platform_admin)):
             last_err = str(e)[:160]
     if sent == 0:
         raise HTTPException(400, last_err or "فشل الإرسال")
-    return {"success": True, "data": {"sent": True, "recipients": sent}}
+    return ok({"sent": True, "recipients": sent})

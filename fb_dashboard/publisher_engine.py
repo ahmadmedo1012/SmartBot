@@ -99,13 +99,20 @@ class PublisherEngine:
         self.x = XPublisher()
         self.linkedin = LinkedInPublisher()
 
-    def load_credentials(self, db_session, tenant_id: int = 0):
-        """Load stored credentials from BotState. Pass None to skip DB load."""
+    async def load_credentials(self, db_session, tenant_id: int = 0):
+        """Load stored credentials from BotState. Pass None to skip DB load.
+
+        v11 fix (BUG found by test_v11_publisher_team): was sync and called
+        ``db_session.execute(...)`` without await — with the AsyncSession the
+        routers pass, that returns a coroutine and ``.scalars()`` raises
+        AttributeError → 500 on every publish/configure path. Now async and
+        awaited at every call site.
+        """
         if db_session is None:
             return
-        rows = db_session.execute(
+        rows = (await db_session.execute(
             select(BotState).where(BotState.tenant_id == tenant_id, BotState.key.like("publisher_%"))
-        ).scalars().all()
+        )).scalars().all()
         creds = {}
         for row in rows:
             creds[row.key] = row.value
@@ -169,7 +176,7 @@ class PublisherEngine:
                 db_session.add(BotState(tenant_id=tenant_id, key=f"{prefix}_{key}", value=str(value)))
         await db_session.commit()
         # Reload credentials
-        self.load_credentials(db_session, tenant_id=tenant_id)
+        await self.load_credentials(db_session, tenant_id=tenant_id)
         return True
 
     @staticmethod

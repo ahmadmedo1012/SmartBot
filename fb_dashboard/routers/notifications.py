@@ -10,6 +10,7 @@ Feed (plan §4.2):
 """
 from __future__ import annotations
 
+from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -65,7 +66,7 @@ async def list_notifications(
             "created_at": iso_z(n.created_at),
         } for n in rows.scalars().all()
     ]
-    return {"success": True, "data": {"items": items, "unread": unread}}
+    return ok({"items": items, "unread": unread})
 
 
 @router.post("/{notification_id}/read")
@@ -79,7 +80,7 @@ async def mark_read(
         raise HTTPException(404, "الإشعار غير موجود")
     n.read = True
     await db.commit()
-    return {"success": True}
+    return ok()
 
 
 @router.post("/read-all")
@@ -93,7 +94,7 @@ async def mark_all_read(
         .values(read=True)
     )
     await db.commit()
-    return {"success": True}
+    return ok()
 
 
 # ── Preferences ─────────────────────────────────────────────────────────────

@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from _responses import ok
 from _utils import iso_z, utcnow
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -59,6 +60,7 @@ async def list_campaigns(
         select(func.count(MarketingCampaign.id)).where(
             MarketingCampaign.tenant_id == current_user._tenant_id)
     ) or 0
+    # NOTE: raw dict — extended envelope (v11 audit)
     return {"success": True, "data": [
         {
             "id": c.id, "name": c.name, "message": c.message, "audience": c.audience,
@@ -112,7 +114,7 @@ async def create_campaign(
     db.add(c)
     await db.commit()
     await db.refresh(c)
-    return {"success": True, "data": {"id": c.id, "status": c.status}}
+    return ok({"id": c.id, "status": c.status})
 
 
 @router.get("/audience-size")
@@ -130,7 +132,7 @@ async def audience_size(
     if f is not None:
         q = q.where(f)
     count = await db.scalar(q) or 0
-    return {"success": True, "data": {"audience": audience, "count": count}}
+    return ok({"audience": audience, "count": count})
 
 
 @router.post("/campaigns/{campaign_id}/send")
@@ -216,11 +218,11 @@ async def send_campaign(
         type_="marketing", link="/dashboard/marketing",
     )
     await db.commit()
-    return {"success": True, "data": {
+    return ok({
         "id": c.id, "status": c.status, "sent_count": c.sent_count,
         "delivered_count": c.delivered_count or 0,
         "dispatched": dispatched,
-    }}
+    })
 
 
 @router.get("/campaigns/{campaign_id}/stats")
@@ -233,12 +235,12 @@ async def campaign_stats(
     c = await db.get(MarketingCampaign, campaign_id)
     if not c or c.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الحملة غير موجودة")
-    return {"success": True, "data": {
+    return ok({
         "id": c.id, "status": c.status, "audience": c.audience,
         "sent": c.sent_count, "delivered": c.delivered_count,
         "opened": c.opened_count, "clicked": c.clicked_count,
         "sent_at": iso_z(c.sent_at),
-    }}
+    })
 
 
 @router.delete("/campaigns/{campaign_id}")
@@ -255,4 +257,4 @@ async def delete_campaign(
         raise HTTPException(400, "لا يمكن حذف حملة قيد الإرسال")
     await db.delete(c)
     await db.commit()
-    return {"success": True}
+    return ok()

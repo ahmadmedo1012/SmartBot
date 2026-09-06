@@ -207,7 +207,7 @@ async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Dep
         if platform == "facebook":
             result = await _fb.post_to_page(post.message)
         else:
-            _publisher.load_credentials(db, tenant_id=_tid)
+            await _publisher.load_credentials(db, tenant_id=_tid)
             result = await _publisher.publish_to_platform(platform, post.message, post.image_url)
         if result:
             post.status = "published"

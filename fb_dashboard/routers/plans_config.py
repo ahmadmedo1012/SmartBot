@@ -4,6 +4,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from _responses import ok
 from _services import api_cache
 from _utils import app_version, utcnow
 from config import settings
@@ -28,7 +29,7 @@ async def list_plans(db=Depends(get_db)):
         select(SubscriptionPlan).where(SubscriptionPlan.is_active == True).order_by(SubscriptionPlan.sort_order)
     )
     plans = result.scalars().all()
-    return {"success": True, "data": [{
+    return ok([{
         "id": p.id,
         "name": p.name,
         "name_ar": p.name_ar,
@@ -50,7 +51,7 @@ async def list_plans(db=Depends(get_db)):
         "features": p.features,
         "sort_order": p.sort_order,
         "is_active": p.is_active,
-    } for p in plans]}
+    } for p in plans])
 
 
 # v8-A1 SECURITY allowlist: /api/config is PUBLIC (no auth) — it may only
@@ -108,7 +109,7 @@ async def public_config(db=Depends(get_db)):
     for k, v in env_fallbacks.items():
         if v and not config.get(k):
             config[k] = v
-    return {"success": True, "data": config}
+    return ok(config)
 
 
 @router.get("/api/public/stats")
@@ -133,15 +134,12 @@ async def public_stats(db=Depends(get_db)):
         # Fall back to 0 if tables missing (cold-start)
         active_tenants = 0
         total_replies = 0
-    return {
-        "success": True,
-        "data": {
-            "activeTenants": active_tenants,
-            "totalReplies": total_replies,
-            "activeUsers30d": 0,
-            "uptimePercent": 99.9,
-        }
-    }
+    return ok({
+        "activeTenants": active_tenants,
+        "totalReplies": total_replies,
+        "activeUsers30d": 0,
+        "uptimePercent": 99.9,
+    })
 
 
 @router.get("/api/public/testimonials")
@@ -150,7 +148,7 @@ async def public_testimonials():
 
     The landing page hides the section if this returns [] — never shows fake reviews.
     """
-    return {"success": True, "data": []}
+    return ok([])
 
 
 @router.get("/healthz")
@@ -174,6 +172,7 @@ async def healthz():
     checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
     status_code = 200 if checks["ok"] else 503
+    # NOTE: raw dict — extended envelope (v11 audit)
     return JSONResponse(status_code=status_code, content={"success": checks["ok"], "data": checks})
 
 
@@ -181,14 +180,14 @@ async def healthz():
 async def get_env(_=Depends(get_current_user)):
     # v6+ — single canonical source (same file every health endpoint reads)
     version = app_version()
-    return {"success": True, "data": {
+    return ok({
         "version": version,
         "db_type": "sqlite" if not settings.DATABASE_URL else "postgres",
         "bot_interval": settings.BOT_INTERVAL_SECONDS,
         "debug": settings.DEBUG,
         "has_fb_token": bool(settings.FACEBOOK_ACCESS_TOKEN),
         "webhook_url": (os.getenv("RENDER_EXTERNAL_URL") or os.getenv("VERCEL_URL") or "") + "/webhook",
-    }}
+    })
 
 
 # NOTE (phase D cleanup): the duplicate /api/system/stats and second
@@ -235,11 +234,8 @@ async def cleanup_old_logs(request: Request, token: str = Form("")):
             delete(BlacklistedToken).where(BlacklistedToken.expires_at < utcnow())
         )
         await db.commit()
-        return {
-            "success": True,
-            "data": {
-                "deleted_bot_logs": deleted_logs.rowcount,
-                "deleted_rate_limits": deleted_rates.rowcount,
-                "deleted_blacklisted_tokens": deleted_blacklist.rowcount,
-            },
-        }
+        return ok({
+            "deleted_bot_logs": deleted_logs.rowcount,
+            "deleted_rate_limits": deleted_rates.rowcount,
+            "deleted_blacklisted_tokens": deleted_blacklist.rowcount,
+        })

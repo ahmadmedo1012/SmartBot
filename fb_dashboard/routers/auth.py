@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 import jwt
 from _audit import log_audit
 from _hash import hash_password, verify_password
+from _responses import ok
 from _utils import iso_z, utcnow
 from config import settings
 from database import get_db
@@ -137,13 +138,13 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
     secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse({"success": True, "data": {
+    resp = JSONResponse(ok({
         "user": {
             "id": user.id, "username": user.username, "name": user.email or user.username,
             "role": user.role, "tenant_id": user.tenant_id,
             "subscriptionStatus": getattr(user, 'plan', 'free'),
         }
-    }})
+    }))
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -163,7 +164,7 @@ async def logout(request: Request, db=Depends(get_db)):
         except Exception:
             pass
     secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse({"success": True})
+    resp = JSONResponse(ok())
     resp.delete_cookie("token", httponly=True, secure=secure, samesite="lax")
     return resp
 
@@ -213,9 +214,9 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     await db.commit()
     token = make_token(username, tenant.id)
     secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse({"success": True, "data": {
+    resp = JSONResponse(ok({
         "user": {"id": user.id, "username": username, "name": name, "tenant_id": tenant.id, "role": "admin"}
-    }})
+    }))
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
                     max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
     return resp
@@ -231,6 +232,7 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
         if tenant:
             plan = tenant.plan or "free"
             onboarding_completed = bool(tenant.onboarding_completed)
+    # NOTE: raw dict — extended envelope (v11 audit)
     return {"success": True, "authenticated": True, "data": {
         "user": {
             "id": current_user.id, "username": current_user.username,
@@ -255,7 +257,7 @@ async def complete_onboarding(db=Depends(get_db), current_user: User = Depends(g
         raise HTTPException(404, "المساحة غير موجودة")
     tenant.onboarding_completed = True
     await db.commit()
-    return {"success": True, "data": {"onboardingCompleted": True}}
+    return ok({"onboardingCompleted": True})
 
 
 @router.post("/api/onboarding/skip")
@@ -274,7 +276,7 @@ async def skip_onboarding(db=Depends(get_db), current_user: User = Depends(get_c
     tenant.onboarding_completed = True
     await db.commit()
     await log_audit(db, "onboarding_skip", actor_id=current_user.id, tenant_id=tenant.id)
-    return {"success": True, "data": {"onboardingCompleted": True, "skipped": True}}
+    return ok({"onboardingCompleted": True, "skipped": True})
 
 
 @router.get("/api/audit/logs")
@@ -285,7 +287,7 @@ async def get_audit_logs(page: int = Query(1, ge=1), page_size: int = Query(50, 
     stmt = select(AuditLog).where(AuditLog.tenant_id == current_user._tenant_id)
     total = await db.scalar(select(func.count(AuditLog.id)).where(AuditLog.tenant_id == current_user._tenant_id)) or 0
     rows = await db.execute(stmt.order_by(desc(AuditLog.created_at)).offset(offset).limit(page_size))
-    return {"success": True, "data": {
+    return ok({
         "items": [{
             "id": r.id, "action": r.action, "actor_id": r.actor_id,
             "target_type": r.target_type, "target_id": r.target_id,
@@ -293,7 +295,7 @@ async def get_audit_logs(page: int = Query(1, ge=1), page_size: int = Query(50, 
             "created_at": iso_z(r.created_at),
         } for r in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
-    }}
+    })
 
 
 @router.post("/api/admin/reset-password")
@@ -323,7 +325,7 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "reset_password", actor_id=current_user.id, target_type="user",
                     target_id=user_id, ip=ip, tenant_id=current_user._tenant_id)
-    return {"success": True, "data": {"updated": True}}
+    return ok({"updated": True})
 
 
 @router.post("/api/auth/change-password")
@@ -351,7 +353,7 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "change_password", actor_id=current_user.id, ip=ip,
                     tenant_id=current_user._tenant_id)
-    return {"success": True, "data": {"changed": True}}
+    return ok({"changed": True})
 
 
 @router.get("/api/users")
@@ -364,29 +366,29 @@ async def list_users(page: int = Query(1, ge=1), page_size: int = Query(50, ge=1
         select(User).where(User.tenant_id == current_user._tenant_id)
         .order_by(desc(User.created_at)).offset(offset).limit(page_size)
     )
-    return {"success": True, "data": {
+    return ok({
         "items": [{
             "id": u.id, "username": u.username, "name": u.email or u.username,
             "role": u.role, "email": u.email, "phone": u.phone or "",
             "created_at": iso_z(u.created_at),
         } for u in rows.scalars().all()],
         "total": total, "page": page, "page_size": page_size,
-    }}
+    })
 
 
 @router.get("/api/admin/notification-preferences")
 async def get_notification_prefs(current_user: User = Depends(get_current_user)):
-    return {"success": True, "data": {
+    return ok({
         "telegramNotifyOrders": True,
         "telegramNotifyPayments": True,
         "telegramNotifySettings": True,
-    }}
+    })
 
 
 @router.put("/api/admin/notification-preferences")
 async def update_notification_prefs(body: dict = Body(None), current_user: User = Depends(get_current_user)):
-    return {"success": True, "data": {
+    return ok({
         "telegramNotifyOrders": body.get("telegramNotifyOrders", True) if body else True,
         "telegramNotifyPayments": body.get("telegramNotifyPayments", True) if body else True,
         "telegramNotifySettings": body.get("telegramNotifySettings", True) if body else True,
-    }}
+    })

@@ -40,6 +40,14 @@ else
     FAILURES+=("tsc")
   fi
 
+  # ── Gate 3.5: frontend unit tests (v11-A5) ───────────────────────
+  echo "── [3.5/5] vitest (frontend unit tests) ──"
+  if (cd fb_dashboard/frontend && npx vitest run); then
+    echo "✅ vitest: all green"
+  else
+    FAILURES+=("vitest")
+  fi
+
   if [[ "${1:-}" == "--skip-build" || "${2:-}" == "--skip-build" ]]; then
     echo "(next build skipped by flag)"
   else
@@ -57,7 +65,15 @@ fi
 echo "── [5/5] static contracts ──"
 CONTRACT_OK=1
 # 5a. every router carries the response-contract note
-MISSING_CONTRACT=$(grep -L '"success"' fb_dashboard/routers/*.py 2>/dev/null)
+# v11: the contract evidence is EITHER an inline "success" envelope (legacy/
+# documented extended envelopes) OR the canonical helpers from _responses
+# (ok/fail) — after the v11 unification most routers use the helpers only.
+MISSING_CONTRACT=""
+for _r in fb_dashboard/routers/*.py; do
+  if ! grep -q '"success"' "$_r" && ! grep -q '_responses import' "$_r"; then
+    MISSING_CONTRACT="$MISSING_CONTRACT $_r"
+  fi
+done
 if [[ -n "$MISSING_CONTRACT" ]]; then
   echo "❌ router(s) missing the response contract: $MISSING_CONTRACT"; CONTRACT_OK=0
 fi

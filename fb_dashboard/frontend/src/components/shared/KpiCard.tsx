@@ -6,16 +6,39 @@
  *
  * Card chrome, entrance motion, and the stretched-link a11y pattern follow
  * the Smart-Menu owner variant (reduced-motion aware, staggered entrance).
- * framer-motion import instead of motion/react (identical API).
- */
+ * v11-A7: entrance is a CSS twin (enter-motion.css) — no framer-motion
+ * import (see the v11-A7 note above the imports). */
 
 import { memo, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion, useReducedMotion } from 'framer-motion';
+/* v11-A7 — framer-free rewrite. `import { motion, useReducedMotion } from
+ * 'framer-motion'` here (KpiCard renders in the default view of /dashboard)
+ * kept the ~116KB motion engine in every dashboard route's first-load JS.
+ * The card entrance now runs as a CSS twin (.sb-kpi-enter — same 0.28s
+ * ease-out, same opacity/y-12 start, same per-index 0.06s stagger set inline,
+ * disabled under prefers-reduced-motion) and useReducedMotion is replaced
+ * with the local matchMedia twin from scroll-parallax (v6 §D precedent) —
+ * the counter still skips its count-up for reduced-motion users. */
 import { cn } from '@/lib/utils';
 import { toArabicNumber } from '@/lib/format';
 import { MiniSparkline } from '@/components/shared/MiniSparkline';
 import type { LucideIcon } from 'lucide-react';
+import '@/components/shared/enter-motion.css';
+
+/* ---------- Reduced-motion hook ---------- */
+
+/** Local twin of framer's useReducedMotion (no bundle cost). */
+function usePrefersReducedMotion(): boolean {
+	const [reduced, setReduced] = useState(false);
+	useEffect(() => {
+		const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+		setReduced(mq.matches);
+		const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+		mq.addEventListener('change', onChange);
+		return () => mq.removeEventListener('change', onChange);
+	}, []);
+	return reduced;
+}
 
 /* ---------- Animated Counter ---------- */
 
@@ -24,7 +47,7 @@ function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: strin
 	const ref = useRef<number | null>(null);
 	const mounted = useRef(false);
 	// Reduced motion: skip the count-up entirely and show the final value.
-	const reduceMotion = useReducedMotion();
+	const reduceMotion = usePrefersReducedMotion();
 
 	useEffect(() => {
 		mounted.current = true;
@@ -96,7 +119,7 @@ export const KpiCard = memo(function KpiCard({
 	href,
 	index = 0,
 }: KpiCardProps) {
-	const reduceMotion = useReducedMotion();
+	const reduceMotion = usePrefersReducedMotion();
 
 	const body = (
 		<>
@@ -130,24 +153,21 @@ export const KpiCard = memo(function KpiCard({
 		</>
 	);
 
-	/* Entrance: soft fade/slide ≤300ms with a light stagger per card.
-		 Disabled entirely under prefers-reduced-motion. */
-	const entranceTransition = reduceMotion
-		? undefined
-		: { duration: 0.28, ease: 'easeOut' as const, delay: index * 0.06 };
+	/* Entrance: soft fade/slide ≤300ms with a light stagger per card —
+	 * now the CSS twin (.sb-kpi-enter in enter-motion.css: 0.28s ease-out,
+	 * delay index×0.06s set inline, disabled under prefers-reduced-motion). */
 
 	/* a11y (4.1.2 / keyboard): clickable cards are real stretched Links — a native
 		 anchor gives role=link + Enter activation + focus for free. */
 	if (href) {
 		return (
-			<motion.div
-				initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={entranceTransition}
+			<div
 				className={cn(
+					'sb-kpi-enter',
 					'group relative rounded-2xl border border-border/50 bg-card/80 shadow-sm backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-300',
 					'hover:border-accent-foreground/40 hover:shadow-lg hover:shadow-accent-foreground/10 hover:-translate-y-1',
 				)}
+				style={reduceMotion ? undefined : { animationDelay: `${index * 0.06}s` }}
 			>
 				{/* stretched-link pattern: whole card is one link target */}
 				<Link
@@ -157,20 +177,19 @@ export const KpiCard = memo(function KpiCard({
 					<span className="sr-only">{label}</span>
 				</Link>
 				<div className="p-5">{body}</div>
-			</motion.div>
+			</div>
 		);
 	}
 
 	return (
-		<motion.div
-			initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={entranceTransition}
+		<div
 			className={cn(
+				'sb-kpi-enter',
 				'rounded-2xl border border-border/50 bg-card/80 p-5 shadow-sm backdrop-blur-sm',
 			)}
+			style={reduceMotion ? undefined : { animationDelay: `${index * 0.06}s` }}
 		>
 			{body}
-		</motion.div>
+		</div>
 	);
 });

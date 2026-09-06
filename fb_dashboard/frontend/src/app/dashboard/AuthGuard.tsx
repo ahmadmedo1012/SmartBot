@@ -3,15 +3,26 @@
 import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
-import OnboardingWizard from "@/app/onboarding/OnboardingWizard"
 import { unwrapApi } from "@/lib/api"
 
 /* v9-E5: react-joyride (~116KB) was statically imported here → it landed in
  * EVERY dashboard route bundle (26 routes) even though the tour only runs
  * once per fresh tenant. dynamic(ssr:false) keeps the same conditional
- * render below, but the joyride chunk loads only when the tour shows. */
+ * render below, but the joyride chunk loads only when the tour shows.
+ *
+ * v11-A7: same treatment for OnboardingWizard — its statically imported
+ * 43KB chunk (framer-motion wizard steps, Arabic copy, lucide icons) shipped
+ * on every dashboard route despite only rendering for fresh tenants
+ * (onboardingCompleted === false). It mounts only AFTER the /api/me fetch
+ * resolves, so the chunk streams in parallel with that request — no
+ * visible wait, and `loading: null` matches the tour pattern (a modal that
+ * isn't on screen yet renders nothing). */
 const OnboardingTour = dynamic(
   () => import("@/components/onboarding/OnboardingTour").then((m) => m.OnboardingTour),
+  { ssr: false, loading: () => null }
+)
+const OnboardingWizard = dynamic(
+  () => import("@/app/onboarding/OnboardingWizard"),
   { ssr: false, loading: () => null }
 )
 

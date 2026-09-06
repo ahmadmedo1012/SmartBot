@@ -17,7 +17,7 @@ router = APIRouter(tags=["publisher"])
 
 @router.get("/api/publisher/status")
 async def publisher_status(current_user: User = Depends(get_current_user)):
-    _publisher.load_credentials(None, tenant_id=current_user._tenant_id)
+    await _publisher.load_credentials(None, tenant_id=current_user._tenant_id)
     return ok(_publisher.get_status())
 
 
@@ -58,7 +58,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             sched = datetime.fromisoformat(scheduled_at)
         except ValueError:
             raise HTTPException(400, "Invalid date format — use ISO 8601") from None
-        _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
+        await _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",
@@ -79,7 +79,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         _track_event("post_published", {"platform": "facebook"})
         return ok({"platform": "facebook", "post_id": fb_post_id, "status": "published"})
     else:
-        _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
+        await _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         result = await _publisher.publish_to_platform(platform, message, image_url)
         if not result:
             raise HTTPException(400, f"فشل النشر على {_publisher.get_platform_display_name(platform)}")

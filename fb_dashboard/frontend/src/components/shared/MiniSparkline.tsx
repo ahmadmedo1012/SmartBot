@@ -1,10 +1,19 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
+/* v11-A7 — framer-free rewrite. `import { motion } from "framer-motion"`
+ * here kept the ~116KB motion engine in /dashboard's first-load JS for two
+ * tiny path animations. Both are now CSS twins (enter-motion.css):
+ *   - line: same draw effect via stroke-dasharray/dashoffset with
+ *     pathLength={1} normalization — the exact technique framer uses
+ *     internally for pathLength — 0.8s ease-in-out
+ *   - area: opacity 0→1, 0.5s
+ * Both are disabled under prefers-reduced-motion (parity with the old
+ * MotionConfig reducedMotion="user" behavior). DOM contract (svg role /
+ * aria-label, path d/fill/stroke attrs) is unchanged. */
+import "@/components/shared/enter-motion.css"
 
-/* Ported from Smart-Menu (world-class launch plan v3 §6.2) —
- * framer-motion import instead of motion/react (same API). */
+/* Ported from Smart-Menu (world-class launch plan v3 §6.2). */
 
 interface MiniSparklineProps {
   data: number[]
@@ -49,24 +58,21 @@ export function MiniSparkline({
         </linearGradient>
       </defs>
       {/* Area */}
-      <motion.path
+      <path
         d={`${path} L ${points[points.length - 1].x} ${padding + chartH} L ${points[0].x} ${padding + chartH} Z`}
         fill={`url(#spark-${width}-${isUp ? "up" : "dn"})`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        className="sb-spark-area"
       />
-      {/* Line */}
-      <motion.path
+      {/* Line — pathLength={1} normalizes dash units so the CSS twin draws it */}
+      <path
         d={path}
         fill="none"
         stroke={trendColor}
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.8, ease: "easeInOut" }}
+        pathLength={1}
+        className="sb-spark-line"
       />
     </svg>
   )

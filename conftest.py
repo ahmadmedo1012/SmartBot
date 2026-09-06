@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Root pytest conftest — v5 §1 repo organization.
 
 Test files live in ``tests/`` (moved out of the ``fb_dashboard/`` package root
@@ -16,7 +17,6 @@ in the v5 organization round); the application code stays flat inside
    cached bot engines, SSE registry, DB-backed rate limiter) so the suite
    is green in ANY file order (forward / reverse / random).
 """
-import asyncio
 import os
 import sys
 import tempfile
@@ -62,6 +62,14 @@ os.environ["DATABASE_POOLED_URL"] = ""  # never inherit a pooled prod URL
 # Single shared connection: no cross-connection locking, schema persists
 # in the file even if the connection is recycled across event loops.
 os.environ["SMARTBOT_TEST_POOL"] = "static"
+_TEST_DB_FILE = _path  # for the synchronous limiter wipe below
+# v11: the whole suite shares ONE client IP — the per-IP mutate limiter
+# (30/60s in prod) would make later files nondeterministically 429
+# (the middleware writes through the shared static-pool engine, whose
+# aiosqlite connection is loop-bound — success varies with file order).
+# Route-level limits (login/topup 429 tests) use the overridden get_db
+# (fresh per-test DB) and stay fully testable. Middleware cap: off.
+os.environ["SMARTBOT_MUTATE_RATE_LIMIT"] = "100000"
 
 import pytest  # noqa: E402  (env must be forced before app imports)
 
@@ -93,23 +101,24 @@ def _reset_process_global_state():
     # DB-backed rate limiter: all tests share one client host/IP, so login/
     # register attempts accumulate across files and later files would see
     # 429s in non-forward orders — wipe the limiter table at each module
-    # boundary. Uses a short-lived dedicated loop (sync fixture context;
-    # aiosqlite binds each operation to the running loop).
+    # boundary.
+    # v11: the old wipe ran on a dedicated asyncio loop, but aiosqlite
+    # binds each pooled connection to the loop it was created on — after
+    # the first module used the engine, the dedicated-loop wipe failed
+    # SILENTLY (swallowed except) and limiter rows survived module
+    # boundaries (live failure: telegram + broadcast_sequence → the later
+    # file's POSTs crossed the mutate-limit 30 → 429 → envelope assertions
+    # KeyError). A synchronous sqlite3 DELETE on the temp FILE is loop-
+    # independent and deterministic.
     try:
-        from sqlalchemy import delete as _sa_delete
-        from models import RateLimitEntry
-        from database import AsyncSessionLocal as _ASL
+        import sqlite3 as _sqlite3
 
-        async def _wipe():
-            async with _ASL() as db:
-                await db.execute(_sa_delete(RateLimitEntry))
-                await db.commit()
-
-        _loop = asyncio.new_event_loop()
+        _conn = _sqlite3.connect(_TEST_DB_FILE)
         try:
-            _loop.run_until_complete(_wipe())
+            _conn.execute("DELETE FROM rate_limit_entries")
+            _conn.commit()
         finally:
-            _loop.close()
+            _conn.close()
     except Exception:
         pass
     yield

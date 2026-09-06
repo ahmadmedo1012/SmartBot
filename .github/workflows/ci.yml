@@ -78,5 +78,10 @@ jobs:
       - name: Run tsc
         run: cd fb_dashboard/frontend && npx tsc --noEmit
 
+      - name: Gate 3.5 — frontend unit tests (vitest)
+        # v11-A5: unit-test wall for the pure-logic seam (format/i18n,
+        # API envelope unwrapping, Arabic pluralization, subscribe logic)
+        run: cd fb_dashboard/frontend && npx vitest run
+
       - name: Gate 4 — production build
         run: cd fb_dashboard/frontend && npx next build

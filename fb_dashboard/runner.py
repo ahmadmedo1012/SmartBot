@@ -1,52 +1,81 @@
 from __future__ import annotations
 
+"""SmartBot FastAPI application — composition root (v11-A1 decomposition).
+
+This file was a 1298-line monolith mixing lifespan+seeding, middleware,
+exception handlers, the Telegram webhook, the bot loop, SPA serving,
+WebSocket/SSE, Facebook webhook processing and Vercel stubs. It is now the
+thin composition root: every concern lives in the ``app`` package —
+
+  app/startup.py    lifespan + DB seeding          app/telegram.py  Telegram webhook + bot loop
+  app/middleware.py the 6 HTTP middlewares          app/webhooks.py  Facebook webhook processing
+  app/errors.py     422/500 exception handlers      app/spa.py       SPA serving + catch-alls
+  app/ws.py         WebSocket + SSE endpoints       app/stubs.py     Vercel Analytics stubs
+
+Bodies were moved VERBATIM; only this registration layer is authored. ORDER
+IS BEHAVIOR and is preserved exactly from the monolith:
+
+  * middleware registration order (Starlette inserts each add_middleware at
+    the FRONT of the stack — the last-registered one is the outermost layer,
+    see the security_headers note below);
+  * route registration order — all routers, mounts and concrete routes are
+    registered BEFORE the two /{path:path} catch-alls at the bottom.
+
+Compatibility surface kept stable (external importers):
+  ``runner.app``                      — api/index.py (Vercel), uvicorn entry, tests
+  ``runner._bot_task``                — canonical bot-task handle (routers/bot.py,
+                                        dashboard_stats.py, health_alerts_routes.py)
+  ``runner._run_bot_loop``            — routers/bot.py start/stop controls
+  ``runner.STATIC_DIR``               — routers/ai.py
+  ``runner.WEBHOOK_VERIFY_TOKEN`` / ``runner.WEBHOOK_APP_SECRET``
+                                      — canonical env snapshots (tests monkeypatch
+                                        WEBHOOK_APP_SECRET; app/webhooks.py reads
+                                        them dynamically via deferred import)
+  ``runner._TG_SECRET`` / ``runner._ALLOW_UNVERIFIED`` / ``runner.answer_callback`` /
+  ``runner.edit_message`` / ``runner.edit_keyboard``
+                                      — canonical Telegram-webhook state (tests
+                                        monkeypatch these; app/telegram.py reads
+                                        them dynamically via deferred import)
+  ``runner.global_500_handler``, ``runner.sse_endpoint``,
+  ``runner._seed_subscription_plans`` — direct-call tests
+"""
+
 import asyncio
-import hashlib
-import hmac
-import json
 import logging
 import os
-import time
-from contextlib import asynccontextmanager
-from datetime import timedelta
 from pathlib import Path
 
-import jwt
-from _async import spawn  # v9-A11: GC-safe background tasks
-from _schema_reconcile import reconcile_schema as _reconcile_schema
-from _utils import app_version, utcnow
-from config import settings
-from database import AsyncSessionLocal, engine
-from event_bus import event_bus
-from fastapi import (
-    Body,
-    Depends,
-    FastAPI,
-    HTTPException,
-    Query,
-    Request,
-    WebSocket,
-    WebSocketDisconnect,
+from _utils import app_version
+from app.errors import global_500_handler, validation_handler
+from app.middleware import (
+    csrf_origin_check,
+    dedup_middleware,
+    rate_limit_middleware,
+    request_logging_middleware,
+    security_headers,
+    static_cache_middleware,
 )
+from app.spa import dashboard_page, spa_catch_all, unknown_method_catch_all
+from app.startup import (
+    _seed_subscription_plans,  # noqa: F401 — re-export (tests import it from runner)
+    lifespan,
+)
+from app.stubs import _vercel_analytics_stub
+from app.telegram import (
+    _run_bot_loop,  # noqa: F401 — re-export (routers/bot.py imports it from runner)
+    telegram_webhook,
+)
+from app.webhooks import webhook_receive, webhook_verify
+from app.ws import sse_endpoint, websocket_endpoint
+from config import settings
+from database import engine
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from logs_api import logs_router
-from models import (
-    Base,
-    BlacklistedToken,
-    BotState,
-    PaymentRequest,
-    Reply,
-    Rule,
-    SubscriptionPayment,
-    SubscriptionPlan,
-    Tenant,
-    User,
-)
 from routers import admin_routes as admin_router
 from routers import ai as ai_router
 from routers import alerts_routes as alerts_router
@@ -84,327 +113,33 @@ from routers import templates_routes as templates_router
 from routers import users as users_router
 from routers import webhooks as webhooks_router
 from routers import widgets_routes as widgets_router
-from sqlalchemy import Date, cast, func, select, update
-from telegram_bot import (
+from telegram_bot import (  # noqa: F401 — canonical bindings; app/telegram.py dispatches through these
     answer_callback,
     edit_keyboard,
     edit_message,
 )
-from ws_manager import ws_manager
 
-# Lazy AI import — single source of truth in _services.py
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("fb-api")
 
 BASE_DIR = Path(__file__).resolve().parent
-TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
-PARENT_DIR = BASE_DIR.parent
 
+# Canonical background bot-task handle. app/startup.py's lifespan writes it via
+# a deferred `import runner` (routers/bot.py, dashboard_stats.py and
+# health_alerts_routes.py read/write it here — the single source of truth
+# stays the runner module, exactly as in the monolith).
 _bot_task: asyncio.Task | None = None
 
-# ── Engine proxies: single source of truth in _services.py ──
-from _services import content_calendar_engine, fb, sequence_engine
+# Canonical webhook env snapshots — app/webhooks.py reads these DYNAMICALLY
+# (deferred import) so the tests' monkeypatch contract keeps working.
+WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
+WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
 
-# ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
-MAX_LOCKS = 1000
-LOCK_TTL = 300  # seconds (5 min)
-_dedup_locks: dict[str, tuple[asyncio.Lock, float]] = {}
-_dedup_lock = asyncio.Lock()
-_dedup_ops = 0
-
-
-async def dedup_middleware(request: Request, call_next):
-    if request.method != "GET":
-        return await call_next(request)
-
-    qp = dict(sorted(request.query_params.items())) if request.query_params else {}
-    key = f"{request.method}:{request.url.path}?{json.dumps(qp, sort_keys=True)}"
-
-    async with _dedup_lock:
-        if key not in _dedup_locks:
-            _dedup_locks[key] = (asyncio.Lock(), time.time())
-        lock = _dedup_locks[key][0]
-
-    async with lock:
-        # ponytail: second concurrent caller will re-execute but hit the APICache if decorated
-        response = await call_next(request)
-
-    async with _dedup_lock:
-        if key in _dedup_locks:
-            del _dedup_locks[key]
-        _maybe_evict()
-
-    return response
-
-
-def _maybe_evict():
-    """Every 50 calls, purge expired entries; if still over limit, evict oldest."""
-    global _dedup_ops
-    _dedup_ops += 1
-    if _dedup_ops < 50:
-        return
-    _dedup_ops = 0
-    now = time.time()
-    stale = [k for k, (_, ts) in _dedup_locks.items() if now - ts > LOCK_TTL]
-    for k in stale:
-        del _dedup_locks[k]
-    # ponytail: LRU via sorted insertion order; if throughput matters replace with OrderedDict
-    while len(_dedup_locks) > MAX_LOCKS:
-        oldest = min(_dedup_locks, key=lambda k: _dedup_locks[k][1])
-        del _dedup_locks[oldest]
-
-ACCESS_TOKEN_EXPIRE = timedelta(hours=24)
-
-# ponytail: detect Vercel to skip long-running background tasks
-_IS_VERCEL = bool(os.getenv("VERCEL"))
-
-# Import shared auth primitives from extracted router (ALGORITHM comes from
-# routers.auth — the local duplicate definition was removed, v5 §2 ruff F811)
-from routers.auth import ALGORITHM, get_current_user
-
-
-async def seed_admin(db):
-    # Deprecated shim — the canonical implementation moved to _bootstrap.py
-    # (secure random default). Kept so old imports keep working; new code
-    # imports from _bootstrap directly.
-    from _bootstrap import seed_admin as _seed
-    await _seed(db)
-
-
-def _read_dm_json_rules() -> dict[str, str]:
-    """Blocking file read for _seed_dm_templates — executed via
-    asyncio.to_thread (v10-F1, ASYNC230/240): exists()/open()/json.load()
-    must stay off the event loop inside the async startup path."""
-    json_path = Path(__file__).resolve().parent / "facebook_automation.json"
-    if not json_path.exists():
-        return {}
-    with open(json_path, encoding='utf-8') as f:
-        data = json.load(f)
-    return {r.get("name", ""): r.get("dm_template", "") for r in data.get("rules", [])}
-
-
-async def _seed_dm_templates(db):
-    """Copy dm_template from JSON to DB rows where DB dm_template is empty."""
-    try:
-        json_rules = await asyncio.to_thread(_read_dm_json_rules)
-    except Exception:
-        return
-    if not json_rules:
-        return
-    # ponytail: local imports — already at module level, kept for clarity
-    result = await db.execute(select(Rule))
-    for rule in result.scalars().all():
-        if not rule.dm_template and rule.name in json_rules:
-            rule.dm_template = json_rules[rule.name]
-    await db.commit()
-    log.info("DM templates seeded from JSON")
-
-
-async def _seed_subscription_plans(db):
-    """Seed canonical subscription plans. Idempotent UPSERT by name.
-
-    Legacy DBs (pre-rebuild era) already hold 5 rows with the OLD schema —
-    after _schema_reconcile adds the missing columns those rows need the
-    canonical values (name_ar, price, has_* flags, features, ...), otherwise
-    /api/plans would serve half-empty plan cards. Upsert by name keeps ids
-    stable (FKs from tenants.plan_id stay valid) and matches fresh installs.
-    """
-    canonical = [
-        dict(
-            name="Free", name_ar="مجاني", price=0, period_days=30,
-            max_replies=100, max_pages=1, max_rules=5, max_team=0,
-            has_dm=False, has_ai=False, has_broadcast=False,
-            has_scheduling=False, has_reports=False, has_flows=False,
-            has_offers=False, has_sequences=False, has_analytics_advanced=False,
-            sort_order=1, is_active=True,
-            features=["ردود تلقائية (100/شهر)", "صفحة فيسبوك واحدة", "5 قواعد رد", "إحصاءات أساسية"],
-        ),
-        dict(
-            name="Basic", name_ar="أساسي", price=19, period_days=30,
-            max_replies=2000, max_pages=1, max_rules=20, max_team=1,
-            has_dm=True, has_ai=True, has_broadcast=False,
-            has_scheduling=False, has_reports=True, has_flows=False,
-            has_offers=False, has_sequences=False, has_analytics_advanced=False,
-            sort_order=2, is_active=True,
-            features=["2,000 رد/شهر", "صفحة فيسبوك واحدة", "20 قاعدة رد", "رد خاص على التعليقات",
-                      "ردود ذكية بالذكاء الاصطناعي", "تقارير أسبوعية", "دعم فوري"],
-        ),
-        dict(
-            name="Premium", name_ar="مميز", price=29, period_days=30,
-            max_replies=10000, max_pages=2, max_rules=50, max_team=2,
-            has_dm=True, has_ai=True, has_broadcast=True,
-            has_scheduling=True, has_reports=True, has_flows=True,
-            has_offers=True, has_sequences=False, has_analytics_advanced=True,
-            sort_order=3, is_active=True,
-            features=["10,000 رد/شهر", "صفحتين فيسبوك", "50 قاعدة رد", "رد خاص + ذكاء اصطناعي",
-                      "بث جماعي للرسائل", "جدولة المنشورات", "تقارير PDF",
-                      "محرك العروض الترويجية", "تحليلات متقدمة", "فريق حتى 2"],
-        ),
-        dict(
-            name="Pro", name_ar="احترافي", price=129, period_days=30,
-            max_replies=50000, max_pages=5, max_rules=100, max_team=5,
-            has_dm=True, has_ai=True, has_broadcast=True,
-            has_scheduling=True, has_reports=True, has_flows=True,
-            has_offers=True, has_sequences=True, has_analytics_advanced=True,
-            sort_order=4, is_active=True,
-            features=["50,000 رد/شهر", "5 صفحات فيسبوك", "100 قاعدة رد", "جميع الميزات المتقدمة",
-                      "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم فني ممتاز"],
-        ),
-        dict(
-            name="Enterprise", name_ar="مؤسسي", price=299, period_days=30,
-            max_replies=999999, max_pages=999, max_rules=999, max_team=999,
-            has_dm=True, has_ai=True, has_broadcast=True,
-            has_scheduling=True, has_reports=True, has_flows=True,
-            has_offers=True, has_sequences=True, has_analytics_advanced=True,
-            sort_order=5, is_active=True,
-            features=["ردود غير محدودة", "صفحات غير محدودة", "قواعد غير محدودة",
-                      "جميع الميزات بدون استثناء", "فريق غير محدود", "دعم 24/7"],
-        ),
-    ]
-    for p in canonical:
-        row = (await db.execute(
-            select(SubscriptionPlan).where(SubscriptionPlan.name == p["name"])
-        )).scalar_one_or_none()
-        if row is None:
-            db.add(SubscriptionPlan(**p))
-        else:
-            for k, v in p.items():
-                if k != "name":
-                    setattr(row, k, v)
-    await db.commit()
-    log.info(f"Canonical subscription plans ensured ({len(canonical)})")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # v6 §C — Sentry/GlitchTip: committed DEFAULT_SENTRY_DSN (public
-    # send-only key) → active by default; SENTRY_DSN=off disables; env
-    # override points at Sentry or self-hosted GlitchTip.
-    from _observability import init_sentry
-    init_sentry()
-    try:
-        # ponytail: fail-fast if default SECRET_KEY in production (belt-and-suspenders with config.py)
-        if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
-            raise RuntimeError("SECRET_KEY is default — set SECRET_KEY env var for production")
-        async with engine.connect() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-            # ponytail: self-heal legacy (pre-rebuild) tables — add missing model
-            # columns BEFORE Alembic, so production heals even if the Alembic
-            # step is skipped (root cause of the live /api/plans 500 — see
-            # scripts/repro_plans_500.py and alembic 007).
-            _added_cols = await conn.run_sync(_reconcile_schema)
-            await conn.commit()
-        log.info("DB tables ready%s", f" — reconciled {len(_added_cols)} columns" if _added_cols else "")
-        if _added_cols:
-            log.info("DB schema reconciled: %s", ", ".join(_added_cols))
-        # Run pending Alembic migrations via to_thread (no subprocess)
-        try:
-            # v10-F1 (ASYNC240): Path.resolve() touches the filesystem — run it
-            # off the event loop; the alembic upgrade below already runs in to_thread.
-            _alembic_root = await asyncio.to_thread(
-                lambda: Path(__file__).resolve().parent.parent
-            )
-            _cfg = __import__("alembic.config", fromlist=["Config"]).Config(
-                str(_alembic_root / "alembic.ini")
-            )
-            _cfg.set_main_option("script_location", str(_alembic_root / "alembic"))
-            # command.upgrade calls env.py which uses asyncio.run() internally —
-            # safe in non-main thread (Python 3.12+), avoids subprocess spawn.
-            # v10-B2: __import__ without fromlist returns the ROOT alembic
-            # package (no .upgrade attribute) → AttributeError was silently
-            # swallowed below and migrations NEVER ran (G7 §2.3). fromlist=["upgrade"]
-            # mirrors the correct adjacent Config import (line ~297 pre-v10).
-            await asyncio.to_thread(
-                __import__("alembic.command", fromlist=["upgrade"]).upgrade, _cfg, "head"
-            )
-            log.info("Alembic migrations applied")
-        except Exception as e:
-            log.warning(f"Alembic upgrade skipped: {e}")
-
-        async with AsyncSessionLocal() as session:
-            await seed_admin(session)
-            await _seed_dm_templates(session)
-            await _seed_subscription_plans(session)
-            # Purge expired blacklisted JWTs (table otherwise grows unboundedly)
-            try:
-                from _bootstrap import purge_expired_blacklist
-                purged = await purge_expired_blacklist(session)
-                if purged:
-                    log.info("Purged %d expired blacklisted tokens", purged)
-            except Exception:
-                log.warning("Blacklist purge failed", exc_info=True)
-            # Migrate existing tenants: set FREE plan if no plan_id assigned
-            result = await session.execute(select(Tenant).where(Tenant.plan_id.is_(None)))
-            for t in result.scalars().all():
-                t.plan_id = 1  # Free plan
-                t.subscription_status = "FREE"
-            if result:
-                await session.commit()
-
-        # Bot runs via background loop locally, Vercel Cron on serverless
-        if settings.START_BOT and not _IS_VERCEL:
-            global _bot_task
-            _bot_task = asyncio.create_task(_run_bot_loop())
-            log.info("Bot started in background")
-        if not _IS_VERCEL:
-            from sequence_engine import SequenceScheduler
-            _seq_scheduler = SequenceScheduler(sequence_engine)
-            spawn(_seq_scheduler.start())
-            from content_calendar import CalendarScheduler
-            _calendar_scheduler = CalendarScheduler(content_calendar_engine)
-            spawn(_calendar_scheduler.start())
-
-        # Bridge event bus → WebSocket (tenant-scoped)
-        async def _ws_bridge(data, tenant_id: int | None = None):
-            if tenant_id is not None:
-                await ws_manager.broadcast_to_tenant(tenant_id, "stats_update", data)
-        event_bus.subscribe("stats_update", _ws_bridge)
-
-        # Bridge bot_health (cross-tenant platform health) to all WS clients
-        async def _ws_bridge_global(data, tenant_id: int | None = None):
-            # tenant_id is None for global emit — broadcast to every connected tenant
-            for conn in ws_manager._connections:
-                try:
-                    import json as _json
-                    await conn.websocket.send_text(_json.dumps(
-                        {"event": "bot_health", "data": data}, ensure_ascii=False, default=str
-                    ))
-                except Exception:
-                    pass
-        event_bus.subscribe("bot_health", _ws_bridge_global)
-
-        # Health push background task (every 30s)
-        async def _health_push():
-            while True:
-                try:
-                    async with AsyncSessionLocal() as db:
-                        hour_ago = utcnow() - timedelta(hours=1)
-                        recent = await db.scalar(select(func.count(Reply.id)).where(Reply.created_at >= hour_ago)) or 0
-                        running = _bot_task is not None and not _bot_task.done() if _bot_task else False
-                        payload = {"replies_last_hour": recent, "running": running,
-                                   "timestamp": utcnow().isoformat() + "Z"}
-                        await event_bus.emit("bot_health", payload)
-                except Exception:
-                    pass
-                await asyncio.sleep(30)
-        if not _IS_VERCEL:
-            spawn(_health_push())
-    except Exception as e:
-        log.error(f"Startup error (app continues): {e}")
-
-    yield
-
-    if not _IS_VERCEL:
-        if _bot_task:
-            _bot_task.cancel()
-        # fb is lazy — only close if actually initialized
-        r = object.__getattribute__(fb, '_v')
-        if r is not None:
-            await r.close()
-        from redis_cache import disconnect as rdisconnect
-        await rdisconnect()
-        await engine.dispose()
+# Canonical Telegram-webhook env snapshots — app/telegram.py reads these
+# DYNAMICALLY (deferred import) for the same monkeypatch-contract reason.
+_TG_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+_ALLOW_UNVERIFIED = os.getenv("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true"
 
 
 app = FastAPI(title="FB Dashboard", lifespan=lifespan)
@@ -453,27 +188,10 @@ async def api_health_ready():
         )
 
 
-# ponytail: friendly 422 → readable Arabic message
-@app.exception_handler(RequestValidationError)
-async def validation_handler(request: Request, exc: RequestValidationError):
-    errors = exc.errors()
-    msgs = []
-    for e in errors:
-        field = ".".join(str(x) for x in e.get("loc", []))
-        msgs.append(f"الحقل '{field}' مطلوب")
-    return JSONResponse(status_code=422, content={"detail": "؛ ".join(msgs) or "بيانات غير صالحة"})
-
-
-# ponytail: catch-all 500 — log full traceback server-side, return generic message
-@app.exception_handler(Exception)
-async def global_500_handler(request: Request, exc: Exception):
-    import traceback
-    log.error(f"Unhandled 500 | {request.method} {request.url.path} | {traceback.format_exc()}")
-    # v6 §C — Sentry capture + critical Telegram alert (never raises;
-    # cooldown-guarded so an error storm sends one alert, not hundreds)
-    from _observability import report_critical
-    await report_critical(request, exc)
-    return JSONResponse(status_code=500, content={"detail": "حدث خطأ داخلي — الرجاء المحاولة لاحقاً"})
+# ponytail: friendly 422 → readable Arabic message (app/errors.py)
+app.add_exception_handler(RequestValidationError, validation_handler)
+# ponytail: catch-all 500 — log server-side, generic Arabic message (app/errors.py)
+app.add_exception_handler(Exception, global_500_handler)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 # CORS: exact production origins only. Localhost dev origins ship ONLY in DEBUG
@@ -489,90 +207,12 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-Telegram-Bot-Api-Secret-Token", "X-Hub-Signature-256", "X-Vercel-Cron-Shard"],
 )
 app.middleware("http")(dedup_middleware)
+app.middleware("http")(rate_limit_middleware)
+app.middleware("http")(csrf_origin_check)
+app.middleware("http")(request_logging_middleware)
 
 
-@app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
-    """Rate-limit mutating POST/PUT/DELETE endpoints (excludes login/register which have per-IP limits, webhooks).
-
-    Graceful degradation: if the DB is unavailable (e.g. Neon cold-start), the request
-    is allowed through so that health probes and critical auth flows are never blocked
-    by a failing rate-limiter.
-    """
-    if request.method in ("POST", "PUT", "DELETE"):
-        path = request.url.path
-        # v8-A6: exact path-prefix match — the old substring `p in path`
-        # also exempted paths like /api/x/telegram-leak or /api/register-page.
-        if not any(path.startswith(p) for p in ("/api/login", "/api/register", "/webhook", "/api/telegram")):
-            ip = request.client.host if request.client else "unknown"
-            try:
-                from _rate_limit import check_rate_limit
-                from database import AsyncSessionLocal
-                async with AsyncSessionLocal() as db:
-                    if not await check_rate_limit(db, f"mutate:{ip}", max_attempts=30, window_seconds=60):
-                        return JSONResponse(status_code=429, content={"detail": "محاولات كثيرة جداً — حاول بعد 60 ثانية"})
-            except Exception:
-                # Graceful degradation: allow request if rate-limit DB check fails
-                # (e.g. Neon cold-start, connection refused, SSL error)
-                import logging
-                logging.getLogger("fb-rate-limit").warning("Rate-limit check failed — allowing request through", exc_info=True)
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def csrf_origin_check(request: Request, call_next):
-    """Validate Origin/Referer on state-changing requests to /api/*.
-
-    SECURITY (2026-09-05): the old substring match (`"bot.smart-link.ly" in origin`)
-    was bypassable with e.g. https://bot.smart-link.ly.evil.com. Now the origin
-    host is parsed and compared EXACTLY against the allowlist.
-    """
-    from urllib.parse import urlparse
-    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
-        allowed_hosts = {"bot.smart-link.ly", "api.smart-link.ly"}
-        if getattr(settings, "DEBUG", False):
-            allowed_hosts |= {"localhost", "127.0.0.1"}
-        origin = request.headers.get("origin", "")
-        referer = request.headers.get("referer", "")
-        if origin:
-            host = urlparse(origin).hostname or ""
-            if host not in allowed_hosts:
-                return JSONResponse(status_code=403, content={"detail": "المصدر غير مصرح به"})
-        elif referer:
-            host = urlparse(referer).hostname or ""
-            if host and host not in allowed_hosts:
-                return JSONResponse(status_code=403, content={"detail": "Invalid referer"})
-    return await call_next(request)
-
-
-@app.middleware("http")
-async def request_logging_middleware(request: Request, call_next):
-    """App-level request telemetry: method, path, status, duration.
-
-    Previously only uvicorn's access log + the 500 handler existed — no app-level
-    visibility of which endpoints get hit and how slow they are. Noisy paths
-    (static chunks, health probes) are skipped.
-    """
-    path = request.url.path
-    if path.startswith(("/_next/", "/static/", "/fonts/")) or path in ("/healthz", "/api/health"):
-        return await call_next(request)
-    import time as _time
-    import uuid as _uuid
-    request_id = _uuid.uuid4().hex[:8]
-    start = _time.perf_counter()
-    response = await call_next(request)
-    duration_ms = (_time.perf_counter() - start) * 1000
-    # v5 §7: request-id correlation — echoed in the response header so a
-    # user-reported issue maps to one grep in the logs; 5xx at ERROR with id.
-    response.headers["X-Request-Id"] = request_id
-    if response.status_code >= 500:
-        log.error("%s %s → %s (%.0fms) rid=%s", request.method, path, response.status_code, duration_ms, request_id)
-    else:
-        log.info("%s %s → %s (%.0fms) rid=%s", request.method, path, response.status_code, duration_ms, request_id)
-    return response
-
-
-# ⚠️ Register routers — ALL routes MUST be registered here, BEFORE the SPA catch-all at line ~870.
+# ⚠️ Register routers — ALL routes MUST be registered here, BEFORE the SPA catch-all at the bottom.
 # Adding routes after that line will be shadowed by the catch-all returning 404.
 app.include_router(logs_router)
 app.include_router(auth_router.router)
@@ -614,16 +254,12 @@ app.include_router(support_router.router)
 app.include_router(marketing_router.router)
 
 
-# ── Vercel Analytics stubs (single-server mode) ─────────────────────────────
-# The Next.js PRODUCTION build injects <script src="/_vercel/insights/script.js">
-# and /_vercel/speed-insights/script.js. On Vercel these are platform-served;
-# in local/E2E single-server mode they previously 404'd as text/html, which
-# browsers refuse to execute ("strict MIME type checking") — a console error
-# on EVERY dashboard page. Serve a valid no-op JS stub instead.
-@app.get("/_vercel/insights/script.js", include_in_schema=False)
-@app.get("/_vercel/speed-insights/script.js", include_in_schema=False)
-async def _vercel_analytics_stub():
-    return PlainTextResponse("/* no-op outside Vercel */", media_type="application/javascript")
+# ── Vercel Analytics stubs (single-server mode) — app/stubs.py ──────────────
+# (decorator bottom-up order preserved: speed-insights registered first)
+app.add_api_route("/_vercel/speed-insights/script.js", _vercel_analytics_stub,
+                  methods=["GET"], include_in_schema=False)
+app.add_api_route("/_vercel/insights/script.js", _vercel_analytics_stub,
+                  methods=["GET"], include_in_schema=False)
 
 if STATIC_DIR.exists():
     try:
@@ -680,195 +316,18 @@ if _app_mobile_dir.is_dir():
     async def mobile_head(path: str = ""):
         return HTMLResponse()
 
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# ── Telegram Payment Webhook — app/telegram.py ─────────────────────────────
+app.add_api_route("/api/telegram/webhook", telegram_webhook, methods=["POST"])
 
 
-async def _run_bot_loop():
-    while True:
-        try:
-            async with AsyncSessionLocal() as db:
-                tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
-            for tenant in tenants.scalars().all():
-                fb = await get_tenant_fb_client(tenant.id)
-                if not fb:
-                    continue
-                engine = get_bot_engine(fb, tenant_id=tenant.id)
-                await engine.cycle()
-        except Exception as e:
-            log.error(f"Bot loop err: {e}")
-        await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)
+# ── SPA dashboard entry — app/spa.py ────────────────────────────────────────
+app.add_api_route("/", dashboard_page, methods=["GET"], response_class=HTMLResponse)
 
 
-from _services import get_bot_engine, get_tenant_fb_client
-
-# ── Telegram Payment Webhook ────────────────────────────────────────────
-_TG_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
-_ALLOW_UNVERIFIED = os.getenv("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true"
-
-
-@app.post("/api/telegram/webhook")
-async def telegram_webhook(request: Request, body: dict = Body(...)):
-    """Handle Telegram callback queries for payment approve/reject."""
-    # Webhook secret check — Telegram sends via x-telegram-bot-api-secret-token
-    if not _ALLOW_UNVERIFIED:
-        token = request.headers.get("x-telegram-bot-api-secret-token", "")
-        if not _TG_SECRET:
-            log.warning("TELEGRAM_WEBHOOK_SECRET not set — rejecting unverified request")
-            raise HTTPException(403, "Forbidden")
-        # v8-A6: constant-time compare (hmac.compare_digest) — a plain ==
-        # leaks the secret byte-by-byte via timing. Mirrors the cron check.
-        import hmac as _hmac
-        if not _hmac.compare_digest(token.encode(), _TG_SECRET.encode()):
-            raise HTTPException(403, "Forbidden")
-    cq = (body or {}).get("callback_query")
-    if not cq:
-        return {"ok": True}
-    data = cq.get("data", "")
-    colon = data.find(":")
-    if colon == -1 or not (data.startswith("pay_") or data.startswith("sub_")):
-        return {"ok": True}
-    action = data[:colon]
-    payment_id = int(data[colon + 1:])
-    from_id = cq.get("from", {}).get("id")
-    # Verify admin — env TELEGRAM_ADMIN_IDS ∪ DB TelegramApprover rows (plan v3 §5.2)
-    from telegram_bot import get_admin_ids
-    if from_id not in (await get_admin_ids()):
-        await answer_callback(cq["id"], "عذراً، لا تمتلك الصلاحية", True)
-        return {"ok": True}
-    async with AsyncSessionLocal() as db:
-        msg = cq.get("message", {})
-        # Handle subscription payment (sub_ prefix)
-        if data.startswith("sub_"):
-            new_status = "verified" if action == "sub_app" else "cancelled"
-            # v9-A8: atomic claim — UPDATE ... WHERE status='pending' RETURNING
-            # (same pattern as the pay_ path below). The old read-check-write
-            # (`db.get` then `if sp.status != "pending"`) let two admins (or a
-            # double-tap) both pass the check and double-activate the plan.
-            sub_result = await db.execute(
-                update(SubscriptionPayment)
-                .where(SubscriptionPayment.id == payment_id,
-                       SubscriptionPayment.status == "pending")
-                .values(status=new_status)
-                .returning(SubscriptionPayment)
-            )
-            sp = sub_result.scalar_one_or_none()
-            if not sp:
-                await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
-                return {"ok": True}
-            if new_status == "verified":
-                # Activate plan for tenant
-                tenant = await db.get(Tenant, sp.tenant_id)
-                if tenant:
-                    plan = await db.get(SubscriptionPlan, sp.plan_id)
-                    if plan:
-                        tenant.plan_id = sp.plan_id
-                        tenant.subscription_status = "PAID"
-                        tenant.plan_start = utcnow()
-                        tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
-                        tenant.plan = plan.name.lower()
-                if sp.user_id:
-                    user = await db.get(User, sp.user_id)
-                    if user:
-                        user.plan_id = sp.plan_id
-                        user.subscription_status = "PAID"
-            await db.commit()
-            msg_text = f"✅ *تم تأكيد الاشتراك* #{payment_id}\nالباقة: {sp.plan_name}\nالمستخدم: {sp.extra_data.get('username','')}"
-            if msg.get("chat") and msg.get("message_id"):
-                await edit_message(msg["chat"]["id"], msg["message_id"], msg_text)
-                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await answer_callback(cq["id"], "✅ تم تأكيد الاشتراك")
-            return {"ok": True}
-
-        # Legacy payment handling (pay_ prefix)
-        new_status = "confirmed" if action == "pay_app" else "cancelled"
-        result = await db.execute(
-            update(PaymentRequest)
-            .where(PaymentRequest.id == payment_id, PaymentRequest.status == "pending")
-            .values(status=new_status)
-            .returning(PaymentRequest)
-        )
-        pr = result.scalar_one_or_none()
-        if not pr:
-            await answer_callback(cq["id"], "تمت معالجة هذا الطلب مسبقاً", True)
-            msg = cq.get("message", {})
-            if msg.get("chat") and msg.get("message_id"):
-                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            return {"ok": True}
-        if action == "pay_app":
-            # Credit balance
-            existing = await db.execute(
-                select(BotState).where(BotState.tenant_id == pr.tenant_id, BotState.key == "balance")
-            )
-            bs = existing.scalar_one_or_none()
-            new_bal = (int(float(bs.value)) if bs and bs.value else 0) + int(float(pr.amount))
-            if bs:
-                bs.value = str(new_bal)
-            else:
-                db.add(BotState(tenant_id=pr.tenant_id, key="balance", value=str(new_bal)))
-            await db.commit()
-            msg = cq.get("message", {})
-            if msg.get("chat") and msg.get("message_id"):
-                await edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"✅ *تم تأكيد الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
-                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
-        else:
-            await db.commit()
-            msg = cq.get("message", {})
-            if msg.get("chat") and msg.get("message_id"):
-                await edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"❌ *تم رفض الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
-                await edit_keyboard(msg["chat"]["id"], msg["message_id"])
-            await answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
-    return {"ok": True}
-
-
-# ── SPA index.html: cached in memory, refreshed on VERSION change ──
-_spa_html: str | None = None
-_spa_mtime: float = 0
-
-def _get_spa() -> str:
-    global _spa_html, _spa_mtime
-    static_index = STATIC_DIR / "index.html"
-    html_path = TEMPLATES_DIR / "index.html"
-    src = static_index if static_index.exists() else (html_path if html_path.exists() else None)
-    if not src:
-        return "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
-    try:
-        mtime = src.stat().st_mtime
-        if _spa_html is None or mtime > _spa_mtime:
-            _spa_html = src.read_text(encoding="utf-8")
-            _spa_mtime = mtime
-    except Exception:
-        pass
-    return _spa_html or src.read_text(encoding="utf-8")
-
-
-@app.get("/", response_class=HTMLResponse)
-async def dashboard_page():
-    return HTMLResponse(_get_spa())
-
-
-# ── Static file & API caching headers ─────────────────────────────────────
-# v9-A9: "/api/debug" REMOVED from the public cacheable prefixes — it is an
-# authenticated diagnostics surface; a shared/CDN-cached 200 could serve one
-# user's response to another. Only genuinely public config endpoints stay.
-_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env")
-
-
-@app.middleware("http")
-async def static_cache_middleware(request: Request, call_next):
-    response = await call_next(request)
-    # ponytail: vite hashed assets under /static/assets/, immutable
-    if request.url.path.startswith("/static/assets/"):
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-    elif request.url.path in ("/", "/index.html"):
-        response.headers["Cache-Control"] = "no-cache"
-    # API GET responses that don't need real-time freshness
-    elif request.method == "GET" and any(request.url.path.startswith(p) for p in _CACHEABLE_API_PREFIXES):
-        response.headers["Cache-Control"] = "public, max-age=60"
-    return response
-
+# ── Static file & API caching headers — app/middleware.py ──────────────────
+# (v11-A1: includes the /fonts/ cache + .woff2 MIME repair fix)
+app.middleware("http")(static_cache_middleware)
 
 # v8-A7: security_headers is registered LAST among the HTTP middlewares.
 # Starlette's `@app.middleware("http")` inserts at the FRONT of the user
@@ -876,423 +335,30 @@ async def static_cache_middleware(request: Request, call_next):
 # every response, including early 403s from csrf_origin_check and 429s from
 # rate_limit_middleware, passes back through here and receives the full
 # security header set (previously those early returns bypassed it).
-@app.middleware("http")
-async def security_headers(request: Request, call_next):
-    """Add security headers to every response (outermost layer)."""
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    # Strict-Transport-Security (HSTS) — enforce HTTPS (safe since both domains use HTTPS)
-    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-    # Content-Security-Policy — restrict sources for XSS protection
-    # 'unsafe-inline' for script-src/style-src is required by Next.js inline styles and Sonner;
-    # 'unsafe-eval' REMOVED 2026-09-05 (dev-only need — production Next.js does not eval).
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://*.facebook.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "img-src 'self' data: blob: https:; "
-        "font-src 'self' data: https://fonts.gstatic.com; "
-        "connect-src 'self' https: wss:; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self';"
-    )
-    return response
+app.middleware("http")(security_headers)
 
 
+# ── WebSocket Real-Time Updates — app/ws.py ─────────────────────────────────
+app.add_api_websocket_route("/ws", websocket_endpoint)
 
 
-# ── WebSocket Real-Time Updates ─────────────────────────────────────────────
-
-@app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
-    """WebSocket endpoint for real-time dashboard data.
-    Sends events: stats_update, new_reply, bot_status, alert."""
-    token = ws.query_params.get("token") or ws.cookies.get("token")
-    if not token:
-        await ws.close(code=4001, reason="Missing token")
-        return
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
-        jti = payload.get("jti", "")
-        if jti:
-            async with AsyncSessionLocal() as _db:
-                blocked = await _db.execute(
-                    select(BlacklistedToken).where(BlacklistedToken.jti == jti)
-                )
-                if blocked.scalar_one_or_none():
-                    await ws.close(code=4001, reason="Token revoked")
-                    return
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        await ws.close(code=4001, reason="Invalid or expired token")
-        return
-    sub = payload.get("sub", "")
-    tid = payload.get("tid")
-    async with AsyncSessionLocal() as db:
-        # v10-A1-WS — tenant-scoped lookup (same treatment as get_current_user):
-        # usernames are unique PER TENANT only, so the old unscoped username
-        # query could raise MultipleResultsFound (crashing the WS handshake)
-        # or resolve a namesake from a different tenant. make_token always
-        # embeds {"sub", "tid"}; legacy tokens without tid take the safe
-        # .limit(1) fallback — MultipleResultsFound can never escape.
-        _stmt = select(User).where(User.username == sub)
-        if tid is not None:
-            _stmt = _stmt.where(User.tenant_id == tid)
-        else:
-            _stmt = _stmt.limit(1)
-        user = (await db.execute(_stmt)).scalar_one_or_none()
-        if not user or not user.tenant_id:
-            await ws.close(code=4001, reason="Invalid tenant")
-            return
-        tenant = await db.get(Tenant, user.tenant_id)
-        if not tenant or not tenant.is_active:
-            await ws.close(code=4001, reason="Tenant inactive")
-            return
-        ws_tid = user.tenant_id  # authoritative from DB
-    await ws_manager.connect(ws, tenant_id=ws_tid, user_id=user.id)
-    try:
-        while True:
-            data = await ws.receive_text()
-            if data == "ping":
-                await ws.send_text(json.dumps({"event": "pong"}))
-            elif data == "stats":
-                try:
-                    async with AsyncSessionLocal() as db:
-                        total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == ws_tid)) or 0
-                        today_date = utcnow().date()
-                        today = await db.scalar(
-                            select(func.count(Reply.id))
-                            .where(Reply.tenant_id == ws_tid, cast(Reply.created_at, Date) == today_date)
-                        ) or 0
-                        await ws.send_text(json.dumps({
-                            "event": "stats_update",
-                            "data": {"total_replies": total, "today_replies": today}
-                        }, default=str))
-                except Exception:
-                    pass
-    except WebSocketDisconnect:
-        ws_manager.disconnect(ws)
-    except Exception:
-        ws_manager.disconnect(ws)
+# ── Server-Sent Events — app/ws.py ─────────────────────────────────────────
+app.add_api_route("/api/events", sse_endpoint, methods=["GET"])
 
 
-# ── Server-Sent Events ─────────────────────────────────────────────
-
-@app.get("/api/events")
-async def sse_endpoint(request: Request, user: User = Depends(get_current_user)):
-    """SSE endpoint: emits same events as WebSocket (stats_update, new_reply, bot_status, bot_health).
-
-    SECURITY (v8-A2): subscribes with the authenticated user's tenant_id.
-    The old global subscription (tenant_id=None) delivered EVERY queued
-    event — including other tenants' customer names ("sender") and full AI
-    agent replies — to any authenticated user. Tenant-scoped emits are now
-    filtered by event_bus; only genuine platform-wide broadcasts
-    (emit(tenant_id=None)) still reach everyone.
-    """
-    sub_tenant: int | None = user._tenant_id
-
-    async def event_generator():
-        queue: asyncio.Queue = asyncio.Queue()
-        handlers = {}
-        async def _make_handler(evt: str):
-            async def _h(data, tenant_id: int | None = None):
-                await queue.put({"event": evt, "data": data, "tenant_id": tenant_id})
-            return _h
-        for evt_name in ("stats_update", "bot_health", "agent_message"):
-            h = await _make_handler(evt_name)
-            handlers[evt_name] = h
-            event_bus.subscribe(evt_name, h, tenant_id=sub_tenant)
-        try:
-            yield "data: {\"event\":\"connected\"}\n\n"
-            while True:
-                try:
-                    item = await asyncio.wait_for(queue.get(), timeout=30)
-                    payload = json.dumps(item, default=str)
-                    yield f"data: {payload}\n\n"
-                except TimeoutError:
-                    yield ": keepalive\n\n"
-        finally:
-            for evt_name, h in handlers.items():
-                event_bus.unsubscribe(evt_name, h, tenant_id=sub_tenant)
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-
-# ── Analytics Events (internal) — shared from _services to avoid duplication
-from _services import _track_event
-
-WEBHOOK_VERIFY_TOKEN = os.getenv("FB_WEBHOOK_VERIFY_TOKEN", "")
-WEBHOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
-
-
-async def _get_webhook_app_secret() -> str:
-    """App secret resolution (plan v3 §4 final gap): env FACEBOOK_APP_SECRET
-    first, then SystemConfig.facebook_app_secret (owner-entered from
-    /admin/settings — the production env had NO app secret, so the webhook
-    rejected every event with 401 since launch)."""
-    if WEBHOOK_APP_SECRET:
-        return WEBHOOK_APP_SECRET
-    try:
-        async with AsyncSessionLocal() as db:
-            from models import SystemConfig as _SC
-            row = await db.execute(
-                select(_SC).where(_SC.key == "facebook_app_secret"))
-            r = row.scalar_one_or_none()
-            if r and r.value:
-                return r.value
-    except Exception:
-        pass
-    return ""
-
-
-@app.get("/webhook")
-async def webhook_verify(
-    hub_mode: str = Query("", alias="hub.mode"),
-    hub_token: str = Query("", alias="hub.verify_token"),
-    hub_challenge: str = Query("", alias="hub.challenge"),
-):
-    """Facebook subscription verification."""
-    # v9-A9: constant-time compare (hmac.compare_digest) — a plain == leaks
-    # the verify token byte-by-byte via timing. Fails CLOSED when the token
-    # is unconfigured (empty secret never matches, mirroring the cron guard).
-    if (hub_mode == "subscribe" and WEBHOOK_VERIFY_TOKEN
-            and hmac.compare_digest(hub_token, WEBHOOK_VERIFY_TOKEN)):
-        return PlainTextResponse(hub_challenge)
-    raise HTTPException(403, "Verification failed")
-
-
-@app.post("/webhook")
-async def webhook_receive(request: Request):
-    """Receive real-time Facebook webhook events and process immediately.
-
-    Handles BOTH (world-class launch plan v3 §4.3):
-      - entry[].changes[]  → feed comments (auto-reply engine)
-      - entry[].messaging[] → Messenger messages (persist + auto-reply)
-    """
-    body = await request.body()
-
-    # Validate signature if app secret configured (env or SystemConfig)
-    app_secret = await _get_webhook_app_secret()
-    if not app_secret:
-        log.warning("FACEBOOK_APP_SECRET not set (env nor SystemConfig) — rejecting unverified webhook")
-        raise HTTPException(401, "Invalid signature")
-    sig = request.headers.get("x-hub-signature-256", "")
-    expected = "sha256=" + hmac.new(
-        app_secret.encode(), body, hashlib.sha256
-    ).hexdigest()
-    if not hmac.compare_digest(sig, expected):
-        raise HTTPException(401, "Invalid signature")
-
-    data = json.loads(body)
-    log.debug(f"Webhook received: {json.dumps(data, ensure_ascii=False)[:500]}")
-    if data.get("object") and data.get("object") != "page":
-        return {"ok": True}
-
-    for entry in data.get("entry", []):
-        entry_page_id = str(entry.get("id") or "")
-
-        # ── Messenger events (messages / echoes / postbacks) ──
-        for messaging in entry.get("messaging", []) or []:
-            if not isinstance(messaging, dict):
-                continue
-            try:
-                await _process_webhook_messaging(entry_page_id, messaging)
-            except Exception as e:
-                log.error(f"Messaging event error: {e}", exc_info=True)
-
-        # ── Feed changes (comments) ──
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            if change.get("field") != "feed":
-                continue
-            if value.get("item") != "comment":
-                continue
-            verb = value.get("verb", "")
-            # Only process new comments (not edits or deletes)
-            if verb not in ("add", ""):
-                continue
-
-            # Extract comment from webhook payload directly
-            comment_payload = {
-                "id": value.get("comment_id", ""),
-                "message": value.get("message", ""),
-                "from": value.get("from", {}),
-                "created_time": value.get("created_time", ""),
-            }
-            post_id = value.get("post_id", "")
-
-            if not comment_payload["id"]:
-                continue
-
-            # Process this single comment immediately (inline, not fire-and-forget — Vercel kills background tasks)
-            # v4 §4.9 (G2) — pass entry_page_id: the old call relied on
-            # comment["page_id"] (never set) or the COMMENTER's user id, so
-            # the tenant lookup always failed and the comment pipeline fell
-            # to a tokenless singleton → no auto-reply, ever, in multi-tenant.
-            await _process_webhook_comment(comment_payload, post_id, entry_page_id)
-
-    return {"ok": True}
-
-
-async def _process_webhook_messaging(page_id: str, messaging: dict):
-    """Dispatch one Messenger event to its tenant (plan v3 §4.3).
-
-    Tenant resolution: page_id → BotState.fb_page_id (exact match on value).
-    """
-    try:
-        if not page_id:
-            return
-        async with AsyncSessionLocal() as db:
-            row = await db.execute(
-                select(BotState).where(BotState.key == "fb_page_id", BotState.value == page_id)
-            )
-            bs = row.scalar_one_or_none()
-        if not bs:
-            log.warning(f"messaging event for unknown page {page_id} — skipped")
-            return
-        from messenger_service import handle_messaging_event
-        fb_client = await get_tenant_fb_client(bs.tenant_id)
-        await handle_messaging_event(bs.tenant_id, page_id, messaging, fb_client)
-        _track_event("webhook_message_processed", {"page_id": page_id}, tenant_id=bs.tenant_id)
-    except Exception as e:
-        log.error(f"Webhook messaging processing error: {e}", exc_info=True)
-
-
-async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: str = ""):
-    """Process a single webhook comment — dispatches by page_id for multi-tenant."""
-    try:
-        # v4 §4.9 (G2) — resolve the tenant from the PAGE that emitted the
-        # event (same logic as _process_webhook_messaging), never from the
-        # comment author.
-        page_id = entry_page_id or comment.get("page_id", "")
-        if page_id:
-            async with AsyncSessionLocal() as db:
-                row = await db.execute(
-                    select(BotState).where(
-                        BotState.tenant_id.isnot(None),
-                        BotState.key == "fb_page_id",
-                        BotState.value == page_id,
-                    )
-                )
-                bs = row.scalar_one_or_none()
-            if bs:
-                fb_client = await get_tenant_fb_client(bs.tenant_id)
-                # v4 §4.10 — persist the comment regardless of engine health so
-                # /api/comments (DB-first) shows it immediately
-                try:
-                    from database import AsyncSessionLocal as _ASL
-                    from models import Comment as CommentRow
-                    async with _ASL() as cdb:
-                        cid = comment.get("id", "")
-                        if cid:
-                            existing = (await cdb.execute(
-                                select(CommentRow).where(
-                                    CommentRow.tenant_id == bs.tenant_id,
-                                    CommentRow.fb_comment_id == cid,
-                                )
-                            )).scalar_one_or_none()
-                            if existing is None:
-                                from _utils import utcnow as _now
-                                cdb.add(CommentRow(
-                                    tenant_id=bs.tenant_id,
-                                    fb_comment_id=cid,
-                                    fb_post_id=str(post_id or ""),
-                                    commenter_id=str((comment.get("from") or {}).get("id", "")),
-                                    commenter_name=str((comment.get("from") or {}).get("name", "")),
-                                    comment_text=str(comment.get("message", "")),
-                                    created_at=_now(),
-                                ))
-                                await cdb.commit()
-                except Exception as ce:
-                    log.warning(f"webhook comment persist failed: {ce}")
-                if fb_client:
-                    # Use registry — ensures dedup cache and cooldown are shared with background bot loop
-                    engine = get_bot_engine(fb_client, tenant_id=bs.tenant_id)
-                    await engine.process_single_comment(comment, post_id)
-                    _track_event("webhook_comment_processed", {"comment_id": comment.get("id",""), "tenant_id": bs.tenant_id})
-                    return
-                log.warning(f"webhook comment for page {page_id}: tenant {bs.tenant_id} has no FB client — stored only")
-                return
-        log.warning(f"webhook comment for unknown page {page_id or '(none)'} — skipped")
-    except Exception as e:
-        log.error(f"Webhook comment processing error: {e}", exc_info=True)
+# ── Facebook webhook — app/webhooks.py ──────────────────────────────────────
+app.add_api_route("/webhook", webhook_verify, methods=["GET"])
+app.add_api_route("/webhook", webhook_receive, methods=["POST"])
 
 
 # ── SPA catch-all: serve Next.js index.html for unmatched browser routes ────
-@app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
-async def spa_catch_all(path: str):
-    # Don't catch API/system paths — let FastAPI handle or 404.
-    # v10-D3 — these prefixes now answer with the unified {detail} JSON error
-    # contract instead of an empty text/html body that the frontend's
-    # ApiErrorBody parser cannot read (S2 deviation #3: empty 404 + English
-    # 405). SPA page serving below is untouched.
-    if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
-        return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
-    # Check if the Next.js static export has a page for this path
-    path_page = STATIC_DIR / path / "index.html"
-    if path_page.exists():
-        return HTMLResponse(path_page.read_text(encoding="utf-8"))
-    # Fallback: serve the root Next.js index.html (handles client-side routing)
-    return HTMLResponse(_get_spa())
+# (app/spa.py — registered LAST, together with the non-GET catch-all below)
+app.add_api_route("/{path:path}", spa_catch_all, methods=["GET"],
+                  response_class=HTMLResponse, include_in_schema=False)
 
-
-def _iter_real_routes(routes):
-    """v10-D3 — flatten the route table, transparently descending into
-    FastAPI's _IncludedRouter wrappers (include_router keeps them as single
-    entries wrapping the original APIRouter) and yielding real routes only."""
-    for r in routes:
-        # skip the two catch-alls themselves (they match every path/method)
-        if getattr(r, "path", None) == "/{path:path}" and getattr(r, "methods", None):
-            continue
-        included = getattr(r, "original_router", None)  # _IncludedRouter
-        if included is not None:
-            yield from _iter_real_routes(included.routes)
-        else:
-            yield r
-
-
-def _route_table_lookup(request: Request) -> set[str] | None:
-    """v10-D3 — route-table introspection for the non-GET catch-all.
-
-    Returns the set of HTTP methods REAL routes serve at this path, or None
-    when the path is unknown to the app. Lets us keep an informative 405
-    (Arabic {detail} + Allow header) for wrong-method calls on REAL
-    endpoints, while truly unknown paths answer 404 {detail} JSON."""
-    allowed: set[str] = set()
-    known = False
-    for r in _iter_real_routes(app.routes):
-        regex = getattr(r, "path_regex", None)
-        if regex is not None and regex.match(request.url.path):
-            known = True
-            allowed |= set(getattr(r, "methods", None) or ())
-    if not known:
-        return None
-    allowed.discard("HEAD")
-    allowed.discard("OPTIONS")
-    return allowed
-
-
-@app.api_route(
+app.add_api_route(
     "/{path:path}",
+    unknown_method_catch_all,
     methods=["POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     include_in_schema=False,
 )
-async def unknown_method_catch_all(path: str, request: Request):
-    """v10-D3 — unknown non-GET paths used to leak Starlette's English
-    textual 405 ``{"detail": "Method Not Allowed"}`` (S2 deviation #3).
-
-    Contract now (mirrors the rest of the app's Arabic {detail} errors):
-      - unknown path + non-GET  → 404 {"detail": "المسار غير موجود"}
-      - known path, wrong method → 405 {"detail": "..."} with Allow header
-
-    Registered LAST: real routes always win (Starlette prefers a later FULL
-    match over an earlier PARTIAL one), so no endpoint is shadowed."""
-    allowed = _route_table_lookup(request)
-    if allowed is None:
-        return JSONResponse(status_code=404, content={"detail": "المسار غير موجود"})
-    headers = {"Allow": ", ".join(sorted(allowed))} if allowed else None
-    raise HTTPException(405, "الطريقة غير مسموح بها لهذا المسار", headers=headers)

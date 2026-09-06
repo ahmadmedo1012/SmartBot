@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 
 from _crypto import encrypt_token
+from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException
 from models import BotState, Rule, Tenant, User
@@ -76,7 +77,7 @@ async def connect_page(
             encrypt_token(body.access_token.strip()),
         )
     await db.commit()
-    return {"success": True, "data": {"page_id": body.page_id}}
+    return ok({"page_id": body.page_id})
 
 
 @router.post("/test-connection")
@@ -119,6 +120,7 @@ async def test_connection(
                 token = ""
 
     if not page_id or not token:
+        # NOTE: raw dict — extended envelope (v11 audit)
         return {"success": False, "data": {"connected": False, "error": "أدخل معرف الصفحة ورمز الوصول"}}
 
     try:
@@ -135,12 +137,14 @@ async def test_connection(
                 detail = err.get("message", "")[:150]
             except Exception:
                 pass
+            # NOTE: raw dict — extended envelope (v11 audit)
             return {"success": False, "data": {"connected": False,
                     "error": f"فشل التحقق من فيسبوك: {detail or r.status_code}"}}
         data = r.json()
-        return {"success": True, "data": {"connected": True,
-                "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)}}
+        return ok({"connected": True,
+                "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)})
     except Exception as e:
+        # NOTE: raw dict — extended envelope (v11 audit)
         return {"success": False, "data": {"connected": False, "error": f"تعذر الاتصال بفيسبوك: {str(e)[:150]}"}}
 
 
@@ -192,7 +196,7 @@ async def suggest_reply(
                 f"شكراً لاهتمامك بـ'{keyword}' 🙌 راسلنا على الخاص وسنجيبك بكل التفاصيل فوراً!"
             )
 
-    return {"success": True, "data": {"suggestion": suggestion.strip(), "source": source}}
+    return ok({"suggestion": suggestion.strip(), "source": source})
 
 
 @router.post("/first-rule")
@@ -215,5 +219,5 @@ async def create_first_rule(
         )
         db.add(rule)
         await db.commit()
-        return {"success": True, "data": {"rule_id": rule.id}}
-    return {"success": True, "data": {"rule_id": None}}
+        return ok({"rule_id": rule.id})
+    return ok({"rule_id": None})

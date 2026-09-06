@@ -160,6 +160,10 @@ class SequenceEngine:
                 return 0
         step = SequenceStep(
             sequence_id=seq_id,
+            # v11 fix (BUG found by test_v11_broadcast_sequence): the step must
+            # carry the tenant scope — it was left at 0, so the tenant-scoped
+            # update_step/delete_step lookups could never find it.
+            tenant_id=tenant_id,
             step_order=step_data.get("step_order", 0),
             delay_days=step_data.get("delay_days", 0),
             delay_hours=step_data.get("delay_hours", 0),

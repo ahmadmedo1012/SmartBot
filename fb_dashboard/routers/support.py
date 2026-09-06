@@ -16,6 +16,7 @@ import logging
 import os
 
 from _async import spawn  # v9-A11: GC-safe background tasks
+from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -72,13 +73,13 @@ async def support_info(db=Depends(get_db)):
     def merged(key: str, env: str, default: str) -> str:
         return config.get(key) or os.getenv(env) or default
 
-    return {"success": True, "data": {
+    return ok({
         "email": merged("support_email", "SUPPORT_EMAIL", "support@smartbot.ly"),
         "phone": merged("support_phone", "SUPPORT_PHONE", "0920000000"),
         "whatsapp": merged("support_whatsapp", "SUPPORT_WHATSAPP",
                            os.getenv("SUPPORT_PHONE", "0920000000")),
         "working_hours": merged("support_working_hours", "SUPPORT_WORKING_HOURS", "24/7"),
-    }}
+    })
 
 
 @router.post("/ticket")
@@ -120,10 +121,10 @@ async def create_ticket(
 
     await db.commit()
     await db.refresh(t)
-    return {"success": True, "data": {
+    return ok({
         "id": t.id, "status": t.status, "priority": t.priority,
         "message": "تم إرسال طلبك بنجاح — سيتواصل معك فريق الدعم خلال 24 ساعة",
-    }}
+    })
 
 
 @router.get("/tickets")
@@ -147,7 +148,7 @@ async def list_tickets(
     # the only endpoint breaking the unwrapApi structural contract). Shape
     # matches the platform's Paginated<T> ({items, total}).
     # FRONTEND NOTE: dashboard/support/page.tsx must read data.items now.
-    return {"success": True, "data": {
+    return ok({
         "items": [
             {
                 "id": t.id, "subject": t.subject, "priority": t.priority, "status": t.status,
@@ -157,7 +158,7 @@ async def list_tickets(
             } for t in tickets
         ],
         "total": total,
-    }}
+    })
 
 
 @router.get("/tickets/{ticket_id}")
@@ -176,7 +177,7 @@ async def get_ticket(
         .order_by(SupportTicketReply.created_at)
     )
     replies = rows.scalars().all()
-    return {"success": True, "data": {
+    return ok({
         "id": t.id, "subject": t.subject, "body": t.body, "priority": t.priority,
         "status": t.status, "email": t.email,
         "created_at": iso_z(t.created_at),
@@ -186,7 +187,7 @@ async def get_ticket(
                 "created_at": iso_z(r.created_at),
             } for r in replies
         ],
-    }}
+    })
 
 
 @router.post("/tickets/{ticket_id}/reply")
@@ -220,7 +221,7 @@ async def reply_ticket(
             user_id=t.user_id,
         )
         await db.commit()
-    return {"success": True, "data": {"id": r.id, "is_admin": is_admin}}
+    return ok({"id": r.id, "is_admin": is_admin})
 
 
 @router.post("/tickets/{ticket_id}/close")
@@ -243,4 +244,4 @@ async def close_ticket(
             type_="support", link="/dashboard/support", user_id=t.user_id,
         )
     await db.commit()
-    return {"success": True, "data": {"id": t.id, "status": t.status}}
+    return ok({"id": t.id, "status": t.status})

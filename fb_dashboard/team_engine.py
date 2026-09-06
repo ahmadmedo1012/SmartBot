@@ -110,12 +110,18 @@ class TeamEngine:
             AnalyticsEvent.tenant_id == tenant_id, AnalyticsEvent.created_at >= cutoff
         ).order_by(desc(AnalyticsEvent.created_at)).limit(50)
         for e in (await session.execute(evt_stmt)).scalars().all():
-            meta = {}
-            try:
-                meta = json.loads(e.metadata_json or "{}")
-            except Exception:
-                log.warning(f"Failed to parse metadata_json for event {e.id}: {e.metadata_json[:100]}")
-                meta = {}
+            # v11 fix (BUG found by test_v11_publisher_team): the JSON column
+            # may hand back a dict (its natural type) — the old json.loads(dict)
+            # raised TypeError and the except branch itself crashed on
+            # dict[:100] → 500 on /api/team/activity. Accept both shapes.
+            raw = e.metadata_json or {}
+            if isinstance(raw, str):
+                try:
+                    raw = json.loads(raw)
+                except Exception:
+                    log.warning(f"Failed to parse metadata_json for event {e.id}: {raw[:100]}")
+                    raw = {}
+            meta = raw if isinstance(raw, dict) else {}
             activities.append({
                 "type": "event",
                 "user": meta.get("user", "system"),
@@ -151,7 +157,15 @@ class TeamEngine:
             thirty_days_ago = utcnow() - timedelta(days=30)
             counts = await session.execute(
                 select(BotLog.message, func.count(BotLog.id))
-                .where(BotLog.level != "DEBUG", BotLog.created_at >= thirty_days_ago)
+                .where(
+                    BotLog.level != "DEBUG",
+                    BotLog.created_at >= thirty_days_ago,
+                    # v11 fix (BUG found by test_v11_publisher_team): usernames
+                    # are only unique PER TENANT (since v10-A1) — without this
+                    # filter, another tenant's log rows with the same username
+                    # leak into this tenant's performance numbers.
+                    BotLog.tenant_id == tenant_id,
+                )
                 .group_by(BotLog.message)
             )
             for msg, cnt in counts.all():

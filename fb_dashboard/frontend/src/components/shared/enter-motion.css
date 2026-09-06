@@ -1,0 +1,90 @@
+/* v11-A7 — CSS twins of the framer-motion dashboard entrances.
+ *
+ * The dashboard routes shipped the ~116KB framer-motion engine in FIRST-LOAD
+ * JS purely for three entrance animations (shell page-fade, KPI-card stagger,
+ * section fadeUp) and the sparkline draw. framer-motion itself stays in the
+ * app for lazy consumers (OnboardingWizard, OnboardingTour) and MotionConfig
+ * in app/providers.tsx still enforces reducedMotion="user" for them — but the
+ * eager dashboard graph no longer imports it, so the engine chunk is fetched
+ * only when a lazy animated component actually mounts.
+ *
+ * Values mirror the old framer props 1:1:
+ *   - page enter:  springGentle (stiffness 120 / damping 14 / mass 0.8
+ *                  ≈ 400ms soft spring with a light overshoot)
+ *   - KPI cards:   0.28s ease-out, delay index × 0.06s
+ *   - fadeUp:      0.5s cubic-bezier(0.165, 0.84, 0.44, 1), delay n × 0.05s
+ *                  (+ the old stagger container's 0.08s delayChildren)
+ *   - sparkline:   line draw 0.8s ease-in-out; area fade 0.5s
+ *
+ * Reduced motion: every animation is disabled via the media query below —
+ * exact parity with the old useReducedMotion / MotionConfig guards.
+ *
+ * fill-mode note: `backwards` (not `both`/`forwards`) on the entrance classes
+ * — a filled animation keeps owning `transform` after it finishes and would
+ * block the KpiCard hover lift (`transition-[...] hover:-translate-y-1`).
+ * `backwards` covers the delay phase, then hands the property back. The
+ * sparkline line keeps its drawn state via the base `stroke-dashoffset: 0`
+ * (the animation only runs from 1 → 0), so no fill is needed there either.
+ *
+ * `sb-` prefix — global classes, collision-free against globals.css.
+ */
+
+@keyframes sb-page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sb-kpi-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sb-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sb-spark-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes sb-spark-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* shell page entrance (DashboardShell) — was motion.div + springGentle */
+.sb-page-enter {
+  animation: sb-page-enter 0.4s cubic-bezier(0.22, 1.1, 0.36, 1) backwards;
+}
+
+/* KPI-card entrance (KpiCard) — was motion.div 0.28s easeOut, delay set
+ * inline per card via style={{ animationDelay }} (index × 0.06s) */
+.sb-kpi-enter {
+  animation: sb-kpi-enter 0.28s ease-out backwards;
+}
+
+/* section entrance (dashboard page fadeUp) — delay set inline per section */
+.sb-fade-up {
+  animation: sb-fade-up 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) backwards;
+}
+
+/* MiniSparkline line draw — pathLength={1} on the path normalizes the dash
+ * units, so dasharray:1/dashoffset:1→0 is the classic CSS line-draw (the
+ * same technique framer uses internally for pathLength). */
+.sb-spark-line {
+  stroke-dasharray: 1;
+  animation: sb-spark-draw 0.8s ease-in-out backwards;
+}
+
+/* MiniSparkline area fade — was motion.path opacity 0→1, 0.5s */
+.sb-spark-area {
+  animation: sb-spark-fade 0.5s ease backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-page-enter,
+  .sb-kpi-enter,
+  .sb-fade-up,
+  .sb-spark-line,
+  .sb-spark-area {
+    animation: none;
+  }
+}

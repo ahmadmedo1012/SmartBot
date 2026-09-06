@@ -2,12 +2,18 @@
 
 import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
-import { motion } from "framer-motion"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { SetupWarnings } from "@/components/shared/SetupWarnings"
 import { apiFetch } from "@/lib/csrf-client"
-import { springGentle } from "@/lib/motion"
+/* v11-A7 — framer-free page entrance. This motion.div was the only reason
+ * EVERY dashboard route (26) eagerly shipped the ~116KB framer-motion
+ * engine in first-load JS. The springGentle entrance (opacity 0→1, y 12→0,
+ * ≈400ms soft spring) is preserved as a CSS twin (.sb-page-enter in
+ * enter-motion.css — same values, prefers-reduced-motion guarded, and
+ * fill-mode `backwards` so the property is handed back after the run).
+ * framer stays available for lazy consumers (wizard/tour). */
+import "@/components/shared/enter-motion.css"
 
 /* World-class launch plan v3 §6 (Smart-Menu owner-layout pattern):
  * - page entrance uses the Smart-Menu PageFade spring (250/22/0.9 — was
@@ -45,19 +51,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
        * v9-B9: tabIndex={-1} — a div is not focusable by default, so the skip
        * link scrolled here but focus stayed in the sidebar; -1 makes the
        * container programmatically focusable so focus actually moves. */}
-      <motion.div
+      <div
         id="page-content"
         tabIndex={-1}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={springGentle}
-        className="flex-1 md:pr-60 flex flex-col pb-16 md:pb-0 outline-none"
+        className="sb-page-enter flex-1 md:pr-60 flex flex-col pb-16 md:pb-0 outline-none"
       >
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}
         <SetupWarnings />
         {children}
-      </motion.div>
+      </div>
 
       {/* Mobile navigation (Track F) — visible below md where the sidebar is hidden */}
       <MobileBottomNav onNavigate={handleNavigate} onLogout={handleLogout} />

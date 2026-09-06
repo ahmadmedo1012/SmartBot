@@ -7,6 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from _async import spawn  # v9-A11: GC-safe background tasks
+from _responses import ok
 from _utils import iso_z, utcnow
 from config import settings
 from database import AsyncSessionLocal, get_db
@@ -100,14 +101,14 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
     if _IS_VERCEL:
         import base64
         url = f"data:image/jpeg;base64,{base64.b64encode(payload).decode()}"
-        return {"success": True, "data": {"url": url}}
+        return ok({"url": url})
 
     try:
         _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         name = f"{secrets.token_hex(12)}{ext}"
         (_UPLOAD_DIR / name).write_bytes(payload)
         url = f"/static/uploads/receipts/{name}"
-        return {"success": True, "data": {"url": url}}
+        return ok({"url": url})
     except Exception as e:
         log.error(f"receipt upload failed: {e}", exc_info=True)
         raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى") from e
@@ -204,7 +205,7 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
         f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
         f"— بعد الإرسال، انتظر موافقة الأدمن"
     )
-    return {"success": True, "data": {"payment_id": pr.id, "instructions": instructions}}
+    return ok({"payment_id": pr.id, "instructions": instructions})
 
 
 @router.post("/api/payments/confirm")
@@ -223,7 +224,7 @@ async def payment_confirm(request: Request, body: dict = Body(...), db=Depends(g
     pr.reference = ref
     pr.note = "انتظار موافقة الأدمن"
     await db.commit()
-    return {"success": True, "data": {"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"}}
+    return ok({"ok": True, "message": "تم استلام رقم الحوالة، في انتظار موافقة الأدمن"})
 
 
 @router.get("/api/payments/balance")
@@ -233,7 +234,7 @@ async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_c
     )
     bs = existing.scalar_one_or_none()
     balance = int(bs.value) if bs and bs.value else 0
-    return {"success": True, "data": {"balance": balance, "currency": "LYD"}}
+    return ok({"balance": balance, "currency": "LYD"})
 
 
 @router.get("/api/payments/history")
@@ -243,12 +244,12 @@ async def payment_history(db=Depends(get_db), current_user: User = Depends(get_c
         .where(PaymentRequest.tenant_id == current_user._tenant_id)
         .order_by(desc(PaymentRequest.created_at))
     )
-    return {"success": True, "data": [
+    return ok([
         {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
          "phone": r.phone, "reference": r.reference, "status": r.status,
          "note": r.note, "created_at": iso_z(r.created_at)}
         for r in rows.scalars().all()
-    ]}
+    ])
 
 
 # NOTE (2026-09-05): POST /api/subscriptions/validate was REMOVED — it had no
@@ -351,15 +352,12 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         msg = "تم استلام طلب التحويل البنكي — سيتم التفعيل بعد موافقة الإدارة"
     else:
         msg = f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الأدمن"
-    return {
-        "success": True,
-        "data": {
-            "payment_id": sp.id,
-            "status": "pending",
-            "message": msg,
-            "provider": provider,
-        },
-    }
+    return ok({
+        "payment_id": sp.id,
+        "status": "pending",
+        "message": msg,
+        "provider": provider,
+    })
 
 
 @router.get("/api/subscriptions/status")
@@ -370,7 +368,7 @@ async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), 
     # need to see payments submitted by other users in their tenant).
     if not sp or (sp.user_id != current_user.id and sp.tenant_id != (current_user._tenant_id or 0)):
         raise HTTPException(404, "الدفعة غير موجودة")
-    return {"success": True, "data": {"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name}}
+    return ok({"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name})
 
 
 # ── SSE: instant activation push (latest_plan.md Track B.5) ──────────────────
@@ -499,7 +497,7 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", new_plan.name_ar)
     )
 
-    return {"success": True, "data": {"payment_id": sp.id, "status": "pending"}}
+    return ok({"payment_id": sp.id, "status": "pending"})
 
 
 @router.get("/api/admin/subscriptions")
@@ -521,7 +519,7 @@ async def admin_list_subscriptions(status: str = Query("pending"), page: int = Q
             "metadata": sp.extra_data,
             "created_at": iso_z(sp.created_at),
         })
-    return {"success": True, "data": result}
+    return ok(result)
 
 
 @router.post("/api/admin/subscriptions")
@@ -592,4 +590,4 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
     except Exception:
         pass
     await db.commit()
-    return {"success": True, "data": {"ok": True, "status": decision}}
+    return ok({"ok": True, "status": decision})

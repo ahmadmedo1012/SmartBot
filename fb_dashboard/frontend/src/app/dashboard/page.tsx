@@ -1,7 +1,6 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { motion } from "framer-motion"
 import Link from "next/link"
 import {
   TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle,
@@ -16,7 +15,13 @@ import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fadeUp, stagger } from "@/lib/motion"
+/* v11-A7 — framer-free entrances. The fadeUp/stagger choreography below was
+ * this page's only eager framer-motion import; the section reveals now run
+ * as CSS twins (.sb-fade-up — identical 0.5s cubic-bezier(0.165,0.84,0.44,1)
+ * curve, translateY(24px)→0, inline animationDelay replacing `custom={n}`
+ * + the old stagger container's 0.08s delayChildren, reduced-motion
+ * guarded) so the ~116KB motion engine no longer ships in first-load JS. */
+import "@/components/shared/enter-motion.css"
 /* v9-B14 — lazy recharts: the direct import pulled the ~344KB recharts chunk
  * into /dashboard's first-load JS; the lazy barrel defers it until render. */
 import { ActivityBarChart } from "@/components/charts/lazy"
@@ -150,12 +155,12 @@ export default function DashboardPage() {
         />
 
         <SectionContainer className="py-6">
-          <motion.div variants={stagger} initial="hidden" animate="visible">
+          <div>
             {/* Not connected → the ONE honest empty state that explains everything */}
             {!connected && (
-              <motion.div variants={fadeUp} className="mb-6">
+              <div className="sb-fade-up mb-6">
                 <NotConnectedCard />
-              </motion.div>
+              </div>
             )}
 
             {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links) */}
@@ -187,7 +192,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Activity chart */}
-            <motion.div variants={fadeUp} custom={7} className="mb-6">
+            <div className="sb-fade-up mb-6" style={{ animationDelay: "0.43s" }}>
               <ChartCard
                 title="النشاط اليومي"
                 description="ردود البوت خلال آخر 7 أيام"
@@ -199,11 +204,11 @@ export default function DashboardPage() {
               >
                 <ChartBars data={stats.chart || {}} />
               </ChartCard>
-            </motion.div>
+            </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               {/* Recent replies */}
-              <motion.div variants={fadeUp} custom={8}>
+              <div className="sb-fade-up" style={{ animationDelay: "0.48s" }}>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -232,10 +237,10 @@ export default function DashboardPage() {
                     )}
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
 
               {/* Rules — overflow-safe, token colors, no dead "keywords" column */}
-              <motion.div variants={fadeUp} custom={9}>
+              <div className="sb-fade-up" style={{ animationDelay: "0.53s" }}>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -281,9 +286,9 @@ export default function DashboardPage() {
                     )}
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </SectionContainer>
     </div>
   )

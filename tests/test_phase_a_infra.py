@@ -160,7 +160,8 @@ async def test_get_bot_engine_registry_per_tenant():
 
 def test_webhook_uses_tenant_scoped_engine():
     """متطلب 1.3: معالج webhook يستخدم registry بعامل المستأجر — لا BotEngine() داخلية."""
-    src_path = os.path.join(FB_DIR, "runner.py")
+    # v11-A1: webhook processing moved from runner.py into fb_dashboard/app/webhooks.py
+    src_path = os.path.join(FB_DIR, "app", "webhooks.py")
     src = open(src_path, encoding="utf-8").read()
     assert "get_bot_engine(fb_client, tenant_id=bs.tenant_id)" in src, \
         "معالج webhook يجب أن يستخدم get_bot_engine(fb_client, tenant_id=bs.tenant_id)"

@@ -34,7 +34,13 @@ const hasTextInExpr = (s: string) => /[A-Za-z\u0600-\u06FF]/.test(s);
 const bad: { file: string; line: number; snippet: string }[] = [];
 
 for (const f of files) {
-  const src = readFileSync(f, "utf8");
+  const raw = readFileSync(f, "utf8");
+  // comment-aware: docs may quote JSX (e.g. "renders <Button> in its hero").
+  // Newlines are PRESERVED inside block comments so reported line numbers stay true.
+  // Line comments: `//` NOT preceded by ':' — https:// URLs must survive.
+  const src = raw
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(?<!:)\/\/[^\n]*/g, " ");
   const tagRe = /<(Button|button|a)\b/g;
   let m: RegExpExecArray | null;
   while ((m = tagRe.exec(src))) {

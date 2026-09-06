@@ -4,11 +4,9 @@ import { useRef, useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { X } from "lucide-react"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
-import { springDefault } from "@/lib/motion"
 
 interface HeaderProps { className?: string }
 
@@ -34,11 +32,9 @@ function HamburgerButton({ open, onClick }: { open: boolean; onClick: () => void
   )
 }
 
-const mobileLinkVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { ...springDefault, delay: 0.06 + i * 0.06 } }),
-  exit: { opacity: 0, y: -4, transition: { duration: 0.12 } },
-}
+/* mobileLinkVariants removed in v6 §D — the staggered link reveal is now a
+ * CSS transition-delay (see MobileMenu), keeping framer-motion out of the
+ * landing critical path. */
 
 function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () => void; pathname: string }) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -80,62 +76,58 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     href === "/login" ? pathname === "/login" : pathname.startsWith(href.replace(/:.*/, ""))
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            key="menu"
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="قائمة التصفح"
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={springDefault}
-            className="fixed inset-x-0 top-0 z-50 mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden"
-            style={{ transformOrigin: "top center" }}
-          >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-              <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
-              <span className="text-sm font-medium tracking-tight text-foreground/80">SmartBot</span>
-              <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-90" aria-label="إغلاق"><X className="size-4" /></button>
-            </div>
-            <nav className="px-4 py-4 space-y-1">
-              {landingLinks.map((link, i) => {
-                const linkActive = isActive(link.href)
-                return (
-                  <motion.div
-                    key={link.href}
-                    custom={i}
-                    variants={mobileLinkVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <Link href={link.href} onClick={onClose}
-                      aria-current={linkActive ? "page" : undefined}
-                      className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200", linkActive ? "bg-accent-foreground/15 text-accent-foreground" : "text-muted-foreground hover:bg-accent-foreground/10 hover:text-foreground")}
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                )
-              })}
-            </nav>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    /* v6 §D — framer-free mobile menu: always-mounted + CSS transitions
+     * (visibility-gated). AnimatePresence exit animations are nice-to-have;
+     * the framer import kept the whole motion bundle in the landing's
+     * critical path. Focus trap + Escape + restore-focus stay untouched. */
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-background/60 backdrop-blur-sm transition-opacity duration-200",
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+        aria-hidden={!open}
+      />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="قائمة التصفح"
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
+          "transition-all duration-300 ease-out",
+          open ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
+        )}
+        style={{ transformOrigin: "top center" }}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <Image src="/brand-icon.png" alt="SmartBot" width={160} height={160} className="h-9 w-auto" priority />
+          <span className="text-sm font-medium tracking-tight text-foreground/80">SmartBot</span>
+          <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-90" aria-label="إغلاق" tabIndex={open ? 0 : -1}><X className="size-4" /></button>
+        </div>
+        <nav className="px-4 py-4 space-y-1">
+          {landingLinks.map((link, i) => {
+            const linkActive = isActive(link.href)
+            return (
+              <div
+                key={link.href}
+                className={cn("transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+                style={{ transitionDelay: open ? `${60 + i * 60}ms` : "0ms" }}
+              >
+                <Link href={link.href} onClick={onClose} tabIndex={open ? 0 : -1}
+                  aria-current={linkActive ? "page" : undefined}
+                  className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200", linkActive ? "bg-accent-foreground/15 text-accent-foreground" : "text-muted-foreground hover:bg-accent-foreground/10 hover:text-foreground")}
+                >
+                  {link.label}
+                </Link>
+              </div>
+            )
+          })}
+        </nav>
+      </div>
+    </>
   )
 }
 
@@ -201,14 +193,15 @@ export function Header({ className }: HeaderProps) {
                     >
                       {link.label}
                       {linkActive && (
-                        <motion.div
-                          layoutId="tubelight"
+                        /* v6 §D — was motion.div layoutId="tubelight" (framer
+                         * layout animation); a per-link static pill keeps the
+                         * same visual without the framer dependency. */
+                        <span
+                          aria-hidden="true"
                           className="absolute inset-0 -z-10 rounded-full bg-primary shadow-lg"
                           style={{
                             boxShadow: "0 0 18px 3px rgba(251,146,60,0.35), 0 0 6px rgba(251,146,60,0.15)",
-                            willChange: "transform, opacity",
                           }}
-                          transition={{ type: "spring", stiffness: 420, damping: 28 }}
                         />
                       )}
                     </Link>

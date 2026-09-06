@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -119,7 +120,9 @@ function LoginForm() {
       <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
-            <img src="/brand-icon.png" alt="الربط الذكي" className="size-full object-contain drop-shadow-lg" />
+            {/* v6 §D — next/image (was raw <img>): intrinsic 160×160 reserving
+                layout space, no CLS on the auth screens' hero icon */}
+            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="size-full object-contain drop-shadow-lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">SmartBot</CardTitle>
           <CardDescription className="text-base text-muted-foreground/80">لوحة التحكم الذكية</CardDescription>

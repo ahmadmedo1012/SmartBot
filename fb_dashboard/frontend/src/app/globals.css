@@ -443,6 +443,27 @@ html.light::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
 .animate-page-enter { animation: fade-in 0.4s var(--ease-out-quart) both; }
 .animate-breath { animation: breath 1.5s ease-in-out infinite; }
 .delay-100 { animation-delay: 100ms; }
+
+/* v6 §D — hero progressive enhancement: entrance motion WITHOUT JS.
+ * The pre-v6 hero rendered 15 elements with inline opacity:0 in the
+ * delivered HTML (framer-motion initial) — the whole hero was blank until
+ * hydration + stagger, LCP 6.3s on throttled mobile, and the <h1> carried
+ * NO text at all in HTML (KineticText split in an effect). These pure-CSS
+ * staggers keep the designed entrance while the h1 paints instantly (LCP
+ * at first paint) and no-JS visitors see the full hero. */
+.animate-fade-in-150 { animation: fade-in 0.5s var(--ease-out-quart) both 150ms; }
+.animate-fade-in-250 { animation: fade-in 0.5s var(--ease-out-quart) both 250ms; }
+.animate-fade-in-400 { animation: fade-in 0.6s var(--ease-out-quart) both 400ms; }
+.animate-fade-in-900 { animation: fade-in 0.6s var(--ease-out-quart) both 900ms; }
+.animate-fade-in-1100 { animation: fade-in 0.7s var(--ease-out-quart) both 1100ms; }
+/* clip-path wipe reveal — pure-CSS twin of ClipPathReveal(framer): the hero
+ * mockup wiped in only after hydration; this paints at style-apply time. */
+@keyframes wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+.animate-wipe-up { animation: wipe-up 0.9s var(--ease-out-quart) both 200ms; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-150, .animate-fade-in-250, .animate-fade-in-400,
+  .animate-fade-in-900, .animate-fade-in-1100, .animate-wipe-up { animation: none; }
+}
 .delay-200 { animation-delay: 200ms; }
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }

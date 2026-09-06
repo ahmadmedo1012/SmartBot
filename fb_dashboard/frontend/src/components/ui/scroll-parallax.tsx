@@ -1,10 +1,25 @@
 "use client"
 
 import { useRef, useState, useEffect, type ReactNode, type CSSProperties } from "react"
-import { useReducedMotion } from "framer-motion"
 
 /* Ported from Smart-Menu's scroll-craft integration (smart-link.ly shared
-   identity) — import path adapted for SmartBot's framer-motion setup. */
+   identity) — import path adapted for SmartBot's framer-motion setup.
+   v6 §D: framer-motion's useReducedMotion replaced with a local matchMedia
+   hook — this component sits in the landing hero, and the framer import
+   alone kept the whole framer-motion bundle in the CRITICAL path. */
+
+/** Local twin of framer's useReducedMotion (no bundle cost). */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduced(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
+  return reduced
+}
 
 interface ScrollParallaxProps {
   children: ReactNode
@@ -48,7 +63,7 @@ export function ScrollParallax({
   const ref = useRef<HTMLDivElement | null>(null)
   const [transform, setTransform] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
-  const prefersReducedMotion = useReducedMotion()
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   useEffect(() => {
     // Detect mobile / low-power devices

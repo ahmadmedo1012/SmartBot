@@ -15,6 +15,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { formatDateOnly } from "@/lib/format"
+import { CronHeartbeatCard } from "@/components/shared/CronHeartbeatCard"
 
 interface Payment {
   id: number
@@ -120,6 +121,12 @@ export default function AdminPage() {
         <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
           <Settings className="size-4" /> إعدادات المنصة
         </Link>
+      </div>
+
+      {/* v6 §E — cron heartbeat truth at a glance (Telegram alerts fire on
+          stalls; this card answers "are scheduled posts running?" instantly) */}
+      <div className="mb-6">
+        <CronHeartbeatCard />
       </div>
 
       {/* Filters */}

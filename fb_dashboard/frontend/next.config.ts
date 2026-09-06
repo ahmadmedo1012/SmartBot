@@ -6,6 +6,19 @@ const nextConfig: NextConfig = {
   // The Next.js app builds normally to .next/ and the backend (FastAPI)
   // serves it via SPA catch-all. API calls go directly to api.smart-link.ly.
   // CORS is configured in FastAPI runner.py.
+  // v6 §D — LOCAL_API_PROXY mirrors the production vercel.json rewrite
+  // (frontend/vercel.json) so a local `next start` + `uvicorn` stack behaves
+  // exactly like production (same-origin cookies, real API responses for
+  // authenticated pages). Zero effect unless the env var is set.
+  ...(process.env.LOCAL_API_PROXY
+    ? {
+        rewrites: () => [
+          { source: "/api/:path*", destination: `${process.env.LOCAL_API_PROXY}/api/:path*` },
+          { source: "/webhook", destination: `${process.env.LOCAL_API_PROXY}/webhook` },
+          { source: "/healthz", destination: `${process.env.LOCAL_API_PROXY}/healthz` },
+        ],
+      }
+    : {}),
   turbopack: {
     resolveAlias: {},
   },

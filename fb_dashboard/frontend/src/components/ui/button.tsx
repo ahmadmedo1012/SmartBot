@@ -1,3 +1,8 @@
+"use client"
+
+/* v6 §D — client boundary: the landing page is now a React SERVER component
+ * and renders <Button> in its hero; forwardRef is not allowed in RSC, so the
+ * button island must be marked client-side (standard shadcn layout). */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"

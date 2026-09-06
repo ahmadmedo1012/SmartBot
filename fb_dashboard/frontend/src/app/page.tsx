@@ -1,26 +1,24 @@
-"use client"
+/* v6 §D — REACT SERVER COMPONENT (no "use client").
+ * Before v6 this file was "use client": the ENTIRE landing hydrated as a
+ * client tree (966KB initial JS, TBT ~1.5-1.7s on throttled mobile). The
+ * hero is static markup with pure-CSS entrance animations; interactivity
+ * lives in small client islands (Header, ScrollParallax, HeroMockup,
+ * HeroTrustBadge, LazySections, LandingTestimonials, Footer,
+ * FloatingWhatsApp). Result: the server-rendered hero paints at first
+ * paint and the hydration bill drops to the islands only.
+ */
+import Link from "next/link"
+import { Star, ArrowLeft, Sparkles } from "lucide-react"
 
-import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 import { Button } from "@/components/ui/button"
 import { GlowPool } from "@/components/ui/GlowPool"
-import { motion } from "framer-motion"
-import { springDefault, springSnappy } from "@/lib/motion"
-import { Star, ArrowLeft, Sparkles, MessageCircle, Users, BarChart3, Calendar } from "lucide-react"
-import Link from "next/link"
-import FeaturesSection from "@/components/landing/sections/FeaturesSection"
-import HowItWorksSection from "@/components/landing/sections/HowItWorksSection"
-import StatsSection from "@/components/landing/sections/StatsSection"
-import FinalCTASection from "@/components/landing/sections/FinalCTASection"
-import FaqSection from "@/components/landing/sections/FaqSection"
-import { KineticText } from "@/components/ui/kinetic-text"
 import { ScrollParallax } from "@/components/ui/scroll-parallax"
-import { ClipPathReveal } from "@/components/ui/clip-path-reveal"
 import { HeroMockup } from "@/components/landing/HeroMockup"
-import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
-import { unwrapApi } from "@/lib/api"
+import { HeroTrustBadge, LazySections, LandingTestimonials } from "@/components/landing/LandingIslands"
+import { FaqSectionLazy, FinalCTASectionLazy } from "@/components/landing/LandingIslands"
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -99,18 +97,6 @@ const faqSchema = {
 }
 
 export default function HomePage() {
-  const [testimonials, setTestimonials] = useState<any[] | null>(null)
-  // Plan §3.1: trust claims must be real (activeTenants) or qualitative — never "500"
-  const { stats } = usePublicStats()
-  const heroTrust = trustCopy(stats, true)
-
-  useEffect(() => {
-    fetch("/api/public/testimonials")
-      .then(unwrapApi)
-      .then(d => setTestimonials(Array.isArray(d) ? d : (d?.data ?? [])))
-      .catch(() => setTestimonials([]))
-  }, [])
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
@@ -120,8 +106,8 @@ export default function HomePage() {
       <div className="flex flex-col min-h-screen overflow-x-hidden">
       <Header />
 
-      {/* Hero — scroll-craft treatment (latest_plan §G.4): kinetic headline,
-          parallax depth layers, clip-path mockup reveal. Landing/pricing ONLY. */}
+      {/* Hero — scroll-craft treatment (latest_plan §G.4): static server
+          markup + pure-CSS entrances (v6 §D). */}
       <section className="relative min-h-[100svh] flex items-center overflow-hidden">
         {/* Background layers — parallax depth */}
         <ScrollParallax rate={-0.3} maxTravel={50} className="absolute inset-0 pointer-events-none">
@@ -136,30 +122,28 @@ export default function HomePage() {
             <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center">
               {/* ── Left: copy ── */}
               <div className="space-y-7">
-                <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.05 }}
-                  className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 relative overflow-hidden">
-                  <span className="size-1 rounded-full bg-primary animate-pulse-dot shrink-0" />
-                  {heroTrust}
-                  <span className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(90deg,transparent 0%,oklch(1 0 0 / 0.12) 50%,transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 3s ease-in-out infinite" }} />
-                </motion.div>
+                <HeroTrustBadge />
 
-                <motion.h1
+                {/* LCP element: NO entrance animation, NO kinetic split —
+                    the text must be in the HTML and paint at first paint.
+                    (Pre-v6 KineticText split its text inside useEffect → the
+                    h1 shipped EMPTY: an SEO + LCP + no-JS triple defect.) */}
+                <h1
                   className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.02] tracking-tighter font-heading text-balance"
                 >
-                  <KineticText mode="lines" duration={900} delay={150}>إدارة تفاعل فيسبوك</KineticText>
+                  إدارة تفاعل فيسبوك{" "}
                   <span className="relative inline-block text-accent-foreground">
-                    <KineticText mode="words" duration={700} delay={550}>بذكاء واحترافية</KineticText>
-                    <span className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-accent-foreground/0 via-accent-foreground/60 to-accent-foreground/0 rounded-full" aria-hidden="true" />
+                    بذكاء واحترافية
+                    <span className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-accent-foreground/0 via-accent-foreground/60 to-accent-foreground/0 rounded-full animate-fade-in-250" aria-hidden="true" />
                   </span>
-                </motion.h1>
+                </h1>
 
-                <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.2 }}
-                  className="text-lg md:text-xl leading-relaxed max-w-xl text-muted-foreground text-balance">
+                <p
+                  className="text-lg md:text-xl leading-relaxed max-w-xl text-muted-foreground text-balance animate-fade-in-150">
                   أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا بذكاء اصطناعي يفهم لهجتك.
-                </motion.p>
+                </p>
 
-                <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.3 }}
-                  className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 animate-fade-in-250">
                   <Link href="/subscribe">
                     <Button size="lg" className="text-base h-12 px-7 shadow-lg shadow-accent-foreground/20">
                       ابدأ الآن مجاناً <ArrowLeft className="size-4 rtl:-scale-x-100" />
@@ -170,11 +154,11 @@ export default function HomePage() {
                       <Sparkles className="size-4 ms-1" /> جرب البوت الآن
                     </Button>
                   </Link>
-                </motion.div>
+                </div>
 
                 {/* Quick proof bar */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springDefault, delay: 0.5 }}
-                  className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2">
+                <div
+                  className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2 animate-fade-in-400">
                   <div className="flex items-center gap-2.5" style={{ direction: "ltr" }}>
                     <div className="flex -space-x-2">
                       {["أ", "س", "م", "ن"].map((l, i) => (
@@ -191,79 +175,23 @@ export default function HomePage() {
                     <div className="size-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-xs text-muted-foreground font-medium">النظام يعمل الآن</span>
                   </div>
-                </motion.div>
+                </div>
               </div>
 
-              {/* ── Right: live product mockup — clip-path wipe reveal ── */}
-              <div className="relative ">
-                <ClipPathReveal direction="up" duration={900} delay={200}>
-                  <HeroMockup />
-                </ClipPathReveal>
+              {/* ── Right: live product mockup — pure-CSS wipe reveal ──
+                  (was ClipPathReveal/framer: wiped in only after hydration) */}
+              <div className="relative animate-wipe-up">
+                <HeroMockup />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <StatsSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-
-      {/* Testimonials — only render if real data exists (never fake) */}
-      {testimonials && testimonials.length > 0 && (
-      <section className="relative py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            transition={{ ...springDefault, delay: 0.05 }}
-            className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-4">
-              <Star className="size-3 fill-accent-foreground text-accent-foreground" />
-              آراء حقيقية
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tighter text-balance">
-              ماذا يقول عملاؤنا
-            </h2>
-            <p className="text-base max-w-xl mx-auto text-muted-foreground">
-              آراء حقيقية من مدراء الصفحات الذين يستخدمون SmartBot يومياً
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-5">
-            {/* REAL data from /api/public/testimonials only — the hardcoded
-                entries were removed (the comment above said "never fake" while
-                the render ignored the payload entirely). Owner seeds real
-                testimonials via the admin surfaces when available. */}
-            {testimonials.map((t: any, i: number) => (
-              <motion.div key={t.id ?? i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                transition={{ ...springDefault, delay: i * 0.1 }}
-                className="group relative rounded-2xl p-6 bg-card border border-border/50 hover:border-accent-foreground/40 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-foreground/5">
-                {t.metric && (
-                <div className="absolute top-4 left-4 text-[10px] font-bold text-accent-foreground/90 bg-accent-foreground/10 px-2.5 py-1 rounded-full border border-accent-foreground/20">
-                  {t.metric}
-                </div>
-                )}
-                <div className="flex gap-1 mb-4 mt-2">
-                  {[1,2,3,4,5].map(s => <Star key={s} className="size-4 fill-accent-foreground text-accent-foreground" />)}
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6 min-h-[4.5rem]">
-                  &ldquo;{t.text}&rdquo;
-                </p>
-                <div className="flex items-center gap-3 pt-4 border-t border-border/40">
-                  <div className="size-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/70 text-white shadow-md">{(t.name || "؟").charAt(0)}</div>
-                  <div>
-                    <div className="text-sm font-bold">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.role}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
-
-      <FaqSection />
-      <FinalCTASection />
+      <LazySections />
+      <LandingTestimonials />
+      <FaqSectionLazy />
+      <FinalCTASectionLazy />
 
       <Footer />
       <FloatingWhatsApp />

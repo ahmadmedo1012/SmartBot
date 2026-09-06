@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
 import Link from "next/link"
+import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
 import { formatDate, formatDateOnly } from "@/lib/format"
 
@@ -292,13 +293,28 @@ export default function MessagesPage() {
                         }`}>
                           {/* v4 §4.11 — attachments/stickers are persisted now;
                               render them instead of an empty text bubble */}
-                          {hasImage && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={msg.attachment_url} alt="مرفق" className="rounded-lg max-w-full mb-1" />
+                          {hasImage && msg.attachment_url && (
+                            // v6 §D — next/image (was raw <img>): explicit
+                            // dimensions reserve layout space (no CLS) and
+                            // h-auto preserves the intrinsic ratio once loaded.
+                            <Image
+                              src={msg.attachment_url}
+                              alt="مرفق"
+                              width={480}
+                              height={360}
+                              unoptimized
+                              className="rounded-lg max-w-full h-auto mb-1"
+                            />
                           )}
-                          {isSticker && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={msg.attachment_url} alt="ملصق" className="rounded-lg size-24 mb-1" />
+                          {isSticker && msg.attachment_url && (
+                            <Image
+                              src={msg.attachment_url}
+                              alt="ملصق"
+                              width={96}
+                              height={96}
+                              unoptimized
+                              className="rounded-lg size-24 object-cover mb-1"
+                            />
                           )}
                           {msg.postback_payload && !msg.message && (
                             <p className="text-[11px] opacity-70 mb-0.5">اختيار: {msg.postback_payload}</p>

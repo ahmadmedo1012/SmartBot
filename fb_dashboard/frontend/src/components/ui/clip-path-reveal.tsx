@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect, type ReactNode, type CSSProperties } from "react"
+import Image from "next/image"
 import { motion, useReducedMotion } from "framer-motion"
 
 /* Ported from Smart-Menu's scroll-craft integration (smart-link.ly shared
@@ -157,14 +158,17 @@ export function RevealImage({
 
   return (
     <ClipPathReveal direction={direction} {...props}>
-      <img
+      {/* v6 §D — next/image (was raw <img>): dimensions reserve layout space
+          (no CLS); intrinsic ratio preserved via h-auto */}
+      <Image
         src={src}
         alt={alt}
+        width={960}
+        height={540}
         sizes={sizes}
-        loading={priority ? "eager" : "lazy"}
-        decoding={priority ? "sync" : "async"}
+        priority={priority}
         onLoad={() => setLoaded(true)}
-        className={`${props.className ?? ""} transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        className={`${props.className ?? ""} h-auto w-full max-w-full transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
       />
     </ClipPathReveal>
   )

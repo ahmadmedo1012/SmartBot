@@ -4,7 +4,10 @@ import dynamic from "next/dynamic"
 import { Suspense } from "react"
 import { Loader2 } from "lucide-react"
 
-const SubscribeContent = dynamic(() => import("./SubscribeContent"), { ssr: false })
+/* v6 §D — SSR ON (was ssr:false): /subscribe is a public sitemap URL; the
+ * crawler-visible shell + faster first paint matter, and the content is
+ * harmless pre-auth (plans are public, payment is 401-gated at submit). */
+const SubscribeContent = dynamic(() => import("./SubscribeContent"))
 
 export default function SubscribePage() {
   return (

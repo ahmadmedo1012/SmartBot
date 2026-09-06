@@ -31,6 +31,7 @@ export default function SubscribeContent() {
   const [plans, setPlans] = useState<ComparisonPlan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authed, setAuthed] = useState(false)
   const [authLoaded, setAuthLoaded] = useState(false)
   const [step, setStep] = useState<WizardStep>(preselectedPlan ? "review" : "plan")
   const [paymentOpen, setPaymentOpen] = useState(false)
@@ -92,15 +93,17 @@ export default function SubscribeContent() {
       .finally(() => setLoading(false))
   }, [preselectedPlan])
 
-  // Auth gate — subscribing requires a session (POST /api/subscriptions
-  // is authenticated); bounce anonymous visitors to login with a return path.
+  // v6 §D/SEO — /subscribe is listed in the public sitemap, so it must NOT
+  // redirect anonymous visitors (a redirecting sitemap URL is an SEO defect
+  // and lighthouse measured it as a login redirect). Anonymous visitors now
+  // browse plans publicly; auth is enforced at the PAYMENT step (401 →
+  // login with return path, handled in PaymentDialog).
   useEffect(() => {
     apiFetch("/api/me")
-      .then(() => setAuthLoaded(true))
-      .catch(() => {
-        router.replace("/login?redirect=/subscribe")
-      })
-  }, [router])
+      .then(() => setAuthed(true))
+      .catch(() => setAuthed(false))
+      .finally(() => setAuthLoaded(true))
+  }, [])
 
   const currentPlan = plans.find((p) => p.id === selectedPlan)
 
@@ -119,9 +122,15 @@ export default function SubscribeContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/20 to-background dark:via-accent/10">
       <SectionContainer className="py-12">
-        <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/dashboard")}>
-          <ArrowLeft className="size-4" /> العودة للوحة التحكم
-        </Button>
+        {authed ? (
+          <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/dashboard")}>
+            <ArrowLeft className="size-4" /> العودة للوحة التحكم
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/")}>
+            <ArrowLeft className="size-4" /> العودة للرئيسية
+          </Button>
+        )}
 
         <div className="max-w-4xl mx-auto px-0">
           {/* Header */}

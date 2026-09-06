@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { premiumToast } from "@/lib/premium-toast"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
@@ -174,6 +174,14 @@ export function PaymentDialog({
       setPaymentId(pid)
       setStep("waiting")
     } catch (e: unknown) {
+      // v6 §D — anonymous visitor reached the payment step: plans are public,
+      // payment is not. Send to login with a return path instead of a bare
+      // error toast (the page no longer blanket-redirects on load).
+      if (e instanceof ApiError && e.status === 401) {
+        premiumToast("info", "سجّل الدخول أولاً لإتمام الاشتراك — سنعيدك هنا مباشرة")
+        window.location.href = "/login?redirect=/subscribe"
+        return
+      }
       // apiFetch throws ApiError carrying the parsed body — surface the
       // server's Arabic message, never a raw status code.
       const msg =

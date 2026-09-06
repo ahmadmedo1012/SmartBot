@@ -1,9 +1,12 @@
 /**
  * v6 §C — server-side Sentry (GlitchTip-compatible) instrumentation.
  *
- * HARD RULE: when SENTRY_DSN is unset this file does NOTHING — no import,
- * no network, no overhead. The Sentry SDK speaks the same DSN wire protocol
- * as GlitchTip, so switching backends later is a DSN swap, not a code change.
+ * DSN resolution (src/lib/sentry-config.ts): env override → committed
+ * DEFAULT_SENTRY_DSN (project smartbot-web) → "off" disables. SSR/route
+ * errors land in the SAME project as browser errors, separate from the
+ * FastAPI backend (smartbot-api).
+ * The SDK speaks the same DSN wire protocol as GlitchTip — switching
+ * backends later is a DSN swap, not a code change.
  *
  * Frontend client errors are initialised in instrumentation-client.ts via
  * NEXT_PUBLIC_SENTRY_DSN (public env — inlined at build time).
@@ -11,14 +14,16 @@
  * (fb_dashboard/_observability.py) which also alerts the admin Telegram.
  */
 
+import { resolveSentryDsn } from "./lib/sentry-config"
+
 type SentryModule = typeof import("@sentry/nextjs")
 
 let _sentryServer: SentryModule | null = null
 
 export async function register() {
-  const dsn = process.env.SENTRY_DSN?.trim()
+  const dsn = resolveSentryDsn(process.env.SENTRY_DSN)
   if (process.env.NEXT_RUNTIME !== "nodejs" || !dsn) {
-    return // clean no-op — the default state until the owner sets the DSN
+    return // disabled via SENTRY_DSN=off (or no default configured)
   }
   const Sentry = await import("@sentry/nextjs")
   Sentry.init({

@@ -5,10 +5,15 @@ from __future__ import annotations
 Three cooperating pieces, all no-op safe:
 
 1. Sentry (GlitchTip-compatible):
-   sentry-sdk is initialised ONLY when SENTRY_DSN is set. The SDK speaks the
-   same wire protocol as GlitchTip — moving to a self-hosted GlitchTip later
-   is a DSN change with zero code changes. An unset DSN = fully disabled,
-   zero runtime cost, zero test flakiness.
+   sentry-sdk initialises with the DSN resolved as: SENTRY_DSN env override
+   → committed DEFAULT_SENTRY_DSN → disabled. The committed DSN is public by
+   design (Sentry client keys are send-only — they cannot read data or
+   authorise anything), so wiring error tracking "on by default" is safe and
+   costs nothing until an error actually fires. Setting SENTRY_DSN=off
+   (also: 0/disabled/false/no) fully disables it — the no-op state remains
+   zero-cost and zero-network. The SDK speaks the same wire protocol as
+   GlitchTip: pointing SENTRY_DSN at a self-hosted GlitchTip is a config
+   change, not a code change.
 
 2. Critical Telegram alerts:
    unhandled 500s bridge to the admin Telegram channel (the existing
@@ -37,29 +42,81 @@ log = logging.getLogger("fb-obs")
 # 1. Sentry / GlitchTip
 # ─────────────────────────────────────────────────────────────
 
+# Committed default (org "subnation" / project "smartbot-api" — created via
+# the Sentry API on 2026-09-06). DSNs are send-only client keys: safe to
+# commit, same class of secret as a webhook URL. Override with SENTRY_DSN
+# (e.g. a self-hosted GlitchTip DSN), or disable with SENTRY_DSN=off.
+DEFAULT_SENTRY_DSN = (
+    "https://1277e4a0ecdb9f7f63a400611cad93c8"
+    "@o4511397349097472.ingest.de.sentry.io/4512037258330192"
+)
+_OFF_VALUES = {"off", "0", "disabled", "false", "no"}
+
 _sentry_enabled = False
 
 
+def _resolve_dsn() -> str:
+    """SENTRY_DSN env → committed default → '' (disabled).
+
+    An explicit off-value (off/0/disabled/false/no) means DISABLED even
+    though it is set; an empty/unset value falls back to DEFAULT_SENTRY_DSN.
+    """
+    raw = os.getenv("SENTRY_DSN", "").strip()
+    if raw.lower() in _OFF_VALUES:
+        return ""
+    return raw or DEFAULT_SENTRY_DSN
+
+
+def _send_boot_canary() -> None:
+    """One info event per process start — proof-of-wiring signal.
+
+    On Vercel every cold start emits exactly one event tagged canary=boot
+    (environment tag distinguishes production/preview/local). This lets the
+    owner verify the Sentry wiring from the Sentry UI itself — no Vercel
+    dashboard access needed. One event per cold start sits comfortably
+    inside the free tier (5k events/month). Disable: SENTRY_BOOT_CANARY=off.
+    """
+    if os.getenv("SENTRY_BOOT_CANARY", "").strip().lower() in _OFF_VALUES:
+        return
+    try:
+        import sentry_sdk
+
+        with sentry_sdk.new_scope() as scope:
+            scope.set_tag("canary", "boot")
+            sentry_sdk.capture_message("SmartBot API booted", level="info")
+    except Exception:  # noqa: BLE001 — never break startup
+        pass
+
+
 def init_sentry() -> bool:
-    """Init sentry-sdk when SENTRY_DSN is set; otherwise a clean no-op.
+    """Init sentry-sdk with the resolved DSN; disabled → clean no-op.
 
     GlitchTip note: sentry-sdk's DSN format works against GlitchTip
     unchanged (https://glitchtip.com/documentation/sdk — Sentry SDKs are
-    the recommended client). Set SENTRY_DSN to point at either backend.
+    the recommended client). Set SENTRY_DSN to point at either backend;
+    set it to "off" to disable entirely.
     """
     global _sentry_enabled
-    dsn = os.getenv("SENTRY_DSN", "").strip()
+    dsn = _resolve_dsn()
     if not dsn:
-        log.info("observability: SENTRY_DSN not set — error tracking disabled "
-                 "(set it to a Sentry or GlitchTip DSN to enable)")
+        log.info("observability: error tracking disabled (SENTRY_DSN off or "
+                 "no default DSN configured)")
         return False
     try:
         import sentry_sdk
 
-        release = os.getenv("SENTRY_RELEASE", "").strip()
+        from _utils import app_version
+
+        environment = (
+            os.getenv("SENTRY_ENVIRONMENT", "").strip()
+            or os.getenv("ENV", "").strip()
+            or os.getenv("VERCEL_ENV", "").strip()
+            or "local"
+        )
+        release = os.getenv("SENTRY_RELEASE", "").strip() or app_version()
         kwargs: dict = {
             "dsn": dsn,
-            "environment": os.getenv("SENTRY_ENVIRONMENT", os.getenv("ENV", "production")),
+            "environment": environment,
             "traces_sample_rate": float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
             "send_default_pii": False,
         }
@@ -67,7 +124,9 @@ def init_sentry() -> bool:
             kwargs["release"] = release
         sentry_sdk.init(**kwargs)
         _sentry_enabled = True
-        log.info("observability: error tracking enabled")
+        log.info("observability: error tracking enabled (env=%s, release=%s)",
+                 environment, release)
+        _send_boot_canary()
         return True
     except Exception as e:  # noqa: BLE001 — observability must never take the app down
         log.warning("observability: sentry init failed, continuing without it: %s", e)
@@ -91,6 +150,16 @@ def capture_exception(exc: BaseException, *, request=None) -> None:
                 except Exception:  # noqa: BLE001
                     pass
             sentry_sdk.capture_exception(exc)
+        # Serverless freeze guard: the background transport batches events
+        # with a ~2s delay and Vercel may freeze the instance the moment the
+        # response is sent — a bounded flush (1s, inside the 500 path where
+        # latency no longer matters) makes delivery reliable.
+        try:
+            client = sentry_sdk.get_client()
+            if client is not None:
+                client.flush(timeout=1.0)
+        except Exception:  # noqa: BLE001
+            pass
     except Exception:  # noqa: BLE001
         pass
 

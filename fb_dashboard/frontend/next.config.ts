@@ -26,13 +26,16 @@ const nextConfig: NextConfig = {
 
 // ── v6 §C — Sentry/GlitchTip source-map upload wiring ─────────────────
 // withSentryConfig is build-time tooling only; with no SENTRY_AUTH_TOKEN
-// it skips uploads silently. Runtime behaviour lives in
-// src/instrumentation.ts / instrumentation-client.ts (no-op without DSN).
+// it skips uploads silently. org/project defaults match the committed
+// runtime DSN (org "subnation", project "smartbot-web") so adding ONLY
+// SENTRY_AUTH_TOKEN in Vercel later activates symbolicated stack traces.
+// Runtime behaviour lives in src/instrumentation.ts /
+// instrumentation-client.ts + src/lib/sentry-config.ts.
 import { withSentryConfig } from "@sentry/nextjs"
 
 export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  org: process.env.SENTRY_ORG ?? "subnation",
+  project: process.env.SENTRY_PROJECT ?? "smartbot-web",
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
   disableLogger: true,

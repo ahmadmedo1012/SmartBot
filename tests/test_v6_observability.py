@@ -3,9 +3,12 @@ from __future__ import annotations
 """v6 §C + §E — observability & cron reliability tests.
 
 §C (Sentry/GlitchTip + critical Telegram alerts):
-  1. init_sentry is a clean no-op without SENTRY_DSN (and never raises
-     even when the import fails entirely — observability must not take
-     the app down).
+  1. init_sentry resolves the DSN: committed default when env unset, env
+     override wins (GlitchTip path), explicit "off" disables; never raises
+     even when the sentry_sdk import fails entirely — observability must not
+     take the app down. The default-path tests run against a FAKE
+     sentry_sdk module (hermetic: zero network, zero real SDK).
+  1b. The boot canary fires once per init (SENTRY_BOOT_CANARY=off silences).
   2. global_500_handler bridges to the admin Telegram pipeline (HTTP
      boundary mocked) — full path: handler → report_critical →
      telegram_alert → recipients resolution → send_message → _call.
@@ -31,6 +34,7 @@ os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 
 import uuid
+from contextlib import contextmanager
 
 import pytest
 from database import AsyncSessionLocal  # noqa: E402
@@ -131,15 +135,82 @@ async def _make_platform_admin(username: str) -> None:
 
 
 # ────────────────────────────────────────────────────────────────────
-# §C 1. Sentry no-op safety
+# §C 1. Sentry DSN resolution (hermetic — fake sentry_sdk module)
 # ────────────────────────────────────────────────────────────────────
 
-async def test_init_sentry_noop_without_dsn(monkeypatch):
+import sys  # noqa: E402
+import types  # noqa: E402
+
+
+def _fake_sentry(monkeypatch) -> dict:
+    """Install a hermetic sentry_sdk stand-in and return its recording state.
+
+    The app now ships a committed DEFAULT_SENTRY_DSN, so the "unset" path is
+    ACTIVE — these tests must never touch the real SDK or the network.
+    """
+    fake = types.ModuleType("sentry_sdk")
+    state: dict = {"init_kwargs": None, "messages": [], "exceptions": []}
+
+    def _init(**kwargs):
+        state["init_kwargs"] = kwargs
+
+    @contextmanager
+    def new_scope():
+        yield types.SimpleNamespace(set_tag=lambda k, v: None)
+
+    fake.init = _init
+    fake.new_scope = new_scope
+    fake.capture_message = lambda message, level=None: state["messages"].append((message, level))
+    fake.capture_exception = lambda exc: state["exceptions"].append(exc)
+    fake.get_client = lambda: types.SimpleNamespace(flush=lambda timeout=None: True)
+    monkeypatch.setitem(sys.modules, "sentry_sdk", fake)
+    return state
+
+
+async def test_init_sentry_disabled_explicitly(monkeypatch):
     import _observability as obs
 
-    monkeypatch.delenv("SENTRY_DSN", raising=False)
+    monkeypatch.setenv("SENTRY_DSN", "off")
     assert obs.init_sentry() is False
     assert obs._sentry_enabled is False
+
+
+async def test_init_sentry_uses_committed_default_when_env_unset(monkeypatch):
+    import _observability as obs
+
+    state = _fake_sentry(monkeypatch)
+    for var in ("SENTRY_DSN", "SENTRY_RELEASE", "SENTRY_ENVIRONMENT",
+                "ENV", "VERCEL_ENV", "SENTRY_BOOT_CANARY"):
+        monkeypatch.delenv(var, raising=False)
+    assert obs.init_sentry() is True
+    assert obs._sentry_enabled is True
+    assert state["init_kwargs"]["dsn"] == obs.DEFAULT_SENTRY_DSN
+    assert state["init_kwargs"]["environment"] == "local"  # no ENV/VERCEL_ENV → local
+    assert state["init_kwargs"]["release"]  # defaults to app_version()
+    assert any("boot" in str(m).lower() for m, _ in state["messages"])  # boot canary
+    obs._sentry_enabled = False  # hygiene: never leak enabled state into other tests
+
+
+async def test_init_sentry_env_overrides_default(monkeypatch):
+    import _observability as obs
+
+    state = _fake_sentry(monkeypatch)
+    monkeypatch.setenv("SENTRY_DSN", "https://key@glitchtip.example.com/2")
+    monkeypatch.delenv("SENTRY_BOOT_CANARY", raising=False)
+    assert obs.init_sentry() is True
+    assert state["init_kwargs"]["dsn"] == "https://key@glitchtip.example.com/2"
+    obs._sentry_enabled = False
+
+
+async def test_init_sentry_boot_canary_off(monkeypatch):
+    import _observability as obs
+
+    state = _fake_sentry(monkeypatch)
+    monkeypatch.delenv("SENTRY_DSN", raising=False)
+    monkeypatch.setenv("SENTRY_BOOT_CANARY", "off")
+    assert obs.init_sentry() is True
+    assert state["messages"] == []  # canary silenced, init itself still fine
+    obs._sentry_enabled = False
 
 
 async def test_init_sentry_never_raises_even_when_sdk_missing(monkeypatch):

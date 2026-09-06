@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { isSentryEnabled } from "@/lib/sentry-config"
 
 /**
  * Root-level global error boundary — Smart-Menu parity (route-level
@@ -17,9 +18,10 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("Global error:", error)
-    // v6 §C — last-resort boundary reports too (only when the DSN is set;
-    // the dynamic import keeps the default state zero-cost).
-    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    // v6 §C — last-resort boundary reports too (isSentryEnabled covers the
+    // committed-default DSN case where the env var itself is unset; the
+    // dynamic import keeps the default state zero-cost).
+    if (isSentryEnabled(process.env.NEXT_PUBLIC_SENTRY_DSN)) {
       import("@sentry/nextjs").then(S => {
         S.captureException(error, { tags: { boundary: "global-error" } })
       }).catch(() => {})

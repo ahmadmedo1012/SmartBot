@@ -62,7 +62,7 @@ bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next
 
 ## المراقبة وتتبع الأخطاء (v6 §ج/§هـ)
 
-- **Sentry/GlitchTip جاهزان:** اضبط `SENTRY_DSN` (خلفية) و`NEXT_PUBLIC_SENTRY_DSN` (واجهة) في Vercel — بلا DSN النظام معطّل تمامًا بصفر كلفة. التوافق مع GlitchTip ذاتي الاستضافة: نفس بروتوكول DSN، تغيّر العنوان فقط.
+- **Sentry/GlitchTip مُفعَّل افتراضيًا:** DSN عام مضمّن في الكود (مفتاح إرسال فقط — لا يقرأ شيئًا). الخلفية → مشروع `smartbot-api`، الواجهة → `smartbot-web` (مؤسسة `subnation`). للتبديل إلى GlitchTip: `SENTRY_DSN` في الخلفية و`NEXT_PUBLIC_SENTRY_DSN` في الواجهة. للتعطيل: `SENTRY_DSN=off`. خرائط المصدر: أضف `SENTRY_AUTH_TOKEN` في Vercel فقط (org/project مضبوطان افتراضيًا).
 - **تنبيهات تليجرام الحرجة:** كل 500 غير معالج يصل الأدمن فورًا (مع معرف الطلب) مع تبريد 5 دقائق لكل بصمة خطأ.
 - **كشف توقف الكرون:** كل نبض يُسجّل؛ إن غاب >15 دقيقة يصل تنبيه (الكرون اليومي الأصلي من Vercel = قناة الكشف المستقلة). اختبار ذاتي: `POST /api/cron/alert-test`.
 

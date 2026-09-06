@@ -37,6 +37,13 @@ os.environ["SECRET_KEY"] = "test-secret-key-not-for-prod"
 os.environ["CRON_SECRET"] = "test-cron-secret"
 os.environ["FB_ACCESS_TOKEN"] = "test-token"
 os.environ["FB_PAGE_ID"] = "0"
+# v6+ — Sentry OFF for the whole suite: the app now ships a committed
+# DEFAULT_SENTRY_DSN (public send-only key) so "unset" would mean ACTIVE
+# and app-startup tests would emit real events. A hermetic suite never
+# touches the network; tests that exercise the default path use a fake
+# sentry_sdk module (tests/test_v6_observability.py §C1).
+os.environ["SENTRY_DSN"] = "off"
+os.environ["SENTRY_BOOT_CANARY"] = "off"
 os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("FERNET_KEY", "")  # not required in DEBUG mode

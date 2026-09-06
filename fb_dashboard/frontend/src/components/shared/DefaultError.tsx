@@ -2,14 +2,16 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { isSentryEnabled } from "@/lib/sentry-config"
 import { useEffect } from "react"
 
 export function DefaultError({ error, reset, className }: { error: Error & { digest?: string }; reset?: () => void; className?: string }) {
   useEffect(() => {
     console.error(error)
-    // v6 §C — report to Sentry/GlitchTip when the client SDK is active
-    // (NEXT_PUBLIC_SENTRY_DSN set); dynamic import = zero cost otherwise.
-    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+    // v6 §C — report to Sentry/GlitchTip when client tracking is active
+    // (env override OR committed default — see lib/sentry-config.ts);
+    // dynamic import = zero cost otherwise.
+    if (isSentryEnabled(process.env.NEXT_PUBLIC_SENTRY_DSN)) {
       import("@sentry/nextjs").then(S => {
         S.captureException(error, {
           tags: { boundary: "route-error", digest: error.digest ?? "" },

@@ -1,15 +1,18 @@
 /**
  * v6 §C — client-side Sentry (GlitchTip-compatible) instrumentation.
  *
- * HARD RULE: when NEXT_PUBLIC_SENTRY_DSN is unset this registers nothing —
- * the dynamic import never happens, so the Sentry bundle chunk is never
- * loaded and the no-op state is truly zero-cost for page weight.
- * (NEXT_PUBLIC_ vars are inlined at BUILD time: set the env var in Vercel
- * and redeploy to activate.)
+ * DSN resolution (src/lib/sentry-config.ts): env override → committed
+ * DEFAULT_SENTRY_DSN → "off" disables. The dynamic import keeps the SDK
+ * chunk out of the critical path — page weight/LCP are unaffected (the
+ * chunk loads async after hydration).
+ * (NEXT_PUBLIC_ vars are inlined at BUILD time; an env override in Vercel
+ * still requires a redeploy to take effect.)
  */
 
+import { resolveSentryDsn } from "./lib/sentry-config"
+
 export async function register() {
-  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim()
+  const dsn = resolveSentryDsn(process.env.NEXT_PUBLIC_SENTRY_DSN)
   if (!dsn) {
     return
   }
@@ -26,7 +29,7 @@ export async function register() {
 // Instrument client-side route navigations (SDK v10 requirement).
 // No-op without the SDK active — the guard mirrors register().
 export const onRouterTransitionStart = async (...args: unknown[]) => {
-  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return
+  if (!resolveSentryDsn(process.env.NEXT_PUBLIC_SENTRY_DSN)) return
   const Sentry = await import("@sentry/nextjs")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(Sentry as any).captureRouterTransitionStart?.(...args)

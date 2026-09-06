@@ -270,7 +270,9 @@ async def _seed_subscription_plans(db):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # v6 §C — Sentry/GlitchTip: clean no-op unless SENTRY_DSN is set
+    # v6 §C — Sentry/GlitchTip: committed DEFAULT_SENTRY_DSN (public
+    # send-only key) → active by default; SENTRY_DSN=off disables; env
+    # override points at Sentry or self-hosted GlitchTip.
     from _observability import init_sentry
     init_sentry()
     try:

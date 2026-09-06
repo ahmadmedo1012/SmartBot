@@ -270,6 +270,9 @@ async def _seed_subscription_plans(db):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # v6 §C — Sentry/GlitchTip: clean no-op unless SENTRY_DSN is set
+    from _observability import init_sentry
+    init_sentry()
     try:
         # ponytail: fail-fast if default SECRET_KEY in production (belt-and-suspenders with config.py)
         if settings.SECRET_KEY == "smartbot-fallback-dev-key-change-in-production" and not settings.DEBUG:
@@ -446,6 +449,10 @@ async def validation_handler(request: Request, exc: RequestValidationError):
 async def global_500_handler(request: Request, exc: Exception):
     import traceback
     log.error(f"Unhandled 500 | {request.method} {request.url.path} | {traceback.format_exc()}")
+    # v6 §C — Sentry capture + critical Telegram alert (never raises;
+    # cooldown-guarded so an error storm sends one alert, not hundreds)
+    from _observability import report_critical
+    await report_critical(request, exc)
     return JSONResponse(status_code=500, content={"detail": "حدث خطأ داخلي — الرجاء المحاولة لاحقاً"})
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)

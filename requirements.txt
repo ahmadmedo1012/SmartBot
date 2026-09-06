@@ -19,6 +19,7 @@ Pillow>=12.3.0               # image resize/compress before base64 encode for vi
 cryptography>=42.0.0
 argon2-cffi>=23.1.0
 redis[asyncio]>=5.4.0
+sentry-sdk[fastapi]>=2.19.0        # v6 §C — error tracking (Sentry OR GlitchTip: same DSN wire protocol, no-op without SENTRY_DSN)
 
 # Testing
 pytest>=8.3.0

@@ -5,7 +5,18 @@ import { Button } from "@/components/ui/button"
 import { useEffect } from "react"
 
 export function DefaultError({ error, reset, className }: { error: Error & { digest?: string }; reset?: () => void; className?: string }) {
-  useEffect(() => { console.error(error) }, [error])
+  useEffect(() => {
+    console.error(error)
+    // v6 §C — report to Sentry/GlitchTip when the client SDK is active
+    // (NEXT_PUBLIC_SENTRY_DSN set); dynamic import = zero cost otherwise.
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      import("@sentry/nextjs").then(S => {
+        S.captureException(error, {
+          tags: { boundary: "route-error", digest: error.digest ?? "" },
+        })
+      }).catch(() => {})
+    }
+  }, [error])
 
   return (
     <div role="alert" className={cn("flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4", className)}>

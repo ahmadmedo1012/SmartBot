@@ -216,6 +216,54 @@ async def setup_status(db=Depends(get_db), current_user: User = Depends(get_curr
 from _bootstrap import seed_admin  # single source of truth (runner.py imports the same)
 
 
+@router.get("/api/cron/status")
+async def cron_status(current_user: User = Depends(require_platform_admin)):
+    """v6 §E — cron heartbeat truth for the platform-admin console.
+
+    Returns the last recorded beat, its age, and whether it is stalled
+    (>15 min without a beat while cron-job.org should beat every 5 min).
+    Read-only; no secrets. Drives the admin dashboard banner + can be
+    curl-ed by any uptime checker the owner adds later.
+    """
+    from _observability import STALE_AFTER_S, get_last_heartbeat
+    from _utils import utcnow as _now
+
+    last = await get_last_heartbeat()
+    if last is None:
+        return ok({
+            "last_heartbeat": None, "age_seconds": None, "stale": None,
+            "never_beaten": True, "stale_after_seconds": STALE_AFTER_S,
+            "expected_interval": "5m via cron-job.org (Vercel native: daily 04:00)",
+        })
+    age = int((_now() - last).total_seconds())
+    return ok({
+        "last_heartbeat": last.isoformat(),
+        "age_seconds": age,
+        "stale": age > STALE_AFTER_S,
+        "never_beaten": False,
+        "stale_after_seconds": STALE_AFTER_S,
+        "expected_interval": "5m via cron-job.org (Vercel native: daily 04:00)",
+    })
+
+
+@router.post("/api/cron/alert-test")
+async def cron_alert_test(current_user: User = Depends(require_platform_admin)):
+    """v6 §C/§E acceptance evidence — deliberately fire the critical-alert
+    pipeline to the admin Telegram (Sentry path is exercised by any real 500).
+
+    The owner clicks this once after configuring the BotFather token to
+    produce the live alert screenshot required by the v6 plan gate #4.
+    """
+    from _observability import telegram_alert
+
+    sent = await telegram_alert(
+        "🧪 اختبار تنبيهات SmartBot — إذا وصلتك هذه الرسالة فقناة التنبيهات الحرجة تعمل",
+        key="alert_test", cooldown_s=0.0,
+    )
+    return ok({"sent": bool(sent),
+               "hint": "إن لم تصل: تحقق من توكن BotFather في إعدادات الأدمن + معرفات المستلمين"})
+
+
 @router.post("/api/repair")
 async def repair(current_user: User = Depends(require_platform_admin)):
     """Manual DB repair: create tables, run migrations, seed admin. Platform admin only."""

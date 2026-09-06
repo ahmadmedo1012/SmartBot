@@ -11,4 +11,18 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+// ── v6 §C — Sentry/GlitchTip source-map upload wiring ─────────────────
+// withSentryConfig is build-time tooling only; with no SENTRY_AUTH_TOKEN
+// it skips uploads silently. Runtime behaviour lives in
+// src/instrumentation.ts / instrumentation-client.ts (no-op without DSN).
+import { withSentryConfig } from "@sentry/nextjs"
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  disableLogger: true,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  telemetry: false,
+})

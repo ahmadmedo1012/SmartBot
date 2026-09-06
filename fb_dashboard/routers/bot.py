@@ -159,9 +159,12 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     """v4 §6.21 — the serverless heartbeat: everything that never ran on Vercel.
 
     One authenticated cron entrypoint that runs per invocation:
+      0. detects a stalled beat BEFORE this run (v6 §E — telegram alert
+         when the previous beat is >15 min old)
       1. publishes DUE scheduled posts (tenant-scoped, was never scheduled)
       2. refreshes fb_fan_count snapshots for connected tenants
       3. runs one bot comment cycle for connected tenants (same engine gate)
+      4. records this beat in the SystemConfig ledger (v6 §E)
     Vercel Hobby note: if sub-daily crons are not available, schedule what the
     plan allows — the endpoint itself is idempotent and safe to call often.
     """
@@ -175,6 +178,14 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
         raise HTTPException(403, "Unauthorized cron")
     from _utils import utcnow as _now
     report = {"published_posts": 0, "fan_refreshed": 0, "cycles": 0, "errors": []}
+
+    # v6 §E — staleness detection BEFORE this beat is recorded: reads the
+    # PREVIOUS beat. The daily Vercel-native cron (vercel.json 04:00) is the
+    # independent second channel: if cron-job.org (5-min beats) dies, this
+    # daily run sees a >15-min gap and alerts the admin on Telegram.
+    from _observability import check_cron_staleness_and_alert, record_heartbeat
+    stall = await check_cron_staleness_and_alert()
+    report["previous_beat"] = stall
 
     # ── 1. Publish due scheduled posts (tenant-scoped) ──
     try:
@@ -266,6 +277,9 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     except Exception as e:
         report["errors"].append(f"cycle sweep: {str(e)[:120]}")
 
+    # v6 §E — ledger: every authenticated beat is persisted (timestamp +
+    # report) so staleness checks and the admin console can see the truth.
+    await record_heartbeat(report)
     return ok(report)
 
 

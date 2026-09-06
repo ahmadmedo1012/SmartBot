@@ -17,6 +17,13 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("Global error:", error)
+    // v6 §C — last-resort boundary reports too (only when the DSN is set;
+    // the dynamic import keeps the default state zero-cost).
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      import("@sentry/nextjs").then(S => {
+        S.captureException(error, { tags: { boundary: "global-error" } })
+      }).catch(() => {})
+    }
   }, [error])
 
   return (

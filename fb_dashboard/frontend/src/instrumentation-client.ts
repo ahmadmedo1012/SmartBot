@@ -22,3 +22,12 @@ export async function register() {
     sendDefaultPii: false,
   })
 }
+
+// Instrument client-side route navigations (SDK v10 requirement).
+// No-op without the SDK active — the guard mirrors register().
+export const onRouterTransitionStart = async (...args: unknown[]) => {
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return
+  const Sentry = await import("@sentry/nextjs")
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(Sentry as any).captureRouterTransitionStart?.(...args)
+}

@@ -5,6 +5,7 @@ import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 
 interface CronStatus {
   last_heartbeat: string | null
@@ -76,7 +77,7 @@ export function CronHeartbeatCard() {
           </div>
         </div>
         <p className="text-[10px] text-muted-foreground" dir="auto">
-          {status?.last_heartbeat ? `آخر نبض: ${new Date(status.last_heartbeat).toLocaleString("ar-LY")}` : "—"}
+          {status?.last_heartbeat ? `آخر نبض: ${formatDate(status.last_heartbeat)}` : "—"}
         </p>
       </CardContent>
     </Card>

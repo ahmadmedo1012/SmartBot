@@ -4,7 +4,7 @@
 
 **المكدّس التقني:** FastAPI (Python 3.12) + Next.js 16 (App Router) + SQLAlchemy/Alembic + Neon PostgreSQL (إنتاج) / SQLite (تطوير) + Vercel.
 
-**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 280 hermetic tests, CI gates on every push.
+**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 297 hermetic tests, CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
 
 ---
 
@@ -22,7 +22,7 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 280 اختبار pytest (منقولون من جذر الحزمة — v5 §1)
+tests/                      ← 297 اختبار pytest (منقولون من جذر الحزمة — v5 §1)
 alembic/versions/           ← ترحيلات Alembic (حتى 010: فهارات المسارات الساخنة)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
@@ -40,22 +40,31 @@ cd fb_dashboard/frontend
 npm install && npm run dev                    # الواجهة على :3000 (توكيل /api)
 ```
 
-## بوابات الجودة (v5 — تعمل آليًا على كل push/PR عبر GitHub Actions)
+## بوابات الجودة (v5 + v6 — تعمل آليًا على كل push/PR عبر GitHub Actions)
 
 ```bash
-bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next build + عقود
+bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next build + عقود ثابتة + بوابات v6
 ```
 
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **280 passed** (محكمّة: أمامي/عكسي/عشوائي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **297 passed** (محكمّة: أمامي/عكسي/عشوائي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
-| بناء الإنتاج | `npm run build` | 38 مسارًا |
+| بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |
 | صفر تمدد أفقي | `node e2e/viewport-sweep.mjs` | 21/21 (375/768/1440) |
+| i18n موحد (v6 §أ) | `python scripts/check_i18n_calls.py` | صفر استدعاء toLocale خارج format.ts |
+| تسميات وصولية (v6 §ب) | `node scripts/check_a11y_labels.ts` | صفر عنصر أيقونة-فقط بلا اسم |
+| تباين AA (v6 §ب) | `node scripts/check_contrast.mjs` | 30/30 توليفة ≥ 4.5:1 (مقاسة رياضيًا) |
 
 > ملاحظة حتمية الاختبارات: `conftest.py` في الجذر **يفرض** قاعدة SQLite مؤقتة معزولة — لا ترث `DATABASE_URL` من الجهاز أبدًا (v5 §0: تلوث البيئة تسبب فشلات صامتة سابقًا).
+
+## المراقبة وتتبع الأخطاء (v6 §ج/§هـ)
+
+- **Sentry/GlitchTip جاهزان:** اضبط `SENTRY_DSN` (خلفية) و`NEXT_PUBLIC_SENTRY_DSN` (واجهة) في Vercel — بلا DSN النظام معطّل تمامًا بصفر كلفة. التوافق مع GlitchTip ذاتي الاستضافة: نفس بروتوكول DSN، تغيّر العنوان فقط.
+- **تنبيهات تليجرام الحرجة:** كل 500 غير معالج يصل الأدمن فورًا (مع معرف الطلب) مع تبريد 5 دقائق لكل بصمة خطأ.
+- **كشف توقف الكرون:** كل نبض يُسجّل؛ إن غاب >15 دقيقة يصل تنبيه (الكرون اليومي الأصلي من Vercel = قناة الكشف المستقلة). اختبار ذاتي: `POST /api/cron/alert-test`.
 
 ## النشر
 

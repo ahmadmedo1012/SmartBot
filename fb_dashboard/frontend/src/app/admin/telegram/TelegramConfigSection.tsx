@@ -58,7 +58,7 @@ export function TelegramConfigSection({
                 onChange={(e) => onConfigChange({ ...config, botToken: e.target.value })}
                 placeholder="123456789:ABCdefGHIjklmNOPqrstUVwxyz" className="h-11 rounded-xl text-left ltr pl-10" dir="ltr" />
               <button type="button" onClick={onToggleShowToken}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded active:scale-90"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>
                 {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -91,7 +91,7 @@ export function TelegramConfigSection({
             </Button>
             <Button variant="outline" onClick={onTest}
               disabled={testing || !config.botToken.trim() || !config.chatId.trim()} className="rounded-xl gap-1">
-              {testing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
+              {testing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4 rtl:-scale-x-100" aria-hidden="true" />}
               {testing ? "جارٍ..." : "اختبار الإرسال"}
             </Button>
             <Button variant="outline" onClick={onDiagnose} disabled={diagnosing} className="rounded-xl gap-1">

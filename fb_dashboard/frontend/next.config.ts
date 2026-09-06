@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
 // SENTRY_AUTH_TOKEN in Vercel later activates symbolicated stack traces.
 // Runtime behaviour lives in src/instrumentation.ts /
 // instrumentation-client.ts + src/lib/sentry-config.ts.
-import { withSentryConfig } from "@sentry/nextjs"
+import { withSentryConfig } from "@sentry/nextjs/config"
 
 export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG ?? "subnation",

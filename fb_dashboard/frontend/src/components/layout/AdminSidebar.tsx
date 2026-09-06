@@ -207,7 +207,7 @@ export function AdminSidebar({
           onClick={onLogout}
           className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
         >
-          <LogOut className="size-4" /> تسجيل الخروج
+          <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
         </button>
       </div>
     </aside>

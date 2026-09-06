@@ -1,9 +1,9 @@
 "use client"
 
 import { Sparkles, Star, Crown, Building2, Flame } from "lucide-react"
-import { MotionArrowLeft } from "@/components/ui/motion-icons"
 import { MotionCheck } from "@/components/ui/motion-icons"
 import { Button } from "@/components/ui/button"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { toArabicNumber } from "@/lib/format"
 import { getArabicPlural } from "@/lib/arabic-plural"
@@ -119,7 +119,7 @@ export function PlanSelector({
           onClick={onContinue}
         >
           {selected ? `متابعة مع خطة ${selected.nameAr}` : "اختر خطة أولاً"}
-          <MotionArrowLeft className="ms-2 size-5" />
+          <DirectionalIcon semanticDirection="forward" className="motion-icon ms-2 size-5" />
         </Button>
       </div>
     </div>

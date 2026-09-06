@@ -128,11 +128,11 @@ export default function ScheduledPage() {
                       <span>{p.scheduled_at ? formatDate(p.scheduled_at) : "بدون تاريخ"}</span>
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)}>
-                        <Send className="size-3" />
+                      <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} aria-label="نشر المنشور المجدول الآن">
+                        <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)}>
-                        <Trash2 className="size-3" />
+                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} aria-label="حذف المنشور المجدول">
+                        <Trash2 className="size-3" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>

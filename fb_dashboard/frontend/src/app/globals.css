@@ -100,6 +100,11 @@
    be derived from them, NEVER set independently.
    ═══════════════════════════════════════════════════════ */
 :root {
+  /* v7 §B — native UA rendering follows the active theme: scrollbars,
+   * form controls (checkbox/radio/select), and the canvas backdrop all
+   * re-tint instantly, even BEFORE hydration paints our own surfaces.
+   * :root = dark (default); .light below flips it. */
+  color-scheme: dark;
   /* v4 radical plan §1.1 — the duplicated font definitions that used to live
      here are DELETED: the @theme inline block above is the single source.
      The old hand-written --font-heading (Cairo-first) silently overrode the
@@ -244,6 +249,7 @@
 }
 
 .light {
+  color-scheme: light; /* v7 §B — UA counterpart of the :root dark declaration */
   --background: oklch(0.985 0.004 70);
   --background-radial: radial-gradient(circle at 30% 0%, oklch(0.55 0.19 45 / 0.03), transparent 65%);
   --foreground: oklch(0.12 0.008 70);

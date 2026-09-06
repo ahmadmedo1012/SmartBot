@@ -89,6 +89,10 @@ export default function FeaturesSection() {
                 {!isLarge && (
                   <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent-foreground transition-all duration-300">
                     <span>اعرف المزيد</span>
+                    {/* v7 §2.2 EXCEPTION (documented, not replaced): external-link
+                        diagonal ↗ mirrored to ↖ in RTL — off the back/forward axis,
+                        so DirectionalIcon does not apply. Uses the same single
+                        rtl:-scale-x-100 mechanism. */}
                     <ArrowUpRight className="size-3 rtl:-scale-x-100" />
                   </div>
                 )}

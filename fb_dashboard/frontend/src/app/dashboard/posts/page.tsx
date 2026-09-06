@@ -88,7 +88,7 @@ export default function PostsPage() {
                 onClick={() => { if (newMessage.trim()) createMut.mutate(newMessage.trim()) }}
                 disabled={!newMessage.trim() || createMut.isPending}
               >
-                <Send className="size-4" /> نشر
+                <Send className="size-4 rtl:-scale-x-100" /> نشر
               </Button>
             </div>
           </CardContent>
@@ -132,12 +132,12 @@ export default function PostsPage() {
                     </div>
                     <div className="flex gap-1">
                       {p.status !== "published" && (
-                        <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)}>
-                          <Send className="size-3" />
+                        <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} aria-label="نشر المنشور الآن">
+                          <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)}>
-                        <Trash2 className="size-3" />
+                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} aria-label="حذف المنشور">
+                        <Trash2 className="size-3" aria-hidden="true" />
                       </Button>
                     </div>
                   </div>

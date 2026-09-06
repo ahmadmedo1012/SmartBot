@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronLeft } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 
 /* v6+ — framer-free: the header/icon/h1 entrance animations are now
@@ -74,7 +74,11 @@ export function PageHeader({
                         ) : (
                           <span className={last ? "text-foreground/80 truncate" : "truncate"}>{b.label}</span>
                         )}
-                        {!last && <ChevronLeft className="size-3 opacity-50 shrink-0" />}
+                        {!last && (
+                          // v7 §2.2: breadcrumb separator follows the reading flow —
+                          // forward semantics; the component flips it per direction.
+                          <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-3 opacity-50 shrink-0" />
+                        )}
                       </span>
                     )
                   })}

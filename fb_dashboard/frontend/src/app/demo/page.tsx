@@ -11,9 +11,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 
 import { cn } from "@/lib/utils"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import {
   Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
-  Sparkles, ArrowLeft, CheckCircle, Send, Bell, Settings as SettingsIcon,
+  Sparkles, CheckCircle, Send, Bell, Settings as SettingsIcon,
 } from "lucide-react"
 import dynamic from "next/dynamic"
 /* v6+ — recharts (~340KB) was eager-imported into /demo's first load (the
@@ -119,7 +120,7 @@ function DemoHeader({ tab }: { tab: TabKey }) {
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
-            <ArrowLeft className="size-4 rtl:-scale-x-100" /> العودة
+            <DirectionalIcon semanticDirection="back" className="size-4" /> العودة
           </Button>
           <div>
             <h1 className="font-bold text-sm">{meta.title}</h1>

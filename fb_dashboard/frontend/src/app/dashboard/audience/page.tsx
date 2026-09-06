@@ -90,7 +90,7 @@ export default function AudiencePage() {
                 {[1,2,3,4,5].map(i => <div key={i} className="h-5 bg-muted rounded animate-pulse" />)}
               </div>
             ) : topQuery.isError ? (
-              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
+              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
             ) : (topQuery.data?.length || 0) > 0 ? (
               <div className="space-y-2">
                 {topQuery.data.map((c: any, i: number) => (

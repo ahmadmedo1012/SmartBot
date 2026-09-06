@@ -121,8 +121,8 @@ export function DiagnosticsSection({
                         {a.addedBy && <span className="text-muted-foreground/60"> · أضيف بواسطة {a.addedBy.name}</span>}
                       </p>
                     </div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteApprover(a.id)} className="rounded-xl">
-                      <Trash2 className="size-4" />
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteApprover(a.id)} className="rounded-xl" aria-label={`حذف المعتمد ${a.label}`}>
+                      <Trash2 className="size-4" aria-hidden="true" />
                     </Button>
                   </div>
                 ))}

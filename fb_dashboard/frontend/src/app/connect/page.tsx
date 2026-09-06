@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
-import { Check, X, Loader2, ArrowLeft, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
+import { Check, X, Loader2, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -195,7 +196,7 @@ export default function ConnectPage() {
       {/* Header */}
       <div className="fixed left-4 right-4 top-4 z-10 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4 rtl:-scale-x-100" />
+          <DirectionalIcon semanticDirection="back" className="h-4 w-4" />
           العودة للوحة التحكم
         </Link>
       </div>

@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
-import { Search, Send, Bell, Link2, RefreshCw, MessageCircle, ArrowRight } from "lucide-react"
+import { Search, Send, Bell, Link2, RefreshCw, MessageCircle } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -264,7 +265,7 @@ export default function MessagesPage() {
               {/* Mobile back-to-list (master-detail) */}
               <div className="md:hidden flex items-center gap-2 p-2 border-b border-border bg-card/80">
                 <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} className="h-9">
-                  <ArrowRight className="size-4" /> كل المحادثات
+                  <DirectionalIcon semanticDirection="forward" className="size-4" /> كل المحادثات
                 </Button>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -342,7 +343,7 @@ export default function MessagesPage() {
                     className="shrink-0 shadow-sm shadow-accent-foreground/15"
                     aria-label="إرسال الرد"
                   >
-                    <Send className="size-4" aria-hidden="true" />
+                    <Send className="size-4 rtl:-scale-x-100" aria-hidden="true" />
                   </Button>
                   <div className="flex-1 relative">
                     <textarea

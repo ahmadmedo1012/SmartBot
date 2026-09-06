@@ -52,6 +52,7 @@ export function StepIndicator({
               )}
               aria-current={isActive ? "step" : undefined}
               aria-disabled={!clickable || undefined}
+              aria-label={`الانتقال إلى خطوة ${STEP_LABELS[s]}`}
             >
               <div
                 className={cn(

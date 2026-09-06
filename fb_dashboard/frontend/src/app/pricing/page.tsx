@@ -115,7 +115,7 @@ export default function PricingPage() {
         >
           <button
             onClick={() => setAnnual(false)}
-            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all ${
+            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -123,7 +123,7 @@ export default function PricingPage() {
           </button>
           <button
             onClick={() => setAnnual(true)}
-            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 ${
+            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >

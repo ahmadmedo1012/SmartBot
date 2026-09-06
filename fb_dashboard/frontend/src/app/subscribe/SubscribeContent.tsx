@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Bot, Loader2, ArrowLeft } from "lucide-react"
+import { Bot, Loader2 } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Button } from "@/components/ui/button"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { apiFetch } from "@/lib/csrf-client"
@@ -124,11 +125,11 @@ export default function SubscribeContent() {
       <SectionContainer className="py-12">
         {authed ? (
           <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/dashboard")}>
-            <ArrowLeft className="size-4" /> العودة للوحة التحكم
+            <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
           </Button>
         ) : (
           <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/")}>
-            <ArrowLeft className="size-4" /> العودة للرئيسية
+            <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للرئيسية
           </Button>
         )}
 

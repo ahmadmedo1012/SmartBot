@@ -210,7 +210,7 @@ export default function MarketingPage() {
                     loading={createMutation.isPending}
                     className="gap-2"
                   >
-                    <Send className="size-4" />
+                    <Send className="size-4 rtl:-scale-x-100" />
                     حفظ الحملة
                   </Button>
                   <Button variant="outline" onClick={() => setShowForm(false)}>
@@ -280,7 +280,7 @@ export default function MarketingPage() {
                             {sendMutation.isPending ? (
                               <Loader2 className="size-3 animate-spin" />
                             ) : (
-                              <Send className="size-3" />
+                              <Send className="size-3 rtl:-scale-x-100" />
                             )}
                             إرسال
                           </Button>
@@ -291,6 +291,7 @@ export default function MarketingPage() {
                             variant="ghost"
                             onClick={() => deleteMutation.mutate(c.id)}
                             disabled={deleteMutation.isPending}
+                            aria-label="حذف الحملة"
                             className="h-7 text-muted-foreground hover:text-red-500"
                           >
                             <Trash2 className="size-3" />
@@ -303,7 +304,7 @@ export default function MarketingPage() {
                     {c.status === "sent" && (
                       <div className="flex items-center gap-4 text-[11px] text-muted-foreground border-t border-border/40 pt-2.5">
                         <span className="flex items-center gap-1">
-                          <Send className="size-3" />
+                          <Send className="size-3 rtl:-scale-x-100" />
                           أُرسلت إلى {c.sent_count}
                         </span>
                         <span className="flex items-center gap-1">

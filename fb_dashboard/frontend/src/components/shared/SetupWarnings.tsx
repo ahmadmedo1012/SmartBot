@@ -14,7 +14,8 @@
  */
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Link2, Send, MessageSquareReply, ArrowLeft, X } from "lucide-react"
+import { AlertTriangle, Link2, Send, MessageSquareReply, X } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { apiFetch } from "@/lib/csrf-client"
 
 interface SetupStatus {
@@ -151,7 +152,7 @@ export function SetupWarnings() {
             className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110 transition-all outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
           >
             {w.cta}
-            <ArrowLeft className="size-3.5 rtl:rotate-180" />
+            <DirectionalIcon semanticDirection="forward" className="size-3.5" />
           </button>
         </div>
       ))}

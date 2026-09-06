@@ -46,7 +46,7 @@ export function BroadcastTargetsSection({
   return (
     <section>
       <div className="flex items-center gap-2 mb-4">
-        <Send className="size-5 text-muted-foreground" />
+        <Send className="size-5 text-muted-foreground rtl:-scale-x-100" />
         <h3 className="text-lg font-semibold">جهات الإرسال (Broadcast Targets)</h3>
       </div>
       <div className="rounded-md bg-card/50 border border-border/30 overflow-hidden">
@@ -77,9 +77,9 @@ export function BroadcastTargetsSection({
                     <p className="text-sm font-medium truncate">{t.label || t.chatId}</p>
                     <p className="text-xs font-mono text-muted-foreground" dir="ltr">{maskChatId(t.chatId)}</p>
                   </div>
-                  <Switch checked={t.isActive} onCheckedChange={(v) => onToggle(t.id, v)} />
-                  <Button variant="destructive" size="sm" onClick={() => onDelete(t.id)} className="rounded-xl">
-                    <Trash2 className="size-4" />
+                  <Switch checked={t.isActive} onCheckedChange={(v) => onToggle(t.id, v)} aria-label={t.isActive ? "تعطيل الهدف" : "تفعيل الهدف"} />
+                  <Button variant="destructive" size="sm" onClick={() => onDelete(t.id)} className="rounded-xl" aria-label={`حذف الهدف ${maskChatId(t.chatId)}`}>
+                    <Trash2 className="size-4" aria-hidden="true" />
                   </Button>
                 </div>
               ))}

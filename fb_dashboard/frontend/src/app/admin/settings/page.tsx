@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, ArrowLeft, Send, Bot, Webhook, Sparkles } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import Link from "next/link"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -290,7 +291,7 @@ export default function AdminSettingsPage() {
           href="/admin"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="size-4 rtl:-scale-x-100" /> إدارة الاشتراكات
+          <DirectionalIcon semanticDirection="back" className="size-4" /> إدارة الاشتراكات
         </Link>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty || saving}>
@@ -368,7 +369,7 @@ export default function AdminSettingsPage() {
                     disabled={testing || dirty}
                     className="shrink-0"
                   >
-                    <Send className="size-3.5" /> {testing ? "جارٍ الإرسال…" : "إرسال رسالة تجريبية"}
+                    <Send className="size-3.5 rtl:-scale-x-100" /> {testing ? "جارٍ الإرسال…" : "إرسال رسالة تجريبية"}
                   </Button>
                 </div>
               </CardContent>

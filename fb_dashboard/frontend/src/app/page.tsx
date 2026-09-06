@@ -8,7 +8,8 @@
  * paint and the hydration bill drops to the islands only.
  */
 import Link from "next/link"
-import { Star, ArrowLeft, Sparkles } from "lucide-react"
+import { Star, Sparkles } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
@@ -146,7 +147,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap gap-3 animate-fade-in-250">
                   <Link href="/subscribe">
                     <Button size="lg" className="text-base h-12 px-7 shadow-lg shadow-accent-foreground/20">
-                      ابدأ الآن مجاناً <ArrowLeft className="size-4 rtl:-scale-x-100" />
+                      ابدأ الآن مجاناً <DirectionalIcon semanticDirection="forward" className="size-4" />
                     </Button>
                   </Link>
                   <Link href="/demo">

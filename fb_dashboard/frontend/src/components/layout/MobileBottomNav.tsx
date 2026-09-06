@@ -87,7 +87,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(false)}
             aria-label="إغلاق"
             tabIndex={sheetOpen ? 0 : -1}
-            className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0"
+            className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
           >
             <X className="size-4" />
           </button>
@@ -105,7 +105,7 @@ export function MobileBottomNav({
                       type="button"
                       onClick={() => go(item.href)}
                       tabIndex={sheetOpen ? 0 : -1}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] transition-colors ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[colors,transform] ${
                         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -121,9 +121,9 @@ export function MobileBottomNav({
             type="button"
             onClick={() => { setSheetOpen(false); onLogout() }}
             tabIndex={sheetOpen ? 0 : -1}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted"
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[colors,transform]"
           >
-            <LogOut className="size-4" /> تسجيل الخروج
+            <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
           </button>
         </div>
       </div>
@@ -142,7 +142,7 @@ export function MobileBottomNav({
                 type="button"
                 onClick={() => go(item.href)}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] transition-colors ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[colors,transform] ${
                   active ? "text-accent-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -157,7 +157,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[colors,transform]"
           >
             <Menu className="size-5" />
             <span>المزيد</span>

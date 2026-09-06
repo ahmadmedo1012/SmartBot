@@ -130,7 +130,7 @@ export default function CommentsPage() {
                             }}
                             disabled={!replyText[c.id]?.trim() || replyMut.isPending}
                           >
-                            <Reply className="size-3" /> رد
+                            <Reply className="size-3 rtl:-scale-x-100" /> رد
                           </Button>
                         </div>
                       )}

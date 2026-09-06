@@ -295,7 +295,7 @@ export default function SupportPage() {
                   loading={mutation.isPending}
                   disabled={mutation.isPending || !form.message.trim() || form.message.trim().length < 10}
                 >
-                  <Send className="size-4" />
+                  <Send className="size-4 rtl:-scale-x-100" />
                   {mutation.isPending ? "جاري الإرسال..." : "إرسال الطلب"}
                 </Button>
               </form>
@@ -305,7 +305,7 @@ export default function SupportPage() {
           <Card>
             <CardContent className="py-12 text-center space-y-3">
               <div className="mx-auto size-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Send className="size-5 text-green-500" />
+                <Send className="size-5 text-green-500 rtl:-scale-x-100" />
               </div>
               <p className="text-sm font-bold text-green-600">تم إرسال طلبك بنجاح!</p>
               <p className="text-xs text-muted-foreground">
@@ -373,6 +373,11 @@ export default function SupportPage() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{t.body}</p>
                       </div>
+                      {/* v7 §2.2 EXCEPTION (documented, not replaced): disclosure
+                          chevron — an expand/collapse indicator that ROTATES -90°
+                          when open, not a reading-direction semantic. ChevronLeft
+                          (pointing at the trailing edge) is the correct RTL glyph;
+                          flipping it would invert the expand gesture. */}
                       <ChevronLeft
                         className={`size-4 text-muted-foreground shrink-0 transition-transform ${openTicketId === t.id ? "-rotate-90" : ""}`}
                       />
@@ -426,7 +431,7 @@ export default function SupportPage() {
                                     setReplyText("")
                                   }}
                                 >
-                                  <Send className="size-3" />
+                                  <Send className="size-3 rtl:-scale-x-100" />
                                   رد
                                 </Button>
                               </div>
@@ -450,6 +455,9 @@ export default function SupportPage() {
               <details key={faq.id} className="group">
                 <summary className="flex items-center justify-between p-4 rounded-lg bg-card border border-border cursor-pointer list-none hover:bg-muted/50 transition-colors">
                   <span className="text-sm font-medium">{faq.q}</span>
+                  {/* v7 §2.2 EXCEPTION (documented, not replaced): FAQ disclosure
+                      chevron — expand/collapse indicator (rotates on open),
+                      NOT reading-direction semantics. ChevronLeft is correct in RTL. */}
                   <ChevronLeft className="size-4 text-muted-foreground shrink-0 transition-transform group-open:-rotate-90" />
                 </summary>
                 <div className="px-4 pb-4 pt-2 text-sm text-muted-foreground border-x border-b border-border rounded-b-lg bg-card">

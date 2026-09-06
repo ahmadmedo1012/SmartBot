@@ -10,7 +10,8 @@ import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { toast } from "sonner"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
-import { LogIn, Eye, EyeOff, ArrowLeft } from "lucide-react"
+import { LogIn, Eye, EyeOff } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 
 function FloatingShapes() {
@@ -108,7 +109,7 @@ function LoginForm() {
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/60 hover:text-foreground">
-            <ArrowLeft className="size-3.5 rtl:-scale-x-100" />
+            <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
           </Button>
         </Link>

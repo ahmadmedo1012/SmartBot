@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Sparkles, ArrowLeft } from "lucide-react"
+import { Sparkles } from "lucide-react"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Button } from "@/components/ui/button"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
@@ -40,7 +41,7 @@ export default function FinalCTASection() {
           className="flex gap-4 justify-center flex-wrap"
         >
           <Link href="/subscribe">
-            <Button size="lg">ابدأ مجاناً <ArrowLeft className="size-4 sm:size-5 rtl:-scale-x-100" /></Button>
+            <Button size="lg">ابدأ مجاناً <DirectionalIcon semanticDirection="forward" className="size-4 sm:size-5" /></Button>
           </Link>
           <Link href="/pricing">
             <Button variant="outline" size="lg">

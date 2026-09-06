@@ -122,8 +122,8 @@ export default function ToolsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{t.text}</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => deleteTmpl.mutate(t.id)}>
-                      <Trash2 className="size-3" />
+                    <Button size="sm" variant="ghost" onClick={() => deleteTmpl.mutate(t.id)} aria-label="حذف القالب">
+                      <Trash2 className="size-3" aria-hidden="true" />
                     </Button>
                   </CardContent>
                 </Card>

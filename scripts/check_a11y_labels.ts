@@ -1,11 +1,16 @@
 /**
- * v6 §B gate — icon-only interactive controls MUST carry accessible names.
+ * v6 §B gate (v7-upgraded) — icon-only interactive controls MUST carry
+ * accessible names.
  *
- * Scans every .tsx under src/ for <Button>/<button>/<a href> whose visible
- * content is only icons (no text) and which lack aria-label/aria-labelledby.
- * Conservative by design: any letters inside JSX expressions (variables,
- * conditional text) count as text → biases toward false negatives so the CI
- * gate never cries wolf; manual audits cover the residue.
+ * v7 upgrade (plan §4): the v6 classifier was deliberately conservative —
+ * {ternary} content counted as "text" even when every branch renders an
+ * ICON (e.g. {show ? <EyeOff/> : <Eye/>}), and aria-label={dynamic} was not
+ * recognized as a label. Both are now handled with the same honest rules
+ * as scripts/gen_a11y_audit.mjs (the full 100% audit companion):
+ *   - content text = literal letters OR braces holding Arabic/quoted text
+ *     OR a pure variable ref; braces holding ONLY icons/logic = no text.
+ *   - labels = aria-label="..." | aria-label={...} | aria-labelledby |
+ *     title | sr-only child.
  *
  * Known non-violation pattern: <DialogPrimitive.Close render={<Button />}>…text…</DialogPrimitive.Close>
  * — the render target inherits the wrapper's children as its accessible name,
@@ -31,6 +36,32 @@ const files: string[] = [];
 // any letters (quoted strings, bare JSX text, variables) = potential visible text
 const hasTextInExpr = (s: string) => /[A-Za-z\u0600-\u06FF]/.test(s);
 
+/**
+ * v7 root-cause fix: find the REAL end of an opening tag. The v6 loop
+ * `while (src[i] !== ">")` stopped at the `>` of arrow functions inside
+ * JSX attributes (onClick={() => …}) — the rest of the tag (including
+ * aria-label!) leaked into "content" and was miscounted as visible text,
+ * silently blinding the gate for EVERY button with an arrow-function
+ * attribute. This scanner tracks brace depth and quotes: a `>` inside
+ * {...} or a string never closes the tag.
+ */
+function openTagEnd(src: string, start: number): number {
+  let i = start;
+  let depth = 0;
+  let quote: string | null = null;
+  while (i < src.length) {
+    const c = src[i];
+    if (quote) {
+      if (c === quote && src[i - 1] !== "\\") quote = null;
+    } else if (c === '"' || c === "'" || c === "`") quote = c;
+    else if (c === "{") depth++;
+    else if (c === "}") depth = Math.max(0, depth - 1);
+    else if (c === ">" && depth === 0) return i;
+    i++;
+  }
+  return -1;
+}
+
 const bad: { file: string; line: number; snippet: string }[] = [];
 
 for (const f of files) {
@@ -49,15 +80,18 @@ for (const f of files) {
     const prefix = src.slice(Math.max(0, start - 80), start);
     if (/render=\{\s*$/.test(prefix)) {
       // self-closing render target → the wrapper supplies children; skip
-      let i = m.index + m[0].length;
-      while (i < src.length && src[i] !== ">") i++;
-      if (/\/\s*>$/.test(src.slice(start, i + 1))) continue;
+      const rEnd = openTagEnd(src, m.index + m[0].length);
+      if (rEnd > -1 && /\/\s*>$/.test(src.slice(m.index, rEnd + 1))) continue;
     }
-    let i = m.index + m[0].length;
-    while (i < src.length && src[i] !== ">") i++;
+    const i = openTagEnd(src, m.index + m[0].length);
+    if (i === -1) continue;
     const openTag = src.slice(start, i + 1);
+    // primitive definitions that spread {...props} (ui/switch, ui/button):
+    // their accessible name flows from CALL SITES (aria-label / htmlFor
+    // label association there) — the call sites are what audits must cover.
+    if (/\{\.\.\.props\}/.test(openTag)) continue;
     if (m[1] === "a" && !/href\s*=/.test(openTag)) continue; // non-interactive anchor
-    if (/aria-label\s*=|aria-labelledby\s*=/.test(openTag)) continue;
+    if (/aria-label\s*=|aria-labelledby\s*=|\btitle\s*=/.test(openTag)) continue;
     const selfClosing = /\/\s*>$/.test(openTag);
     let content = "";
     let endIdx = -1;
@@ -70,8 +104,23 @@ for (const f of files) {
       }
     }
     const srOnly = /sr-only/.test(content);
-    let text = content.replace(/<[^>]*>/g, " ");
-    text = text.replace(/\{([^{}]*)\}/g, (_all, inner: string) =>
+    // v7 honest text classification: braces may hold REAL text (Arabic JSX
+    // text, quoted literals, pure variable refs) or ONLY icons/logic.
+    // CRITICAL: extract braces from the TAG-STRIPPED content — braces inside
+    // tags (className={cn("...")}) vanish with the tag and must NOT count
+    // as visible text (the negative test caught this: label-less ThemeToggle
+    // was passing because class strings looked like text).
+    const noTagsContent = content.replace(/<[^>]*>/g, " ");
+    const braceOriginals = [...noTagsContent.matchAll(/\{([^{}]*)\}/g)].map((b) => b[1]);
+    let braceHasText = false;
+    for (const b of braceOriginals) {
+      const stripped = b.replace(/<[^<>]*>/g, " ");
+      if (/[ء-ي]/.test(stripped)) { braceHasText = true; break; }
+      if (/["'`][^"'`]*[A-Za-z\u0600-\u06FF]/.test(stripped)) { braceHasText = true; break; }
+      if (!b.includes("<") && /^\(?[A-Za-z_$][\w$.]*\)?$/.test(b.trim())) { braceHasText = true; break; }
+    }
+    let text = noTagsContent;
+    text = text.replace(/\{[^{}]*\}/g, (_all, inner: string) =>
       hasTextInExpr(inner) ? " TXT " : " "
     );
     text = text.replace(/\s+/g, " ").trim();
@@ -79,6 +128,7 @@ for (const f of files) {
     const compTags = (content.match(/<[A-Za-z][A-Za-z0-9]*/g) || []).length;
     const isIconOnly =
       !srOnly &&
+      !braceHasText &&
       (selfClosing || (meaningful.length === 0 && (compTags > 0 || content.trim() === "")));
     if (isIconOnly) {
       const line = src.slice(0, start).split("\n").length;

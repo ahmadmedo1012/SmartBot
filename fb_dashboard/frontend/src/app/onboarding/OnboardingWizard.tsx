@@ -9,8 +9,6 @@ import {
   Sparkles,
   CreditCard,
   CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
   Loader2,
   Zap,
   MessageSquare,
@@ -18,6 +16,7 @@ import {
   Link2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
@@ -477,7 +476,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               onClick={handleBack}
               className="gap-1.5"
             >
-              <ArrowLeft className="size-3 rtl:-scale-x-100" />
+              <DirectionalIcon semanticDirection="back" className="size-3" />
               {step === 0 ? "تخطي" : "السابق"}
             </Button>
             <div className="flex-1" />
@@ -501,7 +500,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               {loading ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : (
-                <ArrowRight className="size-3 rtl:-scale-x-100" />
+                <DirectionalIcon semanticDirection="forward" className="size-3" />
               )}
               {step === total - 1 ? "ابدأ الآن" : "التالي"}
             </Button>

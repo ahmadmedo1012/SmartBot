@@ -118,7 +118,7 @@ export default function BroadcastPage() {
                 onClick={() => createMut.mutate({ name: name.trim() || "بث جديد", message_template: message })}
                 disabled={createMut.isPending || message.trim().length < 5}
               >
-                <Send className="size-4" />
+                <Send className="size-4 rtl:-scale-x-100" />
                 {createMut.isPending ? "جارٍ الإنشاء…" : "إنشاء البث"}
               </Button>
             </CardContent>
@@ -157,7 +157,7 @@ export default function BroadcastPage() {
                       disabled={sendMut.isPending}
                       className="shrink-0"
                     >
-                      <Send className="size-3.5" /> إرسال
+                      <Send className="size-3.5 rtl:-scale-x-100" /> إرسال
                     </Button>
                   )}
                 </div>

@@ -1,0 +1,21 @@
+== v15 Sentry evidence — 2026-09-07T23:53:17Z ==
+
+== Alert rules (live) ==
+ - 25929 | smartbot-api: انقطاع الخلفية — صفر أحداث 6 ساعات (v15 canary) | projects: ['smartbot-api'] | status: 0
+ - 25928 | smartbot-web: أخطاء واجهة إنتاج (v15) | projects: ['smartbot-web'] | status: 0
+ - 25927 | smartbot-api: معدل أخطاء مرتفع (v15) | projects: ['smartbot-api'] | status: 0
+ - 10001207828 | Users experiencing errors above 1 over past 1 hour | projects: ['javascript-react'] | status: 0
+
+== Releases (api) ==
+
+== Live: post-deploy events (smartbot-api, last 15 min) ==
+ parse: Expecting value: line 1 column 1 (char 0)
+
+== Releases (api — v2.2.0 expected live) ==
+ - 2.2.0 | new issues: None | last event: 
+ - 2.1.0 | new issues: None | last event: 
+ - sentry-wiring-test | new issues: None | last event: 
+
+== Post-deploy events count (48h→15m freshness: events until now) ==
+unresolved issues (1h): 1
+  - SmartBot API booted | events: 2

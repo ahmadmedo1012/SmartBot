@@ -1,0 +1,105 @@
+== v15 post-deploy battery — 2026-09-07T23:52:43Z ==
+web: https://bot.smart-link.ly · api: https://api.smart-link.ly
+landing first-load JS (bot domain): 727619 bytes (~710KB raw)
+
+✅ A1 healthz: database ok
+✅ A2 healthz: content-type json
+✅ A3 bot domain root 200
+✅ A4 api domain root 200 (synced static)
+✅ A5 skip-link on 404 (bot domain)
+✅ A6 skip-link on 404 (api domain)
+✅ B7 /login 200
+✅ B7 login page title
+✅ B8 /register 200
+✅ B8 register page title
+✅ B9 /pricing 200
+✅ B9 pricing CTA (server-rendered)
+✅ B9 pricing currency LYD
+✅ B10 /subscribe 200
+✅ B10 subscribe loading role=status
+✅ B11 /demo 200
+✅ B11 demo messages tab
+✅ B12 /terms 200
+✅ B13 /privacy 200
+✅ B14 /connect 200
+✅ B15 404 clean (no stack trace)
+✅ B15b 404 clean (no ISE text)
+✅ B16 sitemap 200
+✅ B16 sitemap urlset
+✅ C17 CSP script-src present
+✅ C18 CSP: no FB script hosts
+✅ C18b CSP: no graph host in script
+✅ C19 CSP connect-src present
+✅ C20 HSTS bot ≥ 1y
+✅ C21 HSTS api present
+✅ C22 bot nosniff
+✅ C23 api nosniff
+✅ C24 referrer-policy present
+✅ D25 csrf cookie issued on GET /api/plans
+✅ D26 csrf SameSite=strict
+✅ D27 csrf Secure
+✅ D28 csrf JS-readable (no HttpOnly)
+✅ D29 POST without X-CSRF-Token → 403
+✅ D30 POST with forged X-CSRF-Token → 403
+✅ E31 /api/me → 401
+✅ E32 payments/balance → 401
+✅ E33 payments/history → 401
+✅ E34 admin/subscriptions → 401
+✅ E35 SSE guarded → 401
+✅ E36 receipt v15 → 401 (عزل الإيصالات)
+✅ E37 login empty body not CSRF-blocked (400)
+✅ I51 POST /api/broadcasts → 401
+✅ I52 GET /api/broadcasts → 401
+✅ I53 POST marketing/campaigns → 401/405/422 (401)
+✅ I54 GET marketing/campaigns → 401
+✅ I55 DELETE /api/users/1 → 401 (اختبارات v15)
+✅ I56 admin/tenants → 401/405 (405)
+✅ I57 onboarding/connect-page → 401/422 (401)
+✅ I58 facebook/settings → 401/405 (401)
+✅ I59 scheduled-posts → 401
+✅ I60 rules → 401
+✅ I61 logs → 401
+✅ I62 agent sessions → 401/404 (404)
+✅ F37 GET on POST-only topup → 405
+✅ F37b 405 carries Allow: POST
+✅ F38 POST /webhook unsigned → 401
+✅ F39 POST /webhook forged signature → 401
+✅ F40 wrong verify token not echoed
+✅ F41 telegram webhook guarded (403)
+✅ G42 bot chunk immutable
+✅ G43 api chunk immutable (نضارة sync)
+✅ G44 og:image immutable
+✅ G45 fonts long cache
+✅ G46 robots.txt 200
+✅ H47 plans success envelope
+✅ H48 plans data array
+✅ H49 manifest 200
+✅ H50 landing first-load JS 710KB < 750KB
+✅ J63 connect-page unauth → 401/403/422 (401)
+✅ J64 topup non-numeric (no auth) → 401/403 لا 500 (401)
+✅ J65 admin/subscriptions bad-id (no auth) → 401/403 لا 500 (401)
+✅ J66 DELETE tenant (no auth) → 401/403/405 (401)
+✅ K67 heartbeat بلا سر → 401/403 (403)
+✅ K68 heartbeat بسر مزيف → 401/403 (403)
+✅ K69 cleanup-logs GET بلا سر → 401/403 (v15: GET حي) (403)
+✅ K70 bot-cycle بسر مزيف → 401/403 (403)
+✅ L71 receipt غير موجود → 401 (لا كشف وجود)
+✅ L72 receipt traversal → 401/404/422 (404)
+✅ L73 فهرس الإيصالات غير مصرّح → 401/403/404 (404)
+✅ M74 خطة مجانية price=0 حاضرة في /api/plans
+✅ M75 خطط نشطة معروضة
+✅ M76 خطط متعددة (5)
+✅ M77 صفحة الاشتراك: قشرة عربية بعنوان
+✅ M78 صفحة الاشتراك: قشرة RTL
+✅ N79 healthz envelope ok
+✅ N80 rules limit=99999 (no auth) → 401 (لا 500 خام)
+✅ N81 subscribers per_page (no auth) → 401/403 (401)
+✅ N82 logs days (no auth) → 401 (لا 500)
+✅ O83 /connect حي بعنوان v15
+✅ O84 lang=ar على /connect
+✅ O85 dir=rtl على /connect
+✅ O86 buildId حي (/_next/static/immutable/)
+
+─────────────────────────────
+PASS: 97  FAIL: 0  TOTAL: 97
+ALL LIVE CHECKS GREEN

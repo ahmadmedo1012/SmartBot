@@ -204,9 +204,12 @@ grep -q '"price": *0\|"price":0\|"price":"0"' "$T/plans.json" && { PASS=$((PASS+
 grep -q '"is_active": *true\|"is_active":true' "$T/plans.json" && { PASS=$((PASS+1)); OUT="$OUT✅ M75 خطط نشطة معروضة\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ M75 لا خطط نشطة\n"; }
 PLAN_COUNT=$(grep -o '"id"' "$T/plans.json" | wc -l)
 [ "${PLAN_COUNT:-0}" -ge 2 ] && { PASS=$((PASS+1)); OUT="$OUT✅ M76 خطط متعددة ($PLAN_COUNT)\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ M76 خطط قليلة ($PLAN_COUNT)\n"; }
+# v15-fix (قيد جزر العميل الموثق منذ v14): /subscribe قشرة SSR بحالة تحميل
+# (role=status — يفحصها B10) — الخطط والأ Prices تُحمّل بالعميل عبر react-query
+# ولا تُرى بـcurl؛ الفحص الخادمي الأمين: العنوان العربي + هيكل القشرة
 curl -s "$BOT/subscribe" > "$T/sub2.html"
-contains "M77 صفحة الاشتراك تعرض الخطة (عربية)" "$T/sub2.html" 'الخطة\|الباقة'
-contains "M78 صفحة الاشتراك بلا سعر مكسور (0 د.ل منطقياً)" "$T/sub2.html" 'د\.ل\|مجان'
+contains "M77 صفحة الاشتراك: قشرة عربية بعنوان" "$T/sub2.html" 'الاشتراك'
+contains "M78 صفحة الاشتراك: قشرة RTL" "$T/sub2.html" 'dir="rtl"'
 
 # ══ N. مظاريف v15 + سقوف (4) ══════════════════════════════════════════════
 curl -s "$API/healthz" > "$T/hz2.json"

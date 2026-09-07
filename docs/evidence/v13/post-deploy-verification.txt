@@ -1,0 +1,31 @@
+== v13 post-deploy battery — 2026-09-07T02:21:16Z ==
+commit: 8375f794 (v13 ledger closure round)
+bot chunk: /_next/static/immutable/chunks/turbopack-3u-1h975ksjlp.js → cache-control: public,max-age=31536000,immutable
+landing first-load JS (bot domain, bytes): 686326
+
+✅ K4 skip-link target on 404 (bot domain)
+✅ K4 skip-link target on 404 (api domain)
+✅ R-M1 loading live region on /subscribe
+✅ payments package: GET on POST-only topup → 405
+✅ payments package: 405 carries Allow: POST
+✅ CSRF cookie issued on GET /api/plans
+✅ CSRF cookie is Strict
+✅ CSRF cookie Secure (prod TLS)
+✅ CSRF cookie JS-readable (double-submit contract)
+✅ CSP: no Facebook script hosts
+✅ CSP: FB hosts absent
+✅ CSP: connect-src narrowed (sentry ingest allowed)
+✅ healthz: database ok
+✅ plans: success envelope
+✅ plans: data array
+✅ bot domain: immutable cache-control
+✅ api domain: immutable cache-control
+✅ og:image immutable
+✅ v13: old framer-carrying wizard chunk gone (404)
+✅ payments wallet route live (401 unauthenticated)
+✅ sitemap.xml 200
+✅ landing first-load JS 670KB < 750KB
+
+─────────────────────────────
+PASS: 22  FAIL: 0
+ALL LIVE CHECKS GREEN

@@ -104,9 +104,9 @@ def main() -> int:
     # number is reported but NOT the budget: the raw base is
     # framework-dominated (React/Next runtime + core-js polyfill floor
     # ~541KB) and unreachable at app level.
-    ok = c_gz / 1024 <= 195
+    ok = c_gz / 1024 <= 190
     print()
-    print(f"budget check (common base gzip <= 195KB): {'PASS' if ok else 'FAIL'}")
+    print(f"budget check (common base gzip <= 190KB): {'PASS' if ok else 'FAIL'}")
     return 0 if ok else 2
 
 

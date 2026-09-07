@@ -1,0 +1,24 @@
+Sentry live evidence — v13 deploy (commit 8375f794)
+==================================================
+Boot canary (smartbot-api, /api/0/projects/subnation/smartbot-api/events/):
+  2026-09-07T02:19:24Z | env=production | canary=boot | release=2.1.0 | "SmartBot API booted"
+  2026-09-07T02:10:42Z | env=production | canary=boot | release=2.1.0 | "SmartBot API booted"
+  (02:19:24Z = cold boot immediately after the v13 deployment went live)
+  → startup ran: create_all + _schema_reconcile + alembic upgrade head
+    (chain now includes 012_bot_state_unique + the 003 shape-adaptive fix)
+  → healthz green (database=ok) in the post-deploy battery
+  → migration-chain errors would surface as swallowed warnings in logs and
+    as boot failure; boot completed, healthz ok, zero error events.
+    Direct index verification requires owner DB access (documented).
+
+Unresolved issues, last 1h (both projects):
+  smartbot-api : only "SmartBot API booted" canary events (×2)
+  smartbot-web : (no unresolved issues in last hour)
+
+Alert rules (v12, still active):
+  776237 smartbot-api new-issue-in-production
+  776238 smartbot-web new-issue-in-production
+
+Rules re-verified via /api/0/projects/subnation/{project}/rules/ (2026-09-07T02:24Z):
+  smartbot-api: 776237 "SmartBot v12 — مشكلة جديدة في الإنتاج (تنبيه بريد)" status=active
+  smartbot-web: 776238 (same name pattern) status=active

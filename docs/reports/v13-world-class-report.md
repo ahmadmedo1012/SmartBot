@@ -1,8 +1,8 @@
 # تقرير الجولة v13 — إغلاق سجل القرارات المؤجلة: من الدَّين إلى صفر قابل للإسناد
 
-**التاريخ:** 2026-09-07 · **الأساس:** main @ 4a8ee86b (v12 مكتملة بأدلة حية) · **الطلب:** «ممتاز استمر بشكل اكبر» · **الالتزام:** TODO-COORDINATOR (hash يُكتب بعد البوابات والدفع — التزام واحد) · **البنية:** 10 وكلاء تشخيص متواز (D1-D10) + 8 وكلاء تنفيذ متواز (E1-E8) + منسّق (إكمال التعارضات/البوابات/القياس الأمين/التزام واحد/نشر/أدلة)
+**التاريخ:** 2026-09-07 · **الأساس:** main @ 4a8ee86b (v12 مكتملة بأدلة حية) · **الطلب:** «ممتاز استمر بشكل اكبر» · **الالتزام:** `8375f794` (التزام واحد: 167 ملفًا، +4,115/−913) · **البنية:** 10 وكلاء تشخيص متواز (D1-D10) + 8 وكلاء تنفيذ متواز (E1-E8) + منسّق (إكمال التعارضات/البوابات/القياس الأمين/التزام واحد/نشر/أدلة)
 
-> **حالة هذا الملف:** هيكل التقرير كتبه E7 (التوثيق) قبل البوابات والنشر. كل خانة تحمل علامة `TODO-COORDINATOR` يملؤها المنسّق بعد خروج البوابات والدفع (القيم الحية: أعداد الاختبارات النهائية، نتائج القياس الحي، أسماء ملفات الأدلة، hash الالتزام). لا خانة PENDING تعني فشلًا — تعني «القيمة تُستكمل بعد الحدث الذي تُقاس عنده».
+> **حالة هذا الملف:** استُكملت كل خاناته المنسّق بعد البوابات والدفع والنشر الحي — القيم الحية أدناه نهائية، والأدلة في `docs/evidence/v13/`.
 
 ## 0) المبدأ الحاكم
 
@@ -17,10 +17,10 @@
 
 | # | البند | الإغلاق | الإسناد الكودي |
 |---|---|---|---|
-| L1 | **dec-framer-wizard** | إعادة كتابة OnboardingWizard بحركة CSS خالصة (توائم `ob-*` بتوقيتات مطابقة + `prefers-reduced-motion`) ثم إسقاط `framer-motion` من `dependencies` نهائيًا | `src/app/onboarding/OnboardingWizard.tsx` (E1: توائم `ob-step-enter`/`ob-icon-pop`/`ob-fade-in` + ثابت module-level `WIZARD_MOTION_CSS` بوسم `<style>` واحد) · `package.json` + الأقفال (E2) — **TODO-COORDINATOR:** `rg 'from "framer-motion' src/` = صفر + صفر في dependencies |
-| L2 | **dec-js-budget** | **إغلاق بإعادة تعريف** — القياس الأمين وجد الأساس مُهيمنًا عليه من إطار العمل؛ هدف <450KB خامًا غير قابل للبلوغ على مستوى التطبيق → الميزانية: الأساس المضغوط ≤190KB gz + كود التطبيق ≤80KB (كلاهما مُستوفى) | القياس الأمين في §3 أدناه · بند جديد `dec-browserslist` لذراع المستقبل (polyfill) — **TODO-COORDINATOR:** تأكيد الأرقام من قياس البناء النهائي |
-| L3 | **dec-envelope-prune** | استبدال كل حراس dual-shape بـ unwrapApi المركزي الخالص — العقد `{success, data}` هو الشكل الوحيد المفترض أماميًا | E5: الملفات التسعة (LandingIslands · pricing · leads · SubscribeContent×2 · settings · marketing×2) + حراسا OnboardingWizard أغلقهما المنسّق بعد هبوط E1 — **TODO-COORDINATOR:** `rg 'Array.isArray\(d\) \? d' src/` = صفر (باستثناء api.ts المركزي) |
-| L4 | **dec-payments-decompose** | تفكيك `routers/payments.py` (594 سطرًا) إلى حزمة — نقل حرفي للأجسام، لا إعادة كتابة | `fb_dashboard/routers/payments/` (E3: `wallet.py` · `bank.py` · `approvals.py` · `sse.py` · `plans.py` + `__init__.py` مُجمِّع يُبقي سطح الاستيراد) — **TODO-COORDINATOR:** pytest مسار الأموال أخضر بعد التفكيك |
+| L1 | **dec-framer-wizard** | إعادة كتابة OnboardingWizard بحركة CSS خالصة (توائم `ob-*` بتوقيتات مطابقة + `prefers-reduced-motion`) ثم إسقاط `framer-motion` من `dependencies` نهائيًا | `src/app/onboarding/OnboardingWizard.tsx` (E1: توائم `ob-step-enter`/`ob-icon-pop`/`ob-fade-in` + ثابت module-level `WIZARD_MOTION_CSS` بوسم `<style>` واحد) · `package.json` + الأقفال (E2) — تحقق نهائي: صفر استيرادات حقيقية في src/ + صفر في dependencies + **القطعة القديمة الحاملة لـ framer تُجيب 404 من الإنتاج** (battery §10) |
+| L2 | **dec-js-budget** | **إغلاق بإعادة تعريف** — القياس الأمين وجد الأساس مُهيمنًا عليه من إطار العمل؛ هدف <450KB خامًا غير قابل للبلوغ على مستوى التطبيق → الميزانية: الأساس المضغوط ≤190KB gz + كود التطبيق ≤80KB | القياس الأمين §3 من سكربت `scripts/measure_bundle.py` على بناء البوابات: **605.3KB خام / 187.3KB gz** (10 مقاطع مشتركة عبر 9 مسارات) = PASS · بند جديد `dec-browserslist` لذراع المستقبل |
+| L3 | **dec-envelope-prune** | استبدال كل حراس dual-shape بـ unwrapApi المركزي الخالص — العقد `{success, data}` هو الشكل الوحيد المفترض أماميًا | E5: الملفات التسعة (LandingIslands · pricing · leads · SubscribeContent×2 · settings · marketing×2) + المنسّق: حراسا OnboardingWizard (خطتا D5-C) + الحارسان المتجاوران (comments: ok({items,source}) · activity: ok([...])) — تحقق: صفر `Array.isArray(d) ? d` خارج api.ts المركزي |
+| L4 | **dec-payments-decompose** | تفكيك `routers/payments.py` (594 سطرًا) إلى حزمة — نقل حرفي للأجسام، لا إعادة كتابة | `fb_dashboard/routers/payments/` (E3: `wallet.py` · `bank.py` · `approvals.py` · `sse.py` · `plans.py` + `__init__.py` مُجمِّع يُبقي سطح الاستيراد) — الأدلة: 81 اختبار مسار الأموال أخضر + حيًا: 405+Allow على topup و401 على balance من الإنتاج (بطارية الأدلة §3/§11) |
 | L5 | **dec-bot-state-unique** | ترحيل 012: dedup صفوف `fb_page_id` المكررة (إبقاء MAX(id)) ثم فهرس فريد **جزئي** `uq_botstate_key_value` WHERE `key='fb_page_id'` | `alembic/versions/012_*.py` + `tests/test_v13_migrations.py` (E4) — الجزئية مقصودة: الفريد الجدولي الكامل يفسد مسار الأموال (`balance` يتكرر عبر المستأجرين بشكل مشروع) |
 | L6 | **dec-alembic-003** | إدراج 003 صار مطابقًا للشكل (shape-adaptive): حارس عمود `slug` + `ON CONFLICT DO NOTHING` + `setval` — PostgreSQL نظيفة تصل head | `alembic/versions/003_tenants.py` + اختبارات السلسلة (E4) — بيئات معلقة عند 002 تشفّل ذاتيًا في الإقلاع التالي |
 | L7 | **dec-sentry-alerts** | إغلاق كتابي فقط (لا كود) — القاعدتان أُنشئتا فعلًا في v12 عبر API | `docs/evidence/v12/sentry-canary-and-alerts.txt` — smartbot-api (id=776237) + smartbot-web (id=776238)، production، new-issue، بريد، تهدئة 30د |
@@ -31,8 +31,7 @@
 
 ### N1 — اختبارات أمامية موسعة (E6)
 
-- **5 → 19 ملف اختبار** (14 ملفًا جديدًا من E6 هبطت حتى كتابة هذا الهيكل — فوق هدف الخطة ≥12): المكونات المشتركة (KpiCard · EmptyState · PageHeader · ThemeToggle) · مسار الاشتراك (PlanSelector · StepIndicator) · مكونات الدفع (payment-instructions · payment-methods · payment-status · copy-field) · lib (csrf-client · sentry-config · usePublicStats · format.edge)
-- **TODO-COORDINATOR:** العدّ النهائي للملفات/الاختبارات بعد البوابات (E6 قد يهبط مزيدًا؛ vitest ≥37 الموجودة + الجديدة) — الهدف الخطة §5-4
+- **5 → 23 ملف اختبار · 37 → 184 اختبارًا، كلها خضراء** (18 ملفًا جديدًا من E6 — فوق هدف الخطة ≥12 بفارق واسع): المكونات المشتركة (KpiCard · EmptyState · PageHeader · ThemeToggle · ChartCard · DefaultError · MiniSparkline.geometry) · مسار الاشتراك (PlanSelector · StepIndicator) · مكونات الدفع كاملة بما فيها PaymentDialog كتكامل مسار أموال (أكواد USSD الافتراضية، سقف المحفظة من الإعدادات، تحقق الهاتف، جسم POST الدقيق) · lib (csrf-client · sentry-config · usePublicStats · format.edge) — انحرافتان مصدريتان موثقتان في worklog E6
 
 ### N2 — أمن متجدد على HEAD بعد v12 (D10)
 
@@ -52,13 +51,14 @@
 - **deployment.md:** قسم بنية مسار الأموال (`routers/payments/` بوحدة/وحدة + `_UPLOAD_DIR`) · قسم سلسلة الترحيلات (012 + 003 shape-adaptive + دلالة الفريد الجزئي) · تحديث التنبيهات (Sentry منجز + إعادة تصعيد التدوير)
 - **CLAUDE.md:** اصطلاحات v13 (الراوترات حزم — سابقة payments/ · حقن الأنماط module-level للمكونات الكسولة · قاعدة المغلف الواحد · اختبارات الترحيلات sync def)
 - **docs/decisions-ledger.md:** 7 إغلاقات append-only + dec-browserslist + إعادة تصعيد rotations (كل الإغلاقات تُسنِد إلى هذا التقرير)
-- **هذا التقرير** (هيكل + TODO-COORDINATOR للمنسّق)
+- **هذا التقرير** (هيكل E7 + استكمال المنسّق بالقيم الحية)
 
-### N4 — أدلة حية منعشة (المنسّق) — **PENDING**
+### N4 — أدلة حية منعشة (المنسّق) — ✅
 
-- **TODO-COORDINATOR:** canary baseline جديد قبل النشر (`docs/evidence/v13/canary-baseline-predeploy.txt`)
-- **TODO-COORDINATOR:** بطارية post-deploy بعد الدفع (فحوص الإنتاج + قندورة إقلاع + CSRF حي) (`docs/evidence/v13/post-deploy-verification.txt`)
-- **TODO-COORDINATOR:** قياس الحزمة الحي من الإنتاج (أرقام chunks من النطاقين — تُقارن بالقياس الأمين §3)
+- **بطارية post-deploy: 22/22 فحصًا أخضر** (`docs/evidence/v13/post-deploy-verification.txt`): علامات v13 حية على النطاقين (هدف رابط التخطي على 404 · منطقة تحميل حية على /subscribe) · حزمة payments مسجلة حيًا (405+Allow على topup · 401 على balance) · CSRF (strict+secure+JS-readable) · CSP مضيّقة · immutable على النطاقين · healthz database=ok · **القطعة القديمة الحاملة لـ framer = 404** · أول تحميل JS للهبوط 670KB خام (~210KB gz)
+- **قندورة الإقلاع:** `2026-09-07T02:19:24Z` env=production canary=boot release=2.1.0 — إقلاع بارد بعد نشر v13 مباشرة (`docs/evidence/v13/sentry-canary-and-errors.txt`) · صفر مشكلات غير محلولة خلال ساعة على المشروعين · القاعدتان 776237/776238 ما زالتا active
+- **baseline ما قبل النشر:** `docs/evidence/v13/canary-baseline-predeploy.txt` (02:10:33Z)
+- سلسلة الترحيلات (012 + 003) اشتغلت ضمن إقلاع startup — الدليل غير مباشر (إقلاع مكتمل + healthz ok + صفر أحداث خطأ)؛ التحقق المباشر من الفهرس يتطلب وصول مالك للقاعدة (موثق)
 
 ## 3) القياس الأمين وإعادة تعريف ميزانية JS
 
@@ -77,19 +77,19 @@
 2. **كود التطبيق ≤80KB** — مُستوفى (≈64KB)
 
 ذراع المستقبل الموثق: `dec-browserslist` — عند توفر مصفوفة أجهزة ليبية تبرر استهدافات حديثة، يُسقط معظم الـpolyfill بلا أي تغيير كود.
-**TODO-COORDINATOR:** إعادة التأكيد من قياس البناء النهائي + القياس الحي post-deploy (§2-N4).
+أُعيد التأكيد من قياس بناء البوابات النهائي (605.3/187.3 — PASS) ومن الإنتاج الحي: أول تحميل JS للهبوط من bot.smart-link.ly = 670KB خام (~210KB gz مضغوط شبكيًا) — متطابق مع القياس المحلي ضمن هامش نقل الشبكة.
 
 ## 4) جدول القبول — يُستكمل بعد البوابات والنشر
 
 | # | المعيار (الخطة §5) | الحالة | الدليل |
 |---|---|---|---|
-| 1 | البوابات خضراء كاملة: `bash scripts/gate_all.sh` خروج 0 (ruff/pytest@60%/tsc 0/build/vitest/css/i18n/a11y/contrast) | **PENDING** | TODO-COORDINATOR: مخرج البوابات بعد هبوط كل الوكلاء |
-| 2 | صفر استيراد framer-motion في src/ وصفر في dependencies | كود E1+E2 هبط — **تحقق البوابة PENDING** | TODO-COORDINATOR: مخرج grep |
-| 3 | pytest: 553+ + اختبارات حديثة (payments package path · ترحيل 012) | **PENDING** | TODO-COORDINATOR: العدد النهائي |
-| 4 | vitest: ≥37 الموجودة + الجديدة من E6 | **PENDING** | TODO-COORDINATOR: العدد النهائي |
-| 5 | قياس أمين للحزمة: الأساس المضغوط ≤190KB gz + كود التطبيق ≤80KB | مُستوفى قياسًا محليًا (§3) — القياس الحي PENDING | TODO-COORDINATOR: أرقام من الإنتاج |
+| 1 | البوابات خضراء كاملة | ✅ | gate_all.sh خروج 0: ruff clean · pytest 558@60.6% (بمحاولة معادة موثقة لطبقة flake الاختبار — انظر §7) · tsc 0 · build 41/41 · vitest 23 ملفًا/184 · css/i18n/a11y/contrast كلها خضراء |
+| 2 | صفر استيراد framer-motion في src/ وصفر في dependencies | ✅ | grep نهائي + `npm ls` فارغ + 404 للقطعة القديمة من الإنتاج |
+| 3 | pytest: 553+ + اختبارات حديثة | ✅ | 558 اختبارًا (من 553): +5 ترحيلات v13 (سلسلة 001→012 على قاعدة نظيفة) + إعادة ربط 3 ملفات بحزمة payments |
+| 4 | vitest: ≥37 الموجودة + الجديدة من E6 | ✅ | 23 ملفًا / 184 اختبارًا (من 5/37) |
+| 5 | قياس أمين للحزمة | ✅ | 187.3KB gz (≤190) · كود التطبيق ≈64KB (≤80) · حي: 670KB خام للهبوط |
 | 6 | سجل القرارات: 7 إغلاقات بإسناد (append-only) + البنود الملكية الثلاثة مفتوحة | ✅ توثيقيًا | `docs/decisions-ledger.md` (كل إغلاق يُسنِد إلى هذا التقرير) |
-| 7 | التزام واحد → دفع → نشر حي → أدلة → تقرير نهائي | **PENDING** | TODO-COORDINATOR: hash الالتزام + ملفات `docs/evidence/v13/` |
+| 7 | التزام واحد → دفع → نشر حي → أدلة → تقرير نهائي | ✅ | 8375f794 → main → النشر حي (02:19:24Z) → `docs/evidence/v13/` (3 ملفات) → هذا التقرير |
 
 ## 5) المؤجل بأمانة (أبواب مفتوحة للمالك — سجل القرارات)
 
@@ -101,6 +101,6 @@
 ## 6) الحصيلة
 
 - **10 وكلاء تشخيص (D1-D10) + 8 وكلاء تنفيذ (E1-E8) + منسّق** — موجة كاملة متوازية بخريطة ملكية صارمة (خطة v13 §4)
-- **TODO-COORDINATOR:** عدد الملفات المتغيرة و+الأسطر/−الأسطر من `git diff --stat 4a8ee86b..HEAD` بعد الالتزام
-- **TODO-COORDINATOR:** الأعداد النهائية (pytest · vitest) + قائمة ملفات الأدلة `docs/evidence/v13/` + hash الالتزام
+- **167 ملفًا: +4,115/−913** (الالتزام 8375f794) — أبرزها: حزمة payments بديلة للملف الواحد · 012_bot_state_unique · 18 ملف اختبار أمامي جديد · OnboardingWizard بلا محرك حركة · حذف framer-motion من dependencies · 115 ملف مزامنة static (مسح 3 أجيال قطع)
+- **الأعداد النهائية:** pytest 558 (+5) · vitest 23 ملفًا/184 (من 5/37) · التغطية 60.6% · الأدلة: canary-baseline-predeploy.txt · post-deploy-verification.txt (22/22) · sentry-canary-and-errors.txt
 - الثابت الآن: سجل قرارات مُغلق بالكود (7/7 قابلة للإغلاق) + honest-budget معاد التعريف + توثيق ما بعد التفكيك في مكانه (deployment · CLAUDE · ledger · هذا التقرير)

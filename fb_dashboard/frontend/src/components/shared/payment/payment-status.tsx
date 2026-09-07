@@ -7,15 +7,20 @@
    - SuccessScreen: request acknowledged (payment still pending).
    Purely presentational — all state and callbacks live in the dialog. */
 
+import { type Ref } from "react"
 import { Smartphone, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Provider } from "./payment-constants"
 
 interface WaitingScreenProps {
   provider: Provider
+  /* v14-E4 (D4 H-01): focus target for the step-change focus management in
+   * the dialog — tabIndex=-1 makes the title programmatically focusable
+   * without joining the tab order. */
+  headingRef?: Ref<HTMLParagraphElement>
 }
 
-export function WaitingScreen({ provider }: WaitingScreenProps) {
+export function WaitingScreen({ provider, headingRef }: WaitingScreenProps) {
   return (
     <div className="flex flex-col items-center py-10 space-y-6">
       {/* Animated payment indicator */}
@@ -35,7 +40,7 @@ export function WaitingScreen({ provider }: WaitingScreenProps) {
 
       {/* Title */}
       <div className="text-center space-y-1.5">
-        <p className="text-base font-bold">في انتظار تأكيد الدفع</p>
+        <p ref={headingRef} tabIndex={-1} className="text-base font-bold">في انتظار تأكيد الدفع</p>
         <p className="text-xs text-muted-foreground max-w-[220px] mx-auto leading-relaxed">
           بعد التحويل، انتظر موافقة الإدارة
         </p>
@@ -58,9 +63,11 @@ export function WaitingScreen({ provider }: WaitingScreenProps) {
 interface ApprovedScreenProps {
   resolutionMsg: string
   onContinue: () => void
+  /* v14-E4 (D4 H-01): focus target on the approval swap (see WaitingScreen). */
+  headingRef?: Ref<HTMLParagraphElement>
 }
 
-export function ApprovedScreen({ resolutionMsg, onContinue }: ApprovedScreenProps) {
+export function ApprovedScreen({ resolutionMsg, onContinue, headingRef }: ApprovedScreenProps) {
   return (
     <div className="flex flex-col items-center py-8 space-y-6">
       <div className="relative size-20 animate-scale-in">
@@ -73,7 +80,7 @@ export function ApprovedScreen({ resolutionMsg, onContinue }: ApprovedScreenProp
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p className="text-lg font-bold text-success animate-fade-in">
+        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-success animate-fade-in">
           تم الموافقة على الاشتراك
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
@@ -96,9 +103,11 @@ interface RejectedScreenProps {
   resolutionMsg: string
   onClose: () => void
   onRetry: () => void
+  /* v14-E4 (D4 H-01): focus target on the rejection swap (see WaitingScreen). */
+  headingRef?: Ref<HTMLParagraphElement>
 }
 
-export function RejectedScreen({ resolutionMsg, onClose, onRetry }: RejectedScreenProps) {
+export function RejectedScreen({ resolutionMsg, onClose, onRetry, headingRef }: RejectedScreenProps) {
   return (
     <div className="flex flex-col items-center py-8 space-y-6">
       <div className="relative size-20 animate-scale-in">
@@ -111,7 +120,7 @@ export function RejectedScreen({ resolutionMsg, onClose, onRetry }: RejectedScre
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p className="text-lg font-bold text-destructive animate-fade-in">
+        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-destructive animate-fade-in">
           تم رفض طلب الاشتراك
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
@@ -139,9 +148,11 @@ export function RejectedScreen({ resolutionMsg, onClose, onRetry }: RejectedScre
 
 interface SuccessScreenProps {
   onClose: () => void
+  /* v14-E4 (D4 H-01): focus target on the success swap (see WaitingScreen). */
+  headingRef?: Ref<HTMLParagraphElement>
 }
 
-export function SuccessScreen({ onClose }: SuccessScreenProps) {
+export function SuccessScreen({ onClose, headingRef }: SuccessScreenProps) {
   return (
     <div className="flex flex-col items-center py-8 space-y-6">
       <div className="relative size-20">
@@ -151,7 +162,7 @@ export function SuccessScreen({ onClose }: SuccessScreenProps) {
         </div>
       </div>
       <div className="text-center space-y-1">
-        <p className="text-base font-bold">تم إرسال طلب الدفع</p>
+        <p ref={headingRef} tabIndex={-1} className="text-base font-bold">تم إرسال طلب الدفع</p>
         <p className="text-xs text-muted-foreground">سيتم تفعيل اشتراكك بعد موافقة الإدارة</p>
       </div>
       <Button

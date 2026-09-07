@@ -24,9 +24,34 @@ function FloatingShapes() {
   )
 }
 
+/* v14-E4 (D1 security review): the old guard rejected "//" but browsers
+ * normalize WHATWG backslashes to slashes — "/\evil.com" IS "//evil.com"
+ * to the location parser (protocol-relative foreign host). Hardened:
+ *   1. normalize every "\" → "/" BEFORE any check;
+ *   2. relative paths must start with exactly ONE non-repeated "/";
+ *   3. absolute URLs pass only when their host equals THIS origin's host
+ *      (allowlist of exactly one trusted host — the current one), and are
+ *      returned as origin-relative paths so the browser can never read
+ *      them as cross-site.
+ */
 function safeRedirect(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null
-  return value
+  if (!value) return null
+  const normalized = value.replace(/\\/g, "/")
+  // "/" itself and "/path…" (second char NOT a slash) stay relative
+  if (normalized === "/") return "/"
+  if (/^\/[^/]/.test(normalized)) return value
+  // Anything else must prove it is THIS origin before it is trusted
+  if (typeof window !== "undefined") {
+    try {
+      const u = new URL(normalized, window.location.origin)
+      if (u.host === window.location.host) {
+        return u.pathname + u.search + u.hash
+      }
+    } catch {
+      /* malformed — fall through to rejection */
+    }
+  }
+  return null
 }
 
 /* v12-E4.8: 429 lockout window — parse the backend's remaining seconds from
@@ -172,7 +197,7 @@ function LoginForm() {
             <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="size-full object-contain drop-shadow-lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">SmartBot</CardTitle>
-          <CardDescription className="text-base text-muted-foreground/80">لوحة التحكم الذكية</CardDescription>
+          <CardDescription className="text-base text-muted-foreground">لوحة التحكم الذكية</CardDescription>
         </CardHeader>
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
@@ -233,7 +258,10 @@ function LoginForm() {
               ليس لديك حساب؟ إنشاء حساب جديد
             </Link>
           </div>
-          <p className="mt-4 text-center text-xs text-muted-foreground/80">SmartBot - منصة إدارة التفاعل الذكية</p>
+          {/* v14-E4 (D4 H-03): /80 on muted-foreground measured 3.89:1 dark /
+              4.08:1 light — under the 4.5:1 AA floor; the full token passes
+              5.59/6.54:1. */}
+          <p className="mt-4 text-center text-xs text-muted-foreground">SmartBot - منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
     </div>

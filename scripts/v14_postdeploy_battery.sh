@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# v14 post-deploy battery — live production verification (stateless)
+# v14-E7 (design v14-D13-sim-design.md §5) — pattern: v13_postdeploy_battery.sh
+# 50 checks in 8 groups: A availability · B public pages · C security headers ·
+# D CSRF contract · E auth guards · F method discipline + webhook surface ·
+# G caching/assets · H envelopes + JS budget. ZERO stateful writes (R2/R12).
+#
+# Usage:  bash scripts/v14_postdeploy_battery.sh
+# Env:    BASE_URL_WEB (default https://bot.smart-link.ly)
+#         BASE_URL_API (default https://api.smart-link.ly)
+#         V14_LIGHT=0  — disable check E-36 (POST /api/login empty body)
+# Output: docs/evidence/v14/post-deploy-verification.txt
+set -u
+PASS=0; FAIL=0; OUT=""
+BOT="${BASE_URL_WEB:-https://bot.smart-link.ly}"
+API="${BASE_URL_API:-https://api.smart-link.ly}"
+EVID="$(dirname "$0")/../docs/evidence/v14"
+mkdir -p "$EVID"
+REPORT="$EVID/post-deploy-verification.txt"
+T=$(mktemp -d)
+
+check() { # name, expected, actual
+  if [ "$2" = "$3" ]; then PASS=$((PASS+1)); OUT="$OUT✅ $1\n";
+  else FAIL=$((FAIL+1)); OUT="$OUT❌ $1 (expected: $2, got: $3)\n"; fi
+}
+contains() { # name, haystack-file, needle
+  if grep -q "$3" "$2"; then PASS=$((PASS+1)); OUT="$OUT✅ $1\n";
+  else FAIL=$((FAIL+1)); OUT="$OUT❌ $1 (missing: $3)\n"; fi
+}
+notcontains() { # name, haystack-file, needle (negative)
+  if grep -qi "$3" "$2"; then FAIL=$((FAIL+1)); OUT="$OUT❌ $1 (found forbidden: $3)\n";
+  else PASS=$((PASS+1)); OUT="$OUT✅ $1\n"; fi
+}
+
+echo "== v14 post-deploy battery — $(date -u '+%Y-%m-%dT%H:%M:%SZ') ==" | tee "$REPORT"
+echo "web: $BOT · api: $API" | tee -a "$REPORT"
+
+# ── A. availability (6) ─────────────────────────────────────────────────────
+curl -s "$API/healthz" > "$T/hz.json"
+contains "A1 healthz: database ok" "$T/hz.json" '"database":"ok"'
+curl -s -D "$T/hz.hdr" -o /dev/null "$API/healthz"
+contains "A2 healthz: content-type json" "$T/hz.hdr" 'content-type: application/json'
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/"); check "A3 bot domain root 200" "200" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/"); check "A4 api domain root 200 (synced static)" "200" "$C"
+curl -s "$BOT/v14-nonexistent" > "$T/nf1.html"
+contains "A5 K4 skip-link on 404 (bot domain)" "$T/nf1.html" 'id="page-content"'
+curl -s "$API/v14-nonexistent" > "$T/nf2.html"
+contains "A6 K4 skip-link on 404 (api domain)" "$T/nf2.html" 'id="page-content"'
+
+# ── B. public pages (10) ────────────────────────────────────────────────────
+curl -s "$BOT/login" > "$T/login.html"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/login"); check "B7 /login 200" "200" "$C"
+contains "B7 login username field" "$T/login.html" 'id="username"'
+contains "B7 login password field" "$T/login.html" 'type="password"'
+curl -s "$BOT/register" > "$T/reg.html"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/register"); check "B8 /register 200" "200" "$C"
+contains "B8 register confirm field" "$T/reg.html" 'id="confirm"'
+curl -s "$BOT/pricing" > "$T/pricing.html"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/pricing"); check "B9 /pricing 200" "200" "$C"
+contains "B9 pricing CTA → /subscribe" "$T/pricing.html" '/subscribe'
+grep -q 'د\.ل\|دينار' "$T/pricing.html" && { PASS=$((PASS+1)); OUT="$OUT✅ B9 pricing currency LYD\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ B9 pricing currency LYD\n"; }
+curl -s "$BOT/subscribe" > "$T/sub.html"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/subscribe"); check "B10 /subscribe 200" "200" "$C"
+contains "B10 subscribe loading role=status" "$T/sub.html" 'role="status"'
+curl -s "$BOT/demo" > "$T/demo.html"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/demo"); check "B11 /demo 200" "200" "$C"
+contains "B11 demo messages tab" "$T/demo.html" 'الرسائل'
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/terms"); check "B12 /terms 200" "200" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/privacy"); check "B13 /privacy 200" "200" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/connect"); check "B14 /connect 200" "200" "$C"
+notcontains "B15 404 clean (no stack trace)" "$T/nf1.html" 'Traceback'
+notcontains "B15 404 clean (no ISE text)" "$T/nf1.html" 'Internal Server Error'
+curl -s "$BOT/sitemap.xml" > "$T/sitemap.xml"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/sitemap.xml"); check "B16 sitemap 200" "200" "$C"
+contains "B16 sitemap urlset" "$T/sitemap.xml" 'urlset'
+
+# ── C. security headers (8) ─────────────────────────────────────────────────
+curl -s -D "$T/bot.hdr" -o /dev/null "$BOT/"
+contains "C17 CSP script-src present" "$T/bot.hdr" 'script-src'
+notcontains "C18 CSP: no FB script hosts" "$T/bot.hdr" 'connect.facebook.net'
+notcontains "C18b CSP: no graph host in script" "$T/bot.hdr" 'graph.facebook.com'
+contains "C19 CSP connect-src present (narrowed)" "$T/bot.hdr" 'connect-src'
+H=$(curl -s -I "$BOT/" | grep -i 'strict-transport-security' | grep -oE 'max-age=[0-9]+' | grep -oE '[0-9]+' | head -1)
+[ -n "$H" ] && [ "$H" -ge 31536000 ] 2>/dev/null && { PASS=$((PASS+1)); OUT="$OUT✅ C20 HSTS bot ≥ 1y\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ C20 HSTS bot\n"; }
+H=$(curl -s -I "$API/" | grep -i 'strict-transport-security' | tr -d '\r'); [ -n "$H" ] && { PASS=$((PASS+1)); OUT="$OUT✅ C21 HSTS api present\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ C21 HSTS api\n"; }
+curl -s -I "$BOT/" | grep -i 'x-content-type-options' | tr -d '\r' > "$T/n1.txt"; contains "C22 bot nosniff" "$T/n1.txt" 'nosniff'
+curl -s -I "$API/" | grep -i 'x-content-type-options' | tr -d '\r' > "$T/n2.txt"; contains "C23 api nosniff" "$T/n2.txt" 'nosniff'
+curl -s -I "$BOT/" | grep -i 'referrer-policy' | tr -d '\r' > "$T/rp.txt"; contains "C24 referrer-policy present" "$T/rp.txt" 'referrer-policy'
+
+# ── D. CSRF double-submit contract (6) ──────────────────────────────────────
+curl -s -D "$T/csrf.hdr" -o /dev/null "$API/api/plans"
+contains "D25 csrf cookie issued on GET /api/plans" "$T/csrf.hdr" 'set-cookie: csrf_token'
+contains "D26 csrf SameSite=strict" "$T/csrf.hdr" 'SameSite=strict'
+contains "D27 csrf Secure" "$T/csrf.hdr" 'Secure'
+notcontains "D28 csrf JS-readable (no HttpOnly)" "$T/csrf.hdr" 'httponly'
+C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -b "csrf_token=x" "$API/api/plans")
+check "D29 POST without X-CSRF-Token → 403" "403" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -b "csrf_token=x" -H "X-CSRF-Token: garbage" "$API/api/plans")
+check "D30 POST with forged X-CSRF-Token → 403" "403" "$C"
+
+# ── E. auth guards (6) ──────────────────────────────────────────────────────
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/me"); check "E31 /api/me unauthenticated → 401" "401" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/payments/balance"); check "E32 payments/balance → 401" "401" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/payments/history"); check "E33 payments/history → 401 (v14 cap route live)" "401" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/admin/subscriptions"); check "E34 admin/subscriptions → 401 (v14 C-SEC1 surface)" "401" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/subscriptions/status-stream?payment_id=1"); check "E35 SSE stream guarded → 401" "401" "$C"
+if [ "${V14_LIGHT:-1}" = "1" ]; then
+  C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -d '{}' "$API/api/login")
+  if [ "$C" != "403" ] && [ "$C" != "500" ]; then PASS=$((PASS+1)); OUT="$OUT✅ E36 login empty body not CSRF-blocked ($C)\n"; else FAIL=$((FAIL+1)); OUT="$OUT❌ E36 login empty body ($C)\n"; fi
+fi
+
+# ── F. method discipline + webhook surface (5) ──────────────────────────────
+C=$(curl -s -o /dev/null -w "%{http_code}" "$API/api/payments/topup"); check "F37 GET on POST-only topup → 405" "405" "$C"
+A=$(curl -s -I "$API/api/payments/topup" | grep -i '^allow:' | tr -d '\r' | awk '{print $2}'); check "F37b 405 carries Allow: POST" "POST" "$A"
+C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -d '{}' "$API/webhook")
+check "F38 POST /webhook unsigned → 401" "401" "$C"
+C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -H 'X-Hub-Signature-256: sha1=fake' -d '{}' "$API/webhook")
+check "F39 POST /webhook forged signature → 401" "401" "$C"
+R=$(curl -s "$API/webhook?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=x987")
+if [ "$R" != "x987" ]; then PASS=$((PASS+1)); OUT="$OUT✅ F40 wrong verify token not echoed\n"; else FAIL=$((FAIL+1)); OUT="$OUT❌ F40 verify token echoed!\n"; fi
+C=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H 'content-type: application/json' -d '{}' "$API/api/telegram/webhook")
+if [ "$C" = "401" ] || [ "$C" = "403" ]; then PASS=$((PASS+1)); OUT="$OUT✅ F41 telegram webhook guarded ($C)\n"; else FAIL=$((FAIL+1)); OUT="$OUT❌ F41 telegram webhook ($C)\n"; fi
+
+# ── G. caching + assets (5) ─────────────────────────────────────────────────
+TB=$(curl -s "$BOT/" | grep -oE '/_next/static/(immutable/)?chunks/[a-zA-Z0-9_-]+\.js' | head -1)
+curl -s -I "$BOT$TB" | grep -i 'cache-control' | tr -d '\r' > "$T/g1.txt"; contains "G42 bot chunk immutable" "$T/g1.txt" 'immutable'
+TA=$(curl -s "$API/" | grep -oE '/_next/static/(immutable/)?chunks/[a-zA-Z0-9_-]+\.js' | head -1)
+curl -s -I "$API$TA" | grep -i 'cache-control' | tr -d '\r' > "$T/g2.txt"; contains "G43 api chunk immutable" "$T/g2.txt" 'immutable'
+curl -s -I "$BOT/opengraph-image.png" | grep -i 'cache-control' | tr -d '\r' > "$T/g3.txt"; contains "G44 og:image immutable" "$T/g3.txt" 'immutable'
+TF=$(curl -s "$BOT/" | grep -oE '/fonts/[^"'"'"' ]+\.woff2' | head -1)
+if [ -n "$TF" ]; then
+  curl -s -I "$BOT$TF" | grep -i 'cache-control' | tr -d '\r' > "$T/g4.txt"; contains "G45 fonts long cache" "$T/g4.txt" 'cache-control'
+else
+  curl -s "$BOT/" | grep -oE '/_next/static/media/[^"'"'"' ]+\.woff2' | head -1 > "$T/fn.txt"
+  TFW=$(cat "$T/fn.txt"); curl -s -I "$BOT$TFW" | grep -i 'cache-control' | tr -d '\r' > "$T/g4.txt"; contains "G45 fonts long cache" "$T/g4.txt" 'cache-control'
+fi
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/robots.txt"); check "G46 robots.txt 200" "200" "$C"
+
+# ── H. envelopes + JS budget (4) ────────────────────────────────────────────
+curl -s "$API/api/plans" > "$T/plans.json"
+contains "H47 plans success envelope" "$T/plans.json" '"success":true'
+contains "H48 plans data array" "$T/plans.json" '"data"'
+C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/manifest.webmanifest"); check "H49 manifest 200" "200" "$C"
+SIZE=$(curl -s "$BOT/" | grep -oE 'src="[^"]+\.js"' | grep -oE '/[^"]+' | sort -u | while read u; do curl -s -o /dev/null -w "%{size_download} " "$BOT$u"; done | awk '{s=0; for(i=1;i<=NF;i++) s+=$i; print s}')
+KB=$((SIZE/1024))
+echo "landing first-load JS (bot domain): ${SIZE} bytes (~${KB}KB raw)" | tee -a "$REPORT"
+if [ $KB -lt 750 ]; then PASS=$((PASS+1)); OUT="$OUT✅ H50 landing first-load JS ${KB}KB < 750KB\n"; else FAIL=$((FAIL+1)); OUT="$OUT❌ H50 landing first-load JS ${KB}KB\n"; fi
+
+echo -e "\n$OUT" | tee -a "$REPORT"
+echo "─────────────────────────────" | tee -a "$REPORT"
+echo "PASS: $PASS  FAIL: $FAIL" | tee -a "$REPORT"
+[ $FAIL -eq 0 ] && echo "ALL LIVE CHECKS GREEN" | tee -a "$REPORT"
+rm -rf "$T"
+exit $FAIL

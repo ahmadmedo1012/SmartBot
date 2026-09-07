@@ -41,8 +41,14 @@ const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string; label: stri
   support: { icon: MessageCircle, color: "text-info", label: "دعم" },
   marketing: { icon: TrendingUp, color: "text-success", label: "تسويق" },
   system: { icon: Rocket, color: "text-accent-foreground", label: "نظام" },
-  mention: { icon: UserPlus, color: "text-pink-500", label: "إشارة" },
+  mention: { icon: UserPlus, color: "text-bloom", label: "إشارة" },
 }
+
+/* v14-E5 (D2-M1): mention type used the raw Tailwind palette class
+ * text-pink-500 (#EC4899 — measured 2.99:1 on the light-mode icon well,
+ * below the 3:1 non-text minimum). The semantic brand-pink token --c-bloom
+ * keeps the pink family: 3.66-3.85:1 dark / 4.34-4.39:1 light — AA-safe
+ * for graphical objects (WCAG 1.4.11) in both modes. */
 
 
 const TOGGLES = [
@@ -272,7 +278,9 @@ export default function NotificationsPage() {
                               {!n.read && <span className="size-2 rounded-full bg-primary shrink-0" />}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
-                            <p className="text-3xs text-muted-foreground/70 mt-1">{timeAgo(n.created_at)}</p>
+                            {/* v14-E5 (D4 H-05): /70 timestamp measured 3.2:1 —
+                                full muted passes (5.59/6.54:1) */}
+                            <p className="text-3xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
                           </div>
                         </CardContent>
                       </Card>

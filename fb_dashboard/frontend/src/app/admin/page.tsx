@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard } from "lucide-react"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -55,6 +55,12 @@ export default function AdminPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [filter, setFilter] = useState("pending")
   const [loading, setLoading] = useState(true)
+  /* v14-E4 (D1 ع-2): fetch failure is no longer swallowed into an empty
+   * list — the admin used to see "لا توجد طلبات اشتراك" while /api/admin/
+   * subscriptions was erroring, potentially leaving real pending payments
+   * unreviewed. Failure now renders an honest error + retry (the same
+   * isError/retry pattern as every other page). */
+  const [loadError, setLoadError] = useState(false)
   const [actionId, setActionId] = useState<number | null>(null)
   const [roleLoading, setRoleLoading] = useState(true)
 
@@ -79,11 +85,20 @@ export default function AdminPage() {
 
   const fetchPayments = useCallback(async () => {
     setLoading(true)
+    setLoadError(false)
     try {
+      /* apiFetch throws ApiError on non-2xx; unwrapApi throws on a
+       * success:false envelope (fail() is HTTP 200 by design) — every
+       * backend failure lands in the catch below. `?? []` is null-safety
+       * for a body that parsed to null, not a dual-shape guard. */
       const r = await apiFetch(`/api/admin/subscriptions?status=${filter}`)
-      if (r.ok) setPayments(await unwrapApi(r))
-    } catch { /* ignore */ }
-    setLoading(false)
+      setPayments((await unwrapApi<Payment[]>(r)) ?? [])
+    } catch {
+      // v14-E4 (D1 ع-2): record the failure — do NOT fall back to []
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [filter])
 
   useEffect(() => { if (role === "admin") fetchPayments() }, [role, fetchPayments])
@@ -136,9 +151,18 @@ export default function AdminPage() {
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
         </Link>
-        <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
-          <Settings className="size-4" /> إعدادات المنصة
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
+            <Settings className="size-4" /> إعدادات المنصة
+          </Link>
+          {/* v14-E4 (D1 ع-1): /admin/telegram was navigation-orphaned — no
+              link anywhere in the UI reached it (manual URL typing only).
+              Exposed here beside the platform settings so broadcast targets,
+              approvers and diagnostics are discoverable for platform admins. */}
+          <Link href="/admin/telegram" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
+            <Send className="size-4" /> إعدادات تليجرام
+          </Link>
+        </div>
       </div>
 
       {/* v6 §E — cron heartbeat truth at a glance (Telegram alerts fire on
@@ -160,7 +184,7 @@ export default function AdminPage() {
         <Button
           variant="ghost"
           size="sm"
-          className="mr-auto"
+          className="ms-auto"
           onClick={fetchPayments}
           loading={loading}
           aria-label="تحديث قائمة المدفوعات"
@@ -186,6 +210,19 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          ) : loadError ? (
+            /* v14-E4 (D1 ع-2): real fetch failure — honest error with retry,
+             * NOT the old false "no requests" EmptyState. */
+            <div role="alert" className="py-12 px-4 text-center sb-fade-up">
+              <AlertTriangle className="size-12 mx-auto mb-3 text-destructive/60" aria-hidden="true" />
+              <h2 className="text-sm font-bold mb-1">فشل تحميل طلبات الاشتراك</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                تعذّر جلب الطلبات من الخادم — قد تكون هناك طلبات قيد الانتظار. تحقّق من الاتصال ثم أعد المحاولة.
+              </p>
+              <Button variant="outline" onClick={fetchPayments}>
+                <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
+              </Button>
             </div>
           ) : payments.length === 0 ? (
             <EmptyState

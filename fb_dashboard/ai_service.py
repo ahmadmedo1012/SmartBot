@@ -9,7 +9,6 @@ Usage:
     suggestions = await ai.suggest_replies(comment_text, page_context)
     tone = await ai.analyze_tone(comment_text)
 """
-import asyncio
 import json
 import logging
 import os
@@ -295,32 +294,45 @@ class AIService:
     # ------------------------------------------------------------------
 
     async def analyze_image(self, image_path_or_url: str, prompt: str = "وصف هذه الصورة بالعربية") -> str:
-        """Analyze an image using AI vision. Supports file path (base64) or URL.
-        Returns Arabic description with objects, scenes, text detected."""
-        import base64
+        """Analyze an image using AI vision — https URLs or ``data:image/`` URIs ONLY.
+
+        Returns an Arabic description (empty string = refusal/unavailable).
+
+        v14-E1 #7 (D8-H1): local-file support is REMOVED. The image source is
+        LLM-controllable (agent tool params come from a model reading user
+        text), so anything that was not an http(s) URL used to be opened from
+        disk, base64-encoded and shipped to the AI provider — a local-file
+        disclosure path (".env", "../static/uploads/…"). Source policy now:
+          - ``https://`` → guarded by ``_assert_safe_image_url`` (v10-A8:
+            rejects non-https schemes and private/loopback hosts by raising
+            the controlled UnsafeImageUrlError — the agent engine surfaces
+            its Arabic message; http:// is refused there);
+          - ``data:image/…`` → passed through as-is (internally generated:
+            the agent-upload flow embeds data-URIs on serverless — this also
+            FIXES that flow, the old open() branch crashed on data URIs);
+          - anything else (local paths, /static/…, file://, junk) → clean
+            refusal: log + return "" — never an open().
+        """
         if not self.available or not image_path_or_url:
             return ""
 
-        # Determine if local file or remote URL
-        is_url = image_path_or_url.startswith(("http://", "https://", "/static/"))
-        image_url = image_path_or_url
-        if image_path_or_url.startswith(("http://", "https://")):
+        src = image_path_or_url
+        if src.startswith("data:image/"):
+            image_url = src
+        elif src.startswith(("http://", "https://")):
             # v10-A8: remote URL — validated BEFORE any fetch or forwarding
             # (Gemini fetches server-side; OpenAI receives the URL). Rejects
             # non-https schemes and private/loopback hosts with a controlled
             # Arabic message (raises UnsafeImageUrlError).
-            _assert_safe_image_url(image_path_or_url)
-        if not is_url:
-            try:
-                # v10-F1: disk reads block the event loop — offload to a worker thread
-                def _read_image_b64() -> str:
-                    with open(image_path_or_url, "rb") as f:
-                        return base64.b64encode(f.read()).decode("utf-8")
-
-                image_url = f"data:image/jpeg;base64,{await asyncio.to_thread(_read_image_b64)}"
-            except Exception as e:
-                log.error(f"analyze_image read error: {e}", exc_info=True)
-                return ""
+            _assert_safe_image_url(src)
+            image_url = src
+        else:
+            log.warning(
+                "analyze_image refused non-https/non-data image source (len=%d)"
+                " — local file reads are disabled (v14-E1, D8-H1)",
+                len(src),
+            )
+            return ""
 
         try:
             if self._provider == PROVIDER_OPENAI and self._openai_client:

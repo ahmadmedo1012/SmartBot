@@ -60,7 +60,7 @@ Request → CORS (أصول إنتاج فقط) → GZip → rate-limit (mutate:IP
 ## 5. النشر
 
 - **API** (vercel.json): `api/index.py` → `app` — يشمل `fb_dashboard/**` ويستثني frontend/static/tests/docs.
-- **Frontend** (vercel-frontend.json): يبني Next ويحاكي `/api/*` إلى `api.smart-link.ly`.
+- **Frontend** (`fb_dashboard/frontend/vercel.json` — التكوين الفعلي في دليل الواجهة): يبني Next ويحاكي `/api/*` إلى `api.smart-link.ly`. (v14: حُذف `vercel-frontend.json` الجذر — كان نسخة منحرفة بلا قارئ.)
 - **الترحيلات**: `alembic/versions/` — كل ترحيل idempotent (حارس Inspector)، يعمل على SQLite وPostgreSQL معًا.
 
 ## 6. المخاطر المعروفة والمسارات المقصودة

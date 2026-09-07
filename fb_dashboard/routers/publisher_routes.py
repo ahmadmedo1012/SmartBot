@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from _responses import ok
-from _services import _publisher, _track_event, get_tenant_fb_client
+from _services import _track_event, get_publisher_engine, get_tenant_fb_client
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException
 from models import ScheduledPost, User
@@ -16,17 +16,23 @@ router = APIRouter(tags=["publisher"])
 
 
 @router.get("/api/publisher/status")
-async def publisher_status(current_user: User = Depends(get_current_user)):
-    await _publisher.load_credentials(None, tenant_id=current_user._tenant_id)
-    return ok(_publisher.get_status())
+async def publisher_status(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    # v14-E2 (C-ENG1): fresh per-request engine + a REAL db load. The old
+    # shared singleton answered with whichever tenant loaded credentials
+    # LAST (and ``load_credentials(None)`` was a no-op) — one tenant's
+    # configured state leaked into every other tenant's status card.
+    engine = get_publisher_engine()
+    await engine.load_credentials(db, tenant_id=current_user._tenant_id)
+    return ok(engine.get_status())
 
 
 @router.get("/api/publisher/settings/{platform}")
 async def publisher_settings(platform: str, _=Depends(get_current_user)):
+    engine = get_publisher_engine()
     return ok(
         {
         "platform": platform,
-        "fields": _publisher.get_platform_settings_template(platform),
+        "fields": engine.get_platform_settings_template(platform),
     }
     )
 
@@ -38,7 +44,8 @@ async def publisher_configure(data: dict = Body(...), db=Depends(get_db),
     creds = data.get("credentials", {})
     if not platform or not creds:
         raise HTTPException(400, "الحقلان مطلوبان: المنصة وبيانات الاعتماد")
-    saved = await _publisher.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    engine = get_publisher_engine()  # v14-E2 (C-ENG1): request-scoped engine
+    saved = await engine.save_credentials(db, platform, creds, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     return ok({"ok": saved, "platform": platform})
 
 
@@ -58,7 +65,6 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             sched = datetime.fromisoformat(scheduled_at)
         except ValueError:
             raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601") from None
-        await _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",
@@ -85,9 +91,12 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         _track_event("post_published", {"platform": "facebook"})
         return ok({"platform": "facebook", "post_id": fb_post_id, "status": "published"})
     else:
-        await _publisher.load_credentials(db, tenant_id=current_user._tenant_id)
-        result = await _publisher.publish_to_platform(platform, message, image_url)
+        # v14-E2 (C-ENG1): fresh engine per request — the tenant's own
+        # credentials are loaded and used inside THIS request only.
+        engine = get_publisher_engine()
+        await engine.load_credentials(db, tenant_id=current_user._tenant_id)
+        result = await engine.publish_to_platform(platform, message, image_url)
         if not result:
-            raise HTTPException(400, f"فشل النشر على {_publisher.get_platform_display_name(platform)}")
+            raise HTTPException(400, f"فشل النشر على {engine.get_platform_display_name(platform)}")
         _track_event("post_published", {"platform": platform})
         return ok({**result, "status": "published"})

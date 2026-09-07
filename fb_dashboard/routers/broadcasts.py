@@ -4,10 +4,11 @@ import logging
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
+from _utils import iso_z
 from database import AsyncSessionLocal, get_db
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from models import Broadcast, User
-from sqlalchemy import select
+from sqlalchemy import desc, select
 
 from routers.auth import get_current_user, require_role
 
@@ -16,9 +17,34 @@ router = APIRouter(tags=["broadcasts"])
 
 
 @router.get("/api/broadcasts")
-async def list_broadcasts(db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    from _services import broadcast_engine
-    return ok(await broadcast_engine.list_broadcasts(db, tenant_id=current_user._tenant_id))
+async def list_broadcasts(
+    # v14-E3 (D10 §6): كانت القائمة بلا سقف — صف لكل حملة أنشأها المستأجر
+    # قط، والصفحة تستطلعها كل 30ث. السقف هنا في الراوتر مباشرة (بحد
+    # DB-side) — ملف broadcast_engine.py خارج ملكية هذا الوكيل، ودالة
+    # محركه list_broadcasts تبقى بلا limit للاستخدامات الداخلية.
+    limit: int = Query(50, ge=1, le=200),
+    db=Depends(get_db), current_user: User = Depends(get_current_user),
+):
+    rows = (await db.execute(
+        select(Broadcast)
+        .where(Broadcast.tenant_id == current_user._tenant_id)
+        .order_by(desc(Broadcast.created_at))
+        .limit(limit)
+    )).scalars().all()
+    # نفس شكل حقول broadcast_engine.list_broadcasts حرفيًا — إن غُيّر هناك
+    # فغيّر هنا (خطر انحراف موثّق في تقرير E3 للمنسّق).
+    return ok([{
+        "id": b.id,
+        "name": b.name,
+        "status": b.status,
+        "total_recipients": b.total_recipients,
+        "sent_count": b.sent_count,
+        "failed_count": b.failed_count,
+        "opened_count": b.opened_count,
+        "created_by": b.created_by,
+        "created_at": iso_z(b.created_at),
+        "sent_at": iso_z(b.sent_at),
+    } for b in rows])
 
 
 @router.post("/api/broadcasts")

@@ -148,7 +148,10 @@ function RegisterForm() {
             <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="size-full object-contain drop-shadow-lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">إنشاء حساب جديد</CardTitle>
-          <CardDescription className="text-base text-muted-foreground/80">انضم إلى SmartBot</CardDescription>
+          {/* v14-E4 (D4 H-03): /80 on muted-foreground measured 3.89:1 dark /
+              4.08:1 light — under the 4.5:1 AA floor; the full token passes
+              5.59/6.54:1. */}
+          <CardDescription className="text-base text-muted-foreground">انضم إلى SmartBot</CardDescription>
         </CardHeader>
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
@@ -256,7 +259,8 @@ function RegisterForm() {
             </Link>
           </div>
 
-          <p className="mt-4 text-center text-xs text-muted-foreground/80">SmartBot — منصة إدارة التفاعل الذكية</p>
+          {/* v14-E4 (D4 H-03): same /80 → full-token fix (AA 4.5:1). */}
+          <p className="mt-4 text-center text-xs text-muted-foreground">SmartBot — منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
     </div>

@@ -2,12 +2,12 @@
 
 v13-L4: split out of the former 594-line ``routers/payments.py`` monolith —
 endpoint bodies moved VERBATIM. This module exclusively owns the in-process
-pending-submission lock registry (``_SUB_PENDING_LOCKS`` / ``_pending_lock``).
+pending-submission lock registry (``_SUB_PENDING_LOCKS`` / ``_pending_lock``)
+and the receipt-reference validation (``_validated_receipt_url``).
 """
 import asyncio
 import logging
 
-from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -16,7 +16,11 @@ from sqlalchemy import select
 from telegram_bot import notify_admins_new_subscription
 
 from routers.auth import get_current_user
-from routers.payments.wallet import _payment_rate_limit, _reject_wallet_above_cap
+from routers.payments.wallet import (
+    _notify_admins_inline,
+    _payment_rate_limit,
+    _reject_wallet_above_cap,
+)
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
@@ -46,6 +50,26 @@ def _pending_lock(user_id: int) -> asyncio.Lock:
 # frontend/test consumers and served as an unauthenticated username-enumeration
 # oracle (check availability of any username without a session). Username
 # availability is validated by /api/register's existing-duplicate check.
+
+
+# v14-E1 #4: receipt references are validated BEFORE they land in extra_data.
+# The /api/upload path re-encodes with Pillow (≤1600px q85 → a few hundred KB
+# base64), so anything bigger is a client bypassing upload and stuffing
+# megabytes straight into the request body (unbounded DB row), and any other
+# scheme is a value our own upload flow never produces.
+_RECEIPT_URL_MAX_CHARS = 2_000_000
+_RECEIPT_URL_PREFIXES = ("data:image/", "/static/uploads/receipts/", "https://")
+
+
+def _validated_receipt_url(raw) -> str:
+    value = (raw or "").strip() if isinstance(raw, str) else ""
+    if not value:
+        return ""
+    if not value.startswith(_RECEIPT_URL_PREFIXES):
+        raise HTTPException(400, "رابط صورة التحويل غير صالح")
+    if len(value) > _RECEIPT_URL_MAX_CHARS:
+        raise HTTPException(400, "صورة التحويل كبيرة جداً — أعد رفعها بصورة أصغر")
+    return value
 
 
 @router.post("/api/subscriptions")
@@ -102,7 +126,7 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
             raise HTTPException(400, "اسم صاحب الحساب المُرسِل مطلوب")
         if not sender_account:
             raise HTTPException(400, "رقم حساب المُرسِل مطلوب")
-        receipt_url = (body.get("receiptImageUrl") or "").strip()
+        receipt_url = _validated_receipt_url(body.get("receiptImageUrl"))
         bank_extra.update({
             "sender_name": sender_name,
             "sender_account": sender_account,
@@ -134,7 +158,9 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         await db.commit()  # inside the lock — the pending check stays atomic
         await db.refresh(sp)
 
-    spawn(
+    # v14-E1 #3: inline (was spawn) — Vercel kills post-response tasks; the
+    # subscription alert must leave BEFORE this response does.
+    await _notify_admins_inline(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", plan.name_ar)
     )
 
@@ -172,7 +198,7 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
     amount = body.get("amount", 0)
     sender_name = (body.get("senderAccountName") or "").strip()
     sender_account = (body.get("senderAccountNumber") or "").strip()
-    receipt_url = (body.get("receiptImageUrl") or "").strip()
+    receipt_url = _validated_receipt_url(body.get("receiptImageUrl"))
 
     if provider not in ("liyana", "madar", "bank"):
         raise HTTPException(400, "مزود الدفع غير صالح")
@@ -231,7 +257,8 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
         await db.commit()  # inside the lock — the pending check stays atomic
         await db.refresh(sp)
 
-    spawn(
+    # v14-E1 #3: inline (was spawn) — same Vercel rationale as create.
+    await _notify_admins_inline(
         notify_admins_new_subscription(sp.id, current_user.username, float(amount), provider, phone or "-", new_plan.name_ar)
     )
 

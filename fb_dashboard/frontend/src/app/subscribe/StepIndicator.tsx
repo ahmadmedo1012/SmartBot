@@ -70,11 +70,15 @@ export function StepIndicator({
               <span
                 className={cn(
                   "text-2xs sm:text-xs font-medium transition-colors hidden sm:block",
+                  /* v14-E4 (D4 H-04): inactive labels were muted-foreground/50 —
+                     2.14:1, the worst failing pair in the audit. Full token
+                     passes 5.59/6.54:1; done-vs-inactive distinction stays via
+                     the node fill/border, not text opacity. */
                   isActive
                     ? "text-accent-foreground font-bold"
                     : isDone
                       ? "text-foreground/70"
-                      : "text-muted-foreground/50",
+                      : "text-muted-foreground",
                 )}
               >
                 {STEP_LABELS[s]}

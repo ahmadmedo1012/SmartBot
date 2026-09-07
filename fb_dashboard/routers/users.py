@@ -57,6 +57,11 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
     if password:
         from _hash import hash_password
         user.password_hash = hash_password(password)
+        # v14-E1 #5 (D5-H1): bump token_ver — exact parity with
+        # /api/admin/reset-password (auth.py) and /api/auth/change-password.
+        # Without the bump, every JWT minted before this admin-set password
+        # kept working for up to 24h (privilege-session survival).
+        user.token_ver = int(getattr(user, "token_ver", 0) or 0) + 1
     await db.commit()
     return ok({"ok": True})
 

@@ -32,6 +32,13 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
+  /* v14-E5 (D4 H-02 / WCAG 1.4.3): placeholder hint text. The old
+     placeholder:text-muted-foreground/70 measured 3.2:1 (dark) / 3.28:1
+     (light) on the real composite field surfaces (dark:bg-input/30 over
+     card / card-85+blur) — axe returns "incomplete" there, which is why it
+     survived every round. ONE dedicated token per mode, MEASURED ≥ 4.5:1
+     (numbers documented at the :root/.light definitions). */
+  --color-placeholder-text: var(--placeholder-text);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -175,6 +182,12 @@
    * serious — muted description/footer/meta text failed AA). 0.62 measures
    * 5.54:1 — comfortably AA with the same warm-gray character. */
   --muted-foreground: oklch(0.62 0.015 70);
+  /* v14-E5 (D4 H-02): even full 0.62 measures only 4.49:1 on the real field
+   * surface (dark:bg-input/30 over card is LIGHTER than card). 0.70 measures
+   * 6.12:1 (input/30 over card) · 6.16:1 (over card/85+blur) · 6.35:1 (over
+   * background) · 7.44:1 (disabled muted) — AA on every surface, same
+   * warm-gray character as the old /70 composite (#6c6660). */
+  --placeholder-text: oklch(0.7 0.015 70);
   --destructive: oklch(0.6 0.22 25);
   --border: oklch(0.23 0.01 60);
   /* v10-I3 (G4 F3 / WCAG 1.4.11) — the old 0.23 measured 1.16–1.24:1 against
@@ -264,6 +277,11 @@
   --secondary-foreground: oklch(0.2 0.01 70);
   --muted: oklch(0.94 0.006 70);
   --muted-foreground: oklch(0.48 0.015 70);
+  /* v14-E5 (D4 H-02): the /70 composite measured 3.28:1 on card. 0.52
+   * measures 5.51:1 on card · ~5.45:1 on background — AA with margin, and
+   * stays one step lighter than --muted-foreground (0.48) so the hint
+   * hierarchy (placeholder dimmer than muted hint text) survives. */
+  --placeholder-text: oklch(0.52 0.015 70);
   --destructive: oklch(0.58 0.2 25);
   --border: oklch(0.86 0.008 70);
   --input: oklch(0.86 0.008 70);

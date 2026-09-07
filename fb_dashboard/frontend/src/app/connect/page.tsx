@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import type { WebhookCheck } from "@/lib/types"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
@@ -17,6 +17,22 @@ import { countPhrase, formatNumber } from "@/lib/format"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
+
+/* v14-E4 (C-FE1): POST /api/facebook/test answers with the ok() envelope —
+ * {connected, fan_count, error?, warning?, scopes:{scopes,missing}}. The old
+ * code read `td.connected` off the RAW response body (i.e. off the envelope
+ * itself), so it was always undefined: the test button failed forever and
+ * "حفظ وتفعيل" never enabled. unwrapApi is the single envelope path (the
+ * exact pattern of the healthy mirror dashboard/pages/page.tsx:61-68).
+ * `missing` is documented here because /connect surfaces scope warnings
+ * (FacebookTestResult in lib/types omits it — kept local to this route). */
+type ConnectTestResult = {
+  connected: boolean
+  fan_count?: number
+  error?: string
+  warning?: string
+  scopes?: { scopes?: string[]; missing?: string[] }
+}
 
 export default function ConnectPage() {
   const [pageId, setPageId] = useState("")
@@ -35,9 +51,20 @@ export default function ConnectPage() {
       .then((d) => {
         setExisting(d)
         if (d.page_id) setPageId(d.page_id)
+        setLoadingExisting(false)
       })
-      .catch(() => {})
-      .finally(() => setLoadingExisting(false))
+      .catch((e: unknown) => {
+        /* v14-E4 (D1 م-1): anonymous visitor — every /api/facebook/* call
+         * requires auth, so the form can never succeed (PUT would 401 into
+         * "خطأ في الاتصال بالخادم"). Send to login with a return path (the
+         * same 401→login pattern as the payment dialog) and keep the loader
+         * on screen until the navigation lands — no dead-end form flash. */
+        if (e instanceof ApiError && e.status === 401) {
+          window.location.replace("/login?redirect=/connect")
+          return
+        }
+        setLoadingExisting(false)
+      })
     // Real webhook health (plan v3 §4.6) — shows the owner exactly what's
     // missing instead of the old "كل شيء يعمل" while events were rejected.
     apiFetch("/api/webhook/check")
@@ -55,51 +82,65 @@ export default function ConnectPage() {
     setErrorMsg("")
     setScopeWarnings([])
     try {
-      const r = await apiFetch("/api/facebook/settings", {
-        method: "PUT",
-        body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: false }),
-      })
-      if (!r.ok) { brandedToast.error("فشل حفظ البيانات المؤقت"); setStatus("idle"); return }
+      /* v14-E4 (C-FE1): unwrapApi on BOTH calls — apiFetch throws ApiError
+       * on non-2xx, unwrapApi throws on success:false (fail() is HTTP 200
+       * by design), so every backend failure lands in the catch below with
+       * the Arabic detail attached. The old dead `if (!r.ok)` branches
+       * (unreachable after apiFetch) are retired. */
+      await unwrapApi(
+        await apiFetch("/api/facebook/settings", {
+          method: "PUT",
+          body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: false }),
+        }),
+      )
       const tr = await apiFetch("/api/facebook/test", { method: "POST" })
-      const td = await tr.json()
+      const td = await unwrapApi<ConnectTestResult>(tr)
       if (td.connected) {
-        setFanCount(td.fan_count)
+        setFanCount(td.fan_count ?? 0)
         setStatus("saving")
         if (td.scopes?.missing?.length) setScopeWarnings(td.scopes.missing)
         /* v12-E4.13: fan_count flows through countPhrase (dual/plural) —
            same pattern as pages/page.tsx:65. */
-        brandedToast.success(`✅ الاتصال ناجح! ${countPhrase(td.fan_count, "متابع", "متابعين", "متابعين")}`)
+        brandedToast.success(`✅ الاتصال ناجح! ${countPhrase(td.fan_count ?? 0, "متابع", "متابعين", "متابعين")}`)
       } else {
         setStatus("idle")
         setErrorMsg(td.error || "فشل الاتصال — تحقق من رمز الوصول والصفحة")
         brandedToast.error(td.error || "فشل الاتصال")
       }
-    } catch {
+    } catch (e) {
       setStatus("idle")
-      brandedToast.error("خطأ في الاتصال بالخادم")
+      /* v14-E4 (D1 م-2): surface the backend's Arabic ApiError detail
+       * instead of the generic connection message. */
+      brandedToast.error(e instanceof ApiError ? e.message : "خطأ في الاتصال بالخادم")
     }
   }
 
   const handleSave = async () => {
     setStatus("saving")
     try {
-      const r = await apiFetch("/api/facebook/settings", {
-        method: "PUT",
-        body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: true }),
-      })
-      if (!r.ok) { brandedToast.error("فشل الحفظ"); setStatus("idle"); return }
-      await r.json()
+      await unwrapApi(
+        await apiFetch("/api/facebook/settings", {
+          method: "PUT",
+          body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: true }),
+        }),
+      )
       setStatus("connected")
       brandedToast.success("✅ تم حفظ البيانات وتفعيل الويبهوك")
-    } catch {
+    } catch (e) {
       setStatus("idle")
-      brandedToast.error("خطأ في الاتصال بالخادم")
+      // v14-E4 (D1 م-2): the backend's Arabic detail (e.g. a rejected token)
+      // beats the generic message.
+      brandedToast.error(e instanceof ApiError ? e.message : "خطأ في الاتصال بالخادم")
     }
   }
 
   if (loadingExisting) {
     return (
       <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        {/* v14-E4 (D4 M-03): skip-link target — rendered in EVERY branch
+            (loader, connected, form) so #page-content is never a no-op on
+            this route. */}
+        <span id="page-content" className="sr-only" tabIndex={-1} />
         <span className="sr-only">جارٍ التحميل…</span>
         <Loader2 className="h-8 w-8 animate-spin text-accent-foreground" />
       </div>
@@ -113,6 +154,9 @@ export default function ConnectPage() {
     const allOk = secretOk && messagesOk && feedOk
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        {/* v14-E4 (D4 M-03): skip-link target in the connected branch too
+            (was form-only — the skip link jumped nowhere here). */}
+        <span id="page-content" className="sr-only" tabIndex={-1} />
         <Card className="w-full max-w-md border-accent-foreground/20 bg-card/80 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl">
           <h1 className="sr-only">حالة اتصال صفحة فيسبوك</h1>
           <CardHeader className="text-center">
@@ -136,10 +180,11 @@ export default function ConnectPage() {
                   <span className="flex items-center gap-2 text-muted-foreground"><Webhook className="size-3.5" /> عنوان الويبهوك</span>
                   <button
                     dir="ltr"
+                    aria-label="نسخ عنوان الويبهوك"
                     className="flex items-center gap-1.5 font-mono text-2xs text-foreground hover:text-accent-foreground transition-colors"
                     onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); brandedToast.success("تم نسخ عنوان الويبهوك") }}
                   >
-                    {wh.webhook_url} <Copy className="size-3" />
+                    {wh.webhook_url} <Copy className="size-3" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between gap-2">

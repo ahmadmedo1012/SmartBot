@@ -47,6 +47,13 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 3. **Single-envelope rule (no dual-shape guards):** every `/api` response is exactly `{success, data, error?}` — unwrapped ONLY centrally via `unwrapApi`/`apiJson` in `src/lib/api.ts` (backend mirrors: `ok()`/`fail()` in `_responses.py`). NEVER re-introduce per-call shape guards such as `Array.isArray(d) ? d : (d?.data ?? [])` — v13 pruned the last of them (E5 + the 2 wizard guards by the coordinator; ledger `dec-envelope-prune` closed). `unwrapBody` in `api.ts` is the central unwrap, not a guard — it stays.
 4. **Alembic-chain tests are sync `def`:** migration tests (`tests/test_v13_migrations.py`) must be plain synchronous functions — `alembic/env.py` calls `asyncio.run()`, which fails inside a running event loop. Each test uses an isolated database (tmp_path + monkeypatched `settings.DATABASE_URL`/`DATABASE_POOLED_URL` AND `os.environ` — the settings singleton does not re-read the environment). Never touch the shared hermetic DB.
 
+## v14 Conventions (اصطلاحات جولة v14)
+
+1. **Engines are per-tenant, never stateful singletons:** a module-level engine that caches tenant credentials/state across `await` points (the v14 C-ENG1 class) is a bug. Build/fetch a per-tenant engine per request (the broadcast pattern, v4 §3.8, is the repo precedent); module-level proxies must stay stateless dispatchers.
+2. **New migrations follow the 012 pattern:** `alembic/versions/013_*.py` — dual dialect (PostgreSQL/SQLite), Inspector guards, idempotent, plus matching `_schema_reconcile.py` entries and sync `def` migration tests (v13 Convention #4 applies).
+3. **Simulation battery files are `sim-*`:** user-journey e2e specs live under `e2e/sim-*.spec.ts` + `e2e/sim/helpers/` (personas/session/shots), driven by `scripts/v14_sim_local_battery.sh` (local) and `scripts/v14_postdeploy_battery.sh` (production checks — stateless only).
+4. **Gates/CI run on Node 24:** `check_a11y_labels.ts` executes via type stripping (needs Node >=22.6 experimental / >=23.6 default — Node 20 cannot run it). `gate_all.sh` now syncs `fb_dashboard/static/` after `next build` and verifies the buildId freshness (the v12 stale-static incident class).
+
 ## Strict Rules (do not violate)
 
 ### DO NOT
@@ -54,7 +61,7 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 2. **Create duplicate entry points** — `api/bot.py` and `api/public.py` are deleted. Only `api/index.py` exists.
 3. **Add dead code** — no Vite/SPA remnants, no unconnected API files.
 4. **Commit build artifacts** — `.next/`, `tsconfig.tsbuildinfo` in .gitignore and NOT tracked.
-5. **Return raw dicts from any router** (docs/plans/latest_plan.md Track A): every endpoint MUST return `{"success": bool, "data": ..., "error"?: str}` via `fb_dashboard/_responses.py` (`ok()` / `fail()`). HTTP transport failures use `HTTPException`. Gate: `grep -L '"success"' fb_dashboard/routers/*.py` returns nothing (every router carries the contract note).
+5. **Return raw dicts from any router** (docs/plans/latest_plan.md Track A): every endpoint MUST return `{"success": bool, "data": ..., "error"?: str}` via `fb_dashboard/_responses.py` (`ok()` / `fail()`). HTTP transport failures use `HTTPException`. Gate (v14): every file under `fb_dashboard/routers/` — multi-level, incl. the `payments/` package — carries EITHER an inline `"success"` envelope OR a `_responses import`; exemptions only the documented byte-stream/SSE cases (see `routers/__init__.py` docstring; enforced in `gate_all.sh` 5a + CI).
 6. **Parse API responses ad hoc in the frontend** (Track A.4): all `/api` fetches go through `src/lib/api.ts` — `unwrapApi(res)` / `apiJson()`. Never `.then(r => r.json())` then read fields directly; the envelope is unwrapped centrally and `success:false` throws `ApiError`.
 7. **Hardcode colors/shadows in components** (Track D): every color lives in `globals.css` tokens (incl. `--confetti-*`, `--iphone-*`); icons come from `lucide-react` exclusively; every `<Input>` carries `dir="auto"`. See `docs/design-system.md` (incl. the documented `bg-white` exceptions table and the AI-cliché refuse list).
 8. **Ship a mobile-invisible dashboard** (Track F): `MobileBottomNav` must stay wired in `DashboardShell` (`md:hidden`) — nav data is the single exported `defaultNavSections` in `AdminSidebar`. Any new sidebar section MUST be added there (one source, both renders).

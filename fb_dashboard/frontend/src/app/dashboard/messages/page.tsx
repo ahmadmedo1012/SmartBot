@@ -60,12 +60,14 @@ function ConvItem({ conv, selectedId, onSelect }: {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex justify-between gap-2 items-center">
-            <p className={`text-sm truncate ${hasUnread ? "font-bold" : "font-medium"}`}>
+            {/* v14-E5 (D3-ج): live values (subject / sender names) — dir="auto"
+                isolates bidi so Latin/mixed Facebook names render in order. */}
+            <p className={`text-sm truncate ${hasUnread ? "font-bold" : "font-medium"}`} dir="auto">
               {conv.subject || conv.senders?.[0]?.name || "بدون موضوع"}
             </p>
             <span className="text-2xs text-muted-foreground shrink-0">{timeAgo(conv.updated_time)}</span>
           </div>
-          <p className="text-xs text-muted-foreground truncate mt-1">
+          <p className="text-xs text-muted-foreground truncate mt-1" dir="auto">
             {conv.senders?.map((s) => s.name).join("، ") || "غير معروف"}
           </p>
           <div className="flex items-center gap-2 mt-1.5">
@@ -327,14 +329,22 @@ export default function MessagesPage() {
                               className="rounded-lg size-24 object-cover mb-1"
                             />
                           )}
+                          {/* v14-E5 (D4 H-05 family): opacity-70 on the primary
+                              bubble measured 3.14:1 — inherit the full bubble
+                              text color instead (passes in both bubbles). */}
                           {msg.postback_payload && !msg.message && (
-                            <p className="text-2xs opacity-70 mb-0.5">اختيار: {msg.postback_payload}</p>
+                            <p className="text-2xs mb-0.5">اختيار: {msg.postback_payload}</p>
                           )}
                           {msg.message && <p>{msg.message}</p>}
+                          {/* v14-E5 (D4 H-05 family): opacity-50 measured 2.25:1 on
+                              the primary bubble — same treatment. */}
                           {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
-                            <p className="opacity-50">مرفق غير مدعوم</p>
+                            <p>مرفق غير مدعوم</p>
                           )}
-                          <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
+                          {/* v14-E5 (D4 H-05): /70 on the primary bubble measured
+                              3.14:1 — full primary-foreground passes
+                              (4.94:1 dark / 9.02:1 light). */}
+                          <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
                             {msg.created_time ? formatDate(msg.created_time) : ""}
                           </p>
                         </div>
@@ -362,7 +372,9 @@ export default function MessagesPage() {
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً…"
                       aria-label="نص الرد"
-                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                      /* v14-E5: raw textarea bypasses the shared Textarea component —
+                         apply the AA placeholder token directly. */
+                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm placeholder:text-placeholder-text transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}
                     />
                   </div>

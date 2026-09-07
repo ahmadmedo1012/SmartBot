@@ -25,12 +25,33 @@ from ws_manager import ws_manager
 log = logging.getLogger("fb-api")
 
 
+def _extract_ws_token(ws: WebSocket) -> str:
+    """v14-E2: Authorization header → ?token= query → cookie (in that order).
+
+    Accepts ``Authorization: Bearer <jwt>`` (and a bare token) in the WS
+    handshake headers. Starlette lowercases header names, so a single
+    lowercase lookup covers all clients.
+    """
+    auth = ws.headers.get("authorization") or ""
+    auth = auth.strip()
+    if auth:
+        if auth.lower().startswith("bearer "):
+            auth = auth[7:].strip()
+        if auth:
+            return auth
+    return ws.query_params.get("token") or ws.cookies.get("token") or ""
+
+
 # ── WebSocket Real-Time Updates ─────────────────────────────────────────────
 
 async def websocket_endpoint(ws: WebSocket):
     """WebSocket endpoint for real-time dashboard data.
     Sends events: stats_update, new_reply, bot_status, alert."""
-    token = ws.query_params.get("token") or ws.cookies.get("token")
+    # v14-E2 (D8-L7 / D6 #6-adjacent): token from the Authorization handshake
+    # HEADER first (a token in the URL query lands in access logs, proxy logs
+    # and browser history — the documented D8 low finding), then the legacy
+    # ?token= query for existing clients, then the session cookie.
+    token = _extract_ws_token(ws)
     if not token:
         await ws.close(code=4001, reason="Missing token")
         return
@@ -65,6 +86,14 @@ async def websocket_endpoint(ws: WebSocket):
         user = (await db.execute(_stmt)).scalar_one_or_none()
         if not user or not user.tenant_id:
             await ws.close(code=4001, reason="Invalid tenant")
+            return
+        # v14-E2 (D6 #6-adjacent / auth parity): token VERSION check — the WS
+        # handshake used to skip it entirely, so a token minted before the
+        # user's token_ver was bumped (password change / admin reset) kept a
+        # live socket for its full 24h lifetime. Mirrors routers/auth.py:78
+        # (legacy tokens/DBs treat the column as 0 = accept).
+        if int(payload.get("ver", 0) or 0) != int(getattr(user, "token_ver", 0) or 0):
+            await ws.close(code=4001, reason="Token outdated — re-login required")
             return
         tenant = await db.get(Tenant, user.tenant_id)
         if not tenant or not tenant.is_active:

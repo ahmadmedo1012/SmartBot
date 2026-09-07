@@ -38,7 +38,9 @@ export function TelegramConfigSection({
       <div className="flex items-center gap-2 mb-4">
         <Bot className="size-5 text-muted-foreground" />
         <h3 className="text-lg font-semibold">إعدادات البوت</h3>
-        <Badge variant={config.isActive ? "default" : "secondary"} className="mr-auto">
+        {/* v14-E4 (D3 M8): mr-auto → ms-auto — logical property for the
+            RTL-first codebase (physical margin worked only by coincidence). */}
+        <Badge variant={config.isActive ? "default" : "secondary"} className="ms-auto">
           {config.isActive ? "نشط" : "غير نشط"}
         </Badge>
       </div>
@@ -58,9 +60,13 @@ export function TelegramConfigSection({
                 onChange={(e) => onConfigChange({ ...config, botToken: e.target.value })}
                 placeholder="123456789:ABCdefGHIjklmNOPqrstUVwxyz" className="h-11 rounded-xl text-left pl-10" dir="ltr" />
               <button type="button" onClick={onToggleShowToken}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded active:scale-90"
+                /* v14-E4 (D4 H-06, WCAG 2.5.8 AA 24×24): was a bare absolute
+                   icon wrapper ≈16×16px — below the minimum target size.
+                   size-7 (28px) + rounded-md, the exact reveal-toggle recipe
+                   from login:202-203 / register:202-204. */
+                className="absolute end-3 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-90"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>
-                {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {showToken ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">

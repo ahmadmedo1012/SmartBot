@@ -94,7 +94,17 @@ class LinkedInPublisher:
 
 
 class PublisherEngine:
-    """Multi-platform publishing engine."""
+    """Multi-platform publishing engine.
+
+    v14-E2 (C-ENG1, D06 #1): instances are REQUEST-SCOPED — build one per
+    request/tenant via ``_services.get_publisher_engine()`` and call
+    ``load_credentials`` + ``publish_to_platform`` within the same request.
+    The old module-level singleton let a concurrent tenant-B
+    ``load_credentials`` overwrite ``self.x``/``self.linkedin`` between
+    tenant-A's load and publish, publishing with the WRONG tenant's account.
+    Instance attributes are fine to mutate (cheap object, nothing shared);
+    what is gone is the PROCESS-GLOBAL shared instance.
+    """
 
     def __init__(self):
         self.x = XPublisher()

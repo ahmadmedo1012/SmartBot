@@ -16,6 +16,7 @@ from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from models import BotLog, BotState, Tenant, User
+from pydantic import BaseModel, Field
 from sqlalchemy import desc, func, select
 from ws_manager import ws_manager
 
@@ -342,10 +343,26 @@ async def get_logs(limit: int = Query(50, ge=1, le=500), db=Depends(get_db), cur
     )
 
 
+class ClearLogsBody(BaseModel):
+    """v14-E1 #6 (D5-H2): bounded ``days``.
+
+    A negative/absurd value used to push the cutoff into the FUTURE and wipe
+    the tenant's ENTIRE log table in one call (days=-1 → delete everything
+    "older than tomorrow"), and a non-int value crashed with a raw 500
+    (timedelta(days="abc") TypeError). Both are now clean 422s.
+    """
+
+    days: int = Field(default=30, ge=0, le=365)
+
+
 @router.post("/api/logs/clear")
-async def clear_logs(payload: dict = None, db=Depends(get_db), current_user=Depends(require_role("admin"))):
+async def clear_logs(payload: ClearLogsBody | None = None, db=Depends(get_db), current_user=Depends(require_role("admin"))):
+    """Delete the tenant's logs older than ``days`` days (0..365, default 30).
+
+    An omitted body keeps the historical default (30 days).
+    """
     _tid = current_user._tenant_id
-    days = (payload or {}).get("days", 30)
+    days = payload.days if payload else 30
     cutoff = utcnow() - timedelta(days=days)
     result = await db.execute(select(func.count(BotLog.id)).where(BotLog.tenant_id == _tid, BotLog.created_at < cutoff))
     count = result.scalar() or 0

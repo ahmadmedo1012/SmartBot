@@ -68,6 +68,12 @@ async def test_public_stats_reflect_real_db_changes():
                               comment_text="c", reply_text="r") for i in range(7)])
             await db.commit()
 
+        # v14-E3: /api/public/stats صارت مخبأة خادميًا (ttl=300، D10 §8) —
+        # نُفرغ الكاش بين المرحلتين كي يبقى هذا الاختبار على قصده الأصلي:
+        # الأرقام تتبع قاعدة البيانات الحقيقية (لا سلوك الكاش).
+        from api_cache import _cache_store
+        _cache_store.clear()
+
         r = await client.get("/api/public/stats")
         d2 = r.json()["data"]
         assert d2["activeTenants"] == 2, f"المتوقع 2 (PAID+TRIAL)، وجد {d2['activeTenants']} — UNPAID لا يُعد نشطاً"

@@ -114,6 +114,16 @@ async def public_config(db=Depends(get_db)):
 
 
 @router.get("/api/public/stats")
+# v14-E3 (D10 §8): كان كل تحميل لصفحة الهبوط ينفّذ COUNT تجميعيًا على كامل
+# جدولي tenants/Reply (أحدها عبر كل المستأجرين) على Neon — أكثر نقطة عامة
+# تعرضًا للزيارة والانطلاق البارد. المجاميع تتغير نادرًا → كاش 5 دقائق
+# (نفس نمط /api/config العام أعلاه).
+# أمان المفتاح: النقطة عامة بلا مصادقة ولا تخصيص مستأجر — الاستجابة
+# (مجاميع منصة فقط) مطابقة لكل المستدعين، فسقوط مفتاح الكاش إلى
+# "module.qualname" (بلا Request) لا يسرّب شيئًا بين مستأجرين. لا تصلح
+# هذه البنية لنقاط tenant-scoped (تحذير D10 §8) — تلك تحتاج key_fn
+# يضمّن هوية المستأجر.
+@api_cache.cached(ttl=300)  # BELOW router.get — so the cached wrapper is what gets registered
 async def public_stats(db=Depends(get_db)):
     """Public platform statistics. Aggregates only — never exposes tenant data.
 

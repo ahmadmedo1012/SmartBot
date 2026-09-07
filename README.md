@@ -4,7 +4,7 @@
 
 **المكدّس التقني:** FastAPI (Python 3.12) + Next.js 16 (App Router) + SQLAlchemy/Alembic + Neon PostgreSQL (إنتاج) / SQLite (تطوير) + Vercel.
 
-**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 389 hermetic tests, CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
+**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 624+ hermetic tests (grows every round — see the latest round report), CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
 
 ---
 
@@ -22,8 +22,8 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 389 اختبار pytest (انحدارات v10 الأمنية ضمنها — v5 §1)
-alembic/versions/           ← ترحيلات Alembic (حتى 010: فهارات المسارات الساخنة)
+tests/                      ← 624+ اختبار pytest (ترتفع كل جولة — انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
+alembic/versions/           ← ترحيلات Alembic (حتى 013: 012 قيد فريد bot_state · 013 (v14) قيد (tenant,key) + dedup + فهارس)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
 docs/                       ← التوثيق المنظَّم — انظر docs/INDEX.md
@@ -41,19 +41,20 @@ npm install
 LOCAL_API_PROXY=http://127.0.0.1:8000 npm run dev   # الواجهة على :3000 مع توكيل /api للخلفية
 ```
 
-> **ملاحظة الوكيل (v10-H3):** توكيل `/api` في التطوير المحلي يتطلب متغير `LOCAL_API_PROXY` (يعكس توكيل vercel.json في الإنتاج) — بدون سترد نداءات الواجهة 404. بدون الوكيل استخدم `NEXT_PUBLIC_API_HOST`.
+> **ملاحظة الوكيل (v10-H3):** توكيل `/api` في التطوير المحلي يتطلب متغير `LOCAL_API_PROXY` (يعكس توكيل vercel.json في الإنتاج) — بدون سترد نداءات الواجهة 404. (المتغير `NEXT_PUBLIC_API_HOST` حُذف من التوثيق في v14 — لم يكن يقرؤه الكود: التوكيل من نفس الأصل عبر rewrites.)
 
-## بوابات الجودة (v5 + v6 — تعمل آليًا على كل push/PR عبر GitHub Actions)
+## بوابات الجودة (v5 + v6 + v14 — تعمل آليًا على كل push/PR عبر GitHub Actions على Node 24)
 
 ```bash
-bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next build + عقود ثابتة + بوابات v6
+bash scripts/gate_all.sh        # ruff + pytest + tsc + vitest + next build + مزامنة static وفحص نضارتها + العقود الثابتة + بوابات v6
 ```
 
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **389 passed** (محكمّة: أمامي/عكسي/عشوائي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **624+ passed** (ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
+| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 23 ملفًا / 184 اختبارًا (v13 — ترتفع كل جولة) |
 | بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |
 | صفر تمدد أفقي | `node e2e/viewport-sweep.mjs` | 21/21 (375/768/1440) |
@@ -73,8 +74,8 @@ bash scripts/gate_all.sh        # ruff + pytest (بأي ترتيب) + tsc + next
 
 مشروعا Vercel (انظر `docs/deployment.md`):
 - **API** (`vercel.json`): FastAPI serverless — نقطة الدخول `api/index.py` → `api.smart-link.ly`
-- **Frontend** (`vercel-frontend.json`): Next.js → `bot.smart-link.ly`
-- **الترحيلات**: `alembic upgrade head` عند تغيّر المخطط (ترحيل 010 = فهارات القوائم الساخنة)
+- **Frontend** (`fb_dashboard/frontend/vercel.json` — التكوين الفعلي): Next.js → `bot.smart-link.ly`
+- **الترحيلات**: `alembic upgrade head` عند تغيّر المخطط (أحدث ترحيل 013 = موجة v14: قيد (tenant,key) على bot_state + dedup)
 
 ## المراقبة
 

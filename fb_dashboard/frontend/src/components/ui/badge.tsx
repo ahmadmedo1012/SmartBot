@@ -28,7 +28,10 @@ const badgeVariants = cva(
         info: "bg-info/15 text-info border-info/25",
         orange: "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/25",
         /* Smart-Menu extras */
-        gold: "bg-accent-foreground/15 text-accent-foreground dark:text-accent-foreground border-accent-foreground/25 shadow-[0_0_0_1px_oklch(0.55_0.19_45_/_0.08)]",
+        /* v14-E5: gold glow derives from var(--ring) via color-mix (identical
+           rendering to the old literal oklch(0.55 0.19 45 / 0.08) — single
+           source instead of a hand-copied token value). */
+        gold: "bg-accent-foreground/15 text-accent-foreground dark:text-accent-foreground border-accent-foreground/25 shadow-[0_0_0_1px_color-mix(in_oklch,var(--ring)_8%,transparent)]",
         saffron: "bg-saffron/15 text-ember dark:text-saffron border-saffron/25",
         gradient: "bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white shadow-sm shadow-accent-foreground/20",
       },
@@ -43,4 +46,7 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
-export { Badge, badgeVariants }
+/* v14-E5 (D2-L1): badgeVariants export removed — zero external importers
+ * (verified by grep; buttonVariants got the same treatment in v10-W4). The
+ * internal const stays — BadgeProps and Badge() consume it. */
+export { Badge }

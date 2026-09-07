@@ -132,7 +132,8 @@ async def test_notification_from_payment_approval():
     """موافقة الأدمن على دفعة → إشعار حقيقي للمستأجر (ربط §4.2 بـ§2)."""
     fixture = await _make_app_fixture()
     try:
-        from models import SubscriptionPayment, SubscriptionPlan
+        from _hash import hash_password
+        from models import SubscriptionPayment, SubscriptionPlan, User
         client_for, (tid_a, _tid_b) = await _seed_two_tenants(fixture)
         app, sf, _te = fixture
         async with sf() as db:
@@ -141,6 +142,10 @@ async def test_notification_from_payment_approval():
             await db.flush()
             u = (await db.execute(select(__import__("models", fromlist=["User"]).User).where(
                 __import__("models", fromlist=["User"]).User.username == "user_a"))).scalar_one()
+            # v14-E1/C-SEC1: الحسم صار لمسؤول المنصة حصراً — نزرع واحداً في نفس المستأجر
+            db.add(User(username="padmin_notif", email="padmin_notif@test.ly",
+                        password_hash=hash_password("passP12345"),
+                        tenant_id=tid_a, role="admin", is_platform_admin=True))
             sp = SubscriptionPayment(user_id=u.id, tenant_id=tid_a, phone="0912345678",
                                      amount=50, provider="liyana", plan_id=plan.id,
                                      plan_name="أساسي", status="pending")
@@ -148,10 +153,19 @@ async def test_notification_from_payment_approval():
             await db.commit()
             sp_id = sp.id
 
+        # v14-E1/C-SEC1: أدمن المستأجر (user_a) يُرفض 403 — الحسم لمسؤول المنصة
         client = await client_for("user_a", tid_a)
         r = await client.post("/api/admin/subscriptions", json={"id": sp_id, "status": "verified"})
-        assert r.status_code == 200, r.text
+        assert r.status_code == 403, "tenant admin self-approval must be rejected (C-SEC1)"
+        await client.aclose()
 
+        client = await client_for("padmin_notif", tid_a)
+        r = await client.post("/api/admin/subscriptions", json={"id": sp_id, "status": "verified"})
+        assert r.status_code == 200, r.text
+        await client.aclose()
+
+        # الإشعار يذهب لمالك الدفعة (user_a) — التحقق بعميله هو
+        client = await client_for("user_a", tid_a)
         r = await client.get("/api/notifications")
         titles = [n["title"] for n in r.json()["data"]["items"]]  # v4 §2.2
         assert any("تأكيد الدفع" in t for t in titles), titles

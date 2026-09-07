@@ -14,7 +14,9 @@ router = APIRouter(tags=["subscribers"])
 @router.get("/api/subscribers")
 async def list_subscribers(
     search: str = Query(""), platform: str = Query(""), tag: str = Query(""),
-    page: int = Query(1), per_page: int = Query(20),
+    # v14-E3 (D10 §6): كانت page/per_page بلا قيود → ?per_page=100000 يسحب
+    # الجدول كاملاً (سقف le=200 + ge=1 — نفس نمط inbox.py المسقوف)
+    page: int = Query(1, ge=1), per_page: int = Query(20, ge=1, le=200),
     db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
     return ok(

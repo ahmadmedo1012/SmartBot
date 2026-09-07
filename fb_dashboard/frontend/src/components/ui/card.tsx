@@ -57,13 +57,15 @@ function Card({
       {...props}
     >
       {children}
-      {/* Spotlight border overlay — conic-gradient that sweeps on hover */}
+      {/* Spotlight border overlay — conic-gradient that sweeps on hover.
+          v14-E5 (D2-M4): the literal oklch(0.55 0.19 45 / 0.6) is replaced by
+          color-mix over var(--ring) — same value, single source of truth. */}
       {spotlight && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-500 group-hover/card:opacity-100"
           style={{
-            background: "conic-gradient(from 0deg at 50% 50%, transparent 0deg, oklch(0.55 0.19 45 / 0.6) 30deg, transparent 50deg)",
+            background: "conic-gradient(from 0deg at 50% 50%, transparent 0deg, color-mix(in oklch, var(--ring) 60%, transparent) 30deg, transparent 50deg)",
             mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
             maskComposite: "exclude",
             WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",

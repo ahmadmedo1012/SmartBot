@@ -9,6 +9,7 @@
      per-row copy, amount, sender name/number inputs and the optional
      receipt upload (upload logic itself stays in the dialog). */
 
+import { useId } from "react"
 import { Landmark, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -161,6 +162,10 @@ export function BankInstructions({
     { label: BANK_IBAN_ROW_LABEL, value: bankIban },
   ]
 
+  /* v14-E4 (C-A11Y1): stable id tying the visible upload label to the
+   * sr-only file input (accessible name + click/keyboard activation). */
+  const receiptInputId = useId()
+
   return (
     <>
       {/* Bank account info card */}
@@ -227,24 +232,30 @@ export function BankInstructions({
       <div>
         <Label>صورة التحويل (اختياري)</Label>
         <div className="flex items-center gap-2 mt-1.5">
-          <label
-            className="h-11 px-4 rounded-xl border border-border/30 flex items-center justify-center gap-2 hover:bg-accent cursor-pointer text-sm text-muted-foreground"
-            style={{
-              opacity: uploadingReceipt ? 0.5 : 1,
-              pointerEvents: uploadingReceipt ? "none" : "auto",
+          {/* v14-E4 (C-A11Y1 / D4 C-01, WCAG 2.1.1 Level A): the input used
+              to be `hidden` inside a non-focusable label — display:none put
+              it outside the tab order and the AT tree, so the receipt upload
+              was mouse-only. Standard sr-only + peer pattern instead: the
+              input stays focusable (Enter/Space open the picker natively),
+              takes its accessible name from the htmlFor label, and
+              peer-focus-visible lights the visible label up so keyboard
+              users see WHERE they are. */}
+          <input
+            type="file"
+            id={receiptInputId}
+            accept="image/*"
+            className="sr-only peer"
+            disabled={uploadingReceipt}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              onReceiptFileSelected(file)
             }}
+          />
+          <label
+            htmlFor={receiptInputId}
+            className="h-11 px-4 rounded-xl border border-border/30 flex items-center justify-center gap-2 hover:bg-accent cursor-pointer text-sm text-muted-foreground peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-accent-foreground/50 peer-focus-visible:border-accent-foreground/40 peer-disabled:pointer-events-none peer-disabled:opacity-50"
           >
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={uploadingReceipt}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                onReceiptFileSelected(file)
-              }}
-            />
             {uploadingReceipt ? (
               <Loader2 className="size-4 text-muted-foreground animate-spin" />
             ) : (

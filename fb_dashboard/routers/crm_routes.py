@@ -15,7 +15,9 @@ router = APIRouter(prefix="", tags=["crm"])
 @router.get("/api/crm/customers")
 async def crm_list(
     stage: str = Query(""), search: str = Query(""),
-    page: int = Query(1), per_page: int = Query(25),
+    # v14-E3 (D10 §6): كانت بلا ge/le → per_page=100000 يسحب الجدول كاملاً
+    # وpage=0 يعطي offset سالباً. سقف le=200 + ge=1 (نمط inbox.py).
+    page: int = Query(1, ge=1), per_page: int = Query(25, ge=1, le=200),
     db=Depends(get_db), current_user: User = Depends(get_current_user),
 ):
     # ponytail: Customer at module level

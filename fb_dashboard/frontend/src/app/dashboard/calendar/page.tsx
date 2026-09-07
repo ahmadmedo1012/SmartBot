@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { CalendarDays, AlertCircle, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
@@ -65,10 +66,14 @@ export default function CalendarPage() {
                 <div className="h-5 w-28 bg-muted rounded animate-pulse" aria-hidden="true" />
               )}
               {/* RTL calendar navigation: "previous" points right (start side),
-                  "next" points left (forward direction). */}
+                  "next" points left (forward direction).
+                  v14-E5 (D2-M5): raw ChevronRight/ChevronLeft replaced by
+                  DirectionalIcon — the v7 §2.1 single source for directional
+                  chevrons. Identical rendering (back→RTL: right, forward→RTL:
+                  left); the component owns the glyph + the rtl flip. */}
               <div className="flex gap-1">
                 <Button size="sm" variant="ghost" onClick={() => shiftMonth(-1)} disabled={!month} aria-label="الشهر السابق" className="size-8 p-0">
-                  <ChevronRight className="size-4" aria-hidden="true" />
+                  <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" />
                 </Button>
                 {!isCurrentMonth && month && (
                   <Button size="sm" variant="ghost" onClick={backToCurrent} className="h-8 px-2 text-xs" aria-label="العودة إلى الشهر الحالي">
@@ -76,7 +81,7 @@ export default function CalendarPage() {
                   </Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => shiftMonth(1)} disabled={!month} aria-label="الشهر التالي" className="size-8 p-0">
-                  <ChevronLeft className="size-4" aria-hidden="true" />
+                  <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
                 </Button>
               </div>
             </div>

@@ -245,9 +245,19 @@ async def lifespan(app: FastAPI):
             runner._bot_task = asyncio.create_task(_run_bot_loop())
             log.info("Bot started in background")
         if not _IS_VERCEL:
+            # v14-E2: both schedulers now run tenant-scoped. ``sequence_engine``
+            # is the _services per-tenant dispatcher (fresh SequenceEngine per
+            # due step + the tenant's own BotState FB client; tenants without
+            # credentials are skipped, and after 3 failed sends the
+            # subscription is marked failed instead of retrying every 60s
+            # forever) — see _services._TenantSequenceEngineProxy.
             from sequence_engine import SequenceScheduler
             _seq_scheduler = SequenceScheduler(sequence_engine)
             spawn(_seq_scheduler.start())
+            # v14-E2 (C-ENG2): the calendar scheduler publishes each due post
+            # through its OWN tenant's client (content_calendar engine), skips
+            # tenants with no connected page, and marks a post failed after 3
+            # attempts with a durable reason row (bot_state schedpost_fail_*).
             from content_calendar import CalendarScheduler
             _calendar_scheduler = CalendarScheduler(content_calendar_engine)
             spawn(_calendar_scheduler.start())

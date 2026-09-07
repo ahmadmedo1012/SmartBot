@@ -188,6 +188,9 @@ export default function AdminTelegramPage() {
 
   if (accessDenied) return (
     <div className="flex flex-col items-center justify-center py-20 text-center" role="alert">
+      {/* v14-E5 (D4 M-02b): the unauth branch had no h1 while the authorized
+          branch has one (v8-B5 sr-only pattern) — page-heading parity. */}
+      <h1 className="sr-only">إعدادات تليجرام</h1>
       <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
         <AlertTriangle className="size-8 text-destructive" />
       </div>

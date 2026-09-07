@@ -59,13 +59,15 @@ export default function LeadsPage() {
               <Card key={c.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-bold">{c.name || "بدون اسم"}</p>
+                    {/* v14-E5 (D3-ج): name + notes are live CRM values —
+                        dir="auto" isolates Latin/mixed names and free text. */}
+                    <p className="text-sm font-bold" dir="auto">{c.name || "بدون اسم"}</p>
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {/* v4 §2.3 — backend crm_routes returns notes/first_seen_at/
                         last_contacted_at; email was never in the serializer */}
                     {c.phone && <p>الهاتف: {c.phone}</p>}
-                    {c.notes && <p>{c.notes}</p>}
+                    {c.notes && <p dir="auto">{c.notes}</p>}
                     {c.first_seen_at && (
                       <p className="text-3xs">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
                     )}

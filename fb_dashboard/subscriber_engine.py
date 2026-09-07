@@ -193,13 +193,19 @@ class SubscriberEngine:
         tag_r = await session.execute(tag_stmt)
         tags = [{"id": t.id, "name": t.name, "color": t.color} for t in tag_r]
 
-        # recent replies (last 10)
-        reply_r = await session.execute(
+        # recent replies (last 10) — v14-E2 (D6 #5): the query matched
+        # ``commenter_name`` GLOBALLY, so any name-collision across tenants
+        # (common with Arabic names) leaked the OTHER tenant's comment/reply
+        # texts into this tenant's subscriber detail. Scope to the tenant.
+        reply_stmt = (
             select(Reply)
             .where(Reply.commenter_name == sub.name)
             .order_by(desc(Reply.created_at))
             .limit(10)
         )
+        if tenant_id:
+            reply_stmt = reply_stmt.where(Reply.tenant_id == tenant_id)
+        reply_r = await session.execute(reply_stmt)
         replies = [
             {
                 "id": r.id,
@@ -373,18 +379,31 @@ class TagEngine:
         }
 
     async def delete_tag(self, tag_id: int, session, tenant_id: int = 0) -> bool:
-        """Delete tag and all its SubscriberTag entries."""
+        """Delete tag and all its SubscriberTag entries.
+
+        v14-E2 (D6 #6): ownership FIRST. The old body deleted every
+        SubscriberTag row for ``tag_id`` BEFORE the tenant ownership check —
+        a tenant could shred another tenant's tag links with a guessed id and
+        the engine then returned False as if nothing happened. The ownership
+        lookup now gates the link deletion.
+
+        v14-E2 (latent bug): the row deletions are CORE deletes, not
+        ``session.delete(tag)`` — the Tag.subscribers relationship (secondary
+        table) would re-delete already-removed link rows at flush and raise
+        StaleDataError ("expected to delete 1; Only 0 matched") whenever the
+        tag had at least one link.
+        """
         where_tag = [Tag.id == tag_id]
         if tenant_id:
             where_tag.append(Tag.tenant_id == tenant_id)
-        await session.execute(
-            delete(SubscriberTag).where(SubscriberTag.tag_id == tag_id)
-        )
         r = await session.execute(select(Tag).where(*where_tag))
         tag = r.scalar_one_or_none()
         if not tag:
             return False
-        await session.delete(tag)
+        await session.execute(
+            delete(SubscriberTag).where(SubscriberTag.tag_id == tag_id)
+        )
+        await session.execute(delete(Tag).where(Tag.id == tag_id))
         await session.commit()
         return True
 

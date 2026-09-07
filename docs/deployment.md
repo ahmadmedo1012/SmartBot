@@ -15,7 +15,7 @@
 
 ملفا الإعداد جاهزان في المستودع:
 - `vercel.json` — مشروع الـ API (Python serverless، cron للتنظيف 03:00 UTC)
-- `vercel-frontend.json` — مشروع الواجهة (Next.js)
+- `fb_dashboard/frontend/vercel.json` — مشروع الواجهة (Next.js) — **التكوين الفعلي** الذي يقرؤه Vercel من دليل الواجهة المرتبط (v14: ملف `vercel-frontend.json` الجذر المنحرف حُذف — كان مكرراً بلا قارئ: rewrites `/webhook`/`/healthz` ناقصة فيه وسياسة خطوط تخالف الكود)
 
 ## بنية مسار الأموال — routers/payments/ (v13)
 
@@ -78,15 +78,16 @@ vercel --prod                   # يستخدم vercel.json
 
 ```bash
 cd fb_dashboard/frontend
-vercel link && vercel --prod    # يستخدم vercel-frontend.json
+vercel link && vercel --prod    # يقرأ fb_dashboard/frontend/vercel.json (تكوين الدليل المرتبط — التكوين الفعلي)
 ```
 
 متغيراتها:
 
 ```
-NEXT_PUBLIC_API_HOST=https://api.smart-link.ly
 NEXT_PUBLIC_DOMAIN=https://bot.smart-link.ly
 ```
+
+> التوكيل إلى API لا يحتاج أي متغير «مضيف API»: `fb_dashboard/frontend/vercel.json` يعرّف rewrites من نفس الأصل (`/api/:path*` → `api.smart-link.ly` — كما يفعل `LOCAL_API_PROXY` في التطوير). المتغير `NEXT_PUBLIC_API_HOST` كان موثقاً هنا سابقاً ولا يقرؤه الكود إطلاقاً (حُذف من التوثيق في v14).
 
 ### 4. Webhook فيسبوك
 
@@ -99,8 +100,14 @@ NEXT_PUBLIC_DOMAIN=https://bot.smart-link.ly
 
 ### 5. الزرع الأولي
 
-بعد أول إقلاع: `/api/repair` (أدمن) ينشئ الجداول + يزرع الأدمن الافتراضي والباقات الخمس.
-**غيّر كلمة مرور الأدمن فوراً** واضبط بيانات البنك عبر `POST /api/admin/config`.
+عند أول إقلاع يُزرع الأدمن الأولي **من متغيري البيئة** `INITIAL_ADMIN_USERNAME`/`INITIAL_ADMIN_PASSWORD` (انظر [installation.md](installation.md) — قسم «الأدمن الأولي»):
+- في الإنتاج **بدون** `INITIAL_ADMIN_PASSWORD`: تُولَّد كلمة مرور عشوائية **تُطبع في السجل مرة واحدة** عند أول إقلاع — انسخها من سجلات Vercel فوراً (لا تُخزَّن ولا يمكن استرجاعها لاحقاً).
+- مساواة `admin`/`admin` تعمل فقط في وضع `DEBUG=true` (التطوير المحلي).
+- لا يعاد الزرع أبداً إن وُجد مستخدمون (الإقلاعات اللاحقة لا تلمس كلمة المرور).
+
+`POST /api/repair` (أدمن منصة) يبقى أداة الإصلاح اليدوي: ينشئ الجداول ويشغّل زرع الأدمن نفسه (`seed_admin` — نفس المتغيرين أعلاه).
+
+بعد الدخول: **غيّر كلمة المرور** واضبط بيانات البنك عبر `POST /api/admin/config`.
 
 ## العمليات المستمرة
 

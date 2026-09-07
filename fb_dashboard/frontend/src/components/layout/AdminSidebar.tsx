@@ -160,7 +160,10 @@ export function AdminSidebar({
                     aria-label={item.label}
                     className={cn(
                       "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow,translate,scale] duration-200 outline-none",
-                      "hover:translate-x-[3px] active:scale-[0.97]",
+                      /* v14-E5 (D3-A1): sidebar is pinned to the RIGHT edge —
+                       * +3px pushed items outward (toward the clipped edge).
+                       * Nudge INWARD instead: -3px. App is RTL-only. */
+                      "hover:-translate-x-[3px] active:scale-[0.97]",
                       "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
                       /* Active/hover treatment (Smart-Menu NavLink legacy — component
                          removed v10-W4, treatment survives inline):

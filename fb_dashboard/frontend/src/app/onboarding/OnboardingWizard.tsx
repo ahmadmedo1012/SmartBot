@@ -250,7 +250,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       return
     }
     setStep((s) => s + 1)
-  }, [step, total, onComplete, pageId, pageName, keyword, reply])
+    /* v14-E4 (D2 H1): accessToken added — it is sent to
+     * /api/onboarding/connect-page on the step-1→2 transition; without it
+     * in the deps a stale/empty token could be POSTed silently when the
+     * user typed it after the callback was memoized (pageId/pageName were
+     * already listed — the omission was an oversight). */
+  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply])
 
   const handleBack = useCallback(() => {
     if (step === 0) {
@@ -285,6 +290,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
   return (
     <>
+    {/* v14-E4 (D4 M-02c): sr-only page-level heading — the wizard is a
+        full-screen dialog layered over /dashboard, and its own title was an
+        h2 with no h1 above it in reading order. This gives heading
+        navigation (and axe page-has-heading-one) a target while the wizard
+        is mounted. */}
+    <h1 className="sr-only">إعداد الحساب خطوة بخطوة</h1>
     <style dangerouslySetInnerHTML={{ __html: WIZARD_MOTION_CSS }} />
     <div
       ref={panelRef}
@@ -432,7 +443,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         type="button"
                         onClick={handleSuggestReply}
                         disabled={suggesting || !keyword.trim()}
-                        className="text-2xs font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1"
+                        /* v14-E4 (D4 H-07, WCAG 2.5.8 AA 24×24): the old
+                           text-2xs strip measured ≈16–18px tall — below the
+                           minimum target size. min-h-8 + px-2.5 clears it
+                           (32px) while staying visually subordinate to the
+                           textarea label. */
+                        className="min-h-8 px-2.5 rounded-md text-2xs font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1 transition-colors"
                       >
                         {suggesting ? (
                           <Loader2 className="size-3 animate-spin" />

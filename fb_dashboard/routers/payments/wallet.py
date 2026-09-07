@@ -3,16 +3,17 @@
 v13-L4: split out of the former 594-line ``routers/payments.py`` monolith —
 endpoint bodies moved VERBATIM. This module also owns the shared payment
 helpers (``_payment_rate_limit`` / ``_reject_wallet_above_cap`` / wallet-cap
-constants) which ``bank.py`` and ``plans.py`` import.
+constants / ``_notify_admins_inline``) which ``bank.py`` and ``plans.py``
+import.
 """
+import asyncio
 import logging
 
-from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
 from _utils import iso_z
 from config import settings
 from database import AsyncSessionLocal, get_db
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from models import PaymentRequest, User
 from sqlalchemy import desc, select
 from telegram_bot import notify_admins_new_payment
@@ -21,6 +22,43 @@ from routers.auth import get_current_user
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
+
+
+# v14-E1 #3: money-approval notifications are sent INLINE (awaited BEFORE the
+# payment response leaves). spawn()ed tasks die on Vercel serverless once the
+# function's response is returned — the platform's payment/topup/subscription
+# requests could silently never reach Telegram there. The short timeout keeps
+# a degraded Telegram from holding the user's payment response hostage.
+_ADMIN_NOTIFY_TIMEOUT_S = 8.0
+
+
+async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_S) -> None:
+    """Await an admin money-notification inline, capped by a short timeout.
+
+    Delivery semantics (v14-E1, replaces spawn() for money notifications):
+      - success → the send completed before the response is written;
+      - timeout → the send is cancelled after ``timeout`` seconds and logged;
+        the payment row is ALREADY committed at every call site, so it stays
+        in the admin review queue (/api/admin/subscriptions + Telegram);
+      - failure → logged (and reported to Sentry like the old spawn registry
+        did via _async._log_task_exception) but never fails the request.
+    """
+    try:
+        await asyncio.wait_for(coro, timeout=timeout)
+    except TimeoutError:
+        log.warning(
+            "admin money notification timed out after %.1fs — row stays in the review queue",
+            timeout,
+        )
+    except Exception as exc:  # noqa: BLE001 — external send must never break the payment
+        log.error("admin money notification failed (non-fatal): %s", exc, exc_info=True)
+        try:
+            from _observability import capture_exception
+
+            capture_exception(exc)
+        except Exception:
+            # observability must never amplify a notification failure
+            pass
 
 
 async def _reject_wallet_above_cap(provider: str, amount: float, db) -> None:
@@ -107,7 +145,9 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
     db.add(pr)
     await db.commit()
     await db.refresh(pr)
-    spawn(
+    # v14-E1 #3: inline (was spawn) — Vercel kills post-response tasks, so the
+    # topup alert must leave BEFORE this response does (short timeout inside).
+    await _notify_admins_inline(
         notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
     )
     instructions = (
@@ -149,11 +189,22 @@ async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_c
 
 
 @router.get("/api/payments/history")
-async def payment_history(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def payment_history(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),
+                          db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Wallet topup history — v14-E1 #2 (D10 high): bounded response.
+
+    The query used to ship EVERY PaymentRequest row of the tenant (note /
+    reference / phone per row, growing without bound — 1000 topups ≈ 200KB+
+    of JSON on every billing-page open). Now: newest-first page of ``limit``
+    rows (default 50, max 100) past ``offset``; the data-as-list contract the
+    billing page consumes is unchanged.
+    """
     rows = await db.execute(
         select(PaymentRequest)
         .where(PaymentRequest.tenant_id == current_user._tenant_id)
         .order_by(desc(PaymentRequest.created_at))
+        .offset(offset)
+        .limit(limit)
     )
     return ok([
         {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,

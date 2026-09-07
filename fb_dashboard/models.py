@@ -80,9 +80,23 @@ class BotState(Base):
     # bot_state WHERE key='fb_page_id' AND value=:page_id (app/webhooks.py)
     # وكان يمسح الجدول تسلسليًا؛ الفريد القائم (tenant_id, key) لا يخدم هذا
     # الاستعلام. NOT unique — تكرارات قديمة محتملة في (key, value) نفسها.
+    # v14-E3 (D7-02 / C-DATA1): نعلن في النموذج القيدين اللذين كانت
+    # الترحيلات وحدها تضمنهما — بيئات create_all-only (جنات الاختبار
+    # tests/conftest.py، قواعد dev جديدة) كانت تولد بلا ضمان التفرد:
+    # - uq_botstate_tenant_key: موجود أعلاه كقيد جدول (create_all يبنيه
+    #   داخل CREATE TABLE)؛ ترحيلة 013 تنشئه كفهرس فريد على قواعد
+    #   legacy الإنتاجية — _wallet.py يعتمد عليه لالتقاط السباق في
+    #   begin_nested/IntegrityError وإلا ضاع القرض صمتًا (D7-01).
+    # - uq_botstate_key_value (012): فريد جزئي على (key, value) WHERE
+    #   key='fb_page_id' بكلتا اللهجتين — حل مستأجر الويبهوك يجب أن يبقى
+    #   واحدًا، والتكرار عبر المستأجرين لمفاتيح أخرى (balance،
+    #   fb_fan_count) مشروع فيبقى خارج نطاق الفهرس.
     __table_args__ = (
         UniqueConstraint('tenant_id', 'key', name='uq_botstate_tenant_key'),
         Index("ix_botstate_key_value", "key", "value"),
+        Index("uq_botstate_key_value", "key", "value", unique=True,
+              postgresql_where=text("key = 'fb_page_id'"),
+              sqlite_where=text("key = 'fb_page_id'")),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -649,8 +663,14 @@ class SubscriptionPayment(Base):
     """Payment transaction with Telegram admin approval."""
     __tablename__ = "subscription_payments"
     __table_args__ = (
+        # v14-E3 (D7-03): sqlite_where مطابقة لpostgresql_where — كان
+        # postgresql_where وحدها تجعل create_all يرندرها على SQLite فهرسًا
+        # فريدًا كاملًا بلا WHERE → مستخدم واحد لا يمتلك أكثر من دفعة بأي
+        # حالة على قواعد dev/test (انحراف عن دلالة PostgreSQL الإنتاجية:
+        # دفعة واحدة *معلقة* لكل مستخدم — TOCTOU payments.py).
         Index("ix_sub_payment_user_pending", "user_id", unique=True,
-              postgresql_where=text("status = 'pending'")),
+              postgresql_where=text("status = 'pending'"),
+              sqlite_where=text("status = 'pending'")),
         # v12 E1.7 (D9): مسار الإدارة يفلتر (tenant, status) ويرتب بـ created_at
         Index("ix_sub_payment_tenant_status_created", "tenant_id", "status", "created_at"),
     )

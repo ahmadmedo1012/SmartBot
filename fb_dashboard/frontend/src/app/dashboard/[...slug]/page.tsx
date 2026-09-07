@@ -20,6 +20,10 @@ function PageNotFound({ slug }: { slug: string }) {
           <div className="absolute inset-0 m-4 rounded-full border-2 border-dashed border-accent-foreground/40 rotate-12" />
           <HelpCircle className="absolute inset-0 m-auto size-8 text-accent-foreground" />
         </div>
+        {/* v14-E5 (D4 M-02a): sr-only h1 — the catch-all route had no
+            heading level above its h2 (axe page-has-heading-one). Same
+            v8-B5 pattern used by login/register/admin/settings/telegram. */}
+        <h1 className="sr-only">لوحة التحكم</h1>
         <h2 className="text-xl font-bold mb-2">هذا القسم غير متاح</h2>
         <p className="text-sm text-muted-foreground mb-1">
           المسار <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded" dir="ltr">/{slug}</span> غير موجود ضمن لوحة التحكم

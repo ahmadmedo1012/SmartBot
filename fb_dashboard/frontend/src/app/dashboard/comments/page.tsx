@@ -107,7 +107,9 @@ export default function CommentsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium">{c.from_name}</span>
+                        {/* v14-E5 (D3-ج): from_name is a live Facebook value —
+                            dir="auto" isolates Latin/mixed commenter names. */}
+                        <span className="text-sm font-medium" dir="auto">{c.from_name}</span>
                         <span className="text-2xs text-muted-foreground">{timeAgo(c.created_time)}</span>
                         {c.reply_text && (
                           <Badge variant="info" className="text-3xs">تم الرد</Badge>
@@ -129,7 +131,9 @@ export default function CommentsPage() {
                             onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
                             placeholder="رد سريع…"
                             aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
-                            className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
+                            /* v14-E5: raw input bypasses the shared Input component —
+                               apply the AA placeholder token directly. */
+                            className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 placeholder:text-placeholder-text focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />
                           <Button
                             size="sm"

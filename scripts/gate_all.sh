@@ -2,6 +2,8 @@
 # SmartBot unified quality gate — v5 §2
 # Runs EVERY gate that protects this repository. Exit code 0 = all green.
 # Usage: bash scripts/gate_all.sh [--skip-build] [--skip-frontend]
+# v14: [4.5] sync_next_static + buildId freshness after build (v12 stale-static
+# incident class); [5a] router contracts now multi-level (payments/ package).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -64,10 +66,56 @@ else
   else
     # ── Gate 4: production build ──────────────────────────────────
     echo "── [4/5] next build ──"
+    BUILD_OK=0
     if (cd fb_dashboard/frontend && npx next build); then
       echo "✅ build: success"
+      BUILD_OK=1
     else
       FAILURES+=("build")
+    fi
+
+    # ── Gate 4.5: sync + freshness of fb_dashboard/static (v14) ──
+    # v12 incident (docs/reports/v12-world-class-report.md §0.1): the
+    # api-domain served an OLD build because scripts/sync_next_static.py
+    # was forgotten after `next build` (a class that already fired once).
+    # The gate now syncs deterministically AFTER a successful build, then
+    # verifies the synced buildId matches .next/BUILD_ID — and refuses
+    # accumulated stale generations.
+    if [[ $BUILD_OK -eq 1 ]]; then
+      echo "── [4.5/5] sync_next_static + freshness ──"
+      if $PY scripts/sync_next_static.py; then
+        _BID_FILE=fb_dashboard/frontend/.next/BUILD_ID
+        if [[ -f "$_BID_FILE" ]]; then
+          _BID=$(<"$_BID_FILE")
+          if [[ -d "fb_dashboard/static/_next/static/$_BID" ]]; then
+            # anything that is not the CURRENT buildId/chunks/media is a
+            # leftover generation from an older build
+            _STALE=$(cd fb_dashboard/static/_next/static \
+                      && ls -1 | grep -v -x -e "$_BID" -e chunks -e media || true)
+            if [[ -n "$_STALE" ]]; then
+              echo "❌ static freshness: stale generation(s) present: $_STALE"
+              FAILURES+=("static-freshness")
+            else
+              echo "✅ static freshness: synced buildId $_BID"
+              # informational only: refreshed static must be committed before
+              # pushing — the api-domain serves it from the repo
+              if [[ -n "$(git status --porcelain -- fb_dashboard/static)" ]]; then
+                echo "ℹ️  fb_dashboard/static refreshed — commit it before pushing"
+              fi
+            fi
+          else
+            echo "❌ static freshness: buildId $_BID (.next/BUILD_ID) missing from fb_dashboard/static/_next/static"
+            FAILURES+=("static-freshness")
+          fi
+        else
+          echo "⚠️  no .next/BUILD_ID — static freshness not verified"
+        fi
+      else
+        echo "❌ sync_next_static failed"
+        FAILURES+=("sync-static")
+      fi
+    else
+      echo "(sync_next_static skipped — build failed)"
     fi
   fi
 fi
@@ -79,12 +127,18 @@ CONTRACT_OK=1
 # v11: the contract evidence is EITHER an inline "success" envelope (legacy/
 # documented extended envelopes) OR the canonical helpers from _responses
 # (ok/fail) — after the v11 unification most routers use the helpers only.
+# v14: MULTI-LEVEL — the decomposed routers/payments/ package (v13-L4) is
+# covered too. Documented exemptions (see the routers package docstring):
+# payments/__init__.py (pure include aggregator — no endpoints; its five
+# modules each carry ok()) and payments/sse.py (text/event-stream byte-stream).
+_CONTRACT_EXEMPT=' fb_dashboard/routers/payments/__init__.py fb_dashboard/routers/payments/sse.py '
 MISSING_CONTRACT=""
-for _r in fb_dashboard/routers/*.py; do
+while IFS= read -r _r; do
+  [[ "$_CONTRACT_EXEMPT" == *" $_r "* ]] && continue
   if ! grep -q '"success"' "$_r" && ! grep -q '_responses import' "$_r"; then
     MISSING_CONTRACT="$MISSING_CONTRACT $_r"
   fi
-done
+done < <(find fb_dashboard/routers -name '*.py' -type f | LC_ALL=C sort)
 if [[ -n "$MISSING_CONTRACT" ]]; then
   echo "❌ router(s) missing the response contract: $MISSING_CONTRACT"; CONTRACT_OK=0
 fi

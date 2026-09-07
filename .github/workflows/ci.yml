@@ -4,6 +4,12 @@ name: CI — quality gates
 # unnoticed because gates only ran manually during agent sessions) must
 # never happen again. Every push and every PR to main runs all gates.
 # v6 §A/§B: static-contract gates (i18n seam + a11y labels) join the wall.
+# v14-E8: (a) Node 24 — check_a11y_labels.ts is TypeScript executed via
+# type stripping (needs Node >=22.6 experimental / >=23.6 default; Node 20
+# cannot run it — the gate was red-on-arrival since v6/v7). Built & tested
+# on 24 (docs/getting-started.md). (b) css-token-duplication gate joins CI
+# (was gate_all.sh-only). (c) the ok()/fail() router-contract gate joins CI
+# with a multi-level glob covering the decomposed routers/payments/ package.
 
 on:
   push:
@@ -55,10 +61,14 @@ jobs:
           # ...and reverse order — hermeticity is a GATE, not a hope (v5 §0).
           pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
 
-      - name: Gate 3 — TypeScript
+      - name: Gate 3 — TypeScript (Node 24)
+        # v14-E8: Node 20 → 24. The a11y-labels gate (5b) runs a .ts file via
+        # `node` directly — type stripping requires Node >=22.6 (flagged) /
+        # >=23.6 (default); Node 20 fails it. getting-started.md: "مبني
+        # ومختبر على 24". SHA stays pinned (v10-E10 supply-chain rule).
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install frontend deps
         run: cd fb_dashboard/frontend && npm ci || npm install
@@ -74,6 +84,35 @@ jobs:
       - name: Gate 5c — WCAG AA contrast, measured (v6 §B)
         # oklch tokens -> sRGB -> WCAG ratio; every core text/bg pair >= 4.5:1
         run: cd fb_dashboard/frontend && node ../../scripts/check_contrast.mjs
+
+      - name: Gate 5d — CSS token duplication (v4 §1.3; in CI since v14)
+        # no custom property defined more than allowed in globals.css —
+        # was gate_all.sh-only until v14-E8 (D11 finding: gate missing here)
+        run: python scripts/check-css-token-duplication.py
+
+      - name: Gate 5e — router response contracts, multi-level (v14)
+        # every router file carries the ok()/fail() envelope evidence —
+        # EITHER an inline "success" envelope (legacy/documented extended
+        # envelopes) OR `from .._responses import` helpers. Multi-level glob
+        # covers the decomposed routers/payments/ package (v13-L4).
+        # Documented exemptions (see the routers package docstring):
+        # payments/__init__.py = pure include aggregator (no endpoints;
+        # its five modules each carry ok()) and payments/sse.py = the
+        # byte-stream (text/event-stream) exception.
+        run: |
+          exempt=" fb_dashboard/routers/payments/__init__.py fb_dashboard/routers/payments/sse.py "
+          missing=""
+          while IFS= read -r r; do
+            [[ "$exempt" == *" $r "* ]] && continue
+            if ! grep -q '"success"' "$r" && ! grep -q '_responses import' "$r"; then
+              missing="$missing $r"
+            fi
+          done < <(find fb_dashboard/routers -name '*.py' -type f | LC_ALL=C sort)
+          if [[ -n "$missing" ]]; then
+            echo "router(s) missing the response contract:$missing"
+            exit 1
+          fi
+          echo "router contracts: OK (flat + payments/ package, exemptions documented)"
 
       - name: Run tsc
         run: cd fb_dashboard/frontend && npx tsc --noEmit

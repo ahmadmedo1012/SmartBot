@@ -60,6 +60,22 @@ interface PaymentDialogProps {
   onSuccess: () => void
 }
 
+type PaymentStep = "form" | "waiting" | "success" | "approved" | "rejected"
+
+/* v14-E4 (D4 H-01, WCAG 4.1.3 Status Messages): every payment-step swap is
+ * announced through the always-mounted polite region below — the SSE/poll
+ * decision (waiting→approved/rejected) previously swapped the screen
+ * silently while the focused button unmounted underneath the SR user.
+ * Wording is deliberately distinct from the visible screen titles so
+ * getByText assertions keep matching exactly one node. */
+const STEP_ANNOUNCEMENTS: Record<PaymentStep, string> = {
+  form: "عودة إلى نموذج الدفع — عدّل البيانات وأعد المحاولة",
+  waiting: "تم إرسال طلب الدفع — بانتظار موافقة الإدارة",
+  approved: "تمت الموافقة على اشتراكك بنجاح",
+  rejected: "عذراً، تم رفض طلب الاشتراك — يمكنك تعديل البيانات وإعادة المحاولة",
+  success: "تم إرسال طلب الدفع بنجاح — سيُفعّل الاشتراك بعد موافقة الإدارة",
+}
+
 export function PaymentDialog({
   open,
   onOpenChange,
@@ -97,12 +113,28 @@ export function PaymentDialog({
   const [senderAccountNumber, setSenderAccountNumber] = useState("")
   const [receiptImageUrl, setReceiptImageUrl] = useState("")
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
-  const [step, setStep] = useState<"form" | "waiting" | "success" | "approved" | "rejected">("form")
+  const [step, setStep] = useState<PaymentStep>("form")
   const [resolutionMsg, setResolutionMsg] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [paymentId, setPaymentId] = useState<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sseRef = useRef<EventSource | null>(null)
+
+  /* v14-E4 (D4 H-01): focus management across step swaps. The submit/waiting
+   * buttons UNMOUNT on every transition — without this the focus silently
+   * falls to <body> and SR users sit in an unannounced limbo. Each target
+   * step's title (tabIndex=-1 via headingRef in payment-status.tsx) receives
+   * the focus; the retry path back to the form lands on the live status
+   * paragraph (it reads the announcement, then Tab flows into the form). */
+  const stepHeadingRef = useRef<HTMLParagraphElement | null>(null)
+  const liveStatusRef = useRef<HTMLParagraphElement | null>(null)
+  const prevStepRef = useRef<PaymentStep>(step)
+  useEffect(() => {
+    if (prevStepRef.current === step) return
+    prevStepRef.current = step
+    if (step === "form") liveStatusRef.current?.focus()
+    else stepHeadingRef.current?.focus()
+  }, [step])
 
   const providerPhone = provider === "liyana" ? LIBYANA_PHONE : MADAR_PHONE
   const providerName = provider === "liyana" ? LIBYANA_LABEL : MADAR_LABEL
@@ -398,6 +430,20 @@ export function PaymentDialog({
         </div>
 
         <div className="p-5 space-y-5">
+          {/* v14-E4 (D4 H-01, WCAG 4.1.3): always-mounted polite status
+              region announcing every step transition (submit → waiting,
+              SSE/poll decision → approved/rejected, retry → form). Must
+              pre-exist in the DOM for the change to be announced. */}
+          <p
+            ref={liveStatusRef}
+            role="status"
+            aria-live="polite"
+            tabIndex={-1}
+            className="sr-only"
+          >
+            {STEP_ANNOUNCEMENTS[step]}
+          </p>
+
           {/* Plan summary */}
           <div className="rounded-xl bg-accent/50 dark:bg-accent/20 border border-accent-foreground/15 p-4">
             <div className="flex justify-between items-center">
@@ -470,7 +516,7 @@ export function PaymentDialog({
             </>
           )}
 
-          {step === "waiting" && <WaitingScreen provider={provider} />}
+          {step === "waiting" && <WaitingScreen provider={provider} headingRef={stepHeadingRef} />}
 
           {step === "approved" && (
             <ApprovedScreen
@@ -479,6 +525,7 @@ export function PaymentDialog({
                 onOpenChange(false)
                 onSuccess()
               }}
+              headingRef={stepHeadingRef}
             />
           )}
 
@@ -487,11 +534,12 @@ export function PaymentDialog({
               resolutionMsg={resolutionMsg}
               onClose={() => handleOpenChange(false)}
               onRetry={handleRetry}
+              headingRef={stepHeadingRef}
             />
           )}
 
           {/* Success screen — just acknowledge, don't redirect (payment is still pending) */}
-          {step === "success" && <SuccessScreen onClose={() => handleOpenChange(false)} />}
+          {step === "success" && <SuccessScreen onClose={() => handleOpenChange(false)} headingRef={stepHeadingRef} />}
         </div>
       </DialogContent>
     </Dialog>

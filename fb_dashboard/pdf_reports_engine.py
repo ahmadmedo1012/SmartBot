@@ -6,6 +6,7 @@ Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 [DEPRECATED — plan §6.1: activated but not invoked in the production flow.
 Kept for future use; do not build new features on top of it.]
 """
+import asyncio
 import html
 import logging
 import re
@@ -210,6 +211,14 @@ class PdfReportsEngine:
         return "\n".join(parts)
 
     def _render(self, html: str) -> bytes:
+        """Render HTML to PDF bytes (SYNCHRONOUS — CPU/IO heavy).
+
+        v14-E2 (D6 #7): callers must invoke this via ``asyncio.to_thread`` —
+        weasyprint's ``write_pdf()`` runs a full layout engine and used to
+        freeze the event loop for the whole render (seconds per report;
+        concurrent requests froze the server). See the ``_render_async``
+        wrapper used by every public API below.
+        """
         if _WEASYPRINT:
             import weasyprint
             return weasyprint.HTML(string=html).write_pdf()
@@ -221,6 +230,13 @@ class PdfReportsEngine:
         pdf.set_font("DejaVu", "", 10)
         pdf.multi_cell(0, 8, html)
         return pdf.output(dest="S").encode("latin-1")  # ponytail: fpdf fallback is degraded; upgrade to weasyprint
+
+    async def _render_async(self, html: str) -> bytes:
+        """v14-E2 (D6 #7): ``_render`` off the event loop (asyncio.to_thread).
+
+        Both the weasyprint and the fpdf fallback paths are blocking — this
+        wrapper is the ONLY sanctioned way for async callers to render."""
+        return await asyncio.to_thread(self._render, html)
 
     # ── Data helpers ─────────────────────────────────────────────────────
     # v9-A1 (cross-tenant P1 fix): EVERY query is tenant-scoped. Before this,
@@ -512,7 +528,7 @@ class PdfReportsEngine:
             period = f"{utcnow().strftime('%B %Y')} | آخر {days} يوم"
             html = self._build_monthly_html(overview, daily_trend, top_rules, sentiment_trend,
                                             top_commenters, subscriber_growth, brand, days, period)
-        return self._render(html)
+        return await self._render_async(html)
 
     async def campaign_report(self, campaign_type: str, campaign_id: str,
                               branding: BrandingConfig | None = None, tenant_id: int = 0) -> bytes:
@@ -526,7 +542,7 @@ class PdfReportsEngine:
         async with AsyncSessionLocal() as session:
             data = await self._get_campaign_data(campaign_type, campaign_id, session, tenant_id)
             html = self._build_campaign_html(data, brand)
-        return self._render(html)
+        return await self._render_async(html)
 
     async def subscriber_report(self, days: int = 30, branding: BrandingConfig | None = None,
                                 tenant_id: int = 0) -> bytes:
@@ -538,4 +554,4 @@ class PdfReportsEngine:
             growth = await self._get_subscriber_growth(days, session, tenant_id)
             overview = await self._get_overview(days, session, tenant_id)
             html = self._build_subscriber_html(growth, overview, brand, days)
-        return self._render(html)
+        return await self._render_async(html)

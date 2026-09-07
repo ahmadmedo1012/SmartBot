@@ -122,19 +122,36 @@ def _bot_state_index_sql(db_path: Path) -> dict[str, str | None]:
         con.close()
 
 
+def _simulate_legacy_pre_012(db_path: Path) -> None:
+    """v14-E3: النموذج يصرّح الآن بـuq_botstate_key_value (D7-02) فقاعدة
+    السلسلة النظيفة تحمله منذ 001 (create_all) — نُسقطه هنا لمحاكاة حالة
+    الإنتاج القديم التي يعالجها 012 (تكرارات fb_page_id مسموحة قبل
+    الترحيل، وهو ما يختبره هذا الملف أصلاً). لا يمس قيد الجدول
+    uq_botstate_tenant_key (العيّنة تحترمه)."""
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute("DROP INDEX IF EXISTS uq_botstate_key_value")
+        con.commit()
+    finally:
+        con.close()
+
+
 # ── L5: السلسلة تصل 012 وتفرض الفريد الجزئي ────────────────────────────
 
 
 def test_chain_reaches_012_and_enforces_unique(fresh_db):
-    """السلسلة 001→011→012: dedup يُبقي الأحدث، الأزواج المشروعة تنجو،
-    والفريد الجزئي يحجب fb_page_id المكرر فقط."""
+    """السلسلة 001→011→012 (والرأس الآن 013): dedup يُبقي الأحدث، الأزواج
+    المشروعة تنجو، والفريد الجزئي يحجب fb_page_id المكرر فقط."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "011")
     assert _version(fresh_db) == "011"
 
+    _simulate_legacy_pre_012(fresh_db)  # v14-E3: محاكاة الإنتاج قبل 012
     _seed_bot_state(fresh_db)
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "012"
+    # v14-E3: الرأس أصبح 013 (dedup عام + فهارس ساخنة) — عيّنة v13 تحترم
+    # فرادة (tenant,key) فلا تتأثر صفوفها بـ013
+    assert _version(fresh_db) == "013"
 
     # dedup: الأقدم (id=1) حُذف، الأحدث (id=2) بقي، الفرادة (id=3) بقت،
     # وأزواج balance/fb_fan_count متطابقة القيمة نجت كليهما (6 صفوف)
@@ -186,6 +203,7 @@ def test_migration_012_idempotent(fresh_db):
     في المرة الثانية ولا حذف إضافي (الحارس بالـ Inspector)."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "011")
+    _simulate_legacy_pre_012(fresh_db)  # v14-E3: محاكاة الإنتاج قبل 012
     _seed_bot_state(fresh_db)
 
     mod = _load_module("012_bot_state_unique")
@@ -211,6 +229,7 @@ def test_012_downgrade_drops_unique_keeps_plain_index(fresh_db):
     والإدراج المكرر يُقبل من جديد (هذه الحافة فقط)."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "011")
+    _simulate_legacy_pre_012(fresh_db)  # v14-E3: محاكاة الإنتاج قبل 012
     _seed_bot_state(fresh_db)
     command.upgrade(cfg, "head")
     command.downgrade(cfg, "011")

@@ -179,9 +179,17 @@ async def test_change_password_self_service(app_client):
 # ── 5: subscription resolve hardening ───────────────────────────────────────
 
 async def test_resolve_subscription_rejects_bad_decision_and_cross_tenant(app_client):
+    """v14-E1/C-SEC1: الحسم لمسؤول المنصة — أدمن المستأجر يُرفض 403،
+    والقرار/المعرّف يتحققان 400 عند مسؤول المنصة."""
     ac = app_client
     u = await _register(ac, "pay")
     await _login(ac, u["username"], u["password"])
+    # أدمن مساحته (كل تسجيل ذاتي) → 403 (لا حسم ذاتياً لدفعته)
+    r = await ac.post("/api/admin/subscriptions", json={"id": 1, "status": "verified"})
+    assert r.status_code == 403, "self-registered tenant admin must NOT resolve payments (C-SEC1)"
+    # مسؤول منصة حقيقي: التحقق من المدخلات يبقى 400
+    await _make_user("pay_platform", 0, role="admin", platform=True)
+    await _login(ac, "pay_platform", "Str0ngPass!ly")
     r = await ac.post("/api/admin/subscriptions", json={"id": 1, "status": "evil_status"})
     assert r.status_code == 400, "decision must be whitelisted"
     # cross-tenant/nonexistent payment → 400 (not 200-with-verified)

@@ -35,6 +35,13 @@ function AnimatedNumber({ value }: { value: number }) {
   const inView = useInViewOnce(ref)
   useEffect(() => {
     if (!inView || value <= 0) return
+    /* v14-E5 (D2-M6): the LAST unguarded JS motion — the count-up now
+     * respects prefers-reduced-motion (KpiCard AnimatedCounter pattern):
+     * jump straight to the final value, no setInterval ticking. */
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(value)
+      return
+    }
     const step = Math.max(1, Math.ceil(value / 30))
     const timer = setInterval(() => {
       setCount((prev) => Math.min(prev + step, value))
@@ -107,7 +114,10 @@ export default function StatsSection() {
                     {!zero && item.suffix}
                   </span>
                 </div>
-                <div className="text-xs sm:text-sm font-medium text-muted-foreground/80">{item.label}</div>
+                {/* v14-E5 (D4 H-03): /80 measured 3.89:1 (dark) / 4.08:1 (light)
+                    on the glass-strong surface — full muted passes
+                    (5.64:1 / 6.51:1, measured on the same composite). */}
+                <div className="text-xs sm:text-sm font-medium text-muted-foreground">{item.label}</div>
               </div>
             </ScrollReveal>
           ))}

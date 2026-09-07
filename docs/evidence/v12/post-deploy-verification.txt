@@ -1,0 +1,20 @@
+=== SmartBot v12 POST-DEPLOY verify @ 2026-09-07T00:08:56Z ===
+PASS: GET /api/login (POST-only) = 405 → 405
+PASS:   Allow header → allow: POST
+PASS: GET scheduler-check (v12 POST-only) = 405 → 405
+PASS: /api/debug deleted = 404 → 404
+PASS: /api/stats legacy deleted = 404 → 404
+PASS: 404 Arabic contract → {"detail":"المسار غير موجود"}
+PASS: 405 Arabic contract → {"detail":"الطريقة غير مسموح بها لهذا المسار"}
+PASS: health ok → {"ok":true,"service":"smartbot-api","version":"2.1.0","env":"production","ts":"2026-09-07T00:08:58.211250Z"}
+PASS: plans envelope → {"success":true,"data":[{"id":1,"name":"Free","name_ar":"مجاني","price":0.0,"period_days":30,"max_replies":100,"max_pages":1,"max_rules":5,"max_team":0,"has_dm":false,"has_ai":false,"has_broadcast":false,"has_scheduling":false,"has_reports":false,"has_flows":false,"has_offers":false,"has_sequences":false,"has_analytics_advanced":false,"features":["ردود تلقائية (100/شهر)","صفحة فيسبوك واحدة","5 قواعد رد","إحصاءات أساسية"],"sort_order":1,"is_active":true},{"id":2,"name":"Basic","name_ar":"أساسي","price":19.0,"period_days":30,"max_replies":2000,"max_pages":1,"max_rules":20,"max_team":1,"has_dm":true,"has_ai":true,"has_broadcast":false,"has_scheduling":false,"has_reports":true,"has_flows":false,"has_offers":false,"has_sequences":false,"has_analytics_advanced":false,"features":["2,000 رد/شهر","صفحة فيسبوك واحدة","20 قاعدة رد","رد خاص على التعليقات","ردود ذكية بالذكاء الاصطناعي","تقارير أسبوعية","دعم فوري"],"sort_order":2,"is_active":true},{"id":3,"name":"Premium","name_ar":"مميز","price":29.0,"period_days":30,"max_replies":10000,"max_pages":2,"max_rules":50,"max_team":2,"has_dm":true,"has_ai":true,"has_broadcast":true,"has_scheduling":true,"has_reports":true,"has_flows":true,"has_offers":true,"has_sequences":false,"has_analytics_advanced":true,"features":["10,000 رد/شهر","صفحتين فيسبوك","50 قاعدة رد","رد خاص + ذكاء اصطناعي","بث جماعي للرسائل","جدولة المنشورات","تقارير PDF","محرك العروض الترويجية","تحليلات متقدمة","فريق حتى 2"],"sort_order":3,"is_active":true},{"id":4,"name":"Pro","name_ar":"احترافي","price":129.0,"period_days":30,"max_replies":50000,"max_pages":5,"max_rules":100,"max_team":5,"has_dm":true,"has_ai":true,"has_broadcast":true,"has_scheduling":true,"has_reports":true,"has_flows":true,"has_offers":true,"has_sequences":true,"has_analytics_advanced":true,"features":["50,000 رد/شهر","5 صفحات فيسبوك","100 قاعدة رد","جميع الميزات المتقدمة","حملات تسلسلية","فريق حتى 5 أعضاء","دعم فني ممتاز"],"sort_order":4,"is_active":true},{"id":5,"name":"Enterprise","name_ar":"مؤسسي","price":299.0,"period_days":30,"max_replies":999999,"max_pages":999,"max_rules":999,"max_team":999,"has_dm":true,"has_ai":true,"has_broadcast":true,"has_scheduling":true,"has_reports":true,"has_flows":true,"has_offers":true,"has_sequences":true,"has_analytics_advanced":true,"features":["ردود غير محدودة","صفحات غير محدودة","قواعد غير محدودة","جميع الميزات بدون استثناء","فريق غير محدود","دعم 24/7"],"sort_order":5,"is_active":true}]}
+PASS: CSP facebook script hosts dropped
+PASS: connect-src narrowed
+PASS: api /_next chunk immutable → cache-control: public, max-age=31536000, immutable
+PASS: fonts 604800+SWR kept → cache-control: public, max-age=604800
+PASS: api og-image immutable → cache-control: public, max-age=31536000, immutable
+PASS: X-Request-Id echoed → x-request-id: fa6e01b3
+INFO: api-SPA distinct initial chunks = 18 (new build hash: /_next/static/chunks/3guxw38du75sh.js)
+INFO: /api/me (401) set-cookie: set-cookie: csrf_token=iuQ1D6YyDq2CuBKQFdUi71KxH7GDxxQB6Ykspt3FqPM; Path=/; SameSite=strict; Secure
+INFO: bot og-image cache: cache-control: public, max-age=31536000, immutable
+INFO: bot / status = 200

@@ -1,0 +1,26 @@
+=== SmartBot v12 canary baseline @ 2026-09-07T00:00:32Z ===
+bot/: status=000 ttfb=0.000000s
+bot/login: status=000 ttfb=0.000000s
+bot/pricing: status=000 ttfb=0.000000s
+bot/subscribe: status=000 ttfb=0.000000s
+bot/demo: status=200 ttfb=14.514164s
+bot/terms: status=200 ttfb=0.637753s
+bot/privacy: status=200 ttfb=0.603525s
+bot/register: status=200 ttfb=0.582689s
+api/api/health: status=200 ttfb=12.293253s
+api/healthz: status=200 ttfb=1.400341s
+api/api/plans: status=200 ttfb=0.436334s
+api/api/nonexistent: status=404 ttfb=0.298241s
+api/robots.txt: status=200 ttfb=0.541663s
+api/sitemap.xml: status=200 ttfb=0.260740s
+api-root-spa: status=200 ttfb=1.534451s
+--- headers snapshot (bot /) ---
+age: 16969
+cache-control: no-store, no-cache, must-revalidate
+x-vercel-cache: HIT
+--- headers snapshot (api fonts + chunk) ---
+api-spa-first-chunk: /_next/static/chunks/20ule5f8tx7h2.js
+cache-control: public, max-age=0, must-revalidate
+cache-control: public, max-age=604800
+content-type: font/woff2
+x-content-type-options: nosniff

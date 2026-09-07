@@ -47,7 +47,10 @@ async def test_a1_login_duplicated_username_no_500(v10_seed):
     """اسم واحد في مستأجرين: الدخول يعمل (لا 500 إقفالًا متبادلًا) ويصل أقدم صف."""
     shared = f"dup_{uuid.uuid4().hex[:6]}"
     _ua, tid_a, _uid = await v10_seed.tenant_user(shared, tenant_name="Dup-A")
-    _ub, tid_b, _uidb = await v10_seed.tenant_user(shared, tenant_name="Dup-B")
+    # v15-E2 (D12-H4): البريد فريد لكل صف — قيد uq_user_email_lower العالمي
+    # الجديد يرفض ازدراع بريدين متطابقين؛ غرض A1 هو الاسم المكرر حصراً.
+    _ub, tid_b, _uidb = await v10_seed.tenant_user(
+        shared, tenant_name="Dup-B", email=f"{shared}-b@test.ly")
     assert tid_a != tid_b
 
     r = await v10_seed.login(shared)
@@ -63,14 +66,17 @@ async def test_a1_modern_token_scopes_to_minting_tenant(v10_seed):
     """توكن حديث يحمل tid: get_current_user يقيّد البحث بالمستأجر الصحيح."""
     shared = f"tok_{uuid.uuid4().hex[:6]}"
     _ua, tid_a, _uida = await v10_seed.tenant_user(shared, tenant_name="Tok-A")
-    _ub, tid_b, _uidb = await v10_seed.tenant_user(shared, tenant_name="Tok-B")
+    # v15-E2 (D12-H4): بريد فريد للصف الثاني (قيد uq_user_email_lower).
+    email_b = f"{shared}-b@test.ly"
+    _ub, tid_b, _uidb = await v10_seed.tenant_user(
+        shared, tenant_name="Tok-B", email=email_b)
 
     v10_seed.auth(shared, tid_b)  # توكن مستأجر B رغم تطابق الاسم
     r = await v10_seed.world.client.get("/api/me")
     assert r.status_code == 200, r.text
     data = r.json()["data"]["user"]
     assert data["tenant_id"] == tid_b, f"token scoped to wrong tenant: {data}"
-    assert data["email"] == f"{shared}@test.ly"
+    assert data["email"] == email_b
 
     # نفس التوكن يعمل عبر طلبات متتابعة (لا 500 ولا فقدان جلسة)
     r2 = await v10_seed.world.client.get("/api/rules")
@@ -84,7 +90,9 @@ async def test_a1_legacy_token_without_tid_bounded_lookup(v10_seed):
 
     shared = f"leg_{uuid.uuid4().hex[:6]}"
     _ua, tid_a, _uida = await v10_seed.tenant_user(shared, tenant_name="Leg-A")
-    _ub, tid_b, _uidb = await v10_seed.tenant_user(shared, tenant_name="Leg-B")
+    # v15-E2 (D12-H4): بريد فريد للصف الثاني (قيد uq_user_email_lower).
+    _ub, tid_b, _uidb = await v10_seed.tenant_user(
+        shared, tenant_name="Leg-B", email=f"{shared}-b@test.ly")
 
     now = datetime.now(UTC)
     legacy = pyjwt.encode(

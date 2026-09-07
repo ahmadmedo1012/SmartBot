@@ -56,9 +56,14 @@ export function TelegramConfigSection({
           <div>
             <Label htmlFor="tg-bot-token">رمز البوت (Bot Token)</Label>
             <div className="relative mt-1.5">
+              {/* v15-E5 (D4-H2): the field starts EMPTY when a token is
+                  already saved (botTokenMasked) — the «••••••••» mask was
+                  previously seeded INTO the value and sent back on every
+                  save (400). Leave it empty to keep the stored token; type
+                  a new one to replace it. */}
               <Input id="tg-bot-token" type={showToken ? "text" : "password"} value={config.botToken}
                 onChange={(e) => onConfigChange({ ...config, botToken: e.target.value })}
-                placeholder="123456789:ABCdefGHIjklmNOPqrstUVwxyz" className="h-11 rounded-xl text-left pl-10" dir="ltr" />
+                placeholder={config.botTokenMasked ? "الرمز محفوظ — أدخل رمزاً جديداً لاستبداله" : "123456789:ABCdefGHIjklmNOPqrstUVwxyz"} className="h-11 rounded-xl text-left pl-10" dir="ltr" />
               <button type="button" onClick={onToggleShowToken}
                 /* v14-E4 (D4 H-06, WCAG 2.5.8 AA 24×24): was a bare absolute
                    icon wrapper ≈16×16px — below the minimum target size.
@@ -70,8 +75,9 @@ export function TelegramConfigSection({
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              احصل على الرمز من{" "}
-              <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline">@BotFather</a>
+              {config.botTokenMasked
+                ? "الرمز الحالي محفوظ ولا يُرسل مع الحفظ ما لم تدخل رمزاً جديداً — يمكنك تغيير باقي الحقول مباشرة."
+                : <>احصل على الرمز من{" "}<a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline">@BotFather</a></>}
             </p>
           </div>
           <div>
@@ -96,7 +102,10 @@ export function TelegramConfigSection({
               {saving ? "جارٍ الحفظ…" : "حفظ الإعدادات"}
             </Button>
             <Button variant="outline" onClick={onTest}
-              disabled={testing || !config.botToken.trim() || !config.chatId.trim()} className="rounded-xl gap-1">
+              /* v15-E5 (D4-H2): the saved-token case (botTokenMasked) also
+                 enables the test — /api/telegram/test reads the STORED
+                 token server-side; an empty field no longer disables it. */
+              disabled={testing || !(config.botToken.trim() || config.botTokenMasked) || !config.chatId.trim()} className="rounded-xl gap-1">
               {testing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4 rtl:-scale-x-100" aria-hidden="true" />}
               {testing ? "جارٍ…" : "اختبار الإرسال"}
             </Button>

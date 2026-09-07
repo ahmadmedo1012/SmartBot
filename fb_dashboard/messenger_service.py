@@ -21,6 +21,7 @@ from _utils import utcnow
 from database import AsyncSessionLocal
 from models import Conversation, Message
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-messenger")
 
@@ -46,16 +47,21 @@ async def resolve_conversation_id(fb_client, page_id: str, sender_id: str) -> st
     return f"{_SYNTH_PREFIX}{page_id}_{sender_id}"
 
 
-async def _get_or_create_conversation(db, tenant_id: int, page_id: str,
-                                      fb_conversation_id: str, sender_id: str,
-                                      sender_name: str) -> Conversation:
+async def _find_conversation(db, tenant_id: int,
+                             fb_conversation_id: str) -> Conversation | None:
     row = await db.execute(
         select(Conversation).where(
             Conversation.tenant_id == tenant_id,
             Conversation.fb_conversation_id == fb_conversation_id,
         )
     )
-    conv = row.scalar_one_or_none()
+    return row.scalar_one_or_none()
+
+
+async def _get_or_create_conversation(db, tenant_id: int, page_id: str,
+                                      fb_conversation_id: str, sender_id: str,
+                                      sender_name: str) -> Conversation:
+    conv = await _find_conversation(db, tenant_id, fb_conversation_id)
     if conv is None:
         conv = Conversation(
             tenant_id=tenant_id,
@@ -63,16 +69,26 @@ async def _get_or_create_conversation(db, tenant_id: int, page_id: str,
             fb_user_id=sender_id,
             user_name=sender_name,
         )
-        db.add(conv)
-        await db.flush()
-    else:
-        # Upgrade a synthetic conversation to the real id once known
-        if conv.fb_conversation_id.startswith(_SYNTH_PREFIX) and not fb_conversation_id.startswith(_SYNTH_PREFIX):
-            conv.fb_conversation_id = fb_conversation_id
-        if sender_name and conv.user_name != sender_name:
-            conv.user_name = sender_name
-        if sender_id and conv.fb_user_id != sender_id:
-            conv.fb_user_id = sender_id
+        try:
+            # v15-E4 (D12-H5): flush inside a SAVEPOINT so a concurrent create
+            # of the SAME (tenant, fb_conversation_id) — two messages from a
+            # brand-new sender racing — cannot poison the whole message
+            # transaction: the loser re-reads the winner's row (uq_conversations_
+            # tenant_fb committed between our read and our flush) and continues.
+            async with db.begin_nested():
+                db.add(conv)
+                await db.flush()
+        except IntegrityError:
+            conv = await _find_conversation(db, tenant_id, fb_conversation_id)
+            if conv is None:
+                raise
+    # Upgrade a synthetic conversation to the real id once known
+    if conv.fb_conversation_id.startswith(_SYNTH_PREFIX) and not fb_conversation_id.startswith(_SYNTH_PREFIX):
+        conv.fb_conversation_id = fb_conversation_id
+    if sender_name and conv.user_name != sender_name:
+        conv.user_name = sender_name
+    if sender_id and conv.fb_user_id != sender_id:
+        conv.fb_user_id = sender_id
     return conv
 
 
@@ -205,14 +221,10 @@ def _ts_from_epoch(value) -> object | None:
     return None
 
 
-async def _upsert_subscriber(db, tenant_id: int, page_id: str,
-                             sender_id: str, sender_name: str) -> None:
-    """v4 §5.17 (F17/G6) — feed the Subscriber audience from real messages.
-
-    Before: nothing ever created Subscriber rows, so audience size, broadcasts,
-    sequences and campaign targeting were permanently 0 recipients."""
-    if not sender_id:
-        return
+async def _find_subscriber(db, tenant_id: int, sender_id: str):
+    """v15-E4 (D12-H5): lookup seam — kept as a tiny function so tests can
+    deterministically simulate the "read happened before the concurrent
+    winner committed" interleaving."""
     from models import Subscriber
     row = await db.execute(
         select(Subscriber).where(
@@ -220,25 +232,57 @@ async def _upsert_subscriber(db, tenant_id: int, page_id: str,
             Subscriber.fb_user_id == sender_id,
         )
     )
-    sub = row.scalar_one_or_none()
+    return row.scalar_one_or_none()
+
+
+async def _upsert_subscriber(db, tenant_id: int, page_id: str,
+                             sender_id: str, sender_name: str) -> None:
+    """v4 §5.17 (F17/G6) — feed the Subscriber audience from real messages.
+
+    Before: nothing ever created Subscriber rows, so audience size, broadcasts,
+    sequences and campaign targeting were permanently 0 recipients.
+
+    v15-E4 (D12-H5): the INSERT is flushed inside a SAVEPOINT and an
+    IntegrityError on ``uq_sub_tenant_fbuser`` (two concurrent messages from
+    the same brand-new sender: the other request committed its Subscriber
+    between our read and our flush) is RE-READ and turned into the interaction
+    update — instead of surfacing at COMMIT time and rolling back the whole
+    message transaction (the "customer got the reply, dashboard saw nothing"
+    poison)."""
+    if not sender_id:
+        return
+    from models import Subscriber
+    sub = await _find_subscriber(db, tenant_id, sender_id)
     now = utcnow()
     if sub is None:
         first = (sender_name or "").split(" ")[0][:100] if sender_name else ""
-        db.add(Subscriber(
-            tenant_id=tenant_id,
-            fb_user_id=sender_id,
-            name=(sender_name or "")[:200],
-            first_name=first,
-            platform="messenger",
-            page_id=str(page_id or ""),
-            status="active",
-            first_seen_at=now,
-            last_interaction_at=now,
-        ))
-    else:
-        sub.last_interaction_at = now
-        if sender_name and not sub.name:
-            sub.name = sender_name[:200]
+        try:
+            async with db.begin_nested():
+                db.add(Subscriber(
+                    tenant_id=tenant_id,
+                    fb_user_id=sender_id,
+                    name=(sender_name or "")[:200],
+                    first_name=first,
+                    platform="messenger",
+                    page_id=str(page_id or ""),
+                    status="active",
+                    first_seen_at=now,
+                    last_interaction_at=now,
+                ))
+                await db.flush()
+        except IntegrityError:
+            # سباق إدراج متزامن لنفس المرسل الجديد — الفائز التزم بعد قراءتنا:
+            # أعد القراءة وحدّث التفاعل (لا تُسمم معاملة الرسالة)
+            sub = await _find_subscriber(db, tenant_id, sender_id)
+            if sub is None:
+                raise
+            sub.last_interaction_at = now
+            if sender_name and not sub.name:
+                sub.name = sender_name[:200]
+        return
+    sub.last_interaction_at = now
+    if sender_name and not sub.name:
+        sub.name = sender_name[:200]
 
 
 async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
@@ -246,6 +290,20 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
     """Webhook entry: persist + auto-reply. Returns a small status dict.
 
     Vercel note: this runs inline (no background tasks — platform kills them).
+
+    v15-E4 (D12-H5) — the poison is gone:
+      1. the message transaction (conversation + message) is FLUSHED and
+         COMMITTED **before** the reply engine sends anything — the reply path
+         runs on durable state, never on a transaction that can still roll
+         back;
+      2. ``status["stored"]`` is set ONLY after a successful commit (it used to
+         be set right after the flush, so a commit-time IntegrityError left
+         ``stored=True`` with zero rows in the DB → the bot replied to a
+         message the dashboard never saw);
+      3. the subscriber upsert runs in its OWN short transaction after the
+         message is durable, with a savepoint + IntegrityError re-read retry
+         (``_upsert_subscriber``) — its failure can no longer roll back the
+         customer's message.
     """
     status = {"stored": False, "replied": False, "is_echo": False}
     sender_id = str((messaging.get("sender") or {}).get("id") or "")
@@ -261,20 +319,32 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
 
             m = await persist_message(db, tenant_id, page_id, messaging, conv_id,
                                       is_from_page=is_echo)
+            try:
+                await db.commit()
+            except Exception:
+                # v15-E4 (D12-H5): commit failed (e.g. a redelivery raced us on
+                # uq_messages_tenant_fb) — the message is NOT stored and the
+                # reply must not fire; roll back and report the truth.
+                log.exception("commit message failed — treating as not stored")
+                await db.rollback()
+                m = None
             status["stored"] = m is not None
-
-            # v4 §5.17 — audience ingestion on every genuine inbound event
-            if not is_echo and sender_id:
-                try:
-                    await _upsert_subscriber(db, tenant_id, page_id, sender_id,
-                                             str((messaging.get("sender") or {}).get("name") or ""))
-                except Exception as se:
-                    log.warning("subscriber upsert failed: %s", se)
-
-            await db.commit()
         except Exception as e:
             log.exception("persist message failed: %s", e)
             await db.rollback()
+            status["stored"] = False
+
+    # v4 §5.17 — audience ingestion on every genuine inbound event.
+    # v15-E4 (D12-H5): SEPARATE transaction, after the message is durable —
+    # a failing upsert can never take the customer's message down with it.
+    if not is_echo and sender_id:
+        try:
+            async with AsyncSessionLocal() as sdb:
+                await _upsert_subscriber(sdb, tenant_id, page_id, sender_id,
+                                         str((messaging.get("sender") or {}).get("name") or ""))
+                await sdb.commit()
+        except Exception as se:
+            log.warning("subscriber upsert failed: %s", se)
 
     # Auto-reply only for genuine inbound human messages
     if not is_echo and sender_id and sender_id != str(page_id):

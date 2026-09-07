@@ -8,14 +8,12 @@ the last-registered middleware is the outermost layer, so every response
 passes back through it).
 """
 
-import asyncio
 import hmac
-import json
 import logging
 import os
 import re
 import secrets
-import time
+from urllib.parse import urlparse
 
 from config import settings
 from fastapi import Request
@@ -31,52 +29,30 @@ log = logging.getLogger("fb-api")
 _MUTATE_MAX = int(os.getenv("SMARTBOT_MUTATE_RATE_LIMIT", "30"))
 _MUTATE_WINDOW = int(os.getenv("SMARTBOT_MUTATE_RATE_LIMIT_WINDOW", "60"))
 
-# ── Request deduplication: serializes concurrent identical GETs → cache serves second ──
-MAX_LOCKS = 1000
-LOCK_TTL = 300  # seconds (5 min)
-_dedup_locks: dict[str, tuple[asyncio.Lock, float]] = {}
-_dedup_lock = asyncio.Lock()
-_dedup_ops = 0
-
-
+# ── Request "deduplication" middleware — v15-E7 (D8-B7): HONEST REMOVAL ──
+# D8-B7 live finding: this middleware SERIALIZED identical concurrent GETs
+# (lock held across call_next) while caching NOTHING — the second caller
+# re-executed the endpoint after waiting (the old comment admitted exactly
+# that). Net effect: 10 concurrent first visitors on /api/plans = 10 serial
+# cold executions — the OPPOSITE of the "dedup" the name promises. The
+# singleflight + cache the name implies already exists where it matters:
+# APICache.cached() wraps the three public endpoints (/api/plans,
+# /api/config, /api/public/stats) with a per-key lock AND a real TTL cache,
+# including for concurrent misses (second waiter re-reads the fresh entry).
+#
+# A middleware-level response cache was considered and REJECTED on purpose:
+# its key (method + path + query) carries NO user identity, so caching
+# authenticated responses there would serve tenant A's dashboard to tenant B
+# — an isolation regression far worse than the latency it would fix.
+# Restricting the middleware to the cache-decorated paths was also rejected:
+# APICache already singleflights those, so the extra lock layer is dead
+# weight. The function below stays as a documented pass-through so
+# runner.py's registration (app.middleware("http")(dedup_middleware)) keeps
+# working without touching that file; the lock bookkeeping that lived here
+# (MAX_LOCKS/LOCK_TTL/_dedup_locks/_dedup_ops/_maybe_evict) is retired with
+# the behavior it existed to serve.
 async def dedup_middleware(request: Request, call_next):
-    if request.method != "GET":
-        return await call_next(request)
-
-    qp = dict(sorted(request.query_params.items())) if request.query_params else {}
-    key = f"{request.method}:{request.url.path}?{json.dumps(qp, sort_keys=True)}"
-
-    async with _dedup_lock:
-        if key not in _dedup_locks:
-            _dedup_locks[key] = (asyncio.Lock(), time.time())
-        lock = _dedup_locks[key][0]
-
-    async with lock:
-        # ponytail: second concurrent caller will re-execute but hit the APICache if decorated
-        response = await call_next(request)
-
-    async with _dedup_lock:
-        _dedup_locks.pop(key, None)
-        _maybe_evict()
-
-    return response
-
-
-def _maybe_evict():
-    """Every 50 calls, purge expired entries; if still over limit, evict oldest."""
-    global _dedup_ops
-    _dedup_ops += 1
-    if _dedup_ops < 50:
-        return
-    _dedup_ops = 0
-    now = time.time()
-    stale = [k for k, (_, ts) in _dedup_locks.items() if now - ts > LOCK_TTL]
-    for k in stale:
-        del _dedup_locks[k]
-    # ponytail: LRU via sorted insertion order; if throughput matters replace with OrderedDict
-    while len(_dedup_locks) > MAX_LOCKS:
-        oldest = min(_dedup_locks, key=lambda k: _dedup_locks[k][1])
-        del _dedup_locks[oldest]
+    return await call_next(request)
 
 
 async def rate_limit_middleware(request: Request, call_next):
@@ -107,6 +83,47 @@ async def rate_limit_middleware(request: Request, call_next):
                 import logging
                 logging.getLogger("fb-rate-limit").warning("Rate-limit check failed — allowing request through", exc_info=True)
     return await call_next(request)
+
+
+# ── v15-E5 (D4-middleware): env-configurable Origin allowlist ────────────
+# D4 §6 live finding: the two production hosts were frozen IN CODE while the
+# frontend domain is env-driven (NEXT_PUBLIC_DOMAIN) — deploying the SPA on
+# any new domain 403'd every POST («المصدر غير مصرح به») with no config path.
+# ORIGIN_ALLOWLIST (comma-separated hosts, full origins also accepted) now
+# tunes the list; the DEFAULT keeps exactly the two current production
+# domains, so unset == today's behavior. Security is NOT weakened:
+#  - matching stays EXACT-host (parsed, no substrings — the v12 exact-match
+#    fix is untouched: bot.smart-link.ly.evil.com still 403s);
+#  - an empty/unparsable value falls back to the safe default (never
+#    allow-all);
+#  - DEBUG still adds localhost/127.0.0.1.
+_ORIGIN_ALLOWLIST_ENV = "ORIGIN_ALLOWLIST"
+_DEFAULT_ORIGIN_HOSTS = ("bot.smart-link.ly", "api.smart-link.ly")
+_origin_allowlist_cache: frozenset[str] | None = None
+
+
+def _parse_origin_allowlist() -> frozenset[str]:
+    """Resolve the CSRF Origin allowlist (cached; env is read once)."""
+    global _origin_allowlist_cache
+    if _origin_allowlist_cache is not None:
+        return _origin_allowlist_cache
+    raw = os.getenv(_ORIGIN_ALLOWLIST_ENV, "").strip()
+    hosts: set[str] = set()
+    if raw:
+        for entry in raw.split(","):
+            e = entry.strip()
+            if not e:
+                continue
+            if "://" in e:  # tolerate full origins (https://x.ly/)
+                e = urlparse(e).hostname or ""
+            e = e.lower().rstrip(".")
+            if e:
+                hosts.add(e)
+    allow = frozenset(hosts) if hosts else frozenset(_DEFAULT_ORIGIN_HOSTS)
+    if getattr(settings, "DEBUG", False):
+        allow = allow | {"localhost", "127.0.0.1"}
+    _origin_allowlist_cache = allow
+    return allow
 
 
 # ── v12-E3.3: CSRF double-submit constants ──────────────────────────────
@@ -152,11 +169,10 @@ async def csrf_origin_check(request: Request, call_next):
     cron secret) skip the layer entirely. Origin allowlisting above still
     applies to every mutating call regardless of exemptions.
     """
-    from urllib.parse import urlparse
     if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.url.path.startswith("/api/"):
-        allowed_hosts = {"bot.smart-link.ly", "api.smart-link.ly"}
-        if getattr(settings, "DEBUG", False):
-            allowed_hosts |= {"localhost", "127.0.0.1"}
+        # v15-E5 (D4-middleware): env-tunable exact-host allowlist (safe
+        # default = the two production domains; see _parse_origin_allowlist).
+        allowed_hosts = _parse_origin_allowlist()
         origin = request.headers.get("origin", "")
         referer = request.headers.get("referer", "")
         if origin:

@@ -20,16 +20,18 @@ interface TelegramConfig {
   isActive: boolean
 }
 
+/* v15-E5 (D4-H4): the DiagnoseResult now mirrors the REAL backend contract
+ * (routers/telegram_config.py /api/telegram/diagnose) — adminCount (was
+ * linkedAdmins, always undefined → «0»), dryRunResult (was never rendered —
+ * the page claimed «البوت يعمل بشكل صحيح» on configExists alone), source.
+ * The never-served `events`/`broadcastTargets` keys are gone (dead code). */
 interface DiagnoseResult {
   configExists: boolean
   isActive: boolean
+  source?: string
+  adminCount: number
   botTokenPreview: string | null
-  events: string[]
-  linkedAdmins: number
-  broadcastTargets?: {
-    id: number; label: string; chatId: string; isActive: boolean
-    ok: boolean | null; error: string | null
-  }[]
+  dryRunResult?: string
 }
 
 interface BroadcastTarget {
@@ -71,7 +73,14 @@ export default function AdminTelegramPage() {
   useEffect(() => {
     const d = configQuery.data
     if (d) {
-      setConfig({ botToken: d.botTokenMasked ? "••••••••" : "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
+      /* v15-E5 (D4-H2): NEVER seed the field with the «••••••••» mask —
+       * saving with the mask used to send it to the backend and fail the
+       * regex (400), making every chatId/isActive change impossible without
+       * re-pasting the secret. The field starts EMPTY; botTokenMasked only
+       * drives the placeholder («الرمز محفوظ…») and handleSave omits the
+       * key entirely while the field is untouched (backend: absent =
+       * no-change; only an explicitly-typed new token is sent). */
+      setConfig({ botToken: "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
       setEventsInput((d.events ?? []).join(", "))
     }
   }, [configQuery.data])
@@ -100,7 +109,9 @@ export default function AdminTelegramPage() {
   useEffect(() => {
     if (diagnoseQuery.isError) brandedToast.error("فشل تحميل التشخيص الأولي")
   }, [diagnoseQuery.isError])
-  const linkedAdmins = diagnose?.linkedAdmins ?? 0
+  /* v15-E5 (D4-H4): adminCount is the backend's real key (linkedAdmins was
+   * never in the response → the count read 0 forever). */
+  const linkedAdmins = diagnose?.adminCount ?? 0
 
   // ── Subscription approvers ──
   const approversQuery = useQuery({
@@ -118,12 +129,22 @@ export default function AdminTelegramPage() {
   const [diagnosing, setDiagnosing] = useState(false)
 
   const handleSave = async () => {
-    if (!config.botToken.trim() || !config.chatId.trim()) { brandedToast.error("يرجى إدخال رمز البوت ومعرف المحادثة"); return }
+    /* v15-E5 (D4-H2): an untouched token field (empty) is OMITTED from the
+     * payload — the masked placeholder is never sent, and the backend
+     * treats the absent key as “keep the stored token” (an explicit empty
+     * string still clears it). Only a genuinely-typed new token rides along. */
+    if (!config.chatId.trim()) { brandedToast.error("يرجى إدخال معرف المحادثة"); return }
     setSaving(true)
     try {
+      const payload: Record<string, unknown> = {
+        chatId: config.chatId.trim(),
+        events: eventsInput.split(",").map((e) => e.trim()).filter(Boolean),
+        isActive: config.isActive,
+      }
+      if (config.botToken.trim()) payload.botToken = config.botToken.trim()
       const res = await apiFetch("/api/telegram/config", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...config, events: eventsInput.split(",").map((e) => e.trim()).filter(Boolean) }),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الحفظ")
@@ -147,7 +168,11 @@ export default function AdminTelegramPage() {
   const handleDiagnose = async () => {
     setDiagnosing(true); setDiagnose(null)
     try {
-      const d = await apiFetch("/api/telegram/diagnose").then(unwrapApi<DiagnoseResult>)
+      /* v15-E5 (D4-H4): dryRun=true is what makes the verdict REAL — the
+       * backend only attempts the test send (and only reports dryRunResult)
+       * with the flag set; without it the manual button returned less data
+       * than the page's own initial load. */
+      const d = await apiFetch("/api/telegram/diagnose?dryRun=true").then(unwrapApi<DiagnoseResult>)
       setDiagnose(d)
     } catch (e) { brandedToast.error((e as Error).message || "فشل التشخيص") }
     finally { setDiagnosing(false) }

@@ -29,6 +29,8 @@
 import { useState, useEffect, useCallback, useRef, useId } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { premiumToast } from "@/lib/premium-toast"
 import { Smartphone } from "lucide-react"
@@ -62,6 +64,18 @@ interface PaymentDialogProps {
 
 type PaymentStep = "form" | "waiting" | "success" | "approved" | "rejected"
 
+/* v15-E5 (C-FREE1): the free-plan activation journey. The backend contract
+ * (routers/payments/plans.py) has NO direct self-activation endpoint: a
+ * price=0 plan still goes through POST /api/subscriptions as a pending
+ * SubscriptionPayment (amount 0) that a PLATFORM admin or Telegram approver
+ * confirms — exactly like a paid plan, minus the money (no method tabs, no
+ * transfer instructions, no receipt; the phone stays because the endpoint
+ * requires it for every non-bank request and the admin queue shows it).
+ * The wallet provider label on the request is the backend enum's least-wrong
+ * member (there is no "free" provider); the approval notification reads
+ * «المبلغ: 0 د.ل — الباقة: مجاني». */
+const FREE_PLAN_SUBMIT_LABEL = "تفعيل الخطة المجانية"
+
 /* v14-E4 (D4 H-01, WCAG 4.1.3 Status Messages): every payment-step swap is
  * announced through the always-mounted polite region below — the SSE/poll
  * decision (waiting→approved/rejected) previously swapped the screen
@@ -75,6 +89,11 @@ const STEP_ANNOUNCEMENTS: Record<PaymentStep, string> = {
   rejected: "عذراً، تم رفض طلب الاشتراك — يمكنك تعديل البيانات وإعادة المحاولة",
   success: "تم إرسال طلب الدفع بنجاح — سيُفعّل الاشتراك بعد موافقة الإدارة",
 }
+
+/* v15-E5 (C-FREE1): distinct waiting announcement for the free journey —
+ * the generic one says «طلب الدفع» which is wrong for a 0 د.ل activation. */
+const FREE_PLAN_WAITING_ANNOUNCEMENT =
+  "تم إرسال طلب تفعيل الخطة المجانية — بانتظار موافقة الإدارة"
 
 export function PaymentDialog({
   open,
@@ -119,6 +138,12 @@ export function PaymentDialog({
   const [paymentId, setPaymentId] = useState<number | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sseRef = useRef<EventSource | null>(null)
+
+  /* v15-E5 (C-FREE1): price=0 renders the dedicated free-activation step —
+   * no method tabs / wallet or bank instructions / receipt (the C-FREE1
+   * blocker previously 403-DEAD-ENDED the first CTA of the whole site:
+   * «ادفع الآن (0 د.ل)» then «سعر الباقة غير صالح»). */
+  const isFreePlan = Number(price) === 0
 
   /* v14-E4 (D4 H-01): focus management across step swaps. The submit/waiting
    * buttons UNMOUNT on every transition — without this the focus silently
@@ -218,11 +243,14 @@ export function PaymentDialog({
     const isBank = provider === "bank"
     // Validate BEFORE latching the guard — a failed validation must leave
     // the button usable.
+    // v15-E5 (C-FREE1): the free journey keeps the phone validation (the
+    // backend requires a phone on every non-bank subscription request) but
+    // drops the wallet/price guards — price 0 IS the plan's price here.
     if (!isBank && !/^09\d{8}$/.test(phone.trim().replace(/[\s-]/g, ""))) {
       premiumToast("error", "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)")
       return
     }
-    if (!isBank && Number(price) <= 0) {
+    if (!isFreePlan && !isBank && Number(price) <= 0) {
       premiumToast("error", "سعر الباقة غير صالح — أعد فتح نافذة الدفع")
       return
     }
@@ -241,6 +269,10 @@ export function PaymentDialog({
     try {
       const res = await apiFetch("/api/subscriptions", {
         method: "POST",
+        // v15-E5 (D4-H3): the dialog owns its 401 journey (the tailored
+        // «سجّل الدخول أولاً...» toast beats the global session-expiry one
+        // for the anonymous /subscribe visitor).
+        skipAuthRedirect: true,
         body: JSON.stringify({
           plan_id: planId,
           provider,
@@ -264,9 +296,14 @@ export function PaymentDialog({
       // v6 §D — anonymous visitor reached the payment step: plans are public,
       // payment is not. Send to login with a return path instead of a bare
       // error toast (the page no longer blanket-redirects on load).
+      // v15-E5 (D4-L7): carry the query string too — /subscribe?plan=N kept
+      // the preselected plan alive across the login round-trip (safeRedirect
+      // validates the whole value).
       if (e instanceof ApiError && e.status === 401) {
         premiumToast("info", "سجّل الدخول أولاً لإتمام الاشتراك — سنعيدك هنا مباشرة")
-        window.location.href = "/login?redirect=/subscribe"
+        window.location.href =
+          "/login?redirect=" +
+          encodeURIComponent(window.location.pathname + window.location.search)
         return
       }
       // apiFetch throws ApiError carrying the parsed body — surface the
@@ -418,14 +455,23 @@ export function PaymentDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm sm:max-w-md rounded-2xl p-0 gap-0 max-h-[90dvh] overflow-y-auto border-border/50 shadow-2xl">
-        {/* Header */}
-        <div className="bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-white p-6">
+        {/* Header — v15-E5 (D5-H2): the old white/70 description over the
+            accent-foreground gradient measured 2.56:1 (dark) / 3.02–3.86:1
+            (light) — below AA for small text, and even full white only
+            reached 3.77:1. The Smart-Menu warm-surface pattern instead:
+            saffron gradient + espresso text (theme-independent tokens):
+            8.97:1 on the solid end, 7.36:1 on the /80 end over the dark
+            card, 10.8:1 over the light card — AA for every text size in
+            both modes. */}
+        <div className="bg-gradient-to-br from-saffron to-saffron/80 text-espresso p-6">
           <div className="flex items-center gap-2 mb-2">
             <Smartphone className="size-5" />
-            <DialogTitle className="text-white text-lg font-bold">دفع الاشتراك</DialogTitle>
+            <DialogTitle className="text-espresso text-lg font-bold">
+              {isFreePlan ? "تفعيل الخطة المجانية" : "دفع الاشتراك"}
+            </DialogTitle>
           </div>
-          <DialogDescription className="text-white/70 text-sm">
-            ادفع عبر المحفظة الإلكترونية
+          <DialogDescription className="text-espresso text-sm">
+            {isFreePlan ? "بلا دفع ولا إيصال — تفعيل بعد موافقة الإدارة" : "ادفع عبر المحفظة الإلكترونية"}
           </DialogDescription>
         </div>
 
@@ -441,19 +487,68 @@ export function PaymentDialog({
             tabIndex={-1}
             className="sr-only"
           >
-            {STEP_ANNOUNCEMENTS[step]}
+            {step === "waiting" && isFreePlan
+              ? FREE_PLAN_WAITING_ANNOUNCEMENT
+              : STEP_ANNOUNCEMENTS[step]}
           </p>
 
           {/* Plan summary */}
           <div className="rounded-xl bg-accent/50 dark:bg-accent/20 border border-accent-foreground/15 p-4">
             <div className="flex justify-between items-center">
               <span className="font-bold">{planNameAr}</span>
-              <span className="text-lg font-bold text-accent-foreground">{formatNumber(price)} د.ل</span>
+              {/* v15-E5 (C-FREE1): «مجاني» instead of «0 د.ل» (the same
+                  wording PlanSelector already uses for price=0). */}
+              <span className="text-lg font-bold text-accent-foreground">
+                {isFreePlan ? "مجاني" : `${formatNumber(price)} د.ل`}
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">اشتراك شهري</p>
           </div>
 
-          {step === "form" && (
+          {step === "form" && isFreePlan && (
+            <>
+              {/* v15-E5 (C-FREE1): the free-plan activation step — no method
+                  tabs, no wallet/bank instructions, no receipt upload. The
+                  phone stays (backend contract: every non-bank subscription
+                  request requires it; the admin review queue shows it). */}
+              <div className="rounded-xl bg-success/10 border border-success/25 p-4 space-y-1.5">
+                <p className="text-sm font-semibold text-success">الخطة المجانية بلا دفع</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  لا محافظ ولا تحويل بنكي ولا إيصال — يُرسل طلب التفعيل فوراً وتُفعّل الخطة
+                  بعد موافقة الإدارة مباشرة.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="payment-phone">رقم هاتفك *</Label>
+                <Input
+                  id="payment-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="09XXXXXXXX"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  required
+                  maxLength={10}
+                  className="h-11 rounded-xl mt-1.5 text-left font-mono"
+                  dir="ltr"
+                />
+                <p className="text-2xs text-muted-foreground mt-1">
+                  للتواصل مع الإدارة عند الحاجة — لا يوجد أي مبلغ لهذه الخطة
+                </p>
+              </div>
+
+              <Button
+                className="w-full h-12 text-base font-semibold rounded-xl"
+                onClick={handleSent}
+                disabled={submitting || !phone.trim()}
+              >
+                {submitting ? "جارٍ الإرسال…" : FREE_PLAN_SUBMIT_LABEL}
+              </Button>
+            </>
+          )}
+
+          {step === "form" && !isFreePlan && (
             <>
               {/* Payment method tabs */}
               <PaymentMethodTabs
@@ -516,7 +611,9 @@ export function PaymentDialog({
             </>
           )}
 
-          {step === "waiting" && <WaitingScreen provider={provider} headingRef={stepHeadingRef} />}
+          {step === "waiting" && (
+            <WaitingScreen provider={provider} freePlan={isFreePlan} headingRef={stepHeadingRef} />
+          )}
 
           {step === "approved" && (
             <ApprovedScreen

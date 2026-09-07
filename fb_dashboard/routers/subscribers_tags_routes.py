@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from models import User
 
 from routers.auth import get_current_user, require_role
+from routers.broadcasts import _json_body, _required_key
 
 router = APIRouter(tags=["subscribers"])
 
@@ -38,8 +39,11 @@ async def get_subscriber(sub_id: int, db=Depends(get_db), current_user: User = D
 
 @router.post("/api/subscribers/{sub_id}/tags")
 async def assign_subscriber_tag(sub_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
-    done = await subscriber_engine.add_tag(sub_id, body["tag_id"], db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
+    # v15-E3 (D1-H1): raw request.json()/body["tag_id"] were a 500 (JSONDecode
+    # / KeyError) + critical alert on a client typo; now a clean 422 Arabic.
+    body = await _json_body(request)
+    tag_id = _required_key(body, "tag_id")
+    done = await subscriber_engine.add_tag(sub_id, tag_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     return ok({"ok": done})
 
 
@@ -58,9 +62,12 @@ async def list_tags(db=Depends(get_db), current_user: User = Depends(get_current
 
 @router.post("/api/tags")
 async def create_tag(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
+    # v15-E3 (D1-H1): raw request.json()/body["name"] were a 500 (JSONDecode
+    # / KeyError) + critical alert on a client typo; now a clean 422 Arabic.
+    body = await _json_body(request)
+    name = _required_key(body, "name")
     try:
-        result = await tag_engine.create_tag(body["name"], body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
+        result = await tag_engine.create_tag(name, body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
         return ok(result)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e

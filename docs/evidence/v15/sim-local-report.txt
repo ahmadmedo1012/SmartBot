@@ -1,0 +1,45 @@
+══════════════════════════════════════════════════════════
+تقرير بطارية المحاكاة المحلية v15 (E8 — تنفيذ تصميم D13)
+══════════════════════════════════════════════════════════
+التاريخ: 2026-09-07T23:42:05Z
+الجولة (RUN): 2026-09-07T23-34-15
+المنافذ: الواجهة :3200 (وكيل) · الخلفية :8000 · القاعدة: /home/z/my-project/db/v15-sim.db
+py: /home/z/my-project/SmartBot/.venv/bin/python · node: v24.19.0
+SIM_STRICT_409=1 · SIM_ENFORCE_CLAIMS=1
+
+── نتيجة الشخصيات (14) ──
+  p01: نجاح ✓ — ناجحة: 8 · فاشلة: 0 · متخطاة: 0
+  p02: نجاح ✓ — ناجحة: 7 · فاشلة: 0 · متخطاة: 0
+  p03: نجاح ✓ — ناجحة: 3 · فاشلة: 0 · متخطاة: 0
+  p04: نجاح ✓ — ناجحة: 4 · فاشلة: 0 · متخطاة: 0
+  p05: نجاح ✓ — ناجحة: 8 · فاشلة: 0 · متخطاة: 0
+  p06: نجاح ✓ — ناجحة: 5 · فاشلة: 0 · متخطاة: 0
+  p07: نجاح ✓ — ناجحة: 7 · فاشلة: 0 · متخطاة: 0
+  p08: نجاح ✓ — ناجحة: 6 · فاشلة: 0 · متخطاة: 0
+  p09: نجاح ✓ — ناجحة: 9 · فاشلة: 0 · متخطاة: 0
+  p10: نجاح ✓ — ناجحة: 10 · فاشلة: 0 · متخطاة: 0
+  p11: نجاح ✓ — ناجحة: 10 · فاشلة: 0 · متخطاة: 0
+  p12: نجاح ✓ — ناجحة: 11 · فاشلة: 0 · متخطاة: 0
+  p13: نجاح ✓ — ناجحة: 12 · فاشلة: 0 · متخطاة: 0
+  p14: نجاح ✓ — ناجحة: 8 · فاشلة: 0 · متخطاة: 0
+
+── الادعاءات (المفروضة — D7-F1 مغلق) ──
+  المجموع: 125 · خضراء: 119 · حمراء: 6 · findings موثقة: 2
+  الادعاءات الحمراء (تُفشل البطارية):
+{"persona":"p08","claim":"p08-crm-lead","expected":"فاطمة كعميل متوقع","actual":"غائبة","ok":false,"ts":"2026-09-07T23:37:27.269Z","query":"GET /api/crm/customers","allowlisted":true,"findingRef":"v14 §6 R3 (خالد المهاجم §7)","findingReason":"إنشاء عميل CRM متوقع (pipeline المرحلة 10) يقع بعد نجاح إرسال رد Graph — ببيئة المحاكاة (توكن زائف) الإرسال يُرفض فلا يُنشأ الصف. الإصلاح ليس كودياً: القياس الصادق يحتاج توكن صفحة حقيقياً في الإنتاج.","finding":"R3: إنشاء lead يتطلب نجاح إرسال الرد (pipeline المرحلة 10 بعد الإرسال) — موثق للقياس بعد توكن حقيقي"}
+{"persona":"p10","claim":"p10-dm-gate","expected":"DM ممنوع لخطة بلا has_dm + BotLog عربي للمستأجر","actual":{"dm_gate_logs":0,"comment_stored":true},"ok":false,"ts":"2026-09-07T23:38:29.922Z","query":"SELECT count(*) FROM bot_logs WHERE tenant_id=? AND message LIKE '%الرد الخاص%'","allowlisted":true,"findingRef":"D2-H1","findingReason":"بوابة has_dm في مسار التعليقات (pipeline المرحلة 8b) تُنفَّذ بعد نجاح إرسال رد Graph العلني — إصلاح E1 موجود في الكود ومثبت في pytest (test_v15_money_core)، لكن ببطارية المحاكاة توكن Graph زائف فيفشل الإرسال قبل بلوغ البوابة (عائلة R3). ينقلب أخضر تلقائياً عند توكن حقيقي."}
+{"persona":"p10","claim":"p10-replies-used-comments","expected":"replies_used يزيد من مسار تعليقات webhook بعد كل رد","actual":100,"ok":false,"ts":"2026-09-07T23:39:35.273Z","query":"SELECT current_value FROM usage_counters WHERE tenant_id=? AND metric='replies_used'","allowlisted":true,"findingRef":"D2-H3","findingReason":"توحيد عدّ replies_used من مسار تعليقات webhook (E1: عدّ موحد في pipeline المرحلة 9) — العدّ يقع بعد نجاح إرسال Graph، فبيئة المحاكاة لا تستطيع إثباته (عائلة R3-محاكاة). الإصلاح مثبت في pytest؛ القياس البطاريّ صادق فقط مع توكن حقيقي."}
+{"persona":"p11","claim":"p11-rtl-tab-order","expected":"أول Tab = رابط التخطي والتركيز يتحرك يساراً (ترتيب بصري RTL)","actual":[{"desc":"a","x":16},{"desc":"a","x":204},{"desc":"a","x":204},{"desc":"a","x":17},{"desc":"a","x":17},{"desc":"div[كل الأقسام]","x":0},{"desc":"button","x":312}],"ok":false,"ts":"2026-09-07T23:40:28.493Z","query":"document.activeElement عبر 7 خطوات Tab","allowlisted":true,"findingRef":"v15-D5 (بطارية 21:47 — p11-t1)","findingReason":"ترتيب التبويب على الهبوط ليس بصرياً RTL خالصاً: أول Tab يهبط على رابط بأقصى اليسار (x=16) ثم يقفز يميناً — الترتيب يتبع DOM لا الاتجاه البصري. قارئ الشاشة يعمل لكن التجربة البصرية للتنقل بلا فأرة مشتتة في RTL. قرار إصلاح واجهة (إعادة ترتيب DOM أو tabindex دقيق) — خارج نطاق إصلاحات الجولة الحالية."}
+{"persona":"p13","claim":"p13-ssrf-receipt-dns","expected":"400 «رابط مرفوض» (حارس بحل DNS — E4) — لا جلب يُجرَّب لمضيف بالاسم","actual":{"status":404,"detail":"تعذر جلب الإيصال الخارجي"},"ok":false,"ts":"2026-09-07T23:41:51.703Z","query":"GET /api/payments/receipt/{id}","allowlisted":true,"findingRef":"D6-H2","findingReason":"حارس SSRF بحل DNS (E4: ai_service.assert_safe_outbound_url) يغطي جلب الصور وأفعال الويبهوك — لكن مسار إيصال الدفع (approvals.py get_payment_receipt) ما زال يستعمل الحارس المتزامن السريع فقط (IP حرفي) بلا حل DNS للاسم: مضيف DNS يشير لعنوان داخلي يجتاز الفحص ويُجرَّب جلبه. العقد المستهدف: 400 «رابط الإيصال مرفوض»."}
+{"persona":"p13","claim":"p13-cron-query-token","expected":"403/404 (السر بالترويسة فقط — إزالة مسار الاستعلام)","actual":200,"ok":false,"ts":"2026-09-07T23:41:54.359Z","query":"GET /api/cron/heartbeat?token=","allowlisted":true,"findingRef":"D6-M3","findingReason":"?token= للكرون ما زال مساراً صالحاً مع تحذير إهمال (bot.py _cron_authorized — E3/E4 أبقيا التوافق) — العقد المستهدف: الترويسة فقط (403/404 للاستعلام)."}
+
+── كاشف الانقلاب (findingClosed) ──
+  إدخالات كانت حمراء وصارت خضراء: 0 — راجعها واحذفها من sim-findings.json (العقد يصبح صارماً)
+
+── الأدلة ──
+  اللقطات: 125 · ملفات HAR: 15
+  المجلد: /home/z/my-project/SmartBot/fb_dashboard/frontend/e2e_artifacts/sim/2026-09-07T23-34-15
+
+── الحكم النهائي (الخروج المركّب) ──
+  playwright exit=0 · claims exit=0
+  البطارية خضراء بالكامل وصادقة — PASS

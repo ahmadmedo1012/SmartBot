@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { Settings, User, Shield, Mail, Lock, KeyRound, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,21 +37,23 @@ export default function SettingsPage() {
     }
     setPwBusy(true)
     try {
-      const r = await apiFetch("/api/auth/change-password", {
+      /* v15-E5 (D4-H5): apiFetch THROWS ApiError on any non-2xx — the old
+       * `if (r.ok) … else …` branch below it was unreachable dead code, and
+       * the generic catch replaced the backend's Arabic detail («كلمة
+       * المرور الحالية غير صحيحة» — auth.py:364) with the misleading
+       * «خطأ في الاتصال» network message. The detail now surfaces verbatim.
+       * (The endpoint is in apiFetch's local-401 skip-list: its 401 means a
+       * wrong CURRENT password, not an expired session — no bogus redirect.) */
+      await apiFetch("/api/auth/change-password", {
         method: "POST",
         body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
       })
-      if (r.ok) {
-        brandedToast.success("تم تغيير كلمة المرور بنجاح")
-        setCurrentPw("")
-        setNewPw("")
-        setShowPw(false)
-      } else {
-        const body = await r.json().catch((): null => null)
-        brandedToast.error(body?.detail || "تعذر تغيير كلمة المرور")
-      }
-    } catch {
-      brandedToast.error("خطأ في الاتصال")
+      brandedToast.success("تم تغيير كلمة المرور بنجاح")
+      setCurrentPw("")
+      setNewPw("")
+      setShowPw(false)
+    } catch (e) {
+      brandedToast.error(e instanceof ApiError ? e.message : "تعذر تغيير كلمة المرور")
     }
     setPwBusy(false)
   }

@@ -2,6 +2,19 @@ from __future__ import annotations
 
 """Broadcast Engine — Segmented mass messaging engine.
 Sends bulk messages to filtered subscriber segments with rate limiting.
+
+v15-E3 (C-BCAST1 / D12-M1 / D1-H3):
+  * ``process_pending(session)`` — the outbox consumer contract E1 calls at
+    the end of every bot cycle. Queued broadcasts (status='pending', set by
+    POST /api/broadcasts/{id}/send) are claimed atomically
+    (``UPDATE ... WHERE status='pending' RETURNING``) and fanned out.
+  * Every draft→sending transition is now an ATOMIC claim (the approvals.py
+    v9-A8 pattern) instead of a read-check-write race — two concurrent
+    callers can no longer both pass the draft check and double-send every
+    recipient (D12-M1).
+  * ``tenant_broadcast_allowed`` — the has_broadcast plan-feature gate
+    (D2-H1) used by this engine and by the routers that own broadcast
+    creation/send.
 """
 import asyncio
 import json
@@ -10,10 +23,49 @@ from datetime import datetime, timedelta
 
 from _utils import iso_z, utcnow
 from fb_client import FBClient
-from models import Broadcast, BroadcastRecipient, Subscriber, SubscriberTag, Tag
-from sqlalchemy import desc, exists, func, select
+from models import (
+    Broadcast,
+    BroadcastRecipient,
+    Subscriber,
+    SubscriberTag,
+    SubscriptionPlan,
+    Tag,
+    Tenant,
+)
+from sqlalchemy import desc, exists, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger("fb-broadcast")
+
+# v15-E3 (D2-H1): the Arabic refusal a tenant sees when their plan lacks the
+# broadcast feature — one message everywhere (router 403 + engine failure log).
+BROADCAST_PLAN_REQUIRED_MSG = "ميزة البث الجماعي غير متاحة في باقتك الحالية — قم بالترقية لاستخدامها"
+
+# v15-E3 (C-BCAST1): bound the per-beat fan-out work so one consumer pass
+# cannot monopolize a cron invocation (each claim commits its own progress).
+_PENDING_BATCH_LIMIT = 20
+
+
+async def tenant_broadcast_allowed(session, tenant_id: int) -> tuple[bool, str]:
+    """D2-H1 (v15-E3): has_broadcast plan-feature gate.
+
+    Returns ``(allowed, reason)``. A tenant whose plan row explicitly lacks
+    ``has_broadcast`` is refused with the Arabic message; tenants WITHOUT a
+    plan row (plan_id None/0 — legacy/manual tenants, and every pre-v15 test
+    fixture) are allowed here on purpose: the subscription lifecycle gates
+    (PAID/TRIAL/UNPAID — E1's engine-level work) own that axis, this gate
+    only answers "does the CURRENT plan sell broadcasts at all".
+    """
+    try:
+        tenant = await session.get(Tenant, int(tenant_id or 0))
+    except Exception:
+        return True, ""  # never block a send over a gate read failure
+    if tenant is None or not tenant.plan_id:
+        return True, ""
+    plan = await session.get(SubscriptionPlan, tenant.plan_id)
+    if plan is not None and not plan.has_broadcast:
+        return False, BROADCAST_PLAN_REQUIRED_MSG
+    return True, ""
 
 
 class BroadcastEngine:
@@ -186,203 +238,34 @@ class BroadcastEngine:
         }
 
     async def send_broadcast(self, broadcast_id: int, session) -> bool:
-        # Load broadcast
-        q = await session.execute(
-            select(Broadcast).where(Broadcast.id == broadcast_id)
-        )
-        b = q.scalar_one_or_none()
-        if not b or b.status != "draft":
-            log.warning(f"Broadcast #{broadcast_id} not found or not draft (status={getattr(b,'status','?')})")
-            return False
+        """Direct-send entry (marketing campaign dispatch + engine callers).
 
-        # v4 §3.8 (G5) — resolve THIS tenant's page client. The old engine sent
-        # every broadcast through the shared global env client (empty token in
-        # production → every send failed) — and to subscribers of ALL tenants.
-        tenant_id = int(b.tenant_id or 0)
-        from _services import get_tenant_fb_client
-        tenant_fb = await get_tenant_fb_client(tenant_id)
-        if tenant_fb is None:
-            b.status = "failed"
-            b.sent_at = utcnow()
-            await session.commit()
-            log.error(f"Broadcast #{broadcast_id}: tenant {tenant_id} has no connected FB page")
-            return False
-
-        # Mark sending
-        b.status = "sending"
-        await session.commit()
-
-        try:
-            # Build subscriber query from stored filters
-            platform_filter = json.loads(b.platform_filter) if isinstance(b.platform_filter, str) else b.platform_filter
-            segment_filters = json.loads(b.segment_filters) if isinstance(b.segment_filters, str) else b.segment_filters
-
-            # v4 §3.8 (G5) — tenant-scoped audience (was: ALL active subscribers
-            # across every tenant; the estimate shown in the UI WAS scoped, so
-            # the preview never matched what was actually "sent")
-            subq = select(Subscriber.id).where(
-                Subscriber.status == "active", Subscriber.tenant_id == tenant_id
+        v15-E3 (D12-M1): the draft→sending transition is an ATOMIC claim
+        (``UPDATE broadcasts SET status='sending' WHERE id=:id AND
+        status='draft' RETURNING``) — the loser of a concurrent race gets a
+        clean ``False`` instead of double-sending every recipient.
+        v15-E3 (C-BCAST1): ``pending`` rows are NOT touched here — they belong
+        exclusively to :func:`process_pending` (the outbox consumer the bot
+        cycle drives). Returns False when the broadcast is missing, already
+        claimed/queued/sent, or not allowed to send.
+        """
+        row = (await session.execute(
+            update(Broadcast)
+            .where(Broadcast.id == broadcast_id, Broadcast.status == "draft")
+            .values(status="sending")
+            .returning(Broadcast.id)
+        )).scalar_one_or_none()
+        if row is None:
+            q = await session.execute(
+                select(Broadcast.status).where(Broadcast.id == broadcast_id)
             )
-
-            platform = (platform_filter or {}).get("platform", "all")
-            if platform and platform != "all":
-                subq = subq.where(Subscriber.platform == platform)
-
-            sf = segment_filters or {}
-            tag_contains = sf.get("tag_contains", [])
-            tag_not_contains = sf.get("tag_not_contains", [])
-
-            if tag_contains:
-                sq = (
-                    select(SubscriberTag.subscriber_id)
-                    .join(Tag, SubscriberTag.tag_id == Tag.id)
-                    .where(Tag.name.in_(tag_contains))
-                    .where(SubscriberTag.subscriber_id == Subscriber.id)
-                )
-                subq = subq.where(exists(sq))
-
-            if tag_not_contains:
-                sq = (
-                    select(SubscriberTag.subscriber_id)
-                    .join(Tag, SubscriberTag.tag_id == Tag.id)
-                    .where(Tag.name.in_(tag_not_contains))
-                    .where(SubscriberTag.subscriber_id == Subscriber.id)
-                )
-                subq = subq.where(~exists(sq))
-
-            subscribed_after = sf.get("subscribed_after")
-            if subscribed_after:
-                try:
-                    dt = datetime.fromisoformat(subscribed_after)
-                    subq = subq.where(Subscriber.first_seen_at >= dt)
-                except ValueError:
-                    pass
-
-            last_interaction_before_days = sf.get("last_interaction_before_days")
-            if last_interaction_before_days:
-                cutoff = utcnow() - timedelta(days=int(last_interaction_before_days))
-                subq = subq.where(Subscriber.last_interaction_at >= cutoff)
-
-            min_replies = sf.get("min_replies")
-            if min_replies:
-                subq = subq.where(Subscriber.reply_count >= int(min_replies))
-
-            # Get matching subscriber IDs
-            result = await session.execute(subq)
-            subscriber_ids = [r[0] for r in result.all()]
-
-            if not subscriber_ids:
-                b.status = "sent"
-                b.total_recipients = 0
-                b.sent_at = utcnow()
-                await session.commit()
-                log.info(f"Broadcast #{broadcast_id}: no matching subscribers")
-                return True
-
-            # Create recipient records
-            for sid in subscriber_ids:
-                session.add(BroadcastRecipient(
-                    broadcast_id=broadcast_id,
-                    subscriber_id=sid,
-                    status="pending",
-                ))
-            b.total_recipients = len(subscriber_ids)
-            await session.commit()
-            log.info(f"Broadcast #{broadcast_id}: {len(subscriber_ids)} recipients created")
-
-            # Send with concurrency limit
-            # v4 §3.8 (G5) — each task opens its OWN session: a single
-            # AsyncSession shared across asyncio.gather coroutines is not
-            # concurrency-safe (InvalidRequestError / lost updates).
-            sem = asyncio.Semaphore(10)
-            sent = 0
-            failed = 0
-
-            async def send_one(subscriber_id: int, recipient_id: int):
-                nonlocal sent, failed
-                async with sem:
-                    from database import AsyncSessionLocal
-                    async with AsyncSessionLocal() as s:
-                        qs = await s.execute(
-                            select(Subscriber).where(Subscriber.id == subscriber_id)
-                        )
-                        sub = qs.scalar_one_or_none()
-                        if not sub:
-                            return
-
-                        # Render template
-                        msg = b.message_template
-                        msg = msg.replace("{name}", sub.first_name or sub.name or "")
-                        msg = msg.replace("{full_name}", sub.name or "")
-                        msg = msg.replace("{mention}", f"@{sub.username}" if sub.username else sub.name or "")
-
-                        # Send based on platform
-                        # ponytail: fb_client only supports Messenger; other platforms logged+skipped
-                        send_ok = False
-                        if sub.platform in ("messenger", "facebook"):
-                            # v4 §3.8 — tenant client, not the global engine client
-                            result_data = await tenant_fb.send_dm(sub.fb_user_id, msg)
-                            send_ok = result_data is not None
-                        else:
-                            log.info(f"Skip {sub.platform} subscriber {sub.fb_user_id}: only Messenger supported")
-                            send_ok = False
-
-                        rcpt_q = await s.execute(
-                            select(BroadcastRecipient).where(BroadcastRecipient.id == recipient_id)
-                        )
-                        rcpt = rcpt_q.scalar_one_or_none()
-                        if rcpt:
-                            rcpt.status = "sent" if send_ok else "failed"
-                            if not send_ok:
-                                rcpt.error_message = f"Unsupported platform or send failed: {sub.platform}"
-                            rcpt.sent_at = utcnow()
-                        await s.commit()
-
-                    if send_ok:
-                        sent += 1
-                    else:
-                        failed += 1
-
-            # Build task list
-            tasks = []
-            rcpt_q = await session.execute(
-                select(BroadcastRecipient)
-                .where(BroadcastRecipient.broadcast_id == broadcast_id)
-                .where(BroadcastRecipient.status == "pending")
+            status = q.scalar_one_or_none()
+            log.warning(
+                f"Broadcast #{broadcast_id} not claimable from draft (status={status!r})"
             )
-            recipients = rcpt_q.scalars().all()
-            for rcpt in recipients:
-                tasks.append(send_one(rcpt.subscriber_id, rcpt.id))
-
-            # Process in batches for periodic commits
-            batch_size = 10
-            for i in range(0, len(tasks), batch_size):
-                batch = tasks[i:i + batch_size]
-                await asyncio.gather(*batch)
-                b.sent_count = sent
-                b.failed_count = failed
-                await session.commit()
-                if (i + batch_size) % 50 <= batch_size:
-                    log.info(
-                        f"Broadcast #{broadcast_id}: {sent} sent, {failed} failed "
-                        f"({i + batch_size}/{len(tasks)})"
-                    )
-
-            # Mark complete
-            b.status = "failed" if sent == 0 else "sent" if failed == 0 else "partial"
-            b.sent_count = sent
-            b.failed_count = failed
-            b.sent_at = utcnow()
-            await session.commit()
-            log.info(f"Broadcast #{broadcast_id} done: {sent} sent, {failed} failed")
-            return True
-
-        except Exception as e:
-            log.exception(f"Broadcast #{broadcast_id} failed: {e}")
-            b.status = "failed"
-            b.sent_at = utcnow()
-            await session.commit()
             return False
+        await session.commit()  # publish the claim before any slow fan-out
+        return await _send_claimed_broadcast(broadcast_id, session)
 
     async def cancel_broadcast(self, broadcast_id: int, session, tenant_id: int = 0) -> bool:
         stmt = select(Broadcast).where(Broadcast.id == broadcast_id)
@@ -390,10 +273,292 @@ class BroadcastEngine:
             stmt = stmt.where(Broadcast.tenant_id == tenant_id)
         q = await session.execute(stmt)
         b = q.scalar_one_or_none()
-        if not b or b.status not in ("draft", "sending"):
+        # v15-E3 (C-BCAST1): 'pending' (queued, waiting for the outbox
+        # consumer) is cancellable too — the tenant can still stop a queued
+        # broadcast before the cycle picks it up.
+        if not b or b.status not in ("draft", "pending", "sending"):
             return False
         b.status = "cancelled"
         await session.commit()
         log.info(f"Broadcast #{broadcast_id} cancelled")
         return True
 
+    async def process_pending(self, session: AsyncSession) -> int:
+        """Instance facade → module-level :func:`process_pending` (v15-E3).
+
+        The v15 §2 contract is the module function
+        ``broadcast_engine.process_pending(session)``; this facade keeps the
+        SAME call working through the BroadcastEngine instance too — including
+        the ``_services.broadcast_engine`` lazy singleton other modules hold —
+        so no caller shape can miss the outbox consumer.
+        """
+        return await process_pending(session)
+
+
+async def _send_claimed_broadcast(broadcast_id: int, session) -> bool:
+    """Fan out ONE already-claimed broadcast (status is 'sending').
+
+    v15-E3: extracted from ``send_broadcast`` so both claim paths share it —
+    the direct draft claim (marketing dispatch) and the outbox consumer
+    (:func:`process_pending`). The caller owns the atomic claim; this
+    function owns the slow part (recipients, Graph fan-out, final status).
+    """
+    # Load broadcast (guaranteed to exist — the caller claimed it)
+    q = await session.execute(
+        select(Broadcast).where(Broadcast.id == broadcast_id)
+    )
+    b = q.scalar_one_or_none()
+    if not b:
+        log.warning(f"Broadcast #{broadcast_id} vanished after claim")
+        return False
+
+    # v4 §3.8 (G5) — resolve THIS tenant's page client. The old engine sent
+    # every broadcast through the shared global env client (empty token in
+    # production → every send failed) — and to subscribers of ALL tenants.
+    tenant_id = int(b.tenant_id or 0)
+    from _services import get_tenant_fb_client
+    tenant_fb = await get_tenant_fb_client(tenant_id)
+    if tenant_fb is None:
+        b.status = "failed"
+        b.sent_at = utcnow()
+        await session.commit()
+        log.error(f"Broadcast #{broadcast_id}: tenant {tenant_id} has no connected FB page")
+        return False
+
+    # v15-E3 (D2-H1): plan-feature gate — a plan that does not sell
+    # broadcasts must not fan out (campaign dispatch reaches the same gate;
+    # queued rows claimed by the consumer are re-checked here so a plan
+    # downgrade between queueing and the cycle still refuses).
+    allowed, reason = await tenant_broadcast_allowed(session, tenant_id)
+    if not allowed:
+        b.status = "failed"
+        b.sent_at = utcnow()
+        await session.commit()
+        log.warning(f"Broadcast #{broadcast_id} refused (tenant {tenant_id}): {reason}")
+        return False
+
+    try:
+        # Build subscriber query from stored filters
+        platform_filter = json.loads(b.platform_filter) if isinstance(b.platform_filter, str) else b.platform_filter
+        segment_filters = json.loads(b.segment_filters) if isinstance(b.segment_filters, str) else b.segment_filters
+
+        # v4 §3.8 (G5) — tenant-scoped audience (was: ALL active subscribers
+        # across every tenant; the estimate shown in the UI WAS scoped, so
+        # the preview never matched what was actually "sent")
+        subq = select(Subscriber.id).where(
+            Subscriber.status == "active", Subscriber.tenant_id == tenant_id
+        )
+
+        platform = (platform_filter or {}).get("platform", "all")
+        if platform and platform != "all":
+            subq = subq.where(Subscriber.platform == platform)
+
+        sf = segment_filters or {}
+        tag_contains = sf.get("tag_contains", [])
+        tag_not_contains = sf.get("tag_not_contains", [])
+
+        if tag_contains:
+            sq = (
+                select(SubscriberTag.subscriber_id)
+                .join(Tag, SubscriberTag.tag_id == Tag.id)
+                .where(Tag.name.in_(tag_contains))
+                .where(SubscriberTag.subscriber_id == Subscriber.id)
+            )
+            subq = subq.where(exists(sq))
+
+        if tag_not_contains:
+            sq = (
+                select(SubscriberTag.subscriber_id)
+                .join(Tag, SubscriberTag.tag_id == Tag.id)
+                .where(Tag.name.in_(tag_not_contains))
+                .where(SubscriberTag.subscriber_id == Subscriber.id)
+            )
+            subq = subq.where(~exists(sq))
+
+        subscribed_after = sf.get("subscribed_after")
+        if subscribed_after:
+            try:
+                dt = datetime.fromisoformat(subscribed_after)
+                subq = subq.where(Subscriber.first_seen_at >= dt)
+            except ValueError:
+                pass
+
+        last_interaction_before_days = sf.get("last_interaction_before_days")
+        if last_interaction_before_days:
+            cutoff = utcnow() - timedelta(days=int(last_interaction_before_days))
+            subq = subq.where(Subscriber.last_interaction_at >= cutoff)
+
+        min_replies = sf.get("min_replies")
+        if min_replies:
+            subq = subq.where(Subscriber.reply_count >= int(min_replies))
+
+        # Get matching subscriber IDs
+        result = await session.execute(subq)
+        subscriber_ids = [r[0] for r in result.all()]
+
+        if not subscriber_ids:
+            b.status = "sent"
+            b.total_recipients = 0
+            b.sent_at = utcnow()
+            await session.commit()
+            log.info(f"Broadcast #{broadcast_id}: no matching subscribers")
+            return True
+
+        # Create recipient records
+        for sid in subscriber_ids:
+            session.add(BroadcastRecipient(
+                broadcast_id=broadcast_id,
+                subscriber_id=sid,
+                status="pending",
+            ))
+        b.total_recipients = len(subscriber_ids)
+        await session.commit()
+        log.info(f"Broadcast #{broadcast_id}: {len(subscriber_ids)} recipients created")
+
+        # Send with concurrency limit
+        # v4 §3.8 (G5) — each task opens its OWN session: a single
+        # AsyncSession shared across asyncio.gather coroutines is not
+        # concurrency-safe (InvalidRequestError / lost updates).
+        sem = asyncio.Semaphore(10)
+        sent = 0
+        failed = 0
+
+        async def send_one(subscriber_id: int, recipient_id: int):
+            nonlocal sent, failed
+            async with sem:
+                from database import AsyncSessionLocal
+                async with AsyncSessionLocal() as s:
+                    qs = await s.execute(
+                        select(Subscriber).where(Subscriber.id == subscriber_id)
+                    )
+                    sub = qs.scalar_one_or_none()
+                    if not sub:
+                        return
+
+                    # Render template
+                    msg = b.message_template
+                    msg = msg.replace("{name}", sub.first_name or sub.name or "")
+                    msg = msg.replace("{full_name}", sub.name or "")
+                    msg = msg.replace("{mention}", f"@{sub.username}" if sub.username else sub.name or "")
+
+                    # Send based on platform
+                    # ponytail: fb_client only supports Messenger; other platforms logged+skipped
+                    send_ok = False
+                    if sub.platform in ("messenger", "facebook"):
+                        # v4 §3.8 — tenant client, not the global engine client
+                        result_data = await tenant_fb.send_dm(sub.fb_user_id, msg)
+                        send_ok = result_data is not None
+                    else:
+                        log.info(f"Skip {sub.platform} subscriber {sub.fb_user_id}: only Messenger supported")
+                        send_ok = False
+
+                    rcpt_q = await s.execute(
+                        select(BroadcastRecipient).where(BroadcastRecipient.id == recipient_id)
+                    )
+                    rcpt = rcpt_q.scalar_one_or_none()
+                    if rcpt:
+                        rcpt.status = "sent" if send_ok else "failed"
+                        if not send_ok:
+                            rcpt.error_message = f"Unsupported platform or send failed: {sub.platform}"
+                        rcpt.sent_at = utcnow()
+                    await s.commit()
+
+                if send_ok:
+                    sent += 1
+                else:
+                    failed += 1
+
+        # Build task list
+        tasks = []
+        rcpt_q = await session.execute(
+            select(BroadcastRecipient)
+            .where(BroadcastRecipient.broadcast_id == broadcast_id)
+            .where(BroadcastRecipient.status == "pending")
+        )
+        recipients = rcpt_q.scalars().all()
+        for rcpt in recipients:
+            tasks.append(send_one(rcpt.subscriber_id, rcpt.id))
+
+        # Process in batches for periodic commits
+        batch_size = 10
+        for i in range(0, len(tasks), batch_size):
+            batch = tasks[i:i + batch_size]
+            await asyncio.gather(*batch)
+            b.sent_count = sent
+            b.failed_count = failed
+            await session.commit()
+            if (i + batch_size) % 50 <= batch_size:
+                log.info(
+                    f"Broadcast #{broadcast_id}: {sent} sent, {failed} failed "
+                    f"({i + batch_size}/{len(tasks)})"
+                )
+
+        # Mark complete
+        b.status = "failed" if sent == 0 else "sent" if failed == 0 else "partial"
+        b.sent_count = sent
+        b.failed_count = failed
+        b.sent_at = utcnow()
+        await session.commit()
+        log.info(f"Broadcast #{broadcast_id} done: {sent} sent, {failed} failed")
+        return True
+
+    except Exception as e:
+        log.exception(f"Broadcast #{broadcast_id} failed: {e}")
+        b.status = "failed"
+        b.sent_at = utcnow()
+        await session.commit()
+        return False
+
+
+async def process_pending(session: AsyncSession) -> int:
+    """Outbox consumer for queued broadcasts — v15-E3 / C-BCAST1.
+
+    CONTRACT (v15 plan §2 — E1 calls it at the end of every bot cycle inside
+    try/except, so a failure here never breaks the cycle)::
+
+        async def process_pending(session: AsyncSession) -> int
+
+    POST /api/broadcasts/{id}/send no longer spawns the fan-out (spawned
+    tasks die on Vercel once the response leaves — the broadcast stayed
+    'draft' forever, a paid feature dying silently). The endpoint queues the
+    row as ``pending`` and answers immediately; THIS consumer claims each
+    row atomically before any send::
+
+        UPDATE broadcasts SET status='sending' WHERE id=:id AND status='pending' RETURNING
+
+    so two overlapping cycles (or a cycle racing a manual dispatch) can
+    never both send the same broadcast. Claimed rows that cannot send mark
+    themselves 'failed' — nothing is lost silently.
+
+    Returns the number of broadcasts claimed and attempted this pass.
+    """
+    ids = (await session.execute(
+        select(Broadcast.id)
+        .where(Broadcast.status == "pending")
+        .order_by(Broadcast.created_at)
+        .limit(_PENDING_BATCH_LIMIT)
+    )).scalars().all()
+    if not ids:
+        return 0
+
+    processed = 0
+    for bid in ids:
+        # Per-row atomic claim: the guard (status='pending') IS the update
+        # condition — a concurrent consumer that got there first leaves this
+        # UPDATE matching zero rows and we skip cleanly.
+        row = (await session.execute(
+            update(Broadcast)
+            .where(Broadcast.id == bid, Broadcast.status == "pending")
+            .values(status="sending")
+            .returning(Broadcast.id)
+        )).scalar_one_or_none()
+        if row is None:
+            continue
+        await session.commit()  # publish the claim before the slow fan-out
+        processed += 1
+        try:
+            await _send_claimed_broadcast(bid, session)
+        except Exception as e:  # never poison the sweep over one broadcast
+            log.exception(f"process_pending: broadcast #{bid} failed: {e}")
+            await session.rollback()
+    return processed

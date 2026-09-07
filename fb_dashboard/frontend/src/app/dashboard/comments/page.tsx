@@ -115,7 +115,10 @@ export default function CommentsPage() {
                           <Badge variant="info" className="text-3xs">تم الرد</Badge>
                         )}
                       </div>
-                      <p className="text-sm mb-2">{c.message}</p>
+                      {/* v15-E6 (D5-M7): comment bodies are live Facebook
+                          values (from_name already isolates) — dir="auto"
+                          isolates Latin/mixed comment text. */}
+                      <p className="text-sm mb-2" dir="auto">{c.message}</p>
 
                       {c.reply_text && (
                         <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-s-2 border-accent-foreground">

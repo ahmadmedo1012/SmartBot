@@ -27,7 +27,34 @@ router = APIRouter(tags=["bot"])
 
 _IS_VERCEL = bool(os.getenv("VERCEL"))
 _CRON_SHARDS = 10
-_cron_lock = asyncio.Lock()
+
+# v15-E4 (D12-M4): a forced cycle must COMPLETE inside the request (no
+# spawn-after-reply — it dies silently on Vercel serverless). Vercel's
+# maxDuration for api/* is 30s (vercel.json) — the budget stays under it and
+# leaves room for the response itself.
+_TRIGGER_CYCLE_BUDGET_S = 25.0
+
+
+def _cron_authorized(request: Request, token: str) -> bool:
+    """v12-E2.5 / v15-E4 (D6-M3): the CRON_SECRET gate, single source for BOTH
+    cron routes in this file.
+
+    Authorization: Bearer first (constant-time compare — what Vercel Cron and
+    modern providers send); the legacy ``?token=`` query param still validates
+    so the EXISTING cron-job.org setup keeps beating, but every fallback use
+    logs a deprecation warning (query strings leak into access/proxy logs —
+    migrate the provider to the header). An empty secret never validates.
+    """
+    secret = os.getenv("CRON_SECRET", "")
+    auth_header = request.headers.get("authorization", "")
+    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
+    if not valid and secret and token and secrets.compare_digest(token, secret):
+        log.warning(
+            "cron auth via ?token= query param is deprecated — "
+            "move the cron provider to the Authorization: Bearer header"
+        )
+        valid = True
+    return valid
 
 
 def _get_bot_task() -> asyncio.Task | None:
@@ -53,6 +80,95 @@ async def _run_single_cycle():
         await get_bot_engine().cycle()
     except Exception as e:
         log.error(f"Forced cycle error: {e}", exc_info=True)
+
+
+async def _publish_due_scheduled_posts(report: dict, sf=None) -> int:
+    """v15-E4 (D12-H1) — heartbeat step 1: publish DUE scheduled posts with an
+    ATOMIC CLAIM before every Graph call (approvals.py v9-A8 pattern, verbatim).
+
+    Before: SELECT due → ``post_to_page`` (slow Graph) → THEN flip the row →
+    published. Two overlapping beats (cron-job.org 5-min + Vercel daily 04:00,
+    or a beat that overruns its own next tick) both saw the row ``scheduled``
+    → the SAME public post went out twice. Now each post is claimed first:
+
+    ``UPDATE scheduled_posts SET status='publishing' WHERE id=:id AND
+    status='scheduled' RETURNING id`` — zero rows means another publisher
+    (heartbeat beat, calendar scheduler, manual route) already owns the post
+    → skip cleanly. Stale claims from a frozen publisher are recovered via
+    ``recover_stale_publishing`` (claim-marker timestamps in bot_state).
+
+    ``sf`` (session factory) is injectable so tests drive the sweep against
+    their own engine; the route passes nothing and gets AsyncSessionLocal.
+    Returns the number of posts published by THIS sweep.
+    """
+    from content_calendar import (
+        claim_scheduled_post,
+        clear_claim_marker,
+        recover_stale_publishing,
+        release_scheduled_post,
+    )
+    from models import ScheduledPost
+    if sf is None:
+        sf = AsyncSessionLocal
+    try:
+        async with sf() as db:
+            await recover_stale_publishing(db)
+            due = (await db.execute(
+                select(ScheduledPost).where(
+                    ScheduledPost.status == "scheduled",
+                    ScheduledPost.scheduled_at.isnot(None),
+                    ScheduledPost.scheduled_at <= utcnow(),
+                )
+            )).scalars().all()
+            due_posts = [(p.id, p.tenant_id or 0, p.message, p.image_url or "") for p in due]
+    except Exception as e:
+        report["errors"].append(f"publish sweep: {str(e)[:120]}")
+        return 0
+    published = 0
+    for post_id, tenant_id, message, image_url in due_posts:
+        try:
+            # ── claim BEFORE Graph (D12-H1) ──
+            async with sf() as db:
+                if not await claim_scheduled_post(db, post_id, tenant_id,
+                                                  claimable=("scheduled",)):
+                    continue  # another publisher won the race — skip cleanly
+            from _services import get_tenant_fb_client
+            fb = await get_tenant_fb_client(tenant_id)
+            if fb is None:
+                # No connected page → release the claim and keep the post
+                # scheduled (v14-E2 policy: publishes once the page is bound;
+                # the old detached-object "failed" write never persisted).
+                async with sf() as db:
+                    await release_scheduled_post(db, post_id, "scheduled")
+                continue
+            result = (
+                await fb.post_to_page_with_image(message, image_url)
+                if image_url else await fb.post_to_page(message)
+            )
+            async with sf() as db:
+                fresh = await db.get(ScheduledPost, post_id)
+                if fresh is None:
+                    continue
+                if result and not result.get("_error"):
+                    fresh.status = "published"
+                    fresh.fb_post_id = str(result.get("id", ""))
+                    fresh.published_at = utcnow()
+                    published += 1
+                    report["published_posts"] += 1
+                else:
+                    fresh.status = "failed"
+                await clear_claim_marker(db, post_id, tenant_id)
+                await db.commit()
+        except Exception as e:
+            # The Graph call itself crashed — release the claim so the next
+            # beat retries (pre-fix semantics: the row stayed scheduled).
+            try:
+                async with sf() as db:
+                    await release_scheduled_post(db, post_id, "scheduled")
+            except Exception:
+                log.exception("could not release claim for post %s", post_id)
+            report["errors"].append(f"post {post_id}: {str(e)[:80]}")
+    return published
 
 
 @router.get("/api/bot/status")
@@ -115,18 +231,7 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
     was only credited via manual Telegram payment confirmation), so the bot
     NEVER ran for anyone on Vercel. Gate is now the subscription status +
     plan usage limits, same as the engine itself."""
-    secret = os.getenv("CRON_SECRET", "")
-    auth_header = request.headers.get("authorization", "")
-    # v12-E2.5 — the secret is accepted via the Authorization: Bearer header
-    # (what Vercel Cron / modern providers send). The legacy ?token= query
-    # param still validates so the EXISTING cron-job.org setup keeps beating,
-    # but every fallback use logs a deprecation warning. Constant-time compare;
-    # an empty secret never validates.
-    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
-    if not valid and secret and token and secrets.compare_digest(token, secret):
-        log.warning("cron auth via ?token= query param is deprecated — move the cron provider to the Authorization: Bearer header")
-        valid = True
-    if not valid:
+    if not _cron_authorized(request, token):
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     raw_shard = request.headers.get("x-vercel-cron-shard", "0") if not token.isdigit() else token
     shard = int(raw_shard) % _CRON_SHARDS
@@ -180,15 +285,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     Vercel Hobby note: if sub-daily crons are not available, schedule what the
     plan allows — the endpoint itself is idempotent and safe to call often.
     """
-    secret = os.getenv("CRON_SECRET", "")
-    auth_header = request.headers.get("authorization", "")
-    # v12-E2.5 — Authorization header first; ?token= kept as a deprecated
-    # fallback for the existing cron-job.org beats (logs a warning per use).
-    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
-    if not valid and secret and token and secrets.compare_digest(token, secret):
-        log.warning("cron auth via ?token= query param is deprecated — move the cron provider to the Authorization: Bearer header")
-        valid = True
-    if not valid:
+    if not _cron_authorized(request, token):
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from _utils import utcnow as _now
     report = {"published_posts": 0, "fan_refreshed": 0, "cycles": 0, "errors": []}
@@ -210,40 +307,9 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
         report["errors"].append(f"staleness check: {str(e)[:120]}")
         core_failures += 1
 
-    # ── 1. Publish due scheduled posts (tenant-scoped) ──
+    # ── 1. Publish due scheduled posts (tenant-scoped, claim-guarded) ──
     try:
-        from models import ScheduledPost
-        async with AsyncSessionLocal() as db:
-            due = (await db.execute(
-                select(ScheduledPost).where(
-                    ScheduledPost.status == "scheduled",
-                    ScheduledPost.scheduled_at.isnot(None),
-                    ScheduledPost.scheduled_at <= _now(),
-                )
-            )).scalars().all()
-        for post in due:
-            try:
-                from _services import get_tenant_fb_client
-                fb = await get_tenant_fb_client(post.tenant_id)
-                if fb is None:
-                    post.status = "failed"
-                    continue
-                result = (
-                    await fb.post_to_page_with_image(post.message, post.image_url)
-                    if post.image_url else await fb.post_to_page(post.message)
-                )
-                async with AsyncSessionLocal() as db:
-                    fresh = await db.get(ScheduledPost, post.id)
-                    if result and not result.get("_error"):
-                        fresh.status = "published"
-                        fresh.fb_post_id = str(result.get("id", ""))
-                        fresh.published_at = _now()
-                        report["published_posts"] += 1
-                    else:
-                        fresh.status = "failed"
-                    await db.commit()
-            except Exception as e:
-                report["errors"].append(f"post {post.id}: {str(e)[:80]}")
+        await _publish_due_scheduled_posts(report)
     except Exception as e:
         report["errors"].append(f"publish sweep: {str(e)[:120]}")
         core_failures += 1
@@ -374,6 +440,30 @@ async def clear_logs(payload: ClearLogsBody | None = None, db=Depends(get_db), c
 @router.post("/api/bot/trigger")
 async def trigger_manual_reply(_=Depends(require_platform_admin)):
     """Force one bot cycle NOW — platform admin only (v12-E2.1: the forced
-    cycle runs the GLOBAL engine loop, not a single tenant's)."""
-    spawn(_run_single_cycle())
-    return ok({"ok": True, "message": "Bot cycle triggered — replies will appear in /api/logs"})
+    cycle runs the GLOBAL engine loop, not a single tenant's).
+
+    v15-E4 (D12-M4): HONEST trigger. The old version spawned the cycle after
+    replying «تم تشغيل الدورة» — on Vercel serverless the spawned task died
+    with the response (same root as D1-C1), so the button claimed success
+    while nothing ran. The cycle now executes INLINE under a bounded budget
+    (Vercel maxDuration is 30s) and the response reports what ACTUALLY
+    happened: completed, still-running (cut by the budget — the next cron
+    beat finishes the remainder), or failed.
+    """
+    try:
+        await asyncio.wait_for(_run_single_cycle(), timeout=_TRIGGER_CYCLE_BUDGET_S)
+        return ok({
+            "ok": True, "completed": True,
+            "message": "اكتملت دورة البوت الآن — راجع الردود في سجل النشاط /api/logs",
+        })
+    except TimeoutError:
+        return ok({
+            "ok": True, "completed": False,
+            "message": (
+                "الدورة ما تزال جارية وتجاوزت الحد الزمني لهذا الطلب — "
+                "سيكملها نبض الجدولة التالي؛ راقب /api/logs"
+            ),
+        })
+    except Exception as e:
+        log.exception("trigger cycle failed")
+        return fail(f"فشل تشغيل دورة البوت: {str(e)[:120]}")

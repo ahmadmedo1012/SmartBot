@@ -8,10 +8,13 @@ import os
 import sys
 import time
 
-# Change to fb_dashboard directory for imports
+# v15-E9 (D7-F18): the old `os.chdir(_dashboard)` mutated the PROCESS CWD for
+# every later test in the same session (and pointed at tests/, not fb_dashboard,
+# despite its comment). Removed — imports are already served by the root
+# conftest.py, which puts fb_dashboard/ on sys.path BEFORE any test import;
+# the redundant inserts below stay harmless (idempotent).
 _dashboard = os.path.dirname(os.path.abspath(__file__))
 _root = os.path.dirname(_dashboard)
-os.chdir(_dashboard)
 sys.path.insert(0, _dashboard)
 sys.path.insert(0, _root)
 

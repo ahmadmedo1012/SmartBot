@@ -185,11 +185,15 @@ export default function AutoReplyPage() {
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_template}</p>
                   </div>
-                  <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-label="تبديل">
+                  {/* v15-E6 (D5-M2 + L10): toggle/delete disclose their state
+                      and target row programmatically (the icon alone isn't a
+                      state for SRs — WCAG 4.1.2), and the hover-only opacity
+                      reveal now also lifts on keyboard focus. */}
+                  <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
                       {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} disabled={deleteMut.isPending && deleteMut.variables === r.id} className="size-8 p-0 hover:text-destructive" aria-label="حذف">
+                    <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} disabled={deleteMut.isPending && deleteMut.variables === r.id} className="size-8 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>

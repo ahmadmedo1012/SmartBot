@@ -13,9 +13,150 @@ from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import AnalyticsEvent, BotState, ScheduledPost
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 log = logging.getLogger("fb-calendar")
+
+# v15-E4 (D12-H1): statuses a publisher may claim a post FROM. Once claimed,
+# the post sits in ``publishing`` — a second publisher's claim UPDATE simply
+# matches zero rows and skips (approvals.py v9-A8 semantics).
+_CLAIMABLE_STATUSES = ("scheduled", "draft", "failed")
+
+
+def _claim_key(post_id: int) -> str:
+    return f"schedpost_claim_{post_id}"
+
+
+async def claim_scheduled_post(session, post_id: int, tenant_id: int,
+                                claimable: tuple[str, ...] = _CLAIMABLE_STATUSES) -> bool:
+    """v15-E4 (D12-H1) — atomic claim BEFORE any Graph call (v9-A8 pattern).
+
+    ``UPDATE scheduled_posts SET status='publishing' WHERE id=:id AND
+    status IN (…) RETURNING id`` — the WHERE guard IS the serialization: two
+    publishers racing on the same due post both SELECT it, but only the first
+    UPDATE matches; the loser gets zero rows → returns False → skips cleanly
+    (the Vercel daily beat + cron-job.org 5-min beat + the 60s local scheduler
+    can never double-publish the same post again). The claim is COMMITTED
+    before the caller touches Graph, and a ``schedpost_claim_{id}`` timestamp
+    row (bot_state, scoped to the post's tenant) is written in the same
+    transaction so a crashed/frozen publisher's claim can be recovered by
+    :func:`recover_stale_publishing`.
+    """
+    claimed_at = utcnow().isoformat()
+    claim = await session.execute(
+        update(ScheduledPost)
+        .where(ScheduledPost.id == post_id,
+               ScheduledPost.status.in_(claimable))
+        .values(status="publishing")
+        .returning(ScheduledPost.id)
+        .execution_options(synchronize_session="fetch")
+    )
+    if claim.scalar_one_or_none() is None:
+        return False
+    marker = (await session.execute(
+        select(BotState).where(
+            BotState.tenant_id == tenant_id, BotState.key == _claim_key(post_id))
+    )).scalar_one_or_none()
+    if marker is None:
+        session.add(BotState(tenant_id=tenant_id, key=_claim_key(post_id), value=claimed_at))
+    else:
+        marker.value = claimed_at
+    await session.commit()
+    return True
+
+
+async def release_scheduled_post(session, post_id: int, new_status: str) -> bool:
+    """v15-E4 (D12-H1) — release a held claim back to a retryable status.
+
+    Used when the Graph call failed (attempt < cap → back to ``scheduled`` so
+    the next beat retries) or the tenant has no connected page (back to the
+    original status — the v14-E2 "publish once the page gets connected"
+    policy). Conditional on ``status='publishing'`` so it can never clobber a
+    concurrent terminal state. The claim marker row is dropped in the same
+    transaction — a released claim owns nothing.
+    """
+    res = await session.execute(
+        update(ScheduledPost)
+        .where(ScheduledPost.id == post_id, ScheduledPost.status == "publishing")
+        .values(status=new_status)
+        .returning(ScheduledPost.id)
+        .execution_options(synchronize_session="fetch")
+    )
+    released = res.scalar_one_or_none() is not None
+    if released:
+        try:
+            await session.execute(
+                delete(BotState).where(BotState.key == _claim_key(post_id))
+            )
+        except Exception:
+            log.debug("could not drop claim marker for post %s", post_id)
+    await session.commit()
+    return released
+
+
+async def clear_claim_marker(session, post_id: int, tenant_id: int) -> None:
+    """Drop the claim marker row when the post reaches a terminal state.
+
+    No own commit — composed into the caller's terminal transaction
+    (published/failed) so state and marker flip atomically.
+    """
+    try:
+        await session.execute(
+            delete(BotState).where(
+                BotState.tenant_id == tenant_id, BotState.key == _claim_key(post_id))
+        )
+    except Exception:
+        log.debug("could not clear claim marker for post %s", post_id)
+
+
+async def recover_stale_publishing(session,
+                                   stale_after_seconds: int = 600) -> int:
+    """v15-E4 (D12-H1) — recover posts stuck in ``publishing``.
+
+    A publisher that claimed a post and then died (Vercel freezing the
+    function mid-Graph, a crashed runner) leaves the row in ``publishing``
+    forever — invisible to every sweep. The claim marker written with the
+    claim carries the timestamp: when it is older than ``stale_after_seconds``
+    (Graph retries inside fb_client are bounded well below it) the post goes
+    back to ``scheduled`` so the next beat republishes it. A claim with NO
+    marker is left alone (conservative — foreign writer without our marker).
+    """
+    from datetime import timedelta
+    rows = await session.execute(
+        select(ScheduledPost).where(ScheduledPost.status == "publishing"))
+    stuck = list(rows.scalars().all())
+    if not stuck:
+        return 0
+    cutoff = utcnow() - timedelta(seconds=stale_after_seconds)
+    recovered = 0
+    for post in stuck:
+        marker = (await session.execute(
+            select(BotState).where(
+                BotState.tenant_id == (post.tenant_id or 0),
+                BotState.key == _claim_key(post.id))
+        )).scalar_one_or_none()
+        if marker is None:
+            continue
+        try:
+            from datetime import datetime as _dt
+            claimed_at = _dt.fromisoformat(marker.value or "")
+        except ValueError:
+            claimed_at = None
+        if claimed_at is not None and claimed_at >= cutoff:
+            continue  # a live publisher holds this claim
+        await session.execute(
+            update(ScheduledPost)
+            .where(ScheduledPost.id == post.id, ScheduledPost.status == "publishing")
+            .values(status="scheduled")
+            .execution_options(synchronize_session="fetch")
+        )
+        await session.execute(delete(BotState).where(BotState.id == marker.id))
+        recovered += 1
+        log.warning("recovered stale publishing claim for post %s (tenant %s)",
+                    post.id, post.tenant_id or 0)
+    if recovered:
+        await session.commit()
+    return recovered
 
 
 class ContentCalendarEngine:
@@ -111,6 +252,13 @@ class ContentCalendarEngine:
             )
         except Exception:
             log.debug("Could not clean failure reason for post %s", post_id)
+        # v15-E4 (D12-H1): drop any claim marker with the post too.
+        try:
+            await session.execute(
+                delete(BotState).where(BotState.key == _claim_key(post_id))
+            )
+        except Exception:
+            log.debug("Could not clean claim marker for post %s", post_id)
         await session.commit()
         return True
 
@@ -145,19 +293,36 @@ class ContentCalendarEngine:
     async def _publish_with(self, post: ScheduledPost, session, fb) -> bool:
         """Publish ``post`` via ``fb`` with the C-ENG2 failure policy.
 
-        - fb is None (tenant has no connected page) → skip: no Graph call, no
-          state change — the post publishes once the page gets connected
-          (instead of the pre-v14 guaranteed-failure retry every 60s);
-        - Graph failure → attempt counted; MAX_PUBLISH_ATTEMPTS strikes →
-          status=failed + durable reason (bot_state ``schedpost_fail_{id}``);
-        - success → published, counter cleared.
+        - v15-E4 (D12-H1): the post is ATOMICALLY CLAIMED
+          (``scheduled/draft/failed → publishing``, committed) BEFORE the Graph
+          call — a second publisher (manual route + 60s scheduler + heartbeat
+          sweep) matching the same post gets zero claim rows and skips, so the
+          same public post is never published twice;
+        - fb is None (tenant has no connected page) → claim released to the
+          original status: no Graph call, no state change — the post publishes
+          once the page gets connected (v14-E2 policy);
+        - Graph failure → claim released back to ``scheduled`` (retry next
+          sweep); MAX_PUBLISH_ATTEMPTS strikes → status=failed + durable reason
+          (bot_state ``schedpost_fail_{id}``);
+        - success → published, counter cleared, claim marker dropped.
         """
         post_id = post.id
+        tid = post.tenant_id or 0
+        orig_status = post.status
+        # v15-E4 (D12-H1): claim BEFORE Graph — the WHERE guard serializes us
+        # against every other publisher of this post.
+        if not await claim_scheduled_post(session, post_id, tid):
+            log.info(
+                "Scheduled post %s skipped: already claimed/published by another publisher",
+                post_id,
+            )
+            return False
         if fb is None:
             log.warning(
                 "Scheduled post %s skipped: tenant %s has no connected FB page",
-                post_id, post.tenant_id or 0,
+                post_id, tid,
             )
+            await release_scheduled_post(session, post_id, orig_status)
             return False
         # ponytail: image not sent — fb_client.post_to_page only accepts message.
         # Pass image_url param when FB API supports it.
@@ -170,11 +335,15 @@ class ContentCalendarEngine:
                     post, session,
                     reason=f"فشل النشر على فيسبوك بعد {self.MAX_PUBLISH_ATTEMPTS} محاولات",
                 )
+            else:
+                # v15-E4 (D12-H1): release the claim so the next sweep retries.
+                await release_scheduled_post(session, post_id, "scheduled")
             return False
         self._publish_attempts.pop(post_id, None)
         post.status = "published"
         post.fb_post_id = result.get("id", "")
         post.published_at = utcnow()
+        await clear_claim_marker(session, post_id, tid)
         await session.commit()
         spawn(self._track("post_published", {"scheduled_post_id": post_id}))
         return True
@@ -186,16 +355,18 @@ class ContentCalendarEngine:
         ownership) — the reason is persisted in bot_state under
         ``schedpost_fail_{id}`` scoped to the post's tenant (platform-admin
         inspectable) and logged. The status commits FIRST so a reason-row
-        hiccup can never lose the terminal state.
+        hiccup can never lose the terminal state. v15-E4 (D12-H1): the claim
+        marker is dropped in the same transaction as the terminal state.
         """
         post.status = "failed"
+        tid = post.tenant_id or 0
         try:
+            await clear_claim_marker(session, post.id, tid)
             await session.commit()
         except Exception:
             await session.rollback()
             log.exception("Failed to persist failed status for post %s", post.id)
             return
-        tid = post.tenant_id or 0
         try:
             key = f"schedpost_fail_{post.id}"
             existing = (await session.execute(
@@ -255,7 +426,16 @@ class ContentCalendarEngine:
     async def process_due_posts(self, session) -> int:
         """v14-E2 (C-ENG2): publish all due posts with THEIR OWN tenant's
         client (one client resolution per tenant per cycle) + the failure
-        policy of ``_publish_with``."""
+        policy of ``_publish_with``.
+
+        v15-E4 (D12-H1): stale ``publishing`` claims (a crashed/frozen
+        publisher) are recovered first, and every publish is guarded by the
+        atomic claim — a slow tick N overlapping tick N+1 re-claims nothing.
+        """
+        try:
+            await recover_stale_publishing(session)
+        except Exception:
+            log.exception("stale publishing recovery failed")
         due = await self.check_due_posts(session)
         ok = 0
         clients: dict[int, object | None] = {}

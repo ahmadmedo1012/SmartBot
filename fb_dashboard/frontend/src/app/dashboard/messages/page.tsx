@@ -48,9 +48,16 @@ function ConvItem({ conv, selectedId, onSelect }: {
     >
       <div className="flex gap-3 items-start">
         <div className="relative shrink-0">
+          {/* v15-E6 (D5-H3): lightness fixed at 32% instead of the old 45%/55% —
+              white 14px-bold initials on hsl(h, 55%, 45%) measured as low as
+              2.26:1 (worst hue 60). hsl(h, 45%, 32%) is ≥ 4.75:1 for EVERY hue
+              (computed hsl→sRGB→WCAG across all 360; worst case is hue 60,
+              best 12.02:1 at hue 240) — AA for normal text while keeping the
+              per-conversation hue identity. A fixed token gradient was
+              rejected: accent-foreground + white measures only 3.77:1 dark. */}
           <div
             className="size-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-card transition-transform duration-200 group-hover:scale-105"
-            style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 55%, 45%)` }}
+            style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 45%, 32%)` }}
           >
             {initials(conv.senders?.[0]?.name)}
           </div>
@@ -335,7 +342,10 @@ export default function MessagesPage() {
                           {msg.postback_payload && !msg.message && (
                             <p className="text-2xs mb-0.5">اختيار: {msg.postback_payload}</p>
                           )}
-                          {msg.message && <p>{msg.message}</p>}
+                          {/* v15-E6 (D5-M7): message bodies are live customer
+                              values — dir="auto" isolates Latin/mixed text
+                              (same pattern as the sender name above). */}
+                          {msg.message && <p dir="auto">{msg.message}</p>}
                           {/* v14-E5 (D4 H-05 family): opacity-50 measured 2.25:1 on
                               the primary bubble — same treatment. */}
                           {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (

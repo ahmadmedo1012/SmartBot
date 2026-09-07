@@ -50,11 +50,13 @@ export default function FinalCTASection() {
           </Link>
         </ScrollReveal>
 
+        {/* v15-E6 (D5-M6): /60 on muted-foreground measured 2.62:1 in both
+            modes — the full token measures 5.59:1 dark / 6.54:1 light. */}
         <ScrollReveal
           y={0}
           delay={500}
           duration={0.6}
-          className="text-xs text-muted-foreground/60 mt-6"
+          className="text-xs text-muted-foreground mt-6"
         >
           مجاناً بدون بطاقة ائتمان · إلغاء في أي وقت · دعم فني متكامل
         </ScrollReveal>

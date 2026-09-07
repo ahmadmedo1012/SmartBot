@@ -28,6 +28,16 @@ def _make_key(path: str, query_params: dict | None) -> str:
     return path
 
 
+def _evict_local() -> None:
+    """Keep the process-local store under MAX_KEYS (oldest-first, 20% cut)."""
+    if len(_cache_store) > MAX_KEYS:
+        to_evict = sorted(_cache_store, key=lambda k: _cache_store[k][0])[:MAX_KEYS // 5]
+        for k in to_evict:
+            _cache_store.pop(k, None)
+            _cache_locks.pop(k, None)
+            _cache_ttl.pop(k, None)
+
+
 async def _rcache_get(key: str) -> str | None:
     from redis_cache import get
     return await get(key)
@@ -36,6 +46,41 @@ async def _rcache_get(key: str) -> str | None:
 async def _rcache_set(key: str, val: str, ttl: int):
     from redis_cache import set
     await set(key, val, ttl)
+
+
+async def get_or_compute(key: str, ttl: float, factory):
+    """v15-E7 (D8-B3): explicit-key TTL cache with singleflight semantics.
+
+    Unlike ``APICache.cached`` (request-path keyed), the CALLER owns the key —
+    mandatory for tenant-scoped responses whose URL is identical across
+    tenants (D10 §8: a path-keyed cache would serve tenant A's dashboard
+    bundle to tenant B). Flow: Redis first (cross-instance on Vercel), then
+    the process-local store; on a miss the per-key lock collapses concurrent
+    callers into ONE factory execution (they then read the fresh entry).
+    """
+    cached = await _rcache_get(key)
+    if cached is not None:
+        return json.loads(cached)
+    result = None
+    async with _lock_for(key):
+        now = time.time()
+        entry = _cache_store.get(key)
+        if entry and (now - entry[0]) < ttl:
+            return json.loads(entry[1])
+        result = await factory()
+        serialized = json.dumps(result, default=str)
+        _cache_store[key] = (now, serialized)
+        await _rcache_set(key, serialized, int(ttl))
+        _evict_local()
+    return result
+
+
+def invalidate_prefix(prefix: str) -> None:
+    """Drop local entries whose key contains ``prefix`` (Redis keeps its TTL)."""
+    for k in [k for k in _cache_store if prefix in k]:
+        _cache_store.pop(k, None)
+        _cache_locks.pop(k, None)
+        _cache_ttl.pop(k, None)
 
 
 class APICache:
@@ -94,12 +139,7 @@ class APICache:
                     _cache_store[key] = (now, serialized)
                     # Also write to Redis for other instances
                     await _rcache_set(key, serialized, ttl)
-                    if len(_cache_store) > MAX_KEYS:
-                        to_evict = sorted(_cache_store, key=lambda k: _cache_store[k][0])[:MAX_KEYS // 5]
-                        for k in to_evict:
-                            _cache_store.pop(k, None)
-                            _cache_locks.pop(k, None)
-                            _cache_ttl.pop(k, None)
+                    _evict_local()
                 return result
             return wrapper
         return decorator

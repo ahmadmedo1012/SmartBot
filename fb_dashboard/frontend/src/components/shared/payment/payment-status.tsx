@@ -14,13 +14,16 @@ import type { Provider } from "./payment-constants"
 
 interface WaitingScreenProps {
   provider: Provider
+  /* v15-E5 (C-FREE1): free-plan waiting copy — «تأكيد الدفع»/«بعد التحويل»
+   * are wrong for a 0 د.ل activation request. */
+  freePlan?: boolean
   /* v14-E4 (D4 H-01): focus target for the step-change focus management in
    * the dialog — tabIndex=-1 makes the title programmatically focusable
    * without joining the tab order. */
   headingRef?: Ref<HTMLParagraphElement>
 }
 
-export function WaitingScreen({ provider, headingRef }: WaitingScreenProps) {
+export function WaitingScreen({ provider, freePlan, headingRef }: WaitingScreenProps) {
   return (
     <div className="flex flex-col items-center py-10 space-y-6">
       {/* Animated payment indicator */}
@@ -40,9 +43,11 @@ export function WaitingScreen({ provider, headingRef }: WaitingScreenProps) {
 
       {/* Title */}
       <div className="text-center space-y-1.5">
-        <p ref={headingRef} tabIndex={-1} className="text-base font-bold">في انتظار تأكيد الدفع</p>
+        <p ref={headingRef} tabIndex={-1} className="text-base font-bold">
+          {freePlan ? "في انتظار تفعيل الخطة المجانية" : "في انتظار تأكيد الدفع"}
+        </p>
         <p className="text-xs text-muted-foreground max-w-[220px] mx-auto leading-relaxed">
-          بعد التحويل، انتظر موافقة الإدارة
+          {freePlan ? "سيتم التفعيل بعد موافقة الإدارة — لا يوجد أي مبلغ" : "بعد التحويل، انتظر موافقة الإدارة"}
         </p>
       </div>
 
@@ -53,7 +58,11 @@ export function WaitingScreen({ provider, headingRef }: WaitingScreenProps) {
           <span className="relative rounded-full size-2 bg-primary" />
         </span>
         <span className="text-2xs text-muted-foreground">
-          {provider === "liyana" ? "بانتظار تأكيد التحويل" : "بانتظار موافقة الإدارة"}
+          {freePlan
+            ? "بانتظار موافقة الإدارة"
+            : provider === "liyana"
+              ? "بانتظار تأكيد التحويل"
+              : "بانتظار موافقة الإدارة"}
         </span>
       </div>
     </div>

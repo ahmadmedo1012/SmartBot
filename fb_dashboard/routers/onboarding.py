@@ -3,14 +3,25 @@
 5-step wizard backend:
   Step 2  POST /connect-page     — page id/name + access token (Fernet-encrypted,
                                    upsert-safe, same storage as the Pages screen)
+                                   + subscribe_page_webhooks via the TENANT client
+                                   (v15-E1 C-CORE1 — the wizard used to store the
+                                   page and NEVER subscribe, so Facebook never
+                                   delivered a single event for wizard users)
           POST /test-connection  — verify page+token against Graph API BEFORE confirm
   Step 4  POST /first-rule       — create the first auto-reply rule
           POST /suggest-reply    — AI-assisted reply draft (deterministic fallback
-                                   when no AI provider is configured)
+                                   when no AI provider is configured — or when the
+                                   plan lacks has_ai: v15-E1 D2-H1 gate)
   Step 5  POST /complete         — mark tenant.onboarding_completed
+
+v15-E1: role gates (D1-H2) — connect-page requires admin (mirrors
+PUT /api/facebook/settings), first-rule requires editor (mirrors
+POST /api/rules); the wizard used to let a viewer rebind the whole
+tenant's page/token and inject live reply rules.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from _crypto import encrypt_token
@@ -20,8 +31,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from models import BotState, Rule, Tenant, User
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
-from routers.auth import get_current_user
+from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-onboarding")
 
@@ -55,29 +67,92 @@ async def _upsert_botstate(db, tenant_id: int, key: str, value: str) -> None:
 async def connect_page(
     body: ConnectPagePayload = Body(...),
     db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin")),
 ):
     """Save the user's Facebook page connection during onboarding.
 
     access_token is encrypted with Fernet (same as the Pages screen) —
     the old XOR+base64 scheme was NOT decryptable by get_tenant_fb_client.
+
+    v15-E1 C-CORE1 — after the save succeeds, the page is SUBSCRIBED to
+    Facebook real-time webhooks through the tenant's own client
+    (``get_tenant_fb_client`` — the same resolver the webhook dispatch
+    uses, never the platform env client). A failed subscription does NOT
+    block the save — its status rides the ok() response so the wizard can
+    show it and the owner can retry from /dashboard/pages (PUT settings
+    re-subscribes). v15-E1 D1-H4 — a page already bound to another tenant
+    trips uq_botstate_key_value → 409 with a clear Arabic message (was a
+    raw IntegrityError 500).
     """
     if not current_user.tenant_id:
         raise HTTPException(400, "لا توجد مساحة عمل")
     tenant = await db.get(Tenant, current_user.tenant_id)
     if not tenant:
         raise HTTPException(404, "المساحة غير موجودة")
-    if body.page_id:
-        await _upsert_botstate(db, current_user.tenant_id, "fb_page_id", body.page_id.strip())
-    if body.page_name:
-        await _upsert_botstate(db, current_user.tenant_id, "fb_page_name", body.page_name.strip())
-    if body.access_token:
-        await _upsert_botstate(
-            db, current_user.tenant_id, "fb_access_token",
-            encrypt_token(body.access_token.strip()),
+    try:
+        if body.page_id:
+            await _upsert_botstate(db, current_user.tenant_id, "fb_page_id", body.page_id.strip())
+        if body.page_name:
+            await _upsert_botstate(db, current_user.tenant_id, "fb_page_name", body.page_name.strip())
+        if body.access_token:
+            await _upsert_botstate(
+                db, current_user.tenant_id, "fb_access_token",
+                encrypt_token(body.access_token.strip()),
+            )
+        await db.commit()
+    except IntegrityError:
+        # D1-H4 / D13-F1 — the partial unique index uq_botstate_key_value
+        # (key='fb_page_id') makes a double page-binding fail at the DB level
+        # (at autoflush OR commit — both covered here); surface 409, not 500.
+        await db.rollback()
+        raise HTTPException(
+            409, "هذه الصفحة مربوطة بمساحة عمل أخرى — تواصل مع الدعم إن كنت تعتقد أن ذلك خطأ"
+        ) from None
+
+    # Evict cached per-tenant FB clients + engine registry so the new
+    # credentials take effect immediately (same as PUT /api/facebook/settings)
+    try:
+        from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
+        _inbox_fb_cache.pop(current_user.tenant_id, None)
+    except Exception:
+        pass
+    try:
+        from _services import reset_bot_engines
+        reset_bot_engines()
+    except Exception:
+        pass
+
+    # ── C-CORE1: subscribe the page to webhooks via the TENANT client ──
+    webhook_result = None
+    subscribed = False
+    if body.page_id or body.access_token:
+        try:
+            from _services import get_tenant_fb_client
+            fb_client = await get_tenant_fb_client(current_user.tenant_id)
+            if fb_client is not None:
+                # bounded wait: the wizard response must not hang on a slow
+                # Graph call (failure is non-fatal — retryable later)
+                result = await asyncio.wait_for(fb_client.subscribe_page_webhooks(), timeout=8)
+                subscribed = bool(
+                    result and not result.get("_error") and result.get("success") is True
+                )
+                webhook_result = result
+        except TimeoutError:
+            webhook_result = {"_error": True, "body": "timeout"}
+        except Exception as e:
+            webhook_result = {"_error": True, "body": str(e)[:200]}
+
+    data = {
+        "page_id": body.page_id,
+        "webhook_subscribed": subscribed,
+        "webhook": webhook_result or "skipped",
+    }
+    if not subscribed:
+        data["webhook_hint"] = (
+            "لم يكتمل اشتراك الويبهوك للصفحة — يمكن إعادة المحاولة لاحقًا من "
+            "صفحة «صفحاتي» أو إعدادات فيسبوك"
         )
-    await db.commit()
-    return ok({"page_id": body.page_id})
+    return ok(data)
 
 
 @router.post("/test-connection")
@@ -161,12 +236,18 @@ _REPLY_TEMPLATES = {
 @router.post("/suggest-reply")
 async def suggest_reply(
     payload: dict = Body(...),
+    db=Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """AI-assisted reply drafting (plan §5.1 step 4).
 
     Uses the configured AI provider when available; otherwise returns a
     deterministic template suggestion so the wizard never blocks.
+
+    v15-E1 D2-H1 — the has_ai plan gate: a plan without the AI feature
+    never reaches the provider (the deterministic fallback answers), and
+    the response carries an explicit Arabic note so the owner knows WHY
+    the suggestion is a template.
     """
     keyword = (payload.get("keyword") or "").strip()
     if not keyword:
@@ -174,19 +255,35 @@ async def suggest_reply(
 
     suggestion = None
     source = "template"
+    ai_blocked = False
+    ai_note = ""
+
+    # ── v15-D2-H1: has_ai gate (the ONE AI call point in this router) ──
     try:
-        from _services import get_ai
-        ai = get_ai()
-        if ai.available:
-            result = await ai.suggest_replies(
-                f"تعليق يحتوي كلمة '{keyword}'", page_context="صفحة فيسبوك تجارية",
-            )
-            suggestions = (result or {}).get("suggestions") or []
-            if suggestions and isinstance(suggestions[0], str) and len(suggestions[0].strip()) > 5:
-                suggestion = suggestions[0]
-                source = "ai"
+        from bot_engine.pipeline import get_plan_limits
+        limits = await get_plan_limits(db, current_user._tenant_id)
     except Exception:
-        suggestion = None
+        limits = None
+    if limits is not None and limits.get("has_ai") is False:
+        ai_blocked = True
+        ai_note = (
+            "اقتراحات الذكاء الاصطناعي غير متاحة في خطتك الحالية — تم استخدام "
+            "القوالب الجاهزة. قم بالترقية لتفعيل الاقتراحات الذكية."
+        )
+    else:
+        try:
+            from _services import get_ai
+            ai = get_ai()
+            if ai.available:
+                result = await ai.suggest_replies(
+                    f"تعليق يحتوي كلمة '{keyword}'", page_context="صفحة فيسبوك تجارية",
+                )
+                suggestions = (result or {}).get("suggestions") or []
+                if suggestions and isinstance(suggestions[0], str) and len(suggestions[0].strip()) > 5:
+                    suggestion = suggestions[0]
+                    source = "ai"
+        except Exception:
+            suggestion = None
 
     if not suggestion:
         for k, tpl in _REPLY_TEMPLATES.items():
@@ -198,16 +295,21 @@ async def suggest_reply(
                 f"شكراً لاهتمامك بـ'{keyword}' 🙌 راسلنا على الخاص وسنجيبك بكل التفاصيل فوراً!"
             )
 
-    return ok({"suggestion": suggestion.strip(), "source": source})
+    return ok({"suggestion": suggestion.strip(), "source": source,
+               "ai_blocked": ai_blocked, "ai_note": ai_note})
 
 
 @router.post("/first-rule")
 async def create_first_rule(
     body: FirstRulePayload = Body(...),
     db=Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("editor")),
 ):
-    """Save the user's first auto-reply rule during onboarding."""
+    """Save the user's first auto-reply rule during onboarding.
+
+    v15-E1 D1-H2 — editor gate (mirrors POST /api/rules): the wizard used to
+    accept ANY role, so a viewer could inject a live auto-reply rule.
+    """
     if not current_user.tenant_id:
         raise HTTPException(400, "لا توجد مساحة عمل")
     if body.keyword and body.reply:

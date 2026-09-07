@@ -98,3 +98,19 @@ if _IS_PROD and not os.environ.get("CRON_SECRET"):
 
 if _IS_PROD and not settings.FERNET_KEY:
     raise RuntimeError("CRITICAL: FERNET_KEY env var is required in production — set a separate key from SECRET_KEY")
+
+# v15-E7 (D6-M1): fail-fast on the Telegram-webhook DEV escape hatch in
+# production. TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED=true makes the Telegram
+# webhook trust from_id taken from the request BODY with NO secret check
+# (runner.py reads it into _ALLOW_UNVERIFIED → app/telegram.py skips
+# verification) — anyone who discovers the webhook URL can then impersonate
+# the admin panel. The comparison matches runner.py EXACTLY (== "true",
+# case-sensitive, no strip): a value the runner would ignore must not block
+# boot either. Dev/tests run with DEBUG=true → _IS_PROD is False → the hatch
+# stays usable locally (installation.md documents it as test-only).
+if _IS_PROD and os.environ.get("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true":
+    raise RuntimeError(
+        "CRITICAL: TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED=true is a dev-only escape hatch that "
+        "disables Telegram webhook authentication — remove it from the production environment "
+        "and set TELEGRAM_WEBHOOK_SECRET instead"
+    )

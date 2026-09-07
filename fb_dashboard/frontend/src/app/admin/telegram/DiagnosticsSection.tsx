@@ -13,13 +13,10 @@ import { apiFetch } from "@/lib/csrf-client"
 interface DiagnoseResult {
   configExists: boolean
   isActive: boolean
+  source?: string
+  adminCount: number
   botTokenPreview: string | null
-  events: string[]
-  linkedAdmins: number
-  broadcastTargets?: {
-    id: number; label: string; chatId: string; isActive: boolean
-    ok: boolean | null; error: string | null
-  }[]
+  dryRunResult?: string
 }
 
 interface Approver {
@@ -162,28 +159,35 @@ export function DiagnosticsSection({
                 <span className="text-sm font-mono text-muted-foreground" dir="ltr">{diagnose.botTokenPreview ?? "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">الأحداث</span>
-                <span className="text-sm text-muted-foreground">{(diagnose.events ?? []).join(", ") || "—"}</span>
+                <span className="text-sm">عدد المشرفين المرتبطين</span>
+                {/* v15-E5 (D4-H4): the backend's real key is adminCount — the
+                   old `linkedAdmins` read was always undefined → 0. */}
+                <span className="text-sm font-bold" data-testid="diagnose-admin-count">{diagnose.adminCount}</span>
               </div>
-              {diagnose.configExists && (
+              {/* v15-E5 (D4-H4): HONEST dry-run verdict — the old card claimed
+                   «البوت يعمل بشكل صحيح» on configExists alone, even when
+                   dryRunResult said fail/err. Now: "ok" → success; anything
+                   else that exists → failure with the raw reason; absent →
+                   an explicit “not tested” row (never a silent success). */}
+              {diagnose.dryRunResult === "ok" ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20">
                   <CheckCircle2 className="size-4 shrink-0 text-success" />
-                  <p className="text-sm text-success">اتصال API سليم — البوت يعمل بشكل صحيح</p>
+                  <p className="text-sm text-success">تم إرسال رسالة تجريبية بنجاح — البوت يعمل بشكل صحيح</p>
                 </div>
-              )}
-              {diagnose.broadcastTargets && diagnose.broadcastTargets.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold mb-2">نتائج جهات الإرسال</h4>
-                  <div className="space-y-2">
-                    {diagnose.broadcastTargets.map(t => (
-                      <div key={t.id} className="flex items-center justify-between p-2 rounded-lg bg-background/50 border border-border/20">
-                        <span className="text-sm truncate">{t.label || t.chatId}</span>
-                        {t.ok === true && <Badge variant="default">✅</Badge>}
-                        {t.ok === false && <Badge variant="destructive">❌ {t.error}</Badge>}
-                        {t.ok === null && <Badge variant="secondary">⏳ لم يُختبر</Badge>}
-                      </div>
-                    ))}
+              ) : diagnose.dryRunResult ? (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20" role="alert">
+                  <XCircle className="size-4 shrink-0 text-destructive mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm text-destructive font-semibold">فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح</p>
+                    <p className="text-xs text-muted-foreground break-all" dir="ltr">{diagnose.dryRunResult}</p>
                   </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/40 border border-border/20">
+                  <Stethoscope className="size-4 shrink-0 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">
+                    لم يُجرَ اختبار إرسال بعد — اضغط «تشخيص» للتحقق الفعلي من عمل البوت
+                  </p>
                 </div>
               )}
             </div>

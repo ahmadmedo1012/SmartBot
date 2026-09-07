@@ -17,6 +17,8 @@ from telegram_bot import notify_admins_new_subscription
 
 from routers.auth import get_current_user
 from routers.payments.wallet import (
+    _as_float,
+    _as_int,
     _notify_admins_inline,
     _payment_rate_limit,
     _reject_wallet_above_cap,
@@ -96,16 +98,19 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         logging.getLogger("fb-payments").warning("Rate-limit check failed — allowing subscription through", exc_info=True)
 
     phone = body.get("phone", "")
-    amount = body.get("amount", 0)
+    # v15-E3 (D1-H1): raw float()/int() conversions on body values were a
+    # 500 (+ critical Sentry/Telegram alert) on a client typo; now 422 Arabic.
+    # Numeric strings ("50") still coerce — same leniency as before.
+    amount = _as_float(body.get("amount", 0), "المبلغ")
     provider = body.get("provider", "liyana")
-    plan_id = body.get("plan_id", 0)
+    plan_id = _as_int(body.get("plan_id", 0) or 0, "معرف الباقة")
 
     if provider not in ("liyana", "madar", "bank"):
         raise HTTPException(400, "مزود الدفع غير صالح")
     plan = await db.get(SubscriptionPlan, plan_id)
     if not plan or not plan.is_active:
         raise HTTPException(400, "الباقة غير موجودة")
-    if provider != "bank" and float(amount) != float(plan.price):
+    if provider != "bank" and amount != float(plan.price):
         raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
     # غلاف المحافظ (فرض على الخادم — التحويل فوق السقف بنكي فقط؛ v10-D1: القيمة من DB)
     await _reject_wallet_above_cap(provider, amount if provider != "bank" else 0, db)
@@ -115,7 +120,10 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     # Bank transfer: collect sender info into extra_data for admin review
     bank_extra: dict = {"username": current_user.username}
     if provider == "bank":
-        bank_amount = float(body.get("amount") or plan.price)
+        # v15-E3 (D1-H1): was float(body.get("amount") or plan.price) — a
+        # non-numeric amount was a raw 500 here too; amount is already a
+        # validated float now.
+        bank_amount = amount if amount else float(plan.price)
         if bank_amount < float(plan.price) * 0.5:
             # sanity: reject obviously wrong amounts (server is final authority on plan price)
             raise HTTPException(400, "المبلغ المدخل أقل من الحد المقبول")
@@ -192,10 +200,12 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
     """Upgrade existing subscription to higher plan. Supports liyana/madar/bank."""
     # Same 5/min limit as create — this fan-outs Telegram admin notifications too
     await _payment_rate_limit(request, "sub-upgrade", max_attempts=5, window=300)
-    plan_id = body.get("plan_id", 0)
+    plan_id = _as_int(body.get("plan_id", 0) or 0, "معرف الباقة")
     phone = body.get("phone", "")
     provider = body.get("provider", "liyana")
-    amount = body.get("amount", 0)
+    # v15-E3 (D1-H1): was a raw float(amount) at the compare sites — the
+    # conversion now happens once, with a 422 Arabic on garbage input.
+    amount = _as_float(body.get("amount", 0), "المبلغ")
     sender_name = (body.get("senderAccountName") or "").strip()
     sender_account = (body.get("senderAccountNumber") or "").strip()
     receipt_url = _validated_receipt_url(body.get("receiptImageUrl"))
@@ -215,11 +225,11 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
     if provider != "bank":
         if not phone or len(phone) < 7:
             raise HTTPException(400, "رقم الهاتف غير صالح")
-        if float(amount) != float(new_plan.price):
+        if amount != float(new_plan.price):
             raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
         await _reject_wallet_above_cap(provider, amount, db)
     else:
-        amount = float(amount) if amount else float(new_plan.price)
+        amount = amount if amount else float(new_plan.price)
         if amount < float(new_plan.price) * 0.5:
             raise HTTPException(400, "المبلغ المدخل أقل من الحد المقبول")
         if not sender_name:

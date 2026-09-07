@@ -308,8 +308,10 @@ async def test_dashboard_bundle_reports_connection_and_messages(app_client):
     assert "connection" in data
     assert data["connection"]["connected"] is True
     assert "messages" in data
-    assert data["messages"]["total_conversations"] >= 0
-    assert "total_messages" in data["messages"]
+    # v15-E9 (D7-F20): كان `>= 0` يمر لأي رقم (مرساة بديهية) — مستأجر جديد
+    # بلا أي محادثة: الصفر حتمي، فالمرساة الحقيقية هي الصفر نفسه + نوع int.
+    assert data["messages"]["total_conversations"] == 0, data["messages"]
+    assert isinstance(data["messages"]["total_messages"], int), data["messages"]
 
 
 async def test_facebook_settings_returns_page_name(app_client):

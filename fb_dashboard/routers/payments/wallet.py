@@ -24,6 +24,40 @@ log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
 
 
+# ── v15-E3 (D1-H1): client-typed inputs → 422 Arabic, never a raw 500 ───────
+# The payments family used to run raw conversions on request-body values
+# (``int(pid)`` / ``amount < 1`` with a string amount) — a client sending
+# "50" instead of 50 got an unhandled 500 AND a CRITICAL Sentry/Telegram
+# alert for what is a plain client typo. These helpers answer the documented
+# 422 «قيمة غير صالحة» (same family as the Pydantic validation_handler).
+
+
+def _as_float(value, field: str) -> float:
+    """Strictly convert a money value → 422 Arabic on a non-numeric input."""
+    if isinstance(value, bool):  # bool is an int subclass — reject explicitly
+        raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً")
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError):
+        raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً") from None
+
+
+def _as_int(value, field: str) -> int:
+    """Strictly convert an id → 422 Arabic on a non-integer input.
+
+    Floats that are whole numbers (``5.0``) pass; "5abc" / "5.5" / lists 422.
+    """
+    if isinstance(value, bool):
+        raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً صحيحاً")
+    try:
+        as_float = float(value)
+    except (TypeError, ValueError, OverflowError):
+        raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً صحيحاً") from None
+    if as_float != int(as_float):
+        raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً صحيحاً")
+    return int(as_float)
+
+
 # v14-E1 #3: money-approval notifications are sent INLINE (awaited BEFORE the
 # payment response leaves). spawn()ed tasks die on Vercel serverless once the
 # function's response is returned — the platform's payment/topup/subscription
@@ -124,7 +158,9 @@ async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10
 @router.post("/api/payments/topup")
 async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     await _payment_rate_limit(request, "topup")
-    amount = body.get("amount", 0)
+    # v15-E3 (D1-H1): raw ``amount < 1`` with a string amount was a TypeError
+    # → 500 + critical alert for a client typo. Now: 422 «قيمة غير صالحة».
+    amount = _as_float(body.get("amount", 0), "المبلغ")
     provider = body.get("provider", "")
     phone = body.get("phone", "")
     if amount < 1 or amount > 10000:
@@ -161,11 +197,13 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
 async def payment_confirm(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """User submits transfer reference — marks pending for admin approval."""
     await _payment_rate_limit(request, "confirm")
-    pid = body.get("payment_id", 0)
+    # v15-E3 (D1-H1): ``int(pid)`` on a non-numeric payment_id was a raw 500;
+    # now a clean 422 Arabic (a client typo must never page anyone).
+    pid = _as_int(body.get("payment_id", 0) or 0, "معرف الدفع")
     ref = body.get("reference", "")
     if not pid or not ref:
         raise HTTPException(400, "معرف الدفع ورقم الحوالة مطلوبان")
-    pr = await db.get(PaymentRequest, int(pid))
+    pr = await db.get(PaymentRequest, pid)
     if not pr or pr.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "الدفعة غير موجودة")
     if pr.status != "pending":
@@ -191,24 +229,47 @@ async def payment_balance(db=Depends(get_db), current_user: User = Depends(get_c
 @router.get("/api/payments/history")
 async def payment_history(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),
                           db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Wallet topup history — v14-E1 #2 (D10 high): bounded response.
+    """Payment history — v14-E1 #2 (D10 high): bounded response.
 
     The query used to ship EVERY PaymentRequest row of the tenant (note /
     reference / phone per row, growing without bound — 1000 topups ≈ 200KB+
     of JSON on every billing-page open). Now: newest-first page of ``limit``
     rows (default 50, max 100) past ``offset``; the data-as-list contract the
     billing page consumes is unchanged.
+
+    v15-coordinator (p10-t11 بطارية حية): فواتير الاشتراك كانت غائبة عن
+    صفحة الفواتير — مسار الدفع الأساسي (POST /api/subscriptions) يكتب في
+    ``subscription_payments`` بينما هذه القائمة كانت تقرأ ``payment_requests``
+    (شحنات المحفظة) فقط: المستخدم يدفع ولا يرى الفاتورة أبداً (مرساة
+    ``length>200`` الضعيفة أخفتها جولتين). الدمج الآن: الجدولان معاً،
+    الأحدث أولاً، مع ``kind`` للتمييز — وحدود v14-E1 محفوظة.
     """
-    rows = await db.execute(
+    from models import SubscriptionPayment
+    tid = current_user._tenant_id
+    pr_rows = (await db.execute(
         select(PaymentRequest)
-        .where(PaymentRequest.tenant_id == current_user._tenant_id)
+        .where(PaymentRequest.tenant_id == tid)
         .order_by(desc(PaymentRequest.created_at))
-        .offset(offset)
-        .limit(limit)
-    )
-    return ok([
-        {"payment_id": r.id, "amount": float(r.amount) if r.amount is not None else 0, "provider": r.provider,
-         "phone": r.phone, "reference": r.reference, "status": r.status,
+        .offset(offset).limit(limit)
+    )).scalars().all()
+    sp_rows = (await db.execute(
+        select(SubscriptionPayment)
+        .where(SubscriptionPayment.tenant_id == tid)
+        .order_by(desc(SubscriptionPayment.created_at))
+        .offset(offset).limit(limit)
+    )).scalars().all()
+    items = [
+        {"payment_id": r.id, "kind": "topup", "amount": float(r.amount) if r.amount is not None else 0,
+         "provider": r.provider, "phone": r.phone, "reference": r.reference, "status": r.status,
          "note": r.note, "created_at": iso_z(r.created_at)}
-        for r in rows.scalars().all()
-    ])
+        for r in pr_rows
+    ] + [
+        # v15: معرّف مسبوق بـs لتمييزه عن معرفات payment_requests (المفتاح في
+        # الواجهة نصي) — note = اسم الخطة (لقطة وقت الدفع)
+        {"payment_id": f"s{r.id}", "kind": "subscription", "amount": float(r.amount) if r.amount is not None else 0,
+         "provider": r.provider, "phone": r.phone, "reference": None, "status": r.status,
+         "note": r.plan_name, "created_at": iso_z(r.created_at)}
+        for r in sp_rows
+    ]
+    items.sort(key=lambda x: x["created_at"] or "", reverse=True)
+    return ok(items[:limit])

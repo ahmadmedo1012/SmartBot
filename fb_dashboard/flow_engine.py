@@ -511,9 +511,25 @@ class FlowEngine:
                 return {"action": "tag_remove", "success": False, "detail": str(e)}
 
         if action_type == "webhook":
+            # v15-E4 (D2-H2): the SAME SSRF guard the image fetcher uses
+            # (ai_service.assert_safe_outbound_url): https-only + literal-IP
+            # checks + DNS RESOLUTION — a flow node's URL is user-configurable
+            # (any editor can create a flow and run /test), and the old code
+            # POSTed subscriber PII (from_id/name/text/intent) to ANY address,
+            # including 169.254.169.254 / RFC1918 / ::1. Rejected here → clean
+            # Arabic failure, no request leaves the server. httpx keeps its
+            # 10s timeout and never follows redirects (explicit).
+            try:
+                from ai_service import UnsafeImageUrlError, assert_safe_outbound_url
+                await assert_safe_outbound_url(value, label="رابط الويبهوك")
+            except UnsafeImageUrlError as e:
+                log.warning("flow webhook action refused unsafe URL: %s", e)
+                return {"action": "webhook", "success": False, "detail": str(e)}
             try:
                 timeout = httpx.Timeout(10.0)
-                async with httpx.AsyncClient(timeout=timeout) as client:
+                async with httpx.AsyncClient(
+                    timeout=timeout, follow_redirects=False,
+                ) as client:
                     payload = {
                         "from_id": ctx.from_id,
                         "from_name": ctx.from_name,

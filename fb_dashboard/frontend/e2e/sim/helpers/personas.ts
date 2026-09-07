@@ -1,8 +1,9 @@
 /**
  * v14-E7 (تصميم D13 §6.2) — بذرة الشخصيات الثمانية لبطارية المحاكاة.
+ * v15-E8 (تصميم D13 §4.2-§4.7) — الشخصيات الست الجديدة p09-p14 (إلحاق فقط).
  * بيانات ثابتة قابلة للتوليد: كل شخصية تُشتق اسم مستخدمها من بادئتها +
  * طابع زمني عند التسجيل (helpers/session.ts) حتى تكون كل جولة قابلة
- * للتكرار على قاعدة نظيفة (السكربت يحذف v14-sim.db في كل تشغيل).
+ * للتكرار على قاعدة نظيفة (السكربت يحذف v15-sim.db في كل تشغيل).
  */
 
 export interface PersonaRule {
@@ -105,9 +106,60 @@ export const personas: Record<string, Persona> = {
     fbUserId: '9001',
     pageId: '1002003001',
   },
+
+  // ── v15-E8: الشخصيات الست الجديدة (تصميم D13 §4.2-§4.7) ──────────────
+  p09: {
+    id: 'p09',
+    name: 'هادي الزبون متعدد الأجهزة',
+    register: false,
+    fbUserId: '9010',
+    pageId: '1002003001', // صفحة p02 — نفس الزبون من هاتف وحاسوب
+  },
+  p10: {
+    id: 'p10',
+    name: 'وسام مدير الخطة',
+    register: true,
+    usernamePrefix: 'p10',
+    password: 'Sim#P10pass',
+    pageId: '1002003003',
+    pageName: 'متجر وسام',
+    accessToken: 'sim-token-p10',
+    rule: {
+      keyword: 'السعر',
+      reply: 'أسعارنا تبدأ من 30 د.ل والشحن داخل بنغازي مجاني',
+    },
+    phone: '0910000010',
+    provider: 'liyana',
+  },
+  p11: {
+    id: 'p11',
+    name: 'ياسر المتصفح العربي',
+    register: false,
+    reuse: 'p02',
+    viewport: { width: 390, height: 844 },
+    network3g: true,
+  },
+  p12: {
+    id: 'p12',
+    name: 'عبدالرؤوف قارئ الشاشة',
+    register: false,
+    reuse: 'p02',
+  },
+  p13: {
+    id: 'p13',
+    name: 'مروان المهاجم الموسّع',
+    register: false,
+    attack: true,
+  },
+  p14: {
+    id: 'p14',
+    name: 'أنس أدمن التدوير',
+    register: false,
+    admin: true,
+  },
 }
 
-/** المشغل (P05-B) — مستأجر رابع ضمن ميزانية التسجيلات (§4.5: 4 فقط). */
+/** المشغل (P05-B) — التسجيلة الرابعة؛ v15: الخامسة p10 (§6.4 ميزانية D13). */
 export const operatorPersona: Persona = {
   id: 'p05op',
   name: 'مشغل منال (مالك المستأجر)',

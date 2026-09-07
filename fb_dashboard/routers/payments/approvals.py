@@ -24,6 +24,7 @@ from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
 from sqlalchemy import desc, select, update
 
 from routers.auth import get_current_user, is_platform_admin, require_platform_admin, require_role
+from routers.payments.wallet import _as_int
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["payments"])
@@ -96,13 +97,16 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
     decision = body.get("status", "")
     if decision not in ("verified", "cancelled"):
         raise HTTPException(400, "القرار يجب أن يكون verified أو cancelled")
+    # v15-E3 (D1-H1): was int(payment_id or 0) — a non-numeric id was a raw
+    # 500 (plus a critical alert) on a reviewer typo; now a clean 422 Arabic.
+    payment_id = _as_int(payment_id or 0, "معرف الدفعة")
     # v9-A8: atomic claim — UPDATE ... WHERE status='pending' RETURNING
     # (generalized from the telegram pay_ path). Two admins clicking approve
     # at once: only the first UPDATE matches; the loser gets a clean 400
     # instead of double-activating the tenant plan.
     result = await db.execute(
         update(SubscriptionPayment)
-        .where(SubscriptionPayment.id == int(payment_id or 0),
+        .where(SubscriptionPayment.id == payment_id,
                SubscriptionPayment.status == "pending")
         .values(status=decision)
         .returning(SubscriptionPayment)

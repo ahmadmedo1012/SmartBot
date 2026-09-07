@@ -49,8 +49,9 @@ async def contract_client():
 
 # D4 step 9 — the enveloped list with the v12 additions. Every endpoint that
 # used to answer an "extended envelope" (v11 audit) is now on the unified
-# ok() contract; 404 would mean the route vanished, 403 means the gate moved
-# (covered explicitly below for platform-admin routes).
+# ok() contract; 404 would mean the route vanished. v15-E9 (D7-F6/H4): a 403
+# here is a FAILURE, not a skip — platform-admin routes are pinned positively
+# by test_platform_admin_config_enveloped below.
 ENVELOPED_ENDPOINTS = [
     "/api/me",
     "/api/auth/me",
@@ -69,11 +70,20 @@ ENVELOPED_ENDPOINTS = [
 
 @pytest.mark.parametrize("path", ENVELOPED_ENDPOINTS)
 async def test_endpoint_response_shape(contract_client, path: str):
-    """Every listed endpoint answers {"success": bool, "data": ...}."""
+    """Every listed endpoint answers {"success": bool, "data": ...}.
+
+    v15-E9 (D7-F6/H4): 403 is a FAILURE, not a skip — an endpoint in this
+    list answering 403 to the tenant contract user means the permission gate
+    MOVED or the list is wrong; both deserve eyes, neither deserves silence.
+    Platform-admin routes (/api/admin/config …) are pinned positively by
+    their own tests below (test_platform_admin_config_enveloped)."""
     r = await contract_client.get(path)
     assert r.status_code != 404, f"{path} not mounted — fix the list or mount the route"
-    if r.status_code == 403:
-        pytest.skip(f"{path} requires platform-admin (covered explicitly below)")
+    assert r.status_code != 403, (
+        f"{path} regressed to 403 for the contract user — the permission gate moved "
+        f"(D7-F6): move the endpoint to the platform-admin set with a positive "
+        f"contract test, or restore the tenant contract"
+    )
     assert r.status_code == 200, f"{path} → {r.status_code}: {r.text[:200]}"
     body = r.json()
     assert isinstance(body, dict), f"{path} returned non-dict: {type(body)}"

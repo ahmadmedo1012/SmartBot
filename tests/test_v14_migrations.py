@@ -130,7 +130,8 @@ def test_chain_head_is_013_on_fresh_db(fresh_db):
     لا فهرس مستقل) فلا يصطدم بإنشاء مكرر، والفهارس الساخنة كلها موجودة."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "013"
+    # v15-E2: الرأس أصبح 014 — حوارس قيود v15 تتخطى قيود create_all
+    assert _version(fresh_db) == "014"
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -267,7 +268,7 @@ def test_chain_heals_legacy_bot_state_end_to_end(fresh_db):
 
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "013"
+    assert _version(fresh_db) == "014"  # v15-E2: الرأس أصبح 014
 
     # كلا dedup: id=1 (نطاق 012 — قيمة fb_page_id مكررة عبر مستأجرين)
     # وid=4 (نطاق 013 — زوج tenant/key مكرر) حُذفا؛ الباقي سليم

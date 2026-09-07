@@ -66,7 +66,9 @@ export default function TeamPage() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{m.username}</p>
-                    <p className="text-xs text-muted-foreground">{m.email || ""}</p>
+                    {/* v15-E6 (D5-M7): emails are live Latin values —
+                        dir="auto" isolates bidi (leads:64 pattern). */}
+                    <p className="text-xs text-muted-foreground" dir="auto">{m.email || ""}</p>
                   </div>
                   <div className="flex items-center gap-1 text-xs">
                     {roleIcon(m.role)}

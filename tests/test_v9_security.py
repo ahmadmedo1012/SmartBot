@@ -61,14 +61,17 @@ async def _teardown(fixture):
         pass
 
 
-async def _seed_user(sf, username: str, tenant_name: str):
+async def _seed_user(sf, username: str, tenant_name: str, email: str | None = None):
     from _hash import hash_password
     from models import Tenant, User
     async with sf() as db:
         t = Tenant(name=tenant_name, subscription_status="PAID", is_active=True)
         db.add(t)
         await db.flush()
-        u = User(username=username, email=f"{username}@test.ly",
+        # v15-E2 (D12-H4): uq_user_email_lower صار فريداً عالمياً — البريد
+        # اختياري كي يبقى مشهد «نفس الاسم عبر مستأجرين» (A4) ببريدين
+        # فريدين؛ الافتراضي يظل مشتقاً من الاسم كما كان دائماً.
+        u = User(username=username, email=email or f"{username}@test.ly",
                  password_hash=hash_password("pass123456"), tenant_id=t.id, role="admin")
         db.add(u)
         await db.commit()
@@ -221,8 +224,11 @@ async def test_agent_memory_same_username_separate_tenants():
         import agent_memory as amem
 
         shared = f"dual_{uuid.uuid4().hex[:6]}"
-        _u1, tid_a = await _seed_user(sf, shared, "Mem-A")
-        _u2, tid_b = await _seed_user(sf, shared, "Mem-B")  # same username, other tenant
+        # v15-E2 (D12-H4): نفس الاسم عبر المستأجرين هو موضوع A4؛ البريد
+        # فريد لكل صف — ازدراع بريدين متطابقين (مشتق من الاسم نفسه) صار
+        # انتهاكاً صريحاً لقيد uq_user_email_lower الفريد الجديد.
+        _u1, tid_a = await _seed_user(sf, shared, "Mem-A", email=f"{shared}-a@test.ly")
+        _u2, tid_b = await _seed_user(sf, shared, "Mem-B", email=f"{shared}-b@test.ly")  # same username, other tenant
 
         # keys are tenant-prefixed and distinct
         assert amem._session_key(tid_a, shared) != amem._session_key(tid_b, shared)

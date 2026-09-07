@@ -151,7 +151,9 @@ def test_chain_reaches_012_and_enforces_unique(fresh_db):
     command.upgrade(cfg, "head")
     # v14-E3: الرأس أصبح 013 (dedup عام + فهارس ساخنة) — عيّنة v13 تحترم
     # فرادة (tenant,key) فلا تتأثر صفوفها بـ013
-    assert _version(fresh_db) == "013"
+    # v15-E2: الرأس أصبح 014 (قيود التفرد + server_defaults) — حوارسه
+    # تتخطى قيود create_all فلا تتأثر صفوف العيّنة
+    assert _version(fresh_db) == "014"
 
     # dedup: الأقدم (id=1) حُذف، الأحدث (id=2) بقي، الفرادة (id=3) بقت،
     # وأزواج balance/fb_fan_count متطابقة القيمة نجت كليهما (6 صفوف)

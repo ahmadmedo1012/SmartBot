@@ -1,0 +1,36 @@
+# OSV-Scanner configuration — v15-E9 (D11-G9: supply-chain CVE gate).
+#
+# LOADING CONTRACT (gstack lesson G8, learned the hard way there): OSV-Scanner
+# only auto-discovers config files named `osv-scanner.toml` (NO leading dot) —
+# this file is `.osv-scanner.toml`, so EVERY invocation must pass it
+# explicitly:
+#
+#     osv-scanner scan --config=.osv-scanner.toml \
+#         --lockfile=requirements.txt \
+#         --lockfile=fb_dashboard/frontend/package-lock.json
+#
+# CI wires exactly that command (.github/workflows/ci.yml, osv job). The
+# dotted name is deliberate (keeps `ls` clean + matches the plan's filename);
+# the explicit --config flag is what keeps it from silently going inert.
+#
+# SUPPRESSION POLICY (gstack contract): every [[IgnoredVulns]] entry MUST
+# carry:
+#   - id:         the OSV/GHSA advisory id
+#   - reason:     >= 20 chars, WHY it is not reachable/fixable now
+#   - ignoreUntil: an expiry timestamp — suppressions EXPIRE and must be
+#                 re-justified; "permanent exception" = "silent hole".
+#
+# INITIAL STATE (v15, 2026-09-08): zero active suppressions. The first scan
+# of the original floors found 9 advisories (6x PyJWT on the >=2.0.0 floor ·
+# 3x python-multipart/pygments on floor-resolved transitives via mcp→rich).
+# All were fixed AT THE ROOT by raising the floors in requirements.txt
+# (PyJWT>=2.13.0 · python-multipart>=0.0.31 · pygments>=2.20.0 as an explicit
+# transitive-security pin) — verified: both lockfiles scan clean. Fix-first
+# beats suppress-first; keep it that way.
+#
+# Template for the first genuinely-needed entry:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# reason = "<=20 chars is rejected: explain reachability and why the fixed version is not deployable now>"
+# ignoreUntil = 2026-12-31T00:00:00Z

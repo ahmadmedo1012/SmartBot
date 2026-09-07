@@ -11,7 +11,7 @@ from _services import api_cache
 from _utils import app_version, iso_z, utcnow
 from config import settings
 from database import AsyncSessionLocal, engine, get_db
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from models import BotLog, RateLimitEntry, Reply, SubscriptionPlan, SystemConfig
 from sqlalchemy import delete, func, select, text
@@ -215,23 +215,52 @@ async def healthz():
 CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 
-@router.post("/api/cron/cleanup-logs")
-async def cleanup_old_logs(request: Request, token: str = Form("")):
+@router.api_route("/api/cron/cleanup-logs", methods=["GET", "POST"])
+async def cleanup_old_logs(request: Request):
     """Delete BotLog entries older than 30 days, expired RateLimitEntry rows and
     expired blacklisted JWTs. Vercel Cron calls this daily at 03:00 UTC via
     vercel.json config.
 
+    v15-E3 (D9-H1): the route was POST-only while Vercel Cron issues a GET —
+    every daily cleanup answered 405 and the log tables grew unbounded. Both
+    methods are now served.
+
     SECURITY (2026-09-05): the old `token != CRON_SECRET` with an unset secret
     failed OPEN ("" != "" is False → unauthenticated deletes). Now an empty
     secret never validates, comparison is constant-time, and the
-    Authorization: Bearer header (what Vercel Cron actually sends) is accepted
-    alongside the form token.
+    Authorization: Bearer header (what Vercel Cron actually sends) is the
+    primary gate.
+
+    v15-E3 (D6-M3 — same gate as bot.py's heartbeat/bot-cycle): the legacy
+    form token (POST body — not logged by proxies, kept as-is) and the
+    ?token= query param (leaks CRON_SECRET into access/proxy logs — logged
+    with a deprecation warning on every use, to be removed with the
+    cron-job.org header migration) still validate so existing cron providers
+    keep beating until they are moved to the header.
     """
     auth_header = request.headers.get("authorization", "")
-    if not CRON_SECRET or not (
-        secrets.compare_digest(token, CRON_SECRET)
-        or secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
-    ):
+    # POST keeps accepting the legacy form body token (test_schema_reconcile
+    # + any scripted caller); GET never carries a form.
+    token = ""
+    if request.method == "POST":
+        try:
+            form = await request.form()
+            token = str(form.get("token") or "")
+        except Exception:
+            token = ""
+    q_token = request.query_params.get("token", "")
+
+    valid = bool(CRON_SECRET) and secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
+    if not valid and CRON_SECRET and token and secrets.compare_digest(token, CRON_SECRET):
+        valid = True
+    if not valid and CRON_SECRET and q_token and secrets.compare_digest(q_token, CRON_SECRET):
+        log.warning(
+            "cron auth via ?token= query param is deprecated — move the cron "
+            "provider to the Authorization: Bearer header (the query string "
+            "leaks CRON_SECRET into access logs)"
+        )
+        valid = True
+    if not valid:
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from models import BlacklistedToken
     async with AsyncSessionLocal() as db:

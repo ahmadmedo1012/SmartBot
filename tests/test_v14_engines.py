@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import json
 import os
 import sys
@@ -29,9 +30,8 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 
-from sqlalchemy import select  # noqa: E402
-
 from _utils import utcnow  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
 
 # ── تنظيف حالة المحركات المشتركة (module-level) بين الاختبارات ────────────────
@@ -159,8 +159,8 @@ async def test_calendar_due_post_publishes_with_tenant_client(v10_world, monkeyp
     """النشر المجدول يمر بعميل المستأجر نفسه (get_tenant_fb_client(tid))
     — لا زبون المنصة العام — والمنشور يتحول published."""
     import _services
-    from _services import content_calendar_engine as engine
     from _crypto import encrypt_token
+    from _services import content_calendar_engine as engine
     from models import BotState, ScheduledPost
 
     tid = 610
@@ -215,8 +215,8 @@ async def test_calendar_marks_failed_after_three_attempts_with_reason(v10_world,
     """فشل Graph ثلاث مرات → status=failed + صف سبب دائم في bot_state،
     والمحاولة الرابعة لا تحدث (تحقق فعلي أن الحلقة توقفت)."""
     import _services
-    from _services import content_calendar_engine as engine
     from _crypto import encrypt_token
+    from _services import content_calendar_engine as engine
     from models import BotState, ScheduledPost
 
     tid = 620
@@ -539,8 +539,18 @@ async def real_db():
 async def test_pdf_render_runs_off_event_loop(real_db, monkeypatch):
     """write_pdf يعمل في خيط عامل + حلقة الأحداث تظل حية أثناء التوليد:
     لا فجوة نبض ≥0.2s (كانت ستكون ≥ مدة التوليد كاملة قبله)."""
-    weasyprint = pytest.importorskip("weasyprint")
+    # v15-E9 (C-DEP1/D7-F3): weasyprint dependency DECLARED in requirements.txt
+    # — a missing library is a STALE ENVIRONMENT, not a reason to silently skip
+    # (importorskip kept the guard cold in CI for the whole of v14). Fail loud
+    # with the exact remedy instead of going green-by-skip.
+    if importlib.util.find_spec("weasyprint") is None:
+        pytest.fail(
+            "weasyprint is declared in requirements.txt (v15-E9, C-DEP1) — "
+            "this environment is stale. Remedy: pip install -r requirements.txt "
+            "(CI installs the native libs pango/cairo/fontconfig explicitly)."
+        )
     import pdf_reports_engine as pre
+    import weasyprint  # noqa: E402 — presence guarded above
 
     render_thread: dict = {}
 
@@ -566,7 +576,8 @@ async def test_pdf_render_runs_off_event_loop(real_db, monkeypatch):
     assert pdf == b"%PDF-fake-v14"
     assert render_thread.get("thread") is not None, "write_pdf never ran"
     assert render_thread["thread"] is not threading.main_thread(), "render stayed ON the event loop"
-    gaps = [b - a for a, b in zip(beats, beats[1:])]
+    # zip على قائمة مع جلستها المزاحة — أطوال مختلفة بالتصميم (strict=False)
+    gaps = [b - a for a, b in zip(beats, beats[1:], strict=False)]
     assert max(gaps) < 0.2, f"event loop froze during render: {gaps}"
     # to_thread فعلاً استُخدم (الخيط عامل) — وعدد النبضات اكتمل
     assert len(beats) == 12
@@ -808,14 +819,14 @@ async def test_sse_caps_concurrent_streams_per_tenant(real_db):
                                   phone="0910000000", status="pending")
         db.add(pay)
         await db.commit()
-        uid, pid = u.id, pay.id
+        _uid, pid = u.id, pay.id
         u._tenant_id = u.tenant_id or 0
 
     sse_mod._sse_tenant_counts.clear()
 
     responses = []
     try:
-        for i in range(sse_mod._SSE_MAX_PER_TENANT):
+        for _i in range(sse_mod._SSE_MAX_PER_TENANT):
             resp = await subscription_status_stream(payment_id=pid, current_user=u)
             assert resp.status_code == 200, "within cap must stream"
             responses.append(resp)

@@ -11,6 +11,7 @@ from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Conversation, ConversationLabel, ConversationTag, Message, User
 from sqlalchemy import and_, select
+from sqlalchemy.exc import IntegrityError
 
 from routers.auth import get_current_user, require_role
 
@@ -115,38 +116,60 @@ async def inbox_list(
             pass  # non-fatal — DB rows below still serve
 
     # ── 2) DB rows → response items (legacy shape) ──
-    async with AsyncSessionLocal() as s:
-        rows = (await s.execute(
-            select(Conversation)
-            .where(Conversation.tenant_id == tenant_id)
-            .order_by(Conversation.last_message_at.desc())
-            .limit(200)
-        )).scalars().all()
-        items = [{
-            "id": c.fb_conversation_id,
-            "subject": (c.last_message_text or "")[:80] or "بدون موضوع",
-            "senders": [{"name": c.user_name or c.fb_user_id or "غير معروف"}],
-            "message_count": c.message_count or 0,
-            "unread_count": c.unread_count or 0,
-            "updated_time": iso_z(c.last_message_at),
-            "tags": [],
-        } for c in rows]
+    # v15-fix (بطارية p11-t10): قفل SQLite العابر (database is locked — كتابة
+    # متزامنة من معالجة الويبهوك أثناء القراءة) كان يرفع 500 خاماً.
+    # ببيئة الإنتاج PostgreSQL هذه الفئة غير موجودة (MVCC) — هنا إعادة
+    # محاولة واحدة بعد 300ms تحمي وضع التطوير المحلي والبطارية.
+    import asyncio as _asyncio
 
-        # Load tags from DB for all conversation IDs (v9-A3: join also
-        # filtered by tenant so foreign labels/tags can never surface here)
-        if items:
-            ids = [it["id"] for it in items]
-            lbls = await s.execute(
-                select(ConversationLabel, ConversationTag)
-                .join(ConversationTag, ConversationLabel.tag_id == ConversationTag.id)
-                .where(ConversationLabel.conversation_id.in_(ids),
-                       ConversationTag.tenant_id == tenant_id)
-            )
-            tag_map: dict[str, list] = {}
-            for lbl, tag in lbls:
-                tag_map.setdefault(lbl.conversation_id, []).append({"id": tag.id, "name": tag.name, "color": tag.color})
-            for it in items:
-                it["tags"] = tag_map.get(it["id"], [])
+    from sqlalchemy.exc import OperationalError as _OpErr
+    rows = None
+    for _attempt in range(2):
+        try:
+            async with AsyncSessionLocal() as s:
+                rows = (await s.execute(
+                    select(Conversation)
+                    .where(Conversation.tenant_id == tenant_id)
+                    .order_by(Conversation.last_message_at.desc())
+                    .limit(200)
+                )).scalars().all()
+            break
+        except _OpErr:
+            if _attempt:
+                raise
+            await _asyncio.sleep(0.3)
+    items = [{
+        "id": c.fb_conversation_id,
+        "subject": (c.last_message_text or "")[:80] or "بدون موضوع",
+        "senders": [{"name": c.user_name or c.fb_user_id or "غير معروف"}],
+        "message_count": c.message_count or 0,
+        "unread_count": c.unread_count or 0,
+        "updated_time": iso_z(c.last_message_at),
+        "tags": [],
+    } for c in rows]
+
+    # Load tags from DB for all conversation IDs (v9-A3: join also
+    # filtered by tenant so foreign labels/tags can never surface here)
+    if items:
+        ids = [it["id"] for it in items]
+        try:
+            async with AsyncSessionLocal() as s2:
+                lbls = await s2.execute(
+                    select(ConversationLabel, ConversationTag)
+                    .join(ConversationTag, ConversationLabel.tag_id == ConversationTag.id)
+                    .where(ConversationLabel.conversation_id.in_(ids),
+                           ConversationTag.tenant_id == tenant_id)
+                )
+                tag_pairs = lbls.all()
+        except _OpErr:
+            tag_pairs = []
+    else:
+        tag_pairs = []
+    tag_map: dict[str, list] = {}
+    for lbl, tag in tag_pairs:
+        tag_map.setdefault(lbl.conversation_id, []).append({"id": tag.id, "name": tag.name, "color": tag.color})
+    for it in items:
+        it["tags"] = tag_map.get(it["id"], [])
 
     # Server-side search filter
     if search:
@@ -284,18 +307,30 @@ async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_c
 @router.post("/api/inbox/tags")
 async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
                            db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    """Create a new tag."""
-    # v8-A5: uniqueness is per-tenant — a global name check let tenant A's
-    # "VIP" tag wrongly block tenant B from creating their own.
+    """Create a new tag.
+
+    v8-A5: uniqueness is per-tenant — a global name check let tenant A's
+    "VIP" tag wrongly block tenant B from creating their own.
+    v15-E4 (D13-F1 عائلة 409): التكرار يرد 409 (كان 400) وسباق الإنشاء
+    المتزامن (uq_ctag_tenant_name) يُلتقط عند الالتزام ويرد نفس الرسالة —
+    لا 500 خام أبداً.
+    """
     existing = await db.execute(
         select(ConversationTag).where(
             ConversationTag.name == name,
             ConversationTag.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
-        raise HTTPException(400, "اسم الوسم موجود مسبقاً")
+        raise HTTPException(409, "اسم الوسم موجود مسبقاً في مساحتك — اختر اسماً آخر")
     tag = ConversationTag(name=name, color=color, tenant_id=current_user._tenant_id)
     db.add(tag)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        # v15-E4 (D12 sibling): طلبا إنشاء متزامنان لنفس الاسم — الخاسر
+        # يلتقط قيد التفرد عند الالتزام ويرد 409 نظيفة (كان 500 خام).
+        await db.rollback()
+        log.warning("inbox tag create conflict: %s", exc)
+        raise HTTPException(409, "اسم الوسم موجود مسبقاً في مساحتك — اختر اسماً آخر") from exc
     await db.refresh(tag)
     return ok({"id": tag.id, "name": tag.name, "color": tag.color})
 

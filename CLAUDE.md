@@ -54,6 +54,19 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 3. **Simulation battery files are `sim-*`:** user-journey e2e specs live under `e2e/sim-*.spec.ts` + `e2e/sim/helpers/` (personas/session/shots), driven by `scripts/v14_sim_local_battery.sh` (local) and `scripts/v14_postdeploy_battery.sh` (production checks — stateless only).
 4. **Gates/CI run on Node 24:** `check_a11y_labels.ts` executes via type stripping (needs Node >=22.6 experimental / >=23.6 default — Node 20 cannot run it). `gate_all.sh` now syncs `fb_dashboard/static/` after `next build` and verifies the buildId freshness (the v12 stale-static incident class).
 
+## v15 Conventions (اصطلاحات جولة v15)
+
+1. **No fire-and-forget after the response** (`spawn()`/bare background tasks that must outlive the request): on Vercel the function freezes — the work never runs. Inline it, or use the **claim pattern**: set a queue status (`draft→pending`), answer immediately, and let a consumer (`process_pending`) claim atomically (`UPDATE ... WHERE status='pending' RETURNING`). Precedents: payments (v14-E1), broadcasts + campaigns (v15-E3), scheduled posts (v15-E4).
+2. **Counters are atomic single-UPDATE statements** — never read-then-write (`x = await db.get(); x.value += 1`). Precedent: `credit_wallet`; v15 applied it to `usage_counters` (E1). Concurrent increments must not lose updates.
+3. **IntegrityError is a 409, never a raw 500:** duplicate bind/email/customer races get caught at commit and answered with a specific Arabic `detail` (the `uq_*` constraints from migration 014 back this at the DB level). The battery asserts this strictly (`SIM_STRICT_409=1` default).
+4. **All external URL fetches pass the SSRF guard** — including DNS resolution (`_resolve_host_ips`) and post-redirect re-checks; private/link-local/loopback ranges (incl. 169.254.169.254) are rejected, with timeouts and size caps. Applies to `ai_service`, `flow_engine` webhook action, receipts, logos.
+5. **Plan limits are enforced at the point of use** (`max_replies`/`has_dm`/`has_broadcast`/`has_ai` — one central `get_plan_limits` read); a paid feature with no gate is a bug, not a TODO. Usage counters increment on every reply path (comments webhook included).
+6. **Onboarding connects the webhook subscription** (`subscribe_page_webhooks`) — saving credentials without subscribing leaves the bot dead from the first message (v15 C-CORE1).
+7. **The battery's verdict is honest:** `checkClaim` throws on red unless the finding is allowlisted in `e2e/sim/fixtures/sim-findings.json` (with reason + TTL); battery exit = playwright exit OR red-claims exit. A green battery with red claims is a bug in the battery, not a pass.
+8. **Secrets scan gate on every push** (`scripts/secret_scan.py`): NFKC-normalized patterns (DATABASE_URL with credentials, `ghp_`, `sntryu_`, PRIVATE KEY); uppercase `USER:PASSWORD` placeholders in docs pass intentionally.
+9. **weasyprint is a real dependency** (requirements.txt) — the PDF-off-event-loop guard (v14-E2) must actually run in CI.
+10. **Cron endpoints accept GET + Bearer header** (`?token=` is deprecated but tolerated with a warning) — Vercel native crons issue GET only; POST-only cron routes are dead routes (v15 D9-H1).
+
 ## Strict Rules (do not violate)
 
 ### DO NOT

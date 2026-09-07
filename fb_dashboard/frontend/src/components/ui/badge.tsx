@@ -27,13 +27,6 @@ const badgeVariants = cva(
         danger: "bg-destructive/15 text-destructive border-destructive/25",
         info: "bg-info/15 text-info border-info/25",
         orange: "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/25",
-        /* Smart-Menu extras */
-        /* v14-E5: gold glow derives from var(--ring) via color-mix (identical
-           rendering to the old literal oklch(0.55 0.19 45 / 0.08) — single
-           source instead of a hand-copied token value). */
-        gold: "bg-accent-foreground/15 text-accent-foreground dark:text-accent-foreground border-accent-foreground/25 shadow-[0_0_0_1px_color-mix(in_oklch,var(--ring)_8%,transparent)]",
-        saffron: "bg-saffron/15 text-ember dark:text-saffron border-saffron/25",
-        gradient: "bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white shadow-sm shadow-accent-foreground/20",
       },
     },
     defaultVariants: { variant: "default" },
@@ -48,5 +41,9 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 
 /* v14-E5 (D2-L1): badgeVariants export removed — zero external importers
  * (verified by grep; buttonVariants got the same treatment in v10-W4). The
- * internal const stays — BadgeProps and Badge() consume it. */
+ * internal const stays — BadgeProps and Badge() consume it.
+ * v15-E6 (D5-L7): dead VARIANTS removed — gold/saffron/gradient had zero
+ * consumers in the app (grep-verified across src/e2e; live variants are
+ * default/secondary/destructive/outline/ghost/link/success/warning/danger/
+ * info/orange only). */
 export { Badge }

@@ -161,11 +161,14 @@ export default function ToolsPage() {
                       <p className="text-sm font-bold">{o.title}</p>
                       <p className="text-xs text-muted-foreground truncate">{o.description}</p>
                     </div>
+                    {/* v15-E6 (D5-M2): toggle/delete disclose their state and
+                        target row programmatically (icon-only buttons — the
+                        icon alone isn't a state for SRs, WCAG 4.1.2). */}
                     <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)} disabled={toggleOffer.isPending && toggleOffer.variables === o.id} aria-label="تبديل">
+                      <Button size="sm" variant="ghost" onClick={() => toggleOffer.mutate(o.id)} disabled={toggleOffer.isPending && toggleOffer.variables === o.id} aria-pressed={!!o.is_active} aria-label={`تبديل حالة العرض ${o.title}`}>
                         {o.is_active ? <ToggleRight className="size-4" /> : <ToggleLeft className="size-4" />}
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} disabled={deleteOffer.isPending && deleteOffer.variables === o.id} aria-label="حذف">
+                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} disabled={deleteOffer.isPending && deleteOffer.variables === o.id} aria-label={`حذف العرض ${o.title}`}>
                         <Trash2 className="size-3.5" />
                       </Button>
                     </div>

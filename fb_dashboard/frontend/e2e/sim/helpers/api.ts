@@ -120,47 +120,66 @@ export async function apiPost<T = any>(
 /**
  * POST من داخل صفحة المتصفح نفسها (raw fetch) — العقد الكامل كما يرسله
  * التطبيق فعلاً: كوكيز المتصفح (token + csrf_token) + Origin حقيقي +
- * ترويسة X-CSRF-Token مُصدّاة من document.cookie (نفس apiFetch).
- * استخدمها لفحوص CSRF (بلا/بترويسة زائفة عبر opts.csrfOverride) ولنداءات
- * الموجودات التي يجب أن تمر بالبروكسي مثل الإنتاج.
+ * ترويسة X-CSRF-Token مُصدّاة (نفس apiFetch).
+ *
+ * v15-fix (بطارية 21:47): القراءة من document.cookie تفشل بـSecurityError
+ * حين تكون الصفحة على المستند الفارغ (about:blank — إطار رئيسي لم يُنفَّذ
+ * فيه تنقل ناجح بعد فشل اختبار سابق). الحل الهيكلي: الكوكيز من
+ * page.context().cookies() (واجهة Playwright — تعمل من أي حالة مستند)
+ * + URL مطلق + ترويسة Cookie صريحة — النداء يعمل من أي حالة صفحة.
  */
 export async function browserFetch<T = any>(
   page: Page,
   path: string,
-  init: { method?: string; body?: unknown; csrfOverride?: string; headers?: Record<string, string> } = {}
+  init: { method?: string; body?: unknown; form?: Record<string, string>; csrfOverride?: string; headers?: Record<string, string> } = {}
 ): Promise<{ status: number; ok: boolean; body: T }> {
+  // v15-fix2 (بطارية 22:05): «Cookie» ترويسة محظورة في مواصفة Fetch — المتصفح
+  // يسقطها بصمت (مع credentials:'omit' وصل 401 رغم الجلسة الحية).
+  // العقد الصحيح: تأكيد أن الصفحة على أصل الواجهة ثم credentials:'same-origin'
+  // (الكوكيز يلحقها المتصفح تلقائيا) — والـCSRF من كوكيز السياق (ترويسة مسموحة)
+  if (!page.url().startsWith(FRONT_BASE)) {
+    await page.goto(`${FRONT_BASE}/`, { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
+  }
+  const cookies = await page.context().cookies(FRONT_BASE)
+  const csrf =
+    init.csrfOverride !== undefined
+      ? init.csrfOverride
+      : (cookies.find((c) => c.name === 'csrf_token') || {}).value || ''
+  const url = path.startsWith('http') ? path : `${FRONT_BASE}${path}`
   const res = await page.evaluate(
-    async ({ path, init }) => {
-      const csrf =
-        init.csrfOverride !== undefined
-          ? init.csrfOverride
-          : (document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/) || [])[1] || ''
+    async ({ url, csrf, init }: { url: string; csrf: string; init: any }) => {
       const headers: Record<string, string> = { ...(init.headers || {}) }
       if (csrf) headers['X-CSRF-Token'] = csrf
-      if (init.body !== undefined && !(init.body instanceof FormData)) {
+      if (init.body !== undefined) {
         headers['Content-Type'] = 'application/json'
       }
-      const r = await fetch(path, {
+      let body: BodyInit | undefined
+      if (init.form) {
+        // v15-fix: FormData لا تعبر تسلسل evaluate (تصل كائناً فارغاً) —
+        // نبني النموذج داخل الصفحة نفسها (مثلما يفعل التطبيق)
+        const fd = new FormData()
+        for (const [k, v] of Object.entries(init.form as Record<string, string>)) fd.append(k, v as string)
+        body = fd
+      } else if (init.body !== undefined) {
+        body = JSON.stringify(init.body)
+      }
+      const r = await fetch(url, {
         method: init.method || 'GET',
         headers,
         credentials: 'same-origin',
-        body:
-          init.body === undefined
-            ? undefined
-            : init.body instanceof FormData
-              ? init.body
-              : JSON.stringify(init.body),
+        body,
       })
-      let body: unknown = null
+      // (طلب body وردّه body — أعدنا تسمية متغير الرد)
+      let parsed: unknown = null
       const text = await r.text()
       try {
-        body = JSON.parse(text)
+        parsed = JSON.parse(text)
       } catch {
-        body = { raw: text.slice(0, 400) }
+        parsed = { raw: text.slice(0, 400) }
       }
-      return { status: r.status, ok: r.ok, body: body as T }
+      return { status: r.status, ok: r.ok, body: parsed as T }
     },
-    { path, init: init as any }
+    { url, csrf, init: init as any }
   )
   return res
 }

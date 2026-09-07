@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest"
 
-import { DEFAULT_SENTRY_DSN, isSentryEnabled, resolveSentryDsn } from "./sentry-config"
+import { DEFAULT_SENTRY_DSN, isSentryEnabled, resolveSentryDsn, resolveSentryRelease } from "./sentry-config"
 
 describe("resolveSentryDsn", () => {
   it("falls back to the committed default when the env value is undefined or empty", () => {
@@ -57,5 +57,44 @@ describe("isSentryEnabled", () => {
     expect(isSentryEnabled("off")).toBe(false)
     expect(isSentryEnabled("0")).toBe(false)
     expect(isSentryEnabled("Disabled")).toBe(false)
+  })
+})
+
+/* v15-E6 (D14-H2): the release resolver behind the next.config.ts env gate —
+ * pin the chain: explicit build vars verbatim → VERCEL_GIT_COMMIT_SHA
+ * (shortened to the build-script's 7-char convention) → undefined. */
+describe("resolveSentryRelease", () => {
+  it("passes the explicit build-script value through verbatim (trimmed)", () => {
+    // package.json build: r=$(git rev-parse --short HEAD)
+    expect(resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: "558623b" })).toBe("558623b")
+    expect(resolveSentryRelease({ SENTRY_RELEASE: "558623b" })).toBe("558623b")
+    expect(resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: " 558623b " })).toBe("558623b")
+    // NEXT_PUBLIC_ wins when both are present (matches instrumentation order)
+    expect(
+      resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: "aaaaaaa", SENTRY_RELEASE: "bbbbbbb" }),
+    ).toBe("aaaaaaa")
+    // a named release tag is NOT mangled (only the platform SHA is shortened)
+    expect(resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: "smartbot-web@2.2.0" })).toBe(
+      "smartbot-web@2.2.0",
+    )
+  })
+
+  it("falls back to VERCEL_GIT_COMMIT_SHA shortened to the 7-char convention", () => {
+    expect(
+      resolveSentryRelease({ VERCEL_GIT_COMMIT_SHA: "558623b3f0e1d2a3c4b5d6e7f8a9b0c1d2e3f4a5" }),
+    ).toBe("558623b")
+    expect(resolveSentryRelease({ VERCEL_GIT_COMMIT_SHA: " 558623b3f0e1d2a3c4b5d6e7f8a9b0c1d2e3f4a5" })).toBe(
+      "558623b",
+    )
+    // still wins when the explicit names exist but are empty/whitespace
+    expect(
+      resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: "  ", VERCEL_GIT_COMMIT_SHA: "abcdef1234567890" }),
+    ).toBe("abcdef1")
+  })
+
+  it("returns undefined when no honest release exists (no inlining gate)", () => {
+    expect(resolveSentryRelease({})).toBeUndefined()
+    expect(resolveSentryRelease({ NEXT_PUBLIC_SENTRY_RELEASE: "", SENTRY_RELEASE: undefined })).toBeUndefined()
+    expect(resolveSentryRelease({ VERCEL_GIT_COMMIT_SHA: "   " })).toBeUndefined()
   })
 })

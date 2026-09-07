@@ -4,7 +4,7 @@
 
 **المكدّس التقني:** FastAPI (Python 3.12) + Next.js 16 (App Router) + SQLAlchemy/Alembic + Neon PostgreSQL (إنتاج) / SQLite (تطوير) + Vercel.
 
-**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 624+ hermetic tests (grows every round — see the latest round report), CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
+**English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 785+ hermetic tests (grows every round — see the latest round report), CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
 
 ---
 
@@ -22,7 +22,7 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 624+ اختبار pytest (ترتفع كل جولة — انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
+tests/                      ← 785+ اختبار pytest (ترتفع كل جولة — انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
 alembic/versions/           ← ترحيلات Alembic (حتى 013: 012 قيد فريد bot_state · 013 (v14) قيد (tenant,key) + dedup + فهارس)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
@@ -52,9 +52,9 @@ bash scripts/gate_all.sh        # ruff + pytest + tsc + vitest + next build + م
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **624+ passed** (ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **785+ passed** (ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
-| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 23 ملفًا / 184 اختبارًا (v13 — ترتفع كل جولة) |
+| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 30 ملفًا / 243 اختبارًا (v15 — ترتفع كل جولة) |
 | بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |
 | صفر تمدد أفقي | `node e2e/viewport-sweep.mjs` | 21/21 (375/768/1440) |

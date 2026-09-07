@@ -9,11 +9,15 @@ Usage:
     suggestions = await ai.suggest_replies(comment_text, page_context)
     tone = await ai.analyze_tone(comment_text)
 """
+import asyncio
+import ipaddress
 import json
 import logging
 import os
 from typing import Any
+from urllib.parse import urlparse
 
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -70,8 +74,6 @@ class UnsafeImageUrlError(ValueError):
 
 def _is_private_or_local_host(host: str) -> bool:
     """True إذا كان المضيف محلياً/خاصاً/غير قابل للجلب من الخادم."""
-    import ipaddress
-
     if not host:
         return True
     if host == "localhost" or host.endswith(".localhost"):
@@ -84,29 +86,150 @@ def _is_private_or_local_host(host: str) -> bool:
         # سليماً بصيغته — ولا يستعملها اسم مضيف مشروع أبداً.
         digits_dots = host.replace(".", "")
         return digits_dots.isdigit() or host.startswith("0x")
+    return _ip_is_blocked(ip)
+
+
+def _ip_is_blocked(ip) -> bool:
+    """v15-E4 (D6-H2): True لأي عنوان لا يجوز للخادم جلب/الاتصال به —
+    RFC1918 (10/8 · 172.16/12 · 192.168/16) · loopback (127/8 · ::1) ·
+    link-local (169.254/16 — يشمل 169.254.169.254 لميتاداتا السحابة) ·
+    IPv6 ULA (fc00::/7) · reserved/unspecified · multicast · CGNAT
+    (100.64/10 — غير قابل للتوجيه عالمياً: not is_global) — بأي عائلة
+    عناوين. الموجب المقبول الوحيد: IP عام قابل للتوجيه (is_global)."""
     return (
         ip.is_private        # 10/8, 172.16/12, 192.168/16, IPv6 ULA…
         or ip.is_loopback    # 127/8, ::1
         or ip.is_link_local  # 169.254/16, fe80::/10
         or ip.is_reserved
         or ip.is_unspecified
+        or ip.is_multicast
+        or not ip.is_global   # CGNAT 100.64/10 وكل ما ليس قابلاً للتوجيه عالمياً
     )
 
 
-def _assert_safe_image_url(url: str) -> None:
+async def _resolve_host_ips(host: str) -> list[str]:
+    """v15-E4 (D6-H2): حلّ DNS للمضيف عبر ``loop.getaddrinfo`` (في منفّذ
+    التنفيذ — لا يحجب حلقة الأحداث) وأرجع كل عناوين A/AAAA.
+
+    هذا هو ختم فجوة DNS: الحارس القديم فحص IP الحرفي فقط، فاسم مثل
+    ``receipt.evil.ly`` المُوجّه إلى 169.254.169.254 عبر سجل DNS اجتاز الفحص
+    ثم حُلّ وقت الجلب — داخل الشبكة. الآن يُرفض أي نطاق يحلّ ولو إلى عنوان
+    داخلي واحد."""
+    loop = asyncio.get_running_loop()
+    infos = await loop.getaddrinfo(host, None)
+    return [info[4][0] for info in infos]
+
+
+async def assert_safe_outbound_url(url: str, label: str = "رابط الصورة") -> None:
+    """v15-E4 (D6-H2) — حارس SSRF مع حل DNS، قبل أي جلب/تمرير خارجي.
+
+    الطبقتان:
+    1. الفحص السريع المتزامن (``_assert_safe_image_url``): المخطط https فقط
+       + رفض IP الحرفي الداخلي بأي صيغة ترميز — عقد v10-A8 كاملاً؛
+    2. حلّ DNS (getaddrinfo): الاسم الذي يجتاز الطبقة الأولى ثم يحلّ إلى
+       RFC1918/link-local/loopback/IPv6-ULA/reserved يُرفض هنا — برسالة
+       عربية مضبوطة من عندنا (لا تفاصيل داخلية).
+
+    ``label`` يخصص نص الرسالة ("رابط الصورة"/"رابط الويبهوك") — الحارس نفسه
+    يستعمله flow_engine لفعل الويبهوك (D2-H2). فشل الحل نفسه = رفض صريح
+    (لا نعبر نطاقاً لا نستطيع التحقق منه).
+    """
+    _assert_safe_image_url(url, label=label)
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise UnsafeImageUrlError(f"{label} مرفوض — العنوان غير صالح")
+    try:
+        ipaddress.ip_address(host)
+        return  # IP حرفي — تحقّق منه الحارس السريع أعلاه
+    except ValueError:
+        pass
+    try:
+        ips = await _resolve_host_ips(host)
+    except Exception as exc:
+        raise UnsafeImageUrlError(
+            f"{label} مرفوض — تعذر التحقق من سلامة النطاق"
+        ) from exc
+    for ip_text in ips:
+        try:
+            ip = ipaddress.ip_address(ip_text)
+        except ValueError:
+            continue
+        if _ip_is_blocked(ip):
+            raise UnsafeImageUrlError(
+                f"{label} مرفوض — النطاق يحلّ إلى عنوان شبكة داخلية أو خاصة")
+
+
+def _assert_safe_image_url(url: str, label: str = "رابط الصورة") -> None:
     """حراسة SSRF قبل أي جلب/تمرير لرابط صورة خارجي (v10-A8، G1#9).
 
     المسار الخطر: رابط يقرره دماغ LLM من نص المستخدم → أداة image_analyze
     تجلبه من الخادم. القواعد: مخطط https فقط (http قابل للاعتراض)، ورفض
     المضيفات الخاصة/المحلية بأي صيغة ترميز.
-    """
-    from urllib.parse import urlparse
 
+    v15-E4 (D6-H2): هذه هي الطبقة السريعة فقط (IP الحرفي) — الفحص الكامل مع
+    حل DNS في :func:`assert_safe_outbound_url` (تستدعي هذه أولاً وتمرّر
+    label). العقد المتزامن محفوظ كما هو (يستعمله fb_client/pdf/approvals —
+    بلا وسيط label = "رابط الصورة" كما كان).
+    """
     parsed = urlparse(url)
     if parsed.scheme != "https":
-        raise UnsafeImageUrlError("رابط الصورة مرفوض — يُسمح فقط بروابط https")
+        raise UnsafeImageUrlError(f"{label} مرفوض — يُسمح فقط بروابط https")
     if _is_private_or_local_host((parsed.hostname or "").lower()):
-        raise UnsafeImageUrlError("رابط الصورة مرفوض — لا يمكن جلب صور من مضيفات داخلية أو خاصة")
+        raise UnsafeImageUrlError(
+            f"{label} مرفوض — لا يمكن الجلب من مضيفات داخلية أو خاصة")
+
+
+# v15-E4 (D6-H2): حدود جلب الصور الخادمي — مهلة 10 ثوان وسقف 5MB
+# (نفس عائلة _fetch_remote_receipt في approvals.py) وبلا اتباع إعادة توجيه
+# (كل قفزة يُعاد التحقق منها بالحارس الكامل أعلاه).
+_IMAGE_FETCH_TIMEOUT_S = 10.0
+_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+_IMAGE_MAX_REDIRECTS = 3
+
+
+async def _fetch_image_bytes(url: str) -> bytes | None:
+    """v15-E4 (D6-H2): جلب صورة محروس — مهلة 10s · سقف 5MB · بلا توجيه.
+
+    - ``follow_redirects=False``: كل 301/302/303/307/308 يُحلّ يدوياً ويُعاد
+      عليه الحارس الكامل (حل DNS للهدف الجديد) قبل اتباعه — إعادة التوجيه
+      إلى مضيف داخلي تُرفض حتى لو كان الأصل عاماً (حد 3 قفزات)؛
+    - قراءة متدفقة مع قطع فوري عند تجاوز سقف الحجم (قبل اكتمال التنزيل)؛
+    - أي فشل → None (المستدعي يرد رفضاً نظيفاً).
+    """
+    current = url
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(_IMAGE_FETCH_TIMEOUT_S), follow_redirects=False,
+    ) as client:
+        for _hop in range(_IMAGE_MAX_REDIRECTS + 1):
+            async with client.stream("GET", current) as resp:
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    location = resp.headers.get("location")
+                    if not location:
+                        return None
+                    current = str(httpx.URL(current).join(location))
+                    # إعادة التحقق الكاملة للقفزة الجديدة (مخطط + DNS)
+                    try:
+                        await assert_safe_outbound_url(current)
+                    except UnsafeImageUrlError:
+                        log.warning("image redirect to an unsafe target refused")
+                        return None
+                    continue
+                if resp.status_code != 200:
+                    return None
+                content_length = resp.headers.get("content-length")
+                if content_length and int(content_length) > _IMAGE_MAX_BYTES:
+                    log.warning("image fetch exceeded %d bytes — refused", _IMAGE_MAX_BYTES)
+                    return None
+                buf = bytearray()
+                async for chunk in resp.aiter_bytes():
+                    buf.extend(chunk)
+                    if len(buf) > _IMAGE_MAX_BYTES:
+                        log.warning("image fetch exceeded %d bytes mid-stream — refused",
+                                    _IMAGE_MAX_BYTES)
+                        return None
+                return bytes(buf)
+    return None
 
 # ---------------------------------------------------------------------------
 # Prompt templates
@@ -303,10 +426,11 @@ class AIService:
         text), so anything that was not an http(s) URL used to be opened from
         disk, base64-encoded and shipped to the AI provider — a local-file
         disclosure path (".env", "../static/uploads/…"). Source policy now:
-          - ``https://`` → guarded by ``_assert_safe_image_url`` (v10-A8:
-            rejects non-https schemes and private/loopback hosts by raising
-            the controlled UnsafeImageUrlError — the agent engine surfaces
-            its Arabic message; http:// is refused there);
+          - ``https://`` → guarded by ``assert_safe_outbound_url`` (v10-A8
+            + v15-E4/D6-H2: rejects non-https schemes, private/loopback
+            literal hosts AND hosts whose DNS resolution lands on internal
+            ranges — raises the controlled UnsafeImageUrlError; the agent
+            engine surfaces its Arabic message; http:// is refused there);
           - ``data:image/…`` → passed through as-is (internally generated:
             the agent-upload flow embeds data-URIs on serverless — this also
             FIXES that flow, the old open() branch crashed on data URIs);
@@ -320,11 +444,11 @@ class AIService:
         if src.startswith("data:image/"):
             image_url = src
         elif src.startswith(("http://", "https://")):
-            # v10-A8: remote URL — validated BEFORE any fetch or forwarding
-            # (Gemini fetches server-side; OpenAI receives the URL). Rejects
-            # non-https schemes and private/loopback hosts with a controlled
-            # Arabic message (raises UnsafeImageUrlError).
-            _assert_safe_image_url(src)
+            # v10-A8 + v15-E4 (D6-H2): remote URL — validated BEFORE any fetch
+            # or forwarding (Gemini fetches server-side; OpenAI receives the
+            # URL), WITH DNS resolution: a hostname that lands on
+            # 169.254.169.254/RFC1918/::1 is rejected here, not at fetch time.
+            await assert_safe_outbound_url(src)
             image_url = src
         else:
             log.warning(
@@ -339,6 +463,10 @@ class AIService:
                 return await self._openai_vision(image_url, prompt)
             elif self._provider == PROVIDER_GEMINI and self._google_module:
                 return await self._gemini_vision(image_url, prompt)
+        except UnsafeImageUrlError:
+            # v15-E4 (D6-H2): رفضنا المضبوطة يُعرض كما هو (رسالة عربية آمنة) —
+            # لا تُبتلع في الخطأ العام: المستخدم/الوكيل يحتاج معرفة السبب.
+            raise
         except Exception as e:
             log.error(f"analyze_image error: {e}", exc_info=True)
         return ""
@@ -361,11 +489,17 @@ class AIService:
         return (r.choices[0].message.content or "").strip()
 
     async def _gemini_vision(self, image_url: str, prompt: str) -> str:
-        """Vision via Gemini."""
+        """Vision via Gemini.
+
+        v15-E4 (D6-H2): the remote fetch is guarded end-to-end —
+        ``_fetch_image_bytes`` (no redirects without re-validation, 10s
+        timeout, 5MB streamed cap) instead of the old raw ``client.get``
+        (unbounded, no explicit timeout). The URL itself was already
+        DNS-checked by ``analyze_image`` before dispatch.
+        """
         genai = self._google_module
         if not genai:
             return ""
-        import httpx
         model = genai.GenerativeModel(self._model)
         img_data = None
         if image_url.startswith("data:"):
@@ -373,10 +507,10 @@ class AIService:
             _, b64 = image_url.split(",", 1)
             img_data = base64.b64decode(b64)
         elif image_url.startswith(("http://", "https://")):
-            async with httpx.AsyncClient() as c:
-                r = await c.get(image_url)
-                if r.status_code == 200:
-                    img_data = r.content
+            img_data = await _fetch_image_bytes(image_url)
+            if img_data is None:
+                log.warning("gemini vision: guarded fetch refused/failed for remote image")
+                return ""
         import io
 
         import PIL.Image

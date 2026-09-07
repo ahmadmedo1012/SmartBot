@@ -26,6 +26,33 @@ from routers.auth import get_current_user, require_role
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["replies"])
 
+# v15-E7 (D8-B2): per-tenant live-sync skip — the exact inbox v8-A12
+# pattern (_INBOX_LAST_SYNC in routers/inbox.py). The comments page polls
+# this endpoint every 20s; before this, EVERY poll fired 1 + 10 Graph calls
+# (33+ calls/min per open tab on top of the 10s bot cycle — rate-limit
+# burn, D8-B2). The skip is deliberately per-TENANT (not per
+# (tenant, post)): the sync's first Graph call (get_page_posts) is shared
+# for all posts, so per-post granularity would still pay it on every poll;
+# a per-tenant window zeroes ALL Graph traffic for the skip duration. A
+# skip only skips the best-effort live top-up — stored rows still serve
+# (DB-first), and webhooks + the bot cycle keep the store current between
+# windows. The timestamp is stamped BEFORE the attempt (inbox precedent):
+# a failed sync also backs off 30s instead of hammering Graph per poll.
+_COMMENTS_SYNC_SKIP_S = 30.0
+_COMMENTS_LAST_SYNC: dict[int, float] = {}
+
+
+def _comments_sync_allowed(tenant_id: int) -> bool:
+    """True when a live Graph sync may run for this tenant now (monotonic)."""
+    import time as _time
+
+    now = _time.monotonic()
+    last = _COMMENTS_LAST_SYNC.get(tenant_id)
+    if last is not None and now - last < _COMMENTS_SYNC_SKIP_S:
+        return False
+    _COMMENTS_LAST_SYNC[tenant_id] = now
+    return True
+
 
 async def _tenant_fb_or_400(tenant_id: int):
     fb = await get_tenant_fb_client(tenant_id)
@@ -114,9 +141,14 @@ async def list_comments(limit: int = Query(30, ge=1, le=200), db=Depends(get_db)
     _tid = current_user._tenant_id
     # v4 §4.10 — DB-first: serve stored comments (webhook + sync + bot loop all
     # write here), then top up with a non-fatal live Graph sync.
+    # v15-E7 (D8-B2): the sync is throttled to once per 30s per tenant
+    # (see _COMMENTS_LAST_SYNC) — 2/3 of the 20s polls now serve purely from
+    # the DB, cutting Graph traffic from ~33 to ≤2 calls/min per open tab.
+    synced = False
     fb = await get_tenant_fb_client(_tid)
-    if fb is not None:
+    if fb is not None and _comments_sync_allowed(_tid):
         await _sync_recent_comments(db, _tid, fb, limit=min(limit, 50))
+        synced = True
     rows = await db.execute(
         select(Comment)
         .where(Comment.tenant_id == _tid, Comment.hidden == False)
@@ -134,7 +166,7 @@ async def list_comments(limit: int = Query(30, ge=1, le=200), db=Depends(get_db)
         "replied_at": iso_z(c.created_at) if c.replied_by_bot else None,
         "reply_text": c.reply_text or None,
     } for c in rows.scalars().all()]
-    return ok({"items": items, "source": "db"})
+    return ok({"items": items, "source": "db", "synced": synced})
 
 
 @router.post("/api/comments/{comment_id}/hide")

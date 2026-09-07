@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react"
 import { usePathname } from "next/navigation"
 import dynamic from "next/dynamic"
 import { unwrapApi } from "@/lib/api"
+import { apiFetch } from "@/lib/csrf-client"
+import { premiumToast } from "@/lib/premium-toast"
 
 /* v9-E5: react-joyride (~116KB) was statically imported here → it landed in
  * EVERY dashboard route bundle (26 routes) even though the tour only runs
@@ -124,9 +126,21 @@ export default function AuthGuard({
           }}
           onSkip={() => {
             setShowOnboarding(false)
-            // persist the dismissal so the wizard doesn't re-appear on every
-            // page navigation (bug: skip was local-state only)
-            fetch("/api/onboarding/skip", { method: "POST", credentials: "include" }).catch(() => {})
+            /* v15-E5 (D4-H1): the skip was a RAW fetch() with no
+             * X-CSRF-Token — app/middleware.py's double-submit layer 403'd
+             * every «تخطي» POST and the .catch() swallowed it, so
+             * onboarding_completed never persisted and the wizard re-appeared
+             * after every refresh. apiFetch echoes the csrf cookie the guard's
+             * own /api/me GET just planted; a non-401 failure is now a visible
+             * Arabic toast instead of silence (a 401 flows through apiFetch's
+             * global session-expiry redirect — see csrf-client D4-H3). */
+            apiFetch("/api/onboarding/skip", { method: "POST" }).catch(() => {
+              premiumToast(
+                "error",
+                "تعذر حفظ تخطي المعالج",
+                "قد تظهر خطوات التهيئة مجدداً عند تحديث الصفحة — أعد المحاولة أو أكملها من لوحة التحكم",
+              )
+            })
           }}
         />
       )}

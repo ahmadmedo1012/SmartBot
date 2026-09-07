@@ -250,6 +250,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       return
     }
     setStep((s) => s + 1)
+    /* v15-fix (بطارية p12-t8 — D4 M-04c): عند تقديم الخطوة كان التركيز
+     * يقع على body (العنصر السابق يُفك) فلا يعرف قارئ الشاشة أين هو —
+     * نعيده إلى عنوان الخطوة الجديدة (نمط v14-E4 في نافذة الدفع) */
+    requestAnimationFrame(() => {
+      document.getElementById("onboarding-step-title")?.focus()
+    })
     /* v14-E4 (D2 H1): accessToken added — it is sent to
      * /api/onboarding/connect-page on the step-1→2 transition; without it
      * in the deps a stale/empty token could be POSTed silently when the
@@ -339,13 +345,13 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card/90 shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl">
           {/* Header */}
           <div className="p-8 pb-6 text-center">
             <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25">
               <Icon className="size-8 text-white" />
             </div>
-            <h2 id="onboarding-step-title" className="text-xl font-bold mb-1">{current.title}</h2>
+            <h2 id="onboarding-step-title" tabIndex={-1} className="text-xl font-bold mb-1 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-md px-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
           </div>
 
@@ -399,13 +405,21 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                           : "bg-destructive-soft text-destructive border border-destructive/20"
                       }`}
                     >
-                      {testResult.connected
-                        ? "✓ الاتصال ناجح — " +
-                          testResult.page_name +
-                          (testResult.fan_count
-                            ? " (" + countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين") + ")"
-                            : "")
-                        : "✗ " + (testResult.error || "فشل الاتصال")}
+                      {testResult.connected ? (
+                        <>
+                          {"✓ الاتصال ناجح — "}
+                          {/* v15-E6 (D5-M7): page_name is a live Latin Facebook
+                              value inside an aria-live region — dir="auto"
+                              isolates it so the Arabic sentence order survives
+                              (and a missing name renders empty, not "undefined"). */}
+                          <span dir="auto">{testResult.page_name ?? ""}</span>
+                          {testResult.fan_count
+                            ? ` (${countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين")})`
+                            : ""}
+                        </>
+                      ) : (
+                        "✗ " + (testResult.error || "فشل الاتصال")
+                      )}
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">
@@ -415,7 +429,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label="Graph API Explorer — يفتح في تبويب جديد"
-                      className="text-accent-foreground hover:underline"
+                      /* v15-fix (بطارية p12-t8 axe): link-in-text-block — الرابط
+                       * داخل نص اعتمد على اللون وحده (WCAG 1.4.1) — خط سفلي دائم */
+                      className="text-accent-foreground underline decoration-accent-foreground/50 underline-offset-2 hover:decoration-accent-foreground"
                     >
                       Graph API Explorer
                     </a>{" "}
@@ -464,7 +480,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       onChange={(e) => setReply(e.target.value)}
                       placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل…"
                       rows={3}
-                      className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-placeholder-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
                     <p className="text-3xs text-muted-foreground">
                       اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء

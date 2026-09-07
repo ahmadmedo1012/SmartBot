@@ -17,6 +17,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from models import AuditLog, BlacklistedToken, SubscriptionPlan, Tenant, User
 from sqlalchemy import desc, func, or_, select
+from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["auth"])
@@ -29,11 +30,16 @@ def make_token(username: str, tenant_id: int = 0, token_ver: int = 0) -> str:
     """Mint a session JWT. ``ver`` (v12-E2.4) pins the user's token version —
     bumping ``User.token_ver`` (password change/reset) instantly revokes every
     previously minted token for that user without waiting for expiry/blacklist.
+
+    v15-E2 (D3-M2/C-5001): token_ver الرقمي يُطبَّع عبر ``or 0`` — قاعدة
+    الإنتاج legacy أضافت العمود بلا DEFAULT فبقيت قيمه NULL، وint(None)
+    هنا هو الـ500 الحي الموثق على /api/login (D14). الشفاء الجذري في
+    014/reconcile (backfill NULL) — هذا الحزام يمنع الانتكاس.
     """
     jti = secrets.token_hex(16)
     now = datetime.now(UTC)
     return jwt.encode(
-        {"sub": username, "tid": tenant_id, "jti": jti, "ver": int(token_ver),
+        {"sub": username, "tid": tenant_id, "jti": jti, "ver": int(token_ver or 0),
          "iat": now, "nbf": now,
          "exp": now + ACCESS_TOKEN_EXPIRE},
         settings.SECRET_KEY, algorithm=ALGORITHM,
@@ -139,8 +145,13 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
         select(User).where(User.username == username).order_by(User.id).limit(1)
     )).scalars().first()
     if not user and email_lookup:
+        # v15-E2 (D12-H4): البحث بالبريد غير حساس لحالة الأحرف — قيد
+        # uq_user_email_lower الفريد يضمن نتيجة واحدة حتمًا، والبحث القديم
+        # الحساس للحالة كان يفشل في إيجاد الحساب رغم وجوده (بريد مسجل بحالة
+        # مختلفة) فيبدو للمستخدم أن حسابه «غير موجود».
         user = (await db.execute(
-            select(User).where(User.email == email_lookup).order_by(User.id).limit(1)
+            select(User).where(func.lower(User.email) == email_lookup.lower())
+            .order_by(User.id).limit(1)
         )).scalars().first()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(401, "بيانات تسجيل الدخول غير صحيحة")
@@ -214,14 +225,30 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
             tenant.subscription_status = "TRIAL"
             tenant.plan_start = utcnow()
             tenant.plan_end = utcnow() + timedelta(days=trial_plan.trial_days)
-    db.add(tenant)
-    await db.flush()
-    pw_hash = hash_password(password)
-    user = User(username=username, email=email, name=name, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
-    db.add(user)
-    await db.flush()
-    await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
-    await db.commit()
+    # v15-E2 (D12-H4): الفحص أعلاه (check-then-insert) يعبره سباق تسجيلين
+    # متزامنين بنفس البريد (الـhashing يوسع النافذة ~200ms) فيولد حسابين
+    # — الثاني «زومبي»: الدخول بالبريد يلتقط الأقدم حتمًا فكلمة مروره
+    # تُرفض للأبد. قيد uq_user_email_lower (ترحيلة 014) هو خط الدفاع
+    # الأخير، وهنا نلتقطه: 409 عربية بدل 500 خام، مع rollback كامل قبلها
+    # (المستأجر المُفلَوش لا يبقى يتيمًا).
+    try:
+        db.add(tenant)
+        await db.flush()
+        pw_hash = hash_password(password)
+        user = User(username=username, email=email, name=name, password_hash=pw_hash, tenant_id=tenant.id, role="admin")
+        db.add(user)
+        await db.flush()
+        await log_audit(db, "register", actor_id=user.id, ip=ip, tenant_id=tenant.id)
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        # تفريق الرسالة حسب القيد المُخالَف — uq_user_email_lower (فهرس
+        # تعبيري) يظهر بالاسم في رسائل SQLite/PG، وuq_user_tenant_username
+        # بأسماء أعمدته.
+        conflict = str(getattr(exc, "orig", exc) or exc).lower()
+        if "email" in conflict:
+            raise HTTPException(409, "البريد الإلكتروني مسجل مسبقاً") from None
+        raise HTTPException(409, "اسم المستخدم أو البريد مسجل مسبقاً") from None
     token = make_token(username, tenant.id, getattr(user, "token_ver", 0))
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok({
@@ -356,6 +383,16 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
         raise HTTPException(400, "جسم الطلب JSON مطلوب")
     current_password = str(body.get("current_password") or "")
     new_password = str(body.get("new_password") or "")
+    # v15-E2 (D6-M4): سقف 5 محاولات/ساعة لكل مستخدم — verify_password
+    # (argon2id) في كل محاولة يحجب الحلقة، وبلا سقف يستطيع مهاجم دوّس
+    # أداء المنصة كلها بنفسه. المفتاح per-user لا per-IP (المهاجم هنا
+    # صاحب الجلسة نفسها). يُحسب قبل التحقق — المحاولات الفاشلة هي
+    # المقصودة (brute-force لكلمة المرور الحالية).
+    from _rate_limit import check_rate_limit
+    if not await check_rate_limit(
+        db, f"change-password:{current_user.id}", max_attempts=5, window_seconds=3600,
+    ):
+        raise HTTPException(429, "محاولات كثيرة لتغيير كلمة المرور — حاول بعد ساعة")
     if not current_password:
         raise HTTPException(400, "كلمة المرور الحالية مطلوبة")
     if len(new_password) < 8:

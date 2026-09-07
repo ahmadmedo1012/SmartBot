@@ -127,7 +127,22 @@ class Tenant(Base):
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (Index("ix_user_tenant_id", "tenant_id", "id"), UniqueConstraint('tenant_id', 'username', name='uq_user_tenant_username'),)
+    __table_args__ = (
+        Index("ix_user_tenant_id", "tenant_id", "id"),
+        UniqueConstraint('tenant_id', 'username', name='uq_user_tenant_username'),
+        # v15-E2 (D12-H4): فرادة lower(email) عالميًا — فهرس جزئي يستثني
+        # البريد الفارغ (تعدد مستخدمين بلا بريد مشروع، و"" ليس قيمة
+        # هوية). سباق تسجيلين متزامنين بنفس البريد كان يعبر فحص
+        # check-then-insert (لا قيد) فيولد حساباً «زومبياً»: الدخول بالبريد
+        # يلتقط الأقدم حتمًا (order_by(id)) فكلمة مرور الثاني تُرفض للأبد.
+        # create_all يبني الفهرس هنا؛ 014/reconcile يشفيان قواعد الإنتاج
+        # القديمة (كشف التكرار + تحييد المكرر الأحدث قبل إنشاء الفهرس).
+        # الانعكاس يتخطى فهارس التعبيرات — الحارس في _schema_reconcile
+        # يفحص كتالوج اللهجة مباشرة (sqlite_master/pg_indexes).
+        Index("uq_user_email_lower", text("lower(email)"), unique=True,
+              postgresql_where=text("email <> ''"),
+              sqlite_where=text("email <> ''")),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -227,7 +242,16 @@ class ConversationLabel(Base):
 class ScheduledPost(Base):
     """Scheduled posts for any platform."""
     __tablename__ = "scheduled_posts"
-    __table_args__ = (Index("ix_schedpost_status_sched", "status", "scheduled_at"),)
+    # v15-E2 (D3-M6): كان هنا ix_schedpost_status_sched الأحادي (status,
+    # scheduled_at) — مكرر منطقًا مع الثلاثي (tenant_id, status,
+    # scheduled_at) الذي أنشأته ترحيلة 002/SQL الإنتاج اليدوي ويخدم
+    # الاستعلام الحي (analytics.py:202 يفلتر tenant+status+scheduled_at).
+    # الأحادي تضخيم كتابة بلا قيمة؛ صيغة tenant هي المعتمدة الآن
+    # (باسم 002 نفسه — الحارس هناك يتخطى الإنشاء) و014 يسقط الأحادي
+    # من القواعد القديمة.
+    __table_args__ = (
+        Index("ix_schedpost_tenant_status_sched", "tenant_id", "status", "scheduled_at"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)

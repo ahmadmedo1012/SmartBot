@@ -43,10 +43,12 @@ fb_dashboard/routers/payments/
 3. متغيرات البيئة:
 
 ```
-DATABASE_POOLED_URL=postgresql://user:pass@pooler.region.aws.neon.tech/dbname?sslmode=require
-DATABASE_URL=postgresql://user:pass@db.region.aws.neon.tech/dbname?sslmode=require
+DATABASE_POOLED_URL=postgresql://USER:PASSWORD@pooler.region.aws.neon.tech/dbname?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@db.region.aws.neon.tech/dbname?sslmode=require
 DATABASE_REQUIRE_SSL=true
 ```
+
+> `USER:PASSWORD` placeholders بمعيار الأحرف الكبيرة — بوابة secret-scan (v15-E9) تمررها عمداً وتحجب أي قيمة شكلها حقيقي (حتى `user:pass` الصغيرة — قاعدة gstack: في موضع كلمة المرور، الصغيرة = سر حقيقي سيء).
 
 > الترحيلات تُطبَّق تلقائيًا حتى head عند أول إقلاع (lifespan يدير Alembic بلا subprocess) — السلسلة idempotent.
 

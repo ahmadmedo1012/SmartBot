@@ -111,7 +111,8 @@ async def v10_seed(v10_world):
     world = v10_world
 
     async def tenant_user(username: str | None = None, role: str = "admin",
-                          tenant_name: str | None = None) -> tuple[str, int, int]:
+                          tenant_name: str | None = None,
+                          email: str | None = None) -> tuple[str, int, int]:
         from _hash import hash_password
         from models import Tenant, User
         uname = username or f"u_{uuid.uuid4().hex[:8]}"
@@ -119,7 +120,10 @@ async def v10_seed(v10_world):
             t = Tenant(name=tenant_name or f"T-{uname}", subscription_status="PAID", is_active=True)
             db.add(t)
             await db.flush()
-            u = User(username=uname, email=f"{uname}@test.ly",
+            # v15-E2 (D12-H4): uq_user_email_lower فريد عالمياً — البريد
+            # اختياري كي تستطيع مشاهد «نفس الاسم عبر مستأجرين» (غرض A1) زرع
+            # بريد فريد لكل صف؛ الافتراضي يظل مشتقاً من الاسم كما كان.
+            u = User(username=uname, email=email or f"{uname}@test.ly",
                      password_hash=hash_password(V10_TEST_PASSWORD),
                      tenant_id=t.id, role=role)
             db.add(u)

@@ -260,7 +260,12 @@ export default function NotificationsPage() {
                         interactive
                         className={[
                           "transition-all",
-                          n.read ? "opacity-70 border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
+                          /* v15-E6 (D5-H4): read state is marked by the quiet border
+                              + muted icon well ONLY — the old opacity-70 dimmed
+                              the whole card and dropped muted-foreground body
+                              text to 3.20:1 (dark) / 3.28:1 (light); the full
+                              text token measures 5.59/6.54:1. */
+                          n.read ? "border-border/40" : "border-accent-foreground/25 bg-primary/[0.02]",
                         ].join(" ")}
                         aria-label={n.read ? `إشعار: ${n.title}` : `إشعار غير مقروء: ${n.title}`}
                         onClick={() => {
@@ -323,7 +328,11 @@ export default function NotificationsPage() {
                   key={t.key}
                   className={[
                     "transition-all",
-                    on ? "border-accent-foreground/25" : "opacity-70 border-border/40",
+                    /* v15-E6 (D5-H4 sibling): same container-opacity pattern on
+                        the SAME page — off state is already distinguished by
+                        the quiet border + bg-muted icon well + switch position;
+                        opacity-70 dropped the muted description to 3.20:1. */
+                    on ? "border-accent-foreground/25" : "border-border/40",
                     isPending && "opacity-60 pointer-events-none",
                   ]
                     .filter(Boolean)

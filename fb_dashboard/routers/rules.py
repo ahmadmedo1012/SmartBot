@@ -4,7 +4,7 @@ import logging
 
 from _responses import ok
 from database import get_db
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Message, Reply, Rule, User
 from sqlalchemy import func, select
 
@@ -29,9 +29,21 @@ async def _invalidate_engine_rules(tenant_id: int) -> None:
 
 
 @router.get("/api/rules")
-async def list_rules(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_rules(
+    # v15-E3 (D8-B6): the autoreply page polls this list every 30s and the
+    # query had NO bound — a tenant with a large rule book shipped every row
+    # (plus per-rule reply-count GROUP BYs) on each poll. Default 50, max 200
+    # (the same cap shape v14-E3 gave subscribers/broadcasts).
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db=Depends(get_db), current_user: User = Depends(get_current_user),
+):
     _tid = current_user._tenant_id
-    rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid).order_by(Rule.priority, Rule.id))
+    rows = await db.execute(
+        select(Rule).where(Rule.tenant_id == _tid)
+        .order_by(Rule.priority, Rule.id)
+        .offset(offset).limit(limit)
+    )
     rules = rows.scalars().all()
     counts_stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id)
     counts = {row[0]: row[1] for row in (await db.execute(counts_stmt))}

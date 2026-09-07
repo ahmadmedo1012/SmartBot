@@ -38,11 +38,10 @@ os.environ.setdefault("DEBUG", "True")
 import pytest
 from httpx import AsyncClient
 
-
 # ── the fake AsyncSessionLocal (open/close ledger + mutable snapshot) ──
 
 class _FakeSession:
-    def __init__(self, factory: "_FakeSessionFactory"):
+    def __init__(self, factory: _FakeSessionFactory):
         self._f = factory
 
     async def __aenter__(self):

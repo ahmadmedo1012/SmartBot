@@ -12,7 +12,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { unwrapApi } from "./api"
-import { ApiError, apiFetch } from "./csrf-client"
+import { ApiError, apiFetch, __resetSession401ForTests } from "./csrf-client"
 
 /** Build a real Response with a JSON body. */
 function jsonRes(body: unknown, status = 200): Response {
@@ -74,6 +74,11 @@ describe("ApiError message precedence", () => {
 describe("apiFetch", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    /* v15-E5 (D4-H3): the 401 tests below trip the global session-expiry
+     * handler — clear its dedupe state + pending redirect timer so nothing
+     * leaks into later tests (the wrapper's own behavior is pinned in
+     * src/test/ApiGlobal401.test.ts). */
+    __resetSession401ForTests()
   })
 
   it("sends JSON content-type + credentials and returns the raw ok Response", async () => {

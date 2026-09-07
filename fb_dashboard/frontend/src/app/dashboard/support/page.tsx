@@ -407,6 +407,11 @@ export default function SupportPage() {
                       type="button"
                       className="w-full flex items-center justify-between gap-3 text-start"
                       onClick={() => setOpenTicketId(openTicketId === t.id ? null : t.id)}
+                      /* v15-E6 (D5-M3): disclosure state + target announced
+                          programmatically (WCAG 4.1.2) — the rotating chevron
+                          alone never exposed open/closed to SRs. */
+                      aria-expanded={openTicketId === t.id}
+                      aria-controls={`ticket-thread-${t.id}`}
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -432,7 +437,7 @@ export default function SupportPage() {
 
                     {/* Thread */}
                     {openTicketId === t.id && (
-                      <div className="mt-3 border-t border-border/40 pt-3 space-y-3">
+                      <div id={`ticket-thread-${t.id}`} className="mt-3 border-t border-border/40 pt-3 space-y-3">
                         {ticketDetailQuery.isLoading ? (
                           <div className="flex justify-center py-4" role="status" aria-live="polite">
                             <span className="sr-only">جارٍ التحميل…</span>

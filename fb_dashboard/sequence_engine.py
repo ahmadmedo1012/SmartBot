@@ -6,6 +6,15 @@ Manages multi-step message sequences sent over days/weeks.
 [DEPRECATED — plan §6.1: decoupled from the production flow (CRUD endpoints
 remain under /api/sequences but no scheduler dispatches sends). Kept for
 future use.]
+
+v15-E2 (D3-L5) — تصحيح الحقيقة أعلاه: العلامة التاريخية أُبقيت حرفيًا
+لأن بوابة phase-F القديمة (tests/test_phase_f_cleanup.py) تفحصها، لكنها
+تناقض الواقع منذ v14-E2: SequenceScheduler يُشغَّل فعليًا في وضع الخادم
+الواحد (app/startup.py)، و_services يرسل الخطوات عبر وكيل per-tenant،
+وCRUD endpoints تحت /api/sequences حية (خطة Pro تتضمن «حملات تسلسلية»).
+الميزة تعمل فقط عندما تحمل الاشتراكات tenant_id الصحيح (انظر subscribe
++ ترحيلة 014 التي تعيد أبوة الصفوف القديمة 0). عند تحديث بوابة phase-F
+للواقع، تُحذف الفقرة DEPRECATED أعلاه مع هذا التنويه.
 """
 import asyncio
 import logging
@@ -210,26 +219,35 @@ class SequenceEngine:
         self, subscriber_id: int, sequence_id: int, session, tenant_id: int = 0
     ) -> bool:
         """Subscribe a user to a sequence at step 0.
-        Return False if already subscribed (duplicate)."""
+        Return False if already subscribed (duplicate).
+
+        v15-E2 (D3-H2): الإدراج يحمل tenant_id المُمرَّر — subscribe القديم
+        كان يتجاهله فتسقط الصفوف في المستأجر 0، ووكيل الإرسال per-tenant
+        (_services) يتخطاها فلا تُرسل خطوة واحدة لميزة drip (رغم أن المجدول
+        يعمل). كما أن الالتزام يجري داخل SAVEPOINT (نمط _wallet.credit_wallet
+        المجرب في v14) — تكرار uq_seq_sub يُرجع نقطة الحفظ فقط، بينما كان
+        rollback() الكامل يسمم معاملة المستدعي ويُلغي كل تغييراته المعلقة.
+        """
         try:
-            sub = SequenceSubscription(
-                subscriber_id=subscriber_id,
-                sequence_id=sequence_id,
-                current_step=0,
-                status="active",
-            )
-            session.add(sub)
-            await session.flush()
-            stmt = select(Sequence).where(Sequence.id == sequence_id)
-            if tenant_id:
-                stmt = stmt.where(Sequence.tenant_id == tenant_id)
-            seq = (await session.execute(stmt)).scalar_one_or_none()
-            if seq:
-                seq.total_subscribers += 1
-            return True
+            async with session.begin_nested():
+                sub = SequenceSubscription(
+                    subscriber_id=subscriber_id,
+                    sequence_id=sequence_id,
+                    tenant_id=tenant_id,
+                    current_step=0,
+                    status="active",
+                )
+                session.add(sub)
+                await session.flush()
         except IntegrityError:
-            await session.rollback()
             return False
+        stmt = select(Sequence).where(Sequence.id == sequence_id)
+        if tenant_id:
+            stmt = stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(stmt)).scalar_one_or_none()
+        if seq:
+            seq.total_subscribers = (seq.total_subscribers or 0) + 1
+        return True
 
     async def unsubscribe(
         self, subscriber_id: int, sequence_id: int, session, tenant_id: int = 0

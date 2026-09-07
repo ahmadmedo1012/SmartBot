@@ -1,15 +1,25 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 
+import logging
+
 from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Customer, User
 from sqlalchemy import desc, func, or_, select
+from sqlalchemy.exc import IntegrityError
 
 from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["crm"])
+log = logging.getLogger("fb-api")
+
+
+# v15-E4 (D13-F1 عائلة 409): نص الرسالة الموحد لإنشاء عميل مكرر — الفحص
+# المسبق يرد 409 مباشرة، وسباق الإنشاء المتزامن (uq_customer_tenant_fbuser)
+# يُلتقط عند الالتزام ويرد نفس الـ 409 — لا 500 خام أبداً.
+_CRM_DUPLICATE_DETAIL = "العميل موجود مسبقاً بهذا المعرّف في مساحتك — راجع قائمة العملاء أو استخدم معرّفاً آخر"
 
 
 @router.get("/api/crm/customers")
@@ -66,15 +76,24 @@ async def crm_create(
     # ponytail: Customer at module level
     # v9-A9: duplicate check is tenant-scoped — a global fb_user_id check let
     # tenant A's customer wrongly block tenant B from creating the same one.
+    # v15-E4 (D13-F1): 409 (كان 400) — التكرار تعارض حالة، والبطارية الصارمة
+    # (SIM_STRICT_409) تتوقع عائلة التعارض كلها 409 لا 500/400 مبعثرة.
     existing = await db.execute(
         select(Customer).where(Customer.fb_user_id == fb_user_id,
                                Customer.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
-        raise HTTPException(400, "العميل موجود بالفعل")
+        raise HTTPException(409, _CRM_DUPLICATE_DETAIL)
     c = Customer(fb_user_id=fb_user_id, name=name, phone=phone,
                  stage=stage, interested_in=interested_in, tenant_id=current_user._tenant_id)
     db.add(c)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        # v15-E4 (D12 sibling): طلبا إنشاء متزامنان لنفس العميل — الخاسر
+        # يلتقط قيد التفرد عند الالتزام ويرد 409 عربية نظيفة (كان 500 خام).
+        await db.rollback()
+        log.warning("crm customer create conflict: %s", exc)
+        raise HTTPException(409, _CRM_DUPLICATE_DETAIL) from exc
     return ok({"id": c.id})
 
 

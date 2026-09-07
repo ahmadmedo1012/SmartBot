@@ -147,7 +147,10 @@ test.describe('P01 — زائر ليبي موبايل 3G', () => {
     // ملاحظة صادقة عن انحراف التصميم: /subscribe نفسها لم تعد تُعيد التوجيه
     // منذ v6 §D (SubscribeContent.tsx:98-100 — التسعير عام والدفع 401 عند
     // الإرسال)، لذا حارس الجلسة الفعلي للزائر يُختبر على /dashboard:
-    await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    // v15-fix: إعادة التوجيه 401 العالمية (E5/D4-H3) تُطلق أثناء التنقل
+    // نفسه → goto يُجهض (ERR_ABORTED) لأن تنقلاً جديداً (location.replace)
+    // حل محله — الإجهاض هنا هو السلوك الصحيح؛ نتحمل النتيجة وننتظر الهدف
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 60_000 }).catch(() => {})
     await page.waitForURL(/\/login/, { timeout: 20_000 })
     expect(page.url(), 'AuthGuard يردّ الزائر إلى الدخول').toContain('/login')
     await shot(page, P, '01-step-11-login-redirect')

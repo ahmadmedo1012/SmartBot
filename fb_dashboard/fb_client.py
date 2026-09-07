@@ -17,6 +17,11 @@ API_BASE = "https://graph.facebook.com/v22.0"
 _http: httpx.AsyncClient | None = None
 _http_lock = asyncio.Lock()
 
+# v15-E7 (D8-B2): concurrency cap for the multi-post comment fan-out. 5 keeps
+# us far from Graph rate limits while turning 10 serial round-trips into ~2
+# "waves". Module-level (not per-call) so tests can tune it.
+COMMENT_FETCH_CONCURRENCY = 5
+
 
 async def _ensure_client():
     global _http
@@ -168,14 +173,37 @@ class FBClient:
         return (r or {}).get("data", [])
 
     async def get_recent_comments(self, limit: int = 50) -> list:
+        """Recent comments across the page's latest posts.
+
+        v15-E7 (D8-B2): the per-post comment fetches used to run SERIALLY
+        (1 + N Graph round-trips ≈ 1.1-6.6s per /api/comments request). They
+        now run concurrently under a small semaphore (see
+        COMMENT_FETCH_CONCURRENCY). A failing post's comments are skipped
+        (return_exceptions=True) — the surviving posts still sync, matching
+        the old "best-effort, non-fatal" contract of the comments route.
+        """
         posts, _ = await self.get_page_posts(10)
-        all_comments = []
-        for p in posts:
-            comments = await self.get_post_comments(p["id"], limit // max(len(posts), 1))
-            for c in comments:
-                c["_post_id"] = p["id"]
-                c["_post_message"] = p.get("message", "")
-            all_comments.extend(comments)
+        if not posts:
+            return []
+        per_post = max(1, limit // max(len(posts), 1))
+        sem = asyncio.Semaphore(COMMENT_FETCH_CONCURRENCY)
+
+        async def _fetch(post: dict) -> list:
+            async with sem:
+                return await self.get_post_comments(post["id"], per_post)
+
+        results = await asyncio.gather(
+            *(_fetch(p) for p in posts), return_exceptions=True)
+        all_comments: list = []
+        for post, result in zip(posts, results, strict=True):
+            if isinstance(result, BaseException):
+                log.warning(
+                    f"comments fetch failed for post {post.get('id')}: {result}")
+                continue
+            for c in result:
+                c["_post_id"] = post["id"]
+                c["_post_message"] = post.get("message", "")
+            all_comments.extend(result)
         return all_comments
 
     async def reply_to_comment(self, comment_id: str, message: str) -> dict | None:

@@ -43,8 +43,14 @@ log = logging.getLogger("fb-obs")
 # Conservative, pattern-based redaction applied in before_send: obvious
 # emails and phone numbers in the message-bearing parts of an event
 # (logentry.message for capture_message, exception values for raised errors).
-# Deliberately NOT touched: breadcrumbs, request data, tags — send_default_pii
-# is already False and those structures rarely carry free-form user input here.
+# v15-E7 (D14-M3) — the "deliberately NOT touched: request.data /
+# breadcrumbs" assumption of v12 was DISPROVED by a live production 500 on
+# POST /api/login (Sentry event 63cdb997, 2026-09-07): request.data carried
+# a real username ({"username": "ahmad", ...}) and breadcrumbs carried the
+# DB infrastructure identity (server.address=ep-…-pooler…neon.tech,
+# db.user=smartbot_owner, db.name=smartbot_db). The scrubber now also walks
+# those two structures (see _scrub_tree). tags remain untouched (we only set
+# non-identifying ones ourselves).
 # The scrubber must never raise and never drop an event (worst case: a match
 # is missed — never the reverse).
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
@@ -52,6 +58,19 @@ _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 # country prefix, 8+ digits with spaces/dashes/dots/parens). Bare short digit
 # runs (ids, counters) do not match; only long or separated digit strings do.
 _PHONE_RE = re.compile(r"\+?\d[\d\s\-().]{7,}\d")
+# v15-E7 (D14-M3): managed-DB host shapes (Neon pooled hosts, RDS, and the
+# common managed-postgres suffixes). Applied to free strings AND to
+# address/host-keyed values in request.data + breadcrumb data.
+_DB_HOST_RE = re.compile(
+    r"\b(?:[a-zA-Z0-9-]+\.)+"
+    r"(?:neon\.tech|amazonaws\.com|supabase\.[a-z]+|render\.com|"
+    r"digitalocean\.com|herokuapp\.com|cr\.yandex\.cloud|exoscale\.com)\b",
+    re.IGNORECASE,
+)
+# Keys whose VALUES are usernames/logins → fully redacted.
+_USERNAME_KEYS = frozenset({"username", "user", "login", "db_user"})
+# Keys whose VALUES are infrastructure addresses → fully redacted.
+_HOST_KEYS = frozenset({"address", "host"})
 
 
 def scrub_pii_text(text: str) -> str:
@@ -60,8 +79,51 @@ def scrub_pii_text(text: str) -> str:
     return _PHONE_RE.sub("[REDACTED-PHONE]", text)
 
 
+def _scrub_string(text: str) -> str:
+    """Emails + phones + managed-DB hostnames from one free string."""
+    return _DB_HOST_RE.sub("[REDACTED-DB-HOST]", scrub_pii_text(text))
+
+
+def _scrub_tree(node) -> None:
+    """In-place redaction of a nested JSON-ish structure.
+
+    Handles the Sentry shapes observed live: request.data dicts
+    ({"username": "ahmad"}) and breadcrumb data dicts
+    ({"server": {"address": "ep-…neon.tech", "port": 5432},
+      "db": {"name": "smartbot_db", "user": "smartbot_owner"}}).
+    The "db" sub-dict gets full value redaction (db name/user are
+    infrastructure identity); unknown shapes fall through untouched —
+    over-matching is avoided, never at the cost of raising.
+    """
+    if isinstance(node, dict):
+        for k in list(node.keys()):
+            v = node[k]
+            lk = str(k).strip().lower()
+            if lk == "db" and isinstance(v, dict):
+                for dk in list(v.keys()):
+                    dv = v[dk]
+                    if isinstance(dv, str):
+                        v[dk] = "[REDACTED-DB]"
+                continue
+            if isinstance(v, str):
+                if lk in _USERNAME_KEYS:
+                    node[k] = "[REDACTED-USERNAME]"
+                elif lk in _HOST_KEYS:
+                    node[k] = "[REDACTED-HOST]"
+                else:
+                    node[k] = _scrub_string(v)
+            elif isinstance(v, (dict, list)):
+                _scrub_tree(v)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            if isinstance(v, str):
+                node[i] = _scrub_string(v)
+            elif isinstance(v, (dict, list)):
+                _scrub_tree(v)
+
+
 def _scrub_event(event: dict) -> dict:
-    """Apply scrub_pii_text to the message-bearing parts of a Sentry event.
+    """Apply the scrubber to the message-bearing + request/breadcrumb parts.
 
     Returns the event unchanged on ANY internal error — redaction is
     best-effort and must never lose the error report itself.
@@ -75,6 +137,26 @@ def _scrub_event(event: dict) -> dict:
             for exc in values:
                 if isinstance(exc, dict) and isinstance(exc.get("value"), str):
                     exc["value"] = scrub_pii_text(exc["value"])
+        # v15-E7 (D14-M3): request.data — usernames (live: {"username": ...}).
+        request = event.get("request")
+        if isinstance(request, dict):
+            data = request.get("data")
+            if isinstance(data, (dict, list)):
+                _scrub_tree(data)
+            elif isinstance(data, str):
+                request["data"] = _scrub_string(data)
+        # v15-E7 (D14-M3): breadcrumbs — DB host/user (live: server.address +
+        # db.name/db.user from the sqlalchemy integration).
+        crumbs = event.get("breadcrumbs")
+        if isinstance(crumbs, dict):
+            for crumb in crumbs.get("values") or []:
+                if not isinstance(crumb, dict):
+                    continue
+                if isinstance(crumb.get("message"), str):
+                    crumb["message"] = _scrub_string(crumb["message"])
+                cdata = crumb.get("data")
+                if isinstance(cdata, (dict, list)):
+                    _scrub_tree(cdata)
     except Exception:
         pass
     return event
@@ -160,9 +242,34 @@ def init_sentry() -> bool:
             or "local"
         )
         release = os.getenv("SENTRY_RELEASE", "").strip() or app_version()
+        # v15-E7 (D9-M1): release defaults to app_version() = fb_dashboard/VERSION
+        # (now 2.2.0). One version contract: the Sentry API release tag, the
+        # /api/health + /healthz version fields and the VERSION file all read
+        # the same source. Coordinator note: align the next production deploy's
+        # Sentry release with 2.2.0 (SENTRY_RELEASE env still wins as explicit
+        # override for SHA-based tagging if that policy is ever adopted).
         kwargs: dict = {
             "dsn": dsn,
             "environment": environment,
+            # v15-E7 (D14-H3) — transactions on Vercel: DOCUMENTED REALITY,
+            # not a fake fix. Live Sentry API evidence (D14 §1.1,
+            # 2026-09-07): ZERO transaction rows for the smartbot-api project
+            # across its entire lifetime despite this 0.05 rate. Root cause:
+            # the SDK's background transport batches span/transaction
+            # envelopes with a ~2s delay while Vercel freezes the instance the
+            # moment the response is sent — capture_exception() survives that
+            # freeze because it calls client.flush(timeout=1.0) explicitly
+            # (see capture_exception below), but transaction envelopes never
+            # get such a flush and die in the frozen buffer. Options weighed:
+            # (a) response-middleware flush for sampled requests (adds hot-path
+            # latency — deferred, only if internal APM becomes a product
+            # requirement); (b) accept it and measure latency via
+            # /api/health/ready's latency_ms + an external uptime probe
+            # (D14 §5.1); (c) SENTRY_TRACES_SAMPLE_RATE=0 to stop paying
+            # sampling overhead. DECISION for v15 (ledger:
+            # dec-transactions-vercel — "توثيق واقع"): keep the env knob,
+            # default stays 0.05, NO code pretending APM works. Latency
+            # monitoring comes from (b).
             "traces_sample_rate": float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05")),
             "send_default_pii": False,
             # v12-E3.7 — PII hygiene on the wire: emails/phone numbers that

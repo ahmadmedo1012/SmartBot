@@ -19,12 +19,24 @@ router = APIRouter(prefix="", tags=["scheduled"])
 
 
 @router.get("/api/scheduled-posts")
-async def list_scheduled_posts(status: str = Query(""), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_scheduled_posts(
+    status: str = Query(""),
+    # v15-E3 (D8-B6): the posts/scheduled pages poll this list every 30s and
+    # the query had NO bound — scheduled posts are archival by nature (the
+    # full message text + image_url per row), so history grew unbounded on
+    # every poll. Default 50, max 200 (the v14-E3 cap shape).
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db=Depends(get_db), current_user: User = Depends(get_current_user),
+):
     _tid = current_user._tenant_id
     stmt = select(ScheduledPost).where(ScheduledPost.tenant_id == _tid)
     if status:
         stmt = stmt.where(ScheduledPost.status == status)
-    rows = await db.execute(stmt.order_by(desc(ScheduledPost.scheduled_at)))
+    rows = await db.execute(
+        stmt.order_by(desc(ScheduledPost.scheduled_at))
+        .offset(offset).limit(limit)
+    )
     return ok(
         [{
         "id": p.id, "message": p.message, "image_url": p.image_url,

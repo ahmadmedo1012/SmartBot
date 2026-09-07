@@ -172,7 +172,10 @@ function LoginForm() {
 
       <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
         <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground/80 hover:text-foreground">
+          {/* v15-E6 (D5-H1): the /80 on muted-foreground measured 3.89:1 dark /
+              4.08:1 light — under the 4.5:1 AA floor; the full token passes
+              5.59/6.54:1 (same family as the v14-E4 footer fix two lines down). */}
+          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
             <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
           </Button>
@@ -254,7 +257,10 @@ function LoginForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/register" className="text-xs text-accent-foreground/80 hover:text-accent-foreground hover:underline transition-colors">
+            {/* v15-E6 (D5-H5): /80 on accent-foreground measured 3.76:1 dark
+                (light passed by a 0.03 margin) — the full token measures
+                5.41:1 dark / 6.47:1 light. */}
+            <Link href="/register" className="text-xs text-accent-foreground hover:underline transition-colors">
               ليس لديك حساب؟ إنشاء حساب جديد
             </Link>
           </div>

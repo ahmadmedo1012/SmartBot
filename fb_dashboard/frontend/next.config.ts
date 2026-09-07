@@ -1,7 +1,38 @@
 import type { NextConfig } from "next"
+// v15-E6 (D14-H2): release resolution lives with the DSN logic — one source
+// of truth shared by this build gate and the (already-covered) unit tests.
+import { resolveSentryRelease } from "./src/lib/sentry-config"
+
+// ── v15-E6 (D14-H2): bind every Sentry event to the SHA actually built ──
+// The build script exports SENTRY_RELEASE/NEXT_PUBLIC_SENTRY_RELEASE
+// (r = git rev-parse --short HEAD) — but build-shell env does NOT persist
+// into the Vercel serverless runtime, so the server-side runtime read in
+// src/instrumentation.ts resolved to undefined and 100% of live frontend
+// events shipped release=null (D14-H2; the v14-claimed release 541b7585
+// doesn't exist in Sentry). The Next `env` gate below INLINES the resolved
+// literal into BOTH bundles at build time: every `process.env.SENTRY_RELEASE`
+// / `process.env.NEXT_PUBLIC_SENTRY_RELEASE` reference (instrumentation.ts,
+// instrumentation-client.ts) is replaced by the value baked into this exact
+// build. Chain: explicit build vars first (the script's short SHA), then
+// VERCEL_GIT_COMMIT_SHA (platform-provided on every Vercel build — so even
+// a plain `next build` tags the deployment), else no inlining (unchanged
+// behaviour). Trade-off, documented: a runtime SENTRY_RELEASE set in the
+// Vercel dashboard can no longer override the baked-in per-deploy SHA —
+// that is the desired semantics (release == the commit that shipped).
+const sentryRelease = resolveSentryRelease(process.env)
 
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  // v15-E6 (D14-H2) — see the block comment above. Inlining happens only
+  // when an honest release exists; otherwise the key is omitted entirely.
+  ...(sentryRelease
+    ? {
+        env: {
+          SENTRY_RELEASE: sentryRelease,
+          NEXT_PUBLIC_SENTRY_RELEASE: sentryRelease,
+        },
+      }
+    : {}),
   // ── v12-E5.4: static asset cache headers (bot-domain Next deployment) ──
   // D8 live finding: /opengraph-image.png answered `no-store, no-cache` on
   // bot.smart-link.ly (middleware.ts page default) — every social preview

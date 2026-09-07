@@ -54,20 +54,36 @@ async def get_config(db=Depends(get_db), _=Depends(require_platform_admin)):
 async def update_config(body: dict = Body(None), db=Depends(get_db),
                         _=Depends(require_platform_admin)):
     """REAL save (was a stub): persists telegram_bot_token / telegram_chat_id
-    to SystemConfig. Empty value clears the DB override (env fallback)."""
+    to SystemConfig. Empty value clears the DB override (env fallback).
+
+    v15-E5 (D4-H2): a MISSING botToken/telegram_bot_token key now means
+    «keep the stored token» — the admin page seeds the field empty while a
+    token exists (the masked «••••••••» placeholder used to ride the save
+    and 400 the whole request). Only an explicitly-present key is written;
+    an explicit empty string still clears (documented contract unchanged)."""
     if not body:
         raise HTTPException(400, "جسم الطلب JSON مطلوب")
+    import re as _re
+    # v15-E5 (D4-H2): detect key presence BEFORE the `or`-chain flattens
+    # "absent" into "" (which would clear the stored token).
+    token_key_present = "botToken" in body or "telegram_bot_token" in body
     token = str(body.get("botToken") or body.get("telegram_bot_token") or "").strip()
     chat_id = str(body.get("chatId") or body.get("telegram_chat_id") or "").strip()
 
-    import re as _re
     if token and not _re.match(r'^\d{6,12}:[A-Za-z0-9_-]{30,}$', token):
         raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA... من BotFather")
     if chat_id and not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', chat_id):
         raise HTTPException(400, "telegram_chat_id غير صالح — معرف رقمي أو @قناة")
 
+    # (key, value) pairs to persist — the token pair is SKIPPED entirely
+    # when its key was absent from the request (keep-stored-token semantics).
+    pairs: list[tuple[str, str]] = []
+    if token_key_present:
+        pairs.append(("telegram_bot_token", token))
+    pairs.append(("telegram_chat_id", chat_id))
+
     updated = []
-    for key, value in (("telegram_bot_token", token), ("telegram_chat_id", chat_id)):
+    for key, value in pairs:
         existing = await db.execute(select(SystemConfig).where(SystemConfig.key == key))
         row = existing.scalar_one_or_none()
         if value == "":

@@ -2,17 +2,26 @@ from __future__ import annotations
 
 """Reply pipeline — structured stages with error boundaries (extracted
 verbatim from the old monolithic ``bot.py``, v11-A2).
+
+v15-E1 — this module additionally hosts the MONEY CORE shared by every
+usage point (engine paths, onboarding, and — per plan §2 — E3's
+broadcast/campaign drains):
+
+  ``get_plan_limits(session, tenant_id)``  — the ONE plan-limits read point (D2-H1)
+  ``increment_replies_used(...)``          — atomic usage-counter increment (D12-H3)
+  ``money_gate_log(...)``                 — throttled tenant-scoped Arabic gate log
 """
 
 import asyncio
 import logging
 import time
+from datetime import datetime
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
 from fb_client import FBClient
-from models import Customer, Reply
-from sqlalchemy import select
+from models import BotLog, Customer, Reply, SubscriptionPlan, Tenant, UsageCounter
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from bot_engine.cooldown import CooldownManager
@@ -22,6 +31,184 @@ from bot_engine.text import TemplateRenderer
 
 log = logging.getLogger("fb-bot")
 
+
+# -------------------------------------------------------------------
+# v15-E1 money core — plan limits / usage counters / gate telemetry
+# -------------------------------------------------------------------
+
+#: One gate-rejection BotLog per (tenant, gate) per 5 minutes (D2-H1).
+_GATE_LOG_THROTTLE_SEC = 300.0
+_gate_log_throttle: dict[tuple[int, str], float] = {}
+
+
+def period_start_for(tenant) -> datetime:
+    """v15-D12-H3 — ONE normalized, DATE-based billing-period anchor.
+
+    Tenants with a plan anchor (``plan_start``) bill from that DATE (time
+    dropped); planless tenants anchor to the calendar-month start. Both the
+    counter READ (SUM of rows ``period_start >= anchor``) and the atomic
+    WRITE (``UPDATE ... WHERE period_start = :anchor``) agree on it, so
+    concurrent creators compute the SAME period and
+    ``uq_usage_tenant_metric_period`` can no longer be split apart (the old
+    ``period_start=utcnow()`` microsecond insert always differed). A plan
+    renewal moves the anchor → the new period starts at zero without row
+    surgery (this replaces the old cycle-only "self-heal" reset, which never
+    ran on Vercel anyway — D10-M6).
+    """
+    anchor = getattr(tenant, "plan_start", None) if tenant is not None else None
+    if anchor is None:
+        now = utcnow()
+        return datetime(now.year, now.month, 1)
+    return anchor.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _lapsed(tenant) -> bool:
+    """Expired-trial / lapsed-paid → BASIC tier only (D10-H1: the documented
+    "basic auto-replies stay on" — never the trialed plan's paid features)."""
+    status = getattr(tenant, "subscription_status", "") or ""
+    plan_end = getattr(tenant, "plan_end", None)
+    if status == "EXPIRED_TRIAL":
+        return True
+    return status == "UNPAID" and plan_end is not None and utcnow() > plan_end
+
+
+def _degraded_period_start(tenant) -> datetime:
+    """Anchor for lapsed states: the degradation MOMENT (plan_end date) —
+    the basic tier's quota starts fresh at expiry instead of inheriting the
+    trial's usage (which would immediately exhaust Free's max_replies and
+    silence the very "basic replies" the docs promise)."""
+    end = getattr(tenant, "plan_end", None)
+    if end is not None:
+        return end.replace(hour=0, minute=0, second=0, microsecond=0)
+    return period_start_for(tenant)
+
+
+async def get_plan_limits(session, tenant_id: int) -> dict | None:
+    """v15-D2-H1 — THE central plan-limits read point (fail-open).
+
+    Resolution:
+      * ``tenant.plan_id`` → that plan row (set on activation — the money path);
+      * planless tenant → the seeded ``Free`` tier row when it exists (the
+        entry tier — the "Free gets everything" funnel D2-H1 flags);
+      * no rows at all → ``None`` → UNLIMITED (fail-open, same doctrine as the
+        documented subscription-gate fail-open L10: never lose replies over a
+        missing seed / DB hiccup).
+    Lapsed states (EXPIRED_TRIAL, lapsed-UNPAID) degrade to the Free row's
+    limits with the anchor moved to the expiry moment.
+    """
+    if not tenant_id:
+        return None
+    tenant = await session.get(Tenant, tenant_id)
+    if tenant is None:
+        return None
+    plan = None
+    if tenant.plan_id:
+        plan = await session.get(SubscriptionPlan, tenant.plan_id)
+    lapsed = _lapsed(tenant)
+    if plan is None or lapsed:
+        free = (await session.execute(
+            select(SubscriptionPlan).where(SubscriptionPlan.name == "Free")
+        )).scalar_one_or_none()
+        if free is not None:
+            plan = free
+    if plan is None:
+        return None
+    anchor = _degraded_period_start(tenant) if lapsed else period_start_for(tenant)
+    used = await session.scalar(
+        select(func.coalesce(func.sum(UsageCounter.current_value), 0)).where(
+            UsageCounter.tenant_id == tenant_id,
+            UsageCounter.metric == "replies_used",
+            UsageCounter.period_start >= anchor,
+        )
+    ) or 0
+    return {
+        "plan_id": plan.id,
+        "plan_name": plan.name or "",
+        "plan_name_ar": plan.name_ar or "",
+        "max_replies": plan.max_replies,  # None → unlimited
+        "has_dm": bool(plan.has_dm),
+        "has_broadcast": bool(plan.has_broadcast),
+        "has_ai": bool(plan.has_ai),
+        "replies_used": int(used),
+        "period_start": anchor,
+    }
+
+
+async def increment_replies_used(session, tenant_id: int, n: int = 1,
+                                  period_start: datetime | None = None) -> bool:
+    """v15-D12-H3 — atomic usage increment (the ``_wallet.credit_wallet`` pattern).
+
+    ONE ``UPDATE usage_counters SET current_value = coalesce(current_value,0)+n
+    WHERE period_start = :anchor`` — no read-then-write, so concurrent
+    webhook/cycle increments never lose each other (the ORM
+    ``uc.current_value = (uc.current_value or 0) + 1`` pattern lost updates:
+    two sessions read 50, both write 51). Missing row → INSERT inside a
+    SAVEPOINT; a concurrent creator that won the unique constraint makes the
+    flush raise IntegrityError → the atomic UPDATE re-runs on the winner's row.
+    Does NOT commit — the caller owns the transaction.
+    """
+    if not tenant_id or not n:
+        return False
+    anchor = period_start if period_start is not None else period_start_for(None)
+
+    def _atomic_stmt():
+        # synchronize_session="fetch" is explicit: the SET expression cannot
+        # be evaluated in Python (same reason as credit_wallet).
+        return (
+            update(UsageCounter)
+            .execution_options(synchronize_session="fetch")
+            .where(
+                UsageCounter.tenant_id == tenant_id,
+                UsageCounter.metric == "replies_used",
+                UsageCounter.period_start == anchor,
+            )
+            .values(
+                current_value=func.coalesce(UsageCounter.current_value, 0) + n,
+                updated_at=utcnow(),
+            )
+        )
+
+    try:
+        result = await session.execute(_atomic_stmt())
+        if not result.rowcount:
+            try:
+                async with session.begin_nested():
+                    session.add(UsageCounter(
+                        tenant_id=tenant_id, metric="replies_used",
+                        period_start=anchor, current_value=max(n, 0),
+                    ))
+                    await session.flush()
+            except IntegrityError:
+                # a concurrent creator won uq_usage_tenant_metric_period —
+                # apply the atomic UPDATE on its row now
+                try:
+                    await session.execute(_atomic_stmt())
+                except Exception:
+                    return False
+        return True
+    except Exception as e:
+        log.warning("usage increment failed (tenant %s): %s", tenant_id, e)
+        return False
+
+
+async def money_gate_log(session, tenant_id: int, message: str, *, key: str) -> None:
+    """v15-D2-H1 — honest telemetry for money gates: a tenant-scoped Arabic
+    BotLog row the owner can SEE (/api/logs), throttled to one row per
+    (tenant, gate) per 5 minutes so a busy page can't flood the log."""
+    now = time.time()
+    k = (tenant_id, key)
+    if (now - _gate_log_throttle.get(k, 0.0)) < _GATE_LOG_THROTTLE_SEC:
+        return
+    _gate_log_throttle[k] = now
+    try:
+        session.add(BotLog(tenant_id=tenant_id, level="WARN", message=message))
+        await session.commit()
+    except Exception:
+        try:
+            await session.rollback()
+        except Exception:
+            pass
+
 # -------------------------------------------------------------------
 # Reply Pipeline (v2 — structured stages with error boundaries)
 # -------------------------------------------------------------------
@@ -29,16 +216,21 @@ log = logging.getLogger("fb-bot")
 class ReplyPipeline:
     """Pipeline with error boundaries per stage and diagnostics."""
 
-    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager, tenant_id: int = 0):
+    def __init__(self, fb: FBClient, dedup_engine, cooldown: CooldownManager,
+                 tenant_id: int = 0, plan_limits: dict | None = None):
         self.fb = fb
         self.dedup = dedup_engine
         self.cooldown = cooldown
         self._tenant_id = tenant_id
         self._mon = _get_monitor()
         self._diag = _get_diag(self._tenant_id)
+        # v15-D2-H1 — snapshot from get_plan_limits (the engine resolves it,
+        # cached 60s). None = unlimited (planless without a seeded Free row /
+        # DB error — the documented fail-open doctrine).
+        self._plan_limits = plan_limits or None
 
     async def process(self, session, raw_comment: dict, post_id: str,
-                      matcher: IntentAwareMatcher) -> bool:
+                      matcher: IntentAwareMatcher, send_attempts: int = 3) -> bool:
         """Returns True if a reply was sent. Each stage is isolated."""
         ctx = None
         try:
@@ -153,6 +345,23 @@ class ReplyPipeline:
             self._mon.error(f"render failed: {e}", module="pipeline")
             return False
 
+        # Stage 7.5: v15-D2-H1 — plan quota gate (max_replies) BEFORE sending.
+        # The snapshot's freshness is bounded by the engine's 60s limits cache
+        # (soft limit, documented); the counter INCREMENT itself is always exact.
+        if self._plan_limits and self._plan_limits.get("max_replies") is not None:
+            used = self._plan_limits.get("replies_used", 0)
+            cap = self._plan_limits["max_replies"]
+            if used >= cap:
+                await money_gate_log(
+                    session, self._tenant_id,
+                    f"تم الوصول إلى الحد الشهري للردود ({used}/{cap}) — توقّف الرد الآلي "
+                    "حتى ترقية الخطة أو تجديدها من صفحة الفواتير",
+                    key="max_replies",
+                )
+                self._mon.warn("plan quota exhausted — reply skipped",
+                               comment_id=ctx.cid[:12], module="pipeline")
+                return False
+
         user_type = "new"
         if user_ctx:
             user_type = "frequent" if user_ctx.is_frequent() else "returning" if user_ctx.is_returning() else "new"
@@ -160,9 +369,13 @@ class ReplyPipeline:
                        comment_id=ctx.cid[:12], intent=intent, rule_id=rule_id,
                        extra={"user_type": user_type, "sales_stage": sales_stage or ""})
 
-        # Stage 8: Send with exponential backoff
+        # Stage 8: Send with exponential backoff.
+        # v15-D8-B4 — the caller picks the attempt budget: the webhook path
+        # (fast_ack) gets ONE inline attempt so the HTTP 200 ACK to Facebook
+        # is not held behind Graph retries+backoff; the background cycle
+        # keeps the full retry budget (no ACK pressure there).
         result = None
-        max_attempts = 3
+        max_attempts = max(1, int(send_attempts))
         send_started = time.time()
         for attempt in range(max_attempts):
             try:
@@ -197,36 +410,64 @@ class ReplyPipeline:
         # Stage 8b: Send DM (private reply or messenger)
         dm_sent = False
         if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
-            try:
-                log.info(f"DM attempt to {ctx.from_first}: template={dm_template[:50]}")
-                dm_text = TemplateRenderer.render(dm_template, ctx)
-                # Strategy 1: Private reply — works when page has pages_manage_metadata
-                dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
-                if dm_result and not dm_result.get("_error"):
-                    dm_sent = True
-                else:
-                    fb_err = "(unknown)"
-                    if dm_result and dm_result.get("_error"):
-                        fb_err = dm_result.get("body", dm_result.get("error", fb_err))
-                    self._mon.warn(f"private_reply failed: {fb_err}", comment_id=ctx.cid[:12], module="pipeline")
-                    # Strategy 2: MESSAGE_TAG — works for opted-in users without prior conversation
-                    dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="MESSAGE_TAG", tag="POST_PURCHASE_UPDATE")
-                    if dm_result:
+            if self._plan_limits and self._plan_limits.get("has_dm") is False:
+                # v15-D2-H1 — has_dm was decorative (no enforcement point);
+                # the private reply to commenters now STOPS for plans without it.
+                await money_gate_log(
+                    session, self._tenant_id,
+                    "تم إيقاف الرد الخاص (DM) — ميزة الرد الخاص على التعليقات غير متاحة "
+                    "في خطتك الحالية، قم بالترقية من صفحة الفواتير لتفعيلها",
+                    key="has_dm",
+                )
+                self._mon.warn("DM skipped — has_dm plan gate",
+                               comment_id=ctx.cid[:12], module="pipeline")
+            else:
+                try:
+                    log.info(f"DM attempt to {ctx.from_first}: template={dm_template[:50]}")
+                    dm_text = TemplateRenderer.render(dm_template, ctx)
+                    # Strategy 1: Private reply — works when page has pages_manage_metadata
+                    dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
+                    if dm_result and not dm_result.get("_error"):
                         dm_sent = True
                     else:
-                        # Strategy 3: RESPONSE — requires user messaged page in last 24h
-                        dm_result = await self.fb.send_dm(ctx.from_id, dm_text, messaging_type="RESPONSE")
+                        fb_err = "(unknown)"
+                        if dm_result and dm_result.get("_error"):
+                            fb_err = dm_result.get("body", dm_result.get("error", fb_err))
+                        self._mon.warn(f"private_reply failed: {fb_err}",
+                                       comment_id=ctx.cid[:12], module="pipeline")
+                        # Strategy 2: MESSAGE_TAG — works for opted-in users without prior conversation
+                        dm_result = await self.fb.send_dm(
+                            ctx.from_id, dm_text,
+                            messaging_type="MESSAGE_TAG", tag="POST_PURCHASE_UPDATE")
                         if dm_result:
                             dm_sent = True
-                if dm_sent:
-                    self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
-                else:
-                    self._mon.warn("× DM failed after all strategies", comment_id=ctx.cid[:12], module="pipeline")
-            except Exception as e:
-                self._mon.warn(f"dm failed: {e}", comment_id=ctx.cid[:12], module="pipeline")
+                        else:
+                            # Strategy 3: RESPONSE — requires user messaged page in last 24h
+                            dm_result = await self.fb.send_dm(
+                                ctx.from_id, dm_text, messaging_type="RESPONSE")
+                            if dm_result:
+                                dm_sent = True
+                    if dm_sent:
+                        self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
+                    else:
+                        self._mon.warn("× DM failed after all strategies",
+                                       comment_id=ctx.cid[:12], module="pipeline")
+                except Exception as e:
+                    self._mon.warn(f"dm failed: {e}", comment_id=ctx.cid[:12], module="pipeline")
 
-        # Stage 9: Log to DB
+        # Stage 9: Log to DB (+ unified usage counting — v15-D2-H3/D12-H3)
         try:
+            # +1 atomically in the SAME transaction as the Reply row — this is
+            # the ONE counting point serving BOTH comment paths (cycle +
+            # webhook; the webhook path previously never counted at all).
+            # Counted BEFORE adding the Reply row so the increment's
+            # SAVEPOINT flush never sees the pending row (a duplicate-reply
+            # IntegrityError from that flush would be misread as the counter's
+            # create race); this stage's IntegrityError rollback reverts both.
+            await increment_replies_used(
+                session, self._tenant_id, 1,
+                period_start=(self._plan_limits or {}).get("period_start"),
+            )
             session.add(Reply(
                 tenant_id=self._tenant_id,
                 fb_comment_id=ctx.cid,

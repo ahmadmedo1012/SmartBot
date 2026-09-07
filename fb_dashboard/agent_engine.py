@@ -29,7 +29,6 @@ _ADMIN_ONLY_TOOLS = frozenset({
 _agent_brain = None
 _agent_memory = None
 _agent_tools = None
-_fb_client = None
 
 
 def _get_brain():
@@ -54,13 +53,30 @@ def _get_tools():
     return _agent_tools
 
 
-def _get_fb():
-    global _fb_client
-    if _fb_client is None:
-        from config import settings
-        from fb_client import FBClient
-        _fb_client = FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
-    return _fb_client
+async def _get_fb(tenant_id: int = 0):
+    """v15-E4 (D2-H4): per-tenant Facebook client for the agent's tools.
+
+    Before: a module-level PLATFORM client was built once from
+    ``settings.FACEBOOK_ACCESS_TOKEN/PAGE_ID`` and cached forever — in
+    multi-tenant production both are empty (documented on
+    ``has_global_fb_credentials``), so «انشر بوست…» / «رد على التعليق…» via
+    the agent was a dead path; and in a legacy single-tenant deployment any
+    tenant admin published through the PLATFORM's page instead of their own.
+
+    Now the caller's tenant gets ITS OWN client via ``get_tenant_fb_client``
+    (BotState credentials). The platform env client is served ONLY for the
+    legacy single-tenant space (tenant 0) when global credentials exist.
+    Returns None when the tenant has no connected page — the callers answer a
+    safe Arabic failure instead of a silent Graph call.
+    """
+    if tenant_id == 0:
+        from _services import has_global_fb_credentials
+        if has_global_fb_credentials():
+            from config import settings
+            from fb_client import FBClient
+            return FBClient(settings.FACEBOOK_ACCESS_TOKEN, settings.FACEBOOK_PAGE_ID)
+    from _services import get_tenant_fb_client
+    return await get_tenant_fb_client(tenant_id)
 
 
 class AgentEngine:
@@ -190,18 +206,25 @@ class AgentEngine:
                        tenant_id: int = 0, role: str = "viewer") -> dict:
         """Execute a tool action. Handles all registered tools.
 
-        v10-A2 permission gate: these tools act with the PLATFORM's Facebook
-        client (_fb_client) or on the PLATFORM bot task — the tenant-scoped
-        equivalents don't exist yet, so until they do the gate matches the
-        dedicated routes (bot.py stop_bot/restart_bot = admin-only).
+        v10-A2 permission gate: platform-level tools (bot stop/restart, …)
+        stay admin-only, matching the dedicated routes. Facebook tools
+        (publish/reply) act with the CALLER's tenant client (v15-E4/D2-H4:
+        ``_get_fb(tenant_id)`` — the tenant's own connected page, never the
+        platform env client).
         """
         if action in _ADMIN_ONLY_TOOLS and role != "admin":
             return {"success": False,
                     "message_ar": "هذا الإجراء يتطلب صلاحيات مسؤول — اطلبه من مدير مساحة عملك"}
         try:
-            fb = _get_fb()
+            # v15-E4 (D2-H4): the CALLER's tenant client (None = unconnected —
+            # the fb-using tools below fail safe with an Arabic message; the
+            # non-fb tools keep working). No platform-wide client anymore.
+            fb = await _get_fb(tenant_id)
 
             if action == "publish_post":
+                if fb is None:
+                    return {"success": False,
+                            "message_ar": "لا توجد صفحة فيسبوك مربوطة بمساحتك — اربط صفحتك أولاً من إعدادات فيسبوك ثم أعد المحاولة"}
                 msg = params.get("message", "")
                 img = params.get("image_url", "")
                 if img:
@@ -214,6 +237,9 @@ class AgentEngine:
                 return {"success": False, "message_ar": "فشل النشر على فيسبوك"}
 
             elif action == "reply_to_comment":
+                if fb is None:
+                    return {"success": False,
+                            "message_ar": "لا توجد صفحة فيسبوك مربوطة بمساحتك — اربط صفحتك أولاً من إعدادات فيسبوك ثم أعد المحاولة"}
                 cid = params.get("comment_id", "")
                 msg = params.get("message", "")
                 if not cid:

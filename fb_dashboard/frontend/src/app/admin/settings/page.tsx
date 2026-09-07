@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 /* v12-E5.1: framer-motion left this route — entrances are the CSS twins
  * .sb-fade-up (components/shared/enter-motion.css): 1:1 copy of lib/motion.ts
@@ -220,19 +220,18 @@ export default function AdminSettingsPage() {
     }
     setSaving(true)
     try {
-      const r = await apiFetch("/api/admin/config", {
+      /* v15-E5 (D4-H5): apiFetch THROWS on !ok — the old `if (r.ok) … else …`
+       * was dead code and the catch showed «خطأ في الاتصال» instead of the
+       * backend's Arabic detail (e.g. a 403 for a tenant admin reaching the
+       * platform-only endpoint). */
+      await apiFetch("/api/admin/config", {
         method: "POST",
         body: JSON.stringify(changed),
       })
-      if (r.ok) {
-        brandedToast.success("تم حفظ الإعدادات — تسري فوراً على الموقع")
-        await load()
-      } else {
-        const body = await r.json().catch((): null => null)
-        brandedToast.error(body?.detail || "فشل الحفظ")
-      }
-    } catch {
-      brandedToast.error("خطأ في الاتصال")
+      brandedToast.success("تم حفظ الإعدادات — تسري فوراً على الموقع")
+      await load()
+    } catch (e) {
+      brandedToast.error(e instanceof ApiError ? e.message : "فشل الحفظ")
     }
     setSaving(false)
   }
@@ -240,15 +239,15 @@ export default function AdminSettingsPage() {
   const sendTelegramTest = async () => {
     setTesting(true)
     try {
-      const r = await apiFetch("/api/telegram/test", { method: "POST" })
-      if (r.ok) {
-        brandedToast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
-      } else {
-        const body = await r.json().catch((): null => null)
-        brandedToast.error(body?.detail || "فشل الإرسال — احفظ رمز البوت أولاً")
-      }
-    } catch {
-      brandedToast.error("خطأ في الاتصال")
+      /* v15-E5 (D4-H5): same dead-branch removal — the backend's Arabic
+       * detail («لم يتم إعداد توكن البوت…» / «فشل الإرسال — تحقق من
+       * التوكن…») surfaces verbatim instead of «خطأ في الاتصال». */
+      await apiFetch("/api/telegram/test", { method: "POST" })
+      brandedToast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
+    } catch (e) {
+      brandedToast.error(
+        e instanceof ApiError ? e.message : "فشل الإرسال — احفظ رمز البوت أولاً",
+      )
     }
     setTesting(false)
   }

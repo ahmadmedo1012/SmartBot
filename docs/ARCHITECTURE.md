@@ -1,6 +1,6 @@
 # SmartBot — المعمارية (ARCHITECTURE)
 
-> هذا المستند يصف الكود كما هو فعلًا (v5، 2026-09-06). كل ادعاء قابل للتحقق من الملفات المذكورة. للقراءة التمهيطية: `README.md`.
+> هذا المستند يصف الكود كما هو فعلًا (حُدّث في v15، 2026-09-08). كل ادعاء قابل للتحقق من الملفات المذكورة. للقراءة التمهيطية: `README.md`.
 
 ## 1. نظرة عامة
 
@@ -28,11 +28,11 @@ Facebook Graph API ⇄ Webhook (POST /webhook)
 
 | الوحدة | الدور | ملاحظات حتمية |
 |---|---|---|
-| `runner.py` | تطبيق FastAPI: middlewares (أمن/CSRF/تسجيل)، تسجيل 25+ router، lifespan (reconcile + seed) | كل router يُسجَّل **قبل** الـ SPA catch-all |
+| `runner.py` | تطبيق FastAPI: middlewares (أمن/CSRF/تسجيل)، تسجيل 25+ router (238 endpoint عبر 44 ملف مسارات)، lifespan (reconcile + seed) | كل router يُسجَّل **قبل** الـ SPA catch-all |
 | `bot.py` | محرك الردود: قواعد بأولويات، نافذة 24 ساعة، تبريد، dedup | مثيل لكل مستأجر ( `_services._bot_engines`) |
 | `messenger_service.py` | خط الماسنجر: webhook → Conversation/Message → مطابقة قواعد → رد | إعادة تسليم FB تُتخطى (dedup بـ mid) |
 | `routers/*` | 25+ ملف مسارات | **العقد**: كل نقطة ترجع `{"success": bool, "data": …}` عبر `_responses.ok()/fail()` |
-| `models.py` | ~40 نموذج SQLAlchemy، كلها تحمل `tenant_id` (عدا جداول المنصة) | الفهارات الساخنة: انظر migration 010 |
+| `models.py` | 48 جدول SQLAlchemy، كلها تحمل `tenant_id` (عدا جداول المنصة) | الفهارس الساخنة: ترحيلات 010 + 013 + 014 (قيود التفرد + server_defaults) |
 | `database.py` | المحرك: NullPool لـ Neon (serverless)، StaticPool للاختبار | TLS بتحقق كامل من الشهادة |
 | `config.py` | pydantic-settings + fail-fast إنتاجي (SECRET_KEY/CRON_SECRET/FERNET_KEY) | `DEBUG=True` يرخي الفحوص للتطوير فقط |
 | `frontend/` | Next.js 16 App Router، RTL عربية، توكنز Smart-Menu (Readex Pro) | اتصال عبر `apiFetch` يفكّ `data` تلقائيًا |

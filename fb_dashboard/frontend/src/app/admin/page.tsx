@@ -18,8 +18,7 @@ import { Badge } from "@/components/ui/badge"
  * lib/motion.ts fadeUp (0.5s cubic-bezier(0.165,0.84,0.44,1), y24→0),
  * guarded by prefers-reduced-motion. */
 import "@/components/shared/enter-motion.css"
-import type { ApiErrorBody } from "@/lib/types"
-import { apiFetch } from "@/lib/csrf-client"
+import { apiFetch, ApiError } from "@/lib/csrf-client"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { formatDateOnly, formatNumber } from "@/lib/format"
@@ -106,14 +105,20 @@ export default function AdminPage() {
   const handleAction = useCallback(async (id: number, status: string) => {
     setActionId(id)
     try {
-      const r = await apiFetch("/api/admin/subscriptions", {
+      /* v15-E5 (D4-H5): apiFetch throws ApiError on any non-2xx — the old
+       * `if (!r.ok)` branch was unreachable dead code and the generic catch
+       * showed «خطأ في الاتصال» instead of the backend's Arabic detail
+       * (e.g. «الدفعة غير موجودة أو تمت معالجتها» for a double-click on a
+       * payment another admin already resolved). */
+      await apiFetch("/api/admin/subscriptions", {
         method: "POST",
         body: JSON.stringify({ id, status }),
       })
-      if (!r.ok) { const d = await r.json().catch(() => ({})); brandedToast.error((d as ApiErrorBody)?.error || (d as ApiErrorBody)?.detail || "فشل"); return }
       brandedToast.success(status === "verified" ? "تم تأكيد الاشتراك" : "تم رفض الطلب")
       fetchPayments()
-    } catch { brandedToast.error("خطأ في الاتصال") }
+    } catch (e) {
+      brandedToast.error(e instanceof ApiError ? e.message : "خطأ في الاتصال")
+    }
     setActionId(null)
   }, [fetchPayments])
 
@@ -252,7 +257,9 @@ export default function AdminPage() {
                 <tbody>
                   {payments.map((p) => (
                     <tr key={p.id} className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
-                      <td className="p-3 font-medium" data-label="المستخدم">{p.username}</td>
+                      {/* v15-E6 (D5-M7): usernames are live values (Latin/mixed) —
+                          dir="auto" isolates bidi like the phone cell above. */}
+                      <td className="p-3 font-medium" data-label="المستخدم" dir="auto">{p.username}</td>
                       <td className="p-3" data-label="الخطة">{p.plan}</td>
                       <td className="p-3" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
                       <td className="p-3 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>

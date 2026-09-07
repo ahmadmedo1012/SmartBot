@@ -34,3 +34,43 @@ export function resolveSentryDsn(envValue: string | undefined): string | null {
 export function isSentryEnabled(envValue: string | undefined): boolean {
   return resolveSentryDsn(envValue) !== null
 }
+
+/**
+ * v15-E6 (D14-H2) — release resolution: every event must carry the SHA that
+ * was ACTUALLY built and deployed, so Sentry can bind issues to a deployment.
+ *
+ * Chain:
+ *   1. NEXT_PUBLIC_SENTRY_RELEASE / SENTRY_RELEASE — the build script exports
+ *      both (package.json "build": r=$(git rev-parse --short HEAD); …). The
+ *      client inlines the NEXT_PUBLIC_ name at build time; the server file
+ *      reads the other one. Explicit values pass through VERBATIM (trimmed).
+ *   2. VERCEL_GIT_COMMIT_SHA — the platform-provided full 40-char SHA,
+ *      available at build AND runtime on every Vercel deployment; shortened
+ *      to 7 chars to match the `git rev-parse --short HEAD` convention.
+ *   3. undefined — no honest release to report (event stays untagged, as
+ *      before; the DSN gate still applies independently).
+ *
+ * Why a resolver at all: build-shell env vars do NOT persist into the Vercel
+ * serverless runtime, which is exactly how 100% of live frontend events
+ * shipped with release=null (D14: the v14-claimed release `541b7585` does
+ * not exist in Sentry at all). next.config.ts feeds this resolver into the
+ * Next `env` gate, which INLINES the resolved literal into both bundles at
+ * build time — see next.config.ts.
+ */
+export type SentryReleaseEnv = {
+  // index signature: accepts `process.env` (ProcessEnv) directly at the
+  // next.config.ts gate — TS otherwise flags a weak type with no common props.
+  [key: string]: string | undefined
+  NEXT_PUBLIC_SENTRY_RELEASE?: string | undefined
+  SENTRY_RELEASE?: string | undefined
+  VERCEL_GIT_COMMIT_SHA?: string | undefined
+}
+
+export function resolveSentryRelease(env: SentryReleaseEnv): string | undefined {
+  const explicit = (env.NEXT_PUBLIC_SENTRY_RELEASE ?? env.SENTRY_RELEASE ?? "").trim()
+  if (explicit) return explicit
+  const sha = (env.VERCEL_GIT_COMMIT_SHA ?? "").trim()
+  // Vercel provides the full commit SHA; the build-script convention is the
+  // 7-char short form — keep the two spellings of the same release identical.
+  return sha ? sha.slice(0, 7) : undefined
+}

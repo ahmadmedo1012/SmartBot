@@ -38,8 +38,10 @@ async def _make_fixture():
     session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
     import routers.payments as payments_mod
-    orig_al = payments_mod.AsyncSessionLocal
-    payments_mod.AsyncSessionLocal = session_factory  # rate limiter sessions
+    orig_al = payments_mod.wallet.AsyncSessionLocal
+    payments_mod.wallet.AsyncSessionLocal = session_factory  # rate limiter sessions
+    # v13-L4: payments.py decomposed — topup/confirm rate limiting lives in
+    # the payments.wallet module (_payment_rate_limit).
 
     async def override_get_db():
         async with session_factory() as session:
@@ -55,7 +57,7 @@ async def _teardown(fixture):
     from database import get_db
     app, _sf, te, client, (payments_mod, orig_al) = fixture
     app.dependency_overrides.pop(get_db, None)
-    payments_mod.AsyncSessionLocal = orig_al
+    payments_mod.wallet.AsyncSessionLocal = orig_al
     await client.aclose()
     await te.dispose()
 

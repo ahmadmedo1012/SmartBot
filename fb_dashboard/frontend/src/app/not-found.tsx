@@ -3,6 +3,8 @@ import Link from "next/link"
 export default function NotFound() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
+      {/* v13-D9-K4: 404 screens replace the page tree — skip-link target. */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="text-center max-w-md">
         <div className="mb-6">
           <h1 className="text-7xl font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 bg-clip-text text-transparent">

@@ -189,7 +189,7 @@ class AIService:
             elif self._provider == PROVIDER_GEMINI:
                 return await self._gemini_suggest(prompt)
         except Exception as e:
-            log.error(f"AI suggestion error: {e}")
+            log.error(f"AI suggestion error: {e}", exc_info=True)
         return self._fallback_suggestions(text, name)
 
     async def _openai_suggest(self, prompt: str) -> dict:
@@ -250,7 +250,7 @@ class AIService:
                 r = await model.generate_content_async(f"{_ANALYZE_TONE_SYSTEM}\n\n{prompt}")
                 return self._parse_ai_json(r.text)
         except Exception as e:
-            log.error(f"Tone analysis error: {e}")
+            log.error(f"Tone analysis error: {e}", exc_info=True)
         return {"sentiment": "neutral", "intent": "neutral", "urgency": 0.0, "key_topics": [], "summary": ""}
 
     # ------------------------------------------------------------------
@@ -287,7 +287,7 @@ class AIService:
                 r = await model.generate_content_async(prompt)
                 return (r.text or "").strip()
         except Exception as e:
-            log.error(f"Generate reply error: {e}")
+            log.error(f"Generate reply error: {e}", exc_info=True)
         return None
 
     # ------------------------------------------------------------------
@@ -319,7 +319,7 @@ class AIService:
 
                 image_url = f"data:image/jpeg;base64,{await asyncio.to_thread(_read_image_b64)}"
             except Exception as e:
-                log.error(f"analyze_image read error: {e}")
+                log.error(f"analyze_image read error: {e}", exc_info=True)
                 return ""
 
         try:
@@ -328,7 +328,7 @@ class AIService:
             elif self._provider == PROVIDER_GEMINI and self._google_module:
                 return await self._gemini_vision(image_url, prompt)
         except Exception as e:
-            log.error(f"analyze_image error: {e}")
+            log.error(f"analyze_image error: {e}", exc_info=True)
         return ""
 
     async def _openai_vision(self, image_url: str, prompt: str) -> str:

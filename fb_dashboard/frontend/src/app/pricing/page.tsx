@@ -41,9 +41,9 @@ export default function PricingPage() {
   const loadPlans = useCallback(() => {
     setLoadState("loading")
     apiFetch("/api/plans")
-      .then(unwrapApi)
-      .then(d => {
-        setPlans(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []))
+      .then((res) => unwrapApi<Plan[]>(res))
+      .then((d) => {
+        setPlans(d ?? [])
         setLoadState("ok")
       })
       .catch(() => setLoadState("error"))

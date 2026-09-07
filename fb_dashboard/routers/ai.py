@@ -167,7 +167,7 @@ async def agent_interpret(
     except Exception as e:
         import traceback
         tb = traceback.format_exc()
-        log.error(f"agent.process failed: {e}\n{tb}")
+        log.error(f"agent.process failed: {e}\n{tb}", exc_info=True)
         # v8-A8: envelope contract (ok/fail) + never leak internal exception
         # detail (the old str(e)[:200] reached the client verbatim).
         return fail("حدث خطأ أثناء معالجة طلب المساعد الذكي — حاول مرة أخرى")

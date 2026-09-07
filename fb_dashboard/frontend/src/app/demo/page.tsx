@@ -341,6 +341,7 @@ function RepliesTab() {
             <input
               disabled
               placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
+              aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
               className="flex-1 h-11 rounded-xl border border-input/60 bg-muted/50 px-4 text-sm"
             />
             <Button variant="orange" size="icon" aria-label="إرسال" disabled>

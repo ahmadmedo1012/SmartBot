@@ -45,8 +45,16 @@ async def _make_app_fixture():
     session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
     # payments rate-limiter + bot cycle use AsyncSessionLocal directly → patch to test DB
-    orig_payments_al, orig_bot_al = payments_mod.AsyncSessionLocal, bot_mod.AsyncSessionLocal
-    payments_mod.AsyncSessionLocal = session_factory
+    # v13-L4: payments.py decomposed — the /api/subscriptions inline limiter now
+    # lives in payments.plans; the topup/confirm/upgrade/upload limiter in
+    # payments.wallet (_payment_rate_limit). Patch both owning modules.
+    orig_w_al, orig_p_al, orig_bot_al = (
+        payments_mod.wallet.AsyncSessionLocal,
+        payments_mod.plans.AsyncSessionLocal,
+        bot_mod.AsyncSessionLocal,
+    )
+    payments_mod.wallet.AsyncSessionLocal = session_factory
+    payments_mod.plans.AsyncSessionLocal = session_factory
     bot_mod.AsyncSessionLocal = session_factory
 
     async def override_get_db():
@@ -54,14 +62,15 @@ async def _make_app_fixture():
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    return app, session_factory, test_engine, (payments_mod, bot_mod, orig_payments_al, orig_bot_al)
+    return app, session_factory, test_engine, (payments_mod, bot_mod, orig_w_al, orig_p_al, orig_bot_al)
 
 
 async def _teardown(fixture):
     from database import get_db
-    app, _sf, test_engine, (payments_mod, bot_mod, orig_p, orig_b) = fixture
+    app, _sf, test_engine, (payments_mod, bot_mod, orig_w, orig_p, orig_b) = fixture
     app.dependency_overrides.pop(get_db, None)
-    payments_mod.AsyncSessionLocal = orig_p
+    payments_mod.wallet.AsyncSessionLocal = orig_w
+    payments_mod.plans.AsyncSessionLocal = orig_p
     bot_mod.AsyncSessionLocal = orig_b
     await test_engine.dispose()
     # clear in-memory API cache so later tests don't see stale /api/config

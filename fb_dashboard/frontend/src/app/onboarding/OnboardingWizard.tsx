@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from "react"
-/* v12-E5.1: the ROOT MotionConfig in app/providers.tsx is gone (it shipped
- * framer-motion into every route's base chunk). This wizard is the LAST
- * JS-motion consumer and it already loads via dynamic(ssr:false) from
- * AuthGuard — so it carries its OWN reducedMotion="user" config here and
- * the motion engine stays inside this lazy chunk only (v8-C2 parity). */
-import { motion, AnimatePresence, MotionConfig } from "framer-motion"
+/* v13-L1: the JS motion engine is gone from this file entirely — the three
+ * entrances (panel rise, icon pop, step-content fade) are pure-CSS twins
+ * (ob-* classes in WIZARD_MOTION_CSS below, injected via one <style> tag).
+ * Timing mirrors the old motion props 1:1 (0.25s ease-out panel, 0.3s
+ * cubic-bezier(0.25,0.1,0.35,1) fades, 100ms icon delay), disabled under
+ * prefers-reduced-motion. key={step} remounts the subtree per step so the
+ * CSS animations replay exactly like the old initial/animate mounts did. */
 import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 import {
@@ -38,6 +39,18 @@ interface PlanPreview {
   price: number
   features: string[]
 }
+
+const WIZARD_MOTION_CSS = `
+@keyframes ob-step-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ob-icon-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes ob-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.ob-step-enter { animation: ob-step-in 0.25s ease-out backwards; }
+.ob-icon-pop { animation: ob-icon-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) 0.1s backwards; }
+.ob-fade-in { animation: ob-fade-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .ob-step-enter, .ob-icon-pop, .ob-fade-in { animation: none; }
+}
+`
 
 const STEPS = [
   {
@@ -104,11 +117,13 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   // Step 3 (index 3): real plans from API
   const [plans, setPlans] = useState<PlanPreview[]>([])
   useEffect(() => {
+    // v13-L3 (dec-envelope-prune): /api/plans returns ok([...]) since v12 —
+    // unwrapApi is the single envelope path; `?? []` is null-safety only
+    // (bad JSON resolves null), not a dual-shape guard.
     apiFetch("/api/plans")
-      .then(unwrapApi)
+      .then((res) => unwrapApi<PlanPreview[]>(res))
       .then((d) => {
-        const list = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : [])
-        setPlans(list.filter((p: PlanPreview) => Number(p.price) > 0).slice(0, 3))
+        setPlans((d ?? []).filter((p: PlanPreview) => Number(p.price) > 0).slice(0, 3))
       })
       .catch(() => {/* keep empty — the CTA link still works */})
   }, [])
@@ -184,10 +199,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         method: "POST",
         body: JSON.stringify({ keyword }),
       })
-      const d = await res.json()
-      if (d?.data?.suggestion) {
-        setReply(d.data.suggestion)
-        brandedToast.success(d.data.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
+      // v13-L3 (dec-envelope-prune): ok({suggestion, source}) since v12 —
+      // unwrapApi replaces the raw json() + `d?.data?.` tolerance.
+      const d = await unwrapApi<{ suggestion: string; source: string }>(res)
+      if (d?.suggestion) {
+        setReply(d.suggestion)
+        brandedToast.success(d.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
       }
     } catch {
       brandedToast.error("تعذر الاقتراح — اكتب الرد يدوياً")
@@ -267,7 +284,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   }, [handleBack])
 
   return (
-    <MotionConfig reducedMotion="user">
+    <>
+    <style dangerouslySetInnerHTML={{ __html: WIZARD_MOTION_CSS }} />
     <div
       ref={panelRef}
       role="dialog"
@@ -280,14 +298,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-accent-foreground/5 to-transparent" />
       </div>
 
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -16 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="relative w-full max-w-lg mx-4"
-      >
+      <div key={step} className="ob-step-enter relative w-full max-w-lg mx-4">
         {/* Progress bar */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-3">
@@ -320,28 +331,17 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         <div className="rounded-2xl border border-border/60 bg-card/90 shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl">
           {/* Header */}
           <div className="p-8 pb-6 text-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25"
-            >
+            <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25">
               <Icon className="size-8 text-white" />
-            </motion.div>
+            </div>
             <h2 id="onboarding-step-title" className="text-xl font-bold mb-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
           </div>
 
           {/* Step-specific content */}
           <div className="px-8 pb-4">
-            <AnimatePresence mode="wait">
               {step === 1 && (
-                <motion.div
-                  key="connect-form"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-3"
-                >
+                <div key="connect-form" className="ob-fade-in space-y-3">
                   <Input
                     label="معرف الصفحة (Page ID)"
                     id="pageId"
@@ -356,7 +356,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     type="password"
                     value={accessToken}
                     onChange={(e) => setAccessToken(e.target.value)}
-                    placeholder="EAAG..."
+                    placeholder="EAAG…"
                     dir="ltr"
                     hint="من Graph API Explorer بصلاحيات الصفحة — يُشفّر فور الحفظ"
                   />
@@ -376,7 +376,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     disabled={testing}
                   >
                     {testing ? <Loader2 className="size-3.5 animate-spin" /> : <Link2 className="size-3.5" />}
-                    {testing ? "جارٍ اختبار الاتصال..." : "اختبار الاتصال قبل التأكيد"}
+                    {testing ? "جارٍ اختبار الاتصال…" : "اختبار الاتصال قبل التأكيد"}
                   </Button>
                   {testResult && (
                     <div
@@ -410,16 +410,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     </a>{" "}
                     بعد اختيار صفحتك والصلاحيات.
                   </p>
-                </motion.div>
+                </div>
               )}
 
               {step === 2 && (
-                <motion.div
-                  key="rule-form"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-3"
-                >
+                <div key="rule-form" className="ob-fade-in space-y-3">
                   <Input
                     label="كلمة مفتاحية"
                     id="keyword"
@@ -451,7 +446,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       id="reply"
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
-                      placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل..."
+                      placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل…"
                       rows={3}
                       className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
@@ -459,16 +454,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
                     </p>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {step === 3 && (
-                <motion.div
-                  key="subscribe-info"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-3"
-                >
+                <div key="subscribe-info" className="ob-fade-in space-y-3">
                   <div className="grid grid-cols-3 gap-2">
                     {(plans.length > 0
                       ? plans.map((p) => ({
@@ -500,16 +490,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   >
                     <CreditCard className="size-3" /> عرض كل الباقات
                   </Button>
-                </motion.div>
+                </div>
               )}
 
               {step === 4 && (
-                <motion.div
-                  key="done-content"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center gap-4 py-2"
-                >
+                <div key="done-content" className="ob-fade-in flex flex-col items-center gap-4 py-2">
                   <CheckCircle2 className="size-16 text-success" />
                   <div className="text-center space-y-1">
                     <p className="text-sm font-medium">مرحباً بك!</p>
@@ -534,9 +519,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       </button>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
           </div>
 
           {/* Footer nav */}
@@ -577,8 +561,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             </Button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
-    </MotionConfig>
+    </>
   )
 }

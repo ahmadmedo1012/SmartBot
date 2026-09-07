@@ -56,7 +56,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
         return {"ok": True}
     data = cq.get("data", "")
     colon = data.find(":")
-    if colon == -1 or not (data.startswith("pay_") or data.startswith("sub_")):
+    if colon == -1 or not data.startswith(("pay_", "sub_")):
         return {"ok": True}
     action = data[:colon]
     # v11 fix (BUG found by test_v11_telegram): malformed callback payloads
@@ -178,7 +178,7 @@ async def _run_bot_loop():
             # failure must reach Sentry with its traceback, not just a
             # one-line message (it could error for days while dashboards
             # stay green).
-            log.error("Bot loop error", exc_info=True)
+            log.exception("Bot loop error")
             try:
                 from _observability import capture_exception
 

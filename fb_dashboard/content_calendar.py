@@ -209,5 +209,5 @@ class CalendarScheduler:
                 async with AsyncSessionLocal() as session:
                     await self.engine.process_due_posts(session)
             except Exception as e:
-                log.error(f"CalendarScheduler error: {e}")
+                log.error(f"CalendarScheduler error: {e}", exc_info=True)
             await asyncio.sleep(60)

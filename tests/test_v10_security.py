@@ -530,7 +530,7 @@ async def test_d1_wallet_cap_enforced_from_system_config(v10_seed, monkeypatch):
     import routers.payments as payments_mod
     from models import SystemConfig
 
-    monkeypatch.setattr(payments_mod, "AsyncSessionLocal", v10_seed.world.sf)
+    monkeypatch.setattr(payments_mod.wallet, "AsyncSessionLocal", v10_seed.world.sf)  # v13-L4: limiter lives in payments.wallet
     buyer, tid, _uid = await v10_seed.tenant_user(tenant_name="D1-Cap")
     async with v10_seed.world.sf() as db:
         db.add(SystemConfig(key="mobile_wallet_cap", value="150", is_secret=False))
@@ -556,7 +556,7 @@ async def test_d1_wallet_cap_env_fallback_without_db_row(v10_seed, monkeypatch):
     import routers.payments as payments_mod
     from config import settings
 
-    monkeypatch.setattr(payments_mod, "AsyncSessionLocal", v10_seed.world.sf)
+    monkeypatch.setattr(payments_mod.wallet, "AsyncSessionLocal", v10_seed.world.sf)  # v13-L4: limiter lives in payments.wallet
     buyer, _tid, _uid = await v10_seed.tenant_user(tenant_name="D1-Env")
     await v10_seed.login(buyer)
 

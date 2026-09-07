@@ -99,7 +99,8 @@ export default function ConnectPage() {
 
   if (loadingExisting) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+        <span className="sr-only">جارٍ التحميل…</span>
         <Loader2 className="h-8 w-8 animate-spin text-accent-foreground" />
       </div>
     )

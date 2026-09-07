@@ -176,7 +176,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
             "recent_replies": recent_replies,
         })
     except Exception:
-        log.error("dashboard_bundle error", exc_info=True)
+        log.exception("dashboard_bundle error")
         raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً") from None
 
 

@@ -13,7 +13,8 @@ export default function SubscribePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+          <span className="sr-only">جارٍ التحميل…</span>
           <Loader2 className="size-8 animate-spin text-primary" />
         </div>
       }

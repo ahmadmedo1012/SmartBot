@@ -9,6 +9,18 @@ to `tenant_id` and queries are filtered by it.
 Production data without an explicit tenant is reassigned to the
 default tenant (id=0, slug='default') so multi-tenant isolation
 can be enforced without losing existing rows.
+
+v13 §1 L6 (E4) — إصلاح dec-alembic-003: الإدراج أصبح يطابق شكل
+الجدول الفعلي. الترحيل 001 يشغّل Base.metadata.create_all أولًا
+فيولد جدول tenants بشكل النموذج (models.py — بلا slug)، ثم كان
+الإدراج القديم بعمود slug يفشل على PostgreSQL نظيفة (42703)
+فتعلّق السلسلة عند 002 صمتًا (الابتلاع في startup.py أخفاه أسابيع).
+الآن يُبنى الإدراج من أعمدة الـ inspector الفعلية: بعمود slug عند
+وجوده (الشكل القديم من فرع create_table أدناه)، وبلا slug على شكل
+create_all — كلاهما بـ ON CONFLICT (id) DO NOTHING. سلوك SQLite
+كما هو (لا بذر)، ولا-op في الإنتاج (alembic_version تجاوز 003 فلا
+يُعاد تشغيله هناك)؛ الفائدة: PostgreSQL نظيفة (staging/نسخ محلية)
+تمر والسلسلة تكمل، وبيئات عالقة عند 002 تُشفّى ذاتيًا في الإقلاع التالي.
 """
 from alembic import op
 import sqlalchemy as sa
@@ -18,6 +30,27 @@ revision = "003"
 down_revision = "002"
 branch_labels = None
 depends_on = None
+
+
+def _default_tenant_insert(cols: set[str]) -> str:
+    """INSERT بذرة المستأجر الافتراضي (id=0) مطابقًا لشكل الجدول الفعلي.
+
+    فرع create_table أعلاه يعرّف عمود slug NOT NULL (الشكل القديم)،
+    بينما يخلق 001 الجدول بشكل النموذج عبر create_all — بلا slug.
+    الدالة تعيد إدراجًا بعمود slug عندما يوجد في ``cols`` (أعمدة
+    الـ inspector الفعلية) وإدراجًا مطابقًا لشكل النموذج بدونه.
+    """
+    if "slug" in cols:
+        return (
+            "INSERT INTO tenants (id, slug, name, plan, is_active) "
+            "VALUES (0, 'default', 'Default Tenant', 'free', true) "
+            "ON CONFLICT (id) DO NOTHING"
+        )
+    return (
+        "INSERT INTO tenants (id, name, plan, is_active) "
+        "VALUES (0, 'Default Tenant', 'free', true) "
+        "ON CONFLICT (id) DO NOTHING"
+    )
 
 
 def upgrade() -> None:
@@ -47,11 +80,10 @@ def upgrade() -> None:
     # used throughout the codebase: tenant_id is non-nullable INTEGER
     # defaulting to 0 for legacy rows).
     if dialect == "postgresql":
-        op.execute(
-            "INSERT INTO tenants (id, slug, name, plan, is_active) "
-            "VALUES (0, 'default', 'Default Tenant', 'free', true) "
-            "ON CONFLICT (id) DO NOTHING"
-        )
+        # L6: استعمل شكل الجدول الفعلي — الإدراج الثابت بعمود slug كان
+        # يفشل على قواعد شكل-create_all (42703) ويعلّق السلسلة عند 002.
+        cols = {c["name"] for c in inspector.get_columns("tenants")}
+        op.execute(_default_tenant_insert(cols))
 
         # Bump the sequence past the seeded id so future inserts do not
         # collide with id=0.

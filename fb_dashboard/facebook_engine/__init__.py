@@ -13,4 +13,4 @@ Isolation contract (latest_plan.md §Track G.1):
 from facebook_engine import tools
 from facebook_engine.client import GraphAPIError, GraphClient
 
-__all__ = ["GraphClient", "GraphAPIError", "tools"]
+__all__ = ["GraphAPIError", "GraphClient", "tools"]

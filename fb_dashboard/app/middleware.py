@@ -56,8 +56,7 @@ async def dedup_middleware(request: Request, call_next):
         response = await call_next(request)
 
     async with _dedup_lock:
-        if key in _dedup_locks:
-            del _dedup_locks[key]
+        _dedup_locks.pop(key, None)
         _maybe_evict()
 
     return response
@@ -230,7 +229,9 @@ async def request_logging_middleware(request: Request, call_next):
 # v9-A9: "/api/debug" REMOVED from the public cacheable prefixes — it is an
 # authenticated diagnostics surface; a shared/CDN-cached 200 could serve one
 # user's response to another. Only genuinely public config endpoints stay.
-_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config", "/api/env")
+# v13-E8 (S2): "/api/env" dropped — route removed in v12-E2.8 (dead route,
+# 404 test-confirmed); a prefix with no matching route never matched anyway.
+_CACHEABLE_API_PREFIXES = ("/api/plans", "/api/config")
 # v12-E5.4: committed root statics served headerless on the api domain.
 _ROOT_STATIC_RE = re.compile(
     r"^/(?:opengraph-image\.png|favicon\.(?:png|ico)|apple-touch-icon\.png|"

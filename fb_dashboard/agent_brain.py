@@ -121,7 +121,7 @@ async def reason(text: str, context: dict | None = None) -> dict:
                 if result.get("action"):
                     return result
         except Exception as e:
-            log.error(f"Brain LLM error: {e}")
+            log.error(f"Brain LLM error: {e}", exc_info=True)
 
     # Fallback: heuristic parse
     return _heuristic_parse(text, ctx)

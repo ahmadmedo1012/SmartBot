@@ -127,7 +127,7 @@ class ShopifyIntegration:
                         "price": p["variants"][0]["price"] if p.get("variants") else "",
                     } for p in products]
         except Exception as e:
-            log.error(f"Shopify products fetch error: {e}")
+            log.error(f"Shopify products fetch error: {e}", exc_info=True)
         return []
 
     async def get_orders(self, limit: int = 10, status: str = "any") -> list[dict]:
@@ -149,7 +149,7 @@ class ShopifyIntegration:
                 if r.status_code == 200:
                     return r.json().get("orders", [])
         except Exception as e:
-            log.error(f"Shopify orders fetch error: {e}")
+            log.error(f"Shopify orders fetch error: {e}", exc_info=True)
         return []
 
 class CommerceEngine:

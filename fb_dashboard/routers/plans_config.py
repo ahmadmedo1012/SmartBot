@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 from datetime import timedelta
 from pathlib import Path
 
 from _responses import ok
 from _services import api_cache
-from _utils import app_version, utcnow
+from _utils import app_version, iso_z, utcnow
 from config import settings
 from database import AsyncSessionLocal, engine, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -169,13 +170,13 @@ async def healthz():
         # v12-E3.7(b) (handed to E2 — the healthz check is router-local):
         # capture to Sentry (never raises, no-op when SENTRY_DSN is off) so
         # the outage is visible in the error tracker, not just the logs.
-        log.error("healthz database check failed", exc_info=True)
+        log.exception("healthz database check failed")
         from _observability import capture_exception
         capture_exception(e)
         checks["database"] = "unreachable"
         checks["ok"] = False
     checks["version"] = app_version()
-    checks["timestamp"] = __import__('datetime').datetime.utcnow().isoformat() + "Z"
+    checks["timestamp"] = iso_z(utcnow())
     checks["uptime"] = None
     checks["env"] = "production" if not settings.DEBUG else "development"
     status_code = 200 if checks["ok"] else 503
@@ -187,9 +188,9 @@ async def healthz():
 
 # v12-E2.8: GET /api/env REMOVED — dead route (zero consumers in src/tests/
 # vercel.json; env facts are served by /api/diagnostics/status for the
-# platform admin). NOTE: app/middleware.py still lists "/api/env" among
-# _CACHEABLE_API_PREFIXES — harmless (a prefix with no matching route never
-# matches), the prefix entry can be dropped by the app/-owner in a follow-up.
+# platform admin). v13-E8 (S2): the stale "/api/env" entry was dropped from
+# app/middleware.py _CACHEABLE_API_PREFIXES too — the prefix no longer
+# matches anything, so both sides are clean now.
 
 
 # NOTE (phase D cleanup): the duplicate /api/system/stats and second
@@ -216,11 +217,10 @@ async def cleanup_old_logs(request: Request, token: str = Form("")):
     Authorization: Bearer header (what Vercel Cron actually sends) is accepted
     alongside the form token.
     """
-    import secrets as _secrets
     auth_header = request.headers.get("authorization", "")
     if not CRON_SECRET or not (
-        _secrets.compare_digest(token, CRON_SECRET)
-        or _secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
+        secrets.compare_digest(token, CRON_SECRET)
+        or secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
     ):
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from models import BlacklistedToken

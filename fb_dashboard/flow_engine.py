@@ -199,7 +199,7 @@ class FlowEngine:
         try:
             await session.flush()
         except Exception as e:
-            log.error(f"Failed to create execution record: {e}")
+            log.error(f"Failed to create execution record: {e}", exc_info=True)
             return {"action": "db_error", "error": str(e)}
 
         execution_id = execution.id
@@ -208,7 +208,7 @@ class FlowEngine:
         try:
             trace = await self._traverse(start_node, ctx, graph, session, execution_id)
         except Exception as e:
-            log.error(f"Flow {flow_id} execution {execution_id} error: {e}", exc_info=True)
+            log.exception(f"Flow {flow_id} execution {execution_id} error: {e}")
             trace = {"action": "exception", "error": str(e)}
 
         # Update execution record
@@ -235,7 +235,7 @@ class FlowEngine:
         try:
             await session.commit()
         except Exception as e:
-            log.error(f"Failed to finalize execution {execution_id}: {e}")
+            log.error(f"Failed to finalize execution {execution_id}: {e}", exc_info=True)
 
         return {"execution_id": execution_id, "trace": trace}
 
@@ -461,7 +461,7 @@ class FlowEngine:
             result = await session.execute(stmt)
             return result.scalar_one_or_none() is not None
         except Exception as e:
-            log.error(f"Tag check error: {e}")
+            log.error(f"Tag check error: {e}", exc_info=True)
             return False
 
     # ── Action execution ─────────────────────────────────────────────────────
@@ -490,7 +490,7 @@ class FlowEngine:
                 log.info(f"Tag '{value}' added to subscriber {ctx.subscriber_id}")
                 return {"action": "tag_added", "success": True, "detail": value}
             except Exception as e:
-                log.error(f"tag_add error: {e}")
+                log.error(f"tag_add error: {e}", exc_info=True)
                 return {"action": "tag_add", "success": False, "detail": str(e)}
 
         if action_type == "tag_remove":
@@ -507,7 +507,7 @@ class FlowEngine:
                     )
                 return {"action": "tag_removed", "success": True, "detail": value}
             except Exception as e:
-                log.error(f"tag_remove error: {e}")
+                log.error(f"tag_remove error: {e}", exc_info=True)
                 return {"action": "tag_remove", "success": False, "detail": str(e)}
 
         if action_type == "webhook":
@@ -531,7 +531,7 @@ class FlowEngine:
                 log.info(f"Webhook {value} → {r.status_code}")
                 return {"action": "webhook_called", "success": True, "detail": f"HTTP {r.status_code}"}
             except Exception as e:
-                log.error(f"Webhook error: {e}")
+                log.error(f"Webhook error: {e}", exc_info=True)
                 return {"action": "webhook", "success": False, "detail": str(e)}
 
         if action_type == "add_to_sequence":
@@ -547,7 +547,7 @@ class FlowEngine:
                     return {"action": "dm_sent", "success": True, "detail": msg[:100]}
                 return {"action": "dm", "success": False, "detail": "send failed"}
             except Exception as e:
-                log.error(f"DM error: {e}")
+                log.error(f"DM error: {e}", exc_info=True)
                 return {"action": "dm", "success": False, "detail": str(e)}
 
         log.warning(f"Unknown action type: {action_type}")

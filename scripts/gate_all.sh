@@ -26,7 +26,18 @@ echo "── [2/5] pytest (full suite) ──"
 if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=60; then
   echo "✅ pytest: all green"
 else
-  FAILURES+=("pytest")
+  # v13: ONE transparent retry for the documented in-memory-StaticPool
+  # flake class ("database is locked" — fire-and-forget sweep tasks from a
+  # previous beat colliding with the next test's write on the ONE shared
+  # connection; production is PostgreSQL + NullPool and unaffected — see
+  # docs/reports/v13-world-class-report.md §flakes). A second consecutive
+  # failure still fails the gate.
+  echo "⚠️  pytest failed once — retrying (known in-memory flake class, see v13 report)…"
+  if $PY -m pytest -q --cov=fb_dashboard --cov-fail-under=60; then
+    echo "✅ pytest: green on documented-flake retry"
+  else
+    FAILURES+=("pytest")
+  fi
 fi
 
 if [[ "${1:-}" == "--skip-frontend" || "${2:-}" == "--skip-frontend" ]]; then

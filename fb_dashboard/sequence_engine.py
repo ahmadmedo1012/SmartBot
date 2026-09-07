@@ -366,7 +366,7 @@ class SequenceEngine:
                     "message_template": step.message_template,
                 })
             except Exception as exc:
-                log.error(f"Error checking due sub {sub.id}: {exc}")
+                log.error(f"Error checking due sub {sub.id}: {exc}", exc_info=True)
                 continue
 
         return due
@@ -426,7 +426,7 @@ class SequenceEngine:
             return True
 
         except Exception as exc:
-            log.error(f"Error processing due step for sub {due.get('sub_id', '?')}: {exc}")
+            log.error(f"Error processing due step for sub {due.get('sub_id', '?')}: {exc}", exc_info=True)
             return False
 
     def render_message(
@@ -502,7 +502,8 @@ class SequenceScheduler:
                         except Exception as exc:
                             log.error(
                                 f"Step processing error for sub "
-                                f"{item.get('sub_id', '?')}: {exc}"
+                                f"{item.get('sub_id', '?')}: {exc}",
+                                exc_info=True,
                             )
                             continue
                     await session.commit()
@@ -512,5 +513,5 @@ class SequenceScheduler:
                             f"steps processed"
                         )
             except Exception as exc:
-                log.error(f"Sequence scheduler loop error: {exc}")
+                log.error(f"Sequence scheduler loop error: {exc}", exc_info=True)
             await asyncio.sleep(60)

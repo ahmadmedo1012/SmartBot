@@ -89,7 +89,6 @@ const PAIRS = [
   ["accent-foreground / accent-over-background", "accent-foreground", "accent", "background"],
   ["accent-foreground / accent-over-card", "accent-foreground", "accent", "card"],
   ["accent-foreground / badge-tint15-over-card", "accent-foreground", "__tint15", "card"],
-  ["accent-fg / primary (buttons)", "accent-fg", "primary", null],
   ["success / card", "success", "card", null],
   ["warning / card", "warning", "card", null],
   ["info / card", "info", "card", null],

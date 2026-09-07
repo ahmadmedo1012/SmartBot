@@ -12,6 +12,7 @@ import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Star } from "lucide-react"
 import { usePublicStats, trustCopy } from "@/lib/usePublicStats"
+import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import type { Testimonial } from "@/lib/types"
 
@@ -65,9 +66,12 @@ export function LandingTestimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[] | null>(null)
 
   useEffect(() => {
-    fetch("/api/public/testimonials")
-      .then(unwrapApi)
-      .then(d => setTestimonials(Array.isArray(d) ? d : (d?.data ?? [])))
+    // v13-L3: /api/public/testimonials answers ok([]) (plans_config.py);
+    // apiFetch throws on non-2xx (raw fetch never did — a JSON {detail} error
+    // body would crash the render's .map), unwrapApi handles the envelope.
+    apiFetch("/api/public/testimonials")
+      .then((res) => unwrapApi<Testimonial[]>(res))
+      .then((d) => setTestimonials(d ?? []))
       .catch(() => setTestimonials([]))
   }, [])
 

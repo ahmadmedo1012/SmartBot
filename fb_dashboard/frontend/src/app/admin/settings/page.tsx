@@ -95,7 +95,7 @@ const SUPPORT_FIELDS: Field[] = [
     key: "support_whatsapp",
     label: "واتساب الدعم",
     placeholder: "0912345678",
-    hint: "إن تُرك فارغًا يستخدم رقم هاتف الدعم نفسه",
+    hint: "إن تُرك فارغاً يستخدم رقم هاتف الدعم نفسه",
     ltr: true,
   },
   {
@@ -128,7 +128,7 @@ const FACEBOOK_FIELDS: Field[] = [
   {
     key: "facebook_app_secret",
     label: "سر تطبيق فيسبوك (App Secret)",
-    placeholder: "32 حرفاً سداسياً عشريًا",
+    placeholder: "32 حرفاً سداسياً عشرياً",
     hint: "من developers.facebook.com ← تطبيقك ← Settings ← Basic — مطلوب لقبول أحداث الويبهوك (الرسائل والتعليقات) الموقّعة",
     ltr: true,
     type: "password",
@@ -148,7 +148,7 @@ const AI_FIELDS: Field[] = [
     key: "openai_base_url",
     label: "عنوان OpenAI البديل (اختياري)",
     placeholder: "https://api.openai.com/v1",
-    hint: "اتركه فارغًا للخدمة الرسمية — أو ضع عنوان مزوّد متوافق",
+    hint: "اتركه فارغاً للخدمة الرسمية — أو ضع عنوان مزوّد متوافق",
     ltr: true,
   },
   {
@@ -163,7 +163,7 @@ const AI_FIELDS: Field[] = [
     key: "ai_model",
     label: "اسم النموذج (اختياري)",
     placeholder: "gpt-4o-mini / gemini-1.5-flash",
-    hint: "اتركه فارغًا للاختيار التلقائي المناسب للمزوّد",
+    hint: "اتركه فارغاً للاختيار التلقائي المناسب للمزوّد",
     ltr: true,
   },
 ]
@@ -276,7 +276,8 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center">
+      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+        <span className="sr-only">جارٍ التحميل…</span>
         <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )
@@ -343,7 +344,7 @@ export default function AdminSettingsPage() {
               <CardContent className="space-y-4">
                 {SUPPORT_FIELDS.map(fieldRow)}
                 <div className="rounded-lg bg-accent-foreground/10 border border-accent-foreground/20 p-3 text-xs text-foreground/80 leading-relaxed">
-                  اترك أي حقل فارغًا للعودة إلى القيمة الافتراضية. ما تحدده هنا يلغي القيم
+                  اترك أي حقل فارغاً للعودة إلى القيمة الافتراضية. ما تحدده هنا يلغي القيم
                   الافتراضية فور النشر — دون إعادة نشر الموقع.
                 </div>
               </CardContent>
@@ -390,7 +391,7 @@ export default function AdminSettingsPage() {
                   <Webhook className="size-4 text-accent-foreground" /> توقيع ويبهوك فيسبوك
                 </CardTitle>
                 <CardDescription>
-                  بدونه يرفض النظام كل أحداث فيسبوك (الرسائل والتعليقات) — السبب الجذري لعدم ظهور أي بيانات سابقًا
+                  بدونه يرفض النظام كل أحداث فيسبوك (الرسائل والتعليقات) — السبب الجذري لعدم ظهور أي بيانات سابقاً
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

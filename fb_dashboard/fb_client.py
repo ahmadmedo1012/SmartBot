@@ -46,10 +46,10 @@ class FBClient:
                 return None
             return r.json()
         except httpx.TimeoutException:
-            log.error(f"GET timeout: {path[:50]}")
+            log.error(f"GET timeout: {path[:50]}", exc_info=True)
             return None
         except Exception as e:
-            log.error(f"GET err: {e}")
+            log.error(f"GET err: {e}", exc_info=True)
             return None
 
     async def _post(self, path: str, data: dict | None = None,
@@ -131,7 +131,7 @@ class FBClient:
                 "attached_media[0]": json.dumps({"media_fbid": media_id}),
             })
         except Exception as e:
-            log.error(f"post_to_page_with_image error: {e}")
+            log.error(f"post_to_page_with_image error: {e}", exc_info=True)
             return await self.post_to_page(message)
 
     async def post_photo(self, image_data: bytes, filename: str = "photo.jpg", message: str = "") -> dict | None:
@@ -147,7 +147,7 @@ class FBClient:
                 return r.json()
             log.error(f"Photo upload failed: {r.status_code} {r.text[:200]}")
         except Exception as e:
-            log.error(f"Photo upload error: {e}")
+            log.error(f"Photo upload error: {e}", exc_info=True)
         return None
 
     async def delete_post(self, post_id: str) -> dict | None:

@@ -19,8 +19,8 @@ export default function LeadsPage() {
       // API returns a paginated envelope {total, page, per_page, items} —
       // this page maps the LIST. The old code mapped the envelope object
       // itself and crashed with "e.map is not a function" on first render.
-      const d = await unwrapApi<CrmCustomer[] | { items?: CrmCustomer[] }>(res)
-      return Array.isArray(d) ? d : (d?.items ?? [])
+      const d = await unwrapApi<{ items: CrmCustomer[]; total: number; page: number; per_page: number }>(res)
+      return d?.items ?? []
     },
     retry: 1,
   })

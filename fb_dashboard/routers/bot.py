@@ -51,7 +51,7 @@ async def _run_single_cycle():
         from _services import get_bot_engine
         await get_bot_engine().cycle()
     except Exception as e:
-        log.error(f"Forced cycle error: {e}")
+        log.error(f"Forced cycle error: {e}", exc_info=True)
 
 
 @router.get("/api/bot/status")
@@ -157,11 +157,11 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
                 await engine.cycle()
                 results.append({"tenant_id": tenant.id, "status": "ok"})
             except Exception as e:
-                log.error(f"Cron cycle err tenant {tenant.id}: {e}")
+                log.error(f"Cron cycle err tenant {tenant.id}: {e}", exc_info=True)
                 results.append({"tenant_id": tenant.id, "status": "error"})
         return ok({"ok": True, "tenants_processed": len(results), "shard": shard})
     except Exception as e:
-        log.error("Cron bot cycle error", exc_info=True)
+        log.exception("Cron bot cycle error")
         return fail(f"فشل دورة الجدولة: {str(e)[:120]}")
 
 
@@ -313,7 +313,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     try:
         await record_heartbeat(report)
     except Exception as e:
-        log.error(f"record_heartbeat raised: {e}")
+        log.error(f"record_heartbeat raised: {e}", exc_info=True)
         report["errors"].append(f"heartbeat ledger: {str(e)[:120]}")
     from _observability import get_last_heartbeat
     last_beat = await get_last_heartbeat()

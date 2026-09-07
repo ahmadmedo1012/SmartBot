@@ -382,7 +382,8 @@ export default function SupportPage() {
           </h2>
 
           {ticketsQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+              <span className="sr-only">جارٍ التحميل…</span>
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>
           ) : ticketsQuery.isError ? (
@@ -433,7 +434,8 @@ export default function SupportPage() {
                     {openTicketId === t.id && (
                       <div className="mt-3 border-t border-border/40 pt-3 space-y-3">
                         {ticketDetailQuery.isLoading ? (
-                          <div className="flex justify-center py-4">
+                          <div className="flex justify-center py-4" role="status" aria-live="polite">
+                            <span className="sr-only">جارٍ التحميل…</span>
                             <Loader2 className="size-4 animate-spin text-muted-foreground" />
                           </div>
                         ) : ticketDetailQuery.isError ? (

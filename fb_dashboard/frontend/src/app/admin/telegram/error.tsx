@@ -15,6 +15,8 @@ export default function AdminTelegramError({
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
+      {/* v13-D9-K4: error boundary replaces the page tree — skip-link target. */}
+      <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 via-background to-primary/5" />
       <div className="relative z-10 flex flex-col items-center text-center px-6 animate-fade-in">
         <div className="relative mb-8">

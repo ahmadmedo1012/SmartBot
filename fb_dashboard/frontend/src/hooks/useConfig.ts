@@ -56,7 +56,7 @@ export function useConfig(): ConfigState {
         } catch (e: unknown) {
           if (cache && !fresh()) cache = null
           if (!cancelled) {
-            setError(e instanceof Error ? e.message : "Failed to load config")
+            setError(e instanceof Error ? e.message : "تعذر تحميل الإعدادات")
           }
         } finally {
           inflight = null

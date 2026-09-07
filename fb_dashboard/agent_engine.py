@@ -177,9 +177,9 @@ class AgentEngine:
                 "success": result.get("success", False),
             }
         except Exception as e:
-            log.error(f"process failed at step={step}: {e}")
+            log.error(f"process failed at step={step}: {e}", exc_info=True)
             import traceback
-            log.error(traceback.format_exc())
+            log.error(traceback.format_exc(), exc_info=True)
             # v10-A9: the step name + raw str(e) leaked internal details
             # (DB errors, paths) to the client — generic Arabic message only.
             return {"action": "error", "params": {},
@@ -300,7 +300,7 @@ class AgentEngine:
 
             return {"success": False, "message_ar": f"إجراء غير معروف: {action}"}
         except Exception as e:
-            log.error(f"Execute {action} error: {e}", exc_info=True)
+            log.exception(f"Execute {action} error: {e}")
             # v10-A9: no str(e) to the client — generic Arabic message only.
             return {"success": False,
                     "message_ar": "حدث خطأ أثناء تنفيذ الإجراء — حاول مرة أخرى"}

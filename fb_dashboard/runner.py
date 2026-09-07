@@ -181,7 +181,7 @@ async def api_health_ready():
         latency_ms = (_t.perf_counter() - start) * 1000
         return {"ok": True, "database": "ok", "latency_ms": round(latency_ms), "version": app_version()}
     except Exception as e:
-        log.error("Readiness probe failed: %s", e)
+        log.error("Readiness probe failed: %s", e, exc_info=True)
         # v12-E3.7 — DB outages must reach Sentry too: the 503 body is
         # deliberately error-free (E2 contract), so the dashboard/GlitchTip
         # would otherwise never see WHY readiness failed. (The /healthz
@@ -280,7 +280,7 @@ if STATIC_DIR.exists():
     try:
         app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     except Exception as e:
-        log.error(f"StaticFiles mount failed: {e}")
+        log.error(f"StaticFiles mount failed: {e}", exc_info=True)
 # Also serve Next.js static export at /_next/ — the export places files at
 # out/_next/static/ which ends up at STATIC_DIR/_next/static/ after the build command.
 _NEXT_STATIC = STATIC_DIR / "_next"
@@ -288,14 +288,14 @@ if _NEXT_STATIC.exists():
     try:
         app.mount("/_next", StaticFiles(directory=str(_NEXT_STATIC)), name="next_static")
     except Exception as e:
-        log.error(f"Next.js static mount failed: {e}")
+        log.error(f"Next.js static mount failed: {e}", exc_info=True)
 # Also serve /fonts/* — Next.js may reference fonts at /fonts/ or /static/fonts/
 _FONTS_DIR = STATIC_DIR / "fonts"
 if _FONTS_DIR.exists():
     try:
         app.mount("/fonts", StaticFiles(directory=str(_FONTS_DIR)), name="fonts")
     except Exception as e:
-        log.error(f"Fonts mount failed: {e}")
+        log.error(f"Fonts mount failed: {e}", exc_info=True)
 # Root-level public assets (brand icon / favicon / PWA manifest / OG image /
 # sitemap) — the frontend references them at the root path (works on Vercel
 # via public/ + file-based metadata routes); single-server mode serves the

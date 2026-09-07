@@ -273,7 +273,7 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
 
             await db.commit()
         except Exception as e:
-            log.error("persist message failed: %s", e, exc_info=True)
+            log.exception("persist message failed: %s", e)
             await db.rollback()
 
     # Auto-reply only for genuine inbound human messages
@@ -298,7 +298,7 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
                         await _persist_bot_reply(db, tenant_id, page_id, sender_id, reply_info)
                         await db.commit()
         except Exception as e:
-            log.error("auto-reply failed: %s", e, exc_info=True)
+            log.exception("auto-reply failed: %s", e)
 
     # Urgent-intent alert over WS (mirror of comment alert stage)
     if not is_echo and status["stored"]:

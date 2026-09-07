@@ -44,9 +44,8 @@ export default function SubscribeContent() {
     const fetchPlans = async () => {
       try {
         const res = await apiFetch("/api/plans")
-        const data = await unwrapApi<unknown[]>(res)
-        const raw: unknown[] = Array.isArray(data) ? data : Array.isArray((data as { data?: unknown[] })?.data) ? (data as { data: unknown[] }).data : []
-        const p = (raw as ComparisonPlanInput[]).map(toComparisonPlan)
+        const raw = await unwrapApi<ComparisonPlanInput[]>(res)
+        const p = (raw ?? []).map(toComparisonPlan)
         setPlans(p)
         if (preselectedPlan) {
           // Try exact id first, then by position (ids may shift in DB)
@@ -78,10 +77,9 @@ export default function SubscribeContent() {
     setLoading(true)
     setPlans([])
     apiFetch("/api/plans")
-      .then((r) => r.json())
-      .then((data) => {
-        const raw = data?.data ?? data ?? []
-        const p = (Array.isArray(raw) ? (raw as ComparisonPlanInput[]) : []).map(toComparisonPlan)
+      .then((r) => unwrapApi<ComparisonPlanInput[]>(r))
+      .then((raw) => {
+        const p = (raw ?? []).map(toComparisonPlan)
         setPlans(p)
         if (preselectedPlan) {
           const sorted = [...p].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -116,7 +114,8 @@ export default function SubscribeContent() {
 
   if (loading || !authLoaded)
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center">
+      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+        <span className="sr-only">جارٍ التحميل…</span>
         <Loader2 className="size-8 animate-spin text-primary" />
       </SectionContainer>
     )

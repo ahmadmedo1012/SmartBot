@@ -221,6 +221,12 @@ async def test_cron_heartbeat_503_when_ledger_write_fails(v10_seed, monkeypatch)
 
 async def test_cron_heartbeat_authorization_header_preferred(v10_seed, monkeypatch):
     """E2.5: السر عبر ترويسة Authorization فقط (لا ?token=) يكفي — 200."""
+    # v13 flake note: keep this test's DB write surface MINIMAL (create_all
+    # is a checkfirst no-op once tables exist; no wipe — the beat itself is
+    # the only writer). Extra pre-writes widened the collision window with
+    # in-flight work from earlier tests on the shared in-memory connection
+    # ("database is locked" — the documented v12/v13 test-infra limitation;
+    # production is PostgreSQL + NullPool and unaffected).
     from database import engine as db_engine
     from models import Base
 

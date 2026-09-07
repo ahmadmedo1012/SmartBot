@@ -341,7 +341,7 @@ async def repair(current_user: User = Depends(require_platform_admin)):
             await seed_admin(session)
         return ok({"ok": True, "message": "DB repaired"})
     except Exception:
-        log.error("DB repair failed", exc_info=True)
+        log.exception("DB repair failed")
         raise HTTPException(status_code=500, detail="فشل إصلاح قاعدة البيانات — راجع سجلات الخادم") from None
 
 

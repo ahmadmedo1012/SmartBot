@@ -127,5 +127,5 @@ async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), curren
         } for rid in rule_ids if rid]
         )
     except Exception as e:
-        log.error(f"widget_top_keywords failed: {e}")
+        log.error(f"widget_top_keywords failed: {e}", exc_info=True)
         return ok([])

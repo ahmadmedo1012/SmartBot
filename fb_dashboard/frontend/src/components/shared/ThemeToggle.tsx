@@ -9,7 +9,8 @@ import { useEffect, useState } from "react"
  * imported by Header (hence EVERY public page) AND login directly — that
  * single line shipped the ~190KB motion bundle to every visitor. The visual
  * language is preserved with CSS twins: hover scale+rotate on the button,
- * crossfading rotate icon swap, reduced-motion respected by globals.css. */
+ * crossfading rotate icon swap, reduced-motion respected by globals.css.
+ * v13: framer-motion dependency fully removed app-wide — CSS twins final. */
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme, resolvedTheme } = useTheme()

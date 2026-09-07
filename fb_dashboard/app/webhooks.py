@@ -101,7 +101,7 @@ async def webhook_receive(request: Request):
             try:
                 await _process_webhook_messaging(entry_page_id, messaging)
             except Exception as e:
-                log.error(f"Messaging event error: {e}", exc_info=True)
+                log.exception(f"Messaging event error: {e}")
 
         # ── Feed changes (comments) ──
         for change in entry.get("changes", []):
@@ -158,7 +158,7 @@ async def _process_webhook_messaging(page_id: str, messaging: dict):
         await handle_messaging_event(bs.tenant_id, page_id, messaging, fb_client)
         _track_event("webhook_message_processed", {"page_id": page_id}, tenant_id=bs.tenant_id)
     except Exception as e:
-        log.error(f"Webhook messaging processing error: {e}", exc_info=True)
+        log.exception(f"Webhook messaging processing error: {e}")
 
 
 async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: str = ""):
@@ -218,4 +218,4 @@ async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: s
                 return
         log.warning(f"webhook comment for unknown page {page_id or '(none)'} — skipped")
     except Exception as e:
-        log.error(f"Webhook comment processing error: {e}", exc_info=True)
+        log.exception(f"Webhook comment processing error: {e}")

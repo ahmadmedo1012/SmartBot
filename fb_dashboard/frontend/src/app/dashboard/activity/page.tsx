@@ -27,11 +27,13 @@ const LOG_LEVEL_TEXT: Record<string, string> = {
 export default function ActivityPage() {
   const { data: logs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["activity-logs"],
-    queryFn: () => apiFetch("/api/logs?limit=100").then(unwrapApi<LogEntry[] | { items?: LogEntry[] }>),
+    // v13-L3 (dec-envelope-prune): /api/logs returns ok([...]) — single
+    // envelope via unwrapApi; `?? []` is null-safety only (bad JSON → null).
+    queryFn: () => apiFetch("/api/logs?limit=100").then((res) => unwrapApi<LogEntry[]>(res)),
     refetchInterval: 15000,
   })
 
-  const logItems = Array.isArray(logs) ? logs : (logs.items || [])
+  const logItems = logs ?? []
 
   return (
     <div className="flex-1 flex flex-col">

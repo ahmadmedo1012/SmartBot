@@ -24,8 +24,10 @@ export default function CommentsPage() {
     queryFn: async () => {
       const res = await apiFetch("/api/comments?limit=30")
       if (!res.ok) throw new Error(`فشل تحميل التعليقات (${res.status})`)
-      const json = await unwrapApi<CommentRow[] | { items?: CommentRow[] }>(res)
-      return Array.isArray(json) ? json : (json.items || [])
+      // v13-L3 (dec-envelope-prune): /api/comments returns ok({items, source})
+      // — single envelope via unwrapApi; `?? []` is null-safety only.
+      const json = await unwrapApi<{ items: CommentRow[]; source: string }>(res)
+      return json?.items ?? []
     },
     refetchInterval: 20000,
     retry: 1,

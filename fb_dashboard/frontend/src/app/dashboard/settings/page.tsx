@@ -11,15 +11,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PageHeader } from "@/components/ui/PageHeader"
 import { LoadingState, ErrorState } from "@/components/ui/EmptyState"
 import { unwrapApi } from "@/lib/api"
+import type { ApiUser } from "@/lib/types"
 
 export default function SettingsPage() {
   const { data: raw, isLoading, isError, refetch } = useQuery({
     queryKey: ["current-user"],
-    queryFn: () => apiFetch("/api/me").then(unwrapApi),
+    queryFn: () => apiFetch("/api/me").then((res) => unwrapApi<{ user?: ApiUser }>(res)),
   })
-  // v4 §2.3 — unwrapApi already returned /api/me's payload ({user: {...}});
-  // the old raw?.data fallback made username/email/role blank forever
-  const user = raw?.user ?? raw?.data?.user ?? raw
+  // v13-L3: /api/me answers ok({user}) (auth.py, v12-E2.10) — unwrapApi
+  // returns {user}; the optional chain only covers the react-query
+  // loading window. Same typed pattern as admin/telegram/page.tsx:57.
+  const user = raw?.user
 
   // Self-service password change (plan v3 §7c — the الأمان card was a
   // decorative shell; the endpoint existed but had no UI).

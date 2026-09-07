@@ -338,7 +338,7 @@ async def lifespan(app: FastAPI):
         capture_exception(e)
         if isinstance(e, SecurityConfigError):
             raise
-        log.error(f"Startup error (app continues): {e}", exc_info=True)
+        log.exception(f"Startup error (app continues): {e}")
 
     yield
 

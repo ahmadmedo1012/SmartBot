@@ -53,7 +53,7 @@ for (const page of PAGES) {
   const ctx = await browser.newContext({ viewport: VIEWPORT });
   const p = await ctx.newPage();
   await p.goto(`${BASE_URL}${page.path}`, { waitUntil: "networkidle", timeout: 30000 });
-  await p.waitForTimeout(600); // let framer-motion entrances settle
+  await p.waitForTimeout(600); // let CSS entrance animations settle (v13: pure-CSS twins)
   const shot = await p.screenshot({ fullPage: false });
   const baselinePath = join(BASE_DIR, `${page.name}.png`);
 

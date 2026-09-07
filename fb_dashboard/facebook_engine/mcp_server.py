@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import logging
 import os
 import sys
 
@@ -19,6 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from facebook_engine import tools
 from facebook_engine.client import GraphClient
+
+log = logging.getLogger("fb-mcp")
 
 
 def build_server(tenant_id: int, access_token: str, page_id: str):
@@ -128,8 +131,8 @@ def main() -> None:
     args = ap.parse_args()
 
     mcp = build_server(args.tenant_id, args.access_token, args.page_id)
-    print(f"SmartBot Facebook MCP (tenant {args.tenant_id}, page {args.page_id}) "
-          f"→ http://{args.host}:{args.port}/mcp", flush=True)
+    log.info(f"SmartBot Facebook MCP (tenant {args.tenant_id}, page {args.page_id}) "
+             f"→ http://{args.host}:{args.port}/mcp")
     mcp.run(transport="streamable-http", host=args.host, port=args.port)
 
 

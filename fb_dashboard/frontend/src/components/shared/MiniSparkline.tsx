@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils"
  *   - area: opacity 0→1, 0.5s
  * Both are disabled under prefers-reduced-motion (parity with the old
  * MotionConfig reducedMotion="user" behavior). DOM contract (svg role /
- * aria-label, path d/fill/stroke attrs) is unchanged. */
+ * aria-label, path d/fill/stroke attrs) is unchanged.
+ * v13: framer-motion dependency fully removed app-wide — CSS twins final. */
 import "@/components/shared/enter-motion.css"
 
 /* Ported from Smart-Menu (world-class launch plan v3 §6.2). */

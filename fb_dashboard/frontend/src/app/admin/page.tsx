@@ -118,7 +118,8 @@ export default function AdminPage() {
 
   if (roleLoading) {
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center">
+      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+        <span className="sr-only">جارٍ التحميل…</span>
         <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
       </SectionContainer>
     )

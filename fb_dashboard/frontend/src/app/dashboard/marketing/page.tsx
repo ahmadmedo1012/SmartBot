@@ -64,16 +64,12 @@ export default function MarketingPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: "", message: "", audience: "all" })
 
-  /* v12-E5.5 (pairs with E2.12): the backend now answers ok({items, total}).
-   * queryFn keeps the LEGACY array shape in the union so a Vercel/BE deploy
-   * skew (old backend answering a bare array) degrades gracefully — the
-   * campaigns guard below normalizes both. */
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["marketing-campaigns"],
     queryFn: async () => {
       const res = await apiFetch("/api/marketing/campaigns")
       if (!res.ok) throw new Error(`فشل تحميل الحملات (${res.status})`)
-      return unwrapApi<Campaign[] | { items: Campaign[]; total: number }>(res)
+      return unwrapApi<{ items: Campaign[]; total: number }>(res)
     },
     retry: 1,
   })
@@ -110,15 +106,13 @@ export default function MarketingPage() {
   const sendMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiFetch(`/api/marketing/campaigns/${id}/send`, { method: "POST" })
-      const d = await res.json()
-      if (!res.ok || !d?.success) throw new Error(d?.detail || "فشل الإرسال")
-      return d
+      return unwrapApi<{ id: number; status: string; sent_count: number; delivered_count: number; dispatched: boolean }>(res)
     },
     onSuccess: (d) => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
       // v12-E5.5: Arabic plural via countPhrase (was raw `${n} مشترك` —
       // broken for 0/1/2 and non-Arabic numeral shaping; D10 i18n finding).
-      const sent = d?.data?.sent_count ?? 0
+      const sent = d?.sent_count ?? 0
       brandedToast.success(`تم إرسال الحملة إلى ${countPhrase(sent, "مشترك", "مشتركين", "مشتركين")}`)
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
@@ -138,10 +132,9 @@ export default function MarketingPage() {
     onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
   })
 
-  // v4 §2.2 + v12-E5.5 — unwrapApi returns the payload; normalize the two
-  // envelope generations (bare array ↔ ok({items, total})) so a deploy skew
-  // never renders an empty list.
-  const campaigns: Campaign[] = Array.isArray(data) ? data : (data?.items ?? [])
+  // v13-L3: /api/marketing/campaigns answers ok({items,total}) (marketing.py,
+  // v12-E2.12) — the optional chain only covers the react-query loading window.
+  const campaigns: Campaign[] = data?.items ?? []
   const audienceCount: number = audienceQuery.data?.count ?? 0
 
   return (
@@ -170,7 +163,7 @@ export default function MarketingPage() {
                   id="campaign-name"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="خصم نهاية الأسبوع..."
+                  placeholder="خصم نهاية الأسبوع…"
                 />
                 <div className="space-y-1">
                   <label htmlFor="campaign-message" className="text-sm font-semibold">
@@ -180,7 +173,7 @@ export default function MarketingPage() {
                     id="campaign-message"
                     value={form.message}
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                    placeholder="اكتب رسالتك التسويقية هنا..."
+                    placeholder="اكتب رسالتك التسويقية هنا…"
                     rows={4}
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
@@ -211,7 +204,7 @@ export default function MarketingPage() {
                   </div>
                   <p role="status" aria-live="polite" className="text-2xs text-muted-foreground">
                     {audienceQuery.isLoading
-                      ? "جارٍ حساب حجم الجمهور..."
+                      ? "جارٍ حساب حجم الجمهور…"
                       : `ستصل الحملة إلى ${countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}`}
                   </p>
                 </div>

@@ -106,7 +106,7 @@ export function DiagnosticsSection({
               </Button>
             </div>
             {approversLoading ? (
-              <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+              <div className="flex justify-center py-4" role="status" aria-live="polite"><span className="sr-only">جارٍ التحميل…</span><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
             ) : approvers.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">لا يوجد موافقون مضافة</p>
             ) : (

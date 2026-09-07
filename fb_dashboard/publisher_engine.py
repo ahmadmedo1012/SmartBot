@@ -44,7 +44,7 @@ class XPublisher:
                     return {"platform": "x", "post_id": result.get("data", {}).get("id", "")}
                 log.error(f"X API error: {r.status_code} {r.text[:200]}")
         except Exception as e:
-            log.error(f"X publish error: {e}")
+            log.error(f"X publish error: {e}", exc_info=True)
         return None
 
 
@@ -89,7 +89,7 @@ class LinkedInPublisher:
                     return {"platform": "linkedin", "post_id": result.get("id", "")}
                 log.error(f"LinkedIn API error: {r.status_code} {r.text[:200]}")
         except Exception as e:
-            log.error(f"LinkedIn publish error: {e}")
+            log.error(f"LinkedIn publish error: {e}", exc_info=True)
         return None
 
 

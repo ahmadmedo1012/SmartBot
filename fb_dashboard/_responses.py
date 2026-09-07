@@ -19,6 +19,12 @@ Documented exceptions (v12-E3.7 recount — was 6 in the v11 report):
   * ``/healthz``  — PERMANENT infra exemption (E2.13): uptime monitors and
                     Vercel probes parse its literal ``{"success", "data"}``
                     JSONResponse shape; it is machine contract, never rendered.
+  * ``/api/analytics/export?format=json`` (routers/analytics.py) — machine
+                    contract: a raw JSON array consumed as a downloadable
+                    export artifact (zero UI consumers; v13-D7 audit). Never
+                    rendered by the frontend; keep raw JSONResponse here.
+  * Telegram webhook returns (``{"ok": true}``) — the Telegram Bot API
+                    contract (app/telegram.py), not a browser-facing endpoint.
 The other five former exceptions (the extended envelopes: ``/api/me``
 ``authenticated`` flag, marketing ``total`` shape, onboarding ×3
 test-connection shapes) were unified to ``ok()`` in v12 (E2.10/E2.11/E2.12) —
@@ -39,4 +45,4 @@ def fail(error: str, data: Any = None) -> dict:
     return {"success": False, "data": data, "error": error}
 
 
-__all__ = ["ok", "fail"]
+__all__ = ["fail", "ok"]

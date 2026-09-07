@@ -48,16 +48,18 @@ curl -s "$API/v14-nonexistent" > "$T/nf2.html"
 contains "A6 K4 skip-link on 404 (api domain)" "$T/nf2.html" 'id="page-content"'
 
 # ── B. public pages (10) ────────────────────────────────────────────────────
+# v14-fix: نماذج الدخول/التسجيل جزر عميل dynamic(ssr:false) — حقولها غير
+# مرئية لـcurl (موثوقة حية عبر بطارية المحاكاة p02)؛ الفحص الخادمي الأمين:
+# العناوين + أزرار التسعير المُرسَلة فعلاً (onClick router.push — بلا href)
 curl -s "$BOT/login" > "$T/login.html"
 C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/login"); check "B7 /login 200" "200" "$C"
-contains "B7 login username field" "$T/login.html" 'id="username"'
-contains "B7 login password field" "$T/login.html" 'type="password"'
+contains "B7 login page title" "$T/login.html" 'تسجيل الدخول'
 curl -s "$BOT/register" > "$T/reg.html"
 C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/register"); check "B8 /register 200" "200" "$C"
-contains "B8 register confirm field" "$T/reg.html" 'id="confirm"'
+contains "B8 register page title" "$T/reg.html" 'إنشاء حساب'
 curl -s "$BOT/pricing" > "$T/pricing.html"
 C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/pricing"); check "B9 /pricing 200" "200" "$C"
-contains "B9 pricing CTA → /subscribe" "$T/pricing.html" '/subscribe'
+contains "B9 pricing CTA buttons (server-rendered)" "$T/pricing.html" 'ابدأ مجاناً'
 grep -q 'د\.ل\|دينار' "$T/pricing.html" && { PASS=$((PASS+1)); OUT="$OUT✅ B9 pricing currency LYD\n"; } || { FAIL=$((FAIL+1)); OUT="$OUT❌ B9 pricing currency LYD\n"; }
 curl -s "$BOT/subscribe" > "$T/sub.html"
 C=$(curl -s -o /dev/null -w "%{http_code}" "$BOT/subscribe"); check "B10 /subscribe 200" "200" "$C"

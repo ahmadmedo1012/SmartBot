@@ -1,0 +1,19 @@
+== v14 Sentry canary + deployment evidence — 2026-09-07T12:15Z ==
+commit pushed: 56d1a3e4..541b7585 (main)
+
+FRONTEND (bot.smart-link.ly) — v14 build live:
+- /connect <title>ربط صفحة فيسبوك | SmartBot</title>  (E4 v14 layout metadata — absent in v13)
+- post-deploy battery: 60/60 GREEN, exit=0 (scripts/v14_postdeploy_battery.sh → post-deploy-verification.txt)
+- landing first-load JS: 670,388 bytes (~670KB raw < 750KB budget)
+- Sentry releases API: smartbot-web latest release "56d1a3e4" (v13); release "541b7585" appears
+  on first frontend event — source maps gated by SENTRY_AUTH_TOKEN in Vercel env (owner action)
+
+BACKEND (api.smart-link.ly) — v14 code live:
+- GET /api/payments/receipt/1 → 401 (v14-NEW protected route — would be 404 on v13 code)
+- POST /api/logs/clear → 401 (auth first; days validation behind auth — v14-E1)
+- POST /api/admin/subscriptions unauthenticated → 401 (C-SEC1 surface live)
+- GET /api/payments/history → 401 (v14-E1 capped route live)
+- Sentry: smartbot-api release "2.1.0" — lastEvent 2026-09-07T12:06:34Z (alive post-deploy)
+
+Canary boot (Sentry events, smartbot-api): release=2.1.0 env=production — matches runner VERSION
+constant; v14 backend changes deploy under the same release tag (no version bump by design).

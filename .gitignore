@@ -50,3 +50,4 @@ fb_dashboard/frontend/e2e_artifacts/
 *.old
 *.orig
 .coverage
+docs/evidence/v14/sim-local/

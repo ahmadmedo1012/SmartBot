@@ -101,9 +101,11 @@
 | 6 | التزام واحد → دفع → نشر → أدلة حية | (يُستكمل) | §9 بعد النشر |
 | 7 | تقرير + سجل | ✅ | هذا الملف + ledger |
 
-## 9) النشر والأدلة الحية (يُستكمل بعد الدفع)
+## 9) النشر والأدلة الحية — ✅ مكتمل
 
-- الالتزام: `<sha>` (الجولة كاملة بcommit واحد)
-- بطارية post-deploy: `scripts/v14_postdeploy_battery.sh` — 50 فحصاً بلا حالة في 8 مجموعات → `docs/evidence/v14/post-deploy-verification.txt`
-- قندورة الإقلاع: `docs/evidence/v14/sentry-canary.txt` (env=production · release=`<sha>`)
-- فحص حي إضافي: صفحات عامة على النطاقين + CSRF/CSP/immutable + 401 حراسة + healthz
+- **الالتزام:** `541b7585` (56d1a3e4..541b7585 → main → النشر حي على النطاقين)
+- **بطارية post-deploy: 60/60 خضراء — ALL LIVE CHECKS GREEN** (خروج 0): `scripts/v14_postdeploy_battery.sh` → `docs/evidence/v14/post-deploy-verification.txt` — التوفر/الصفحات العامة/رؤوس الأمان (CSP+HSTS+nosniff+referrer)/عقد CSRF double-submit كاملاً (إصدار strict/secure/JS-readable + رفض بلا/بترويسة زائفة 403)/حراسة المصادقة 401 على كل المسارات الحساسة بما فيها مسارات v14 الجديدة/انضباط الطرق 405+Allow/سطح webhook (401 بلا/بتوقيع مزيف + عدم صدى verify token)/كاش immutable للنطاقين + الخطوط + og/المظاريف + ميزانية JS (670KB خام < 750KB)
+- **الخلفية v14 حية:** GET /api/payments/receipt/1 → 401 (مسار v14 الجديد — كان 404 على كود v13) · history → 401 · admin/subscriptions → 401
+- **الواجهة v14 حية:** عنوان /connect الجديد (E4) يُقدَّم من الإنتاج
+- **قندورة الإقلاع:** `docs/evidence/v14/sentry-canary-and-deploy.txt` (smartbot-api release 2.1.0 حية بأحداث حتى 12:06:34Z · smartbot-web release 541b7585 يظهر مع أول حدث أمامي — خرائط المصدر باب مالك SENTRY_AUTH_TOKEN)
+- **findings فحوصات curl:** نماذج الدخول/التسجيل جزر عميل (dynamic ssr:false) — حقولها تُوثق حية عبر بطارية المحاكاة لا curl (موثق في السكربت)

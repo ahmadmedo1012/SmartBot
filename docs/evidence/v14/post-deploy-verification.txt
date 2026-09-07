@@ -1,0 +1,68 @@
+== v14 post-deploy battery — 2026-09-07T12:14:12Z ==
+web: https://bot.smart-link.ly · api: https://api.smart-link.ly
+landing first-load JS (bot domain): 686388 bytes (~670KB raw)
+
+✅ A1 healthz: database ok
+✅ A2 healthz: content-type json
+✅ A3 bot domain root 200
+✅ A4 api domain root 200 (synced static)
+✅ A5 K4 skip-link on 404 (bot domain)
+✅ A6 K4 skip-link on 404 (api domain)
+✅ B7 /login 200
+✅ B7 login page title
+✅ B8 /register 200
+✅ B8 register page title
+✅ B9 /pricing 200
+✅ B9 pricing CTA buttons (server-rendered)
+✅ B9 pricing currency LYD
+✅ B10 /subscribe 200
+✅ B10 subscribe loading role=status
+✅ B11 /demo 200
+✅ B11 demo messages tab
+✅ B12 /terms 200
+✅ B13 /privacy 200
+✅ B14 /connect 200
+✅ B15 404 clean (no stack trace)
+✅ B15 404 clean (no ISE text)
+✅ B16 sitemap 200
+✅ B16 sitemap urlset
+✅ C17 CSP script-src present
+✅ C18 CSP: no FB script hosts
+✅ C18b CSP: no graph host in script
+✅ C19 CSP connect-src present (narrowed)
+✅ C20 HSTS bot ≥ 1y
+✅ C21 HSTS api present
+✅ C22 bot nosniff
+✅ C23 api nosniff
+✅ C24 referrer-policy present
+✅ D25 csrf cookie issued on GET /api/plans
+✅ D26 csrf SameSite=strict
+✅ D27 csrf Secure
+✅ D28 csrf JS-readable (no HttpOnly)
+✅ D29 POST without X-CSRF-Token → 403
+✅ D30 POST with forged X-CSRF-Token → 403
+✅ E31 /api/me unauthenticated → 401
+✅ E32 payments/balance → 401
+✅ E33 payments/history → 401 (v14 cap route live)
+✅ E34 admin/subscriptions → 401 (v14 C-SEC1 surface)
+✅ E35 SSE stream guarded → 401
+✅ E36 login empty body not CSRF-blocked (400)
+✅ F37 GET on POST-only topup → 405
+✅ F37b 405 carries Allow: POST
+✅ F38 POST /webhook unsigned → 401
+✅ F39 POST /webhook forged signature → 401
+✅ F40 wrong verify token not echoed
+✅ F41 telegram webhook guarded (403)
+✅ G42 bot chunk immutable
+✅ G43 api chunk immutable
+✅ G44 og:image immutable
+✅ G45 fonts long cache
+✅ G46 robots.txt 200
+✅ H47 plans success envelope
+✅ H48 plans data array
+✅ H49 manifest 200
+✅ H50 landing first-load JS 670KB < 750KB
+
+─────────────────────────────
+PASS: 60  FAIL: 0
+ALL LIVE CHECKS GREEN

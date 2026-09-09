@@ -144,7 +144,7 @@ function LoginForm() {
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
       // message (e.g. "بيانات تسجيل الدخول غير صحيحة") instead of a generic one.
-      brandedToast.success("تم تسجيل الدخول بنجاح")
+      brandedToast.success("تم تسجيل الدخول")
       // v10-B5: platform admin (tenant_id 0) → /admin, tenant admin → /dashboard
       const target = landingFor(data.data?.user, rawRedirect)
       setTimeout(() => window.location.replace(target), 150)
@@ -212,7 +212,7 @@ function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
               <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
-                <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="اسم المستخدم"
+                <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="مثال: ahmed أو ahmed@example.com"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={formError ? "login-form-error" : undefined}
@@ -224,7 +224,7 @@ function LoginForm() {
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" dir="auto"
-                  placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={formError ? "login-form-error" : undefined}
                   className="border-0 bg-transparent ps-9 pe-10 focus-visible:ring-0 focus-visible:ring-offset-0" />
@@ -234,7 +234,16 @@ function LoginForm() {
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order (the
                       only Level-A keyboard failure in the a11y audit). */}
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {/* v17-S3 (D2 §3.3#7 / rec #8): Eye↔EyeOff was an instant
+                      mount/unmount swap. Both icons now stack in one grid
+                      cell and crossfade via the shared .icon-swap class
+                      (globals.css) — the ThemeToggle tt-icon recipe
+                      generalized; data-active picks the visible glyph and
+                      prefers-reduced-motion is guarded in the class. */}
+                  <span className="icon-swap" data-active={showPassword ? "b" : "a"} aria-hidden="true">
+                    <Eye className="size-4" />
+                    <EyeOff className="size-4" />
+                  </span>
                 </button>
               </div>
             </div>
@@ -251,9 +260,12 @@ function LoginForm() {
             )}
             <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
-                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse" /> جارٍ تسجيل الدخول…</span>
+                /* v17-E-F4 (D3 #5): LogIn is directional (arrow into a door
+                    bracket) — mirrored in RTL via the §2.2 allowlist class,
+                    same mechanism as the sidebar's LogOut. */
+                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse rtl:-scale-x-100" aria-hidden="true" /> جارٍ تسجيل الدخول…</span>
               ) : (
-                <span className="flex items-center gap-2"><LogIn className="size-4" /> تسجيل الدخول</span>
+                <span className="flex items-center gap-2"><LogIn className="size-4 rtl:-scale-x-100" aria-hidden="true" /> تسجيل الدخول</span>
               )}
             </Button>
           </form>

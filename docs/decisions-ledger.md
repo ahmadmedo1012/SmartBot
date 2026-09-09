@@ -11,6 +11,16 @@
 
 ---
 
+## dec-notification-prefs — مستهلك تفضيلات الإشعارات
+
+`gstack-shortcut(dec-notification-prefs): سقف تفضيلات تُحفظ ولا تُستشعر، upgrade when فورًا — مستهلك واحد عند التسليم`
+
+- **الحالة:** أُغلق في جولة v17 (E-B3)
+- **الإغلاق:** `push_notification` (routers/notifications.py — الكاتب الوحيد لجدول الإشعارات) يستشعل الآن NotificationPreference: payment→payment_alerts · marketing→marketing_reports · system→system_updates — إشعار لمن فعّله فقط + سجل skip. الاختبار: off عبر نقطة الحفظ الحقيقية → لا صف، on → صف (tests/test_v17_backend_truth.py).
+- **السقف المتبقي الموثق (بلا ترقية آلية):** بثّ المستأجر العام (`user_id=None`: حملة تسويقية ×2 + تحذير انتهاء الاشتراك) بلا بوابة — القائمة مشتركة لكل المستأجر بينما التفضيل لكل مستخدم؛ الحل الكامل (fan-out لكل عضو + قراءة per-user) يتطلب تغيير نموذج التسليم — يُصعَّد عند شكوى منتج فعلية. جولة v17 — الإسناد في docs/reports/v17-world-class-report.md
+
+---
+
 ## dec-agent-stack — حزمة الوكيل وراوترات بلا واجهة
 
 `gstack-shortcut(dec-agent-stack): سقف ~3,400 سطرًا بلا مستهلك واجهة، upgrade when قرار منتج: بناء الواجهة أو الإيقاف`
@@ -19,6 +29,7 @@
 - **السقف/الكلفة:** حزمة الوكيل ~794 سطرًا (`agent_engine.py` 320 + `agent_brain.py` 211 + `agent_tools.py` 141 + `agent_memory.py` 122) لا يوصلها سوى `/api/agent/*` التي لا تستدعيها أي صفحة؛ + راوترات بلا واجهة flows/sequences/widgets/publisher/commerce/brand/users/reports مع محركاتها (flow_engine 570 / sequence_engine 516 / pdf_reports_engine 520 / publisher_engine 190 / commerce_engine 147) ≈2,600 سطر من ميزات مرحلة v4. تبعيتا `tenacity` و`jsonschema` في requirements.txt تعيشان فقط في هذه الحزمة (D11).
 - **محفز الترقية:** قرار المنتج بإحدى جهتين — (أ) بناء واجهة تستهلك الحزمة (تفعيل القيمة المدفوعة)، أو (ب) الإيقاف: حذف ~3,400 سطرًا + التبعيتين + اختباراتها مقابل ~17% من حجم الخلفية.
 - **المالك:** المالك (قرار منتج) · التنفيذ: فريق الخلفية
+- **ضاقت في جولة v17 (2026-09-09):** واجهات جديدة أُنجزت هذه الجولة للمحركات الجاهزة: **sequences (صفحة كاملة 776 سطرًا — وعد Pro)** · users (CRUD فريق في صفحة team + حد max_team مفروض) · pdf_reports (زر تنزيل في reports) · ai (زر اقتراح في comments + فحص جاهزية) · offers (نموذج إنشاء في tools). الحزمة المتبقية للقرار: **agent_* (~820 سطرًا) + flow_engine + publisher_engine + commerce_engine** (~2,600 سطر) — قرار بناء/إيقاف كما هو. جولة v17 — الإسناد في docs/reports/v17-world-class-report.md
 
 ## dec-js-budget — ميزانية الأساس المشترك JS
 

@@ -73,7 +73,7 @@ type PaymentStep = "form" | "waiting" | "success" | "approved" | "rejected"
  * requires it for every non-bank request and the admin queue shows it).
  * The wallet provider label on the request is the backend enum's least-wrong
  * member (there is no "free" provider); the approval notification reads
- * «المبلغ: 0 د.ل — الباقة: مجاني». */
+ * «المبلغ: 0 د.ل — الخطة: مجاني». */
 const FREE_PLAN_SUBMIT_LABEL = "تفعيل الخطة المجانية"
 
 /* v14-E4 (D4 H-01, WCAG 4.1.3 Status Messages): every payment-step swap is
@@ -85,9 +85,9 @@ const FREE_PLAN_SUBMIT_LABEL = "تفعيل الخطة المجانية"
 const STEP_ANNOUNCEMENTS: Record<PaymentStep, string> = {
   form: "عودة إلى نموذج الدفع — عدّل البيانات وأعد المحاولة",
   waiting: "تم إرسال طلب الدفع — بانتظار موافقة الإدارة",
-  approved: "تمت الموافقة على اشتراكك بنجاح",
+  approved: "تمت الموافقة على اشتراكك",
   rejected: "عذراً، تم رفض طلب الاشتراك — يمكنك تعديل البيانات وإعادة المحاولة",
-  success: "تم إرسال طلب الدفع بنجاح — سيُفعّل الاشتراك بعد موافقة الإدارة",
+  success: "تم إرسال طلب الدفع — سيُفعّل الاشتراك بعد موافقة الإدارة",
 }
 
 /* v15-E5 (C-FREE1): distinct waiting announcement for the free journey —
@@ -142,7 +142,7 @@ export function PaymentDialog({
   /* v15-E5 (C-FREE1): price=0 renders the dedicated free-activation step —
    * no method tabs / wallet or bank instructions / receipt (the C-FREE1
    * blocker previously 403-DEAD-ENDED the first CTA of the whole site:
-   * «ادفع الآن (0 د.ل)» then «سعر الباقة غير صالح»). */
+   * «ادفع الآن (0 د.ل)» then «سعر الخطة غير صالح»). */
   const isFreePlan = Number(price) === 0
 
   /* v14-E4 (D4 H-01): focus management across step swaps. The submit/waiting
@@ -251,7 +251,7 @@ export function PaymentDialog({
       return
     }
     if (!isFreePlan && !isBank && Number(price) <= 0) {
-      premiumToast("error", "سعر الباقة غير صالح — أعد فتح نافذة الدفع")
+      premiumToast("error", "سعر الخطة غير صالح — أعد فتح نافذة الدفع")
       return
     }
     if (isBank) {
@@ -337,7 +337,7 @@ export function PaymentDialog({
         if (settled) return
         settled = true
         cleanup()
-        setResolutionMsg("تم الموافقة على اشتراكك بنجاح! سيتم توجيهك إلى لوحة التحكم.")
+        setResolutionMsg("تمت الموافقة على اشتراكك — سيتم توجيهك إلى لوحة التحكم.")
         setStep("approved")
       }
       const onRejected = (message?: string) => {

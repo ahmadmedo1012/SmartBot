@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
@@ -24,6 +24,8 @@ import "@/components/shared/enter-motion.css"
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  // v17-E-F2 (D2-P1 entrance census): keyed per-route entrance below.
+  const pathname = usePathname()
 
   const handleNavigate = (href: string) => {
     router.push(href)
@@ -54,12 +56,24 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div
         id="page-content"
         tabIndex={-1}
-        className="sb-page-enter flex-1 md:ps-60 flex flex-col pb-16 md:pb-0 outline-none"
+        className="sb-page-enter flex-1 md:ps-60 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 outline-none"
       >
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}
         <SetupWarnings />
-        {children}
+        {/* v17-E-F2 (D2-P1 — 17 sub-pages entered with zero motion):
+            .sb-page-enter (on #page-content above) runs ONCE at first shell
+            mount — App Router then swaps only {children} between routes, so
+            every subsequent navigation rendered instantly with no entrance
+            (D2 census: leads/posts/comments/… zero motion classes). Keying
+            this wrapper by pathname remounts it per navigation and replays
+            .sb-fade-up (enter-motion.css — CSS-only, opacity+translateY so
+            no reflow, fill-mode `backwards`, prefers-reduced-motion → none).
+            One wrapper covers all 23 dashboard routes; E-F9's sequences page
+            inherits it automatically (contract E-F2→الكل). */}
+        <div key={pathname} className="sb-fade-up flex-1 flex flex-col">
+          {children}
+        </div>
       </div>
 
       {/* Mobile navigation (Track F) — visible below md where the sidebar is hidden */}

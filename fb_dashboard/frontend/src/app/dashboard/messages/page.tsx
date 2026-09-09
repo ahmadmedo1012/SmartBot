@@ -4,11 +4,12 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Bell, Link2, RefreshCw, MessageCircle } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -30,6 +31,28 @@ const FILTERS = [
   { value: "read", label: "مقروء" },
   { value: "needs_reply", label: "تحتاج إلى رد" },
 ]
+
+/** v17-E-F1 (D2-P1): scrollIntoView({ behavior: "smooth" }) is a JS API the
+ * global CSS reduced-motion override (globals.css:549-551) CANNOT restrain
+ * (CSSOM View spec — behavior is explicit per call), so the thread scroller
+ * needs the project's local matchMedia twin. 7th instance, same recipe as
+ * charts/index.tsx:27-37, KpiCard, StatsSection, ScrollReveal, KineticText,
+ * ScrollParallax. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduced(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
+  return reduced
+}
+
+/** v17-E-F1 (D7-P1): the "near the bottom" window that decides whether new
+ * messages (10s poll) should follow — see the scroll contract below. */
+const NEAR_BOTTOM_PX = 150
 
 function ConvItem({ conv, selectedId, onSelect }: {
   conv: Conversation; selectedId: string | null; onSelect: (id: string) => void
@@ -102,8 +125,18 @@ export default function MessagesPage() {
     return () => clearTimeout(t)
   }, [search])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [replyText, setReplyText] = useState("")
+  // v17-E-F1 (D10-M2 — financial hazard): the reply draft used to be ONE shared
+  // string that followed the selection — text typed for customer A reappeared
+  // (and could be SENT) in customer B's thread after switching. Drafts are now
+  // keyed by conversation id: each thread keeps its own draft, restored when
+  // you come back, and only the thread that was actually replied to is cleared.
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const replyText = selectedId ? (drafts[selectedId] ?? "") : ""
+  const updateDraft = (text: string) => {
+    if (selectedId) setDrafts((prev) => ({ ...prev, [selectedId]: text }))
+  }
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // v8 C8 — keepPreviousData: switching filters/search keeps the previous
   // list on screen (dimmed via isFetching) instead of flashing skeletons
@@ -121,7 +154,16 @@ export default function MessagesPage() {
   const needsSetup = isError && error instanceof ApiError && error.status === 400
   const conversations = data?.items || []
 
-  const { data: messages = [], isLoading: msgLoading } = useQuery({
+  // v17-E-F1 (D1 §5.1 — P1): isError/refetch are now unwrapped from the thread
+  // query — a failed fetch used to render the "no messages" empty state (an
+  // error disguised as an empty thread; same defect class v4 §2.5 fixed in posts).
+  const {
+    data: messages = [],
+    isLoading: msgLoading,
+    isError: msgIsError,
+    error: msgError,
+    refetch: refetchMessages,
+  } = useQuery({
     queryKey: ["inbox-messages", selectedId],
     queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi<Message[]>),
     enabled: !!selectedId,
@@ -129,34 +171,102 @@ export default function MessagesPage() {
   })
 
   const queryClient = useQueryClient()
+
+  // v17-E-F1 (D10-M3): opening a conversation now marks it read —
+  // fire-and-forget POST (E-B1 contract: ok({"unread": N})); a failed
+  // mark-read never blocks reading (the 15s list refetch reconciles).
+  // The unread badge is zeroed optimistically in EVERY cached list
+  // (prefix key match covers all filter/search combos) so the badge and the
+  // «غير مقروء» filter react instantly instead of lying until the user
+  // reads the thread on Facebook itself.
+  const markRead = useCallback((id: string) => {
+    queryClient.setQueriesData<ConversationList>(
+      { queryKey: ["inbox-conversations"] },
+      (prev) => {
+        if (!prev?.items) return prev
+        const idx = prev.items.findIndex((c) => c.id === id)
+        if (idx === -1 || Number(prev.items[idx].unread_count ?? 0) === 0) return prev
+        const items = [...prev.items]
+        items[idx] = { ...items[idx], unread_count: 0 }
+        return { ...prev, items }
+      },
+    )
+    apiFetch(`/api/inbox/conversations/${id}/read`, { method: "POST" })
+      .then(unwrapApi)
+      .catch(() => { /* silent by design — refetch reconciles */ })
+  }, [queryClient])
+
+  useEffect(() => { if (selectedId) markRead(selectedId) }, [selectedId, markRead])
+
+  const prefersReducedMotion = usePrefersReducedMotion()
+
+  /* v17-E-F1 (D7-P1 / D10-M1 — scroll contract): the old effect yanked the
+   * thread to the bottom on EVERY 10s poll — reading history was impossible.
+   * Now the thread lands at the bottom only when:
+   *   (أ) the first data of a freshly selected thread arrives (instant),
+   *   (ب) a reply is sent successfully (sendMut.onSuccess below),
+   *   (ج) messages grow while the user is already near the bottom (~150px).
+   * While the user is scrolled up reading history, polls never jump. */
+  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+    // v17-E-F1 (D2-P1): smooth is a JS-API scroll — the global CSS
+    // reduced-motion override cannot restrain scrollIntoView, so clamp here.
+    const effective: ScrollBehavior = prefersReducedMotion ? "auto" : behavior
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: effective }), 50)
+  }, [prefersReducedMotion])
+
+  const prevThreadRef = useRef<{ id: string | null; count: number }>({ id: null, count: 0 })
+  useEffect(() => {
+    if (messages.length === 0) return
+    const prev = prevThreadRef.current
+    if (prev.id !== selectedId) {
+      scrollToBottom("auto") // (أ) fresh thread → land at the newest message
+    } else if (messages.length > prev.count) {
+      const el = scrollContainerRef.current
+      // (ج) follow new messages ONLY when the user is at/near the bottom
+      if (!el || el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX) {
+        scrollToBottom("smooth")
+      }
+    }
+    prevThreadRef.current = { id: selectedId, count: messages.length }
+  }, [messages, selectedId, scrollToBottom])
+
+  // A failed-then-retried thread re-lands at the bottom: the error card
+  // collapses the scroll area, so treat recovery like a fresh open.
+  useEffect(() => {
+    if (msgIsError) prevThreadRef.current = { id: null, count: 0 }
+  }, [msgIsError])
+
   const sendMut = useMutation({
-    mutationFn: (text: string) =>
-      apiFetch(`/api/inbox/conversations/${selectedId}/reply`, {
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      apiFetch(`/api/inbox/conversations/${id}/reply`, {
         method: "POST", body: new URLSearchParams({ message: text }),
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inbox-messages", selectedId] })
+    onSuccess: (_res, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["inbox-messages", id] })
       queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] })
-      setReplyText("")
+      // v17-E-F1 (D10-M2): clear ONLY the replied thread's draft — the id
+      // from variables stays exact even if the user switches mid-flight.
+      setDrafts((prev) => ({ ...prev, [id]: "" }))
       brandedToast.success("تم إرسال الرد")
+      // (ب) a successful reply lands the thread at the newest message
+      scrollToBottom("smooth")
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
   })
 
-  const scrollToBottom = useCallback(() => {
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50)
-  }, [])
-
-  useEffect(() => { if (messages.length) scrollToBottom() }, [messages, scrollToBottom])
-
   const handleSend = () => {
-    if (replyText.trim() && !sendMut.isPending) sendMut.mutate(replyText.trim())
+    if (selectedId && replyText.trim() && !sendMut.isPending) {
+      sendMut.mutate({ id: selectedId, text: replyText.trim() })
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col">
       <PageHeader
-        icon={<Bell className="size-4" />}
+        /* v17-E-F1 (D3): Bell collided with the notifications section
+            (same glyph in AdminSidebar/MobileBottomNav/notifications header).
+            Inbox is the messages-domain glyph (already used by admin/support). */
+        icon={<Inbox className="size-4" />}
         title="الرسائل"
         subtitle="صندوق الوارد الموحد"
         compact
@@ -270,7 +380,9 @@ export default function MessagesPage() {
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
               <EmptyState
-                icon={Bell}
+                /* v17-E-F1 (D3): MessageCircle — the second in-page Bell
+                    (same notifications collision as the header icon above). */
+                icon={MessageCircle}
                 size="lg"
                 title="اختر محادثة"
                 description="اختر محادثة من القائمة لعرض الرسائل والرد عليها."
@@ -284,7 +396,7 @@ export default function MessagesPage() {
                   <DirectionalIcon semanticDirection="forward" className="size-4" /> كل المحادثات
                 </Button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                 {msgLoading ? (
                   <div className="space-y-3">
                     {[1,2,3].map(i => (
@@ -292,6 +404,19 @@ export default function MessagesPage() {
                         <Skeleton className="h-16 rounded-lg w-1/2" />
                       </div>
                     ))}
+                  </div>
+                ) : msgIsError ? (
+                  /* v17-E-F1 (D1 §5.1 — P1): a failed thread fetch rendered the
+                      "no messages" empty state — an error disguised as an empty
+                      thread. Mirror of support's ticketDetailQuery branch
+                      (support:449-455). */
+                  <div className="text-center py-6 space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {(msgError as Error)?.message || "تعذر تحميل الرسائل"}
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => refetchMessages()}>
+                      <RefreshCw className="size-3" /> إعادة المحاولة
+                    </Button>
                   </div>
                 ) : messages.length === 0 ? (
                   <EmptyState
@@ -377,20 +502,20 @@ export default function MessagesPage() {
                   >
                     <Send className="size-4 rtl:-scale-x-100" aria-hidden="true" />
                   </Button>
-                  <div className="flex-1 relative">
-                    <textarea
+                  <div className="flex-1">
+                    {/* v17-E-F1 (D7-P0): the raw <textarea> was text-sm (14px) —
+                        iOS auto-zooms the viewport on every focus. The shared
+                        Textarea brings text-base md:text-sm (16px on mobile),
+                        field-sizing-content auto-grow (D10-M4) and dir="auto"
+                        built in; the reply-bar look is kept via overrides. */}
+                    <Textarea
                       value={replyText}
-                      onChange={e => setReplyText(e.target.value)}
+                      onChange={e => updateDraft(e.target.value)}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً…"
                       aria-label="نص الرد"
-                      /* v14-E5: raw textarea bypasses the shared Textarea component —
-                         apply the AA placeholder token directly.
-                         v16-E3 (D1 C3): dir="auto" isolates the mixed
-                         Arabic/Latin DM being typed. */
-                      dir="auto"
-                      className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm placeholder:text-placeholder-text transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}
+                      className="min-h-[44px] max-h-32 resize-none rounded-xl border-input/60 bg-background/80 dark:bg-background/80 px-4 shadow-none focus-visible:border-accent-foreground/40 focus-visible:ring-accent-foreground/15"
                     />
                   </div>
                 </div>

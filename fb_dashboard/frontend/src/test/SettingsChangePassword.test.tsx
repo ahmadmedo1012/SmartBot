@@ -174,7 +174,7 @@ describe("settings password change — the backend's Arabic detail surfaces (D4-
     fireEvent.click(screen.getByRole("button", { name: "تغيير كلمة المرور" }))
 
     await waitFor(() => {
-      expect(mocks.toastSuccess).toHaveBeenCalledWith("تم تغيير كلمة المرور بنجاح")
+      expect(mocks.toastSuccess).toHaveBeenCalledWith("تم تغيير كلمة المرور")
     })
     // success closes the form entirely (setShowPw(false)) — the inputs
     // unmount; their detached nodes would keep stale values, so assert the

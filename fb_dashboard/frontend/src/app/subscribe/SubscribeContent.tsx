@@ -56,7 +56,7 @@ export default function SubscribeContent() {
           if (found) setSelectedPlan(found.id)
         }
       } catch {
-        premiumToast("error", "فشل تحميل الخطط")
+        premiumToast("error", "تعذر تحميل الخطط")
         // auto-retry once after 1s — cold-start /api/plans may fail transiently
         if (!retried) {
           retried = true
@@ -89,7 +89,7 @@ export default function SubscribeContent() {
           if (found) setSelectedPlan(found.id)
         }
       })
-      .catch(() => premiumToast("error", "فشل تحميل الخطط"))
+      .catch(() => premiumToast("error", "تعذر تحميل الخطط"))
       .finally(() => setLoading(false))
   }, [preselectedPlan])
 
@@ -98,8 +98,15 @@ export default function SubscribeContent() {
   // and lighthouse measured it as a login redirect). Anonymous visitors now
   // browse plans publicly; auth is enforced at the PAYMENT step (401 →
   // login with return path, handled in PaymentDialog).
+  // v17-E-F2 (D8-G1 — P0): the probe itself must opt out of apiFetch's
+  // global 401 handler — a 401 here is the EXPECTED «anonymous visitor»
+  // answer, not a session expiry, but handleSessionExpired() kicked the
+  // anonymous visitor to /login?redirect=%2Fsubscribe (1.2s toast + replace),
+  // defeating the public contract above and the middleware publicPrefixes.
+  // skipAuthRedirect keeps the rejection local: authed=false → «العودة
+  // للرئيسية» back button; PaymentDialog's tailored 401 journey untouched.
   useEffect(() => {
-    apiFetch("/api/me")
+    apiFetch("/api/me", { skipAuthRedirect: true })
       .then(() => setAuthed(true))
       .catch(() => setAuthed(false))
       .finally(() => setAuthLoaded(true))
@@ -108,7 +115,7 @@ export default function SubscribeContent() {
   const currentPlan = plans.find((p) => p.id === selectedPlan)
 
   const handlePaymentSuccess = useCallback(async () => {
-    premiumToast("success", "تم تفعيل اشتراكك بنجاح! جارٍ نقلك إلى لوحة التحكم…")
+    premiumToast("success", "تم تفعيل اشتراكك — جارٍ نقلك إلى لوحة التحكم…")
     router.push("/dashboard")
   }, [router])
 

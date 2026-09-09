@@ -8,6 +8,7 @@ import { Clock, CalendarDays, Send, Trash2 , AlertCircle, RefreshCw } from "luci
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Input } from "@/components/ui/input"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
@@ -81,19 +82,16 @@ export default function ScheduledPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Clock className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">المجدول</h1>
-            <p className="text-2xs text-muted-foreground">المنشورات المجدولة</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<Clock className="size-4" />}
+        title="المجدول"
+        subtitle="المنشورات المجدولة"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
         <Card>
           <CardContent className="p-4 space-y-3">
             <textarea
@@ -117,8 +115,11 @@ export default function ScheduledPage() {
                   className="text-sm"
                 />
               </div>
-              <Button onClick={() => createMut.mutate()} disabled={!message.trim() || !scheduledAt || createMut.isPending}>
-                <CalendarDays className="size-4" /> جدولة
+              {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ الجدولة…» (mirror:
+                  support:341-349 / marketing:218) — disabled-only had no
+                  in-flight affordance. */}
+              <Button onClick={() => createMut.mutate()} disabled={!message.trim() || !scheduledAt || createMut.isPending} loading={createMut.isPending}>
+                <CalendarDays className="size-4" /> {createMut.isPending ? "جارٍ الجدولة…" : "جدولة"}
               </Button>
             </div>
           </CardContent>

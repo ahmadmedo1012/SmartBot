@@ -1,22 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { brandedToast } from "@/lib/premium-toast"
-import { MessageSquare, Reply, AlertCircle, RefreshCw } from "lucide-react"
+import { MessageSquare, Reply, AlertCircle, RefreshCw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { AiSuggestDialog, type AiSuggestResult } from "@/components/ai/AiSuggestDialog"
 import { formatDateOnly, timeAgo } from "@/lib/format"
 import type { CommentRow } from "@/lib/types"
 
 
 export default function CommentsPage() {
   const [replyText, setReplyText] = useState<Record<string, string>>({})
+  /* v17-E-F12: التعليق الذي فُتح لأجله dialog الاقتراحات (null = مغلق).
+   * Dialog عرضيّ — الطلب نفسه يعيش في suggestMut تحت، فتتشارك البطاقة
+   * في الصف وزر الصف حالة loading نفسها. */
+  const [suggestFor, setSuggestFor] = useState<CommentRow | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -33,6 +39,69 @@ export default function CommentsPage() {
     retry: 1,
   })
   const comments = data ?? []
+
+  /* v17-E-F12 (فحص الجاهزية): GET /api/ai/status مرة عند التحميل — إن كانت
+   * المفاتيح غير مضبوطة (available:false قاطعة) يعرض زر «اقترح» حالة
+   * صادقة (title + توست محذر مصمم عند النقر) بدل نداء ميّت أو خطأ صامت.
+   * فشل الفحص نفسه (شبكة) لا يعني «غير مفعّل» — الزر يعمل والـPOST يعرض
+   * خطأه العربي الخاص إن تعذر. */
+  const { data: aiStatus } = useQuery({
+    queryKey: ["ai-status"],
+    queryFn: async () => {
+      const res = await apiFetch("/api/ai/status")
+      return unwrapApi<{ available: boolean; provider: string }>(res)
+    },
+    staleTime: 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  })
+  const aiUnavailable = aiStatus?.available === false
+
+  /* v17-E-F12: عقد POST /api/ai/suggest (routers/ai.py) — Form وليس JSON:
+   * comment_text + commenter_name + page_context (منشور التعليق)،
+   * والاستجابة ok({suggestions, intent, sentiment, …}) عبر unwrapApi.
+   * 400 «AI غير مفعل…» يرميها apiFetch كـApiError عربي → dialog. */
+  const suggestMut = useMutation({
+    mutationFn: async (c: CommentRow) => {
+      const res = await apiFetch("/api/ai/suggest", {
+        method: "POST",
+        body: new URLSearchParams({
+          comment_text: c.message ?? "",
+          commenter_name: c.from_name ?? "",
+          page_context: c.post_message ?? "",
+        }),
+      })
+      return unwrapApi<AiSuggestResult>(res)
+    },
+  })
+
+  /* فتح الاقتراح: بواب الجاهزية أولًا — إن كانت available:false قاطعة
+   * فالنقرة تشرح نفسها (توست محذر مصمم) ولا يُطلق نداء ولا dialog. */
+  const openSuggest = (c: CommentRow) => {
+    if (aiUnavailable) {
+      brandedToast.warning("الذكاء الاصطناعي غير مفعّل", "فعّله من إعدادات المنصة")
+      return
+    }
+    setSuggestFor(c)
+    suggestMut.mutate(c)
+  }
+
+  /* «إدراج» من dialog: يملأ مسودة الرد لصف التعليق المحدد فقط (نمط
+   * replyText لكل صف الموجود)، يغلق الـdialog، ويتركز حقل الرد برصد
+   * rAF — نمط focusStepTitle (v16-E3) حتى لا يسقط التركيز على body
+   * بعد إغلاق الطبقة. (الإغلاق شرط: لا توست «أُدرج» بلا هدف فعلي.) */
+  const handleInsert = useCallback((text: string) => {
+    const target = suggestFor
+    if (target) {
+      setReplyText(p => ({ ...p, [target.id]: text }))
+      setSuggestFor(null)
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`reply-input-${target.id}`)
+        if (el instanceof HTMLInputElement) el.focus()
+      })
+      brandedToast.success("أُدرج الاقتراح في مسودة الرد", "عدّله كما تريد ثم أرسله")
+    }
+  }, [suggestFor])
 
   const replyMut = useMutation({
     mutationFn: ({ commentId, message }: { commentId: string; message: string }) =>
@@ -56,19 +125,16 @@ export default function CommentsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <MessageSquare className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">التعليقات</h1>
-            <p className="text-2xs text-muted-foreground">جميع التعليقات على المنشورات</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<MessageSquare className="size-4" />}
+        title="التعليقات"
+        subtitle="جميع التعليقات على المنشورات"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
         {isLoading ? (
           <div className="space-y-3">
             {[1,2,3,4].map(i => (
@@ -128,8 +194,9 @@ export default function CommentsPage() {
                       )}
 
                       {!c.reply_text && (
-                        <div className="mt-2 flex gap-2">
+                        <div className="mt-2 flex flex-wrap gap-2">
                           <input
+                            id={`reply-input-${c.id}`}
                             value={replyText[c.id] || ""}
                             onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
                             placeholder="رد سريع…"
@@ -139,7 +206,7 @@ export default function CommentsPage() {
                                v16-E3 (D1 C3): dir="auto" isolates the mixed
                                Arabic/Latin reply being typed. */
                             dir="auto"
-                            className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 placeholder:text-placeholder-text focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
+                            className="flex-1 min-w-[10rem] h-8 text-sm rounded-lg border border-input bg-background px-3 placeholder:text-placeholder-text focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />
                           <Button
                             size="sm"
@@ -151,6 +218,31 @@ export default function CommentsPage() {
                           >
                             <Reply className="size-3 rtl:-scale-x-100" /> رد
                           </Button>
+                          {/* v17-E-F12 (D6-6): زر «اقترح ردًا» — وعد Basic
+                              «ردود ذكية AI». loading من useMutation المشترك
+                              (disabled + سبينر + «جارٍ الاقتراح…»). */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            loading={suggestMut.isPending && suggestMut.variables?.id === c.id}
+                            onClick={() => openSuggest(c)}
+                            aria-label={
+                              c.from_name
+                                ? `اقترح ردًا بالذكاء الاصطناعي على تعليق ${c.from_name}`
+                                : "اقترح ردًا بالذكاء الاصطناعي"
+                            }
+                            title={
+                              aiUnavailable
+                                ? "الذكاء الاصطناعي غير مفعّل — فعّله من إعدادات المنصة"
+                                : "اقترح ردًا بالذكاء الاصطناعي"
+                            }
+                            className={aiUnavailable ? "text-muted-foreground" : undefined}
+                          >
+                            <Sparkles className="size-3" aria-hidden="true" />
+                            {suggestMut.isPending && suggestMut.variables?.id === c.id
+                              ? "جارٍ الاقتراح…"
+                              : "اقترح"}
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -161,6 +253,21 @@ export default function CommentsPage() {
           </div>
         )}
       </div>
+
+      {/* v17-E-F12: dialog الاقتراحات — حالاته تأتي من useMutation في
+          الصفحة؛ الإغلاق (Escape/زر الإغلاق من dialog.tsx المشترك)
+          يصفّر suggestFor فقط دون مساس بمسودات الرد. */}
+      <AiSuggestDialog
+        open={suggestFor !== null}
+        onOpenChange={o => { if (!o) setSuggestFor(null) }}
+        commentText={suggestFor?.message ?? ""}
+        commenterName={suggestFor?.from_name}
+        pending={suggestMut.isPending}
+        error={suggestMut.error ? (suggestMut.error.message || "تعذر توليد الاقتراحات") : null}
+        result={suggestMut.data ?? null}
+        onRetry={() => { if (suggestFor) suggestMut.mutate(suggestFor) }}
+        onInsert={handleInsert}
+      />
     </div>
   )
 }

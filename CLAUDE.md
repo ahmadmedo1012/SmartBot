@@ -40,6 +40,15 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 2. **Router naming:** both styles exist (`auth.py`… and `*_routes.py`). New routers follow `*_routes.py` (`admin_routes.py` is the precedent); a domain may decompose into a package — `routers/payments/` is the v13 precedent (see v13 Conventions #1). The envelope contract lives ONLY in `_responses.py` (`ok()`/`fail()`) — see Strict Rules #5.
 3. **CSRF (double-submit, since v12):** every mutating request (POST/PUT/PATCH/DELETE) must carry header `X-CSRF-Token` matching the non-HttpOnly `csrf_token` cookie issued on safe GETs — `apiFetch()` in `src/lib/csrf-client.ts` does this automatically; exemptions only via the middleware's documented prefix list (`/api/telegram/`, `/api/webhook/`, `/api/cron/`, `/healthz`, pre-session login/register).
 
+## v17 Conventions (اصطلاحات جولة v17)
+
+1. **JSON+Form endpoints:** mutating endpoints accept BOTH bodies when a live caller sends JSON (templates_routes is the precedent — v17-E-B1; the 422 class of «UI sends JSON, server declares Form» is a contract bug).
+2. **Entrance motion:** dashboard pages do NOT hand-roll entry animations — the keyed pathname wrapper in DashboardShell covers all (v17-E-F2); per-page motion is the exception, documented.
+3. **Directional icons:** chevrons in pagination/navigators go through DirectionalIcon (variant="chevron") — no raw ChevronLeft/Right imports outside the component (admin/support precedent — v17-E-F8).
+4. **Mobile inputs:** raw <input>/<textarea> must carry text-base md:text-sm (16px floor — iOS zoom); design_baseline.py counts violations (1 remaining is a code comment).
+5. **Design ratchet:** scripts/design_baseline.py grades structure/fields/color/motion/ai_slop (A-F) — round-close re-seeds with --force; regressions are tracked, not blocked.
+6. **Sim battery:** 15 personas (p15 = new-features user); local runs split PART=1/PART=2 (sandbox kills background daemons between calls); uvicorn --timeout-keep-alive 120 prevents the Next-proxy ECONNRESET race.
+
 ## v13 Conventions (اصطلاحات جولة v13)
 
 1. **Routers are packages now:** a domain router may decompose into a package — `fb_dashboard/routers/payments/` is the precedent (`wallet.py` · `bank.py` · `approvals.py` · `sse.py` · `plans.py`). Aggregation lives in the package's `__init__.py` via an **untagged** `APIRouter` that includes the sub-routers, preserving the single import surface `fb_dashboard.routers.payments` — importers never see the split. Bodies move verbatim (decomposition = move, not rewrite; the pytest suite guards the money path).

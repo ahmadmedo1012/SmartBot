@@ -269,7 +269,7 @@ describe("RegisterForm happy path", () => {
     fireEvent.change(f.confirm, { target: { value: "Str0ngPass!ly" } })
     submit()
 
-    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إنشاء الحساب بنجاح"))
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إنشاء الحساب"))
 
     // exact POST contract: endpoint, method, credentials, JSON body
     expect(fetchMock).toHaveBeenCalledTimes(1)

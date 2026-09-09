@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
 import { countPhrase } from "@/lib/format"
-import { Bot, Plus, ToggleLeft, ToggleRight, Trash2, AlertCircle, RefreshCw } from "lucide-react"
+import { Bot, Plus, Pencil, ToggleLeft, ToggleRight, Trash2, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -15,6 +15,9 @@ import type { ReplyRule } from "@/lib/types"
 
 export default function AutoReplyPage() {
   const [showForm, setShowForm] = useState(false)
+  /* v17-E-F8 (D6 #7): وضع تعديل القاعدة — نفس النموذج يتحول لوضع PUT
+     (PUT موجود خلفيًا: /api/rules/{id} — Form: name/keywords/reply_template/priority). */
+  const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
   const [name, setName] = useState("")
   const [keyword, setKeyword] = useState("")
   const [replyText, setReplyText] = useState("")
@@ -57,6 +60,29 @@ export default function AutoReplyPage() {
     onError: (e: Error) => brandedToast.error(e.message),
   })
 
+  /* v17-E-F8 (D6 #7): تعديل قاعدة قائمة — PUT /api/rules/{id} بنفس حقول
+     الإنشاء (Form-encoded؛ الخادم يفصل keywords على الفاصلة الإنجليزية
+     لذا نُعيد تجميع المصفوفة بـ ", " عند الملء). */
+  const updateRuleMut = useMutation({
+    mutationFn: (id: number) =>
+      apiFetch(`/api/rules/${id}`, {
+        method: "PUT",
+        body: new URLSearchParams({
+          name: name.trim() || keyword.trim(),
+          keywords: keyword.trim(),
+          reply_template: replyText.trim(),
+          priority: priority.trim() || "50",
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rules"] })
+      setEditingRuleId(null)
+      setName(""); setKeyword(""); setReplyText(""); setPriority("50")
+      brandedToast.success("تم حفظ تعديلات القاعدة")
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "فشل حفظ التعديلات"),
+  })
+
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiFetch(`/api/rules/${id}`, { method: "DELETE" }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); brandedToast.success("تم حذف القاعدة") },
@@ -72,22 +98,27 @@ export default function AutoReplyPage() {
         compact
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* D4-بند2 (v17-S1) — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">{countPhrase(rules.length, "قاعدة", "قاعدتين", "قواعد")}</p>
-          <Button size="sm" onClick={() => setShowForm(!showForm)} className="shadow-sm shadow-accent-foreground/15">
+          <Button size="sm" onClick={() => { setShowForm(!showForm); setEditingRuleId(null) }} className="shadow-sm shadow-accent-foreground/15">
             <Plus className="size-3.5" /> قاعدة جديدة
           </Button>
         </div>
 
-        {showForm && (
+        {(showForm || editingRuleId !== null) && (
           <Card
             className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5"
             /* v10-B7 (G2-05): Escape closes the inline form (same as «إلغاء») —
                the first field is focused on open so the key lands inside */
-            onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false) } }}
+            onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false); setEditingRuleId(null) } }}
           >
             <CardContent className="p-4 space-y-3">
+              {/* v17-E-F8 (D6 #7): عنوان النموذج يفرّق الإنشاء عن التعديل. */}
+              <p className="text-xs font-bold text-muted-foreground">
+                {editingRuleId !== null ? "تعديل القاعدة" : "قاعدة جديدة"}
+              </p>
               <div>
                 <label htmlFor="rule-name" className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم القاعدة</label>
                 <input
@@ -99,7 +130,7 @@ export default function AutoReplyPage() {
                   /* v16-E3 (D1 C3): raw input bypasses the shared Input seam —
                      dir="auto" isolates mixed Arabic/Latin values. */
                   dir="auto"
-                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -110,7 +141,7 @@ export default function AutoReplyPage() {
                   onChange={e => setKeyword(e.target.value)}
                   placeholder="مثال: سعر، توصيل، عنوان"
                   dir="auto"
-                  className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -122,7 +153,7 @@ export default function AutoReplyPage() {
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة…"
                   rows={3}
                   dir="auto"
-                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
+                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-base md:text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
               </div>
               <div>
@@ -133,13 +164,18 @@ export default function AutoReplyPage() {
                   onChange={e => setPriority(e.target.value)}
                   inputMode="numeric"
                   dir="auto"
-                  className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
-                <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
-                <Button size="sm" onClick={() => createMut.mutate()} disabled={!keyword.trim() || !replyText.trim() || createMut.isPending}>
-                  {createMut.isPending ? "جارٍ الحفظ…" : "حفظ القاعدة"}
+                <Button size="sm" variant="outline" onClick={() => { setShowForm(false); setEditingRuleId(null); setName(""); setKeyword(""); setReplyText(""); setPriority("50") }}>إلغاء</Button>
+                <Button
+                  size="sm"
+                  loading={createMut.isPending || updateRuleMut.isPending}
+                  disabled={!keyword.trim() || !replyText.trim() || createMut.isPending || updateRuleMut.isPending}
+                  onClick={() => { if (editingRuleId !== null) updateRuleMut.mutate(editingRuleId); else createMut.mutate() }}
+                >
+                  {(createMut.isPending || updateRuleMut.isPending) ? "جارٍ الحفظ…" : editingRuleId !== null ? "حفظ التعديلات" : "حفظ القاعدة"}
                 </Button>
               </div>
             </CardContent>
@@ -196,6 +232,24 @@ export default function AutoReplyPage() {
                       state for SRs — WCAG 4.1.2), and the hover-only opacity
                       reveal now also lifts on keyboard focus. */}
                   <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                    {/* v17-E-F8 (D6 #7): زر تعديل القاعدة — يفتح النموذج
+                        معبّأ بصف القاعدة لوضع PUT. */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="size-8 p-0"
+                      onClick={() => {
+                        setEditingRuleId(r.id)
+                        setShowForm(false)
+                        setName(r.name)
+                        setKeyword((r.keywords || []).join(", "))
+                        setReplyText(r.reply_template || "")
+                        setPriority(String(r.priority ?? 999))
+                      }}
+                      aria-label={`تعديل قاعدة ${r.name}`}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
                       {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
                     </Button>

@@ -31,7 +31,11 @@ export function ReviewSummary({
 }) {
   return (
     <div className="animate-fade-in max-w-lg mx-auto">
-      <div className="rounded-md p-5 mb-8 border-2 border-accent-foreground/30 bg-gradient-to-r from-accent/80 to-white dark:from-accent/20 dark:to-card">
+      {/* v17-S1 (D4-بند4): التدرج الأبيض الخام (نهاية to نحو الأبيض) كان
+          يكسر الوضع الفاتح (بطاقة بيضاء صريحة) — التدرج الآن توكني بالكامل
+          (D4: from-accent/15 → to-card فاتحًا، accent/20 داكنًا) بنفس قصد
+          Smart-Menu الأصلي. */}
+      <div className="rounded-md p-5 mb-8 border-2 border-accent-foreground/30 bg-gradient-to-r from-accent/15 to-card dark:from-accent/20">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-lg">{currentPlan.nameAr}</p>

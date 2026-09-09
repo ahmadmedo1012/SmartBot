@@ -15,6 +15,7 @@ import {
   Sparkles,
   CreditCard,
   CheckCircle2,
+  XCircle,
   Loader2,
   Zap,
   MessageSquare,
@@ -355,7 +356,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               return (
                 <div key={i} className="flex items-center gap-1.5 flex-1">
                   <div
-                    className={`h-1 flex-1 rounded-full transition-all duration-400 ${
+                    /* v17-S3 (D2 §3.2): duration-400 was a lone off-scale
+                       value — now the --duration-slow token (500ms). */
+                    className={`h-1 flex-1 rounded-full transition-all duration-(--duration-slow) ${
                       done ? "bg-primary" : active ? "bg-accent-foreground/60" : "bg-muted"
                     }`}
                   />
@@ -422,27 +425,39 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     <div
                       role="status"
                       aria-live="polite"
-                      className={`rounded-lg p-2.5 text-xs leading-relaxed ${
+                      className={`flex items-start gap-1.5 rounded-lg p-2.5 text-xs leading-relaxed ${
                         testResult.connected
                           ? "bg-success-soft text-success border border-success/20"
                           : "bg-destructive-soft text-destructive border border-destructive/20"
                       }`}
                     >
+                      {/* v17-E-F4 (D3 #7): the literal ✓/✗ text glyphs are
+                          replaced with the app's state verdict icons
+                          (CheckCircle2/XCircle — same pair as RegisterForm),
+                          aria-hidden so the live region announces clean
+                          Arabic text instead of a bare check/cross symbol. */}
                       {testResult.connected ? (
-                        <>
-                          {"✓ الاتصال ناجح — "}
-                          {/* v15-E6 (D5-M7): page_name is a live Latin Facebook
-                              value inside an aria-live region — dir="auto"
-                              isolates it so the Arabic sentence order survives
-                              (and a missing name renders empty, not "undefined"). */}
-                          <span dir="auto">{testResult.page_name ?? ""}</span>
-                          {testResult.fan_count
-                            ? ` (${countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين")})`
-                            : ""}
-                        </>
+                        <CheckCircle2 className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                       ) : (
-                        "✗ " + (testResult.error || "فشل الاتصال")
+                        <XCircle className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                       )}
+                      <span className="min-w-0">
+                        {testResult.connected ? (
+                          <>
+                            {"الاتصال ناجح — "}
+                            {/* v15-E6 (D5-M7): page_name is a live Latin Facebook
+                                value inside an aria-live region — dir="auto"
+                                isolates it so the Arabic sentence order survives
+                                (and a missing name renders empty, not "undefined"). */}
+                            <span dir="auto">{testResult.page_name ?? ""}</span>
+                            {testResult.fan_count
+                              ? ` (${countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين")})`
+                              : ""}
+                          </>
+                        ) : (
+                          testResult.error || "فشل الاتصال"
+                        )}
+                      </span>
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">

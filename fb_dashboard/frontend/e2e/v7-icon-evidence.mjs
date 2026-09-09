@@ -8,10 +8,17 @@
  * Two sessions: v7user (normal tenant: subscribe/onboarding/messages) and
  * localadmin (platform admin: admin back links, telegram sections).
  *
+ * D3 static probes (v17-S5 · audit v17-D3 §10 gaps): three SOURCE checks
+ * that document the D3 gaps closed by v17-E-F4/F8 and guard them against
+ * regression — admin/support pagination via DirectionalIcon · branded-toast
+ * warning glyph = AlertTriangle · login button LogIn mirrored RTL. They are
+ * advisory: logged as `static·` lines, never added to the live `results`,
+ * never affecting the exit code (source state, no server needed).
+ *
  * Env: BASE_URL, USR/PW, OUT, TAG.   Run: node e2e/v7-icon-evidence.mjs
  */
 import { chromium } from "playwright";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 
 const WEB = process.env.BASE_URL || "http://localhost:3199";
 const OUT = process.env.OUT || "../../docs/screenshots";
@@ -56,6 +63,73 @@ async function evidence(page, name, selector, shot) {
   } catch (e) {
     check(name, false, String(e).slice(0, 70));
   }
+}
+
+// ══════ D3 static source probes (v17-S5 — advisory, never affect exit code) ══════
+// الفجوات الثلاث التي سجّلها تدقيق v17-D3 §10 على أدلة v7 (لم تكن مغطاة):
+// ترقيم admin/support · أيقونة تحذير التوست · انعكاس زر الدخول. القياس من
+// المصدر (قراءة الملفات) — لا يحتاج خادماً حياً؛ الفشل هنا دليل انحدار
+// في الملفات يُطبع ولا يُحتسب في نتيجة المسبارات الحية.
+const staticResults = [];
+const staticCheck = (name, ok, detail = "") => {
+  staticResults.push([name, ok]);
+  console.log(`${ok ? "PASS" : "FAIL"}  [static] ${name}${detail ? " — " + detail : ""}`);
+};
+const srcFile = (p) => readFileSync(new URL(p, import.meta.url), "utf-8");
+
+// 1) admin/support pagination — the D3 §5.3 contract breach (raw
+//    ChevronLeft/ChevronRight outside DirectionalIcon) closed by v17-E-F8.
+{
+  const f = srcFile("../src/app/admin/support/page.tsx");
+  const usesDirectional = /DirectionalIcon/.test(f) && /semanticDirection="(?:back|forward)"/.test(f);
+  const rawChevrons = /Chevron(?:Left|Right)/.test(f);
+  staticCheck(
+    "admin/support pagination via DirectionalIcon (D3 §5.3, fixed v17-E-F8)",
+    usesDirectional && !rawChevrons,
+    rawChevrons ? "raw chevron glyph reintroduced" : `DirectionalIcon ×${(f.match(/DirectionalIcon/g) || []).length}`
+  );
+}
+// 2) branded toast warning — the D3 #3 semantic split (warning = Star) closed
+//    by v17-E-F4: warning must map to AlertTriangle. The Star check looks at
+//    the icon map and the import list only — the header comment quotes
+//    "(was Star…)" as remediation history, not as a live glyph.
+{
+  const f = srcFile("../src/lib/premium-toast.tsx");
+  const warnTriangle = /warning:\s*\{\s*icon:\s*AlertTriangle/.test(f);
+  const starGlyph = /icon:\s*Star\b/.test(f) || /import\s*\{[^}]*\bStar\b/.test(f);
+  staticCheck(
+    "branded toast warning = AlertTriangle, not Star (D3 #3, fixed v17-E-F4)",
+    warnTriangle && !starGlyph,
+    starGlyph ? "Star glyph mapped/imported in toast" : "warning→AlertTriangle"
+  );
+}
+// 3) login button RTL mirror — the D3 #5 un-mirrored LogIn closed by
+//    v17-E-F4: the submit glyph carries rtl:-scale-x-100, and the toast
+//    login/logout chips flip via cfg.flip.
+{
+  const login = srcFile("../src/app/login/page.tsx");
+  const toast = srcFile("../src/lib/premium-toast.tsx");
+  const mirrored = (login.match(/<LogIn[^>]*rtl:-scale-x-100/g) || []).length;
+  const toastFlip = /login:\s*\{\s*icon:\s*LogIn,\s*flip:\s*true/.test(toast)
+    && /logout:\s*\{\s*icon:\s*LogOut,\s*flip:\s*true/.test(toast);
+  staticCheck(
+    "login button LogIn mirrored RTL (D3 #5, fixed v17-E-F4)",
+    mirrored > 0 && toastFlip,
+    `rtl:-scale-x-100 ×${mirrored} · toast login/logout flip=${toastFlip}`
+  );
+}
+const staticFails = staticResults.filter((r) => !r[1]).length;
+console.log(
+  staticFails === 0
+    ? "D3 static probes: ALL GREEN (advisory — not counted in the live verdict)"
+    : `D3 static probes: ${staticFails} FAILING (advisory — live verdict unaffected; fix the source then re-run)`
+);
+// STATIC_ONLY=1 — تشغيل المسبارات الساكنة وحدها (بلا متصفح/خادم): للفحص
+// المصدرية السريعة في بيئات بلا كروميوم أو بلا خادم حي. الخروج 0 دائماً
+// (استشاري — مثل عقيدة slop-scan).
+if (process.env.STATIC_ONLY === "1") {
+  console.log(`STATIC_ONLY=1 — live sessions skipped; ${staticResults.length} static probes above (advisory)`);
+  process.exit(0);
 }
 
 const browser = await chromium.launch();

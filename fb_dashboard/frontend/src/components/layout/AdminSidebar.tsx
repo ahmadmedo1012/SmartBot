@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
-  FileText, Users2, Calendar, Bot, Activity, Bell, Wrench, CreditCard,
+  Workflow, FileText, Users2, Calendar, Bot, Activity, Bell, Wrench, CreditCard,
   HelpCircle, Settings, LogOut, Sparkles,
 } from "lucide-react"
 
@@ -69,6 +69,9 @@ export const defaultNavSections: NavSection[] = [
     items: [
       { icon: Target, label: "الإعلانات", href: "/dashboard/ads" },
       { icon: Radio, label: "البث الجماعي", href: "/dashboard/broadcast" },
+      /* v17-E-F9: Pro 129 «حملات تسلسلية» — الواجهة كانت غائبة رغم محرك
+         حيّ منذ v16؛ MobileBottomNav يرثها تلقائيًا (defaultNavSections). */
+      { icon: Workflow, label: "الحملات التسلسلية", href: "/dashboard/sequences" },
       { icon: Megaphone, label: "التسويق", href: "/dashboard/marketing" },
       { icon: FileBarChart, label: "التقارير", href: "/dashboard/reports" },
     ],

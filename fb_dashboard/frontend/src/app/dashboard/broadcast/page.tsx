@@ -10,13 +10,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { BroadcastRow } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 const BROADCAST_STATUS_LABELS: Record<string, string> = {
   sent: "مُرسل", pending: "قيد الإرسال", scheduled: "مجدول", failed: "فاشل", draft: "مسودة",
+  cancelled: "ملغى", sending: "جارٍ الإرسال",
 }
+
+/* v17-E-F8 (D6 #6): الحالات القابلة للإلغاء — عقد broadcast_engine.cancel_broadcast
+ * (routers/broadcasts.py:165 ← engine): draft|pending|sending فقط؛ الإرسال
+ * (send) يقبل المسودة حصرًا (draft→pending ذرّيًا) — أي زر إرسال على حالة
+ * أخرى كان زرًا ميتًا يرد 400 «هذا البث مُجدول للإرسال أو أُرسل مسبقاً». */
+const CANCELLABLE_STATUSES = new Set(["draft", "pending", "sending"])
 
 /* World-class plan v3 §7c: the page was view-only — no way to CREATE a
  * broadcast despite being titled "إرسال رسائل جماعية". Now it owns a real
@@ -72,24 +80,43 @@ export default function BroadcastPage() {
     onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
   })
 
+  /* v17-E-F8 (D6 #6): إلغاء بث معلق/مسودة/قيد الإرسال — POST
+   * /api/broadcasts/{id}/cancel (موجود خلفيًا؛ 400 عربي إن لم يعد قابلًا
+   * للإلغاء — سباق مع دورة البوت). */
+  const cancelMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiFetch(`/api/broadcasts/${id}/cancel`, { method: "POST" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || `فشل الإلغاء (${res.status})`)
+      }
+      return unwrapApi<{ ok: boolean }>(res)
+    },
+    onSuccess: () => {
+      brandedToast.success("تم إلغاء البث")
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إلغاء البث"),
+  })
+
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Radio className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">البث الجماعي</h1>
-            <p className="text-2xs text-muted-foreground">إرسال رسائل جماعية</p>
-          </div>
-          <Button size="sm" className="ms-auto shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي؛ زر «بث جديد»
+          انتقل إلى actions كما في sequences. */}
+      <PageHeader
+        icon={<Radio className="size-4" />}
+        title="البث الجماعي"
+        subtitle="إرسال رسائل جماعية"
+        compact
+        actions={
+          <Button size="sm" className="shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
             <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
         {showForm && (
           <Card
             /* v10-B7 (G2-05): Escape closes the inline form (same as the
@@ -154,19 +181,36 @@ export default function BroadcastPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium mb-1">{b.name || `بث #${b.id}`}</p>
-                    <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status] || b.status} · {formatDate(b.scheduled_at || b.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status ?? ""] || b.status} · {formatDate(b.scheduled_at || b.created_at)}</p>
                   </div>
-                  {b.status !== "sent" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => sendMut.mutate(b.id)}
-                      disabled={sendMut.isPending && sendMut.variables === b.id}
-                      className="shrink-0"
-                    >
-                      <Send className="size-3.5 rtl:-scale-x-100" /> إرسال
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* الإرسال للمسودة فقط (عقد send: draft→pending ذرّيًا). */}
+                    {b.status === "draft" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => sendMut.mutate(b.id)}
+                        disabled={sendMut.isPending && sendMut.variables === b.id}
+                      >
+                        <Send className="size-3.5 rtl:-scale-x-100" /> إرسال
+                      </Button>
+                    )}
+                    {/* v17-E-F8 (D6 #6): إلغاء البث المعلق — يظهر للحالات
+                        القابلة للإلغاء فقط (draft/pending/sending). */}
+                    {CANCELLABLE_STATUSES.has(b.status ?? "") && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => cancelMut.mutate(b.id)}
+                        disabled={cancelMut.isPending && cancelMut.variables === b.id}
+                        loading={cancelMut.isPending && cancelMut.variables === b.id}
+                        aria-label={`إلغاء البث ${b.name || `#${b.id}`}`}
+                        className="hover:text-destructive"
+                      >
+                        إلغاء
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

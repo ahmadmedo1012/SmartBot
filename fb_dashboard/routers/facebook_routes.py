@@ -199,7 +199,12 @@ async def update_facebook_settings(
                     except Exception:
                         page_profile = {}
                 except Exception as e:
-                    webhook_result = {"error": str(e)[:200]}
+                    # v17-E-B3 (D9 #3): the Graph API's English error text never
+                    # reaches the user — technical detail goes to the log, the
+                    # payload carries a fixed Arabic message.
+                    log.warning("webhook subscribe failed (tenant=%s page=%s): %s",
+                                tenant_id, page_id[:40], str(e)[:300])
+                    webhook_result = {"error": "تعذر تفعيل الويبهوك — تحقق من رمز الوصول ومعرف الصفحة"}
 
         # Store page identity snapshot for instant UI display (no live calls)
         if page_id and page_profile:
@@ -271,7 +276,12 @@ async def test_facebook_connection(
             )
         return ok(result)
     except Exception as e:
-        return ok({"connected": False, "fan_count": 0, "error": str(e)[:200]})
+        # v17-E-B3 (D9 #3): English exception text never reaches the user (the
+        # connect page renders td.error in errorMsg + toast) — log it instead.
+        log.warning("facebook connection test failed (tenant=%s page=%s): %s",
+                    tenant_id, page_id[:40], str(e)[:300])
+        return ok({"connected": False, "fan_count": 0,
+                   "error": "فشل الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"})
 
 
 @router.get("/api/posts")

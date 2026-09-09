@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { AnalyticsOverview, Paginated, Subscriber, TopCommenter } from "@/lib/types"
 import { countPhrase, formatDateOnly } from "@/lib/format"
@@ -32,23 +33,20 @@ export default function AudiencePage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Users className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الجمهور</h1>
-            <p className="text-2xs text-muted-foreground">تحليل الجمهور والمتابعين</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<Users className="size-4" />}
+        title="الجمهور"
+        subtitle="تحليل الجمهور ومتابعي الصفحة"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل بيانات الجمهور</h2>
+            <h2 className="text-sm font-bold mb-1">تعذر تحميل بيانات الجمهور</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (<>
@@ -58,8 +56,17 @@ export default function AudiencePage() {
               <div className="size-8 rounded-lg bg-accent-foreground/10 flex items-center justify-center mb-2">
                 <Users className="size-4 text-muted-foreground" />
               </div>
-              <p className="text-2xl font-bold">{data?.fan_count ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">إجمالي المعجبين</p>
+              {/* v17-E-F3 (D1 §5.5): KPI value is a skeleton while the overview
+                  loads (mirror: dashboard/page.tsx:52-58) — h-8 matches
+                  text-2xl's line box so the card height never shifts (the
+                  static label stays visible; background refetches keep the
+                  previous value — no flicker). */}
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">{data?.fan_count ?? "—"}</p>
+              )}
+              <p className="text-xs text-muted-foreground">متابعو الصفحة</p>
             </CardContent>
           </Card>
           <Card>
@@ -67,7 +74,11 @@ export default function AudiencePage() {
               <div className="size-8 rounded-lg bg-info-soft flex items-center justify-center mb-2">
                 <Activity className="size-4 text-info" />
               </div>
-              <p className="text-2xl font-bold">{data?.total_replies ?? "—"}</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">{data?.total_replies ?? "—"}</p>
+              )}
               <p className="text-xs text-muted-foreground">إجمالي التفاعل</p>
             </CardContent>
           </Card>
@@ -76,7 +87,11 @@ export default function AudiencePage() {
               <div className="size-8 rounded-lg bg-success-soft flex items-center justify-center mb-2">
                 <Activity className="size-4 text-success" />
               </div>
-              <p className="text-2xl font-bold">{data?.today_replies ?? "—"}</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <p className="text-2xl font-bold">{data?.today_replies ?? "—"}</p>
+              )}
               <p className="text-xs text-muted-foreground">نشاط اليوم</p>
             </CardContent>
           </Card>
@@ -138,7 +153,10 @@ export default function AudiencePage() {
                 ))}
               </div>
             ) : subsQuery.isError ? (
-              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المشتركين</p>
+              /* v17-E-F3 (D1 §5.5): mirror of the top-commenters error above
+                 — inline retry link (subsQuery.refetch) instead of hanging
+                 text-only error. */
+              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المشتركين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => subsQuery.refetch()}>إعادة المحاولة</button></p>
             ) : (subsQuery.data?.items?.length || 0) === 0 ? (
               <EmptyState
                 icon={Users}

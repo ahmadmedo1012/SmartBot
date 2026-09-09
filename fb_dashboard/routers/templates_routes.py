@@ -3,15 +3,57 @@ from __future__ import annotations
 
 """Reply Templates routes."""
 
+import json
+
 from _responses import ok
 from database import get_db
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from models import ReplyTemplate, User
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 
 from routers.auth import get_current_user, require_role
 
 router = APIRouter(prefix="", tags=["templates"])
+
+
+class TemplateCreate(BaseModel):
+    """v17-E-B1 (D5-F1): JSON body contract for create/update template.
+
+    The tools page posts ``JSON.stringify`` (csrf-client sets
+    ``Content-Type: application/json``) — the old ``Form(...)``-only signature
+    422'd every attempt, so templates could never be created from the UI.
+    """
+
+    name: str
+    text: str
+    category: str = "general"
+    shortcut: str = ""
+
+
+async def _template_payload(request: Request) -> TemplateCreate:
+    """v17-E-B1 (D5-F1): accept BOTH JSON and form-encoded bodies.
+
+    Content-type decides the parse: JSON (the live frontend) goes through the
+    Pydantic model; form/multipart (legacy/URLSearchParams clients) keeps the
+    old Form(...) contract byte-for-byte (absent category still defaults to
+    "general"). Malformed bodies answer 422 Arabic — same family as
+    broadcasts._json_body, never a raw 500.
+    """
+    ctype = (request.headers.get("content-type") or "").lower()
+    if "application/json" in ctype:
+        try:
+            data = json.loads(await request.body() or b"{}")
+        except json.JSONDecodeError:
+            raise HTTPException(422, "قيمة غير صالحة: جسم الطلب ليس JSON صالحاً") from None
+        if not isinstance(data, dict):
+            raise HTTPException(422, "قيمة غير صالحة: جسم الطلب يجب أن يكون كائن JSON")
+    else:
+        data = {k: v for k, v in (await request.form()).items()}
+    try:
+        return TemplateCreate(**data)
+    except ValidationError:
+        raise HTTPException(422, "قيمة غير صالحة: الحقلان 'name' و 'text' مطلوبان") from None
 
 
 @router.get("/api/templates")
@@ -28,9 +70,11 @@ async def list_templates(category: str = Query(""), db=Depends(get_db), current_
 
 
 @router.post("/api/templates")
-async def create_template(name: str = Form(...), text: str = Form(...), category: str = Form("general"),
-                          shortcut: str = Form(""), db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    t = ReplyTemplate(name=name, text=text, category=category, shortcut=shortcut, tenant_id=current_user._tenant_id)
+async def create_template(request: Request, db=Depends(get_db),
+                          current_user: User = Depends(require_role("editor"))):
+    p = await _template_payload(request)
+    t = ReplyTemplate(name=p.name, text=p.text, category=p.category, shortcut=p.shortcut,
+                      tenant_id=current_user._tenant_id)
     db.add(t)
     await db.commit()
     await db.refresh(t)
@@ -38,18 +82,18 @@ async def create_template(name: str = Form(...), text: str = Form(...), category
 
 
 @router.put("/api/templates/{template_id}")
-async def update_template(template_id: int, name: str = Form(...), text: str = Form(...),
-                          category: str = Form("general"), shortcut: str = Form(""),
-                          db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
+async def update_template(template_id: int, request: Request, db=Depends(get_db),
+                          current_user: User = Depends(require_role("editor"))):
+    p = await _template_payload(request)
     t = (await db.execute(
         select(ReplyTemplate).where(ReplyTemplate.id == template_id, ReplyTemplate.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not t:
         raise HTTPException(404, "القالب غير موجود")
-    t.name = name
-    t.text = text
-    t.category = category
-    t.shortcut = shortcut
+    t.name = p.name
+    t.text = p.text
+    t.category = p.category
+    t.shortcut = p.shortcut
     await db.commit()
     return ok({"ok": True})
 

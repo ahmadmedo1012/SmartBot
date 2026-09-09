@@ -10,25 +10,80 @@ Feed (plan §4.2):
 """
 from __future__ import annotations
 
+import logging
+
 from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
-from models import Notification, User
+from models import Notification, NotificationPreference, User
 from sqlalchemy import desc, func, select, update
 
+from routers.alerts_routes import DEFAULT_NOTIF_PREFS
 from routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
+log = logging.getLogger("fb-api")
+
+
+# ── v17-E-B3 (D5-F3): the preference consumer ───────────────────────────────
+# push_notification is the ONLY writer of the persistent feed (rg "Notification("
+# across fb_dashboard/ → this file alone), so the gate here IS the single
+# delivery point. Mapping — notification type → the settings-page toggle
+# (alerts_routes.DEFAULT_NOTIF_PREFS keys) that claims to control it:
+#   payment   ↔ payment_alerts     «تنبيهات الدفع — عند تأكيد أو رفض طلب دفع»
+#   marketing ↔ marketing_reports  «تقارير التسويق»
+#   system    ↔ system_updates     «تحديثات النظام»
+# Types with NO controlling toggle on the settings page (support / reply /
+# mention) are delivered ungated — no switch promises to filter them.
+_PREF_KEY_BY_TYPE = {
+    "payment": "payment_alerts",
+    "marketing": "marketing_reports",
+    "system": "system_updates",
+}
+
+
+async def _preference_allows(db, user_id: int | None, type_: str) -> bool:
+    """v17-E-B3: True unless THIS user turned this notification type off.
+
+    Mirrors exactly what the settings page shows the user: a user with no
+    saved row gets the DEFAULT_NOTIF_PREFS defaults (alerts_routes is the
+    single source for both the key schema and the defaults).
+    """
+    key = _PREF_KEY_BY_TYPE.get(type_)
+    if key is None or user_id is None:
+        return True
+    default = bool(DEFAULT_NOTIF_PREFS.get(key, True))
+    row = await db.execute(
+        select(NotificationPreference).where(NotificationPreference.user_id == user_id)
+    )
+    pref = row.scalar_one_or_none()
+    if pref is None:
+        return default
+    return bool((pref.preferences or {}).get(key, default))
 
 
 async def push_notification(db, tenant_id: int, title: str, body: str = "",
-                            type_: str = "system", link: str = "", user_id: int | None = None) -> Notification:
+                            type_: str = "system", link: str = "", user_id: int | None = None) -> Notification | None:
     """Create a notification row (tenant-scoped). Caller commits.
 
     Used by payment approval/rejection, support replies, campaign sends.
     Live delivery to connected dashboards happens via ws_manager.broadcast_to_tenant.
+
+    v17-E-B3 (D5-F3): the recipient's saved preference gates delivery — a user
+    who turned this notification type off receives NOTHING (returns None and a
+    skip is logged; every existing caller already ignores the return value).
+    The gate covers user-addressed notifications (user_id set — payment
+    approvals/rejections, support replies). A tenant broadcast (user_id=None —
+    campaign sends, expiry warnings) has no single recipient whose preference
+    could honestly veto the SHARED tenant feed: per-user enforcement there
+    needs row fan-out (model + read-path change) — the ceiling is documented
+    with a concrete proposal in audit-reports/v17-E-B3-report.md §3.
     """
+    if user_id is not None and not await _preference_allows(db, user_id, type_):
+        log.info("notif skip (pref off): user=%s type=%s key=%s title=%r",
+                 user_id, type_, _PREF_KEY_BY_TYPE.get(type_, "-"), (title or "")[:60])
+        return None
     n = Notification(tenant_id=tenant_id, user_id=user_id, type=type_,
                      title=title, body=body, link=link)
     db.add(n)

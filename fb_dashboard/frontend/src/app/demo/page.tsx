@@ -14,8 +14,10 @@ import { cn } from "@/lib/utils"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import {
   Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
-  Sparkles, CheckCircle, Send, Bell, Settings as SettingsIcon,
+  Sparkles, CheckCircle2, Send, Bell, Settings as SettingsIcon,
 } from "lucide-react"
+/* v17-E-F4 (D3 #1): success glyph unified on CheckCircle2 (the older
+   CheckCircle alias is retired app-wide — one success shape everywhere). */
 /* v10-C4 (G3 rec §8-4) — recharts (352KB raw / 113KB wire) still shipped in
  * /demo's first load: the old inline dynamic() deferred SSR, but the chart
  * RENDERED immediately in the DEFAULT tab, so the chunk fetched
@@ -190,7 +192,7 @@ function StatsTab() {
         {[
           { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-accent-foreground", bg: "bg-accent-foreground/10" },
           { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-info", bg: "bg-info-soft" },
-          { icon: Users, value: formatNumber(mockStats.followers), label: "المتابعون", color: "text-success", bg: "bg-success-soft" },
+          { icon: Users, value: formatNumber(mockStats.followers), label: "متابعو الصفحة", color: "text-success", bg: "bg-success-soft" },
           { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-warning", bg: "bg-warning/10" },
         ].map((s) => (
           <Card key={s.label}>
@@ -276,7 +278,7 @@ function StatsTab() {
                     <td className="p-3 text-center">{r.count}</td>
                     <td className="p-3 text-center">
                       <span className="inline-flex items-center gap-1 text-xs text-success">
-                        <CheckCircle className="size-3" /> نشط
+                        <CheckCircle2 className="size-3" aria-hidden="true" /> نشط
                       </span>
                     </td>
                   </tr>
@@ -539,7 +541,7 @@ export default function DemoPage() {
       {/* v9-D3: #page-content — skip-link target, DashboardShell parity
           (content column, past the sidebar nav). tabIndex lets the skip
           link actually move focus here. */}
-      <div id="page-content" tabIndex={-1} className="flex-1 md:ps-60 flex flex-col pb-16 md:pb-0">
+      <div id="page-content" tabIndex={-1} className="flex-1 md:ps-60 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <DemoHeader tab={tab} />
         <SectionContainer className="py-6 flex-1">
           {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS
@@ -572,8 +574,19 @@ export default function DemoPage() {
 
       {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): same one-tap WhatsApp help
           affordance as the landing — same component, same fixed slot
-          (sits above the mobile nav: z-[60] vs nav z-30). */}
-      <FloatingWhatsApp />
+          (sits above the mobile nav: z-[60] vs nav z-30).
+          v17-E-F2 (D7-P1-1): /demo ALSO renders MobileBottomNav, and the
+          FAB's default bottom (env(safe-area)+1rem) parked it INSIDE the
+          bar's fifth «المزيد» slot — covering the gateway to all 22
+          sections (RTL: end-4 = LEFT = the last grid column). The wrapper's
+          child-selector utilities ([&>a]:… = one class + element) override
+          the shared component's own bottom (single class) WITHOUT touching
+          it — landing/pricing/subscribe keep the default slot. Mobile lifts
+          to 5rem above the safe area (clear of the ~54px bar); md+ restores
+          a resting 24px (bar is md:hidden). */}
+      <div className="[&>a]:bottom-[calc(env(safe-area-inset-bottom)+5rem)] md:[&>a]:bottom-6">
+        <FloatingWhatsApp />
+      </div>
     </div>
   )
 }

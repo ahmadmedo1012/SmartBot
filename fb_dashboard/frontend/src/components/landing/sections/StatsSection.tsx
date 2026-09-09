@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { usePublicStats } from "@/lib/usePublicStats"
 import { formatNumber } from "@/lib/format"
+import { useCountUp } from "@/hooks/useCountUp"
 
 /* v6+ — framer-free: useInView replaced by a tiny IO hook, motion.div by
  * ScrollReveal (CSS tween). The count-up logic itself never needed framer. */
@@ -30,24 +31,15 @@ function useInViewOnce<T extends HTMLElement>(ref: React.RefObject<T | null>): b
 }
 
 function AnimatedNumber({ value }: { value: number }) {
-  const [count, setCount] = useState(0)
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInViewOnce(ref)
-  useEffect(() => {
-    if (!inView || value <= 0) return
-    /* v14-E5 (D2-M6): the LAST unguarded JS motion — the count-up now
-     * respects prefers-reduced-motion (KpiCard AnimatedCounter pattern):
-     * jump straight to the final value, no setInterval ticking. */
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setCount(value)
-      return
-    }
-    const step = Math.max(1, Math.ceil(value / 30))
-    const timer = setInterval(() => {
-      setCount((prev) => Math.min(prev + step, value))
-    }, 30)
-    return () => clearInterval(timer)
-  }, [inView, value])
+  /* v17-E-F11 (D2-P2): the landing counter's private setInterval stepper
+   * (≈30×30ms linear) is replaced by the shared count-up engine — ONE
+   * 800ms easeOutCubic curve and ONE reduced-motion rule (final value
+   * immediately, no ticking — v14-E5/D2-M6 behavior kept) for the whole
+   * app, identical to KpiCard. The in-view gate stays here: it pauses the
+   * shared counter until the stat scrolls into view. */
+  const count = useCountUp(value, { paused: !inView })
   // v6 §A — was count.toLocaleString() with NO locale: the animated landing counter
   // rendered per-visitor-browser format while every other number in the app was "ar-LY".
   return <span ref={ref} dir="ltr">{formatNumber(count)}</span>

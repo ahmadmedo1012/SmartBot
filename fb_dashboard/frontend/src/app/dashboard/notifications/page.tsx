@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState } from "@/components/ui/EmptyState"
+import { EmptyState, ErrorState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 
@@ -75,7 +75,7 @@ const TOGGLES = [
   },
   {
     key: "payment_alerts",
-    label: "تنبيهات الدفع",
+    label: "إشعارات الدفع",
     desc: "عند تأكيد أو رفض طلب دفع",
     icon: CreditCard,
     color: "text-warning",
@@ -105,7 +105,7 @@ export default function NotificationsPage() {
     queryKey: ["notifications-feed"],
     queryFn: async () => {
       const res = await apiFetch("/api/notifications")
-      if (!res.ok) throw new Error(`فشل تحميل الإشعارات (${res.status})`)
+      if (!res.ok) throw new Error(`تعذر تحميل الإشعارات (${res.status})`)
       return unwrapApi(res)
     },
     retry: 1,
@@ -141,7 +141,7 @@ export default function NotificationsPage() {
   const unread: number = feedQuery.data?.unread || 0
 
   // ── Preferences ──
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["notification-settings"],
     queryFn: async () => {
       const res = await apiFetch("/api/notifications/settings")
@@ -231,10 +231,19 @@ export default function NotificationsPage() {
                   </CardContent></Card>
                 ))}
               </div>
+            /* v17-E-F3 (D1 §5.3): the feed error was a text-only card with no
+             * way back — on a page with no refetchInterval the failure hung
+             * until a manual browser reload. Shared ErrorState (same Card +
+             * p-0 wrapper the empty state uses on this page) adds the retry
+             * CTA wired to feedQuery.refetch(). */
             ) : feedQuery.isError ? (
               <Card>
-                <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                  {(feedQuery.error as Error)?.message || "تعذر تحميل الإشعارات"}
+                <CardContent className="p-0">
+                  <ErrorState
+                    size="sm"
+                    title="تعذر تحميل الإشعارات"
+                    onRetry={() => feedQuery.refetch()}
+                  />
                 </CardContent>
               </Card>
             ) : notifications.length === 0 ? (
@@ -298,7 +307,7 @@ export default function NotificationsPage() {
 
           {/* Settings */}
           <section>
-            <h2 className="font-bold text-sm mb-3">إعدادات التنبيهات</h2>
+            <h2 className="font-bold text-sm mb-3">إعدادات الإشعارات</h2>
             <div className="space-y-3">
               {isLoading ? (
                 <div className="space-y-2">
@@ -312,10 +321,16 @@ export default function NotificationsPage() {
                     </CardContent></Card>
                   ))}
                 </div>
+              /* v17-E-F3 (D1 §5.3): same treatment as the feed error above —
+                 shared ErrorState + refetch instead of hanging text. */
               ) : isError ? (
                 <Card>
-                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                    {(error as Error)?.message || "تعذر تحميل الإعدادات"}
+                  <CardContent className="p-0">
+                    <ErrorState
+                      size="sm"
+                      title="تعذر تحميل الإعدادات"
+                      onRetry={() => refetch()}
+                    />
                   </CardContent>
                 </Card>
               ) : (
@@ -374,7 +389,13 @@ export default function NotificationsPage() {
             </div>
           </section>
           <p className="text-center text-2xs text-muted-foreground pt-2">
-            تُحفظ إعداداتك تلقائياً وتُطبق على جميع المنصات
+            {/* v17-S2 (E-B3 §3-ج honesty): preferences gate only the notifications
+                directed to the acting user (push_notification consults
+                NotificationPreference by user_id); tenant-wide marketing
+                broadcasts land on the shared tenant feed and reach every member —
+                the old «تُطبق على جميع المنصات» promised a scope the backend
+                never had. */}
+            تُحفظ إعداداتك تلقائياً وتتحكم في الإشعارات الموجّهة إلى حسابك الشخصي، بينما تصل إشعارات التسويق العامة إلى جميع أعضاء الفريق
           </p>
         </div>
       </div>

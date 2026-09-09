@@ -71,7 +71,18 @@ export function TelegramConfigSection({
                    from login:202-203 / register:202-204. */
                 className="absolute end-3 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-90"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>
-                {showToken ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                {/* v17-E-B2 (D2 §3.3#7): Eye↔EyeOff crossfade instead of the
+                    instant swap — the tt-icon recipe (globals.css:507-512)
+                    re-expressed in pure Tailwind so no shared CSS class is
+                    needed yet (S3 may adopt it into the planned .icon-swap).
+                    Both icons stack in one grid cell; the hidden one fades +
+                    rotates -90° + scales to 0.5. prefers-reduced-motion is
+                    covered by the global net (globals.css:549-551 zeroes
+                    every transition-duration). */}
+                <span className="grid" aria-hidden="true">
+                  <Eye className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-200 ease-out ${showToken ? "opacity-0 -rotate-90 scale-50" : ""}`} />
+                  <EyeOff className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-200 ease-out ${showToken ? "" : "opacity-0 -rotate-90 scale-50"}`} />
+                </span>
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">

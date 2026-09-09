@@ -6,7 +6,10 @@
 docs/evidence/round-metrics.jsonl عند كل استدعاء:
 
   {round, ts, pytest_total, coverage_pct, allowlist_entries,
-   dual_shape_guards, silent_swallows, battery_red_claims}
+   dual_shape_guards, silent_swallows, battery_red_claims,
+   ui_transition_all, ui_bounce_easing, ui_multicolor_glow,
+   ui_bare_rounded, ui_emoji_icons, ui_slop_total,
+   design_score, ai_slop_score, design_score_pct}
 
 القيم: من وسيطات CLI، وما غاب يُشتق تلقائياً:
   · allowlist_entries  — طول entries في قائمة سماح البطارية
@@ -14,6 +17,13 @@ docs/evidence/round-metrics.jsonl عند كل استدعاء:
                         — المسار المختصر e2e/... مقبول احتياطاً)
   · dual_shape_guards / silent_swallows — القاعدتان A وB من slop_scan
     (استيراد مباشر من نفس المجلد — لا subprocess)
+  · ui_* / ui_slop_total — قسم D من slop_scan (v17-S5 · D11-G1:
+    قواعد slop الواجهة الخمس) — هذه الحقول يقارنها slop_scan
+    كاتجاه في الجولة التالية.
+  · design_score / ai_slop_score / design_score_pct — مشتقة رخيصة من
+    design_baseline.py (v17-S5 · D11-G2) بنفس نتيجة المسح (collect
+    يعيد استخدام slop_result — لا مسح مزدوج). غاب السكربت الشقيق
+    أو فشل = null (لا يكسر إغلاق الجولة).
 pytest_total / coverage_pct / battery_red_claims أرقام موثقة من تشغيل
 الجولة (لا يُشغَّل الجناح من هنا) — تُمرَّر كوسائط أو تبقى null.
 
@@ -25,7 +35,8 @@ pytest_total / coverage_pct / battery_red_claims أرقام موثقة من تش
 Usage:
   python scripts/round_metrics.py --round v16 [--pytest-total N] [--coverage F]
       [--allowlist-entries N] [--dual-shape N] [--silent-swallows N]
-      [--battery-red N] [--dry-run] [--force] [--out PATH]
+      [--battery-red N] [--ui-slop N] [--design-score F] [--ai-slop-score F]
+      [--dry-run] [--force] [--out PATH]
 """
 from __future__ import annotations
 
@@ -40,6 +51,11 @@ REPO_ROOT = SCRIPTS_DIR.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import slop_scan  # noqa: E402 — نفس المجلد؛ E402 متجاهل في ruff.toml (بنية الإقحام)
+
+try:  # v17-S5: الحقول التصميمية رخيصة — وفشل استيراد السكربت الشقيق لا يكسر الجولة
+    import design_baseline  # noqa: E402 — نفس المجلد
+except Exception:  # pragma: no cover — حماية عقيدة البوابة فقط
+    design_baseline = None  # type: ignore[assignment]
 
 ROUND_ENV = SCRIPTS_DIR / "round.env"
 DEFAULT_OUT = REPO_ROOT / "docs" / "evidence" / "round-metrics.jsonl"
@@ -101,6 +117,9 @@ def main() -> int:
     ap.add_argument("--dual-shape", type=int, default=None, help="default: slop_scan rule A count")
     ap.add_argument("--silent-swallows", type=int, default=None, help="default: slop_scan rule B count")
     ap.add_argument("--battery-red", type=int, default=None, help="red claims allowlisted in the battery")
+    ap.add_argument("--ui-slop", type=int, default=None, help="total §D UI-slop findings (default: slop_scan section D)")
+    ap.add_argument("--design-score", default=None, help="design letter A-F (default: derived from design_baseline.py)")
+    ap.add_argument("--ai-slop-score", default=None, help="aiSlop letter A-F (default: derived from design_baseline.py)")
     ap.add_argument("--dry-run", action="store_true", help="print the line; do not append")
     ap.add_argument("--force", action="store_true", help="re-record an already-recorded round")
     ap.add_argument("--out", default=str(DEFAULT_OUT), help=f"JSONL path (default: {DEFAULT_OUT})")
@@ -110,12 +129,32 @@ def main() -> int:
     out_path = Path(args.out)
 
     allowlist = args.allowlist_entries if args.allowlist_entries is not None else count_allowlist()
-    if args.dual_shape is not None and args.silent_swallows is not None:
-        dual, swallows = args.dual_shape, args.silent_swallows
-    else:
-        res = slop_scan.scan_rules(REPO_ROOT)
-        dual = args.dual_shape if args.dual_shape is not None else len(res["dual_shape"])
-        swallows = args.silent_swallows if args.silent_swallows is not None else int(res["silent_swallows"])
+
+    # v17-S5: مسح واحد لكل شيء — القاعدتان A/B + قسم D + مقاييس الأساس
+    # التصميمي تشترك في نتيجة scan_rules نفسها (design_baseline.collect
+    # يعيد استخدامها عبر slop_result — لا مسح مزدوج)؛ الوسائط اليدوية
+    # تبقى تجاوزات صريحة فقط.
+    res = slop_scan.scan_rules(REPO_ROOT)
+    ui = dict(res["ui"])  # type: ignore[arg-type]
+    dual = args.dual_shape if args.dual_shape is not None else len(res["dual_shape"])  # type: ignore[arg-type]
+    swallows = (
+        args.silent_swallows
+        if args.silent_swallows is not None
+        else int(res["silent_swallows"])  # type: ignore[arg-type]
+    )
+    ui_slop_total = args.ui_slop if args.ui_slop is not None else int(ui["ui_slop_total"])
+
+    design_score: str | None = args.design_score
+    ai_slop_score: str | None = args.ai_slop_score
+    design_pct: float | None = None
+    if (design_score is None or ai_slop_score is None) and design_baseline is not None:
+        try:
+            graded = design_baseline.grade(design_baseline.collect(REPO_ROOT, slop_result=res))  # type: ignore[union-attr]
+            design_score = design_score if design_score is not None else str(graded["designScore"])
+            ai_slop_score = ai_slop_score if ai_slop_score is not None else str(graded["aiSlopScore"])
+            design_pct = float(graded["designScorePct"])
+        except Exception:  # pragma: no cover — تشخيصي: الفشل لا يمنع إغلاق الجولة
+            design_pct = None
 
     record = {
         "round": rnd,
@@ -126,6 +165,17 @@ def main() -> int:
         "dual_shape_guards": dual,
         "silent_swallows": swallows,
         "battery_red_claims": args.battery_red,
+        # v17-S5 (D11-G1): عدادات قسم D — يقارنها slop_scan كاتجاه الجولة القادمة
+        "ui_transition_all": int(ui["transition_all"]),  # type: ignore[call-overload]
+        "ui_bounce_easing": int(ui["bounce_easing"]),  # type: ignore[call-overload]
+        "ui_multicolor_glow": int(ui["multicolor_glow"]),  # type: ignore[call-overload]
+        "ui_bare_rounded": int(ui["bare_rounded"]),  # type: ignore[call-overload]
+        "ui_emoji_icons": int(ui["emoji_icons"]),  # type: ignore[call-overload]
+        "ui_slop_total": ui_slop_total,
+        # v17-S5 (D11-G2): درجات خط أساس التصميم (رخيصة — من نفس المسح)
+        "design_score": design_score,
+        "ai_slop_score": ai_slop_score,
+        "design_score_pct": design_pct,
     }
     line = json.dumps(record, ensure_ascii=False)
 

@@ -175,7 +175,7 @@ export default function PricingPage() {
               <Sparkles className="size-6 text-accent-foreground" />
             </div>
             <p className="font-bold mb-1">لا توجد خطط منشورة حالياً</p>
-            <p className="text-sm text-muted-foreground">تواصل مع الدعم لترتيب باقة تناسبك</p>
+            <p className="text-sm text-muted-foreground">تواصل مع الدعم لترتيب خطة تناسبك</p>
           </div>
         )}
         <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
@@ -259,7 +259,10 @@ export default function PricingPage() {
                       {plan.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm">
                           <div className="size-5 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <Check className="size-3 text-accent-foreground" strokeWidth={3} />
+                            {/* v17-E-F4 (D3 #8): strokeWidth={3} removed — the
+                                project-wide default (2) applies; this was the
+                                only non-default stroke weight in the app. */}
+                            <Check className="size-3 text-accent-foreground" />
                           </div>
                           <span className="leading-relaxed">{f}</span>
                         </li>

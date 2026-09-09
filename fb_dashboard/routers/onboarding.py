@@ -222,7 +222,13 @@ async def test_connection(
                 "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)})
     except Exception as e:
         # v12-E2.11: ok() envelope (see above)
-        return ok({"connected": False, "error": f"تعذر الاتصال بفيسبوك: {str(e)[:150]}"})
+        # v17-E-B3 (D9 #3): the English exception detail never reaches the
+        # wizard (OnboardingWizard renders testResult.error) — it goes to the
+        # log, the payload carries a fixed Arabic message.
+        log.warning("onboarding test-connection failed (tenant=%s page=%s): %s",
+                    current_user._tenant_id, page_id[:40], str(e)[:300])
+        return ok({"connected": False,
+                   "error": "تعذر الاتصال بفيسبوك — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"})
 
 
 # Deterministic fallbacks so the wizard works with zero AI configuration

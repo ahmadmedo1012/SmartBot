@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles, RefreshCw } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import Link from "next/link"
 
@@ -178,6 +178,9 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
+  /* v17-E-F3 (D1 §5.2): load failure state — was a transient toast + an
+   * EMPTY form that read as «nothing configured» (false negative). */
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // robots noindex — admin area
   useEffect(() => {
@@ -190,13 +193,19 @@ export default function AdminSettingsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const r = await apiFetch("/api/admin/config")
       const d = await unwrapApi(r)
       setConfig(d || {})
       setOrig(d || {})
-    } catch {
-      brandedToast.error("تعذّر تحميل الإعدادات")
+    } catch (e) {
+      /* v17-E-F3 (D1 §5.2): the error is now an in-page retryable state
+       * (mirror: admin/telegram:248-255, v9-B10) instead of a toast — the
+       * form below renders ONLY after a successful load. ApiError carries
+       * the backend's Arabic detail; anything else (e.g. a raw network
+       * TypeError) falls back to the fixed Arabic copy, never English. */
+      setLoadError(e instanceof ApiError ? e.message : "تعذّر تحميل الإعدادات")
     }
     setLoading(false)
   }, [])
@@ -278,6 +287,31 @@ export default function AdminSettingsPage() {
       <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
         <span className="sr-only">جارٍ التحميل…</span>
         <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
+      </SectionContainer>
+    )
+  }
+
+  /* v17-E-F3 (D1 §5.2): retryable in-page error card — same class of fix as
+   * admin/telegram:248-255 (v9-B10). The retry re-runs load() (spinner shows
+   * via the loading branch above); the settings form is never rendered from
+   * a failed load, so no false-empty fields can be "fixed" by mistake. */
+  if (loadError) {
+    return (
+      <SectionContainer className="min-h-screen py-8">
+        <h1 className="sr-only">إعدادات المنصة</h1>
+        <SectionHeader
+          title="إعدادات المنصة"
+          description="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
+        />
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex flex-wrap items-center justify-between gap-3"
+        >
+          <p className="text-sm text-destructive">{loadError}</p>
+          <Button size="sm" variant="outline" onClick={load}>
+            <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
+          </Button>
+        </div>
       </SectionContainer>
     )
   }

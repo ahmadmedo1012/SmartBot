@@ -2,18 +2,19 @@
 
 import { toast } from "sonner"
 import {
-  CheckCircle,
+  CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Info,
   LogOut,
   LogIn,
-  Star,
   Gift,
   RefreshCw,
   Save,
   Trash2,
   Copy,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import AnimatedX from "@/components/ui/x-icon"
 import { cn } from "@/lib/utils"
 
@@ -22,28 +23,45 @@ import { cn } from "@/lib/utils"
    The Lottie "cart" animation variant is a Smart-Menu-only menu-page
    feature (dotlottie dep) and is intentionally not ported. */
 
-type ToastIcon = "success" | "error" | "info" | "login" | "logout" | "star" | "gift" | "refresh" | "save" | "trash" | "copy"
+/* v17-E-F4 (D3 #1/#3/#5): state-icon system unified with the rest of the
+   app — success renders CheckCircle2 (the newer lucide glyph already used
+   by input/payment-status/wizard, so the payment journey shows ONE success
+   shape), and the warning variant renders AlertTriangle (was Star — a
+   decorative rating glyph carrying a warning semantic). login/logout are
+   directional action icons (arrow entering/leaving a door bracket) and get
+   the same rtl:-scale-x-100 mirror the sidebar's LogOut already uses
+   (v7 §2.2 allowlist: non-arrow directional icons imported directly with
+   the flip class — see directional-icon.tsx header). */
+type ToastIcon = "success" | "error" | "info" | "warning" | "login" | "logout" | "gift" | "refresh" | "save" | "trash" | "copy"
 
-const iconConfig = {
-  success: { icon: CheckCircle, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
+type ToastIconConfig = {
+  icon: LucideIcon
+  bg: string
+  color: string
+  /** directional glyphs (LogIn/LogOut) mirror in RTL — v17-E-F4 */
+  flip?: boolean
+}
+
+const iconConfig: Record<ToastIcon, ToastIconConfig> = {
+  success: { icon: CheckCircle2, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
   error: { icon: AlertCircle, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
   info: { icon: Info, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
-  login: { icon: LogIn, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
-  logout: { icon: LogOut, bg: "bg-muted", color: "var(--muted-foreground)" },
-  star: { icon: Star, bg: "bg-warning/12", color: "var(--warning, oklch(0.7 0.16 80))" },
+  warning: { icon: AlertTriangle, bg: "bg-warning/12", color: "var(--warning, oklch(0.7 0.16 80))" },
+  login: { icon: LogIn, flip: true, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
+  logout: { icon: LogOut, flip: true, bg: "bg-muted", color: "var(--muted-foreground)" },
   gift: { icon: Gift, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
   refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
   save: { icon: Save, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
   trash: { icon: Trash2, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
   copy: { icon: Copy, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
-} as const
+}
 
 function ToastIconChip({ icon }: { icon: ToastIcon }) {
   const cfg = iconConfig[icon]
   const Icon = cfg.icon
   return (
     <div className={cn("size-10 min-h-[40px] min-w-[40px] rounded-lg flex items-center justify-center shrink-0", cfg.bg)}>
-      <Icon className="size-[18px]" style={{ color: cfg.color }} aria-hidden="true" />
+      <Icon className={cn("size-[18px]", cfg.flip && "rtl:-scale-x-100")} style={{ color: cfg.color }} aria-hidden="true" />
     </div>
   )
 }
@@ -96,7 +114,7 @@ export const brandedToast = {
   success: (title: string, description?: string) => premiumToast("success", title, description),
   error: (title: string, description?: string) => premiumToast("error", title, description),
   info: (title: string, description?: string) => premiumToast("info", title, description),
-  warning: (title: string, description?: string) => premiumToast("star", title, description),
+  warning: (title: string, description?: string) => premiumToast("warning", title, description),
   login: (title: string, description?: string) => premiumToast("login", title, description),
   logout: (title: string, description?: string) => premiumToast("logout", title, description),
   save: (title: string, description?: string) => premiumToast("save", title, description),

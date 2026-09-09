@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send, LifeBuoy } from "lucide-react"
+/* v17-E-F4 (D3 #1): success unified on CheckCircle2 app-wide (the payment
+   journey — toast → admin approval — renders ONE success glyph). */
+import { CheckCircle2, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send, LifeBuoy } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -283,7 +285,7 @@ export default function AdminPage() {
                             <>
                               <Button variant="orange" size="sm" loading={actionId === p.id}
                                 onClick={() => handleAction(p.id, "verified")}>
-                                <CheckCircle className="size-4" /> قبول
+                                <CheckCircle2 className="size-4" aria-hidden="true" /> قبول
                               </Button>
                               <Button variant="destructive" size="sm" loading={actionId === p.id}
                                 onClick={() => handleAction(p.id, "cancelled")}>

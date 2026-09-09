@@ -5,15 +5,24 @@ import logging
 from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
-from models import NotificationPreference, User
-from sqlalchemy import delete, select
+from models import NotificationPreference, SubscriptionPlan, User
+from sqlalchemy import delete, func, select
 
-from routers.auth import require_role
+from routers.auth import is_platform_admin, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["users"])
 
 _VALID_ROLES = {"admin", "editor", "viewer"}
+
+# v17-E-B2 (D6 — حد الفريق): رسالة 403 العربية التي يعرضها toast صفحة
+# الفريق (عقد الواجهة رقم 3 في خطة v17: E-B2 → E-F8). N = max_team.
+_TEAM_LIMIT_MSG = "حد أعضاء الفريق لخطتك هو {n} — رقّ خطتك لإضافة المزيد"
+
+# v17-E-B2 (خطة v17 §E-B2-4 — حارس الدور): منح/ترقية دور admin حكر
+# لمدير المنصة (is_platform_admin). أدمن المستأجر العادي — رغم
+# require_role("admin") — لم يعد قادرًا على سكّ مديرين داخل مساحة عملته.
+_ADMIN_ROLE_MSG = "تعيين دور «مدير» متاح لمدير المنصة فقط — يمكنك تعيين «محرر» أو «مشاهد»"
 
 # NOTE (2026-09-05): GET /api/users was removed — it was dead code shadowed by
 # routers/auth.py's tenant-scoped paginated implementation (first-wins).
@@ -32,6 +41,31 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
     existing = await db.execute(select(User).where(User.username == username, User.tenant_id == current_user._tenant_id))
     if existing.scalar_one_or_none():
         raise HTTPException(400, "اسم المستخدم موجود مسبقاً في مساحة عملك")
+
+    # v17-E-B2 (§E-B2-4): دور admin بيد مدير المنصة فقط — أدمن المستأجر
+    # يمنح editor/viewer (الحارس لم يكن موجودًا: أي أدمن مستأجر كان يستطيع
+    # سكّ أدمن آخرين داخل مساحته).
+    if role == "admin" and not is_platform_admin(current_user):
+        raise HTTPException(403, _ADMIN_ROLE_MSG)
+
+    # v17-E-B2 (D6 — حد الفريق): قارن عدد مقاعد المستأجر الحاليين بإجمالي
+    # مقاعد خطته (max_team — بما فيها المالك، وهو الرقم الذي تعِد به
+    # صفحة الأسعار «فريق حتى N»). القراءة عبر get_plan_limits (نقطة قراءة
+    # الخطة الوحيدة D2-H1: plan_id أو خطة Free للمستأجر بلا خطة، مع انحدار
+    # الولايات المنتهية لFree) ثم fetch لصف الخطة نفسه لقراءة max_team.
+    # غياب صفوف الخطط كليًا = fail-open بلا حد (عقيدة money-core).
+    from bot_engine.pipeline import get_plan_limits
+    limits = await get_plan_limits(db, current_user._tenant_id)
+    if limits is not None:
+        plan = await db.get(SubscriptionPlan, limits["plan_id"])
+        max_team = getattr(plan, "max_team", None) if plan is not None else None
+        if max_team is not None:
+            seats = int(await db.scalar(
+                select(func.count()).select_from(User).where(
+                    User.tenant_id == current_user._tenant_id)) or 0)
+            if seats >= int(max_team):
+                raise HTTPException(403, _TEAM_LIMIT_MSG.format(n=int(max_team)))
+
     from _hash import hash_password
     pw_hash = hash_password(password)
     user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
@@ -51,6 +85,12 @@ async def update_user(user_id: int, role: str = Form(...), password: str = Form(
         raise HTTPException(404, "المستخدم غير موجود")
     if role not in _VALID_ROLES:
         raise HTTPException(400, "الدور يجب أن يكون admin أو editor أو viewer")
+    # v17-E-B2 (§E-B2-4): PUT هو نفس ناقل الترقية — بلا هذا الحارس كان
+    # حارس POST يُتجاوز بترقية عضو قائم. الاستثناء الوحيد: إبقاء مدير قائم
+    # على دوره (لا منح صلاحية جديدة — no-op).
+    if (role == "admin" and user.role != "admin"
+            and not is_platform_admin(current_user)):
+        raise HTTPException(403, _ADMIN_ROLE_MSG)
     if password and len(password) < 8:
         raise HTTPException(400, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
     user.role = role

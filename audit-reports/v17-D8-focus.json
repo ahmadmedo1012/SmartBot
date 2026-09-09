@@ -1,0 +1,516 @@
+{
+  "meta": {
+    "base": "http://localhost:3199",
+    "startedAt": "2026-09-09T07:19:24.971Z",
+    "loginStatus": 200,
+    "durationSec": 60
+  },
+  "pages": [
+    {
+      "page": "dashboard",
+      "path": "/dashboard",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 2493,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [
+              {
+                "what": "p.text-xs.font-medium",
+                "text": "جميع الردود",
+                "coveredFrac": 1,
+                "ownTop": 763,
+                "ownBottom": 779,
+                "barTop": 753
+              },
+              {
+                "what": "p.text-3xl.font-bold",
+                "text": "0",
+                "coveredFrac": 0.76,
+                "ownTop": 785,
+                "ownBottom": 821,
+                "barTop": 753
+              },
+              {
+                "what": "p.text-xs.font-medium",
+                "text": "ردود اليوم",
+                "coveredFrac": 1,
+                "ownTop": 763,
+                "ownBottom": 779,
+                "barTop": 753
+              },
+              {
+                "what": "p.text-3xl.font-bold",
+                "text": "0",
+                "coveredFrac": 0.76,
+                "ownTop": 785,
+                "ownBottom": 821,
+                "barTop": 753
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 2493,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "messages",
+      "path": "/dashboard/messages",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "analytics",
+      "path": "/dashboard/analytics",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 1746,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [
+              {
+                "what": "p.font-bold.mb-1",
+                "text": "لا توجد بيانات بعد",
+                "coveredFrac": 0.38,
+                "ownTop": 805,
+                "ownBottom": 825,
+                "barTop": 753
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 1746,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "autoreply",
+      "path": "/dashboard/autoreply",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "tools",
+      "path": "/dashboard/tools",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 1016,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [
+              {
+                "what": "p.font-bold.mb-1",
+                "text": "لا توجد عروض",
+                "coveredFrac": 1,
+                "ownTop": 791,
+                "ownBottom": 811,
+                "barTop": 759
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 1016,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "billing",
+      "path": "/dashboard/billing",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 825,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 825,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "notifications",
+      "path": "/dashboard/notifications",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 1497,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [
+              {
+                "what": "p.text-sm.font-bold",
+                "text": "رسائل جديدة",
+                "coveredFrac": 1,
+                "ownTop": 790,
+                "ownBottom": 810,
+                "barTop": 753
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 1497,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 753,
+              "height": 59
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "support",
+      "path": "/dashboard/support",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 1802,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [
+              {
+                "what": "label.text-sm.font-semibold",
+                "text": "الأولوية",
+                "coveredFrac": 0.4,
+                "ownTop": 744,
+                "ownBottom": 770,
+                "barTop": 759
+              },
+              {
+                "what": "button.h-8.rounded-sm",
+                "text": "منخفضة",
+                "coveredFrac": 1,
+                "ownTop": 767,
+                "ownBottom": 799,
+                "barTop": 759
+              },
+              {
+                "what": "button.h-8.rounded-sm",
+                "text": "متوسطة",
+                "coveredFrac": 1,
+                "ownTop": 767,
+                "ownBottom": 799,
+                "barTop": 759
+              },
+              {
+                "what": "button.h-8.rounded-sm",
+                "text": "عالية",
+                "coveredFrac": 1,
+                "ownTop": 767,
+                "ownBottom": 799,
+                "barTop": 759
+              },
+              {
+                "what": "button.h-8.rounded-sm",
+                "text": "عاجلة",
+                "coveredFrac": 1,
+                "ownTop": 767,
+                "ownBottom": 799,
+                "barTop": 759
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 1802,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "team",
+      "path": "/dashboard/team",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 812,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": false,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    },
+    {
+      "page": "demo",
+      "path": "/demo",
+      "check": {
+        "innerHeight": 812,
+        "scrollHeight": 1801,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [
+              {
+                "what": "p.text-sm.font-medium",
+                "text": "أحمد سالم",
+                "coveredFrac": 0.35,
+                "ownTop": 746,
+                "ownBottom": 766,
+                "barTop": 759
+              },
+              {
+                "what": "p.text-xs.text-muted-foreground",
+                "text": "كم سعر المنتج؟",
+                "coveredFrac": 1,
+                "ownTop": 766,
+                "ownBottom": 782,
+                "barTop": 759
+              },
+              {
+                "what": "p.text-xs.text-accent-foreground",
+                "text": "سعر المنتج 120 د.ل",
+                "coveredFrac": 1,
+                "ownTop": 782,
+                "ownBottom": 798,
+                "barTop": 759
+              }
+            ],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      },
+      "bottomCheck": {
+        "innerHeight": 812,
+        "scrollHeight": 1801,
+        "bars": [
+          {
+            "label": "التنقل الرئيسي",
+            "rect": {
+              "top": 759,
+              "height": 53
+            },
+            "underBar": [],
+            "obscuredUnderFold": [],
+            "canScroll": true,
+            "permanentlyObscured": []
+          }
+        ]
+      }
+    }
+  ]
+}

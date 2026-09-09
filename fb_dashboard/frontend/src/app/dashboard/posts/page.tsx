@@ -8,6 +8,7 @@ import { Newspaper, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
 import { formatDate } from "@/lib/format"
@@ -64,19 +65,16 @@ export default function PostsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Newspaper className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">المنشورات</h1>
-            <p className="text-2xs text-muted-foreground">إدارة ونشر المنشورات</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<Newspaper className="size-4" />}
+        title="المنشورات"
+        subtitle="إدارة ونشر المنشورات"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
         <Card>
           <CardContent className="p-4">
             <textarea
@@ -90,11 +88,15 @@ export default function PostsPage() {
               className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex justify-end mt-3">
+              {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ النشر…» (mirror:
+                  support:341-349 / marketing:218) — the button was disabled
+                  only, with no in-flight affordance. */}
               <Button
                 onClick={() => { if (newMessage.trim()) createMut.mutate(newMessage.trim()) }}
                 disabled={!newMessage.trim() || createMut.isPending}
+                loading={createMut.isPending}
               >
-                <Send className="size-4 rtl:-scale-x-100" /> نشر
+                <Send className="size-4 rtl:-scale-x-100" /> {createMut.isPending ? "جارٍ النشر…" : "نشر"}
               </Button>
             </div>
           </CardContent>

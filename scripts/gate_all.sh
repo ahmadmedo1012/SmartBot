@@ -17,6 +17,12 @@
 # docs/evidence/gate-run.json (ADVISORY this round — a mismatch warns, does
 # not fail). On an all-green run the gate WRITES gate-run.json
 # {ts, head, wtree_sha, round} (wtree_sha = sha256 of porcelain + HEAD).
+# v17-S5 (gstack import — D11-G2): [1.6] design-baseline INFORMATIONAL —
+# seeds docs/evidence/design-baseline.json on the first run (pre-wave
+# snapshot), later runs print the delta vs the held baseline (ratchet; the
+# round-close re-seed is `--force`); never blocks by doctrine, and slop-scan
+# [1.5] now carries the §D UI-slop rule counts (transition-all · bounce
+# easing · multi-color glow · bare rounded · emoji icons).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -66,6 +72,21 @@ if $PY scripts/slop_scan.py; then
   echo "✅ slop-scan: completed (diagnostic)"
 else
   echo "⚠️  slop-scan: script error — ignored (diagnostic by doctrine)"
+fi
+
+# ── Gate 1.6: design-baseline (v17-S5 · D11-G2) — معلوماتي، لا يحجب ──
+# يقيس خط أساس التصميم من المصدر (PageHeader/الحقول الخام to-white/
+# useCountUp + قسم D من slop-scan) ويطبع درجة A-F مركبة. أول تشغيل
+# «يبذر» docs/evidence/design-baseline.json (حالة ما قبل موجة E موثقة)؛
+# التشغيلات التالية تطبع دلتا مقابل الأساس دون تحديثه (ratchet — إعادة
+# البذر المقصودة عند إغلاق الجولة بـ --force من المكتّب). عقيدة أول
+# جولة: الدرجة لا تحجب أبداً حتى لو كانت F — القيمة في الاتجاه فقط،
+# تماماً مثل slop-scan؛ حتى خلل السكربت نفسه يُتجاهل (معلوماتي حصراً).
+echo "── [1.6/6] design-baseline (informational — seeds on first run, never blocks) ──"
+if $PY scripts/design_baseline.py; then
+  echo "✅ design-baseline: measured (informational)"
+else
+  echo "⚠️  design-baseline: script error — ignored (informational by doctrine)"
 fi
 
 # ── Gate 2: pytest (hermetic suite) ─────────────────────────────────

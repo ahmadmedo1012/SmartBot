@@ -7,6 +7,7 @@ import { CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
@@ -45,18 +46,16 @@ export default function CalendarPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <CalendarDays className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">تقويم المحتوى</h1>
-            <p className="text-2xs text-muted-foreground">جدول المحتوى الشهري</p>
-          </div>
-        </div>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي (CalendarDays
+          أيقونة الصفحة نفسها — نفس سياق تقويم AdminSidebar). */}
+      <PageHeader
+        icon={<CalendarDays className="size-4" />}
+        title="تقويم المحتوى"
+        subtitle="جدول المحتوى الشهري"
+        compact
+      />
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-2 mb-3">

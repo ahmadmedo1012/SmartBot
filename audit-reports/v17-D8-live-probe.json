@@ -1,0 +1,457 @@
+{
+  "meta": {
+    "base": "http://localhost:3199",
+    "backend": "http://127.0.0.1:8000",
+    "db": "/tmp/v17d8.db",
+    "startedAt": "2026-09-09T07:30:54.656Z",
+    "mode": "light-public-only",
+    "viewports": "1280x800 + 375x812",
+    "durationSec": 30
+  },
+  "boot": {
+    "backend": {
+      "up": true,
+      "pid": 13130
+    },
+    "frontend": {
+      "up": true,
+      "pid": 13190
+    }
+  },
+  "pages": [
+    {
+      "page": "home",
+      "path": "/",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "SmartBot - منصة إدارة فيسبوك",
+        "h1": "إدارة تفاعل فيسبوك بذكاء واحترافية",
+        "bodyTextChars": 2612
+      },
+      "shot": "audit-reports/v17-shots/home-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "pricing",
+      "path": "/pricing",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/pricing",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "الأسعار والباقات | SmartBot",
+        "h1": "خطط تناسب كل الأحجام",
+        "bodyTextChars": 1174
+      },
+      "shot": "audit-reports/v17-shots/pricing-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "login",
+      "path": "/login",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/login",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تسجيل الدخول | SmartBot",
+        "h1": "تسجيل الدخول",
+        "bodyTextChars": 209
+      },
+      "shot": "audit-reports/v17-shots/login-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js",
+          "401 GET /api/me"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "register",
+      "path": "/register",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/register",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "إنشاء حساب | SmartBot",
+        "h1": "إنشاء حساب جديد",
+        "bodyTextChars": 224
+      },
+      "shot": "audit-reports/v17-shots/register-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "demo",
+      "path": "/demo",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/demo",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تجربة لوحة التحكم | SmartBot",
+        "h1": "لوحة البيانات",
+        "bodyTextChars": 1056
+      },
+      "shot": "audit-reports/v17-shots/demo-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "subscribe",
+      "path": "/subscribe",
+      "viewport": "1280",
+      "status": "ok",
+      "url": "/login?redirect=%2Fsubscribe",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 1280,
+        "scrollWidth": 1280,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تسجيل الدخول | SmartBot",
+        "h1": "تسجيل الدخول",
+        "bodyTextChars": 209
+      },
+      "shot": "audit-reports/v17-shots/subscribe-1280.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js",
+          "401 GET /api/me",
+          "401 GET /api/me",
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js",
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "home",
+      "path": "/",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "SmartBot - منصة إدارة فيسبوك",
+        "h1": "إدارة تفاعل فيسبوك بذكاء واحترافية",
+        "bodyTextChars": 2572
+      },
+      "shot": "audit-reports/v17-shots/home-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "pricing",
+      "path": "/pricing",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/pricing",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "الأسعار والباقات | SmartBot",
+        "h1": "خطط تناسب كل الأحجام",
+        "bodyTextChars": 1174
+      },
+      "shot": "audit-reports/v17-shots/pricing-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "login",
+      "path": "/login",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/login",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تسجيل الدخول | SmartBot",
+        "h1": "تسجيل الدخول",
+        "bodyTextChars": 209
+      },
+      "shot": "audit-reports/v17-shots/login-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "401 GET /api/me",
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "register",
+      "path": "/register",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/register",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "إنشاء حساب | SmartBot",
+        "h1": "إنشاء حساب جديد",
+        "bodyTextChars": 224
+      },
+      "shot": "audit-reports/v17-shots/register-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "demo",
+      "path": "/demo",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/demo",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تجربة لوحة التحكم | SmartBot",
+        "h1": "لوحة البيانات",
+        "bodyTextChars": 1083
+      },
+      "shot": "audit-reports/v17-shots/demo-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    },
+    {
+      "page": "subscribe",
+      "path": "/subscribe",
+      "viewport": "375",
+      "status": "ok",
+      "url": "/login?redirect=%2Fsubscribe",
+      "dom": {
+        "dir": "rtl",
+        "lang": "ar",
+        "clientWidth": 375,
+        "scrollWidth": 375,
+        "horizontalOverflow": false,
+        "overflowDelta": 0,
+        "brokenImages": [],
+        "title": "تسجيل الدخول | SmartBot",
+        "h1": "تسجيل الدخول",
+        "bodyTextChars": 209
+      },
+      "shot": "audit-reports/v17-shots/subscribe-375.png",
+      "console": {
+        "errors": [
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled.",
+          "Refused to execute script from 'http://localhost:3199/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable, and strict MIME type checking is enabled."
+        ],
+        "warnings": [],
+        "pageErrors": [],
+        "network4xx5xx": [
+          "404 GET /_vercel/speed-insights/script.js",
+          "401 GET /api/me",
+          "404 GET /_vercel/speed-insights/script.js",
+          "401 GET /api/me"
+        ],
+        "requestFailed": [
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js",
+          "net::ERR_ABORTED /_vercel/speed-insights/script.js"
+        ]
+      }
+    }
+  ],
+  "teardown": {
+    "uvicornTail": [
+      "2026-09-09 07:31:13,170 [INFO] GET /api/public/testimonials → 200 (4ms) rid=a1f19c28",
+      "INFO:     ::1:0 - \"GET /api/public/testimonials HTTP/1.1\" 200 OK",
+      "2026-09-09 07:31:13,212 [INFO] GET /api/config → 200 (2ms) rid=4767d847",
+      "INFO:     ::1:0 - \"GET /api/config HTTP/1.1\" 200 OK",
+      "2026-09-09 07:31:15,510 [INFO] GET /api/plans → 200 (2ms) rid=b693cf18",
+      "INFO:     ::1:0 - \"GET /api/plans HTTP/1.1\" 200 OK",
+      "2026-09-09 07:31:17,319 [INFO] GET /api/me → 401 (2ms) rid=06604830",
+      "INFO:     ::1:0 - \"GET /api/me HTTP/1.1\" 401 Unauthorized",
+      "2026-09-09 07:31:23,159 [INFO] GET /api/me → 401 (1ms) rid=5c1909fd",
+      "INFO:     ::1:0 - \"GET /api/me HTTP/1.1\" 401 Unauthorized",
+      "2026-09-09 07:31:24,469 [INFO] GET /api/me → 401 (1ms) rid=638cc637",
+      "INFO:     ::1:0 - \"GET /api/me HTTP/1.1\" 401 Unauthorized"
+    ],
+    "nextTail": [
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit",
+      "(node:13208) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added to [ServerResponse]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit"
+    ]
+  }
+}

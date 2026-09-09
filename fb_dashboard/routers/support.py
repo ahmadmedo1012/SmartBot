@@ -321,4 +321,35 @@ async def admin_queue_support_tickets(
     return ok({"items": items, "total": total, "page": page})
 
 
+# ── v17-E-F8 (D6 #5): إغلاق التذكرة من طابور المنصة ──────────────────────────
+# مسار /api/support/tickets/{id}/close أعلاه محصور بالمستأجر (require_role
+# «admin» + فحص t.tenant_id == current_user._tenant_id) — لمدير المنصة
+# (tenant_id=0) يرد 404 على تذاكر كل المستأجرين، فكان زر الإغلاق في
+# /admin/support بلا أي endpoint يخدمه. هذا مسار منصة عابر للمستأجرين
+# بنفس سلوك مسار المستأجر: إغلاق + إشعار داخل التطبيق لصاحب التذكرة.
+# Idempotent: إغلاق تذكرة مغلقة يعيد الحالة الحالية دون إشعار مكرر.
+@platform_admin_router.post("/api/admin/support/tickets/{ticket_id}/close")
+async def admin_close_support_ticket(
+    ticket_id: int,
+    db=Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    t = await db.get(SupportTicket, ticket_id)
+    if not t:
+        raise HTTPException(404, "التذكرة غير موجودة")
+    if t.status == "closed":
+        return ok({"id": t.id, "status": t.status})
+    t.status = "closed"
+    t.updated_at = __import__("datetime").datetime.utcnow()
+    if t.user_id:
+        await push_notification(
+            db, t.tenant_id,
+            title=f"تم إغلاق تذكرتك #{t.id}",
+            body="تم حل المشكلة وإغلاق التذكرة. يمكنك فتح تذكرة جديدة عند الحاجة.",
+            type_="support", link="/dashboard/support", user_id=t.user_id,
+        )
+    await db.commit()
+    return ok({"id": t.id, "status": t.status})
+
+
 router.routes.extend(platform_admin_router.routes)

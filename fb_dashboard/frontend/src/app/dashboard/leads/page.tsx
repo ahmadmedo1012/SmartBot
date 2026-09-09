@@ -6,6 +6,7 @@ import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly } from "@/lib/format"
@@ -27,19 +28,17 @@ export default function LeadsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <UserPlus className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">العملاء المتوقعون</h1>
-            <p className="text-2xs text-muted-foreground">إدارة العملاء المحتملين</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي (أيقونة القسم
+          نفسها من AdminSidebar + subtitle الجملة الموجودة نصاً). */}
+      <PageHeader
+        icon={<UserPlus className="size-4" />}
+        title="العملاء المتوقعون"
+        subtitle="إدارة العملاء المحتملين"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
         {isLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
         ) : isError ? (

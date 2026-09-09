@@ -96,19 +96,42 @@ warning = 0.52، info = 0.48).
 
 ## 8. الاستثناءات الموثَّقة (بوابة المسار D)
 
-نتيجة فحص `grep "bg-white|text-black|bg-black"` — **أربعة مواضع فقط**، كلها مشروعة:
+> **v17-S1 (2026-09-09):** البوابة أعيدت كتابتها بعد تدقيق v17-D4 §2/§9 —
+> القائمة القديمة كانت متقادمة (بندا switch/demo لم يعودا موجودين) ولا تغطي
+> عائلة `*-white` في النصوص/الأيقونات/التدرجات إطلاقًا. البوابة الآن تغطي
+> **كل** أوجه الأبيض/الأسود الخام.
 
-| الملف | السطر | السبب |
-|-------|-------|-------|
-| `components/ui/switch.tsx:32` | `bg-white` | مقبض مفتاح التبديل (shadcn primitive) — العنصر الأبيض على مسار ملون هو نمط المفتاح القياسي |
-| `dashboard/notifications/page.tsx:318` | `bg-white` | مقبض مفتاح تفضيلات — نفس النمط أعلاه (مكوّن مخصص) |
-| `demo/page.tsx:57` | `bg-black/40` | حجاب (scrim) لإغلاق القائمة الجانبية على الجوال — وظيفي، لا دلالي |
-| `components/layout/MobileBottomNav.tsx:56` | `bg-black/40` | حجاب لوحة الجوال السفلية — نفس النمط الوظيفي أعلاه |
+**أنماط البوابة:** `bg-white` · `bg-black` · `text-black` · `text-white` ·
+`fill-white` · `to-white` · `from-white` · `via-white` — أي بند جديد خارج
+هذا الجدول يُرفض في المراجعة.
 
-**قاعدة البوابة:** أي `bg-white/bg-black/text-[#…]` جديد خارج هذا الجدول يُرفض في المراجعة. الفحص:
+| الملف | السطر | النمط | السبب |
+|-------|-------|-------|-------|
+| `dashboard/notifications/page.tsx:381` | `bg-white` | مقبض مفتاح تفضيلات يدوي — العنصر الأبيض على مسار ملون هو نمط المفتاح القياسي |
+| `components/layout/MobileBottomNav.tsx:94` | `bg-black/40` | حجاب (scrim) لوحة الجوال السفلية — وظيفي، لا دلالي |
+| `components/landing/sections/FeaturesSection.tsx:51` | `fill-white` | تعبئة أيقونة Zap داخل شارة فوق `bg-primary` — الأبيض صحيح تباينًا |
+| `app/pricing/page.tsx:205` | `fill-white` | تعبئة أيقونة Crown داخل شارة فوق تدرج براندي — نفس النمط أعلاه |
+| `text-white` ×17 موضعًا (قائمة كاملة في v17-D4 §2) | `text-white` | نص فوق أسطح براندية (`bg-primary`/تدرجات accent) حيث الأبيض صحيح تباينًا — أبرزها `dashboard/messages/page.tsx:82` موثّق بحساب hsl→WCAG (≥4.75:1 لكل تدرج hue) |
+
+**الحكم على `text-white`:** مقبولة تاريخيًا في المواضع الـ17 (كلها فوق
+أسطح براندية)، لكن التوكن النظامي `text-primary-foreground` موجود —
+**الكود الجديد يفضّله**، والمواضع القديمة تُرحّل تدريجيًا (لا تُنسخ).
+
+**بنود أُغلقت وحُذفت من الجدول (مرجع تاريخي):**
+- `components/ui/switch.tsx:32` `bg-white` — السويتش أُعيدت كتابته بمقبض
+  `bg-background` (switch.tsx:46) → البند منتهي الصلاحية.
+- `demo/page.tsx:57` `bg-black/40` — درج demo أُعيد بناؤه بلا scrim → البند
+  منتهي الصلاحية.
+- `app/subscribe/PaymentSection.tsx:34` `to-white` — **أُصلح في v17-S1**
+  (D4-بند4): التدرج الخام `from-accent/80 to-white` → توكني بالكامل
+  `from-accent/15 to-card dark:from-accent/20` — لم يعد استثناءً.
+
+**قاعدة البوابة + الفحص:**
 ```bash
-grep -rn "bg-white\|text-black\|bg-black\|text-\[#\|bg-\[#" fb_dashboard/frontend/src/app/ fb_dashboard/frontend/src/components/ --include="*.tsx" | grep -v "dark:"
-# المتوقع: 3 أسطر فقط — كلها في هذا الجدول
+cd fb_dashboard/frontend && rg -n "bg-white|bg-black|text-black|text-white|fill-white|(to|from|via)-white" src/ --type tsx
+# المتوقع: مقبض notifications + حجاب MobileBottomNav + fill-white ×2
+# + text-white ×17 (كلها أعلاه) — أي سطر خارجها = رفض مراجعة.
+# ملاحظة: "to-white" داخل تعليق PaymentSection توثيق إصلاح لا كلاس.
 ```
 
 ## 9. الحركة والطبقات

@@ -48,7 +48,7 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify({ current_password: currentPw, new_password: newPw }),
       })
-      brandedToast.success("تم تغيير كلمة المرور بنجاح")
+      brandedToast.success("تم تغيير كلمة المرور")
       setCurrentPw("")
       setNewPw("")
       setShowPw(false)

@@ -50,6 +50,15 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // v17-E-F2 (D7-P0-3 — PAIRED change): cover extends the web view under
+  // the iOS home-indicator / Dynamic Island so env(safe-area-inset-*)
+  // resolves to real values — before this, every env() in the app
+  // (.safe-area-pb on the bottom bars, FloatingWhatsApp's bottom calc,
+  // DashboardShell's pb) was a no-op reading 0. The pair: DashboardShell's
+  // content pb-[calc(4rem+env(safe-area-inset-bottom))] must ship in the
+  // SAME change — viewport-fit alone would park the fixed bottom bar
+  // inside the system gesture area, and the pb alone is dead code.
+  viewportFit: "cover",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -107,7 +116,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
 
-          <SpeedInsights />
+          {/* v17-E-F2 (D8-G3): Vercel-only. On self-hosted `next start`
+              the injected /_vercel/speed-insights/script.js answers 404
+              with a text/plain MIME, so the browser refuses to execute it
+              and logs a console error on EVERY page (12/12 page-views in
+              the D8 live probe). Gate on the build-time VERCEL env var —
+              zero behavior change where it worked, silent self-host. */}
+          {process.env.VERCEL ? <SpeedInsights /> : null}
         </Providers>
       </body>
     </html>

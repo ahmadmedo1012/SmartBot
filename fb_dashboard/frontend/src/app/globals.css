@@ -77,6 +77,12 @@
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
+  /* v17-S3 (D2 motion §3.2 / rec #6): the overshoot "spring" curve — the
+     exact value .motion-icon hard-coded since v6. Tokenized like its ease
+     siblings; this block emits the `ease-spring` utility
+     (transition-timing-function) for JSX consumers. Runtime var copy lives
+     in :root (an inline @theme never emits custom properties). */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* v9-C2 micro text scale — the ~123 raw text-[9-11px] sites migrate onto
      these utilities in wave 2. Same emission pattern as the default --text-*
@@ -146,6 +152,23 @@
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
+
+  /* v17-S3 (D2 motion §3.2 / rec #6) — motion DURATION scale, the runtime
+     half of the token system. The three steps are the Tailwind durations the
+     audit already measured as dominant (duration-200 ×28 fast interactions,
+     duration-300 ×37 surface transitions, duration-500 ×20 entrances):
+       --duration-fast  200ms  quick feedback (icon swaps, hovers, fields)
+       --duration-base  300ms  surfaces (dialog pop, sheets, nav pills)
+       --duration-slow  500ms  entrances / large choreography
+     Tailwind has no --duration-* theme namespace (duration-<number> only),
+     so these live here as pure runtime vars consumed via
+     duration-[var(--duration-*)] utilities and var() in raw CSS.
+     --ease-spring is the runtime copy of the @theme inline token above.
+     Theme-independent: .light never overrides any of these. */
+  --duration-fast: 200ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Neutral surface scale — unified 2026-09-05 with Smart-Menu (warm-dark,
      hue 55-70) so both products render the identical smart-link.ly dark. */
@@ -510,8 +533,25 @@ html.light::-webkit-scrollbar-thumb:hover,
 @media (prefers-reduced-motion: reduce) {
   .tt-icon { transition: none; }
 }
-/* motion icons (CSS twin of useAnimate hover choreography) */
-.motion-icon { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* v17-S3 (D2 §3.3#7 / rec #8) — .icon-swap: the tt-icon recipe generalized
+ * into a shared two-icon crossfade for Eye↔EyeOff-style state toggles.
+ * Markup contract: wrapper carries .icon-swap + data-active="a"|"b" and
+ * exactly two icon children; both stack in ONE grid cell so equal-size
+ * icons overlap pixel-perfect. The icon NOT matching data-active fades +
+ * rotates -90° + scales to 0.5 (the ThemeToggle motion, verbatim), driven
+ * by the duration/ease tokens. Under prefers-reduced-motion the transition
+ * is dropped but the hidden/visible STATE stays — the swap still happens,
+ * just instantly. */
+.icon-swap { display: grid; }
+.icon-swap > * { grid-area: 1 / 1; transition: opacity var(--duration-fast) ease, transform var(--duration-base) var(--ease-out-quart); }
+.icon-swap[data-active="a"] > :nth-child(2),
+.icon-swap[data-active="b"] > :first-child { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+@media (prefers-reduced-motion: reduce) {
+  .icon-swap > * { transition: none; }
+}
+/* motion icons (CSS twin of useAnimate hover choreography) — v17-S3: the
+ * overshoot curve is now the --ease-spring token (identical value). */
+.motion-icon { transition: transform 0.25s var(--ease-spring); }
 .motion-icon:hover { transform: scale(1.15) rotate(var(--mi-rot, 0deg)); }
 @media (prefers-reduced-motion: reduce) {
   .motion-icon { transition: none; }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react"
+import { AlertTriangle, Loader2, RefreshCw, Info } from "lucide-react"
 import { apiFetch } from "@/lib/csrf-client"
 import { Button } from "@/components/ui/button"
 import { TelegramConfigSection } from "./TelegramConfigSection"
@@ -79,7 +79,14 @@ export default function AdminTelegramPage() {
        * re-pasting the secret. The field starts EMPTY; botTokenMasked only
        * drives the placeholder («الرمز محفوظ…») and handleSave omits the
        * key entirely while the field is untouched (backend: absent =
-       * no-change; only an explicitly-typed new token is sent). */
+       * no-change; only an explicitly-typed new token is sent).
+       *
+       * v17-E-B2 (D5-F2): the «تفعيل إشعارات تليجرام» switch (isActive) and
+       * «الأحداث المرسلة» (events) now ROUND-TRIP — the backend persists
+       * both (SystemConfig telegram_notify_config) and GET returns the
+       * stored values, so these initial values are the real saved ones and
+       * no longer snap back after a save+reload. handleSave always sends
+       * both keys (backend merges, key-present semantics). */
       setConfig({ botToken: "", botTokenMasked: d.botTokenMasked ?? false, chatId: d.chatId ?? "", events: d.events ?? [], isActive: d.isActive ?? false })
       setEventsInput((d.events ?? []).join(", "))
     }
@@ -166,7 +173,7 @@ export default function AdminTelegramPage() {
       const res = await apiFetch("/api/telegram/test", { method: "POST" })
       const json = await res.json()
       if (!json.success) throw new Error(json.error || "فشل الإرسال")
-      brandedToast.success("تم إرسال رسالة الاختبار بنجاح!")
+      brandedToast.success("تم إرسال رسالة الاختبار")
     } catch (e) { brandedToast.error((e as Error).message || "فشل إرسال رسالة الاختبار") }
     finally { setTesting(false) }
   }
@@ -275,7 +282,12 @@ export default function AdminTelegramPage() {
       {/* Broadcast guide */}
       <section>
         <div className="rounded-md bg-muted/30 border border-border/20 p-5">
-          <h3 className="text-sm font-semibold mb-2">💡 خطوات التفعيل</h3>
+          {/* v17-E-F4 (D3 #7): 💡 emoji → Info (the app's info-state glyph,
+              aria-hidden, size-4 matching the text-sm heading scale). */}
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold mb-2">
+            <Info className="size-4 shrink-0" aria-hidden="true" />
+            خطوات التفعيل
+          </h3>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
             <li>قم بإضافة البوت الخاص بالمنصة كمشرف (Admin) داخل قناتك أو مجموعتك الخاصة.</li>
             <li>تأكد من تفعيل صلاحية &quot;نشر الرسائل&quot; (Post Messages).</li>

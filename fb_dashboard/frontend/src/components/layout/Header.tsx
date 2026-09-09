@@ -204,22 +204,31 @@ export function Header({ className }: HeaderProps) {
                       )}
                     >
                       {link.label}
-                      {linkActive && (
-                        /* v6 §D — was motion.div layoutId="tubelight" (framer
-                         * layout animation); a per-link static pill keeps the
-                         * same visual without the framer dependency.
-                         * v14-E5 (D2-M2): the raw rgba(251,146,60,…) glow is
-                         * now color-mix over var(--primary) — the glow follows
-                         * the pill's own token (bg-primary) in both modes
-                         * instead of a hand-copied hex. */
-                        <span
-                          aria-hidden="true"
-                          className="absolute inset-0 -z-10 rounded-full bg-primary shadow-lg"
-                          style={{
-                            boxShadow: "0 0 18px 3px color-mix(in oklch, var(--primary) 35%, transparent), 0 0 6px color-mix(in oklch, var(--primary) 15%, transparent)",
-                          }}
-                        />
-                      )}
+                      {/* v17-S3 (D2 P1#1 / §3.3#1) — tubelight motion restored,
+                       * CSS-only. v6 §D replaced motion.div layoutId="tubelight"
+                       * with a pill that MOUNTED/UNMOUNTED per active link, so
+                       * it teleported between tabs (the P1 gap). The pill is
+                       * now ALWAYS mounted behind every link and driven by
+                       * state classes: the inactive one rests at scale-60 +
+                       * opacity-0, the active one springs to full size with
+                       * the --ease-spring overshoot over --duration-base —
+                       * navigating crossfades shrink/grow instead of popping.
+                       * Deliberately NOT the measured "sliding pill": offsets
+                       * would need measurement JS (ruled out by the CSS-only
+                       * constraint) and the pill would lose its SSR paint.
+                       * v14-E5 (D2-M2): the glow stays color-mix over
+                       * var(--primary) in both modes. */}
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "absolute inset-0 -z-10 rounded-full bg-primary shadow-lg",
+                          "transition-[opacity,scale] duration-(--duration-base) ease-spring",
+                          linkActive ? "scale-100 opacity-100" : "scale-[0.6] opacity-0"
+                        )}
+                        style={{
+                          boxShadow: "0 0 18px 3px color-mix(in oklch, var(--primary) 35%, transparent), 0 0 6px color-mix(in oklch, var(--primary) 15%, transparent)",
+                        }}
+                      />
                     </Link>
                   </div>
                 )

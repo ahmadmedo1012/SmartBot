@@ -51,3 +51,6 @@ fb_dashboard/frontend/e2e_artifacts/
 *.orig
 .coverage
 docs/evidence/v14/sim-local/
+
+# v17-D8 diagnostic screenshots (17MB — kept locally, not round evidence)
+audit-reports/v17-shots/

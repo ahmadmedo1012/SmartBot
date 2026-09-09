@@ -11,7 +11,7 @@ import type { ApiErrorBody } from "@/lib/types"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
-import { UserPlus, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react"
+import { UserPlus, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -103,7 +103,7 @@ function RegisterForm() {
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
       // validation message instead of a generic connection error.
-      brandedToast.success("تم إنشاء الحساب بنجاح")
+      brandedToast.success("تم إنشاء الحساب")
       setTimeout(() => window.location.replace("/dashboard"), 150)
     } catch (e) {
       const msg = e instanceof ApiError
@@ -164,14 +164,14 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
-                <Input id="username" type="text" autoComplete="username" placeholder="اسم المستخدم" dir="auto"
+                <Input id="username" type="text" autoComplete="username" placeholder="مثال: ahmed_ali" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", username.length > 0 && "username-validity")}
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
                   <span id="username-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {usernameOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {usernameOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -180,14 +180,14 @@ function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
-                <Input id="email" type="email" autoComplete="email" placeholder="البريد الإلكتروني" dir="auto"
+                <Input id="email" type="email" autoComplete="email" placeholder="مثال: ahmed@example.com" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", email.length > 0 && "email-validity")}
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
                   <span id="email-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {emailOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {emailOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
               </div>
@@ -197,13 +197,13 @@ function RegisterForm() {
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
-                  placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required
+                  placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", password.length > 0 && "password-validity")}
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {password.length > 0 && (
                   <span id="password-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {passwordOk ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {passwordOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -211,7 +211,14 @@ function RegisterForm() {
                   aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order. */}
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {/* v17-S3 (D2 §3.3#7 / rec #8): Eye↔EyeOff crossfade via the
+                      shared .icon-swap class (globals.css) — both glyphs stack
+                      in one grid cell, data-active picks the visible one;
+                      reduced-motion guarded in the class itself. */}
+                  <span className="icon-swap" data-active={showPassword ? "b" : "a"} aria-hidden="true">
+                    <Eye className="size-4" />
+                    <EyeOff className="size-4" />
+                  </span>
                 </button>
               </div>
             </div>
@@ -220,13 +227,13 @@ function RegisterForm() {
               <Label htmlFor="confirm" className="text-sm font-medium">تأكيد كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
-                  placeholder="تأكيد كلمة المرور" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
+                  placeholder="نفس كلمة المرور أعلاه" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", confirm.length > 0 && "confirm-validity")}
                   className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {confirm.length > 0 && (
                   <span id="confirm-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
-                    {password === confirm ? <CheckCircle aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {password === confirm ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
@@ -234,7 +241,12 @@ function RegisterForm() {
                   aria-label={showConfirm ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order. */}
-                  {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {/* v17-S3 (D2 §3.3#7 / rec #8): same .icon-swap crossfade as
+                      the password toggle above (Eye↔EyeOff stacked). */}
+                  <span className="icon-swap" data-active={showConfirm ? "b" : "a"} aria-hidden="true">
+                    <Eye className="size-4" />
+                    <EyeOff className="size-4" />
+                  </span>
                 </button>
               </div>
             </div>
@@ -251,9 +263,9 @@ function RegisterForm() {
             )}
             <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
-                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" /> جارٍ إنشاء الحساب…</span>
+                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" aria-hidden="true" /> جارٍ إنشاء الحساب…</span>
               ) : (
-                <span className="flex items-center gap-2"><UserPlus className="size-4" /> إنشاء حساب</span>
+                <span className="flex items-center gap-2"><UserPlus className="size-4" aria-hidden="true" /> إنشاء حساب</span>
               )}
             </Button>
           </form>

@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
 import type { LogEntry } from "@/lib/types"
@@ -37,18 +38,15 @@ export default function ActivityPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Activity className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">سجل النشاطات</h1>
-            <p className="text-2xs text-muted-foreground">سجل أحداث النظام</p>
-          </div>
-        </div>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<Activity className="size-4" />}
+        title="سجل النشاطات"
+        subtitle="سجل أحداث النظام"
+        compact
+      />
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
         <Card>
           <CardContent className="p-0">
             {isError ? (

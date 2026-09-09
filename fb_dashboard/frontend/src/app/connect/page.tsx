@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { Check, X, Loader2, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle } from "lucide-react"
+import { Check, X, Loader2, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { apiFetch, ApiError } from "@/lib/csrf-client"
 import type { WebhookCheck } from "@/lib/types"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
-import { countPhrase, formatNumber } from "@/lib/format"
+import { formatNumber } from "@/lib/format"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 type Status = "idle" | "testing" | "saving" | "connected" | "error"
@@ -99,9 +99,12 @@ export default function ConnectPage() {
         setFanCount(td.fan_count ?? 0)
         setStatus("saving")
         if (td.scopes?.missing?.length) setScopeWarnings(td.scopes.missing)
-        /* v12-E4.13: fan_count flows through countPhrase (dual/plural) —
-           same pattern as pages/page.tsx:65. */
-        brandedToast.success(`✅ الاتصال ناجح! ${countPhrase(td.fan_count ?? 0, "متابع", "متابعين", "متابعين")}`)
+        /* v12-E4.13 → v17-S2 (D9 §2-ب): fan_count now renders through the
+           unified «متابعو الصفحة» label + the formatNumber seam (same pattern
+           as pages/page.tsx:65) — the toast follows «تم X» with no «!».
+           v17-E-F4 (D3 #7): leading ✅ emoji dropped — the branded toast's
+           success chip already renders the unified CheckCircle2 glyph. */
+        brandedToast.success(`تم الاتصال — متابعو الصفحة: ${formatNumber(td.fan_count ?? 0)}`)
       } else {
         setStatus("idle")
         setErrorMsg(td.error || "فشل الاتصال — تحقق من رمز الوصول والصفحة")
@@ -125,7 +128,9 @@ export default function ConnectPage() {
         }),
       )
       setStatus("connected")
-      brandedToast.success("✅ تم حفظ البيانات وتفعيل الويبهوك")
+      /* v17-E-F4 (D3 #7): ✅ emoji dropped — the toast chip carries the
+         success glyph (CheckCircle2); the title stays clean Arabic text. */
+      brandedToast.success("تم حفظ البيانات وتفعيل الويبهوك")
     } catch (e) {
       setStatus("idle")
       // v14-E4 (D1 م-2): the backend's Arabic detail (e.g. a rejected token)
@@ -384,16 +389,22 @@ export default function ConnectPage() {
               {/* Fan count */}
               {fanCount > 0 && status !== "connected" && (
                 <div role="status" aria-live="polite" className="rounded-lg border border-success/30 bg-success/5 p-3 text-center">
-                  <p className="text-sm text-success font-medium">
-                    ✅ اتصال ناجح — {countPhrase(fanCount, "متابع", "متابعين", "متابعين")}
+                  {/* v17-E-F4 (D3 #7): ✅ emoji → the app's state verdict icon
+                      (CheckCircle2, aria-hidden — the live region announces
+                      clean text only). */}
+                  <p className="flex items-center justify-center gap-1.5 text-sm text-success font-medium">
+                    <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+                    تم الاتصال — متابعو الصفحة: {formatNumber(fanCount)}
                   </p>
                 </div>
               )}
 
               {status === "connected" && (
                 <div role="status" className="rounded-lg border border-success/30 bg-success/5 p-3 text-center space-y-3">
-                  <p className="text-sm text-success font-medium">
-                    ✅ تم التفعيل بنجاح — البوت جاهز للعمل
+                  {/* v17-E-F4 (D3 #7): ✅ emoji → CheckCircle2 (aria-hidden). */}
+                  <p className="flex items-center justify-center gap-1.5 text-sm text-success font-medium">
+                    <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+                    تم التفعيل — البوت جاهز للعمل
                   </p>
                   <Link href="/dashboard" className="inline-flex h-10 items-center justify-center rounded-lg bg-success px-6 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors">
                     الذهاب للوحة التحكم

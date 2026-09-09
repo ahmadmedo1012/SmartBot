@@ -6,6 +6,7 @@ import { Target, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { AdAccount } from "@/lib/types"
 import { formatNumber } from "@/lib/format"
@@ -23,19 +24,16 @@ export default function AdsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <Target className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الإعلانات</h1>
-            <p className="text-2xs text-muted-foreground">إدارة الإعلانات</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<Target className="size-4" />}
+        title="الإعلانات"
+        subtitle="إدارة الإعلانات"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
         {/* Plan §4.5: Facebook Marketing API requires app review + business
             verification — show honest "coming soon" until approved. */}
         <Card>

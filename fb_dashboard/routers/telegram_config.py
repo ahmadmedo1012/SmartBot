@@ -4,11 +4,24 @@ World-class plan v3 §5.2: config is DB-backed (SystemConfig: telegram_bot_token
 telegram_chat_id) with env fallback — same resolution as telegram_bot.py.
 BEFORE: POST /config was a stub returning {updated: true} without saving
 anything, and the token came from env only (never set in production).
+
+v17-E-B2 (D5-F2): «تفعيل إشعارات تليجرام» (isActive) + «الأحداث المرسلة»
+(events) used to ride the POST body and die there — GET served hardcoded
+defaults, so both controls snapped back after every reload. There is NO
+dedicated telegram-settings column for them in models.py (SystemConfig /
+TelegramApprover / TelegramBroadcastTarget only), and adding a Column or a
+_schema_reconcile line is outside this file's ownership — so, per the plan's
+storage decision, they persist as JSON inside the EXISTING SystemConfig.value
+column under one key: ``telegram_notify_config`` → {"isActive": bool,
+"events": [str]}. Key-present semantics mirror the v15-E5 token rule: an
+absent key keeps its stored value; only an explicitly-present key is written.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
+import re
 
 import httpx
 from _responses import ok
@@ -25,6 +38,32 @@ log = logging.getLogger("fb-tg-config")
 router = APIRouter(prefix="/api", tags=["telegram"])
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
+# v17-E-B2 (D5-F2): notify-switch + events persistence (see module docstring).
+_NOTIFY_KEY = "telegram_notify_config"
+_DEFAULT_EVENTS = ("new_order", "payment", "settings_change")
+_MAX_EVENTS = 20
+_EVENT_NAME_RE = re.compile(r"^[a-z0-9_]{2,40}$")
+
+
+def _parse_notify(raw: str | None) -> dict:
+    """Parse the stored telegram_notify_config JSON — corrupt/legacy values
+    degrade to {} so the GET per-key fallbacks apply (fail-open, same doctrine
+    as every other SystemConfig read in this router)."""
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+async def _notify_config(db) -> dict:
+    row = (await db.execute(
+        select(SystemConfig).where(SystemConfig.key == _NOTIFY_KEY)
+    )).scalar_one_or_none()
+    return _parse_notify(row.value if row is not None else None)
+
 
 async def _db_config(db) -> dict:
     try:
@@ -40,12 +79,24 @@ async def get_config(db=Depends(get_db), _=Depends(require_platform_admin)):
     cfg = await _db_config(db)
     token = cfg.get("telegram_bot_token") or BOT_TOKEN
     chat_id = cfg.get("telegram_chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
+    # v17-E-B2 (D5-F2): events/isActive come from the STORED notify config —
+    # no more hardcoded echo. Per-key fallbacks keep pre-v17 installs on the
+    # exact behavior they saw before (default events list; isActive = a token
+    # is configured), and an explicitly-saved empty events list [] survives
+    # (it is the user's choice, not "unset").
+    notify = await _notify_config(db)
+    events = notify.get("events")
+    if not isinstance(events, list):
+        events = list(_DEFAULT_EVENTS)
+    is_active = notify.get("isActive")
+    if not isinstance(is_active, bool):
+        is_active = bool(token)
     return ok({
         "chatId": chat_id,
         "botTokenConfigured": bool(token),
         "botTokenSource": "db" if cfg.get("telegram_bot_token") else ("env" if BOT_TOKEN else ""),
-        "events": ["new_order", "payment", "settings_change"],
-        "isActive": bool(token),
+        "events": [str(e) for e in events],
+        "isActive": is_active,
         "botTokenMasked": bool(token),
     })
 
@@ -75,6 +126,31 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
     if chat_id and not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', chat_id):
         raise HTTPException(400, "telegram_chat_id غير صالح — معرف رقمي أو @قناة")
 
+    # v17-E-B2 (D5-F2): isActive/events validation — the two formerly-dead
+    # keys. Absent key ⇒ keep stored value (key-present contract, same as the
+    # token above); present key ⇒ validated here so a bad value 400s BEFORE
+    # any DB write (never a half-saved request).
+    notify_updates: dict = {}
+    if body.get("isActive") is not None:
+        raw_active = body["isActive"]
+        if isinstance(raw_active, bool):
+            notify_updates["isActive"] = raw_active
+        elif isinstance(raw_active, str) and raw_active.strip().lower() in ("true", "false"):
+            notify_updates["isActive"] = raw_active.strip().lower() == "true"
+        else:
+            raise HTTPException(400, "قيمة isActive غير صالحة — استخدم true أو false")
+    if body.get("events") is not None:
+        raw_events = body["events"]
+        if not isinstance(raw_events, list):
+            raise HTTPException(400, "الأحداث المرسلة يجب أن تكون قائمة: events = [\"new_order\", ...]")
+        events = [str(e).strip().lower() for e in raw_events if str(e or "").strip()]
+        if len(events) > _MAX_EVENTS:
+            raise HTTPException(400, f"الحد الأقصى {_MAX_EVENTS} حدثاً في قائمة الأحداث المرسلة")
+        for e in events:
+            if not _EVENT_NAME_RE.match(e):
+                raise HTTPException(400, f"اسم الحدث غير صالح: «{e}» — أحرف لاتينية صغيرة وأرقام وشرطة سفلية فقط")
+        notify_updates["events"] = events
+
     # (key, value) pairs to persist — the token pair is SKIPPED entirely
     # when its key was absent from the request (keep-stored-token semantics).
     pairs: list[tuple[str, str]] = []
@@ -96,6 +172,27 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
         else:
             db.add(SystemConfig(key=key, value=value, is_secret=True))
         updated.append(key)
+
+    # v17-E-B2 (D5-F2): merge + persist the notify config — only the keys the
+    # request actually carried (partial saves keep the rest), JSON in the
+    # existing SystemConfig.value column. NOT a secret (a boolean + event
+    # names): is_secret stays False so /api/admin/config-style masking never
+    # applies to it.
+    if notify_updates:
+        stored = await _notify_config(db)
+        stored.update(notify_updates)
+        notify_json = json.dumps(stored, ensure_ascii=False, separators=(",", ":"))
+        row = (await db.execute(
+            select(SystemConfig).where(SystemConfig.key == _NOTIFY_KEY)
+        )).scalar_one_or_none()
+        if row:
+            row.value = notify_json
+            row.is_secret = False
+        else:
+            db.add(SystemConfig(key=_NOTIFY_KEY, value=notify_json, category="telegram",
+                                is_secret=False,
+                                description="تفعيل إشعارات تليجرام والأحداث المرسلة (v17-E-B2)"))
+        updated.append(_NOTIFY_KEY)
     await db.commit()
     return ok({"updated": updated or "no-change"})
 

@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { AlertTriangle, RefreshCw, Inbox, ChevronRight, ChevronLeft } from "lucide-react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { AlertTriangle, RefreshCw, Inbox, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { brandedToast } from "@/lib/premium-toast"
 import { formatDateOnly, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { Paginated } from "@/lib/types"
@@ -75,6 +76,7 @@ const PRIORITY_CONFIG: Record<
 export default function AdminSupportPage() {
   const [status, setStatus] = useState("all")
   const [page, setPage] = useState(1)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const meta = document.createElement("meta")
@@ -105,6 +107,22 @@ export default function AdminSupportPage() {
    * the honest "no more rows" signal, so «التالي» stops there instead of
    * guessing a page size that may drift from the backend's. */
   const hasNextPage = tickets.length > 0
+
+  /* v17-E-F8 (D6 #5): إغلاق التذكرة من طابور المنصة — POST
+   * /api/admin/support/tickets/{id}/close (مسار منصة عابر للمستأجرين؛
+   * مسار /api/support/tickets/{id}/close الخلفي محصور بالمستأجر
+   * فيرد 404 لمدير المنصة — D4-H1). يخطر صاحب التذكرة داخل التطبيق
+   * (نفس عقد مسار المستأجر). */
+  const closeMut = useMutation({
+    mutationFn: (id: number) =>
+      apiFetch(`/api/admin/support/tickets/${id}/close`, { method: "POST" })
+        .then(unwrapApi<{ id: number; status: string }>),
+    onSuccess: (d) => {
+      brandedToast.success(`تم إغلاق التذكرة #${formatNumber(d.id)}`)
+      queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] })
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إغلاق التذكرة"),
+  })
 
   return (
     <SectionContainer className="min-h-screen py-8">
@@ -206,6 +224,7 @@ export default function AdminSupportPage() {
                     <th scope="col" className="text-start p-3 font-medium">الحالة</th>
                     <th scope="col" className="text-start p-3 font-medium">البريد</th>
                     <th scope="col" className="text-start p-3 font-medium">التاريخ</th>
+                    <th scope="col" className="text-start p-3 font-medium">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,6 +261,24 @@ export default function AdminSupportPage() {
                       <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
                         {t.created_at ? formatDateOnly(t.created_at) : "-"}
                       </td>
+                      <td className="p-3" data-label="إجراء">
+                        {/* v17-E-F8 (D6 #5): إغلاق التذكرة — يظهر للمفتوحة/
+                            بانتظار العميل فقط (المغلقة لا تُغلق مرتين). */}
+                        {t.status !== "closed" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => closeMut.mutate(t.id)}
+                            disabled={closeMut.isPending && closeMut.variables === t.id}
+                            loading={closeMut.isPending && closeMut.variables === t.id}
+                            aria-label={`إغلاق التذكرة رقم ${t.id}`}
+                          >
+                            <CheckCircle2 className="size-3.5" aria-hidden="true" /> إغلاق
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -249,7 +286,10 @@ export default function AdminSupportPage() {
             </div>
           )}
 
-          {/* Pagination — prev/next over the backend's page window */}
+          {/* Pagination — prev/next over the backend's page window.
+              v17-E-F8 (D6 #9): chevrons through DirectionalIcon (variant="chevron")
+              — الشيفرون الخام كان استيرادًا مباشرًا يتحايل على مصدر الحقيقة
+              الواحد لاتجاه القراءة (v7 §2.1). */}
           {!ticketsQuery.isLoading && !ticketsQuery.isError && (
             <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
               <Button
@@ -259,7 +299,7 @@ export default function AdminSupportPage() {
                 disabled={page <= 1}
                 aria-label="الصفحة السابقة"
               >
-                <ChevronRight className="size-4" aria-hidden="true" /> السابق
+                <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
               </Button>
               <span className="text-xs text-muted-foreground" role="status">
                 صفحة {formatNumber(shownPage)}
@@ -271,7 +311,7 @@ export default function AdminSupportPage() {
                 disabled={!hasNextPage}
                 aria-label="الصفحة التالية"
               >
-                التالي <ChevronLeft className="size-4" aria-hidden="true" />
+                التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
               </Button>
             </div>
           )}

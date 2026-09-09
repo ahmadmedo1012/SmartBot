@@ -1,4 +1,7 @@
-import { Bot, MessageCircle, BarChart3, Calendar, Target, ShieldCheck, Globe, Users, Smartphone, Share2, CheckCircle } from "lucide-react"
+/* v17-E-F4 (D3 #12): Smartphone/Share2/CheckCircle removed — dead imports
+   (BENEFITS/STEPS/FAQS never referenced them; Share2 had no other usage in
+   the whole project). */
+import { Bot, MessageCircle, BarChart3, Calendar, Target, ShieldCheck, Globe, Users } from "lucide-react"
 
 type Benefit = { icon: typeof Bot; title: string; desc: string } // v10-W4: exports dropped — internal only
 type Step = { num: string; title: string; desc: string }

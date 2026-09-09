@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "date": "2026-09-09",
+  "runId": "2026-09-09T10:53:50Z",
+  "mode": "source",
+  "designScore": "F",
+  "aiSlopScore": "F",
+  "designScorePct": 38.7,
+  "categoryGrades": {
+    "structure": "F",
+    "fields": "F",
+    "color": "B",
+    "motion": "F",
+    "ai_slop": "F"
+  },
+  "categoryPcts": {
+    "structure": 29.2,
+    "fields": 40.0,
+    "color": 80.0,
+    "motion": 25.0,
+    "ai_slop": 31.0
+  },
+  "weights": {
+    "structure": 0.3,
+    "fields": 0.2,
+    "color": 0.15,
+    "motion": 0.15,
+    "ai_slop": 0.2
+  },
+  "metrics": {
+    "dashboard_pages": 24,
+    "pageheader_pages": 7,
+    "pageheader_list": [
+      "app/dashboard/page.tsx",
+      "app/dashboard/autoreply/page.tsx",
+      "app/dashboard/marketing/page.tsx",
+      "app/dashboard/messages/page.tsx",
+      "app/dashboard/notifications/page.tsx",
+      "app/dashboard/sequences/page.tsx",
+      "app/dashboard/settings/page.tsx"
+    ],
+    "raw_small_text_fields": 15,
+    "raw_field_samples": [
+      "app/dashboard/autoreply/page.tsx:137",
+      "app/dashboard/autoreply/page.tsx:160",
+      "app/dashboard/billing/page.tsx:358",
+      "app/dashboard/billing/page.tsx:387",
+      "app/dashboard/billing/page.tsx:397",
+      "app/dashboard/messages/page.tsx:506",
+      "app/dashboard/reports/page.tsx:193",
+      "app/dashboard/reports/page.tsx:203",
+      "app/dashboard/team/page.tsx:126",
+      "app/dashboard/team/page.tsx:147"
+    ],
+    "to_white": 1,
+    "bg_white": 1,
+    "countup_unified_pages": 1,
+    "raw_kpi_pages": 3,
+    "raw_kpi_list": [
+      "app/dashboard/analytics/page.tsx",
+      "app/dashboard/audience/page.tsx",
+      "app/dashboard/billing/page.tsx"
+    ],
+    "countup_ratio_pct": 25.0
+  },
+  "detector": {
+    "mode": "source",
+    "engine": "slop_scan.py §D v1 (v17-S5)",
+    "targetSet": "46564009a7cb7131f0f0071d303a05c2d8ce6f2b937417cfda5f520c141deddf",
+    "total": 69,
+    "byRule": {
+      "transition_all": 38,
+      "bounce_easing": 6,
+      "multicolor_glow": 1,
+      "bare_rounded": 24,
+      "emoji_icons": 0
+    }
+  },
+  "previous": {
+    "runId": "2026-09-09T10:38:07Z",
+    "designScore": "F",
+    "aiSlopScore": "F",
+    "designScorePct": 38.7
+  }
+}

@@ -2,7 +2,7 @@
  * v15-E5 (C-FREE1) — the free-plan activation journey contract.
  *
  * The first CTA of the whole site («ابدأ الآن مجاناً» → /subscribe → the
- * «مجاني» card) used to dead-end at «ادفع الآن (0 د.ل)» → «سعر الباقة
+ * «مجاني» card) used to dead-end at «ادفع الآن (0 د.ل)» → «سعر الخطة
  * غير صالح — أعد فتح نافذة الدفع» (payment/index.tsx rejected price<=0 for
  * wallets). These pins lock the fixed journey against the REAL backend
  * contract (routers/payments/plans.py):
@@ -139,7 +139,7 @@ describe("PaymentFreePlan — dedicated free step (no payment machinery)", () =>
     // the CTA
     expect(screen.getByRole("button", { name: "تفعيل الخطة المجانية" })).toBeInTheDocument()
     // the old dead-end message is gone
-    expect(screen.queryByText(/سعر الباقة غير صالح/)).toBeNull()
+    expect(screen.queryByText(/سعر الخطة غير صالح/)).toBeNull()
   })
 })
 
@@ -261,7 +261,7 @@ describe("PaymentFreePlan — negative price is NOT free (guard stays)", () => {
 
     expect(mocks.toast).toHaveBeenCalledWith(
       "error",
-      "سعر الباقة غير صالح — أعد فتح نافذة الدفع",
+      "سعر الخطة غير صالح — أعد فتح نافذة الدفع",
     )
     expect(fetchMock).not.toHaveBeenCalled()
   })

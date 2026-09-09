@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
@@ -37,6 +38,15 @@ const TICKET_STATUS_LABEL: Record<string, string> = {
   open: "مفتوحة",
   pending: "بانتظار ردك",
   closed: "مغلقة",
+}
+
+/* v17-E-F8 (D6 #5): تمييز الحالة لونيًا — «مغلقة» كان يظهر بنفس رمادي
+ * الحياد فلا يُميّز عن مفتوحة؛ نفس دلالات ألوان admin/support
+ * (open=تحذير · pending=معلّم · closed=نجاح). */
+const TICKET_STATUS_STYLE: Record<string, string> = {
+  open: "bg-warning/10 text-warning",
+  pending: "bg-info-soft text-info",
+  closed: "bg-success-soft text-success",
 }
 
 /* v12-E4.5: the four priority options in visual order (RTL grid runs
@@ -152,7 +162,7 @@ export default function SupportPage() {
       // v4 §2.2 — unwrapApi returns the payload or THROWS on success:false;
       // reaching here means success. The old data?.success check always failed
       // → users saw "فشل إرسال الطلب" after a successful send and resubmitted.
-      brandedToast.success(data?.message || "تم إرسال طلبك بنجاح")
+      brandedToast.success(data?.message || "تم إرسال طلبك")
       setFormSent(true)
       setForm({ subject: "", message: "", email: "", priority: "medium" })
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
@@ -183,19 +193,16 @@ export default function SupportPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <HelpCircle className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الدعم</h1>
-            <p className="text-2xs text-muted-foreground">الدعم الفني والمساعدة</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<HelpCircle className="size-4" />}
+        title="الدعم"
+        subtitle="الدعم الفني والمساعدة"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
         {/* Contact */}
         <Card>
           <CardHeader>
@@ -356,7 +363,7 @@ export default function SupportPage() {
               <div className="mx-auto size-12 rounded-full bg-success-soft flex items-center justify-center">
                 <Send className="size-5 text-success rtl:-scale-x-100" />
               </div>
-              <p role="status" className="text-sm font-bold text-success">تم إرسال طلبك بنجاح!</p>
+              <p role="status" className="text-sm font-bold text-success">تم إرسال طلبك</p>
               <p className="text-xs text-muted-foreground">
                 سيتواصل معك فريق الدعم خلال 24 ساعة
               </p>
@@ -422,8 +429,8 @@ export default function SupportPage() {
                           <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.medium}`}>
                             {PRIORITY_LABEL[t.priority] || t.priority}
                           </span>
-                          <span className="text-3xs font-bold rounded-full px-2 py-0.5 bg-muted text-muted-foreground">
-                            {TICKET_STATUS_LABEL[t.status] || t.status}
+                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${TICKET_STATUS_STYLE[t.status ?? ""] || "bg-muted text-muted-foreground"}`}>
+                            {TICKET_STATUS_LABEL[t.status ?? ""] || t.status}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{t.body}</p>
@@ -438,74 +445,96 @@ export default function SupportPage() {
                       />
                     </button>
 
-                    {/* Thread */}
-                    {openTicketId === t.id && (
-                      <div id={`ticket-thread-${t.id}`} className="mt-3 border-t border-border/40 pt-3 space-y-3">
-                        {ticketDetailQuery.isLoading ? (
-                          <div className="flex justify-center py-4" role="status" aria-live="polite">
-                            <span className="sr-only">جارٍ التحميل…</span>
-                            <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : ticketDetailQuery.isError ? (
-                          /* v9-B11 — a failed thread load used to render an empty
-                              replies list (looked like "no replies yet") */
-                          <div className="text-center py-3 space-y-2">
-                            <p className="text-xs text-muted-foreground">{(ticketDetailQuery.error as Error)?.message || "تعذر تحميل التذكرة"}</p>
-                            <Button size="sm" variant="outline" onClick={() => ticketDetailQuery.refetch()}>إعادة المحاولة</Button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-2">
-                              {(ticketDetailQuery.data?.replies || []).map((r) => (
-                                <div
-                                  key={r.id}
-                                  className={`text-xs rounded-lg p-3 ${
-                                    r.is_admin
-                                      ? "bg-accent-foreground/5 border border-accent-foreground/20"
-                                      : "bg-muted/50"
-                                  }`}
-                                >
-                                  <p className="font-bold mb-1 text-3xs">
-                                    {r.is_admin ? "فريق الدعم" : "أنت"}
-                                  </p>
-                                  <p className="text-muted-foreground leading-relaxed">{r.message}</p>
-                                </div>
-                              ))}
-                              {(ticketDetailQuery.data?.replies || []).length === 0 && (
-                                <p className="text-xs text-muted-foreground text-center py-2">
-                                  لا ردود بعد — فريق الدعم سيرد قريباً
-                                </p>
-                              )}
-                            </div>
-                            {t.status !== "closed" && (
-                              <div className="flex gap-2">
-                                <input
-                                  value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                  placeholder="اكتب رداً…"
-                                  aria-label="نص الرسالة"
-                                  /* v16-E3 (D1 C3): dir="auto" isolates the mixed
-                                      Arabic/Latin reply being typed. */
-                                  dir="auto"
-                                  className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                />
-                                <Button
-                                  size="sm"
-                                  className="h-9 gap-1.5"
-                                  disabled={replyMutation.isPending || replyText.trim().length < 2}
-                                  onClick={() => {
-                                    replyMutation.mutate({ id: t.id, message: replyText.trim() })
-                                  }}
-                                >
-                                  <Send className="size-3 rtl:-scale-x-100" />
-                                  رد
-                                </Button>
+                    {/* v17-E-F8 (D2-P1): حركة فتح/طي خيط التذكرة —
+                        grid-rows-[0fr→1fr] + transition-all (نمط FaqSection
+                        المثبت محليًا: grid-rows يحرّك ارتفاع المسار بلا
+                        max-height قابلة للكسر؛ المحتوى داخل overflow-hidden).
+                        الغلاف موجود دائمًا (مطابق aria-controls) ويُدار بـ
+                        data-open — البقاء مصنّفًا في الشجرة يُبقي ال layout
+                        مستقرًا عند الإغلاق. */}
+                    <div
+                      id={`ticket-thread-${t.id}`}
+                      data-open={openTicketId === t.id || undefined}
+                      aria-hidden={openTicketId !== t.id}
+                      className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-300"
+                    >
+                      <div className="overflow-hidden">
+                        {openTicketId === t.id && (
+                          <div className="mt-3 border-t border-border/40 pt-3 space-y-3">
+                            {ticketDetailQuery.isLoading ? (
+                              <div className="flex justify-center py-4" role="status" aria-live="polite">
+                                <span className="sr-only">جارٍ التحميل…</span>
+                                <Loader2 className="size-4 animate-spin text-muted-foreground" />
                               </div>
+                            ) : ticketDetailQuery.isError ? (
+                              /* v9-B11 — a failed thread load used to render an empty
+                                  replies list (looked like "no replies yet") */
+                              <div className="text-center py-3 space-y-2">
+                                <p className="text-xs text-muted-foreground">{(ticketDetailQuery.error as Error)?.message || "تعذر تحميل التذكرة"}</p>
+                                <Button size="sm" variant="outline" onClick={() => ticketDetailQuery.refetch()}>إعادة المحاولة</Button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-2">
+                                  {(ticketDetailQuery.data?.replies || []).map((r) => (
+                                    <div
+                                      key={r.id}
+                                      className={`text-xs rounded-lg p-3 ${
+                                        r.is_admin
+                                          ? "bg-accent-foreground/5 border border-accent-foreground/20"
+                                          : "bg-muted/50"
+                                      }`}
+                                    >
+                                      <p className="font-bold mb-1 text-3xs">
+                                        {r.is_admin ? "فريق الدعم" : "أنت"}
+                                      </p>
+                                      <p className="text-muted-foreground leading-relaxed">{r.message}</p>
+                                    </div>
+                                  ))}
+                                  {(ticketDetailQuery.data?.replies || []).length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-2">
+                                      لا ردود بعد — فريق الدعم سيرد قريباً
+                                    </p>
+                                  )}
+                                </div>
+                                {t.status !== "closed" && (
+                                  <div className="flex gap-2">
+                                    <input
+                                      value={replyText}
+                                      onChange={(e) => setReplyText(e.target.value)}
+                                      placeholder="اكتب رداً…"
+                                      aria-label="نص الرسالة"
+                                      /* v16-E3 (D1 C3): dir="auto" isolates the mixed
+                                          Arabic/Latin reply being typed. */
+                                      dir="auto"
+                                      className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      className="h-9 gap-1.5"
+                                      disabled={replyMutation.isPending || replyText.trim().length < 2}
+                                      onClick={() => {
+                                        replyMutation.mutate({ id: t.id, message: replyText.trim() })
+                                      }}
+                                    >
+                                      <Send className="size-3 rtl:-scale-x-100" />
+                                      رد
+                                    </Button>
+                                  </div>
+                                )}
+                                {/* v17-E-F8 (D6 #5): التذكرة المغلقة تُعلن السبب
+                                    (كانت تخفي الرد فقط بلا تفسير). */}
+                                {t.status === "closed" && (
+                                  <p className="text-2xs text-success text-center py-1" role="status">
+                                    هذه التذكرة مغلقة — تم حل المشكلة. أرسل طلباً جديداً إن احتجت مساعدة أخرى
+                                  </p>
+                                )}
+                              </>
                             )}
-                          </>
+                          </div>
                         )}
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

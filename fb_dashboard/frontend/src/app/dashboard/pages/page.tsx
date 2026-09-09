@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import type { FacebookSettings, FacebookTestResult } from "@/lib/types"
-import { countPhrase, formatNumber } from "@/lib/format"
+import { formatNumber } from "@/lib/format"
 
 export default function PagesPage() {
   const [pageId, setPageId] = useState("")
@@ -62,7 +63,7 @@ export default function PagesPage() {
       const json = await unwrapApi<FacebookTestResult>(res)
       setTestResult(json)
       if (json.connected) {
-        brandedToast.success(`اتصال ناجح · ${countPhrase(json.fan_count, "متابع", "متابعين", "متابعين")}`)
+        brandedToast.success(`تم الاتصال — متابعو الصفحة: ${formatNumber(json.fan_count)}`)
       } else {
         brandedToast.error(json.error || "فشل الاتصال")
       }
@@ -77,19 +78,16 @@ export default function PagesPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-6 h-14">
-          <div className="size-7 flex items-center justify-center">
-            <FileText className="size-4 text-muted-foreground" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sm">الصفحات</h1>
-            <p className="text-2xs text-muted-foreground">ربط وإدارة صفحات فيسبوك</p>
-          </div>
-        </div>
-      </header>
+      {/* v17-S1 (D4-P1): الهيدر اليدوي → PageHeader المؤسسي. */}
+      <PageHeader
+        icon={<FileText className="size-4" />}
+        title="الصفحات"
+        subtitle="ربط وإدارة صفحات فيسبوك"
+        compact
+      />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6" dir="rtl">
+      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full" dir="rtl">
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
@@ -136,7 +134,7 @@ export default function PagesPage() {
                 </div>
                 {testResult.connected && (
                   <>
-                    <p className="text-sm">{countPhrase(testResult.fan_count, "متابع", "متابعين", "متابعين")}</p>
+                    <p className="text-sm">متابعو الصفحة: {formatNumber(testResult.fan_count)}</p>
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (

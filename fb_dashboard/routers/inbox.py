@@ -10,7 +10,7 @@ from _utils import iso_z
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Conversation, ConversationLabel, ConversationTag, Message, User
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 
 from routers.auth import get_current_user, require_role
@@ -245,6 +245,42 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
         "created_time": m.get("created_time", ""),
     } for m in messages]
     )
+
+
+@router.post("/api/inbox/conversations/{conversation_id}/read")
+async def inbox_mark_read(conversation_id: str, db=Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
+    """v17-E-B1 (D10-M3): mark a conversation read — zero its unread_count.
+
+    Opening a conversation in the dashboard never cleared the unread badge
+    (the "غير مقروء" filter lied until the user read it inside Facebook
+    itself) because no endpoint existed. Contract (E-B1 → E-F1, plan §3):
+    returns the tenant's TOTAL unread AFTER the reset as ``ok({"unread": n})``
+    so the messages page updates its list optimally with one round-trip.
+
+    get_current_user (not editor): reading is passive — a viewer opening a
+    conversation is exactly the event that should clear the badge.
+    Tenant-scoped like every inbox path: another tenant's conversation id
+    answers 404, never a cross-tenant write.
+    """
+    tenant_id = current_user._tenant_id
+    row = (await db.execute(
+        select(Conversation).where(
+            Conversation.tenant_id == tenant_id,
+            Conversation.fb_conversation_id == conversation_id,
+        )
+    )).scalar_one_or_none()
+    if not row:
+        raise HTTPException(404, "المحادثة غير موجودة")
+    if row.unread_count:
+        row.unread_count = 0
+        await db.commit()
+    # SUM ignores NULL unread_count rows (legacy DBs) — coalesce keeps the 0.
+    unread_total = await db.scalar(
+        select(func.coalesce(func.sum(Conversation.unread_count), 0)).where(
+            Conversation.tenant_id == tenant_id)
+    ) or 0
+    return ok({"unread": int(unread_total)})
 
 
 @router.delete("/api/inbox/conversations/{conversation_id}")

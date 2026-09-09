@@ -263,7 +263,11 @@ describe("OnboardingWizard connection test (خطوة الربط)", () => {
     fireEvent.click(screen.getByRole("button", { name: /اختبار الاتصال قبل التأكيد/ }))
 
     const status = await screen.findByRole("status")
-    expect(status).toHaveTextContent("✗ رمز الوصول غير صالح للصفحة")
+    /* v17-E-F4 (D3 #7): the ✓/✗ text glyphs became aria-hidden lucide state
+       icons (XCircle/CheckCircle2) — the verdict is now pinned by the svg
+       presence plus the clean Arabic text. */
+    expect(status.querySelector("svg")).not.toBeNull()
+    expect(status).toHaveTextContent("رمز الوصول غير صالح للصفحة")
     // failure must NOT auto-fill the page name
     expect((screen.getByLabelText(/اسم الصفحة \(اختياري/) as HTMLInputElement).value).toBe("")
   })
@@ -285,7 +289,10 @@ describe("OnboardingWizard connection test (خطوة الربط)", () => {
     fireEvent.click(screen.getByRole("button", { name: /اختبار الاتصال قبل التأكيد/ }))
 
     const status = await screen.findByRole("status")
-    expect(status).toHaveTextContent("✓ الاتصال ناجح — متجر الواحة")
+    /* v17-E-F4 (D3 #7): see the failure-case sibling above — svg pins the
+       state icon, text pins the announcement content. */
+    expect(status.querySelector("svg")).not.toBeNull()
+    expect(status).toHaveTextContent("الاتصال ناجح — متجر الواحة")
     expect(status).toHaveTextContent("(1200 متابع)")
     await waitFor(() => {
       expect((screen.getByLabelText(/اسم الصفحة \(اختياري/) as HTMLInputElement).value).toBe(

@@ -12,7 +12,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { apiFetch } from "./csrf-client"
+import { ApiError, apiFetch } from "./csrf-client"
 
 /** Build a real Response with a JSON body. */
 function jsonRes(body: unknown, status = 200): Response {
@@ -165,5 +165,31 @@ describe("apiFetch Content-Type handling", () => {
     await apiFetch("/api/x", { method: "POST", body: "{}" })
 
     expect(sentHeaders(fetchMock).get("Content-Type")).toBe("application/json")
+  })
+})
+
+describe("apiFetch network rejection (v17-S2 — Arabic, never «Failed to fetch»)", () => {
+  it("converts a rejected fetch (offline/DNS) into the Arabic ApiError detail", async () => {
+    // the browser's exact network failure — its English message used to
+    // surface verbatim in every onError: (e) => brandedToast.error(e.message)
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch")
+      }),
+    )
+
+    let caught: unknown
+    try {
+      await apiFetch("/api/x", { method: "POST" })
+    } catch (e) {
+      caught = e
+    }
+
+    expect(caught).toBeInstanceOf(ApiError)
+    expect((caught as ApiError).status).toBe(0)
+    expect((caught as ApiError).message).toBe("تعذر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت")
+    // the English rejection text must never reach a toast
+    expect((caught as ApiError).message).not.toContain("Failed")
   })
 })

@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { AlertTriangle, Link2, Send, MessageSquareReply, X } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { apiFetch } from "@/lib/csrf-client"
+import { cn } from "@/lib/utils"
 
 interface SetupStatus {
   page_connected?: boolean
@@ -30,6 +31,10 @@ interface WarningItem {
   key: string
   critical: boolean
   icon: React.ComponentType<{ className?: string }>
+  /** v17-E-F4 (D3 #5): extra classes for the item glyph — directional icons
+   *  (Send) pass "rtl:-scale-x-100" so the arrow mirrors in RTL (the same
+   *  §2.2 allowlist mechanism used for Send in 17 other call sites). */
+  iconClassName?: string
   title: string
   detail: string
   cta: string
@@ -83,6 +88,7 @@ export function SetupWarnings() {
       key: "telegram",
       critical: true,
       icon: Send,
+      iconClassName: "rtl:-scale-x-100",
       title: "لم يتم إعداد بوت تليجرام — لن تصلك إشعارات",
       detail: "إشعارات الاشتراكات والدفع والتذاكر معطّلة. الصق رمز الوصول BotFather من إعدادات لوحة الإدارة.",
       cta: "الإعدادات",
@@ -139,7 +145,7 @@ export function SetupWarnings() {
             <div className={`size-8 shrink-0 rounded-lg flex items-center justify-center ${
               w.critical ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
             }`}>
-              <w.icon className="size-4" />
+              <w.icon className={cn("size-4", w.iconClassName)} />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-tight truncate">{w.title}</p>

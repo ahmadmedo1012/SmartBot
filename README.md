@@ -22,7 +22,7 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 836+ اختبار pytest (v16 — ترتفع كل جولة؛ انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
+tests/                      ← 869+ اختبار pytest (v17 — ترتفع كل جولة؛ انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
 alembic/versions/           ← ترحيلات Alembic (حتى 015: 012 قيد فريد bot_state · 013 (v14) قيد (tenant,key) · 014 (v15) قيود التفرد وserver_defaults · 015 (v16) فهرس offers الساخن + FK حذف المستخدم)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
@@ -52,9 +52,9 @@ bash scripts/gate_all.sh        # ruff + pytest + tsc + vitest + next build + م
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **836+ passed** (v16 — ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **869+ passed** (v17 — ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
-| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 30 ملفًا / 245 اختبارًا (v16 — ترتفع كل جولة) |
+| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 39 ملفًا / 304 اختبارات (v17 — ترتفع كل جولة) |
 | بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |
 | صفر تمدد أفقي | `node e2e/viewport-sweep.mjs` | 21/21 (375/768/1440) |

@@ -129,7 +129,19 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
       .join("=")
     if (csrf) headers.set("X-CSRF-Token", csrf)
   }
-  const res = await fetch(url, { ...requestInit, headers, credentials: "include" })
+  /* v17-S2 (D9 §5-ج مسار 1 — «أخطر 10» #2): a network-level rejection
+   * (offline / DNS / connection refused) used to bubble the browser's
+   * English TypeError («Failed to fetch») straight into ~20 mutation
+   * handlers' onError → brandedToast.error(e.message) — the `|| Arabic`
+   * fallbacks never ran because the English text is truthy. The wrap
+   * converts the rejection into the same Arabic ApiError contract the
+   * HTTP-error path already serves, so every caller renders Arabic. */
+  let res: Response
+  try {
+    res = await fetch(url, { ...requestInit, headers, credentials: "include" })
+  } catch {
+    throw new ApiError(0, { detail: "تعذر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت" })
+  }
   // v15-E5 (D4-H3) — see the block comment above for the full contract.
   if (
     res.status === 401 &&

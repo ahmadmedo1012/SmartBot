@@ -127,7 +127,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(false)}
             aria-label="إغلاق"
             tabIndex={sheetOpen ? 0 : -1}
-            className="size-8 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
+            className="size-10 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
           >
             <X className="size-4" />
           </button>
@@ -182,7 +182,7 @@ export function MobileBottomNav({
                 type="button"
                 onClick={() => go(item.href)}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-3xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
                   active ? "text-accent-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -197,7 +197,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-3xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-2xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
           >
             <Menu className="size-5" />
             <span>المزيد</span>

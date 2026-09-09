@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
 import {
-  TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle,
+  TrendingUp, Activity, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, MessageCircle,
   Users, Inbox, Bot, Link2, Zap,
 } from "lucide-react"
 
@@ -27,6 +27,7 @@ import "@/components/shared/enter-motion.css"
 import { ActivityBarChart } from "@/components/charts/lazy"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { brandedToast } from "@/lib/premium-toast"
 import type {
   BundleRule,
   DashboardBundle,
@@ -35,7 +36,7 @@ import type {
   DashboardStats,
   RecentReply,
 } from "@/lib/types"
-import { countPhrase, toArabicNumber } from "@/lib/format"
+import { countPhrase, timeAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /* World-class launch plan v3 §7b: honest connection state, persisted-message
@@ -117,6 +118,131 @@ function NotConnectedCard() {
   )
 }
 
+// ── Bot health (D6-9) ──
+/* Contract: GET /api/health/bot-check (routers/health_alerts_routes.py) →
+ * ok() envelope → data: { status: "ok"|"warning", running, fan_count,
+ * replies_last_hour, rule_count, issues: [{type, severity, message}],
+ * alerts_count }. The check runs LIVE (it pings the page's fan count), so
+ * there is no polling — the owner triggers re-runs via «فحص فوري». Visual
+ * mirror of CronHeartbeatCard (admin): icon tile + title + one status line,
+ * border tinted by severity, last-check timestamp. */
+interface BotCheckIssue {
+  type: string
+  severity: "warning" | "critical"
+  message: string
+}
+
+interface BotCheckData {
+  status: "ok" | "warning"
+  running: boolean
+  fan_count: number | null
+  replies_last_hour: number
+  rule_count: number
+  issues: BotCheckIssue[]
+  alerts_count: number
+}
+
+function BotHealthCard() {
+  const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useQuery({
+    queryKey: ["bot-health"],
+    queryFn: () => apiFetch("/api/health/bot-check").then(unwrapApi<BotCheckData>),
+    // Live FB connectivity check → keep it at least a minute fresh, manual re-runs otherwise.
+    staleTime: 60_000,
+  })
+
+  /* «فحص فوري» — the owner-triggered re-run; toast feedback on the outcome
+   * (same pattern as the connect page's test-connect button). */
+  const runCheck = async () => {
+    const res = await refetch()
+    if (res.error) {
+      brandedToast.error("تعذر فحص صحة البوت", "تحقق من الاتصال ثم أعد المحاولة")
+      return
+    }
+    const d = res.data
+    if (!d) return
+    if (!d.running || d.issues.some((i) => i.severity === "critical")) {
+      brandedToast.error("الفحص وجد مشاكل تتطلب تدخلك", d.issues[0]?.message || "البوت غير مشغّل حالياً")
+    } else if (d.issues.length > 0) {
+      brandedToast.warning("تنبيه صحة البوت", d.issues[0].message)
+    } else {
+      brandedToast.success("البوت يعمل بشكل طبيعي")
+    }
+  }
+
+  // Loading — skeleton mirroring the card's shape
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-4 flex items-center gap-3">
+          <Skeleton className="size-9 rounded-lg shrink-0" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Error — the page's ErrorState pattern, scoped to the card
+  if (isError || !data) {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertCircle className="size-4 text-destructive" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">صحة البوت</p>
+              <p className="text-xs text-muted-foreground truncate">تعذر جلب حالة البوت</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="size-4" aria-hidden="true" /> إعادة المحاولة
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const critical = !data.running || data.issues.some((i) => i.severity === "critical")
+  const warning = !critical && data.issues.length > 0
+  const first = data.issues[0]
+  const rest = data.issues.length - 1
+  const statusLine = !data.running || first
+    ? [
+        !data.running ? "البوت غير مشغّل حالياً" : "",
+        first?.message ?? "",
+        rest > 0 ? ` · و${countPhrase(rest, "مشكلة أخرى", "مشكلتان أخريان", "مشاكل أخرى")}` : "",
+      ].filter(Boolean).join(" ")
+    : `يعمل بشكل طبيعي · ${countPhrase(data.replies_last_hour, "رد", "ردين", "ردود")} خلال الساعة الأخيرة`
+
+  return (
+    <Card className={critical ? "border-destructive/40" : warning ? "border-warning/40" : undefined}>
+      <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", critical ? "bg-destructive/10" : warning ? "bg-warning/10" : "bg-success/10")}>
+            {critical || warning ? (
+              <AlertTriangle className={cn("size-4", critical ? "text-destructive" : "text-warning")} aria-hidden="true" />
+            ) : (
+              <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">صحة البوت</p>
+            <p className="text-xs text-muted-foreground truncate">{statusLine}</p>
+            <p className="text-3xs text-muted-foreground" dir="auto">آخر فحص {timeAgo(dataUpdatedAt)}</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={runCheck} loading={isFetching}>
+          <RefreshCw className="size-4" aria-hidden="true" /> فحص فوري
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Main Dashboard ──
 export default function DashboardPage() {
   const { data: bundle, isLoading, error, refetch } = useQuery({
@@ -163,6 +289,12 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* v17-E-F11 (D6-9) — bot health at a glance: «فحص فوري» + last
+                status/alert (visual mirror of the admin CronHeartbeatCard). */}
+            <div className="sb-fade-up mb-6">
+              <BotHealthCard />
+            </div>
+
             {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links) */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
               <KpiCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0}
@@ -171,7 +303,9 @@ export default function DashboardPage() {
               <KpiCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0}
                 trend={stats?.trend?.today} iconBg="bg-success/10" iconColor="text-success" index={1} />
               <KpiCard icon={Inbox} label="محادثات الماسنجر" value={messages.total_conversations || 0}
-                subtitle={`${toArabicNumber(messages.unread_conversations || 0)} غير مقروءة`}
+                /* v17-E-F11 (D9): unread count through countPhrase (dual/plural)
+                   instead of the raw "N غير مقروءة" interpolation. */
+                subtitle={countPhrase(messages.unread_conversations || 0, "محادثة غير مقروءة", "محادثتان غير مقروءتان", "محادثات غير مقروءة")}
                 iconBg="bg-info/10" iconColor="text-info" index={2}
                 href="/dashboard/messages" />
               <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r) => r.enabled !== false).length}

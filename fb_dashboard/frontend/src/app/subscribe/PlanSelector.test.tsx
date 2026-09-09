@@ -6,6 +6,12 @@
  * badge reserved for Basic, price/replies phrasing (free plan, unlimited
  * sentinel), the features overflow phrase with correct Arabic dual/plural,
  * and the continue CTA that names the selected plan (or begs for one).
+ *
+ * v18-1e — responsive-grid contract: the five production plans render as
+ * a 4-up row + a deliberate full-width feature card at lg (no orphan
+ * 5th card on a ragged second row), a centered 3+2 pair at md, and a
+ * balanced 2-up/full-width layout below that. ≤4 plans keep a plain
+ * balanced grid with no wide card.
  */
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
@@ -33,6 +39,17 @@ function threePlans(): ComparisonPlan[] {
     makePlan({ id: 1, name: "Free", nameAr: "المجانية", price: 0 }),
     makePlan({ id: 2, name: "Basic", nameAr: "الأساسية", price: 19 }),
     makePlan({ id: 3, name: "Premium", nameAr: "المتقدمة", price: 49 }),
+  ]
+}
+
+/** The five canonical production plans (mirror of lib/default-plans). */
+function fivePlans(): ComparisonPlan[] {
+  return [
+    makePlan({ id: 1, name: "Free", nameAr: "مجاني", price: 0 }),
+    makePlan({ id: 2, name: "Basic", nameAr: "أساسي", price: 19 }),
+    makePlan({ id: 3, name: "Premium", nameAr: "مميز", price: 29 }),
+    makePlan({ id: 4, name: "Pro", nameAr: "احترافي", price: 49 }),
+    makePlan({ id: 5, name: "Enterprise", nameAr: "مؤسسي", price: 99, maxReplies: 999999 }),
   ]
 }
 
@@ -165,6 +182,51 @@ describe("PlanSelector features overflow phrase", () => {
     )
 
     expect(screen.queryByText(/ميزات أخرى|ميزتان أخريان/)).toBeNull()
+  })
+})
+
+describe("PlanSelector responsive grid (v18-1e — no orphan card)", () => {
+  it("renders the five production plans as a 4-up row + a full-width feature card at lg", () => {
+    const { container } = render(
+      <PlanSelector plans={fivePlans()} selectedPlan={null} onSelect={vi.fn()} onContinue={vi.fn()} />,
+    )
+
+    const grid = container.querySelector(".grid") as HTMLElement
+    // md: 6 tracks (3-up row + centered trailing pair) · lg: 4 tracks (row + wide strip)
+    expect(grid.className).toContain("md:grid-cols-6")
+    expect(grid.className).toContain("lg:grid-cols-4")
+
+    const cards = grid.querySelectorAll("button[aria-pressed]")
+    expect(cards).toHaveLength(5)
+    // the first four stay single-track at lg
+    for (const card of Array.from(cards).slice(0, 4)) {
+      expect(card.className).toContain("lg:col-span-1")
+    }
+    // the 4th card opens track 2 at md so the trailing pair centers under the 3-up row
+    expect(cards[3].className).toContain("md:col-start-2")
+    // the 5th («مؤسسي») is the deliberate full-width feature strip — not an orphan
+    expect(cards[4].className).toContain("lg:col-span-4")
+    expect(cards[4].className).toContain("sm:col-span-2")
+    expect(cards[4].className).toContain("lg:flex-row")
+  })
+
+  it("keeps ≤4 plans on a plain balanced grid with no wide feature card", () => {
+    const { container } = render(
+      <PlanSelector plans={threePlans()} selectedPlan={null} onSelect={vi.fn()} onContinue={vi.fn()} />,
+    )
+
+    const grid = container.querySelector(".grid") as HTMLElement
+    expect(grid.className).not.toContain("md:grid-cols-6")
+    expect(grid.className).toContain("lg:grid-cols-3")
+
+    const cards = grid.querySelectorAll("button[aria-pressed]")
+    expect(cards).toHaveLength(3)
+    for (const card of Array.from(cards)) {
+      expect(card.className).not.toContain("col-span-4")
+      expect(card.className).not.toContain("lg:flex-row")
+    }
+    // odd count: the trailing card fills the sm 2-up row — no half-width orphan
+    expect(cards[2].className).toContain("sm:col-span-2")
   })
 })
 

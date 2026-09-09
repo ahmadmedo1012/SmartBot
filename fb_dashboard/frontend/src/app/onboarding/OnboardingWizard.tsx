@@ -7,7 +7,12 @@ import { useState, useCallback, useEffect, useRef } from "react"
  * Timing mirrors the old motion props 1:1 (0.25s ease-out panel, 0.3s
  * cubic-bezier(0.25,0.1,0.35,1) fades, 100ms icon delay), disabled under
  * prefers-reduced-motion. key={step} remounts the subtree per step so the
- * CSS animations replay exactly like the old initial/animate mounts did. */
+ * CSS animations replay exactly like the old initial/animate mounts did.
+ *
+ * v18-1a (ج): a fourth twin — .ob-panel-enter — animates the shell ONCE on
+ * mount: on mobile the sheet slides up from the bottom edge (same 0.32s /
+ * --ease-out-quart contract as MobileBottomNav's .sheet-panel); from sm up
+ * it keeps the centered-card 24px rise. */
 import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 import {
@@ -21,11 +26,13 @@ import {
   MessageSquare,
   Target,
   Link2,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Input } from "@/components/ui/input"
-import { apiFetch } from "@/lib/csrf-client"
+import { ApiError, apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { countPhrase, formatNumber } from "@/lib/format"
 
@@ -45,11 +52,19 @@ const WIZARD_MOTION_CSS = `
 @keyframes ob-step-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes ob-icon-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
 @keyframes ob-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ob-panel-in { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
+@keyframes ob-sheet-in { from { transform: translate3d(0, 100%, 0); } to { transform: none; } }
 .ob-step-enter { animation: ob-step-in 0.25s ease-out backwards; }
 .ob-icon-pop { animation: ob-icon-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) 0.1s backwards; }
 .ob-fade-in { animation: ob-fade-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) backwards; }
+/* v18-1a (ج): one-shot shell entrance — mobile bottom-sheet slides up from
+   the bottom edge; sm+ keeps the centered-card rise twin. */
+.ob-panel-enter { animation: ob-sheet-in 0.32s var(--ease-out-quart) backwards; }
+@media (min-width: 640px) {
+  .ob-panel-enter { animation: ob-panel-in 0.25s ease-out backwards; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .ob-step-enter, .ob-icon-pop, .ob-fade-in { animation: none; }
+  .ob-step-enter, .ob-icon-pop, .ob-fade-in, .ob-panel-enter { animation: none; }
 }
 `
 
@@ -96,10 +111,113 @@ const STEPS = [
   },
 ]
 
+/* v18-1a (ب — حفظ تقدم الجولة): the wizard is a client-only surface
+ * (dynamic ssr:false in AuthGuard), so localStorage IS the persistence
+ * story — no backend change. The step index is written only at REAL
+ * abandonment moments (pagehide / tab hidden / a deliberate exit: the
+ * plans new-tab or a done-step shortcut), never on a plain unmount:
+ * in-app navigation inside /dashboard/* keeps the wizard MOUNTED (its
+ * state lives in memory), and the resumed step never runs deeper than
+ * what its preceding saves actually reached — a step is only advanced
+ * past a failed save via the explicit «المتابعة رغم ذلك» bypass (أ).
+ * Cleared on completion and on skip. */
+const STEP_KEY = "sb-onboarding-step"
+
+/** A save step that failed server-side (the form values stay in place). */
+type SaveFailure = { what: "page" | "rule"; message: string }
+
+/** Read + validate the persisted wizard step (1..last; 0/absent = fresh). */
+function readPersistedStep(): number | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(STEP_KEY)
+    if (raw === null) return null
+    const n = Number.parseInt(raw, 10)
+    if (Number.isInteger(n) && n >= 1 && n < STEPS.length) return n
+  } catch {
+    /* private-mode / storage disabled — a fresh start is the safe fallback */
+  }
+  return null
+}
+
+/** v18-1a (أ): the backend's Arabic verdict, verbatim. ApiError already
+ * resolves body.detail ?? body.error into .message (v4 §2.1); this funnels
+ * BOTH failure shapes — HTTP 4xx/5xx (409 page-conflict included) and the
+ * 200 ok({success:false}) envelope that unwrapApi throws on — into ONE
+ * honest string for the role="alert" region. */
+function apiErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    const body = (e.body ?? null) as Record<string, unknown> | null
+    const detail = body?.detail ?? body?.error
+    if (typeof detail === "string" && detail.trim()) return detail
+    return e.message // "فشل الطلب (status)" Arabic fallback built into ApiError
+  }
+  return "تعذر الوصول إلى الخادم — تحقق من اتصالك ثم أعد المحاولة"
+}
+
+/* v18-1a (أ): the honest save-failure verdict — rendered INSIDE the failing
+ * step's content, above the still-editable form, with the exact Arabic
+ * detail the server answered (e.g. the 409 «هذه الصفحة مربوطة بمساحة عمل
+ * أخرى…»). The wizard does NOT auto-advance past a failed save: the user
+ * retries, or explicitly continues after reading what was NOT saved. */
+function SaveErrorAlert({
+  failure,
+  retrying,
+  onRetry,
+  onContinue,
+}: {
+  failure: SaveFailure
+  retrying: boolean
+  onRetry: () => void
+  onContinue: () => void
+}) {
+  const isPage = failure.what === "page"
+  return (
+    <div
+      id="onboarding-save-error"
+      role="alert"
+      tabIndex={-1}
+      className="rounded-lg border border-destructive/25 bg-destructive-soft p-3 outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
+    >
+      <div className="flex items-start gap-2 text-start">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs font-bold text-destructive">
+            {isPage ? "فشل ربط الصفحة" : "فشل حفظ قاعدة الرد"}
+          </p>
+          {/* the server's own Arabic message — 409 conflicts, envelopes, all */}
+          <p className="text-xs leading-relaxed text-destructive">{failure.message}</p>
+          <p className="text-xs leading-relaxed text-foreground">
+            {isPage
+              ? "تنبيه: لم يتم ربط صفحتك بعد — لن يستطيع البوت الرد على تعليقاتها حتى تربطها لاحقاً من الإعدادات."
+              : "تنبيه: لم تُحفظ قاعدة الرد — يمكنك إنشاؤها لاحقاً من صفحة «الردود التلقائية»."}
+          </p>
+        </div>
+      </div>
+      <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button variant="destructive" size="sm" onClick={onRetry} loading={retrying} className="gap-1.5">
+          {!retrying && <RefreshCw className="size-3" />}
+          إعادة المحاولة
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onContinue} className="gap-1.5">
+          المتابعة رغم ذلك
+          <DirectionalIcon semanticDirection="forward" className="size-3" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizardProps) {
   const router = useRouter()
-  const [step, setStep] = useState(0)
+  /* v18-1a (ب): resume from the persisted step (validated 1..4) — leaving
+   * /dashboard (new tab / reload / a done-step shortcut) and coming back no
+   * longer restarts the journey from «مرحباً بك». */
+  const [step, setStep] = useState(() => readPersistedStep() ?? 0)
   const [loading, setLoading] = useState(false)
+  /* v18-1a (أ): the failed-save verdict — set by handleNext, rendered by the
+   * failing step's content, cleared on retry / bypass / step change. */
+  const [saveError, setSaveError] = useState<SaveFailure | null>(null)
 
   // Step 1 (index 1): Facebook page fields
   const [pageId, setPageId] = useState("")
@@ -151,6 +269,56 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       restoreFocusRef.current?.focus?.()
     }
   }, [])
+
+  /* v18-1a (ب): localStorage is best-effort — quota/private-mode must never
+   * break the wizard itself. */
+  const persistStep = useCallback((value: number) => {
+    try {
+      window.localStorage.setItem(STEP_KEY, String(value))
+    } catch {
+      /* best-effort only */
+    }
+  }, [])
+  const clearPersistedStep = useCallback(() => {
+    try {
+      window.localStorage.removeItem(STEP_KEY)
+    } catch {
+      /* best-effort only */
+    }
+  }, [])
+
+  /* v18-1a (ب): persist at the real abandonment moments — pagehide (reload,
+   * tab close, external nav) and tab-hidden (the new /subscribe tab taking
+   * focus). Listeners re-register per step so they capture the live value. */
+  useEffect(() => {
+    const persist = () => persistStep(step)
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") persist()
+    }
+    window.addEventListener("pagehide", persist)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      window.removeEventListener("pagehide", persist)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
+  }, [step, persistStep])
+
+  /* v18-1a (أ): a failed save must be SEEN, not just announced — keyboard
+   * and screen-reader users land ON the role="alert" region the moment it
+   * appears (rAF, same contract as focusStepTitle). */
+  useEffect(() => {
+    if (!saveError) return
+    const raf = requestAnimationFrame(() => {
+      document.getElementById("onboarding-save-error")?.focus()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [saveError])
+
+  /* v18-1a (أ): a stale error never survives a step transition — going back
+   * (or a successful retry's advance) resets the verdict state. */
+  useEffect(() => {
+    setSaveError(null)
+  }, [step])
 
   const total = STEPS.length
   const current = STEPS[step]
@@ -228,35 +396,63 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   }, [])
 
   const handleNext = useCallback(async () => {
+    /* v18-1a (أ — أخطاء الحفظ بصدق): the two save steps used to swallow
+     * their failures with a silent "Non-fatal — continue wizard" catch — a
+     * 409 «هذه الصفحة مربوطة بمساحة عمل أخرى» advanced the wizard and the
+     * user believed the page was linked. Now: unwrap the ok() envelope (so a
+     * 200 success:false is ALSO a failure), surface the server's Arabic
+     * detail in a role="alert" region, and BLOCK the advance — the only
+     * way forward is a successful retry or the explicit «المتابعة رغم ذلك». */
     // Step 1 (index 1) → save page connection before advancing
     if (step === 1 && pageId) {
+      setLoading(true)
+      setSaveError(null)
+      let saved = false
       try {
-        await apiFetch("/api/onboarding/connect-page", {
+        const res = await apiFetch("/api/onboarding/connect-page", {
           method: "POST",
           body: JSON.stringify({ page_id: pageId, page_name: pageName, access_token: accessToken }),
         })
-      } catch {
-        // Non-fatal — continue wizard
+        // ok() envelope since v12 — unwrapApi throws ApiError(200, envelope)
+        // when the backend answers success:false, so both failure shapes
+        // land in the same catch below.
+        await unwrapApi(res)
+        saved = true
+      } catch (e) {
+        setSaveError({ what: "page", message: apiErrorMessage(e) })
+      } finally {
+        setLoading(false)
       }
+      if (!saved) return
     }
     // Step 2 (index 2) → save first rule before advancing
     if (step === 2 && keyword && reply) {
+      setLoading(true)
+      setSaveError(null)
+      let saved = false
       try {
-        await apiFetch("/api/onboarding/first-rule", {
+        const res = await apiFetch("/api/onboarding/first-rule", {
           method: "POST",
           body: JSON.stringify({ keyword, reply }),
         })
-      } catch {
-        // Non-fatal — continue wizard
+        await unwrapApi(res)
+        saved = true
+      } catch (e) {
+        setSaveError({ what: "rule", message: apiErrorMessage(e) })
+      } finally {
+        setLoading(false)
       }
+      if (!saved) return
     }
     if (step === total - 1) {
       setLoading(true)
       try {
         await apiFetch("/api/onboarding/complete", { method: "POST" })
+        clearPersistedStep()
         onComplete()
       } catch {
         brandedToast.error("فشل حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم")
+        clearPersistedStep()
         onComplete()
       } finally {
         setLoading(false)
@@ -273,10 +469,22 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
      * in the deps a stale/empty token could be POSTed silently when the
      * user typed it after the callback was memoized (pageId/pageName were
      * already listed — the omission was an oversight). */
-  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply, focusStepTitle])
+  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply, focusStepTitle, clearPersistedStep])
+
+  /* v18-1a (أ): the explicit bypass — advance WITHOUT saving, after the
+   * alert spelled out exactly what was not persisted. Same focus contract
+   * as «التالي»/«السابق» (focus must land on the new step's title). */
+  const handleContinueAnyway = useCallback(() => {
+    setSaveError(null)
+    setStep((s) => s + 1)
+    focusStepTitle()
+  }, [focusStepTitle])
 
   const handleBack = useCallback(() => {
     if (step === 0) {
+      /* v18-1a (ب): skipping the wizard is an exit — the persisted step
+       * must not resurrect the journey on the next /dashboard visit. */
+      clearPersistedStep()
       onSkip?.()
     } else {
       setStep((s) => s - 1)
@@ -285,7 +493,27 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
        * clicked button) and the modal's Tab trap stopped intercepting. */
       focusStepTitle()
     }
-  }, [step, onSkip, focusStepTitle])
+  }, [step, onSkip, focusStepTitle, clearPersistedStep])
+
+  /* v18-1a (هـ): «عرض كل الباقات» opens /subscribe in a NEW TAB so the
+   * wizard tab stays open at the same step. window.open carries no implicit
+   * noopener (unlike target=_blank links) — the opener is nulled manually
+   * (reverse tab-nabbing guard). A null/undefined return = popup blocked →
+   * the pre-v18 same-tab push remains the fallback. */
+  const handleViewAllPlans = useCallback(() => {
+    const win = window.open("/subscribe", "_blank")
+    if (win) {
+      try {
+        win.opener = null
+      } catch {
+        /* cross-origin hardening already applies */
+      }
+      // the wizard keeps running in THIS tab — persist for reload/close
+      persistStep(step)
+    } else {
+      router.push("/subscribe")
+    }
+  }, [step, persistStep, router])
 
   useEffect(() => {
     const panel = panelRef.current
@@ -332,24 +560,43 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
        * non-deterministically depending on page state. A full-screen
        * onboarding modal with a SOLID shell is the deterministic contract —
        * contrast no longer depends on the page behind it. */
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+      /* v18-1a (ج): the shell is now SCROLLABLE (overflow-y-auto +
+       * overscroll-contain) — the old items-center with no scroll clipped
+       * the dialog header/footer out of reach on short screens / open
+       * keyboards. The card anchors itself to the bottom via mt-auto (the
+       * auto-margin twin of justify-end that stays fully scrollable when
+       * taller than the viewport) and caps its own height, so the footer
+       * nav is ALWAYS reachable; sm+ re-centers it. */
+      className="fixed inset-0 z-50 flex flex-col items-center overflow-y-auto overscroll-contain bg-background sm:justify-center"
     >
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-accent-foreground/5 to-transparent" />
         <div className="absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-gradient-to-tr from-accent-foreground/5 to-transparent" />
       </div>
 
-      <div key={step} className="ob-step-enter relative w-full max-w-lg mx-4">
-        {/* Progress bar */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-3">
+      {/* v18-1a (ج): the shell — on mobile a bottom sheet (full-width,
+          rounded top edge, grab handle, slide-up entrance, flush with the
+          screen bottom, footer clears the iOS home indicator via
+          safe-area padding); from sm up the same card re-centers with its
+          2rem breathing room. max-h + the inner flex column keep the
+          header/footer as fixed chrome while ONLY the step content
+          scrolls — the header/footer can never be clipped again. */}
+      <div className="ob-panel-enter relative mt-auto flex w-full flex-col overflow-hidden rounded-t-2xl border-t border-border/60 bg-card shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl max-h-[calc(100dvh-2rem)] sm:mx-4 sm:mt-0 sm:max-w-lg sm:rounded-2xl sm:border sm:border-border/60 sm:max-h-[calc(100dvh-4rem)]">
+        {/* bottom-sheet grab affordance (decorative) */}
+        <div aria-hidden="true" className="mx-auto mb-1 mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden" />
+
+        {/* Progress bar — v18-1a (ج): moved INSIDE the sheet chrome so it is
+            always visible/reachable (was a sibling above the card, clipped
+            with the rest when the fixed shell had no scroll). */}
+        <div className="shrink-0 px-5 pt-3 sm:px-8 sm:pt-6">
+          <div className="flex justify-between items-center mb-2.5">
             <span className="text-xs text-muted-foreground">
               الخطوة {step + 1} من {total}
             </span>
             <span className="text-xs font-medium text-accent-foreground">{current.subtitle}</span>
           </div>
           {/* Step dots */}
-          <div className="flex items-center gap-1.5 mb-3">
+          <div className="flex items-center gap-1.5">
             {STEPS.map((_, i) => {
               const done = i < step
               const active = i === step
@@ -371,9 +618,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl">
+        <div key={step} className="ob-step-enter flex min-h-0 flex-1 flex-col">
           {/* Header */}
-          <div className="p-8 pb-6 text-center">
+          <div className="shrink-0 p-6 pb-4 text-center sm:p-8 sm:pb-6">
             <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25">
               <Icon className="size-8 text-white" />
             </div>
@@ -381,10 +628,18 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
           </div>
 
-          {/* Step-specific content */}
-          <div className="px-8 pb-4">
+          {/* Step-specific content — v18-1a (ج): the ONLY scrollable region */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 sm:px-8">
               {step === 1 && (
                 <div key="connect-form" className="ob-fade-in space-y-3">
+                  {saveError?.what === "page" && (
+                    <SaveErrorAlert
+                      failure={saveError}
+                      retrying={loading}
+                      onRetry={handleNext}
+                      onContinue={handleContinueAnyway}
+                    />
+                  )}
                   <Input
                     label="معرف الصفحة (Page ID)"
                     id="pageId"
@@ -480,6 +735,14 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
               {step === 2 && (
                 <div key="rule-form" className="ob-fade-in space-y-3">
+                  {saveError?.what === "rule" && (
+                    <SaveErrorAlert
+                      failure={saveError}
+                      retrying={loading}
+                      onRetry={handleNext}
+                      onContinue={handleContinueAnyway}
+                    />
+                  )}
                   <Input
                     label="كلمة مفتاحية"
                     id="keyword"
@@ -534,7 +797,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
               {step === 3 && (
                 <div key="subscribe-info" className="ob-fade-in space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* v18-1a (د): grid-cols-3 at ~110px per card squeezed the
+                      Arabic plan text into text-3xs rags on phones. The cards
+                      now stack full-width below md — name + feature
+                      inline-start, price inline-end, every text ≥ text-xs —
+                      and return to the 3-column centered grid from md up. */}
+                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3 md:gap-2">
                     {(plans.length > 0
                       ? plans.map((p) => ({
                           name: p.name_ar,
@@ -548,12 +816,16 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     ).map((plan) => (
                       <div
                         key={plan.name}
-                        className={`rounded-xl border-2 p-3 text-center ${plan.color}`}
+                        className={`flex items-center gap-3 rounded-xl border-2 p-3 text-start md:block md:text-center ${plan.color}`}
                       >
-                        <p className="text-xs font-bold">{plan.name}</p>
-                        <p className="text-lg font-bold text-accent-foreground">{plan.price}</p>
-                        <p className="text-3xs text-muted-foreground">د.ل/شهر</p>
-                        <p className="text-3xs text-muted-foreground mt-1">{plan.desc}</p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold">{plan.name}</p>
+                          <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{plan.desc}</p>
+                        </div>
+                        <div className="shrink-0 md:mt-1.5">
+                          <p className="text-lg font-bold leading-none text-accent-foreground">{plan.price}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">د.ل/شهر</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -561,7 +833,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => router.push("/subscribe")}
+                    onClick={handleViewAllPlans}
                   >
                     <CreditCard className="size-3" /> عرض كل الباقات
                   </Button>
@@ -577,6 +849,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       إعداداتك جاهزة. ابدأ بإنشاء المزيد من القواعد من لوحة التحكم.
                     </p>
                   </div>
+                  {/* v18-1a (د): shortcut labels text-3xs → text-xs (WCAG-
+                      readable on the ~110px mobile columns; the single-word
+                      labels + icon keep the 3-column quick-actions shape). */}
                   <div className="grid grid-cols-3 gap-2 w-full">
                     {[
                       { icon: MessageSquare, label: "الردود", href: "/dashboard/autoreply" },
@@ -586,11 +861,17 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       <button
                         key={item.label}
                         type="button"
-                        onClick={() => router.push(item.href)}
+                        onClick={() => {
+                          /* v18-1a (ب): deliberate exit — persist first so the
+                           * return to /dashboard resumes at «كل شيء جاهز»
+                           * instead of restarting the journey. */
+                          persistStep(step)
+                          router.push(item.href)
+                        }}
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/40 hover:bg-muted/50 transition-colors"
                       >
                         <item.icon className="size-4 text-accent-foreground" />
-                        <span className="text-3xs font-medium">{item.label}</span>
+                        <span className="text-xs font-medium">{item.label}</span>
                       </button>
                     ))}
                   </div>
@@ -598,8 +879,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               )}
           </div>
 
-          {/* Footer nav */}
-          <div className="px-8 pb-6 flex items-center gap-3">
+          {/* Footer nav — v18-1a (ج): fixed sheet chrome (never clipped);
+              mobile bottom padding clears the iOS home indicator. */}
+          <div className="flex shrink-0 items-center gap-3 px-5 pt-2 pb-[calc(1.25rem_+_env(safe-area-inset-bottom))] sm:px-8 sm:pb-6">
             <Button
               variant="ghost"
               size="sm"

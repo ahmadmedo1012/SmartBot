@@ -6,6 +6,21 @@
 // SmartBot backend contract for POST /api/subscriptions `provider`
 export type Provider = "liyana" | "madar" | "bank"
 
+/* v18 (1-b): the pending-request probe contract — GET /api/subscriptions/
+ * pending answers with the user's live pending row (or ok(null)). The dialog
+ * probes it on open and lands directly on the pending screen when a row
+ * exists, closing the 400 «لديك طلب دفع معلق» dead end BEFORE the user ever
+ * fills the form. Mirrors the backend field set in plans.py verbatim. */
+export interface PendingPayment {
+  payment_id: number
+  status: string
+  plan_id: number
+  plan_name: string
+  amount: number
+  provider: string
+  created_at: string | null
+}
+
 // Balance-transfer destination numbers. Admin-editable via SystemConfig
 // (balance_transfer_phone_1 / _2) — these are the pre-config fallbacks.
 export const DEFAULT_MADAR_PHONE = "0910089975"

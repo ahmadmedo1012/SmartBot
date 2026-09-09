@@ -5,19 +5,31 @@ endpoint body moved VERBATIM. This is the documented byte-stream exception
 to the ok() envelope contract (see the routers package docstring).
 
 v14-E2 (D6 §SSE / D5-M): TWO structural fixes —
-1. ONE db session per connection (was: a fresh session every 2s poll for up
-   to 10 minutes — connection churn per idle browser tab). The session is
-   rolled back between polls so the pooled connection is released while
-   sleeping and instances are expired → every poll still reads FRESH rows.
+1. Per-poll short-lived sessions (see v18 note below) — a poll is
+   open→get→close, never holding a session (and its connection) across
+   the sleep. rollback() was the v14 answer; it releases the connection on
+   QUEUE-style pools, but on StaticPool (tests/:memory:) the "pooled"
+   connection is the SAME single connection — a concurrent request session
+   (get_db rides the same engine) then interleaves on it and SQLite answers
+   "database is locked". A fresh session per poll shrinks the hold window
+   to the sub-millisecond get() itself and removes the interleave class
+   entirely (v18: this exact race made test_radical_v4 flake under load).
 2. Per-tenant concurrent stream cap (5) — a runaway tab farm could hold an
    unbounded number of 10-minute streams. The 6th+ stream gets a 429; the
    frontend EventSource ``onerror`` falls back to the documented poll
    endpoint (Track B.5 design), so nothing breaks for the user.
+
+v18 (2-f): client-disconnect detection — ``request.is_disconnected()`` is
+checked every loop, so a dropped browser (or a test client that abandons
+the stream) ends the generator within ONE poll interval instead of polling
+for the remaining lifetime-cap minutes. Starlette's listen_for_disconnect
+cancels the iterator under real servers; this is the belt-and-suspenders
+for transports/paths where that cancellation never arrives.
 """
 import logging
 
 from database import AsyncSessionLocal
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from models import SubscriptionPayment, User
 
 from routers.auth import get_current_user
@@ -41,6 +53,7 @@ _sse_tenant_counts: dict[int, int] = {}
 
 @router.get("/api/subscriptions/status-stream")
 async def subscription_status_stream(payment_id: int = Query(...),
+                                     request: Request = None,
                                      current_user: User = Depends(get_current_user)):
     """Server-Sent Events stream for a payment's status (Track B.5).
 
@@ -66,13 +79,18 @@ async def subscription_status_stream(payment_id: int = Query(...),
         try:
             deadline = _time.monotonic() + _SSE_MAX_LIFETIME
             last_status: str | None = None
-            # v14-E2: ONE session for the whole connection. rollback() after
-            # each poll (a) releases the pooled connection while sleeping and
-            # (b) expires all loaded instances → the next ``get`` re-reads the
-            # row from the DB (fresh status, no identity-map staleness).
-            async with AsyncSessionLocal() as sdb:
-                while _time.monotonic() < deadline:
+            while _time.monotonic() < deadline:
+                # v18 (2-f): a client that dropped the connection ends the
+                # stream here instead of polling to the lifetime cap.
+                if request is not None:
                     try:
+                        if await request.is_disconnected():
+                            return
+                    except Exception:
+                        pass  # transport without disconnect semantics — keep polling
+                # v18 (2-f): fresh short session PER POLL (see module docstring)
+                try:
+                    async with AsyncSessionLocal() as sdb:
                         sp = await sdb.get(SubscriptionPayment, payment_id)
                         if not sp or (sp.user_id != current_user.id
                                       and sp.tenant_id != (current_user._tenant_id or 0)):
@@ -95,14 +113,9 @@ async def subscription_status_stream(payment_id: int = Query(...),
                             if sp.status in ("verified", "cancelled"):
                                 yield "event: close\ndata: {}\n\n"
                                 return
-                    except Exception:
-                        log.warning("SSE poll failed for payment %s", payment_id, exc_info=True)
-                    finally:
-                        try:
-                            await sdb.rollback()
-                        except Exception:
-                            pass
-                    await _asyncio.sleep(_SSE_POLL_SECONDS)
+                except Exception:
+                    log.warning("SSE poll failed for payment %s", payment_id, exc_info=True)
+                await _asyncio.sleep(_SSE_POLL_SECONDS)
             yield "event: close\ndata: {}\n\n"
         finally:
             remaining = _sse_tenant_counts.get(_tid, 1) - 1

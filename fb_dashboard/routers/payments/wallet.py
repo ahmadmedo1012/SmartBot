@@ -66,6 +66,24 @@ def _as_int(value, field: str) -> int:
 _ADMIN_NOTIFY_TIMEOUT_S = 8.0
 
 
+def _coro_kind(coro) -> str:
+    """v18-1-d: greppable label for an admin-notify coroutine's log line.
+
+    Derived from the coroutine function name — notify_admins_new_subscription
+    → "subscription", notify_admins_new_payment → "payment",
+    notify_admins_support_ticket → "support". Unknown/monkeypatched coroutines
+    fall back to their own function name (or "notify").
+    """
+    name = getattr(coro, "__name__", "") or ""
+    if "subscription" in name:
+        return "subscription"
+    if "payment" in name:
+        return "payment"
+    if "support" in name or "ticket" in name:
+        return "support"
+    return name or "notify"
+
+
 async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_S) -> None:
     """Await an admin money-notification inline, capped by a short timeout.
 
@@ -76,14 +94,22 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
         in the admin review queue (/api/admin/subscriptions + Telegram);
       - failure → logged (and reported to Sentry like the old spawn registry
         did via _async._log_task_exception) but never fails the request.
+
+    v18-1-d (متانة إشعارات تليجرام): when the coroutine returns the notify_*
+    summary dict (telegram_bot._notify_admins), its verdict is logged as ONE
+    greppable line — exactly what live Vercel-log diagnosis greps for:
+      "telegram subscription notify: sent=1 failed=0 recipients=1"
+      "telegram payment notify: SKIPPED — no config (payment_id=15)"
     """
+    kind = _coro_kind(coro)
     try:
-        await asyncio.wait_for(coro, timeout=timeout)
+        result = await asyncio.wait_for(coro, timeout=timeout)
     except TimeoutError:
         log.warning(
-            "admin money notification timed out after %.1fs — row stays in the review queue",
-            timeout,
+            "telegram %s notify: TIMEOUT after %.1fs — row stays in the review queue",
+            kind, timeout,
         )
+        return  # cancelled mid-send — no result dict exists to log
     except Exception as exc:  # noqa: BLE001 — external send must never break the payment
         log.error("admin money notification failed (non-fatal): %s", exc, exc_info=True)
         try:
@@ -93,6 +119,16 @@ async def _notify_admins_inline(coro, *, timeout: float = _ADMIN_NOTIFY_TIMEOUT_
         except Exception:
             # observability must never amplify a notification failure
             pass
+        return
+    if isinstance(result, dict) and "sent" in result:
+        # v18-1-d observability contract (telegram_bot._notify_admins)
+        if result.get("skipped_no_config"):
+            log.warning("telegram %s notify: SKIPPED — no config (payment_id=%s)",
+                        kind, result.get("payment_id", "unknown"))
+        else:
+            log.info("telegram %s notify: sent=%s failed=%s recipients=%s",
+                     kind, result.get("sent", 0), result.get("failed", 0),
+                     result.get("recipients", 0))
 
 
 async def _reject_wallet_above_cap(provider: str, amount: float, db) -> None:

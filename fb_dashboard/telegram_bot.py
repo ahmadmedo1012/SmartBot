@@ -10,10 +10,27 @@ BEFORE: BOT_TOKEN/ADMIN_IDS were env-only. With no Vercel env vars set (the
 production reality) every notify_* silently iterated an empty recipient list
 — the owner received ZERO telegram notifications. The TelegramApprover table
 existed and had an admin UI, but this module never consulted it.
+
+v18-1-d (متانة إشعارات تليجرام): the silent empty loop is now OBSERVABLE —
+every notify_admins_* returns a summary dict
+``{"sent": n, "failed": m, "recipients": k, "skipped_no_config": bool}``
+(+ ``payment_id`` where known) and logs ONE greppable warning when the channel
+is dead (``telegram notify skipped: no bot token configured`` /
+``telegram notify skipped: zero admin recipients``). HTTP sends gained exactly
+ONE retry per call on transient failures (timeout / 5xx / 429).
+
+Decision (async vs sync httpx): ``_call`` stays SYNCHRONOUS
+(``httpx.post`` inside ``asyncio.to_thread``). All senders already run in an
+async context and dispatch through to_thread; converting to AsyncClient would
+require re-plumbing every call site (send_message / edit_message /
+edit_keyboard / answer_callback) and re-verifying the webhook dispatch path
+for no functional gain — to_thread isolates the blocking IO just as well and
+the payment response stays capped by the wallet.py wait_for timeout.
 """
 import asyncio
 import logging
 import os
+import time
 from typing import Any
 
 import httpx
@@ -24,6 +41,14 @@ _ENV_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 _ENV_ADMIN_IDS = [int(x) for x in os.environ.get("TELEGRAM_ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 _API_BASE = "https://api.telegram.org/bot"
+
+# v18-1-d: transient-failure retry policy — exactly ONE retry per API call
+# after a short delay; retryable = httpx timeout/transport error or 5xx/429.
+# 4xx (bad token, blocked bot, wrong chat) is NOT retried — it is a config
+# error, not a blip. Module-level constants so tests can zero the delay.
+_HTTP_TIMEOUT_S = 10.0
+_RETRY_DELAY_S = 0.5
+_RETRYABLE_HTTP = frozenset({500, 502, 503, 504, 429})
 
 # ── Config resolution (DB-first, env fallback — Smart-Menu pattern) ──
 
@@ -83,23 +108,66 @@ async def get_chat_id() -> str:
 
 
 def _call(method: str, payload: dict, token: str) -> dict | None:
+    """Sync Telegram API call (always dispatched via asyncio.to_thread).
+
+    Contract unchanged: parsed JSON dict on HTTP success, ``None`` otherwise.
+    v18-1-d: one retry on TRANSIENT failure — httpx TimeoutException /
+    TransportError, or HTTP 500/502/503/504/429 — after ``_RETRY_DELAY_S``.
+    Every failure is logged (the old code only logged exceptions, so a 401
+    bad-token response was indistinguishable from silence).
+    """
     if not token:
         return None
-    try:
-        r = httpx.post(f"{_API_BASE}{token}/{method}", json=payload, timeout=10)
-        return r.json() if r.is_success else None
-    except Exception as e:
-        log.warning("Telegram %s failed: %s", method, e)
+    for attempt in (1, 2):
+        try:
+            r = httpx.post(f"{_API_BASE}{token}/{method}", json=payload,
+                           timeout=_HTTP_TIMEOUT_S)
+        except (httpx.TimeoutException, httpx.TransportError) as e:
+            if attempt == 1:
+                log.warning("telegram %s transient failure (%s) — retrying once",
+                            method, type(e).__name__)
+                time.sleep(_RETRY_DELAY_S)
+                continue
+            log.warning("telegram %s failed after retry: %s: %s",
+                        method, type(e).__name__, e)
+            return None
+        except Exception as e:
+            log.warning("telegram %s failed: %s", method, e)
+            return None
+        if r.is_success:
+            return r.json()
+        detail = f"HTTP {r.status_code} {r.text[:160]}"
+        if attempt == 1 and r.status_code in _RETRYABLE_HTTP:
+            log.warning("telegram %s got HTTP %s — retrying once", method, r.status_code)
+            time.sleep(_RETRY_DELAY_S)
+            continue
+        log.warning("telegram %s failed: %s", method, detail)
         return None
+    return None
+
+
+async def _send_to(chat_id: int | str, text: str,
+                  buttons: list[list[dict]] | None, token: str) -> dict | None:
+    """Build the sendMessage payload and dispatch it through to_thread.
+
+    Split out of send_message (v18-1-d) so the payload-building + dispatch
+    stays in ONE place while send_message keeps the public
+    (chat_id, text, buttons) → dict | None contract every existing caller
+    and test relies on. NOTE: the empty-token check deliberately lives in
+    ``_call`` (NOT here) — ``_call`` is the single HTTP chokepoint tests
+    monkeypatch wholesale (tests/test_v6_observability.py telegram_spy);
+    short-circuiting here would bypass that seam.
+    """
+    payload: dict[str, Any] = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    if buttons:
+        payload["reply_markup"] = {"inline_keyboard": buttons}
+    return await asyncio.to_thread(_call, "sendMessage", payload, token)
 
 
 async def send_message(chat_id: int | str, text: str,
                        buttons: list[list[dict]] | None = None) -> dict | None:
     token = await get_bot_token()
-    payload: dict[str, Any] = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
-    if buttons:
-        payload["reply_markup"] = {"inline_keyboard": buttons}
-    return await asyncio.to_thread(_call, "sendMessage", payload, token)
+    return await _send_to(chat_id, text, buttons, token)
 
 
 async def edit_keyboard(chat_id: int, message_id: int):
@@ -125,7 +193,58 @@ async def answer_callback(callback_id: str, text: str, alert: bool = True):
     }, token)
 
 
-async def notify_admins_new_payment(payment_id: int, username: str, amount: int, provider: str, phone: str):
+async def _notify_admins(text: str, buttons: list[list[dict]] | None, *,
+                         kind: str, payment_id: int | None = None) -> dict:
+    """Shared admin broadcast with a REAL observability contract (v18-1-d).
+
+    Returns ``{"sent": n, "failed": m, "recipients": k,
+    "skipped_no_config": bool}`` (+ ``payment_id`` when known):
+      - sent    = messages Telegram actually acknowledged ("ok": true);
+      - failed  = per-recipient send failures (after the one retry);
+      - skipped_no_config = no bot token OR zero recipients — the exact
+        production state that used to be a SILENT empty loop.
+
+    One greppable warning per call (never per recipient) when skipped. The
+    return value is ADDITIVE: legacy call sites that ignore it keep working.
+    """
+    result: dict[str, Any] = {"sent": 0, "failed": 0, "recipients": 0,
+                              "skipped_no_config": False}
+    if payment_id is not None:
+        result["payment_id"] = payment_id
+    token = await get_bot_token()
+    admin_ids = await get_admin_ids()
+    if not token:
+        log.warning("telegram notify skipped: no bot token configured (kind=%s)", kind)
+        result["skipped_no_config"] = True
+        result["recipients"] = len(admin_ids)
+        return result
+    if not admin_ids:
+        log.warning("telegram notify skipped: zero admin recipients (kind=%s)", kind)
+        result["skipped_no_config"] = True
+        return result
+    result["recipients"] = len(admin_ids)
+    for aid in admin_ids:
+        # NOTE: the loop deliberately goes through the module-level send_message
+        # (NOT _send_to directly) — the existing monkeypatch contract
+        # (tests/test_world_class_v3.py + /api/telegram/test) intercepts
+        # notifications there; each send resolves the token itself exactly as
+        # the pre-v18 code did.
+        try:
+            resp = await send_message(aid, text, buttons)
+        except Exception as e:  # to_thread dispatch itself — count, never raise
+            log.warning("telegram notify send error chat_id=%s (kind=%s): %s",
+                        aid, kind, e)
+            result["failed"] += 1
+            continue
+        if isinstance(resp, dict) and resp.get("ok") is True:
+            result["sent"] += 1
+        else:
+            result["failed"] += 1
+            log.warning("telegram notify send failed chat_id=%s (kind=%s)", aid, kind)
+    return result
+
+
+async def notify_admins_new_payment(payment_id: int, username: str, amount: int, provider: str, phone: str) -> dict:
     msg = (
         f"💳 *طلب دفع جديد* #{payment_id}\n"
         f"• المستخدم: {username}\n"
@@ -137,11 +256,10 @@ async def notify_admins_new_payment(payment_id: int, username: str, amount: int,
         [{"text": "🟢 موافقة", "callback_data": f"pay_app:{payment_id}"}],
         [{"text": "🔴 رفض", "callback_data": f"pay_rej:{payment_id}"}],
     ]
-    for aid in await get_admin_ids():
-        await send_message(aid, msg, buttons)
+    return await _notify_admins(msg, buttons, kind="payment", payment_id=payment_id)
 
 
-async def notify_admins_new_subscription(payment_id: int, username: str, amount: float, provider: str, phone: str, plan_name: str = ""):
+async def notify_admins_new_subscription(payment_id: int, username: str, amount: float, provider: str, phone: str, plan_name: str = "") -> dict:
     """Notify admins about a new subscription payment."""
     msg = (
         f"📋 *طلب اشتراك جديد* #{payment_id}\n"
@@ -155,11 +273,10 @@ async def notify_admins_new_subscription(payment_id: int, username: str, amount:
         [{"text": "🟢 موافقة على التفعيل", "callback_data": f"sub_app:{payment_id}"}],
         [{"text": "🔴 رفض الطلب", "callback_data": f"sub_rej:{payment_id}"}],
     ]
-    for aid in await get_admin_ids():
-        await send_message(aid, msg, buttons)
+    return await _notify_admins(msg, buttons, kind="subscription", payment_id=payment_id)
 
 
-async def notify_admins_support_ticket(subject: str, message: str, email: str = ""):
+async def notify_admins_support_ticket(subject: str, message: str, email: str = "") -> dict:
     """Notify admins about a new support ticket from the platform."""
     msg = (
         f"🎫 *طلب دعم جديد*\n"
@@ -167,5 +284,4 @@ async def notify_admins_support_ticket(subject: str, message: str, email: str = 
         f"• البريد: {email or '—'}\n"
         f"\n{message[:800]}"
     )
-    for aid in await get_admin_ids():
-        await send_message(aid, msg)
+    return await _notify_admins(msg, None, kind="support")

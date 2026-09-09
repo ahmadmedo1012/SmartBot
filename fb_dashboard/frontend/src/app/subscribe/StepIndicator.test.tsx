@@ -92,6 +92,34 @@ describe("StepIndicator navigation", () => {
   })
 })
 
+describe("StepIndicator mobile density (v18-1e)", () => {
+  it("keeps both step labels visible at every breakpoint — no hidden class", () => {
+    render(<StepIndicator current="plan" />)
+
+    const planNode = screen.getByRole("button", { name: PLAN_BTN })
+    const label = within(planNode).getByText("اختر الخطة")
+    // labels used to hide below sm — two bare circles with no step context
+    expect(label.className).not.toContain("hidden")
+    expect(label.className).toContain("text-2xs")
+    expect(label.className).toContain("sm:text-xs")
+  })
+
+  it("guarantees a 44px tap target on every step button (min-w-11)", () => {
+    render(<StepIndicator current="plan" />)
+
+    for (const name of [PLAN_BTN, REVIEW_BTN]) {
+      expect(screen.getByRole("button", { name }).className).toContain("min-w-11")
+    }
+  })
+
+  it("centers the connector on the node row (mt-5 on the 40px node)", () => {
+    const { container } = render(<StepIndicator current="plan" />)
+    const nav = container.querySelector("nav") as HTMLElement
+    const connector = (nav.firstElementChild as HTMLElement).lastElementChild as HTMLElement
+    expect(connector.className).toContain("mt-5")
+  })
+})
+
 describe("StepIndicator connector", () => {
   it("fills with bg-accent-foreground/50 once the first step is done", () => {
     const { container, unmount } = render(<StepIndicator current="review" />)

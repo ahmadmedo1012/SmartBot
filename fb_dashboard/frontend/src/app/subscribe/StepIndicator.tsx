@@ -8,7 +8,16 @@ import { MotionCheck } from "@/components/ui/motion-icons"
    wizard indicator: numbered gradient nodes, check marks on completed
    steps, animated connectors, click-to-navigate back. SmartBot's flow
    has two steps (plan → review) where Smart-Menu has four — the
-   component contract is unchanged. v6+: framer-free (CSS active tap). */
+   component contract is unchanged. v6+: framer-free (CSS active tap).
+
+   v18-1e (mobile density, 390px): the labels used to hide below sm —
+   two bare numbered circles with no context. Two short steps total
+   ~170px at 320px, so the labels now stay visible at every breakpoint
+   (text-2xs → sm:text-xs), the connector shrinks to w-6 on mobile, and
+   the row aligns items-start with the connector at mt-5 so it centers
+   on the 40px node row (the old items-center hung it ~9px low once
+   labels joined the column). Step buttons get min-w-11 — a 44px tap
+   target on every node (WCAG 2.2 / gstack touch-target rule). */
 
 export type WizardStep = "plan" | "review"
 
@@ -40,14 +49,14 @@ export function StepIndicator({
         const clickable = isDone || isActive
 
         return (
-          <div key={s} className="flex items-center">
+          <div key={s} className="flex items-start">
             {/* Step node */}
             <button
               type="button"
               disabled={!clickable}
               onClick={() => clickable && onNavigate?.(s)}
               className={cn(
-                "flex flex-col items-center gap-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-full",
+                "flex flex-col items-center gap-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-full min-w-11",
                 !clickable && "cursor-default",
               )}
               aria-current={isActive ? "step" : undefined}
@@ -69,7 +78,7 @@ export function StepIndicator({
               </div>
               <span
                 className={cn(
-                  "text-2xs sm:text-xs font-medium transition-colors hidden sm:block",
+                  "text-2xs sm:text-xs font-medium transition-colors text-center",
                   /* v14-E4 (D4 H-04): inactive labels were muted-foreground/50 —
                      2.14:1, the worst failing pair in the audit. Full token
                      passes 5.59/6.54:1; done-vs-inactive distinction stays via
@@ -85,11 +94,12 @@ export function StepIndicator({
               </span>
             </button>
 
-            {/* Connector */}
+            {/* Connector — v18-1e: mt-5 centers it on the 40px node row
+                (20px = node center) now that the row is items-start. */}
             {i < STEP_ORDER.length - 1 && (
               <div
                 className={cn(
-                  "w-8 sm:w-14 h-0.5 mx-1 sm:mx-2 rounded-full transition-colors duration-500",
+                  "w-6 sm:w-14 h-0.5 mt-5 mx-1 sm:mx-2 rounded-full transition-colors duration-500",
                   i < currentIdx ? "bg-accent-foreground/50" : "bg-muted-foreground/15",
                 )}
               />

@@ -158,16 +158,24 @@ describe("PaymentFreePlan — phone validation (no network on bad input)", () =>
       "error",
       "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)",
     )
-    expect(fetchMock).not.toHaveBeenCalled()
+    // v18 (1-b): the only call is the open probe (GET /api/subscriptions/
+    // pending — silent dead-end guard); the invalid phone never POSTs.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/subscriptions/pending")
     expect(screen.queryByText("في انتظار تفعيل الخطة المجانية")).toBeNull()
   })
 })
 
 describe("PaymentFreePlan — submit contract (the real backend journey)", () => {
   it("POSTs {plan_id, provider, amount:0, phone} and lands on the free waiting screen", async () => {
+    // v18 (1-b): URL-aware stub — the open probe (GET /api/subscriptions/
+    // pending) answers data-less so the free form stays; the POST answers
+    // with the created payment row.
     const fetchMock = vi.fn(
-      async (_url: string | URL | Request, _init?: RequestInit) =>
-        jsonRes({ success: true, data: { payment_id: 7, status: "pending" } }),
+      async (url: string | URL | Request, _init?: RequestInit) => {
+        if (String(url) === "/api/subscriptions/pending") return jsonRes({ success: true })
+        return jsonRes({ success: true, data: { payment_id: 7, status: "pending" } })
+      },
     )
     vi.stubGlobal("fetch", fetchMock)
     renderFreeDialog()
@@ -183,8 +191,9 @@ describe("PaymentFreePlan — submit contract (the real backend journey)", () =>
     expect(screen.getByText("بانتظار موافقة الإدارة")).toBeInTheDocument()
 
     // POST contract: exact endpoint + JSON body shape (no receipt, no bank fields)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/subscriptions/pending")
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit]
     expect(url).toBe("/api/subscriptions")
     expect(init.method).toBe("POST")
     expect(init.credentials).toBe("include")
@@ -196,7 +205,13 @@ describe("PaymentFreePlan — submit contract (the real backend journey)", () =>
     })
   })
 
-  it("surfaces the backend's Arabic error verbatim when the request fails", async () => {
+  it("400 «لديك طلب دفع معلق» → the pending screen, not a vanish-fast toast", async () => {
+    // v18 (1-b): the free journey hits the SAME dead end as the paid one.
+    // The old contract (error toast + stay on the form with NO way out —
+    // the message itself promised «أو ألغِه») was the production complaint;
+    // the request now lands on the pending screen with cancel/wait buttons.
+    // The stub 400s EVERY endpoint — both the open probe and the follow-up
+    // probe fail silently, so the screen renders its generic copy.
     const fetchMock = vi.fn(
       async (_url: string | URL | Request, _init?: RequestInit) =>
         jsonRes({ detail: "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه" }, 400),
@@ -208,16 +223,22 @@ describe("PaymentFreePlan — submit contract (the real backend journey)", () =>
     fireEvent.click(screen.getByRole("button", { name: "تفعيل الخطة المجانية" }))
 
     await waitFor(() => {
-      expect(mocks.toast).toHaveBeenCalledWith(
-        "error",
-        "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه",
-      )
+      expect(screen.getByText("لديك طلب دفع معلق")).toBeInTheDocument()
     })
-    // still on the form step — retry allowed
-    expect(screen.getByRole("button", { name: "تفعيل الخطة المجانية" })).toBeInTheDocument()
+    // NO error toast — the state replaces the message
+    expect(mocks.toast).not.toHaveBeenCalled()
+    // both affordances exist (the «أو ألغِه» promise is finally real)
+    expect(
+      screen.getByRole("button", { name: "إلغاء الطلب المعلق وإعادة المحاولة" }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "الانتظار حتى الموافقة" })).toBeInTheDocument()
+    // generic copy — the probe could not enrich it with plan details
+    expect(screen.getByText(/طلبك السابق قيد المراجعة من قبل الإدارة/)).toBeInTheDocument()
   })
 
   it("401 (anonymous visitor) → dialog-owned redirect keeps the preselected plan (?plan=1)", async () => {
+    // v18 (1-b): the open probe 401s too — skipAuthRedirect keeps it a
+    // NON-event (no global session kick before the submit happens).
     const fetchMock = vi.fn(
       async (_url: string | URL | Request, _init?: RequestInit) =>
         jsonRes({ detail: "بيانات تسجيل الدخول غير صحيحة" }, 401),
@@ -263,6 +284,9 @@ describe("PaymentFreePlan — negative price is NOT free (guard stays)", () => {
       "error",
       "سعر الخطة غير صالح — أعد فتح نافذة الدفع",
     )
-    expect(fetchMock).not.toHaveBeenCalled()
+    // v18 (1-b): only the open probe hit the network — the invalid price
+    // never reaches the POST.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/subscriptions/pending")
   })
 })

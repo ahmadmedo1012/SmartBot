@@ -737,9 +737,13 @@ async def _sse_login(sse_env):
     assert r.status_code == 200, r.text
 
 
-async def test_sse_single_session_per_connection_fresh_reads(sse_env, monkeypatch):
-    """الاتصال الواحد يفتح جلسة قاعدة واحدة (لا جلسة كل ثانيتين) ومع ذلك
-    يرى تغيّر الحالة فور وقوعه (rollback يُبطل الذاكرة ويجبر قراءة طازجة)."""
+async def test_sse_per_poll_short_sessions_fresh_reads(sse_env, monkeypatch):
+    """v18 (2-f): كل دورة استطلاع تفتح جلسة قصيرة (open→get→close) ولا تمسك
+    أي جلسة عبر فترات النوم — عقد الجلسة-الواحدة-للاتصال (v14-E2) استُبدل:
+    على StaticPool كانت الجلسة الطويلة تعزل الاتصال الوحيد وتصطدم بجلسات
+    الطلبات المتزامنة («database is locked»). القراءة تبقى طازجة لأن كل
+    استقصاء جلسة جديدة أصلاً."""
+
     await _sse_login(sse_env)
     import routers.payments.sse as sse_mod
     from database import AsyncSessionLocal as RealFactory
@@ -782,8 +786,11 @@ async def test_sse_single_session_per_connection_fresh_reads(sse_env, monkeypatc
     statuses = [e.get("status") for e in events]
     assert "verified" in statuses, f"SSE never saw the approval: {statuses}"
     assert "pending" in statuses, f"first read missing: {statuses}"
-    # ≥3 دورات استطلاع (تغيّر الحالة بعد ~0.45s بدورة 0.15s) جلسة واحدة فقط:
-    assert created["n"] == 1, f"one session per connection expected, opened {created['n']}"
+    # ≥3 دورات استطلاع (تغيّر الحالة بعد ~0.45s بدورة 0.15s) — عقد v18:
+    # جلسة قصيرة لكل دورة (لا جلسة محفوظة عبر النوم):
+    assert created["n"] >= 3, f"per-poll sessions expected, opened only {created['n']}"
+    # ولا جلسة معلقة بعد انتهاء التيار (كل جلسة فُتحت أُغلقت فوراً):
+    assert created["n"] <= 8, f"suspicious session churn: {created['n']} in ~1s"
     # الانتهاء الطبيعي (verified) يُفرغ العدّة — لا تسريب سقف
     assert 0 not in sse_mod._sse_tenant_counts or sse_mod._sse_tenant_counts[0] == 0
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Bot, Loader2 } from "lucide-react"
+import { Bot } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Button } from "@/components/ui/button"
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -13,6 +13,10 @@ import { PlanSelector } from "./PlanSelector"
 import { ReviewSummary } from "./PaymentSection"
 import { StepIndicator, type WizardStep } from "./StepIndicator"
 import { toComparisonPlan, type ComparisonPlan, type ComparisonPlanInput } from "@/components/subscribe/plan-comparison"
+/* v18-1-c: الخطط تُرسم فوراً من الثوابت المدمجة (مرآة بذرة الخادم) ثم
+   hydrate من GET /api/plans بتبديل صامت — الوكيل 1-b يملك منطق الدفع
+   المعلق في هذا الملف؛ هذه التعديلات تلمس حالة الخطط/الحاجب فقط. */
+import { DEFAULT_COMPARISON_PLANS, plansEqual } from "@/lib/default-plans"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 import dynamic from "next/dynamic"
 
@@ -30,11 +34,21 @@ export default function SubscribeContent() {
   const searchParams = useSearchParams()
   const preselectedPlan = searchParams.get("plan")
 
-  const [plans, setPlans] = useState<ComparisonPlan[]>([])
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  /* v18-1-c: حالة الخطط الابتدائية = الافتراضية المدمجة — البطاقات
+     تُرسم من أول إطار (كانت skeleton تنتظر دالة باردة ~12.5 ث)؛ فشل
+     الـAPI النهائي يُبقيها مع لافتة «تُعرض الباقات الافتراضية». */
+  const [plans, setPlans] = useState<ComparisonPlan[]>(DEFAULT_COMPARISON_PLANS)
+  const [plansFailed, setPlansFailed] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<number | null>(() => {
+    // حلّ ?plan= على الافتراضية فوراً — الرابط المباشر يفتح خطوة
+    // المراجعة بلا انتظار؛ يُعاد الحل على بيانات الـAPI عند hydrate
+    if (!preselectedPlan) return null
+    const n = Number(preselectedPlan)
+    const byId = DEFAULT_COMPARISON_PLANS.find((p) => p.id === n)
+    const byPos = [...DEFAULT_COMPARISON_PLANS].sort((a, b) => a.sortOrder - b.sortOrder)[n - 1]
+    return (byId ?? byPos)?.id ?? null
+  })
   const [authed, setAuthed] = useState(false)
-  const [authLoaded, setAuthLoaded] = useState(false)
   const [step, setStep] = useState<WizardStep>(preselectedPlan ? "review" : "plan")
   const [paymentOpen, setPaymentOpen] = useState(false)
 
@@ -46,7 +60,12 @@ export default function SubscribeContent() {
         const res = await apiFetch("/api/plans")
         const raw = await unwrapApi<ComparisonPlanInput[]>(res)
         const p = (raw ?? []).map(toComparisonPlan)
-        setPlans(p)
+        if (p.length > 0) {
+          // تبديل صامت: الشكل المتطابق يُبقي مرجع المصفوفة → React يتخلى
+          // عن التحديث، لا وميض بين الرسم الافتراضي وبيانات الـAPI
+          setPlans((prev) => (plansEqual(prev, p) ? prev : p))
+        }
+        setPlansFailed(p.length === 0)
         if (preselectedPlan) {
           // Try exact id first, then by position (ids may shift in DB)
           const sorted = [...p].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -56,14 +75,15 @@ export default function SubscribeContent() {
           if (found) setSelectedPlan(found.id)
         }
       } catch {
-        premiumToast("error", "تعذر تحميل الخطط")
-        // auto-retry once after 1s — cold-start /api/plans may fail transiently
+        // auto-retry once after 1s — cold-start /api/plans may fail transiently;
+        // اللافتة/التوست فقط بعد استنفاد إعادة المحاولة (لا ضجيج أثناءها)
         if (!retried) {
           retried = true
           retryTimer = setTimeout(fetchPlans, 1000)
+        } else {
+          setPlansFailed(true)
+          premiumToast("error", "تعذر تحميل الخطط")
         }
-      } finally {
-        setLoading(false)
       }
     }
     fetchPlans()
@@ -72,15 +92,16 @@ export default function SubscribeContent() {
     }
   }, [preselectedPlan])
 
-  // Manual retry after the auto-retry failed (no infinite skeleton)
+  // Manual retry after the auto-retry failed — الافتراضية تبقى مرسومة
+  // أثناء إعادة المحاولة (v18-1-c: لا تفريغ للحالة إلى skeleton)
   const handleRetryPlans = useCallback(() => {
-    setLoading(true)
-    setPlans([])
+    setPlansFailed(false)
     apiFetch("/api/plans")
       .then((r) => unwrapApi<ComparisonPlanInput[]>(r))
       .then((raw) => {
         const p = (raw ?? []).map(toComparisonPlan)
-        setPlans(p)
+        if (p.length > 0) setPlans((prev) => (plansEqual(prev, p) ? prev : p))
+        setPlansFailed(p.length === 0)
         if (preselectedPlan) {
           const sorted = [...p].sort((a, b) => a.sortOrder - b.sortOrder)
           const byId = p.find((pl: ComparisonPlan) => pl.id === Number(preselectedPlan))
@@ -89,8 +110,10 @@ export default function SubscribeContent() {
           if (found) setSelectedPlan(found.id)
         }
       })
-      .catch(() => premiumToast("error", "تعذر تحميل الخطط"))
-      .finally(() => setLoading(false))
+      .catch(() => {
+        setPlansFailed(true)
+        premiumToast("error", "تعذر تحميل الخطط")
+      })
   }, [preselectedPlan])
 
   // v6 §D/SEO — /subscribe is listed in the public sitemap, so it must NOT
@@ -106,10 +129,11 @@ export default function SubscribeContent() {
   // skipAuthRedirect keeps the rejection local: authed=false → «العودة
   // للرئيسية» back button; PaymentDialog's tailored 401 journey untouched.
   useEffect(() => {
+    // v18-1-c: نتيجة الفحص تُحدّث تسمية زر الرجوع فقط (لوحة التحكم
+    // مقابل الرئيسية) — لم يعد يحجب رسم الصفحة خلف spinner كامل
     apiFetch("/api/me", { skipAuthRedirect: true })
       .then(() => setAuthed(true))
       .catch(() => setAuthed(false))
-      .finally(() => setAuthLoaded(true))
   }, [])
 
   const currentPlan = plans.find((p) => p.id === selectedPlan)
@@ -119,13 +143,8 @@ export default function SubscribeContent() {
     router.push("/dashboard")
   }, [router])
 
-  if (loading || !authLoaded)
-    return (
-      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
-        <span className="sr-only">جارٍ التحميل…</span>
-        <Loader2 className="size-8 animate-spin text-primary" />
-      </SectionContainer>
-    )
+  // v18-1-c: لا حاجب تحميل — البطاقات الافتراضية تُرسم فوراً؛ زر الرجوع
+  // يبدأ «للرئيسية» (افتراضي زائر) ويتبدل لـ«لوحة التحكم» إن صحّ الفحص
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/20 to-background dark:via-accent/10">
@@ -155,23 +174,23 @@ export default function SubscribeContent() {
           {/* Step indicator */}
           <StepIndicator current={step} onNavigate={setStep} />
 
-          {/* Step 1: Plan selector (with visible error state when plans never loaded) */}
-          {step === "plan" && plans.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 py-16 text-center animate-fade-in">
-              <p className="text-muted-foreground">تعذر تحميل الخطط. يرجى المحاولة مرة أخرى.</p>
-              <Button variant="outline" onClick={handleRetryPlans}>
+          {/* Step 1: بطاقات تُرسم فوراً من الافتراضية؛ فشل الـAPI النهائي
+              يُبقيها مع لافتة + زر إعادة المحاولة (v18-1-c) */}
+          {step === "plan" && plansFailed && (
+            <div className="mb-6 flex flex-col items-center gap-3 py-4 text-center animate-fade-in" role="status">
+              <p className="text-sm text-muted-foreground">تُعرض الباقات الافتراضية — أعد المحاولة</p>
+              <Button variant="outline" size="sm" onClick={handleRetryPlans}>
                 إعادة المحاولة
               </Button>
             </div>
-          ) : (
-            step === "plan" && (
-              <PlanSelector
-                plans={plans}
-                selectedPlan={selectedPlan}
-                onSelect={setSelectedPlan}
-                onContinue={() => setStep("review")}
-              />
-            )
+          )}
+          {step === "plan" && (
+            <PlanSelector
+              plans={plans}
+              selectedPlan={selectedPlan}
+              onSelect={setSelectedPlan}
+              onContinue={() => setStep("review")}
+            />
           )}
 
           {/* Step 2: Review + pay */}

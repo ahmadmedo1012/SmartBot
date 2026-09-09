@@ -39,8 +39,8 @@ import { compressImage } from "@/lib/image-compress"
 import { formatNumber } from "@/lib/format"
 import { PaymentMethodTabs } from "./payment-methods"
 import { WalletInstructions, BankInstructions } from "./payment-instructions"
-import { WaitingScreen, ApprovedScreen, RejectedScreen, SuccessScreen } from "./payment-status"
-import type { Provider } from "./payment-constants"
+import { WaitingScreen, ApprovedScreen, RejectedScreen, SuccessScreen, PendingScreen } from "./payment-status"
+import type { PendingPayment, Provider } from "./payment-constants"
 import {
   DEFAULT_MADAR_PHONE,
   DEFAULT_LIBYANA_PHONE,
@@ -62,7 +62,7 @@ interface PaymentDialogProps {
   onSuccess: () => void
 }
 
-type PaymentStep = "form" | "waiting" | "success" | "approved" | "rejected"
+type PaymentStep = "form" | "pending" | "waiting" | "success" | "approved" | "rejected"
 
 /* v15-E5 (C-FREE1): the free-plan activation journey. The backend contract
  * (routers/payments/plans.py) has NO direct self-activation endpoint: a
@@ -84,6 +84,9 @@ const FREE_PLAN_SUBMIT_LABEL = "تفعيل الخطة المجانية"
  * getByText assertions keep matching exactly one node. */
 const STEP_ANNOUNCEMENTS: Record<PaymentStep, string> = {
   form: "عودة إلى نموذج الدفع — عدّل البيانات وأعد المحاولة",
+  /* v18 (1-b): the pending screen — worded to carry BOTH affordances so the
+   * SR user knows the dead end is gone (cancel AND wait are real actions). */
+  pending: "لديك طلب دفع معلق — يمكنك إلغاؤه وإعادة المحاولة أو الانتظار حتى الموافقة",
   waiting: "تم إرسال طلب الدفع — بانتظار موافقة الإدارة",
   approved: "تمت الموافقة على اشتراكك",
   rejected: "عذراً، تم رفض طلب الاشتراك — يمكنك تعديل البيانات وإعادة المحاولة",
@@ -136,6 +139,10 @@ export function PaymentDialog({
   const [resolutionMsg, setResolutionMsg] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [paymentId, setPaymentId] = useState<number | null>(null)
+  /* v18 (1-b): the pending-request context — either probed on dialog open
+   * (GET /api/subscriptions/pending) or discovered from the create-path 400
+   * «لديك طلب دفع معلق». Drives the PendingScreen (payment-status.tsx). */
+  const [pendingInfo, setPendingInfo] = useState<PendingPayment | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sseRef = useRef<EventSource | null>(null)
 
@@ -238,6 +245,55 @@ export function PaymentDialog({
   }, [])
 
   const sentRef = useRef(false)
+
+  /* v18 (1-b): GET /api/subscriptions/pending — silent by contract: ANY
+   * failure (network / 401 / 5xx) answers null, exactly like today's
+   * behavior on open; only a 200-with-row flips the dialog to the pending
+   * screen. skipAuthRedirect keeps the 401 of the anonymous /subscribe
+   * visitor a NON-event (the global session kick would defeat the public
+   * plans page — the payment step itself owns that journey, see D4-H3). */
+  const probePendingRequest = useCallback(async (): Promise<PendingPayment | null> => {
+    try {
+      const res = await apiFetch("/api/subscriptions/pending", { skipAuthRedirect: true })
+      const json = (await res.json()) as { data?: PendingPayment | null }
+      const d = json?.data
+      return d && typeof d === "object" && typeof d.payment_id === "number" ? d : null
+    } catch {
+      return null
+    }
+  }, [])
+
+  /* v18 (1-b): pre-open guard — when the dialog transitions closed→open,
+   * ask the backend whether a pending request already exists; landing
+   * directly on the pending screen spares the user the doomed form fill
+   * plus the vanish-fast 400 toast (the production complaint). The
+   * functional setStep guard keeps a LATE probe answer from clobbering a
+   * step the user already moved to (submit → waiting, decision →
+   * approved/rejected): the updater sees the queued state, not the stale
+   * committed one. */
+  const prevOpenRef = useRef(false)
+  useEffect(() => {
+    if (!open) {
+      prevOpenRef.current = false
+      return
+    }
+    if (prevOpenRef.current) return // probe only on the closed→open transition
+    prevOpenRef.current = true
+    let cancelled = false
+    probePendingRequest().then((d) => {
+      if (cancelled || !d) return
+      setStep((prev) => (prev === "form" ? "pending" : prev))
+      setPendingInfo(d)
+      // Harmless when the guard above kept another step: a user has at most
+      // ONE pending row (DB partial unique index), so on the waiting step
+      // this is the very payment being polled; elsewhere paymentId is inert.
+      setPaymentId(d.payment_id)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open, probePendingRequest])
+
   const handleSent = async () => {
     if (sentRef.current) return // block double-click double-payment
     const isBank = provider === "bank"
@@ -314,6 +370,21 @@ export function PaymentDialog({
           String((e.body as Record<string, unknown>).error)) ||
         (e instanceof Error && e.message) ||
         "فشل إرسال طلب الدفع"
+      /* v18 (1-b): the 400 «لديك طلب دفع معلق» is a STATE, not an error —
+       * the old fast-vanishing toast left the user stuck in the form with no
+       * way out (the message itself promised «أو ألغِه»). Land on the pending
+       * screen instead; a best-effort probe fills the plan/amount context
+       * (its failure is non-fatal — the screen works without details). */
+      if (e instanceof ApiError && e.status === 400 && e.message.includes("معلق")) {
+        sentRef.current = false
+        const d = await probePendingRequest()
+        if (d) {
+          setPendingInfo(d)
+          setPaymentId(d.payment_id)
+        }
+        setStep("pending")
+        return
+      }
       premiumToast("error", msg)
       sentRef.current = false // allow retry on failure
     } finally {
@@ -421,6 +492,63 @@ export function PaymentDialog({
     }
   }, [step, paymentId, provider, cleanup])
 
+  /* v18 (1-b): cancel the pending request — POST /api/subscriptions/cancel
+   * with the probed payment_id, then back to a CLEAN form: the 400's own
+   * promise («انتظر الموافقة أو ألغِه») is finally a real affordance. The
+   * dialog-local 401 journey mirrors handleSent's (login with return path). */
+  const handleCancelPending = async () => {
+    // No id (probe failed but the 400 says a row exists) → the backend's own
+    // fallback cancels the user's LATEST pending row (body without payment_id).
+    setSubmitting(true)
+    try {
+      await apiFetch("/api/subscriptions/cancel", {
+        method: "POST",
+        skipAuthRedirect: true,
+        body: JSON.stringify(paymentId ? { payment_id: paymentId } : {}),
+      })
+      premiumToast("success", "تم إلغاء الطلب المعلق — يمكنك إرسال طلب جديد الآن")
+      setPendingInfo(null)
+      setPaymentId(null)
+      setResolutionMsg("")
+      sentRef.current = false
+      setStep("form")
+    } catch (e: unknown) {
+      if (e instanceof ApiError && e.status === 401) {
+        premiumToast("info", "سجّل الدخول أولاً لإتمام الاشتراك — سنعيدك هنا مباشرة")
+        window.location.href =
+          "/login?redirect=" +
+          encodeURIComponent(window.location.pathname + window.location.search)
+        return
+      }
+      const msg = e instanceof Error && e.message ? e.message : "فشل إلغاء الطلب المعلق"
+      premiumToast("error", msg)
+      /* The row may have been resolved server-side while this screen was
+       * open (admin approved/rejected, or a same-tenant teammate cancelled)
+       * — re-probe and fall back to the form when nothing is pending
+       * anymore, so the cancel button can never become a dead end of its
+       * own. */
+      const d = await probePendingRequest()
+      if (!d) {
+        setPendingInfo(null)
+        setPaymentId(null)
+        setStep("form")
+      } else {
+        setPendingInfo(d)
+        setPaymentId(d.payment_id)
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  /* v18 (1-b): wait-and-close — the request stays pending; the reopen probe
+   * lands back on this screen (with the live details) and the admin decision
+   * keeps flowing through the waiting journey's SSE/poll. */
+  const handleWaitForApproval = () => {
+    premiumToast("info", "سيبقى طلبك قيد المراجعة — يمكنك إغلاق النافذة والعودة لاحقاً لمتابعة الحالة")
+    handleOpenChange(false)
+  }
+
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
@@ -433,6 +561,7 @@ export function PaymentDialog({
         setSenderAccountNumber("")
         setReceiptImageUrl("")
         setPaymentId(null)
+        setPendingInfo(null) // v18 (1-b): the reopen probe re-fills it when needed
       }
       onOpenChange(open)
     },
@@ -613,6 +742,20 @@ export function PaymentDialog({
 
           {step === "waiting" && (
             <WaitingScreen provider={provider} freePlan={isFreePlan} headingRef={stepHeadingRef} />
+          )}
+
+          {/* v18 (1-b): a previous request is still pending — cancel / wait.
+              Reached either from the open probe (pre-empting the doomed form
+              fill) or from the create-path 400 «لديك طلب دفع معلق». */}
+          {step === "pending" && (
+            <PendingScreen
+              planName={pendingInfo?.plan_name}
+              amount={pendingInfo?.amount}
+              onCancel={handleCancelPending}
+              onWait={handleWaitForApproval}
+              cancelling={submitting}
+              headingRef={stepHeadingRef}
+            />
           )}
 
           {step === "approved" && (

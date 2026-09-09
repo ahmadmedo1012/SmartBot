@@ -15,6 +15,7 @@ import type { ApiUser } from "@/lib/types"
 interface TelegramConfig {
   botToken: string
   botTokenMasked?: boolean
+  botTokenConfigured?: boolean
   chatId: string
   events: string[]
   isActive: boolean
@@ -125,6 +126,14 @@ export default function AdminTelegramPage() {
   /* v15-E5 (D4-H4): adminCount is the backend's real key (linkedAdmins was
    * never in the response → the count read 0 forever). */
   const linkedAdmins = diagnose?.adminCount ?? 0
+
+  /* v18-1-d (حارس الإشارة): «غير مكوّن» = لا توكن بوت أو لا مستلم واحد —
+   * الحالة التي كانت تمر بصمت تام (حلقة فارغة في notify_*) وتترك طلبات
+   * الدفع معلقة للأبد. تُعرض كبطاقة تحذير برتقالية واضحة أعلى الصفحة
+   * قبل أي شيء آخر، مع خطوات الإصلاح المختصرة (BotFather → التوكن → لصقه). */
+  const tokenConfigured = configQuery.data?.botTokenConfigured ?? configQuery.data?.botTokenMasked ?? false
+  const notifyUnconfigured = configQuery.isSuccess && diagnoseQuery.isSuccess &&
+    (!tokenConfigured || linkedAdmins === 0)
 
   // ── Subscription approvers ──
   const approversQuery = useQuery({
@@ -258,6 +267,36 @@ export default function AdminTelegramPage() {
           <Button size="sm" variant="outline" onClick={() => configQuery.refetch()}>
             <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
           </Button>
+        </div>
+      )}
+
+      {/* v18-1-d (حارس الإشارة): قناة الإشعارات ميتة — بطاقة تحذير صفراء/برتقالية
+          واضحة (نفس idiom SetupWarnings) بدل الصمت: بدون توكن أو بدون مستلم
+          واحد لن تصل أي إشعار، وكل دفعة جديدة تبقى معلقة بلا موافقة. */}
+      {notifyUnconfigured && (
+        <div role="alert" aria-label="تحذير: إشعارات تليجرام غير مكوّنة"
+             className="rounded-xl border border-warning/30 bg-warning/10 p-4 sm:p-5 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+            <AlertTriangle className="size-4 shrink-0 text-warning" aria-hidden="true" />
+            {!tokenConfigured ? "إشعارات تليجرام غير مكوّنة — لن يصل أي إشعار" : "لا يوجد مستلم للإشعارات — لن يصل أي إشعار"}
+          </div>
+          <p className="text-sm text-foreground/80 leading-relaxed">
+            {!tokenConfigured ? (
+              <>لن تصل أي إشعارات حتى تضيف توكن البوت ومستلمًا واحدًا على الأقل —
+              كل طلب دفع أو اشتراك جديد سيبقى معلّقًا في انتظار موافقة لا تصل لأحد.</>
+            ) : (
+              <>توكن البوت محفوظ لكن لا يوجد مستلم واحد على الأقل — أضف معرف
+              تليجرام خاصتك في قسم «الموافقون على الاشتراكات» بالأسفل لتصلك
+              طلبات الموافقة.</>
+            )}
+          </p>
+          {!tokenConfigured && (
+            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline text-warning">@BotFather</a> في تليجرام وأرسل /newbot ثم انسخ التوكن.</li>
+              <li>الصق التوكن (بصيغة 123456789:AA…) في حقل «رمز البوت» بالأسفل واحفظ الإعدادات.</li>
+              <li>أضف معرف تليجرام في «الموافقون على الاشتراكات» ثم اضغط «اختبار الإرسال» للتحقق.</li>
+            </ol>
+          )}
         </div>
       )}
 

@@ -1,14 +1,20 @@
-"""Subscription payment routes: create, status poll, upgrade.
+"""Subscription payment routes: create, status poll, pending probe, cancel, upgrade.
 
 v13-L4: split out of the former 594-line ``routers/payments.py`` monolith —
 endpoint bodies moved VERBATIM. This module exclusively owns the in-process
 pending-submission lock registry (``_SUB_PENDING_LOCKS`` / ``_pending_lock``)
 and the receipt-reference validation (``_validated_receipt_url``).
+
+v18 (1-b): the «لديك طلب دفع معلق» dead-end closure — the 400 promised an
+cancel affordance that never existed. Two endpoints join the family:
+  - GET  /api/subscriptions/pending  → the user's latest pending row (probe)
+  - POST /api/subscriptions/cancel   → pending → cancelled (self-service)
 """
 import asyncio
 import logging
 
 from _responses import ok
+from _utils import iso_z
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
@@ -193,6 +199,85 @@ async def subscription_status(payment_id: int = Query(...), db=Depends(get_db), 
     if not sp or (sp.user_id != current_user.id and sp.tenant_id != (current_user._tenant_id or 0)):
         raise HTTPException(404, "الدفعة غير موجودة")
     return ok({"id": sp.id, "status": sp.status, "plan_id": sp.plan_id, "plan_name": sp.plan_name})
+
+
+@router.get("/api/subscriptions/pending")
+async def subscription_pending(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Latest PENDING payment of the current user (v18 1-b — dialog pre-open probe).
+
+    The /subscribe dialog calls this on open: a user with a live pending
+    request lands directly on the pending screen instead of filling the whole
+    payment form only to hit the 400 «لديك طلب دفع معلق» dead end (the very
+    complaint of the first production customer). Empty state is ``ok(None)`` —
+    HTTP 200 by design: the dialog treats ANY error (network/401) as "no
+    pending" and stays silent (today's behavior), so 404 would be wrong here.
+
+    Only the user's OWN rows — this is a personal review state, not the
+    tenant-wide admin queue (that lives in /api/admin/subscriptions).
+    """
+    sp = (await db.execute(
+        select(SubscriptionPayment)
+        .where(
+            SubscriptionPayment.user_id == current_user.id,
+            SubscriptionPayment.status == "pending",
+        )
+        .order_by(SubscriptionPayment.id.desc())
+        .limit(1)
+    )).scalars().first()
+    if not sp:
+        return ok(None)
+    return ok({
+        "payment_id": sp.id,
+        "status": sp.status,
+        "plan_id": sp.plan_id,
+        "plan_name": sp.plan_name,
+        "amount": float(sp.amount),
+        "provider": sp.provider,
+        "created_at": iso_z(sp.created_at),
+    })
+
+
+@router.post("/api/subscriptions/cancel")
+async def cancel_pending_subscription(body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Cancel the user's pending subscription payment (v18 1-b — dead-end fix).
+
+    The create-path 400 message promises «انتظر الموافقة أو ألغِه» — until now
+    the «ألغِه» half had NO endpoint and NO button anywhere: a user whose
+    Telegram notification never reached an admin was permanently locked out
+    of the payment form. This closes the loop: pending → cancelled, then the
+    dialog returns the user to the form for a fresh request.
+
+    Body: {"payment_id": int} — the id the dialog got from /pending or the
+    400-probe; omitted/falsy falls back to the user's latest pending row.
+
+    Isolation mirrors subscription_status: owner (user_id) OR same tenant.
+    A non-pending row refuses (400) — admin decisions (verified/cancelled)
+    are final and never overwritten by a late user cancel. No rate limit:
+    self-service on a row the caller already owns (read/cancel of own state).
+    """
+    payment_id = _as_int(body.get("payment_id", 0) or 0, "معرف الدفعة")
+    sp = None
+    if payment_id:
+        sp = await db.get(SubscriptionPayment, payment_id)
+    else:
+        sp = (await db.execute(
+            select(SubscriptionPayment)
+            .where(
+                SubscriptionPayment.user_id == current_user.id,
+                SubscriptionPayment.status == "pending",
+            )
+            .order_by(SubscriptionPayment.id.desc())
+            .limit(1)
+        )).scalars().first()
+    # Tenant isolation — same rule as subscription_status: 404 (never 403)
+    # keeps foreign payment ids indistinguishable from nonexistent ones.
+    if not sp or (sp.user_id != current_user.id and sp.tenant_id != (current_user._tenant_id or 0)):
+        raise HTTPException(404, "الدفعة غير موجودة")
+    if sp.status != "pending":
+        raise HTTPException(400, "لا يمكن إلغاء طلب غير معلق")
+    sp.status = "cancelled"
+    await db.commit()
+    return ok({"id": sp.id, "status": "cancelled"})
 
 
 @router.post("/api/subscriptions/upgrade")

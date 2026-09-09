@@ -11,7 +11,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import { ApprovedScreen, RejectedScreen, SuccessScreen, WaitingScreen } from "./payment-status"
+import { ApprovedScreen, PendingScreen, RejectedScreen, SuccessScreen, WaitingScreen } from "./payment-status"
 
 describe("WaitingScreen", () => {
   it("renders the fixed waiting title and subtitle", () => {
@@ -34,6 +34,16 @@ describe("WaitingScreen", () => {
 
     render(<WaitingScreen provider="bank" />)
     expect(screen.getByText("بانتظار موافقة الإدارة")).toBeInTheDocument()
+  })
+
+  it("carries the v18 honest admin-route line (close-and-return is safe)", () => {
+    render(<WaitingScreen provider="liyana" />)
+
+    expect(
+      screen.getByText(
+        "سيصل إشعار للمسؤول فوراً — يمكنك إغلاق النافذة والعودة لاحقاً، أو انتظار الموافقة هنا",
+      ),
+    ).toBeInTheDocument()
   })
 })
 
@@ -87,5 +97,47 @@ describe("SuccessScreen", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "إغلاق" }))
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("PendingScreen (v18 1-b — the dead-end closure)", () => {
+  it("shows the pending title, admin-review copy and both affordances", () => {
+    render(<PendingScreen onCancel={vi.fn()} onWait={vi.fn()} />)
+
+    expect(screen.getByText("لديك طلب دفع معلق")).toBeInTheDocument()
+    // generic copy when no probe details are available (regex — the <p>
+    // also carries the trailing affordance sentence)
+    expect(screen.getByText(/طلبك السابق قيد المراجعة من قبل الإدارة/)).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "إلغاء الطلب المعلق وإعادة المحاولة" }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "الانتظار حتى الموافقة" })).toBeInTheDocument()
+  })
+
+  it("names the pending plan and amount when the probe provided them", () => {
+    render(<PendingScreen planName="الاحترافية" amount={50} onCancel={vi.fn()} onWait={vi.fn()} />)
+
+    expect(screen.getByText(/طلب «الاحترافية» بمبلغ 50 د.ل قيد المراجعة/)).toBeInTheDocument()
+  })
+
+  it("wires both cancel and wait actions", () => {
+    const onCancel = vi.fn()
+    const onWait = vi.fn()
+    render(<PendingScreen onCancel={onCancel} onWait={onWait} />)
+
+    fireEvent.click(screen.getByRole("button", { name: "إلغاء الطلب المعلق وإعادة المحاولة" }))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole("button", { name: "الانتظار حتى الموافقة" }))
+    expect(onWait).toHaveBeenCalledTimes(1)
+  })
+
+  it("disables the cancel action and swaps its label while a cancel is in flight", () => {
+    render(<PendingScreen onCancel={vi.fn()} onWait={vi.fn()} cancelling />)
+
+    const cancel = screen.getByRole("button", { name: "جارٍ الإلغاء…" })
+    expect(cancel).toBeDisabled()
+    // the wait affordance stays available — it is a different decision
+    expect(screen.getByRole("button", { name: "الانتظار حتى الموافقة" })).toBeEnabled()
   })
 })

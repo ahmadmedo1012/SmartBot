@@ -160,7 +160,11 @@ describe("PaymentDialog phone validation (no network on bad input)", () => {
       "error",
       "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)",
     )
-    expect(fetchMock).not.toHaveBeenCalled()
+    // v18 (1-b): the ONLY network call is the open probe (GET
+    // /api/subscriptions/pending, dead-end guard — the stub answers empty
+    // so the form stays); the invalid phone must never reach the POST.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/subscriptions/pending")
     // still on the form step — no waiting screen
     expect(screen.queryByText("في انتظار تأكيد الدفع")).toBeNull()
   })
@@ -182,9 +186,12 @@ describe("PaymentDialog successful submit → waiting screen", () => {
       expect(screen.getByText("في انتظار تأكيد الدفع")).toBeInTheDocument()
     })
 
-    // POST contract: exact endpoint + JSON body shape
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    // v18 (1-b): the open probe (GET /api/subscriptions/pending — the
+    // dead-end guard) precedes the POST; the stub answers data-less for it
+    // so the dialog stays on the form until the submit.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/subscriptions/pending")
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit]
     expect(url).toBe("/api/subscriptions")
     expect(init.method).toBe("POST")
     expect(init.credentials).toBe("include")

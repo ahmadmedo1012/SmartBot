@@ -17,6 +17,10 @@ import { apiFetch } from "@/lib/csrf-client"
 import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
 import { unwrapApi } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
+import { toComparisonPlan, type ComparisonPlanInput } from "@/components/subscribe/plan-comparison"
+/* v18-1-c: الخطط تُرسم فوراً من الثوابت المدمجة (مرآة بذرة الخادم) ثم
+   hydrate من GET /api/plans بتبديل صامت — لا skeleton بانتظار دالة باردة */
+import { DEFAULT_PLANS, plansEqual } from "@/lib/default-plans"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
 
 /* v6+ — framer-free: entrance animations use ScrollReveal (CSS tween) and
@@ -25,28 +29,48 @@ import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
  * h1, verified live on /pricing). */
 
 interface Plan {
-  id: string; name: string; name_ar: string; price: number
+  id: number; name: string; name_ar: string; price: number
   max_replies: number; max_pages: number; max_rules: number | string
   features: string[]
 }
+
+/* v18-1-c: العرض الابتدائي — الخطط الافتراضية بنفس عقد السلك، فتُرسم
+   البطاقات من أول إطار ويتحدّث المحتوى بصمت عند وصول الـAPI */
+const DEFAULT_VIEW_PLANS: Plan[] = DEFAULT_PLANS.map((p) => ({
+  id: p.id,
+  name: p.name,
+  name_ar: p.name_ar || p.name,
+  price: Number(p.price),
+  max_replies: p.max_replies ?? 0,
+  max_pages: p.max_pages ?? 0,
+  max_rules: p.max_rules ?? 0,
+  features: p.features ?? [],
+}))
 
 const PLAN_ICONS = [Sparkles, Star, Crown, Crown]
 
 export default function PricingPage() {
   const router = useRouter()
-  const [plans, setPlans] = useState<Plan[]>([])
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_VIEW_PLANS)
   const [annual, setAnnual] = useState(false)
-  const [loadState, setLoadState] = useState<"loading" | "error" | "ok">("loading")
+  const [plansFailed, setPlansFailed] = useState(false)
 
   const loadPlans = useCallback(() => {
-    setLoadState("loading")
+    setPlansFailed(false)
     apiFetch("/api/plans")
-      .then((res) => unwrapApi<Plan[]>(res))
+      .then((res) => unwrapApi<ComparisonPlanInput[]>(res))
       .then((d) => {
-        setPlans(d ?? [])
-        setLoadState("ok")
+        const next = (d ?? []) as Plan[]
+        if (next.length > 0) {
+          // تبديل صامت: نفس id/سعر/ترتيب/عدد الميزات يُبقي مرجع المصفوفة
+          // (مفاتيح React ثابتة) → لا إعادة تركيب للبطاقات ولا وميض
+          setPlans((prev) =>
+            plansEqual(prev.map(toComparisonPlan), next.map(toComparisonPlan)) ? prev : next,
+          )
+        }
+        setPlansFailed(next.length === 0)
       })
-      .catch(() => setLoadState("error"))
+      .catch(() => setPlansFailed(true))
   }, [])
 
   useEffect(() => {
@@ -57,7 +81,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-background relative overflow-hidden">
       <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-30">
         <SectionContainer><div className="flex items-center justify-between h-14">
-          <a href="/" className="flex items-center gap-2">
+          <a href="/" className="flex items-center gap-2 min-h-11">
             <Image src="/brand-icon.png" alt="" width={56} height={56} className="size-7 rounded-md" priority />
             <span className="font-bold text-sm">SmartBot</span>
           </a>
@@ -127,7 +151,7 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(false)}
             aria-pressed={!annual}
-            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -136,7 +160,7 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(true)}
             aria-pressed={annual}
-            className={`px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -151,44 +175,52 @@ export default function PricingPage() {
       </SectionContainer>
 
       <SectionContainer className="pb-24">
-        {/* Plan cards — scroll-triggered stagger (scroll-craft §G.4) */}
-        {loadState === "loading" && (
-          <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto" role="status" aria-label="جارٍ تحميل الخطط">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="h-96 rounded-2xl border border-border/40 bg-card/60 animate-pulse" />
-            ))}
-          </div>
-        )}
-        {loadState === "error" && (
-          <div className="max-w-md mx-auto text-center py-16" role="alert">
-            <div className="size-14 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto mb-4">
-              <Zap className="size-6 text-accent-foreground" />
-            </div>
-            <p className="font-bold mb-1">تعذر تحميل الخطط</p>
-            <p className="text-sm text-muted-foreground mb-5">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</p>
+        {/* v18-1-c: بطاقات تُرسم فوراً من الافتراضية؛ فشل الـAPI النهائي
+            يُبقيها مع لافتة + زر إعادة المحاولة (بدل استبدال الشبكة بحالة
+            خطأ فارغة) */}
+        {plansFailed && (
+          <div className="max-w-md mx-auto text-center mb-10" role="status">
+            <p className="text-sm text-muted-foreground mb-3">تُعرض الباقات الافتراضية — أعد المحاولة</p>
             <Button variant="outline" onClick={loadPlans}>إعادة المحاولة</Button>
           </div>
         )}
-        {loadState === "ok" && plans.length === 0 && (
-          <div className="max-w-md mx-auto text-center py-16">
-            <div className="size-14 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="size-6 text-accent-foreground" />
-            </div>
-            <p className="font-bold mb-1">لا توجد خطط منشورة حالياً</p>
-            <p className="text-sm text-muted-foreground">تواصل مع الدعم لترتيب خطة تناسبك</p>
-          </div>
-        )}
-        <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
+        {/* Plan cards — scroll-triggered stagger (scroll-craft §G.4).
+            v18-1e (orphan-card fix): the flat md:grid-cols-3 left the 5th
+            plan on a ragged half-filled second row. Deliberate contract:
+            <sm stacked single column (richest cards keep full width) ·
+            sm 2-up with a full-width trailing card for odd counts ·
+            md+ 6 tracks → 3-up rows with the trailing row CENTERED
+            (a lone card at track 3, a pair from track 2) — the classic
+            pricing-page balance. These marketing cards stay 3-up at lg
+            (unlike /subscribe's compact 4+wide strip): at max-w-6xl a
+            4/5-up row would compress the text-5xl price + feature lists
+            below their designed width. */}
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-6 max-w-6xl mx-auto">
           {plans.map((plan, i) => {
             const Icon = PLAN_ICONS[i] || Sparkles
             const isPopular = i === 1
+            /* v18-1e — md 6-track centering: rem = plans on the last 3-up
+               row. rem===1 → the lone card centers at track 3; rem===2 →
+               the pair starts at track 2 (tracks 2-3 + 4-5). */
+            const rem = plans.length % 3
+            const loneLast = rem === 1 && i === plans.length - 1
+            const pairFirst = rem === 2 && i === plans.length - 2
             return (
               <ScrollReveal
                 key={plan.id}
                 y={28}
                 delay={i * 120}
                 duration={0.7}
-                className={cn("relative", isPopular && "lg:-mt-4")}
+                className={cn(
+                  "relative",
+                  "md:col-span-2",
+                  loneLast && "md:col-start-3",
+                  pairFirst && "md:col-start-2",
+                  /* odd count at sm: the trailing card goes full-width so
+                     the 2-up grid never strands a half-width orphan */
+                  plans.length % 2 === 1 && i === plans.length - 1 && "sm:col-span-2",
+                  isPopular && "lg:-mt-4",
+                )}
               >
                 <div
                   className="h-full transition-transform duration-300 ease-out hover:-translate-y-1.5"
@@ -307,8 +339,10 @@ export default function PricingPage() {
   )
 }
 
-function getDescription(planId: string): string {
-  if (planId === "free") return "للتجربة والصفحات الصغيرة"
-  if (planId === "basic") return "للنشاطات التجارية المتوسطة"
+function getDescription(planId: number): string {
+  // v18-1-c: id رقمي على السلك (1-5) — فروع "free"/"basic" النصية القديمة
+  // لم تكن تطابق أبداً؛ رُبط الوصف المقصود بالمعرف الرقمي
+  if (planId === 1) return "للتجربة والصفحات الصغيرة"
+  if (planId === 2) return "للنشاطات التجارية المتوسطة"
   return "للشركات والوكالات الكبيرة"
 }

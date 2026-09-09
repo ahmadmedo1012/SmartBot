@@ -1,0 +1,27 @@
+{
+  "$schema": "console-canary-baseline-v16",
+  "comment": "v16-E6 (dec-canary-watch) — بصمة أخطاء console/الوعود غير المعالجة للصفحات العامة. تُبذّر بأول تشغيل للبطارية ثم أي قياس لاحق يجب ألا يتجاوزها (≤ لكل صفحة وإجمالاً). تحديثها قرار منسّق مقصود مع تبرير — لا آلية صامتة.",
+  "seededAt": "2026-09-09T05:12:30.469Z",
+  "pages": {
+    "/": {
+      "consoleErrors": 0,
+      "unhandledRejections": 0
+    },
+    "/pricing": {
+      "consoleErrors": 0,
+      "unhandledRejections": 0
+    },
+    "/login": {
+      "consoleErrors": 1,
+      "unhandledRejections": 0
+    },
+    "/dashboard": {
+      "consoleErrors": 1,
+      "unhandledRejections": 0
+    }
+  },
+  "total": {
+    "consoleErrors": 2,
+    "unhandledRejections": 0
+  }
+}

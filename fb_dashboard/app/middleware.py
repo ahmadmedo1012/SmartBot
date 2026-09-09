@@ -283,7 +283,24 @@ async def static_cache_middleware(request: Request, call_next):
         response.headers["Cache-Control"] = "no-cache"
     # API GET responses that don't need real-time freshness
     elif request.method == "GET" and any(request.url.path.startswith(p) for p in _CACHEABLE_API_PREFIXES):
-        response.headers["Cache-Control"] = "public, max-age=60"
+        # v18-1-c (edge-cache): the browser max-age stays 0 (the wallet cap /
+        # payment phones must revalidate per session) but s-maxage lets the
+        # VERCEL EDGE serve these public payloads for 2–5 minutes — the
+        # first visitor after a cold function pays the ~12s boot, everyone
+        # else in the window gets a sub-50ms HIT (X-Vercel-Cache: HIT).
+        # vercel.json route headers CANNOT override a function-set
+        # Cache-Control, so the directive must come from here. stale-while-
+        # revalidate keeps the window seamless. Plans change with a deploy
+        # anyway (DEFAULT_PLANS ships in the same bundle) — 5min staleness
+        # is invisible; /api/config is admin-editable so its window is 2min.
+        if request.url.path.startswith("/api/plans"):
+            response.headers["Cache-Control"] = (
+                "public, max-age=0, s-maxage=300, stale-while-revalidate=600"
+            )
+        else:
+            response.headers["Cache-Control"] = (
+                "public, max-age=0, s-maxage=120, stale-while-revalidate=300"
+            )
     # v11-A1 — MIME repair: StaticFiles guesses content types from the
     # platform mimetypes db; on api-domain production .woff2 fell back to
     # application/octet-stream (browsers with strict MIME checking refuse to

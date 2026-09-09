@@ -1,6 +1,6 @@
-== v17 post-deploy battery — 2026-09-09T12:36:44Z ==
+== v17 post-deploy battery — 2026-09-09T18:14:47Z ==
 web: https://bot.smart-link.ly · api: https://api.smart-link.ly · canary baseline: /home/z/my-project/SmartBot/docs/evidence/baseline-console.json
-landing first-load JS (bot domain): 684558 bytes (~668KB raw)
+landing first-load JS (bot domain): 684972 bytes (~668KB raw)
 ── القسم P: canary browser pass (dec-canary-watch) ──
 {
   "pagesLoaded": true,

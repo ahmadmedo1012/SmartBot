@@ -5,6 +5,7 @@ import { brandedToast } from "@/lib/premium-toast"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { SetupWarnings } from "@/components/shared/SetupWarnings"
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus"
 import { apiFetch } from "@/lib/csrf-client"
 /* v11-A7 — framer-free page entrance. This motion.div was the only reason
  * EVERY dashboard route (26) eagerly shipped the ~116KB framer-motion
@@ -20,12 +21,19 @@ import "@/components/shared/enter-motion.css"
  *   500/30, ~2x stiffer)
  * - sidebar stays a flex sibling (no fixed overlay) — content flows beside it
  * - the dead "اشتراك" sidebar CTA is now wired to /subscribe (was never
- *   passed → button never rendered, OnboardingTour step was broken) */
+ *   passed → button never rendered, OnboardingTour step was broken)
+ * - v19 Step 1: the CTA is now CONDITIONAL — it renders only while the
+ *   tenant has NO live PAID/TRIAL entitlement (useSubscriptionStatus, the
+ *   shared /api/me derivation). A subscribed customer saw a dead upsell
+ *   button forever + could re-enter the payment flow (the duplicate
+ *   complaint); pending-payment users keep the button so they can reach
+ *   the v18 cancel flow from the sidebar. */
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   // v17-E-F2 (D2-P1 entrance census): keyed per-route entrance below.
   const pathname = usePathname()
+  const { hasActiveSubscription, isLoading: subLoading } = useSubscriptionStatus()
 
   const handleNavigate = (href: string) => {
     router.push(href)
@@ -46,7 +54,14 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
       <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
-        <AdminSidebar onNavigate={handleNavigate} onLogout={handleLogout} onSubscribe={handleSubscribe} />
+        {/* v19 Step 1: hide the upsell CTA once the tenant is actively
+            subscribed (unknown/loading keeps the button — avoids a
+            hide-flash on first paint for everyone). */}
+        <AdminSidebar
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+          onSubscribe={subLoading || !hasActiveSubscription ? handleSubscribe : undefined}
+        />
       </div>
       {/* v8-B7: #page-content — the skip-link target. Sidebar (nav) stays
        * OUTSIDE this wrapper so keyboard users land directly in the content.

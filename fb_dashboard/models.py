@@ -617,6 +617,103 @@ class Comment(Base):
     created_at = Column(DateTime, default=utcnow, index=True)
 
 
+class Post(Base):
+    """Persisted FB page post (v19 Step 2 — DB-first posts, the comments precedent).
+
+    /api/posts was live-Graph-only: any Graph hiccup (missing scope, partial
+    token expiry, transient timeout) rendered the section EMPTY with zero
+    error surfaced to the user — exactly the class the comments/inbox fix
+    (v4 §4.10 / v3 §4.2) already closed for those sections. Feed webhook
+    post events + the endpoint's non-fatal 30s live sync upsert here, so
+    posts always serve stored rows first."""
+    __tablename__ = "fb_posts"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_post_id", name="uq_fbposts_tenant_fb"),
+        Index("ix_fbposts_tenant_created", "tenant_id", "created_time"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_post_id = Column(String(128), nullable=False)
+    message = Column(Text, default="")
+    like_count = Column(Integer, default=0)
+    share_count = Column(Integer, default=0)
+    comment_count = Column(Integer, default=0)
+    # FB-side post time (the list sort key — NOT our ingestion timestamp)
+    created_time = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AdAccount(Base):
+    """Persisted FB ad account (v19 Step 2 — DB-first ads).
+
+    Same rationale as Post: /api/ads/accounts was live-Graph-only and a
+    failing token rendered «لا توجد حسابات إعلانية مرتبطة» (looks empty
+    instead of broken). The endpoint's non-fatal 30s live sync upserts here."""
+    __tablename__ = "ad_accounts"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_account_id", name="uq_adaccounts_tenant_fb"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_account_id = Column(String(64), nullable=False)
+    name = Column(String(255), default="")
+    account_status = Column(Integer, default=0)
+    currency = Column(String(16), default="")
+    amount_spent = Column(String(32), default="0")
+    balance = Column(String(32), default="0")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AdCampaign(Base):
+    """Persisted FB ads campaign (v19 Step 2 — DB-first ads).
+
+    ``payload_json`` stores the RAW Graph campaign dict verbatim so the
+    endpoint re-serves the exact historical shape (incl. nested adsets)
+    from the DB even when the live fetch later fails."""
+    __tablename__ = "ad_campaigns"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_campaign_id", name="uq_adcampaigns_tenant_fb"),
+        Index("ix_adcampaigns_tenant_account", "tenant_id", "fb_account_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_account_id = Column(String(64), nullable=False, default="")
+    fb_campaign_id = Column(String(64), nullable=False)
+    name = Column(String(255), default="")
+    status = Column(String(32), default="")
+    payload_json = Column(Text, default="{}")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class AdItem(Base):
+    """Persisted FB ad (v19 Step 2 — DB-first ads).
+
+    ``payload_json`` keeps the raw Graph ad dict (creative + insights) so
+    /api/ads/ads/{account_id} re-serves the exact live shape from the DB."""
+    __tablename__ = "ad_items"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "fb_ad_id", name="uq_aditems_tenant_fb"),
+        Index("ix_aditems_tenant_account", "tenant_id", "fb_account_id"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tenant_id = Column(Integer, nullable=False, default=0, index=True)
+    fb_account_id = Column(String(64), nullable=False, default="")
+    fb_ad_id = Column(String(64), nullable=False)
+    campaign_id = Column(String(64), default="")
+    name = Column(String(255), default="")
+    status = Column(String(32), default="")
+    payload_json = Column(Text, default="{}")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class ConversationNote(Base):
     """Internal notes attached to a conversation (any platform)."""
     __tablename__ = "conversation_notes"

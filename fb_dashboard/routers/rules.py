@@ -1,10 +1,11 @@
 """Rules CRUD routes: list, create, update, delete, toggle."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
+import json
 import logging
 
 from _responses import ok
 from database import get_db
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from models import Message, Reply, Rule, User
 from sqlalchemy import func, select
 
@@ -12,6 +13,57 @@ from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["rules"])
+
+
+class RulePayload:
+    """Normalized create/update payload (v19 Step 4).
+
+    v17 Convention #1 (JSON+Form dual body) was implemented for templates
+    but never ported here: /api/rules declared Form(...) ONLY, so any JSON
+    client (the documented convention; a future mobile app; curl callers)
+    hit a guaranteed 422 "field required" × N. The live UI today sends
+    URLSearchParams (form-encoded) which worked — the gap was latent. This
+    closes it with the exact templates_routes precedent.
+    """
+
+    def __init__(self, data: dict):
+        self.name = str(data.get("name") or "").strip()
+        self.keywords = str(data.get("keywords") or "").strip()
+        self.reply_template = str(data.get("reply_template") or "").strip()
+        self.description = str(data.get("description") or "")
+        self.bot_type = str(data.get("bot_type") or "reply")
+        self.dm_template = str(data.get("dm_template") or "")
+        # v15-E3 (D1-H1) family: bad types answer 422 Arabic, never a 500
+        raw_priority = data.get("priority")
+        if raw_priority in (None, ""):
+            self.priority: int | None = None
+        else:
+            try:
+                self.priority = int(raw_priority)
+            except (ValueError, TypeError):
+                raise HTTPException(422, "قيمة غير صالحة: الأولوية يجب أن تكون رقماً") from None
+        missing = [f for f, v in (("الاسم", self.name), ("الكلمات المفتاحية", self.keywords),
+                                  ("نص الرد", self.reply_template)) if not v]
+        if missing:
+            raise HTTPException(422, "قيمة غير صالحة: الحقول المطلوبة ناقصة — " + "، ".join(missing))
+
+
+async def _rule_payload(request: Request, *, require_priority: bool) -> RulePayload:
+    """v19 Step 4 (v17-E-B1 precedent): accept BOTH JSON and form bodies."""
+    ctype = (request.headers.get("content-type") or "").lower()
+    if "application/json" in ctype:
+        try:
+            data = json.loads(await request.body() or b"{}")
+        except json.JSONDecodeError:
+            raise HTTPException(422, "قيمة غير صالحة: جسم الطلب ليس JSON صالحاً") from None
+        if not isinstance(data, dict):
+            raise HTTPException(422, "قيمة غير صالحة: جسم الطلب يجب أن يكون كائن JSON")
+    else:
+        data = {k: v for k, v in (await request.form()).items()}
+    p = RulePayload(data)
+    if require_priority and p.priority is None:
+        p.priority = 999  # the historical Form default (create path)
+    return p
 
 
 async def _invalidate_engine_rules(tenant_id: int) -> None:
@@ -69,19 +121,15 @@ async def list_rules(
 
 
 @router.post("/api/rules")
-async def create_rule(
-    name: str = Form(...), keywords: str = Form(...),
-    reply_template: str = Form(...), description: str = Form(""),
-    bot_type: str = Form("reply"), dm_template: str = Form(""),
-    priority: int = Form(999),
-    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
-):
+async def create_rule(request: Request, db=Depends(get_db),
+                      current_user: User = Depends(require_role("editor"))):
+    p = await _rule_payload(request, require_priority=True)
     # v4 §5.14 — priority is finally settable from the API/UI (was write-dead:
     # every rule defaulted to 999 and UI had no field)
-    priority = max(1, min(999, priority))
-    kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
-    rule = Rule(name=name, keywords=kw_list, reply_template=reply_template,
-                description=description, dm_template=dm_template, priority=priority)
+    priority = max(1, min(999, p.priority or 999))
+    kw_list = [k.strip() for k in p.keywords.split(",") if k.strip()]
+    rule = Rule(name=p.name, keywords=kw_list, reply_template=p.reply_template,
+                description=p.description, dm_template=p.dm_template, priority=priority)
     rule.tenant_id = current_user._tenant_id
     db.add(rule)
     await db.commit()
@@ -91,24 +139,21 @@ async def create_rule(
 
 
 @router.put("/api/rules/{rule_id}")
-async def update_rule(
-    rule_id: int, name: str = Form(...), keywords: str = Form(...),
-    reply_template: str = Form(...), description: str = Form(""),
-    dm_template: str = Form(""), priority: int | None = Form(None),
-    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
-):
+async def update_rule(rule_id: int, request: Request, db=Depends(get_db),
+                      current_user: User = Depends(require_role("editor"))):
+    p = await _rule_payload(request, require_priority=False)
     rule = (await db.execute(
         select(Rule).where(Rule.id == rule_id, Rule.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()
     if not rule:
         raise HTTPException(404, "القاعدة غير موجودة")
-    rule.name = name
-    rule.keywords = [k.strip() for k in keywords.split(",") if k.strip()]
-    rule.reply_template = reply_template
-    rule.dm_template = dm_template
-    rule.description = description
-    if priority is not None:
-        rule.priority = max(1, min(999, priority))
+    rule.name = p.name
+    rule.keywords = [k.strip() for k in p.keywords.split(",") if k.strip()]
+    rule.reply_template = p.reply_template
+    rule.dm_template = p.dm_template
+    rule.description = p.description
+    if p.priority is not None:
+        rule.priority = max(1, min(999, p.priority))
     await db.commit()
     await _invalidate_engine_rules(current_user._tenant_id)
     return ok({"ok": True})

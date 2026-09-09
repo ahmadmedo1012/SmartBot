@@ -18,6 +18,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, MessageCircle, BarChart3, Bell, Menu, X, LogOut } from "lucide-react"
 import { defaultNavSections, type NavItem } from "./AdminSidebar"
+import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import { cn } from "@/lib/utils"
 
 const BAR_ITEMS: NavItem[] = [
@@ -157,14 +158,21 @@ export function MobileBottomNav({
               </div>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => { setSheetOpen(false); onLogout() }}
-            tabIndex={sheetOpen ? 0 : -1}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[color,background-color,border-color,transform]"
-          >
-            <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
-          </button>
+          {/* v19 Step 3 — theme toggle in the mobile dashboard: the sheet is
+              the mobile dashboard's quick-settings surface; the switcher
+              lived only on public/login pages so it disappeared after login
+              (the live complaint). Paired with the logout row. */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="!size-11 shrink-0" tabIndex={sheetOpen ? 0 : -1} />
+            <button
+              type="button"
+              onClick={() => { setSheetOpen(false); onLogout() }}
+              tabIndex={sheetOpen ? 0 : -1}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[color,background-color,border-color,transform]"
+            >
+              <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
+            </button>
+          </div>
         </div>
       </div>
 

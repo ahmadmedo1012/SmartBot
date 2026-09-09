@@ -10,6 +10,7 @@ import jwt
 from _audit import log_audit
 from _hash import hash_password, verify_password
 from _responses import ok
+from _subscription import subscription_snapshot
 from _utils import iso_z, utcnow
 from config import settings
 from database import get_db
@@ -164,16 +165,23 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     # (a paid customer sees "free" right after paying). The honest source is
     # the tenant row — the SAME one /api/me reads below (auth.py:265-280).
     login_plan = "free"
+    login_tenant = None
     if user.tenant_id:
         login_tenant = await db.get(Tenant, user.tenant_id)
         if login_tenant:
             login_plan = login_tenant.plan or "free"
+    # v19 Step 1: the honest-login plan name alone never said whether the
+    # tenant is CURRENTLY entitled (PAID/TRIAL + unexpired plan_end). The
+    # snapshot block (same derivation as /api/me) lets the frontend gate the
+    # «اشتراك» CTA and the backend guards share ONE source of truth.
+    login_sub = await subscription_snapshot(db, user)
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok({
         "user": {
             "id": user.id, "username": user.username, "name": user.email or user.username,
             "role": user.role, "tenant_id": user.tenant_id,
             "subscriptionStatus": login_plan,
+            **login_sub,
         }
     }))
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
@@ -281,6 +289,12 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             onboarding_completed = bool(tenant.onboarding_completed)
     # v12-E2.10: unified ok() envelope — the `authenticated` sibling is dropped
     # (D4 map: zero runtime consumers of that key; AuthGuard relies on HTTP status).
+    # v19 Step 1: subscriptionState/hasActiveSubscription/hasPendingSubscription/
+    # subscriptionPlanEnd ride along so EVERY page load (AuthGuard refetches
+    # /api/me per pathname change) sees the real server-side truth with no
+    # stale cache — the plan's «SSE may silently die in background tabs» fix
+    # makes correctness depend on any later page load, not a live channel.
+    sub = await subscription_snapshot(db, current_user)
     return ok({
         "user": {
             "id": current_user.id, "username": current_user.username,
@@ -288,6 +302,7 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             "role": current_user.role, "tenant_id": current_user.tenant_id,
             "email": current_user.email, "phone": current_user.phone or "",
             "subscriptionStatus": plan,
+            **sub,
             "permissions": [],
             "roleLabel": current_user.role,
             "onboardingCompleted": onboarding_completed,

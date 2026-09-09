@@ -245,7 +245,7 @@ def test_chain_head_is_014_on_fresh_db(fresh_db):
     create_all السليمة فلا تغيّر شيئًا هنا."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "015"
+    assert _version(fresh_db) == "016"  # v19: جداول fb_posts/ad_* انضمت للسلسلة
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -457,7 +457,8 @@ def test_chain_drops_manual_dup_index_from_013_state(fresh_db):
 
     command.upgrade(cfg, "head")
     # v16-E5: الرأس الآن 015 — خطوة 014 نفسها لم تتغير
-    assert _version(fresh_db) == "015"
+    # v19: الرأس أصبح 016
+    assert _version(fresh_db) == "016"
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
     assert "ix_schedpost_status_sched" not in sched_idx
     assert "ix_schedpost_tenant_status_sched" in sched_idx
@@ -496,8 +497,8 @@ def test_production_boot_path_create_all_reconcile_then_chain(fresh_db):
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")  # الخطوة 3: السلسلة فوق القاعدة نفسها
 
-    # v16-E5: الرأس الآن 015
-    assert _version(fresh_db) == "015"
+    # v16-E5: الرأس الآن 015؛ v19: أصبح 016
+    assert _version(fresh_db) == "016"
     assert "onboarding_completed" not in _columns(fresh_db, "users")
     assert "amount_numeric" not in _columns(fresh_db, "payment_requests")
     sched_idx = _index_sql(fresh_db, "scheduled_posts")

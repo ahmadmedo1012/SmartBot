@@ -103,10 +103,20 @@ async def webhook_receive(request: Request):
             except Exception as e:
                 log.exception(f"Messaging event error: {e}")
 
-        # ── Feed changes (comments) ──
+        # ── Feed changes (posts + comments) ──
+        # v19 Step 2: feed post events (item == "post") were silently DROPPED
+        # here — posts had no persistence layer at all (the DB-first gap this
+        # round closes). Post add/edited/remove now upserts the fb_posts table
+        # so /api/posts serves webhook-fresh rows even when live Graph fails.
         for change in entry.get("changes", []):
             value = change.get("value", {})
             if change.get("field") != "feed":
+                continue
+            if value.get("item") == "post":
+                try:
+                    await _process_webhook_post(value, entry_page_id)
+                except Exception as e:
+                    log.exception(f"Webhook post event error: {e}")
                 continue
             if value.get("item") != "comment":
                 continue
@@ -216,6 +226,69 @@ async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: s
                     return
                 log.warning(f"webhook comment for page {page_id}: tenant {bs.tenant_id} has no FB client — stored only")
                 return
-        log.warning(f"webhook comment for unknown page {page_id or '(none)'} — skipped")
+        log.warning(f"webhook comment for page {page_id or '(none)'} — skipped")
     except Exception as e:
         log.exception(f"Webhook comment processing error: {e}")
+
+
+async def _process_webhook_post(value: dict, entry_page_id: str):
+    """v19 Step 2 — persist one feed POST webhook event to fb_posts.
+
+    Tenant resolution mirrors _process_webhook_comment (the PAGE that
+    emitted the event → BotState.fb_page_id → tenant). Verbs:
+      * add / edited → upsert message + FB-side created_time
+      * remove       → delete the stored row
+    Non-fatal by contract: a persist failure logs and moves on (the endpoint
+    sync will re-fetch the post anyway).
+    """
+    try:
+        post_id = str(value.get("post_id") or "")
+        if not post_id or not entry_page_id:
+            return
+        async with AsyncSessionLocal() as db:
+            row = await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id.isnot(None),
+                    BotState.key == "fb_page_id",
+                    BotState.value == entry_page_id,
+                )
+            )
+            bs = row.scalar_one_or_none()
+        if not bs:
+            log.warning(f"webhook post for unknown page {entry_page_id} — skipped")
+            return
+        verb = str(value.get("verb") or "add")
+        from _utils import utcnow as _now
+        from database import AsyncSessionLocal as _ASL
+        from models import Post as PostRow
+        from routers.facebook_routes import _parse_fb_time as _fb_time
+        async with _ASL() as pdb:
+            existing = (await pdb.execute(
+                select(PostRow).where(
+                    PostRow.tenant_id == bs.tenant_id,
+                    PostRow.fb_post_id == post_id,
+                )
+            )).scalar_one_or_none()
+            if verb == "remove":
+                if existing is not None:
+                    await pdb.delete(existing)
+                    await pdb.commit()
+                _track_event("webhook_post_removed", {"post_id": post_id}, tenant_id=bs.tenant_id)
+                return
+            created = _fb_time(value.get("created_time"))
+            if existing is None:
+                pdb.add(PostRow(
+                    tenant_id=bs.tenant_id,
+                    fb_post_id=post_id,
+                    message=str(value.get("message", "") or ""),
+                    created_time=created,
+                    created_at=_now(),
+                ))
+            else:
+                existing.message = str(value.get("message", "") or existing.message or "")
+                if created is not None:
+                    existing.created_time = created
+            await pdb.commit()
+        _track_event("webhook_post_processed", {"post_id": post_id}, tenant_id=bs.tenant_id)
+    except Exception as e:
+        log.exception(f"Webhook post processing error: {e}")

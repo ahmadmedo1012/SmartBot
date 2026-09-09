@@ -2,25 +2,32 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
-import { Target, AlertCircle, RefreshCw } from "lucide-react"
+import { Target, AlertCircle, RefreshCw, WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
-import type { AdAccount } from "@/lib/types"
+import type { AdsAccountsResponse } from "@/lib/types"
 import { formatNumber } from "@/lib/format"
 
 export default function AdsPage() {
-  const { data: accounts = [], isLoading, isError, error, refetch } = useQuery({
+  /* v19 Step 2 — DB-first envelope: {items, source, synced}. The old bare
+   * array made a FAILING Graph call indistinguishable from «no accounts»
+   * (the empty-state lie). synced=false now tells this page the refresh
+   * itself failed: empty+failed → real error state; rows+failed → rows
+   * with a "last synced" notice. */
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["ads-accounts"],
     queryFn: async () => {
       const res = await apiFetch("/api/ads/accounts")
       if (!res.ok) throw new Error(`فشل تحميل حسابات الإعلانات (${res.status})`)
-      return unwrapApi<AdAccount[]>(res)
+      return unwrapApi<AdsAccountsResponse>(res)
     },
     retry: 1,
   })
+  const accounts = data?.items ?? []
+  const syncFailed = data ? data.synced === false : false
 
   return (
     <div className="flex-1 flex flex-col">
@@ -59,12 +66,32 @@ export default function AdsPage() {
             <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
+        ) : syncFailed && accounts.length === 0 ? (
+          /* v19: Graph refresh failed AND nothing stored — the OLD UI showed
+           * «لا توجد حسابات إعلانية مرتبطة» here (data looked empty instead
+           * of broken). Say the truth + offer retry. */
+          <div className="text-center py-16">
+            <WifiOff className="size-12 mx-auto mb-3 text-destructive/50" />
+            <h2 className="text-sm font-bold mb-1">فشل الاتصال بفيسبوك</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              تعذر تحديث حساباتك الإعلانية من فيسبوك — تحقق من صلاحية رمز الوصول ثم أعد المحاولة.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          </div>
         ) : accounts.length === 0 ? (
           <Card><CardContent className="p-0">
               <EmptyState icon={Target} size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">
+            {syncFailed && (
+              /* rows ARE stored + refresh failed → serve them, but honestly
+               * (v19: no silent stale data). */
+              <div className="flex items-center gap-2 text-2xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
+                <WifiOff className="size-3.5 shrink-0" />
+                <span>فشل التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
+              </div>
+            )}
             {accounts.map((a) => (
               <Card key={a.id}>
                 <CardContent className="p-4">

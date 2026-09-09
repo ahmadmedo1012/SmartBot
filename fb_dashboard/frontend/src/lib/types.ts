@@ -53,6 +53,15 @@ export interface ApiUser {
    *  backend serializer — one of only two camelCase fields in the whole API
    *  (with onboardingCompleted); documented quirk, kept as-sent. */
   subscriptionStatus?: string
+  /** v19 Step 1 — derived subscription state from /api/me & /api/login
+   *  (closed set): "active" (PAID/TRIAL entitlement in force) | "inactive". */
+  subscriptionState?: "active" | "inactive"
+  /** v19 Step 1 — bool twin of subscriptionState (defensive UI checks). */
+  hasActiveSubscription?: boolean
+  /** v19 Step 1 — the user's own pending subscription payment exists. */
+  hasPendingSubscription?: boolean
+  /** v19 Step 1 — ISO date or null; the entitlement's expiry. */
+  subscriptionPlanEnd?: string | null
   /** Reserved permissions list from /api/me (currently always []). */
   permissions?: string[]
   /** Role label from /api/me (mirrors `role` today). */
@@ -228,6 +237,15 @@ export interface AdAccount {
   /** FB sends numeric strings */
   amount_spent?: string
   balance?: string
+}
+
+/** v19 Step 2 — /api/ads/accounts DB-first envelope ({items, source, synced}).
+ *  synced=false + empty items = the live Graph refresh FAILED (the UI must
+ *  say «فشل الاتصال» instead of rendering a lying empty state). */
+export interface AdsAccountsResponse {
+  items: AdAccount[]
+  source: "db"
+  synced: boolean
 }
 
 // ── Analytics ───────────────────────────────────────────────────────────────

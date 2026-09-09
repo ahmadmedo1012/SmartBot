@@ -12,7 +12,7 @@ import { useEffect, useState } from "react"
  * crossfading rotate icon swap, reduced-motion respected by globals.css.
  * v13: framer-motion dependency fully removed app-wide — CSS twins final. */
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({ className, tabIndex }: { className?: string; tabIndex?: number }) {
   const { setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -27,6 +27,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <button
       type="button"
+      tabIndex={tabIndex}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "الوضع النهاري" : "الوضع الليلي"}
       className={cn(

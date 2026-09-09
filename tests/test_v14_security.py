@@ -79,6 +79,14 @@ async def test_c_sec1_self_verification_blocked(v10_seed):
     POST /api/admin/subscriptions {status:"verified"} → باقة PAID بلا مال.
     """
     uname, tid, _uid = await v10_seed.tenant_user(tenant_name="CSEC1")
+    # v19 Step 1: the duplicate-subscription guard rejects creation for a
+    # PAID tenant — this test's chain (create → self-verify blocked) needs a
+    # payable victim, so seed the tenant as UNPAID first.
+    from models import Tenant as _Tenant19
+    async with v10_seed.world.sf() as db:
+        t = await db.get(_Tenant19, tid)
+        t.subscription_status = "UNPAID"
+        await db.commit()
     v10_seed.auth(uname, tid)
     c = v10_seed.world.client
 
@@ -278,6 +286,13 @@ async def test_subscription_create_notifies_admins_inline(v10_seed, monkeypatch)
         db.add(plan)
         await db.commit()
         plan_id = plan.id
+
+    # (v19) Tenant arrives UNPAID so the guard admits the creation
+    from models import Tenant as _TenantNotify19
+    async with v10_seed.world.sf() as db:
+        t = await db.get(_TenantNotify19, tid)
+        t.subscription_status = "UNPAID"
+        await db.commit()
 
     v10_seed.auth(uname, tid)
     r = await _client(v10_seed).post("/api/subscriptions", json={

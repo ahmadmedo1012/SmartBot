@@ -12,15 +12,18 @@ page is not connected.
 """
 from __future__ import annotations
 
+import json
 import logging
+import time
+from datetime import datetime
 
 from _responses import ok
 from _services import _track_event, decrypt_token, encrypt_token, get_tenant_fb_client
 from config import settings
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
-from models import BotState, User
-from sqlalchemy import select
+from models import AdAccount, AdCampaign, AdItem, BotState, Post, User
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from routers.auth import get_current_user, require_role
@@ -46,8 +49,8 @@ def _page_double_bind_message(exc: IntegrityError | None = None) -> str:
         return "هذه الصفحة مربوطة بمساحة عمل أخرى — تواصل مع الدعم إذا كنت ترى هذه الرسالة خطأً"
     return "تعارض أثناء حفظ إعدادات فيسبوك — أعد المحاولة أو حدّث الصفحة ثم أعد الربط"
 
-# per-tenant post pagination cursors: (tenant_id, page) -> after-cursor
-_post_cursors: dict[tuple[int, int], str] = {}
+# per-tenant post pagination was an in-memory cursor cache — replaced by
+# DB pagination in v19 Step 2 (see _POSTS_LAST_SYNC block above).
 
 
 async def _tenant_fb(current_user: User):
@@ -59,6 +62,276 @@ async def _tenant_fb(current_user: User):
     if fb is None:
         raise HTTPException(400, "لم يتم ربط صفحة فيسبوك بعد — اربط صفحتك من صفحة /connect")
     return fb
+
+
+# ── v19 Step 2: DB-first posts + ads (the comments/inbox precedent) ──────
+# BEFORE: /api/posts and /api/ads/* were live-Graph-only with no try/except
+# and no DB fallback — any Graph failure (missing ads_read scope, partial
+# token expiry, transient timeout) rendered those sections EMPTY with zero
+# error surfaced (the «looks empty instead of broken» lie). The comments
+# (v4 §4.10) and inbox (v3 §4.2) sections fixed exactly this class for
+# themselves; posts/ads were forgotten. Same medicine now:
+#   1. best-effort live sync, throttled once per 30s per tenant (per key for
+#      the account-scoped ads endpoints), the timestamp stamped BEFORE the
+#      attempt so a FAILED sync also backs off (comments precedent)
+#   2. serve the stored rows — always, even when the sync just failed
+#
+# The old in-memory ``_post_cursors`` pagination cache is gone with the
+# wind: a cold Vercel instance lost it anyway; DB ORDER BY + OFFSET/LIMIT
+# paginates the same rows deterministically across instances.
+_POSTS_SYNC_SKIP_S = 30.0
+_POSTS_LAST_SYNC: dict[int, float] = {}
+_ADACC_SYNC_SKIP_S = 30.0
+_ADACC_LAST_SYNC: dict[int, float] = {}
+_ADCAMP_SYNC_SKIP_S = 30.0
+_ADCAMP_LAST_SYNC: dict[tuple[int, str], float] = {}
+_ADITEM_SYNC_SKIP_S = 30.0
+_ADITEM_LAST_SYNC: dict[tuple[int, str], float] = {}
+
+
+def _sync_allowed(store: dict, key, skip_s: float) -> bool:
+    """True when a live Graph sync may run for this key now (monotonic).
+
+    Stamp BEFORE the attempt (comments precedent): a failed sync also backs
+    off the full window instead of hammering Graph on every dashboard poll."""
+    now = time.monotonic()
+    last = store.get(key)
+    if last is not None and now - last < skip_s:
+        return False
+    store[key] = now
+    return True
+
+
+def _parse_fb_time(value) -> datetime | None:
+    """Graph created_time ("2026-09-09T15:00:00+0000") → datetime | None."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+
+
+def _payload(raw: str | None) -> dict:
+    """Stored payload_json → dict (defensive: never raises on drift)."""
+    try:
+        value = json.loads(raw or "{}")
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
+
+
+def _count_field(p: dict, *path: str) -> int:
+    """Graph summary counter ("likes.summary.total_count" etc.) → int."""
+    node: object = p
+    for part in path:
+        if not isinstance(node, dict):
+            return 0
+        node = node.get(part) or {}
+    try:
+        return int(node) if not isinstance(node, dict) else 0
+    except (ValueError, TypeError):
+        return 0
+
+
+async def _sync_page_posts(db, tenant_id: int, fb) -> bool:
+    """Best-effort live posts refresh — returns False ONLY on Graph failure.
+
+    Uses the raw fetch (``get_page_posts_raw``): ``None`` = the call itself
+    failed → ``synced=False`` so the UI can say «فشل الاتصال» instead of a
+    lying empty list. Non-fatal by contract — DB rows below still serve."""
+    try:
+        r = await fb.get_page_posts_raw(50)
+    except Exception:
+        return False
+    if r is None:
+        return False
+    posts = r.get("data", []) or []
+    if not posts:
+        return True
+    fb_ids = [str(p.get("id") or "") for p in posts]
+    fb_ids = [i for i in fb_ids if i]
+    if not fb_ids:
+        return True
+    try:
+        existing = (await db.execute(
+            select(Post).where(Post.tenant_id == tenant_id, Post.fb_post_id.in_(fb_ids))
+        )).scalars().all()
+        by_id = {row.fb_post_id: row for row in existing}
+        for p in posts:
+            pid = str(p.get("id") or "")
+            if not pid:
+                continue
+            message = str(p.get("message", "") or "")
+            created = _parse_fb_time(p.get("created_time"))
+            row = by_id.get(pid)
+            if row is None:
+                db.add(Post(
+                    tenant_id=tenant_id, fb_post_id=pid, message=message,
+                    like_count=_count_field(p, "likes", "summary", "total_count"),
+                    share_count=_count_field(p, "shares", "count"),
+                    comment_count=_count_field(p, "comments", "summary", "total_count"),
+                    created_time=created,
+                ))
+            else:
+                row.message = message
+                row.like_count = _count_field(p, "likes", "summary", "total_count")
+                row.share_count = _count_field(p, "shares", "count")
+                row.comment_count = _count_field(p, "comments", "summary", "total_count")
+                if created is not None:
+                    row.created_time = created
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        return False
+
+
+async def _sync_ad_accounts(db, tenant_id: int, fb) -> bool:
+    """Best-effort ad-accounts refresh (same contract as _sync_page_posts)."""
+    try:
+        r = await fb.get_ad_accounts_raw()
+    except Exception:
+        return False
+    if r is None:
+        return False
+    accounts = r.get("data", []) or []
+    if not accounts:
+        return True
+    fb_ids = [str(a.get("id") or "") for a in accounts]
+    fb_ids = [i for i in fb_ids if i]
+    if not fb_ids:
+        return True
+    try:
+        existing = (await db.execute(
+            select(AdAccount).where(AdAccount.tenant_id == tenant_id,
+                                    AdAccount.fb_account_id.in_(fb_ids))
+        )).scalars().all()
+        by_id = {row.fb_account_id: row for row in existing}
+        for a in accounts:
+            aid = str(a.get("id") or "")
+            if not aid:
+                continue
+            row = by_id.get(aid)
+            if row is None:
+                db.add(AdAccount(
+                    tenant_id=tenant_id, fb_account_id=aid,
+                    name=str(a.get("name", "") or ""),
+                    account_status=int(a.get("account_status") or 0),
+                    currency=str(a.get("currency", "") or ""),
+                    amount_spent=str(a.get("amount_spent", "0") or "0"),
+                    balance=str(a.get("balance", "0") or "0"),
+                ))
+            else:
+                row.name = str(a.get("name", "") or row.name)
+                row.account_status = int(a.get("account_status") or 0)
+                row.currency = str(a.get("currency", "") or row.currency)
+                row.amount_spent = str(a.get("amount_spent", "0") or row.amount_spent)
+                row.balance = str(a.get("balance", "0") or row.balance)
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        return False
+
+
+def _graph_status(raw: dict) -> str:
+    try:
+        return str(raw.get("status") or "")
+    except Exception:
+        return ""
+
+
+async def _sync_campaigns(db, tenant_id: int, fb, account_id: str) -> bool:
+    """Best-effort campaigns refresh; payload_json keeps the RAW Graph dict
+    so the endpoint re-serves the exact live shape (nested adsets included)."""
+    try:
+        r = await fb.get_campaigns_raw(account_id)
+    except Exception:
+        return False
+    if r is None:
+        return False
+    campaigns = r.get("data", []) or []
+    if not campaigns:
+        return True
+    fb_ids = [str(c.get("id") or "") for c in campaigns]
+    fb_ids = [i for i in fb_ids if i]
+    if not fb_ids:
+        return True
+    try:
+        existing = (await db.execute(
+            select(AdCampaign).where(AdCampaign.tenant_id == tenant_id,
+                                     AdCampaign.fb_campaign_id.in_(fb_ids))
+        )).scalars().all()
+        by_id = {row.fb_campaign_id: row for row in existing}
+        for c in campaigns:
+            cid = str(c.get("id") or "")
+            if not cid:
+                continue
+            row = by_id.get(cid)
+            if row is None:
+                db.add(AdCampaign(
+                    tenant_id=tenant_id, fb_account_id=account_id, fb_campaign_id=cid,
+                    name=str(c.get("name", "") or ""), status=_graph_status(c),
+                    payload_json=json.dumps(c, ensure_ascii=False),
+                ))
+            else:
+                row.fb_account_id = account_id
+                row.name = str(c.get("name", "") or row.name)
+                row.status = _graph_status(c) or row.status
+                row.payload_json = json.dumps(c, ensure_ascii=False)
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        return False
+
+
+async def _sync_ad_items(db, tenant_id: int, fb, account_id: str) -> bool:
+    """Best-effort ads refresh; payload_json keeps the RAW Graph dict
+    (creative + insights) for exact-shape re-serving."""
+    try:
+        r = await fb.get_ads_raw(account_id)
+    except Exception:
+        return False
+    if r is None:
+        return False
+    ads = r.get("data", []) or []
+    if not ads:
+        return True
+    fb_ids = [str(a.get("id") or "") for a in ads]
+    fb_ids = [i for i in fb_ids if i]
+    if not fb_ids:
+        return True
+    try:
+        existing = (await db.execute(
+            select(AdItem).where(AdItem.tenant_id == tenant_id,
+                                 AdItem.fb_ad_id.in_(fb_ids))
+        )).scalars().all()
+        by_id = {row.fb_ad_id: row for row in existing}
+        for a in ads:
+            aid = str(a.get("id") or "")
+            if not aid:
+                continue
+            row = by_id.get(aid)
+            if row is None:
+                db.add(AdItem(
+                    tenant_id=tenant_id, fb_account_id=account_id, fb_ad_id=aid,
+                    campaign_id=str(a.get("campaign_id", "") or ""),
+                    name=str(a.get("name", "") or ""), status=_graph_status(a),
+                    payload_json=json.dumps(a, ensure_ascii=False),
+                ))
+            else:
+                row.fb_account_id = account_id
+                row.campaign_id = str(a.get("campaign_id", "") or row.campaign_id)
+                row.name = str(a.get("name", "") or row.name)
+                row.status = _graph_status(a) or row.status
+                row.payload_json = json.dumps(a, ensure_ascii=False)
+        await db.commit()
+        return True
+    except Exception:
+        await db.rollback()
+        return False
 
 
 async def _tenant_state(db, tenant_id: int, key: str) -> str:
@@ -285,39 +558,72 @@ async def test_facebook_connection(
 
 
 @router.get("/api/posts")
-async def list_posts(page: int = Query(1), per_page: int = Query(10),
-                     current_user: User = Depends(get_current_user)):
+async def list_posts(page: int = Query(1, ge=1), per_page: int = Query(10, ge=1, le=50),
+                     db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """v19 Step 2 — DB-first posts (the /api/comments pattern verbatim).
+
+    BEFORE: live-Graph-only with in-memory pagination cursors — any Graph
+    failure rendered the section EMPTY with no error surfaced, and a cold
+    Vercel instance lost the cursor cache anyway. NOW: (1) best-effort live
+    sync (30s per-tenant skip, failures non-fatal), (2) stored rows serve —
+    deterministic DB pagination. The loud 400 «اربط صفحتك» when no page is
+    connected is intentionally preserved (test-pinned contract)."""
     fb = await _tenant_fb(current_user)
     tid = current_user._tenant_id
-    after_cursor = _post_cursors.get((tid, page - 1)) if page > 1 else None
-    posts, paging = await fb.get_page_posts(per_page, after_cursor)
-    if paging and paging.get("cursors", {}).get("after"):
-        _post_cursors[(tid, page)] = paging["cursors"]["after"]
-    has_next = bool(paging and paging.get("next"))
-    # ponytail: FB doesn't return total count; approximate for pagination UI
-    total = (page - 1) * per_page + len(posts) + (1 if has_next else 0)
+    synced = False
+    if _sync_allowed(_POSTS_LAST_SYNC, tid, _POSTS_SYNC_SKIP_S):
+        synced = await _sync_page_posts(db, tid, fb)
+    offset = (page - 1) * per_page
+    rows = (await db.execute(
+        select(Post)
+        .where(Post.tenant_id == tid)
+        .order_by(Post.created_time.desc(), Post.id.desc())
+        .offset(offset).limit(per_page)
+    )).scalars().all()
+    total = (await db.execute(
+        select(func.count(Post.id)).where(Post.tenant_id == tid)
+    )).scalar() or 0
+    has_next = offset + len(rows) < total
     return ok(
         {
         "items": [{
-            "id": p["id"], "message": p.get("message", "")[:200],
-            "created_time": p.get("created_time", ""),
-            "likes": (p.get("likes", {}) or {}).get("summary", {}).get("total_count", 0),
-            "shares": (p.get("shares", {}) or {}).get("count", 0),
-            "comments": (p.get("comments", {}) or {}).get("summary", {}).get("total_count", 0),
-        } for p in posts],
+            "id": r.fb_post_id, "message": (r.message or "")[:200],
+            "created_time": r.created_time.isoformat() if r.created_time else "",
+            "likes": r.like_count or 0,
+            "shares": r.share_count or 0,
+            "comments": r.comment_count or 0,
+        } for r in rows],
         "total": total,
         "page": page,
         "per_page": per_page,
         "has_next": has_next,
+        "source": "db",
+        "synced": synced,
     }
     )
 
 
 @router.get("/api/posts/{post_id}")
-async def get_post_detail(post_id: str, current_user: User = Depends(get_current_user)):
+async def get_post_detail(post_id: str, db=Depends(get_db),
+                          current_user: User = Depends(get_current_user)):
+    """v19 Step 2: stored row first (serves even when Graph is down), live
+    Graph fallback for rows the sync hasn't seen yet."""
+    tid = current_user._tenant_id or 0
+    row = (await db.execute(
+        select(Post).where(Post.tenant_id == tid, Post.fb_post_id == post_id)
+    )).scalars().first()
+    if row is not None:
+        return ok({
+            "id": row.fb_post_id, "message": row.message or "",
+            "created_time": row.created_time.isoformat() if row.created_time else "",
+            "permalink_url": f"https://www.facebook.com/{row.fb_post_id}",
+            "likes": row.like_count or 0,
+            "shares": row.share_count or 0,
+            "comments": row.comment_count or 0,
+        })
     fb = await _tenant_fb(current_user)
     detail = await fb.get_post_detail(post_id)
-    if not detail:
+    if not detail or detail.get("error"):
         raise HTTPException(404, "المنشور غير موجود")
     return ok(detail)
 
@@ -383,27 +689,75 @@ async def reply_to_conversation(conversation_id: str, message: str = Form(...),
 
 
 @router.get("/api/ads/accounts")
-async def list_ad_accounts(current_user: User = Depends(require_role("admin"))):
+async def list_ad_accounts(db=Depends(get_db),
+                           current_user: User = Depends(require_role("admin"))):
+    """v19 Step 2 — DB-first ad accounts (comments precedent).
+
+    BEFORE: live-Graph-only; a failing token answered an empty list that the
+    UI rendered as «لا توجد حسابات إعلانية مرتبطة» (looks empty instead
+    of broken). NOW: non-fatal 30s sync + stored rows always serve;
+    ``synced=False`` + empty items lets the UI say «فشل الاتصال بفيسبوك»
+    instead of lying."""
     fb = await _tenant_fb(current_user)
-    accounts = await fb.get_ad_accounts()
-    return ok(
-        [{
-        "id": a["id"], "name": a.get("name", ""),
-        "account_status": a.get("account_status", 0),
-        "currency": a.get("currency", ""),
-        "amount_spent": a.get("amount_spent", "0"),
-        "balance": a.get("balance", "0"),
-    } for a in accounts]
-    )
+    tid = current_user._tenant_id
+    synced = False
+    if _sync_allowed(_ADACC_LAST_SYNC, tid, _ADACC_SYNC_SKIP_S):
+        synced = await _sync_ad_accounts(db, tid, fb)
+    rows = (await db.execute(
+        select(AdAccount).where(AdAccount.tenant_id == tid).order_by(AdAccount.id)
+    )).scalars().all()
+    return ok({
+        "items": [{
+            "id": r.fb_account_id, "name": r.name or "",
+            "account_status": r.account_status or 0,
+            "currency": r.currency or "",
+            "amount_spent": r.amount_spent or "0",
+            "balance": r.balance or "0",
+        } for r in rows],
+        "source": "db",
+        "synced": synced,
+    })
 
 
 @router.get("/api/ads/campaigns/{account_id}")
-async def list_campaigns(account_id: str, current_user: User = Depends(require_role("editor"))):
+async def list_campaigns(account_id: str, db=Depends(get_db),
+                         current_user: User = Depends(require_role("editor"))):
+    """v19 Step 2 — DB-first campaigns; payload_json re-serves the exact
+    live Graph shape (nested adsets included) even when Graph is down."""
     fb = await _tenant_fb(current_user)
-    return ok(await fb.get_campaigns(account_id))
+    tid = current_user._tenant_id
+    synced = False
+    if _sync_allowed(_ADCAMP_LAST_SYNC, (tid, account_id), _ADCAMP_SYNC_SKIP_S):
+        synced = await _sync_campaigns(db, tid, fb, account_id)
+    rows = (await db.execute(
+        select(AdCampaign)
+        .where(AdCampaign.tenant_id == tid, AdCampaign.fb_account_id == account_id)
+        .order_by(AdCampaign.id.desc())
+    )).scalars().all()
+    return ok({
+        "items": [_payload(r.payload_json) for r in rows],
+        "source": "db",
+        "synced": synced,
+    })
 
 
 @router.get("/api/ads/ads/{account_id}")
-async def list_ads(account_id: str, current_user: User = Depends(require_role("editor"))):
+async def list_ads(account_id: str, db=Depends(get_db),
+                   current_user: User = Depends(require_role("editor"))):
+    """v19 Step 2 — DB-first ads; payload_json re-serves the exact live
+    Graph shape (creative + insights) even when Graph is down."""
     fb = await _tenant_fb(current_user)
-    return ok(await fb.get_ads(account_id))
+    tid = current_user._tenant_id
+    synced = False
+    if _sync_allowed(_ADITEM_LAST_SYNC, (tid, account_id), _ADITEM_SYNC_SKIP_S):
+        synced = await _sync_ad_items(db, tid, fb, account_id)
+    rows = (await db.execute(
+        select(AdItem)
+        .where(AdItem.tenant_id == tid, AdItem.fb_account_id == account_id)
+        .order_by(AdItem.id.desc())
+    )).scalars().all()
+    return ok({
+        "items": [_payload(r.payload_json) for r in rows],
+        "source": "db",
+        "synced": synced,
+    })

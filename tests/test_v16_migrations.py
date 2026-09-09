@@ -120,7 +120,7 @@ def test_chain_reaches_015_hot_index_fk_and_002_parity(fresh_db):
     موجود (أنشأه 001/create_all وحرس 015 يتخطاه)، FK added_by_id
     المنعكس ondelete=SET NULL، وفهرسا 002 اليتيمان في المخطط."""
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "015"
+    assert _version(fresh_db) == "016"  # v19: جداول fb_posts/ad_* انضمت للسلسلة
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -156,7 +156,7 @@ def test_migration_015_heals_missing_index_and_is_idempotent(fresh_db):
     command.upgrade(cfg, "014")
     _drop_index(fresh_db, "ix_offer_tenant_active")
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "015"
+    assert _version(fresh_db) == "016"  # v19: الرأس أصبح 016
     assert "ix_offer_tenant_active" in _index_names(fresh_db, "offers")
 
     mod = _load_module("015_v16_data")

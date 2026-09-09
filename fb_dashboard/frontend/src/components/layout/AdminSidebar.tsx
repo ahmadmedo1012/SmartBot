@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import {
   LayoutDashboard, MessageCircle, MessageSquare, Newspaper, Clock,
   BarChart3, Users, UserPlus, Target, Radio, Megaphone, FileBarChart,
@@ -217,12 +218,20 @@ export function AdminSidebar({
             <Sparkles className="size-4 transition-transform duration-200 group-hover:rotate-12" /> اشتراك
           </button>
         )}
-        <button
-          onClick={onLogout}
-          className="flex min-h-11 items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
-        >
-          <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
-        </button>
+        {/* v19 Step 3 — theme toggle inside the dashboard: ThemeToggle existed
+            and worked (Header/login/register) but was NEVER mounted here or
+            in MobileBottomNav, so the switcher vanished right after login
+            (the live complaint). Sits beside logout — the natural spot for a
+            personal quick setting; size-11 keeps the 44px touch target. */}
+        <div className="flex items-center gap-2">
+          <ThemeToggle className="!size-11 shrink-0" />
+          <button
+            onClick={onLogout}
+            className="flex min-h-11 flex-1 items-center justify-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
+          >
+            <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
+          </button>
+        </div>
       </div>
     </aside>
   )

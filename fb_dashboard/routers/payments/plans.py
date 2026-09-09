@@ -14,6 +14,7 @@ import asyncio
 import logging
 
 from _responses import ok
+from _subscription import get_tenant_for_user, is_subscription_active
 from _utils import iso_z
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -125,6 +126,15 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
 
     # Bank transfer: collect sender info into extra_data for admin review
     bank_extra: dict = {"username": current_user.username}
+    # v19 Step 1: THE duplicate-subscription root fix. The old flow checked
+    # only for a PENDING row — a PAID/TRIAL tenant could walk the whole
+    # payment form and submit a brand-new request for the same plan (the
+    # live complaint: subscribed account re-subscribing silently). Renewals
+    # stay possible: an EXPIRED plan (plan_end passed / UNPAID / REJECTED /
+    # EXPIRED_TRIAL / FREE) is "not active" and passes through as before.
+    tenant_row = await get_tenant_for_user(db, current_user)
+    if is_subscription_active(tenant_row):
+        raise HTTPException(400, "لديك اشتراك نشط بالفعل — لا يمكنك إنشاء طلب اشتراك جديد قبل انتهاء الحالي")
     if provider == "bank":
         # v15-E3 (D1-H1): was float(body.get("amount") or plan.price) — a
         # non-numeric amount was a raw 500 here too; amount is already a

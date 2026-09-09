@@ -194,6 +194,17 @@ async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10
 @router.post("/api/payments/topup")
 async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     await _payment_rate_limit(request, "topup")
+    # v19 Step 1 — DEVIATION NOTE (documented in the round report): the v19
+    # plan prescribed an active-subscription guard HERE, reading topup as
+    # «the point where subscription payment requests are created». It is
+    # not: approving a PaymentRequest CREDITS THE WALLET (app/telegram.py →
+    # credit_wallet) — subscriptions activate exclusively through
+    # SubscriptionPayment (POST /api/subscriptions), which now carries the
+    # guard. Blocking topup for PAID/TRIAL tenants would break the pinned
+    # wallet-cap contract (tests/test_v10_security.py D1: a PAID tenant
+    # tops up 149 ≤ cap → 200) and strip paying customers of the
+    # wallet-credit flow. The duplicate-SUBSCRIPTION complaint is fixed at
+    # its real entry point; this endpoint stays wallet-only.
     # v15-E3 (D1-H1): raw ``amount < 1`` with a string amount was a TypeError
     # → 500 + critical alert for a client typo. Now: 422 «قيمة غير صالحة».
     amount = _as_float(body.get("amount", 0), "المبلغ")

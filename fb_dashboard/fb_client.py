@@ -96,6 +96,16 @@ class FBClient:
         r = await self._get(f"{self.page_id}/posts", params)
         return (r or {}).get("data", []), (r or {}).get("paging")
 
+    async def get_page_posts_raw(self, limit: int = 50) -> dict | None:
+        """v19 Step 2 (DB-first posts): the RAW ``_get`` payload — ``None``
+        means the Graph call itself FAILED (error/timeout/offline), an empty
+        ``data`` list means the page genuinely has no posts. The route-level
+        sync needs that distinction so it can mark ``synced=False`` and the
+        UI can say «فشل الاتصال» instead of a lying empty state."""
+        params = {"limit": limit, "fields": "id,message,created_time,"
+                   "likes.summary(true),shares,comments.summary(true)"}
+        return await self._get(f"{self.page_id}/posts", params)
+
     async def post_to_page(self, message: str) -> dict | None:
         return await self._post(f"{self.page_id}/feed", {"message": message})
 
@@ -349,6 +359,12 @@ class FBClient:
                             {"fields": "id,name,account_status,currency,amount_spent,balance"})
         return (r or {}).get("data", [])
 
+    async def get_ad_accounts_raw(self) -> dict | None:
+        """v19 Step 2: RAW ``_get`` payload — None = Graph failure (see
+        get_page_posts_raw for the empty-vs-failed rationale)."""
+        return await self._get("me/adaccounts",
+                               {"fields": "id,name,account_status,currency,amount_spent,balance"})
+
     async def get_campaigns(self, ad_account_id: str, limit: int = 20) -> list:
         fields = "id,name,status,objective,created_time,adsets{name,status,daily_budget,lifetime_budget,start_time,end_time}"
         # v4 §7.26 — Graph already returns ids prefixed with act_; the old
@@ -357,11 +373,23 @@ class FBClient:
         r = await self._get(f"{aid}/campaigns", {"limit": limit, "fields": fields})
         return (r or {}).get("data", [])
 
+    async def get_campaigns_raw(self, ad_account_id: str, limit: int = 50) -> dict | None:
+        """v19 Step 2: RAW ``_get`` payload — None = Graph failure."""
+        fields = "id,name,status,objective,created_time,adsets{name,status,daily_budget,lifetime_budget,start_time,end_time}"
+        aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
+        return await self._get(f"{aid}/campaigns", {"limit": limit, "fields": fields})
+
     async def get_ads(self, ad_account_id: str, limit: int = 20) -> list:
         fields = "id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_story_spec},insights{impressions,clicks,spend,ctr,cpc}"
         aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
         r = await self._get(f"{aid}/ads", {"limit": limit, "fields": fields})
         return (r or {}).get("data", [])
+
+    async def get_ads_raw(self, ad_account_id: str, limit: int = 50) -> dict | None:
+        """v19 Step 2: RAW ``_get`` payload — None = Graph failure."""
+        fields = "id,name,status,adset_id,campaign_id,creative{id,title,body,image_url,object_story_spec},insights{impressions,clicks,spend,ctr,cpc}"
+        aid = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
+        return await self._get(f"{aid}/ads", {"limit": limit, "fields": fields})
 
     # ── Name helpers ──────────────────────────────────────────────
 

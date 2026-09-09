@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import { AppToaster } from "@/components/ui/app-toaster"
+
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
@@ -18,5 +20,15 @@ export const metadata: Metadata = {
 }
 
 export default function RegisterLayout({ children }: { children: React.ReactNode }) {
-  return children
+  // v16-E4 (D5): the toaster mounts HERE — RegisterForm fires
+  // brandedToast on register success/failure. Plain import of the
+  // client component in this server layout (same pattern as Providers
+  // in the root layout); the root providers no longer ship sonner to
+  // toast-less public routes.
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  )
 }

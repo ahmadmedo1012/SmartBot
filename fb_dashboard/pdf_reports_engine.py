@@ -7,10 +7,12 @@ Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 Kept for future use; do not build new features on top of it.]
 """
 import asyncio
+import base64
 import html
 import logging
 import re
 from datetime import timedelta
+from urllib.parse import unquote_to_bytes
 
 from _utils import utcnow
 from ai_service import _assert_safe_image_url
@@ -31,16 +33,56 @@ except ImportError:
         pass
 
 
+# v16-E1 (D2-LEAD C — SSRF lockdown): WeasyPrint used to resolve <img src=…>
+# URLs itself — it follows redirects and never re-runs our SSRF guard, so a
+# crafted logo_url bypassed even the literal-IP check (readback channel: the
+# rendered PDF returns to the requester). The router now pre-fetches the logo
+# with the full guarded stack (assert_safe_outbound_url → _fetch_image_bytes:
+# timeout + 5MB cap + per-hop redirect re-check) and embeds the bytes as a
+# data: URI. This fetcher makes the lockdown STRUCTURAL: data: URIs are the
+# only thing the renderer may resolve here — any http/https/file/ftp URL
+# raises and WeasyPrint skips the image (logged), never fetching it. Remote
+# fetches and redirects are impossible by construction, not by convention.
+def _data_only_url_fetcher(url: str):
+    """WeasyPrint ``url_fetcher`` — يقبل مخطط data: فقط ويرفض كل ما عداه.
+
+    Parsing mirrors the stdlib ``urllib.request.DataHandler`` semantics
+    (RFC 2397: ``unquote_to_bytes`` for both forms, ``;base64`` suffix,
+    default ``text/plain``, no control chars in the mediatype). The lazy
+    weasyprint import keeps the fpdf fallback importable without it.
+    """
+    if not url.lower().startswith("data:"):
+        raise ValueError(f"PDF renderer refuses non-data URL: {url[:80]!r}")
+    from weasyprint.urls import URLFetcherResponse
+    header, sep, payload = url.partition(",")
+    if not sep:
+        raise ValueError("malformed data: URL (no comma)")
+    mediatype = header.partition(":")[2]
+    if re.search(r"[\x00-\x1f\x7f]", mediatype):
+        raise ValueError("control characters in data: mediatype")
+    is_base64 = mediatype.lower().endswith(";base64")
+    if is_base64:
+        mediatype = mediatype[:-7]
+    if not mediatype:
+        mediatype = "text/plain"
+    data = unquote_to_bytes(payload)
+    if is_base64:
+        data = base64.b64decode(data, validate=False)
+    return URLFetcherResponse(url, data, {"Content-Type": mediatype})
+
+
 class BrandingConfig:
     """White-label branding for a report request.
 
     v12 E1.4 (D2 P1): BOTH user-controlled fields are validated at the
     engine boundary (defense close to use — the router may truncate but
     must not be the only validator):
-    - logo_url: WeasyPrint fetches it server-side when it lands in
-      <img src=…> — run the ai_service SSRF guard (https-only, no
-      private/loopback/link-local hosts) so a crafted logo_url cannot
-      probe internal endpoints from the PDF renderer.
+    - logo_url: v16-E1 — the router pre-fetches it with the full guarded
+      stack (DNS-resolving guard + timeout + size cap + redirect re-check)
+      and swaps in a data: URI BEFORE the engine renders; WeasyPrint itself
+      is locked to data: URLs only (``_data_only_url_fetcher``). This fast
+      sync check (https-only, no private/loopback/link-local hosts) remains
+      the first layer at the engine boundary.
     - primary_color: interpolated raw into _css(); anything outside
       a plain #RGB/#RRGGBB… hex token injected arbitrary CSS into the
       document. Now re.fullmatch(r"#[0-9a-fA-F]{3,8}") or ValueError.
@@ -177,6 +219,9 @@ class PdfReportsEngine:
         # title embeds campaign names). Otherwise an editor-controlled
         # company_name / logo_url or a commenter-named rule injects markup
         # into the weasyprint DOM (tracking pixels, layout breakage).
+        # v16-E1: brand.logo_url arrives as a pre-fetched data: URI (router)
+        # — html.escape leaves data URIs byte-identical (base64 alphabet has
+        # no escapables) and the engine's url_fetcher accepts nothing else.
         logo = f'<img src="{html.escape(brand.logo_url, quote=True)}" height="42" style="margin-bottom:4px">' if brand.logo_url else ""
         return f"""
         <div class="header">
@@ -218,10 +263,14 @@ class PdfReportsEngine:
         freeze the event loop for the whole render (seconds per report;
         concurrent requests froze the server). See the ``_render_async``
         wrapper used by every public API below.
+
+        v16-E1 (D2-LEAD C): every weasyprint render is pinned to
+        ``_data_only_url_fetcher`` — the renderer can only resolve data:
+        URIs, so remote URLs/redirects are structurally refused.
         """
         if _WEASYPRINT:
             import weasyprint
-            return weasyprint.HTML(string=html).write_pdf()
+            return weasyprint.HTML(string=html, url_fetcher=_data_only_url_fetcher).write_pdf()
         # Fallback via fpdf (basic, no CSS support)
         from fpdf import FPDF
         pdf = FPDF()

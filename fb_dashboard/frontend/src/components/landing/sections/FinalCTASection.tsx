@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Sparkles } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
-import { Button } from "@/components/ui/button"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
@@ -40,13 +39,19 @@ export default function FinalCTASection() {
           duration={0.5}
           className="flex gap-4 justify-center flex-wrap"
         >
+          {/* v16-E3 (D1 C2): un-nested Link>Button — the anchor is the single
+              focusable control; the Button's visual classes (orange/outline
+              + size lg + sheen) live on a span. Interactive-only tokens
+              (cursor/focus-ring/active-scale) dropped. */}
           <Link href="/subscribe">
-            <Button size="lg">ابدأ مجاناً <DirectionalIcon semanticDirection="forward" className="size-4 sm:size-5" /></Button>
+            <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-accent-foreground/25 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-14 min-h-11 min-w-11 gap-2.5 px-7 text-sm sm:text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
+              ابدأ مجاناً <DirectionalIcon semanticDirection="forward" className="size-4 sm:size-5" />
+            </span>
           </Link>
           <Link href="/pricing">
-            <Button variant="outline" size="lg">
+            <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-14 min-h-11 min-w-11 gap-2.5 px-7 text-sm sm:text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
               عرض الخطط
-            </Button>
+            </span>
           </Link>
         </ScrollReveal>
 

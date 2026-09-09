@@ -83,7 +83,16 @@ async def subscription_status_stream(payment_id: int = Query(...),
                             payload = {"id": sp.id, "status": sp.status,
                                        "plan_id": sp.plan_id, "plan_name": sp.plan_name}
                             yield f"data: {_json.dumps(payload, ensure_ascii=False)}\n\n"
-                            if sp.status in ("verified", "rejected", "EXPIRED_TRIAL"):
+                            # v16-E2 (D4 status-contract): terminal set is
+                            # ("verified", "cancelled") — the ONLY statuses any
+                            # writer produces (approvals.py:98-111 and
+                            # app/telegram.py:83 both write exactly this pair).
+                            # "rejected"/"EXPIRED_TRIAL" are never written on a
+                            # SubscriptionPayment (dead literals), while
+                            # "cancelled" IS written but was missing — the
+                            # browser kept streaming for the full 10-minute
+                            # lifetime cap after a cancellation.
+                            if sp.status in ("verified", "cancelled"):
                                 yield "event: close\ndata: {}\n\n"
                                 return
                     except Exception:

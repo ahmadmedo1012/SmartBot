@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import { AppToaster } from "@/components/ui/app-toaster"
+
 const BASE = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
@@ -19,5 +21,14 @@ export const metadata: Metadata = {
 }
 
 export default function SubscribeLayout({ children }: { children: React.ReactNode }) {
-  return children
+  // v16-E4 (D5): the toaster mounts HERE — SubscribeContent fires
+  // premiumToast (plan-load errors, activation success) and PaymentDialog
+  // toasts on copy/upload/submit outcomes; the free-plan activation path
+  // also toasts before redirecting to /dashboard.
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  )
 }

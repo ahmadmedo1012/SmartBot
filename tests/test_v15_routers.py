@@ -457,8 +457,9 @@ async def test_process_pending_campaigns_sends_due_and_skips_future(app_db, monk
 
 async def test_cleanup_logs_get_bearer_and_deprecated_query_token(app_db):
     """Vercel Cron يرسل GET مع Bearer: كان المسار POST-only → 405 يومياً.
-    الآن: GET+Bearer=200؛ بلا توكن=403؛ ?token= الصحيحة تعمل (إهمال موثّق)؛
-    الخاطئة 403؛ POST بالنموذج القديم يبقى متوافقاً."""
+    الآن (v16-E2): GET+Bearer=200؛ بلا توكن=403؛ ?token= بالسر الصحيح نفسها
+    → 403 (أُزيلت — تسرّب السر إلى سجلات الوصول والقناة الوحيدة التي
+    استعملتها ميتة)؛ الخاطئة 403؛ POST بالنموذج القديم يبقى متوافقاً."""
     import httpx
     from runner import app
 
@@ -472,7 +473,9 @@ async def test_cleanup_logs_get_bearer_and_deprecated_query_token(app_db):
         assert r.json()["success"] is True
 
         r = await c.get("/api/cron/cleanup-logs?token=test-cron-secret")
-        assert r.status_code == 200, f"?token= الصحيحة تعمل مع تحذير إهمال: {r.text}"
+        assert r.status_code == 403, (
+            f"?token= must be gone (403), got {r.status_code}: {r.text[:200]}"
+        )
 
         r = await c.get("/api/cron/cleanup-logs?token=wrong")
         assert r.status_code == 403, r.text

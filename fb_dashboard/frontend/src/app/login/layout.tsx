@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import { AppToaster } from "@/components/ui/app-toaster"
+
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
 export const metadata: Metadata = {
@@ -11,5 +13,14 @@ export const metadata: Metadata = {
 }
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
-  return children
+  // v16-E4 (D5): the toaster mounts HERE (not in the root providers) —
+  // /login fires brandedToast.success on a successful login (page.tsx).
+  // Plain import of the client component in this server layout, the
+  // same way the root layout consumes Providers.
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  )
 }

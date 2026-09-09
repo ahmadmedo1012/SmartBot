@@ -8,6 +8,7 @@ Full system (plan §4.3):
   GET  /api/support/tickets/{id}           → ticket + replies
   POST /api/support/tickets/{id}/reply     → owner or admin replies
   POST /api/support/tickets/{id}/close     → admin closes (owner can too)
+  GET  /api/admin/support/tickets          → v16-E2: platform-admin cross-tenant queue
 Priorities: low | medium | high | urgent.
 """
 from __future__ import annotations
@@ -15,16 +16,16 @@ from __future__ import annotations
 import logging
 import os
 
-from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import ok
 from _utils import iso_z
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from models import SupportTicket, SupportTicketReply, User
+from models import SupportTicket, SupportTicketReply, Tenant, User
 from sqlalchemy import desc, func, select
 
-from routers.auth import get_current_user, require_role
+from routers.auth import get_current_user, require_platform_admin, require_role
 from routers.notifications import push_notification
+from routers.payments.wallet import _notify_admins_inline
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="/api/support", tags=["support"])
@@ -111,16 +112,28 @@ async def create_ticket(
     )
     db.add(t)
     await db.flush()
-
-    # Telegram notify (non-blocking, best-effort)
-    try:
-        from telegram_bot import notify_admins_support_ticket
-        spawn(notify_admins_support_ticket(subject[:80], body[:500], email))
-    except Exception:
-        pass
-
+    # v16-E2 (D4-H1): the commit now happens BEFORE the Telegram notify — the
+    # ticket row is durable first; a frozen or failing Telegram can never
+    # block or fail the user's request (the old order also left a bare
+    # ``except: pass`` around a spawn()ed task, which dies silently on Vercel
+    # serverless once the response returns — tickets existed while NOBODY was
+    # ever notified, and the owner had no queue to see them: see the
+    # /api/admin/support/tickets route below, the second half of this fix).
     await db.commit()
     await db.refresh(t)
+
+    # v16-E2 (D4-H1): inline guarded notify — the wallet.py v14-E1 pattern
+    # (asyncio.wait_for timeout=8s; timeout/failure logged only, never fails
+    # the request). Runs before the response leaves, so on Vercel the send
+    # actually happens instead of dying with the function.
+    try:
+        from telegram_bot import notify_admins_support_ticket
+    except Exception:
+        log.warning("telegram notify unavailable — ticket stored only", exc_info=True)
+    else:
+        await _notify_admins_inline(
+            notify_admins_support_ticket(subject[:80], body[:500], email))
+
     return ok({
         "id": t.id, "status": t.status, "priority": t.priority,
         "message": "تم إرسال طلبك بنجاح — سيتواصل معك فريق الدعم خلال 24 ساعة",
@@ -245,3 +258,67 @@ async def close_ticket(
         )
     await db.commit()
     return ok({"id": t.id, "status": t.status})
+
+
+# ── v16-E2 (D4-H1): the platform admin's ticket queue ────────────────────────
+# The tenant-scoped routes above 404 for the platform admin (t.tenant_id is
+# never 0), so before this route the OWNER had ZERO channels to ever see a
+# ticket: the Telegram notify was spawn'd (died on Vercel) and the dashboard
+# route answered 404 — while the user is promised a 24h response. This is a
+# PLATFORM endpoint under /api/admin/…, so it lives OUTSIDE this router's
+# /api/support prefix: a separate full-path router merged into ``router``
+# (same aggregation idea as routers/payments/__init__.py) so the single
+# registration in runner.py (app.include_router(support_router.router))
+# serves both.
+platform_admin_router = APIRouter(tags=["support"])
+
+_TICKET_STATUSES = ("all", "open", "pending", "closed")
+
+
+@platform_admin_router.get("/api/admin/support/tickets")
+async def admin_queue_support_tickets(
+    status: str = Query("all"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    db=Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    """Platform admin: cross-tenant support ticket queue.
+
+    Optional ``status`` filter (open | pending | closed | all), newest first,
+    paginated (``page`` × ``limit``, default 20). Every ticket field is
+    returned plus the owning tenant's name — the owner finally has a live
+    channel to the tickets users were promised a 24h response on.
+    Contract (plan §2 E2→E3): ok({items, total, page}).
+    """
+    if status not in _TICKET_STATUSES:
+        raise HTTPException(400, f"حالة التذكرة يجب أن تكون إحدى: {', '.join(_TICKET_STATUSES)}")
+
+    count_q = select(func.count(SupportTicket.id))
+    list_q = select(SupportTicket, Tenant.name).outerjoin(
+        Tenant, Tenant.id == SupportTicket.tenant_id)
+    if status != "all":
+        count_q = count_q.where(SupportTicket.status == status)
+        list_q = list_q.where(SupportTicket.status == status)
+    total = await db.scalar(count_q) or 0
+    rows = await db.execute(
+        list_q.order_by(desc(SupportTicket.created_at))
+        .offset((page - 1) * limit).limit(limit)
+    )
+    items = [{
+        "id": t.id,
+        "tenant_id": t.tenant_id,
+        "tenant_name": tenant_name or "",
+        "user_id": t.user_id,
+        "email": t.email,
+        "subject": t.subject,
+        "body": t.body,
+        "priority": t.priority,
+        "status": t.status,
+        "created_at": iso_z(t.created_at),
+        "updated_at": iso_z(t.updated_at),
+    } for t, tenant_name in rows.all()]
+    return ok({"items": items, "total": total, "page": page})
+
+
+router.routes.extend(platform_admin_router.routes)

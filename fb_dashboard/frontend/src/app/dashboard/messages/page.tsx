@@ -227,10 +227,12 @@ export default function MessagesPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 items-center">
+                  {/* v16-E3 (D1 C2): un-nested Link>Button — orange sm visuals
+                      (h-9 px-5 override) moved to a span, single tab stop. */}
                   <Link href="/connect">
-                    <Button size="sm" className="h-9 px-5">
+                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-accent-foreground/25 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-9 min-h-11 min-w-11 gap-1.5 px-5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
                       <Link2 className="size-3.5" /> ربط الصفحة الآن
-                    </Button>
+                    </span>
                   </Link>
                   <Button size="sm" variant="ghost" onClick={() => refetch()} className="h-8 text-xs">
                     <RefreshCw className="size-3" /> تحديث
@@ -383,7 +385,10 @@ export default function MessagesPage() {
                       placeholder="اكتب رداً…"
                       aria-label="نص الرد"
                       /* v14-E5: raw textarea bypasses the shared Textarea component —
-                         apply the AA placeholder token directly. */
+                         apply the AA placeholder token directly.
+                         v16-E3 (D1 C3): dir="auto" isolates the mixed
+                         Arabic/Latin DM being typed. */
+                      dir="auto"
                       className="w-full min-h-[44px] max-h-32 resize-none rounded-xl border border-input/60 bg-background/80 px-4 py-2.5 text-sm placeholder:text-placeholder-text transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       rows={1}
                     />

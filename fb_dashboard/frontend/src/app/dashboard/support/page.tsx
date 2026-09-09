@@ -326,6 +326,9 @@ export default function SupportPage() {
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="صف مشكلتك بالتفصيل…"
                     rows={5}
+                    /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
+                        seam — dir="auto" isolates mixed Arabic/Latin text. */
+                    dir="auto"
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
@@ -481,6 +484,9 @@ export default function SupportPage() {
                                   onChange={(e) => setReplyText(e.target.value)}
                                   placeholder="اكتب رداً…"
                                   aria-label="نص الرسالة"
+                                  /* v16-E3 (D1 C3): dir="auto" isolates the mixed
+                                      Arabic/Latin reply being typed. */
+                                  dir="auto"
                                   className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />
                                 <Button

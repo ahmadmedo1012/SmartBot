@@ -35,26 +35,22 @@ _CRON_SHARDS = 10
 _TRIGGER_CYCLE_BUDGET_S = 25.0
 
 
-def _cron_authorized(request: Request, token: str) -> bool:
-    """v12-E2.5 / v15-E4 (D6-M3): the CRON_SECRET gate, single source for BOTH
-    cron routes in this file.
+def _cron_authorized(request: Request) -> bool:
+    """v12-E2.5 / v15-E4 / v16-E2 (D2-LEAD B): the CRON_SECRET gate, single
+    source for BOTH cron routes in this file.
 
-    Authorization: Bearer first (constant-time compare — what Vercel Cron and
-    modern providers send); the legacy ``?token=`` query param still validates
-    so the EXISTING cron-job.org setup keeps beating, but every fallback use
-    logs a deprecation warning (query strings leak into access/proxy logs —
-    migrate the provider to the header). An empty secret never validates.
+    Authorization: Bearer only (constant-time compare — what Vercel Cron and
+    every modern provider sends). The legacy ``?token=`` query fallback was
+    REMOVED in v16-E2: query strings leak CRON_SECRET into access/proxy
+    logs, and the only consumer that ever used it (the cron-job.org channel)
+    is mathematically DEAD (dec-cron-restore: ~288 err/day expected with a
+    dead token, 2 observed — it never beats). The POST form-token path in
+    plans_config.py stays (a body is never logged). An empty secret never
+    validates.
     """
     secret = os.getenv("CRON_SECRET", "")
     auth_header = request.headers.get("authorization", "")
-    valid = bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
-    if not valid and secret and token and secrets.compare_digest(token, secret):
-        log.warning(
-            "cron auth via ?token= query param is deprecated — "
-            "move the cron provider to the Authorization: Bearer header"
-        )
-        valid = True
-    return valid
+    return bool(secret) and secrets.compare_digest(auth_header, f"Bearer {secret}")
 
 
 def _get_bot_task() -> asyncio.Task | None:
@@ -230,8 +226,13 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
     v4 §6.22 (G8) — the old `balance` gate skipped every new tenant (balance
     was only credited via manual Telegram payment confirmation), so the bot
     NEVER ran for anyone on Vercel. Gate is now the subscription status +
-    plan usage limits, same as the engine itself."""
-    if not _cron_authorized(request, token):
+    plan usage limits, same as the engine itself.
+
+    v16-E2: ``token`` is NO LONGER an auth channel (see _cron_authorized) —
+    it survives ONLY as the legacy numeric shard carrier (``?token=3`` =
+    shard 3); authentication is the Bearer header alone.
+    """
+    if not _cron_authorized(request):
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     raw_shard = request.headers.get("x-vercel-cron-shard", "0") if not token.isdigit() else token
     shard = int(raw_shard) % _CRON_SHARDS
@@ -272,10 +273,11 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
 
 
 @router.get("/api/cron/heartbeat")
-async def cron_heartbeat(request: Request, token: str = Query("")):
+async def cron_heartbeat(request: Request):
     """v4 §6.21 — the serverless heartbeat: everything that never ran on Vercel.
 
-    One authenticated cron entrypoint that runs per invocation:
+    One authenticated cron entrypoint (v16-E2: Bearer header ONLY — the
+    ?token= fallback is gone) that runs per invocation:
       0. detects a stalled beat BEFORE this run (v6 §E — telegram alert
          when the previous beat is >15 min old)
       1. publishes DUE scheduled posts (tenant-scoped, was never scheduled)
@@ -285,7 +287,7 @@ async def cron_heartbeat(request: Request, token: str = Query("")):
     Vercel Hobby note: if sub-daily crons are not available, schedule what the
     plan allows — the endpoint itself is idempotent and safe to call often.
     """
-    if not _cron_authorized(request, token):
+    if not _cron_authorized(request):
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
     from _utils import utcnow as _now
     report = {"published_posts": 0, "fan_refreshed": 0, "cycles": 0, "errors": []}

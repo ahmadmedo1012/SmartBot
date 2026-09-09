@@ -130,11 +130,13 @@ function RegisterForm() {
         <Link href="/">
           {/* v15-E6 (D5-H1): the /80 on muted-foreground measured 3.89:1 dark /
               4.08:1 light — under the 4.5:1 AA floor; the full token passes
-              5.59/6.54:1. */}
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
+              5.59/6.54:1.
+              v16-E3 (D1 C2): un-nested Link>Button — ghost-variant visuals
+              moved to a span, the anchor is the single tab stop. */}
+          <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 dark:hover:bg-foreground/15 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-10 min-h-11 min-w-11 gap-1 px-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
             <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
-          </Button>
+          </span>
         </Link>
         <ThemeToggle />
       </div>

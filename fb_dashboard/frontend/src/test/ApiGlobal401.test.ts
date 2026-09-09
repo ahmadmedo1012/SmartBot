@@ -93,8 +93,10 @@ describe("apiFetch global 401 (D4-H3) — toast + redirect", () => {
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(401)
 
-    // toast fired immediately; the redirect waits for the readability delay
-    expect(mocks.toast).toHaveBeenCalledTimes(1)
+    // toast fires via the dynamic premium-toast import (v16 bundle fix —
+    // sonner no longer rides the public-route chunk graph); flush it, then
+    // the redirect still waits for the readability delay
+    await vi.waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
     expect(mocks.toast).toHaveBeenCalledWith(
       "error",
       "انتهت الجلسة",
@@ -184,7 +186,9 @@ describe("apiFetch global 401 — burst dedupe & opt-out", () => {
       apiFetch("/api/subscribers"),
     ])
 
-    expect(mocks.toast).toHaveBeenCalledTimes(1)
+    // v16: the toast arrives via the dynamic premium-toast import — flush
+    // it before counting (dedupe still collapses the burst to ONE call)
+    await vi.waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1))
     await vi.advanceTimersByTimeAsync(1200)
     expect(mocks.replace).toHaveBeenCalledTimes(1)
   })

@@ -66,6 +66,7 @@ async def v10_world():
     from database import get_db
     from models import Base
     from runner import app
+    from sqlalchemy import event
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
     from sqlalchemy.pool import StaticPool
 
@@ -74,6 +75,18 @@ async def v10_world():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # v16-E5 (D6-H2): SQLite يفعّل الـFKs فقط مع PRAGMA foreign_keys=ON —
+    # بدونه كانت كل قيود ondelete (CASCADE/SET NULL) في النموذج غير
+    # مفحوصة إطلاقًا على قواعد الاختبار (سلوك PG وحده). مستمع connect
+    # يفعّلها على كل اتصال جديد؛ StaticPool في الذاكرة يعني اتصالًا
+    # واحدًا يُنشأ عند أول استخدام فيُضبط قبل أي DDL/INSERT.
+    @event.listens_for(test_engine.sync_engine, "connect")
+    def _sqlite_fk_on(dbapi_conn, _record):  # noqa: ANN001 — sqlite3.Connection
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)

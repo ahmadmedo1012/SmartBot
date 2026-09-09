@@ -84,6 +84,9 @@ export default function PostsPage() {
               onChange={e => setNewMessage(e.target.value)}
               placeholder="اكتب منشوراً جديداً…"
               aria-label="نص المنشور"
+              /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
+                  seam — dir="auto" isolates mixed Arabic/Latin post text. */
+              dir="auto"
               className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex justify-end mt-3">

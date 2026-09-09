@@ -92,9 +92,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 any landmark, which tripped axe's region best-practice rule on
                 every public page. Still the first focusable element in tab
                 order (the overlays above are aria-hidden decoration). */}
+            {/* v16-E3 (D1 LEAD A — allowlist p11-rtl-tab-order): the reveal
+                used focus:absolute focus:end-4 — in RTL `end` = LEFT edge
+                (x≈16), so Tab 1 landed far from the RTL reading start, and
+                `absolute` used document coords → off-viewport when scrolled
+                (measured y=−784). fixed + start-4 reveals at the top-RIGHT
+                (RTL reading start) and stays in-viewport at any scrollY. */}
             <a
               href="#page-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:end-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
             >
               تخطي إلى المحتوى الرئيسي
             </a>

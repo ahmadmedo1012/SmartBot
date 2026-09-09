@@ -1,5 +1,6 @@
 """PDF Reports routes."""
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
+import base64
 import logging
 
 from _responses import ok
@@ -14,6 +15,28 @@ from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(prefix="", tags=["reports"])
+
+
+# ── v16-E1 (D2-LEAD C — SSRF): شعار التقرير ─────────────────────────────────
+
+def _image_data_uri(raw: bytes) -> str:
+    """شعار مُجلب مسبقاً (بايتات محروسة) → data: URI للمضاربة في <img>.
+
+    The mime is sniffed from magic signatures (default image/png — WeasyPrint
+    re-derives the type from the bytes anyway via Pillow). The renderer never
+    sees a remote URL: the engine's url_fetcher refuses everything non-data:.
+    """
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        mime = "image/png"
+    elif raw.startswith(b"\xff\xd8\xff"):
+        mime = "image/jpeg"
+    elif raw.startswith((b"GIF87a", b"GIF89a")):
+        mime = "image/gif"
+    elif raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        mime = "image/webp"
+    else:
+        mime = "image/png"
+    return f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
 
 
 @router.get("/api/reports/status")
@@ -56,6 +79,27 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
         )
     except ValueError as e:
         raise HTTPException(400, str(e)) from None
+    # v16-E1 (D2-LEAD C — SSRF): WeasyPrint follows redirects and re-fetches
+    # <img src=…> server-side, bypassing even the literal-IP guard above — a
+    # crafted logo_url was a readback channel into the internal network. The
+    # logo is now pre-fetched HERE with the full guarded stack (DNS-resolving
+    # guard, then _fetch_image_bytes: 10s timeout + 5MB cap + per-hop redirect
+    # re-check) and embedded as a data: URI; the engine's url_fetcher refuses
+    # every non-data: URL, so the renderer structurally cannot fetch remote.
+    if branding.logo_url:
+        from ai_service import (  # noqa: E402 — lazy: patchable in tests
+            UnsafeImageUrlError,
+            _fetch_image_bytes,
+            assert_safe_outbound_url,
+        )
+        try:
+            await assert_safe_outbound_url(branding.logo_url, label="شعار التقرير")
+        except UnsafeImageUrlError:
+            raise HTTPException(400, "شعار التقرير مرفوض") from None
+        logo_bytes = await _fetch_image_bytes(branding.logo_url)
+        if not logo_bytes:
+            raise HTTPException(400, "شعار التقرير مرفوض")
+        branding.logo_url = _image_data_uri(logo_bytes)
     if rtype == "monthly":
         pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding, tenant_id=tenant_id)
     elif rtype == "subscriber":

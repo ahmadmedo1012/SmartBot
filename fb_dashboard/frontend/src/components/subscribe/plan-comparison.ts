@@ -35,14 +35,16 @@ export function repliesPhrase(plan: ComparisonPlan): string {
   return `حتى ${toArabicNumber(plan.maxReplies)} ${getArabicPlural(plan.maxReplies, "رد", undefined, "ردود")}`
 }
 
-/** Maps SmartBot's snake_case API plan into the comparison shape. */
-/** Input shape of a plan row from GET /api/plans (trusted backend contract). */
+/** Input shape of a plan row from GET /api/plans (trusted backend contract:
+ *  features is Column(JSON, default=list) on the backend — always an
+ *  array on the wire; the legacy string-split branch was dead code,
+ *  removed in v16-E4 per the D7 slop-scan). */
 export type ComparisonPlanInput = {
   id: number
   name: string
   name_ar?: string
   price: number
-  features?: string | string[]
+  features?: string[]
   max_replies?: number
   max_pages?: number
   max_rules?: string | number
@@ -50,17 +52,12 @@ export type ComparisonPlanInput = {
 }
 
 export function toComparisonPlan(p: ComparisonPlanInput): ComparisonPlan {
-  const features: string[] = Array.isArray(p.features)
-    ? p.features
-    : typeof p.features === "string" && p.features
-      ? p.features.split(/[\n,،]/).map((s) => s.trim()).filter(Boolean)
-      : []
   return {
     id: p.id,
     name: p.name,
     nameAr: p.name_ar || p.name,
     price: Number(p.price),
-    features,
+    features: p.features ?? [],
     maxReplies: Number(p.max_replies ?? 0),
     maxPages: Number(p.max_pages ?? 0),
     maxRules: Number(p.max_rules ?? 0),

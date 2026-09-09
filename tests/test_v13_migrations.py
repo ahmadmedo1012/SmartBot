@@ -153,7 +153,9 @@ def test_chain_reaches_012_and_enforces_unique(fresh_db):
     # فرادة (tenant,key) فلا تتأثر صفوفها بـ013
     # v15-E2: الرأس أصبح 014 (قيود التفرد + server_defaults) — حوارسه
     # تتخطى قيود create_all فلا تتأثر صفوف العيّنة
-    assert _version(fresh_db) == "014"
+    # v16-E5: الرأس أصبح 015 (فهرس offers الساخن + FK SET NULL) —
+    # كلاهما محروس بالـInspector/اللهجة فلا يتأثر شكل العيّنة
+    assert _version(fresh_db) == "015"
 
     # dedup: الأقدم (id=1) حُذف، الأحدث (id=2) بقي، الفرادة (id=3) بقت،
     # وأزواج balance/fb_fan_count متطابقة القيمة نجت كليهما (6 صفوف)

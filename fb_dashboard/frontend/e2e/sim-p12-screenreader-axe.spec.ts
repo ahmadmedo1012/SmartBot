@@ -304,6 +304,12 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
       // (ينتظر عنصراً مخفياً أبداً) — محدد المعالج الفريد بدلاً منه
       const dialog = page.locator('[aria-labelledby="onboarding-step-title"]').first()
       await dialog.waitFor({ state: 'visible', timeout: 20_000 })
+      /* v16-منسّق: مهلة استقرار قبل المسح — نفس المهلة التي كانت لخطوة 1
+       * فقط. بدونها يقع مسح axe أثناء حركة ob-step-enter (opacity<1
+       * محسوبة) فيمزج لون النص مع الخلفية ويفشل التباين عابراً — القياس
+       * يجب أن يكون على الحالة المستقرة لا منتصف الحركة (WCAG يقيس
+       * الحالات المستقرة؛ الحركات <500ms عابرة). */
+      await page.waitForTimeout(1200)
       sweeps.push(await axeSweep(page, P, 'wizard-step0'))
       // التقدّم: «التالي» — التركيز يجب أن يبقى داخل الحوار (أو ينتقل
       // لعنوان الخطوة) — إدخال مُدرج p12-wizard-focus-advance

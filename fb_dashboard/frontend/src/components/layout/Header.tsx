@@ -161,9 +161,17 @@ export function Header({ className }: HeaderProps) {
 
   return (
     <>
+      {/* v16-E3 (D1 C1, HIGH): the hidden branch only applied -translate-y-full —
+          the links stayed tabbable while invisible (live measurement: first 6
+          tab stops at y=−50). `invisible` removes them from the tab order AFTER
+          the slide-out: the base `transition-all` already covers visibility
+          (CSS discrete transition — visibility stays "visible" for the whole
+          500ms duration, then flips), so the animation is preserved exactly and
+          no transition-property narrowing (which would kill the scrolled
+          bg/border/shadow fades) is needed. */}
       <header className={cn(
         "fixed top-0 inset-x-0 z-30 h-16 transition-all duration-500 will-change-transform backface-hidden",
-        visible ? "translate-y-0" : "-translate-y-full",
+        visible ? "translate-y-0" : "-translate-y-full invisible",
         scrolled ? "bg-background/80 backdrop-blur-2xl border-b border-border/30 shadow-md" : "bg-background/0",
         className
       )}>

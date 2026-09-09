@@ -96,6 +96,9 @@ export default function AutoReplyPage() {
                   onChange={e => setName(e.target.value)}
                   placeholder="مثال: الرد على الاستفسارات"
                   autoFocus
+                  /* v16-E3 (D1 C3): raw input bypasses the shared Input seam —
+                     dir="auto" isolates mixed Arabic/Latin values. */
+                  dir="auto"
                   className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
@@ -106,6 +109,7 @@ export default function AutoReplyPage() {
                   value={keyword}
                   onChange={e => setKeyword(e.target.value)}
                   placeholder="مثال: سعر، توصيل، عنوان"
+                  dir="auto"
                   className="w-full h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
@@ -117,6 +121,7 @@ export default function AutoReplyPage() {
                   onChange={e => setReplyText(e.target.value)}
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة…"
                   rows={3}
+                  dir="auto"
                   className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
               </div>
@@ -127,6 +132,7 @@ export default function AutoReplyPage() {
                   value={priority}
                   onChange={e => setPriority(e.target.value)}
                   inputMode="numeric"
+                  dir="auto"
                   className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>

@@ -62,8 +62,9 @@ v15-E2 (D3-H1/H2/M2 + D12-H2/H4): the same healing extended to the
   (users.token_ver / users.is_platform_admin — the live /api/login 500:
   int(None) in routers/auth.py:36).
 
-NOT covered (documented limits): other unique/index/FK drift beyond the list
-  below. App-level checks already guard these paths; see docs/design-system.md
+NOT covered (documented limits): other unique/index/FK drift beyond the
+  list below — v16-E5 (D6) أغلق الثغرات التي وجدها D6 في القائمة
+  (انظر _INDEX_HEAL_V16) فالباقي هو مجددًا «ما ليس مذكورًا أسفل». App-level checks already guard these paths; see docs/design-system.md
   and CLAUDE.md rules. Reconcile also never DROPS anything — the two dead
   migration columns (users.onboarding_completed from 004,
   payment_requests.amount_numeric from 001) and the duplicate
@@ -176,6 +177,32 @@ _USERS_EMAIL_NEUTRALIZE = (
     "WHERE email <> '' GROUP BY lower(email))) AND email <> ''"
 )
 
+# v16-E5 (D6): تحييد تكرارات اسم المستخدم داخل المستأجر — إبقاء MIN(id)
+# (الحساب الذي يلتقطه الدخول حتميًا order_by(id).limit(1) في auth.py:145)
+# وتلوين الأحدث بلاحقة '#<id>' فريدة (نمط تحييد البريد نفسه — لا حذف
+# حسابات: الدفوعات والسجلات المرتبطة بالأحدث تبقى). Idempotent:
+# الملون يصبح مفردًا في مجموعته فلا يُعاد تلوينه؛ '#'||id يعمل على
+# كلتا اللهجتين (anynonarray||text في PG).
+_USERS_USERNAME_NEUTRALIZE = (
+    "UPDATE users SET username = username || '#' || id WHERE id NOT IN ("
+    "SELECT MIN(id) FROM (SELECT id, tenant_id, username FROM users) t "
+    "GROUP BY tenant_id, username)"
+)
+
+# v16-E5 (D6): دفعة معلقة واحدة لكل مستخدم (قيد 002 الجزئي — TOCTOU
+# payments.py) — قبل إنشاء الفهرس الفريد الجزئي نُسقط «المعلقات
+# المتجاوزة» فقط (الأحدث MAX(id) يبقى): لا نمس verified/cancelled
+# أبدًا (تاريخ الأموال محفوظ)، ولا صفوف user_id NULL (الفهرس الفريد
+# يسمح بتعددها على PostgreSQL — NULLs متمايزة هناك). Idempotent:
+# بعد الخصم كل مجموعة = صف واحد فلا يُحذف شيء.
+_SUB_PAYMENT_PENDING_DEDUP = (
+    "DELETE FROM subscription_payments WHERE status = 'pending' "
+    "AND user_id IS NOT NULL AND id NOT IN ("
+    "SELECT MAX(id) FROM (SELECT id, user_id FROM subscription_payments "
+    "WHERE status = 'pending' AND user_id IS NOT NULL) t "
+    "GROUP BY user_id)"
+)
+
 # v15-E2 (D3-H1 + D12-H2/H4) — عائلة القيود المفقودة على جداول ما قبل
 # إعادة البناء. أسماء مطابقة لقيود النموذج (نمط 013): قواعد create_all
 # تحملها كقيود جدول (يكتشفها الحارس) وقواعد legacy تحصل عليها كفهارس
@@ -256,6 +283,79 @@ _INDEX_HEAL_V15: list[tuple[str, tuple[str, ...], str]] = [
         "CREATE UNIQUE INDEX IF NOT EXISTS uq_user_email_lower "
         "ON users (lower(email)) WHERE email <> ''",
     ),
+]
+
+# v16-E5 (D6) — إكمال قائمة الشفاء بما وجده D6 ناقصًا (لو ماتت السلسلة).
+# السلسلة تبقى السلطة: 001/create_all يبني معظم هذه الأسماء للقواعد
+# الجديدة (النموذج يصرّح بها جميعًا)، و002/010/011/013/015 تشاؤها على
+# مسار السلسلة — هذه الشبكة تضمن وجودها على قواعد legacy التي لم تمرّ
+# بأي منها. الحارس يتخطى كلا الشكلين (قيد جدول من create_all أو فهرس
+# مستقل بنفس الاسم) فالإعادة no-op على القواعد السليمة.
+_INDEX_HEAL_V16: list[tuple[str, tuple[str, ...], str]] = [
+    # المسار الساخن (ترحيلة 015): اختيار العرض لكل رسالة واردة — بدون
+    # الفهرس مسح كامل للجدول لكل رسالة (offer_engine.py:41-43)
+    ("offers.ix_offer_tenant_active", (),
+     "CREATE INDEX IF NOT EXISTS ix_offer_tenant_active "
+     "ON offers (tenant_id, is_active)"),
+    # قيد النموذج (models.py:132) — الترحيلات لا تنشئه على قواعد legacy
+    # (SQL اليدوي أنشأه على الإنتاج «إن طُبّق»؛ الحارس يكتشف كلا الشكلين)
+    ("users.uq_user_tenant_username",
+     (_USERS_USERNAME_NEUTRALIZE,),
+     "CREATE UNIQUE INDEX IF NOT EXISTS uq_user_tenant_username "
+     "ON users (tenant_id, username)"),
+    # قيد 002 الجزئي (TOCTOU payments.py) — موجود في النموذج بلا أي
+    # إنشاء سلسلي على legacy؛ الخصم أعلاه يحفظ تاريخ الأموال
+    ("subscription_payments.ix_sub_payment_user_pending",
+     (_SUB_PAYMENT_PENDING_DEDUP,),
+     "CREATE UNIQUE INDEX IF NOT EXISTS ix_sub_payment_user_pending "
+     "ON subscription_payments (user_id) WHERE status = 'pending'"),
+    # عائلة uq_*_tenant_fb (D6): مفتاح dedup إعادة تسليم الويبهوك —
+    # حوار الحذف مثل عائلة v15 (إبقاء MAX(id)؛ رسائل النسخة القديمة
+    # تُسقط معها عبر CASCADE لأنها تكرار حرفي لنفس المحادثة/الرسالة)
+    ("conversations.uq_conversations_tenant_fb",
+     (_dedup_stmt("conversations", "tenant_id", "fb_conversation_id"),),
+     "CREATE UNIQUE INDEX IF NOT EXISTS uq_conversations_tenant_fb "
+     "ON conversations (tenant_id, fb_conversation_id)"),
+    ("messages.uq_messages_tenant_fb",
+     (_dedup_stmt("messages", "tenant_id", "fb_message_id"),),
+     "CREATE UNIQUE INDEX IF NOT EXISTS uq_messages_tenant_fb "
+     "ON messages (tenant_id, fb_message_id)"),
+    ("comments.uq_comments_tenant_fb",
+     (_dedup_stmt("comments", "tenant_id", "fb_comment_id"),),
+     "CREATE UNIQUE INDEX IF NOT EXISTS uq_comments_tenant_fb "
+     "ON comments (tenant_id, fb_comment_id)"),
+    # فهارس 010/011 الحارة التي لم تكن في القائمة (D6: 11/15 ناقصة) —
+    # معظمها معلن في النموذج فيبنيه create_all؛ الشفاء هنا لقواعد legacy
+    ("subscribers.ix_sub_tenant_last_interaction", (),
+     "CREATE INDEX IF NOT EXISTS ix_sub_tenant_last_interaction "
+     "ON subscribers (tenant_id, last_interaction_at)"),
+    ("comments.ix_comment_tenant_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_comment_tenant_created "
+     "ON comments (tenant_id, created_at)"),
+    ("replies.ix_reply_tenant_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_reply_tenant_created "
+     "ON replies (tenant_id, created_at)"),
+    ("bot_state.ix_botstate_key_value", (),
+     "CREATE INDEX IF NOT EXISTS ix_botstate_key_value "
+     "ON bot_state (key, value)"),
+    ("ai_suggestions.ix_ai_suggestion_tenant_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_ai_suggestion_tenant_created "
+     "ON ai_suggestions (tenant_id, created_at)"),
+    ("payment_requests.ix_payment_request_tenant_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_payment_request_tenant_created "
+     "ON payment_requests (tenant_id, created_at)"),
+    ("subscription_payments.ix_sub_payment_tenant_status_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_sub_payment_tenant_status_created "
+     "ON subscription_payments (tenant_id, status, created_at)"),
+    ("broadcasts.ix_broadcast_tenant_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_broadcast_tenant_created "
+     "ON broadcasts (tenant_id, created_at)"),
+    ("bot_alerts.ix_bot_alert_tenant_resolved_created", (),
+     "CREATE INDEX IF NOT EXISTS ix_bot_alert_tenant_resolved_created "
+     "ON bot_alerts (tenant_id, resolved, created_at)"),
+    ("subscribers.ix_sub_tenant_platform_status", (),
+     "CREATE INDEX IF NOT EXISTS ix_sub_tenant_platform_status "
+     "ON subscribers (tenant_id, platform, status)"),
 ]
 
 # ثوابت server_default فقط — دوال مثل now() يرفضها SQLite في ADD COLUMN
@@ -412,7 +512,7 @@ def reconcile_schema(bind) -> list[str]:
     # v14-E3 + v15-E2: constraint/index healing on legacy tables.
     # Defensive by design: a failure logs a warning and moves on — the
     # alembic chain is the authoritative path; this is the safety net.
-    for label, pre_stmts, ddl in (*_INDEX_HEAL, *_INDEX_HEAL_V15):
+    for label, pre_stmts, ddl in (*_INDEX_HEAL, *_INDEX_HEAL_V15, *_INDEX_HEAL_V16):
         table, name = label.split(".", 1)
         if table not in existing_tables:
             continue

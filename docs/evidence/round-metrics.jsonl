@@ -1,0 +1,2 @@
+{"round": "v15", "ts": "2026-09-08T23:37:00Z", "pytest_total": 785, "coverage_pct": 61.77, "allowlist_entries": 12, "dual_shape_guards": 2, "silent_swallows": 84, "battery_red_claims": 6}
+{"round": "v16", "ts": "2026-09-09T04:54:06Z", "pytest_total": 836, "coverage_pct": 61.77, "allowlist_entries": 3, "dual_shape_guards": 0, "silent_swallows": 78, "battery_red_claims": 3}

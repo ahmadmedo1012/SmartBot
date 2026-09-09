@@ -22,8 +22,8 @@ fb_dashboard/               ← كود الإنتاج (خلفية)
 ├── static/                 ← بناء Next.js المُصدَّر (وضع الخادم الواحد محليًا فقط)
 ├── models.py               ← نماذج SQLAlchemy
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
-tests/                      ← 785+ اختبار pytest (ترتفع كل جولة — انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
-alembic/versions/           ← ترحيلات Alembic (حتى 013: 012 قيد فريد bot_state · 013 (v14) قيد (tenant,key) + dedup + فهارس)
+tests/                      ← 836+ اختبار pytest (v16 — ترتفع كل جولة؛ انظر تقرير آخر جولة؛ انحدارات v10 الأمنية ضمنها — v5 §1)
+alembic/versions/           ← ترحيلات Alembic (حتى 015: 012 قيد فريد bot_state · 013 (v14) قيد (tenant,key) · 014 (v15) قيود التفرد وserver_defaults · 015 (v16) فهرس offers الساخن + FK حذف المستخدم)
 scripts/                    ← بوابات وفحوص (gate_all.sh, فحص توكنز CSS…)
 e2e/  (frontend/e2e/)       ← مسح viewport/a11y/انحدار بصري (Playwright)
 docs/                       ← التوثيق المنظَّم — انظر docs/INDEX.md
@@ -52,9 +52,9 @@ bash scripts/gate_all.sh        # ruff + pytest + tsc + vitest + next build + م
 | البوابة | الأمر | الحالة الحالية |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | 0 ملاحظة |
-| الاختبارات | `.venv/bin/python -m pytest -q` | **785+ passed** (ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
+| الاختبارات | `.venv/bin/python -m pytest -q` | **836+ passed** (v16 — ترتفع كل جولة — انظر تقرير آخر جولة؛ محكمّة في CI: أمامي/عكسي أخضر) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
-| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 30 ملفًا / 243 اختبارًا (v15 — ترتفع كل جولة) |
+| اختبارات الواجهة (vitest — v11) | `cd fb_dashboard/frontend && npx vitest run` | 30 ملفًا / 245 اختبارًا (v16 — ترتفع كل جولة) |
 | بناء الإنتاج | `npm run build` | 41 مسارًا |
 | فحص الوصولية | `node e2e/a11y-sweep.mjs` | 7/7 صفحات نظيفة |
 | صفر تمدد أفقي | `node e2e/viewport-sweep.mjs` | 21/21 (375/768/1440) |
@@ -75,7 +75,9 @@ bash scripts/gate_all.sh        # ruff + pytest + tsc + vitest + next build + م
 مشروعا Vercel (انظر `docs/deployment.md`):
 - **API** (`vercel.json`): FastAPI serverless — نقطة الدخول `api/index.py` → `api.smart-link.ly`
 - **Frontend** (`fb_dashboard/frontend/vercel.json` — التكوين الفعلي): Next.js → `bot.smart-link.ly`
-- **الترحيلات**: `alembic upgrade head` عند تغيّر المخطط (أحدث ترحيل 013 = موجة v14: قيد (tenant,key) على bot_state + dedup)
+- **الترحيلات**: `alembic upgrade head` عند تغيّر المخطط (أحدث ترحيل 015 = موجة v16: فهرس offers(tenant_id,is_active) للمسار الساخن + FK حذف المستخدم SET NULL + سلسلة PG نظيفة لا تعلق عند 003)
+
+> **v16:** بوابة الحزمة صارت صارمة (الأساس المشترك ≤190KB gz بعد البناء) + slop-scan تشخيصي + حارس الأبواب الأحادية (`.githooks/pre-push`) — راجع CLAUDE.md «v16 Conventions».
 
 ## المراقبة
 

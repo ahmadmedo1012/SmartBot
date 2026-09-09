@@ -55,6 +55,13 @@ export async function axeSweep(page: Page, persona: string, name: string): Promi
           help: v.help,
           nodes: v.nodes.length,
           tags: v.tags?.slice(0, 4),
+          /* v16-منسّق (درس p12 wizard-step0): العدد وحده لا يكفي للتشخيص —
+           * كل node يُخزَّن بهدفه وhtml (أول 3) حتى تكون الانتكاسة قابلة
+           * للتحديد دون إعادة تشغيل البطارية (قاعدة gstack pre-emit). */
+          nodeDetails: v.nodes.slice(0, 3).map((n) => ({
+            target: n.target,
+            html: (n.html || '').slice(0, 300),
+          })),
         })),
         passes: results.passes.length,
         incomplete: results.incomplete.length,

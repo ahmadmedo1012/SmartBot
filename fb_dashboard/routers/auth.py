@@ -158,12 +158,22 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     token = make_token(user.username, user.tenant_id, getattr(user, "token_ver", 0))
     await log_audit(db, "login", actor_id=user.id, ip=ip, tenant_id=user.tenant_id or 0)
     await db.commit()
+    # v16-E2 (D4 honest-login): the old response returned
+    # ``getattr(user, 'plan', 'free')`` — ``User.plan`` is NEVER written by any
+    # code path, so login always answered "free" even for a PAID/TRIAL tenant
+    # (a paid customer sees "free" right after paying). The honest source is
+    # the tenant row — the SAME one /api/me reads below (auth.py:265-280).
+    login_plan = "free"
+    if user.tenant_id:
+        login_tenant = await db.get(Tenant, user.tenant_id)
+        if login_tenant:
+            login_plan = login_tenant.plan or "free"
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok({
         "user": {
             "id": user.id, "username": user.username, "name": user.email or user.username,
             "role": user.role, "tenant_id": user.tenant_id,
-            "subscriptionStatus": getattr(user, 'plan', 'free'),
+            "subscriptionStatus": login_plan,
         }
     }))
     resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",

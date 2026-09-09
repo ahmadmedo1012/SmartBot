@@ -53,11 +53,13 @@ export default function BillingPage() {
             <h1 className="font-bold text-sm">الفواتير</h1>
             <p className="text-2xs text-muted-foreground">الرصيد وسجل الدفع</p>
           </div>
-          {/* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before) */}
+          {/* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before)
+              v16-E3 (D1 C2): un-nested Link>Button — orange sm visuals moved to
+              a span, the anchor is the single tab stop. */}
           <Link href="/subscribe" className="ms-auto">
-            <Button size="sm" className="shadow-sm shadow-accent-foreground/15">
+            <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm shadow-accent-foreground/15 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-10 min-h-11 min-w-11 gap-1.5 px-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
               <Zap className="size-3.5" /> اشترك أو اشحن الرصيد
-            </Button>
+            </span>
           </Link>
         </div>
       </header>

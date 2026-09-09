@@ -5,8 +5,8 @@ import logging
 from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
-from models import User
-from sqlalchemy import select
+from models import NotificationPreference, User
+from sqlalchemy import delete, select
 
 from routers.auth import require_role
 
@@ -75,6 +75,14 @@ async def delete_user(user_id: int, db=Depends(get_db), current_user: User = Dep
         raise HTTPException(404, "المستخدم غير موجود")
     if user.id == current_user.id:
         raise HTTPException(400, "لا يمكنك حذف حسابك")
+    # v16-E5 (D6-H2): اكتساف تفضيلات إشعارات المستخدم قبل حذفه —
+    # uq_notif_pref_user (فريد على user_id) يحجب إدراجًا لاحقًا لنفس
+    # المعرف (SQLite يعيد استخدام rowid المحرّر)، وعلى PostgreSQL تبقى
+    # الصفوف يتيمة للأبد. telegram_approvers يُفرَّغ تلقائيًا عبر FK
+    # ON DELETE SET NULL (models.py + 015) — لا حاجة لمسحه هنا.
+    await db.execute(
+        delete(NotificationPreference).where(NotificationPreference.user_id == user_id)
+    )
     await db.delete(user)
     await db.commit()
     return ok({"ok": True})

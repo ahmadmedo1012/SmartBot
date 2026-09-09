@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# .githooks/pre-push — v16-E7 (D7-G2 · gstack careful-mode): بوابة الدفع
+# الحريصة ضد «الأبواب الأحادية» على الفرع المحمي (main أو الافتراضي البعيد):
+#   · الدفع القسري (غير سريع التقديم) إلى المحمي بلا --force-with-lease
+#   · حذف الفرع المحمي البعيد
+# الدفع الطبيعي يمر دائماً — البوابة سريعة (<1 ثانية): قراءة أسطر refs
+# من stdin، وفحص سلف واحد (merge-base) لتحديثات المحمي فقط.
+# التنشيط: git config core.hooksPath .githooks (نُفّذ في v16-E7).
+# الالتفاف المقصود الوحيد: --force-with-lease (الخيار المسؤول المراجَع).
+set -uo pipefail
+
+ZERO=0000000000000000000000000000000000000000
+
+# الفرع المحمي: main + الافتراضي البعيد إن اختلف
+PROTECTED_EXTRA=""
+if _origin_default=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null); then
+  _origin_default="${_origin_default#origin/}"
+  if [[ -n "$_origin_default" && "$_origin_default" != "main" ]]; then
+    PROTECTED_EXTRA="$_origin_default"
+  fi
+fi
+
+# هل حمل أمر الدفع نفسه --force-with-lease؟ (الخيار المسؤول المسموح)
+# أقصى جهد على لينكس: cmdline لعملية git-push الأم من /proc — إن تعذّر
+# القراءة نرجع إلى "لا lease" (تحفظياً: يمنع القسري، لا يمنع العادي أبداً).
+_push_has_lease() {
+  local cmdline=""
+  if [[ -r "/proc/$PPID/cmdline" ]]; then
+    cmdline=$(tr '\0' ' ' < "/proc/$PPID/cmdline" 2>/dev/null)
+  fi
+  [[ "$cmdline" == *"--force-with-lease"* ]]
+}
+
+DENY_REASON=""
+while read -r _local_ref _local_sha _remote_ref _remote_sha || [[ -n "${_local_ref:-}" ]]; do
+  [[ -n "${_remote_ref:-}" ]] || continue
+  case "$_remote_ref" in
+    refs/heads/*) _branch="${_remote_ref#refs/heads/}" ;;
+    *) continue ;;   # الوسوم وغيرها من refs خارج نطاق الحماية
+  esac
+  if [[ "$_branch" != "main" && ( -z "$PROTECTED_EXTRA" || "$_branch" != "$PROTECTED_EXTRA" ) ]]; then
+    continue
+  fi
+
+  # حذف المحمي: sha المحلية صفرية والبعيدة قائمة
+  if [[ "$_local_sha" == "$ZERO" && "$_remote_sha" != "$ZERO" ]]; then
+    DENY_REASON="حذف الفرع المحمي $_branch / deleting protected branch $_branch"
+    break
+  fi
+
+  # دفع قسري إلى المحمي: البعيدة ليست سلفاً للمحلية (خلافاً للتقديم السريع)
+  if [[ "$_local_sha" != "$ZERO" && "$_remote_sha" != "$ZERO" ]] \
+     && ! git merge-base --is-ancestor "$_remote_sha" "$_local_sha" 2>/dev/null; then
+    if ! _push_has_lease; then
+      DENY_REASON="دفع قسري إلى $_branch بلا --force-with-lease / force-push to $_branch without a lease"
+      break
+    fi
+  fi
+done
+
+if [[ -n "$DENY_REASON" ]]; then
+  cat >&2 <<MSG
+❌ [careful/pre-push] مرفوض: $DENY_REASON
+❌ [careful/pre-push] DENIED: $DENY_REASON
+   باب أحادي: إعادة كتابة/حذف main تكسر كل الاستنساخات ومسار النشر الموثق.
+   One-way door: rewriting or deleting main breaks every clone and the deploy trail.
+   الآمن: دفع تقديم سريع، أو فرع جديد، أو --force-with-lease بعد مراجعة مقصودة.
+   Safe: a fast-forward push, a new branch, or a reviewed --force-with-lease.
+MSG
+  exit 1
+fi
+exit 0

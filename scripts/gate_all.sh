@@ -7,12 +7,40 @@
 # v15-E9: [5.6] secret-scan (D11-G3 — NFKC/zero-width/entity-decode patterns,
 # worktree-wide); [6] READINESS GATE (D11-G4) — before any push: a boxed
 # REVIEWS/TESTS/DOCS summary; a failed gate BLOCKS the readiness verdict.
+# v16-E7 (gstack import — D7 G1/G6 + D5 E-CI-4): [1.5] slop-scan DIAGNOSTIC
+# (counts + hotspots + trend; exit 0 by doctrine — never gates); [4.6] bundle
+# budget gate — scripts/measure_bundle.py wired in: common base gzip > 190KB
+# HARD-FAILS the gate + an informational per-route route-extra table (the
+# 60.6KB Next-infra share of the arm is not app-controllable — documented);
+# [6] readiness now takes the round from scripts/round.env (ROUND) instead of
+# a hardcoded v15, and cross-checks the evidence fingerprint in
+# docs/evidence/gate-run.json (ADVISORY this round — a mismatch warns, does
+# not fail). On an all-green run the gate WRITES gate-run.json
+# {ts, head, wtree_sha, round} (wtree_sha = sha256 of porcelain + HEAD).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PY=.venv/bin/python
 FAILURES=()
 PASSED=()
+
+# ── v16-E7 (G6): الجولة الحالية من scripts/round.env — لا تصلب v15 ──
+# بوابة الجاهزية [6] تستعمل ${ROUND} لخطة الجولة وتقارير D/E وعلامات
+# الوثائق. غياب الملف أو فراغ القيمة = التراجع إلى v16 (سقف هذه الجولة).
+ROUND="v16"
+if [[ -f scripts/round.env ]]; then
+  # shellcheck source=scripts/round.env
+  . scripts/round.env
+fi
+ROUND="${ROUND:-v16}"
+
+# ── v16-E7 (G6): بصمة الأدلة — sha256(نص حالة شجرة العمل + HEAD) ──
+# تُكتب في docs/evidence/gate-run.json عند النجاح، وتُقارن (advisory) في
+# بوابة الجاهزية 6b: اختلافها = شجرة العمل تغيرت منذ آخر اخضرار موثق.
+_wtree_sha() {
+  printf '%s%s' "$(git status --porcelain 2>/dev/null)" "$(git rev-parse HEAD 2>/dev/null)" \
+    | sha256sum | awk '{print $1}'
+}
 
 echo "════════════════════════════════════════════════════════════════"
 echo "  SmartBot unified quality gate (v5 §2 + v6 §A/§B) — $(date -u '+%Y-%m-%d %H:%M:%SZ')"
@@ -25,6 +53,19 @@ if $PY -m ruff check fb_dashboard api tests scripts; then
   PASSED+=("ruff")
 else
   FAILURES+=("ruff")
+fi
+
+# ── Gate 1.5: slop-scan (v16-E7 · D7-G1) — تشخيصي لا يحجب أبداً ──────
+# عقيدة gstack: الماسح يطبع عدادات القواعد الثلاث (حراس الشكل المزدوج
+# بعد unwrapApi · الابتلاع الصامت · خرق الفك المركزي) وبؤرها الساخنة
+# واتجاهها مقابل آخر سجل في docs/evidence/round-metrics.jsonl — exit 0
+# دائماً حتى عند خلل السكربت نفسه: البوابة لا تتحقق بشيء هنا (الفائدة
+# الاتجاه فقط؛ المقاييس تُسجل عند إغلاق الجولة بـ round_metrics.py).
+echo "── [1.5/6] slop-scan (diagnostic — never blocks) ──"
+if $PY scripts/slop_scan.py; then
+  echo "✅ slop-scan: completed (diagnostic)"
+else
+  echo "⚠️  slop-scan: script error — ignored (diagnostic by doctrine)"
 fi
 
 # ── Gate 2: pytest (hermetic suite) ─────────────────────────────────
@@ -129,6 +170,56 @@ else
     else
       echo "(sync_next_static skipped — build failed)"
     fi
+
+    # ── Gate 4.6: bundle budget (v16-E7 · D5 — closes E-CI-4) ───────
+    # dec-js-budget العقد الصارم: الأساس المشترك المضغوط ≤ 190KB gz —
+    # خروجه يُحمرّ البوابة (القياس الحالي 186.3gz — لا تعديل للعتبة).
+    # الحسم مزدوج الصمود: رمز خروج measure_bundle (2 = تجاوز الميزانية)
+    # + تحليل نصي لسطر budget check، مع إعادة حساب احتياطية من سطر
+    # COMMON BASE إن انزلق تنسيق المخرجات (فشل مغلق: ما لم يُثبت PASS
+    # إيجابياً فالحكم FAIL). جدول route-extra معلوماتي — 60.6KB منه
+    # بنية Next غير قابلة للتحكم على مستوى التطبيق (موثق بتأجيل صريح).
+    if [[ $BUILD_OK -eq 1 ]]; then
+      echo "── [4.6/6] measure_bundle (common base gz ≤ 190KB — HARD GATE) ──"
+      _MB_RC=0
+      _MB_OUT=$($PY scripts/measure_bundle.py 2>&1) || _MB_RC=$?
+      printf '%s\n' "$_MB_OUT"
+      _BUDGET_LINE=$(printf '%s\n' "$_MB_OUT" | grep -i 'budget check' | tail -n 1 || true)
+      _BASE_RAW=$(printf '%s\n' "$_MB_OUT" | awk '/^COMMON BASE/ {print $3}' | tail -n 1)
+      _BASE_GZ=$(printf '%s\n' "$_MB_OUT" | awk '/^COMMON BASE/ {print $4}' | tail -n 1)
+      _VERDICT="UNPARSED"
+      case "$_BUDGET_LINE" in
+        *PASS*) _VERDICT="PASS" ;;
+        *FAIL*) _VERDICT="FAIL" ;;
+      esac
+      _BUDGET_OK=0
+      if [[ $_MB_RC -eq 0 && "$_VERDICT" == "PASS" ]]; then
+        _BUDGET_OK=1
+      elif [[ $_MB_RC -eq 0 && "$_VERDICT" == "UNPARSED" && -n "$_BASE_GZ" ]]; then
+        # انزلاق تنسيق: أعد الحساب من سطر COMMON BASE مباشرة
+        if awk -v v="$_BASE_GZ" 'BEGIN {exit (v <= 190) ? 0 : 1}'; then
+          _BUDGET_OK=1
+          echo "ℹ️  budget line unparsed — recomputed from COMMON BASE gz ${_BASE_GZ}KB ≤ 190"
+        fi
+      fi
+      if [[ $_BUDGET_OK -eq 1 ]]; then
+        echo "✅ bundle budget: common base ${_BASE_RAW:-?}KB raw / ${_BASE_GZ:-?}KB gz ≤ 190KB"
+        PASSED+=("bundle-budget")
+        # جدول route-extra (معلوماتي فقط): ما يدفعه كل مسار فوق الأساس
+        if [[ -n "$_BASE_RAW" && -n "$_BASE_GZ" ]]; then
+          printf '%s\n' "$_MB_OUT" | awk -v BR="$_BASE_RAW" -v BG="$_BASE_GZ" '
+            /^route[[:space:]]+raw/ { intab = 1; print "    route-extra (per-route total − common base):"; next }
+            /^COMMON BASE/ { intab = 0 }
+            intab && NF >= 3 { printf "    %-16s raw %+.1f KB · gz %+.1f KB\n", $1, $2 - BR, $3 - BG }
+          '
+        fi
+      else
+        echo "❌ bundle budget: common base gz > 190KB (rc=$_MB_RC verdict=$_VERDICT base_gz=${_BASE_GZ:-unparsed}) — dec-js-budget breach"
+        FAILURES+=("bundle-budget")
+      fi
+    else
+      echo "(measure_bundle skipped — build failed)"
+    fi
   fi
 fi
 
@@ -200,22 +291,28 @@ fi
 # ملخصاً؛ أي بوابة فاشلة = READINESS: BLOCKED (الخروج 1). لا «أخضر» بلا
 # استيفاء الأقسام الثلاثة — لا يُقبل التقرير الذاتي (gstack readiness-gate).
 echo "── [6/6] readiness (REVIEWS / TESTS / DOCS) ──"
-ROUND_PLAN="smartbot-world-class-v15-plan-2026-09-08.md"
+# v16-E7 (G6): خطة الجولة من ${ROUND} (glob — بلا تصلب تاريخ v15)
+ROUND_PLAN=""
+for _plan in smartbot-world-class-${ROUND}-plan-*.md; do
+  if [[ -f "$_plan" ]]; then
+    ROUND_PLAN="$_plan"
+  fi
+done
 READINESS_BLOCKERS=0
 
 # ─ 6a. REVIEWS ──────────────────────────────────────────────────────
-D_REPORTS=$(ls audit-reports/v15-D*.md 2>/dev/null | wc -l | tr -d ' ')
-E_REPORTS=$(ls audit-reports/v15-E*.md 2>/dev/null | wc -l | tr -d ' ')
+D_REPORTS=$(ls audit-reports/${ROUND}-D*.md 2>/dev/null | wc -l | tr -d ' ' || true)
+E_REPORTS=$(ls audit-reports/${ROUND}-E*.md 2>/dev/null | wc -l | tr -d ' ' || true)
 echo "  [REVIEWS]"
 if [[ -f "$ROUND_PLAN" ]]; then
   echo "    round plan: $ROUND_PLAN — present"
 else
-  echo "    ❌ round plan MISSING: $ROUND_PLAN"
+  echo "    ❌ round plan MISSING: smartbot-world-class-${ROUND}-plan-*.md"
   READINESS_BLOCKERS=$((READINESS_BLOCKERS+1))
 fi
-echo "    diagnostic reports: ${D_REPORTS} (v15-D*) · execution reports: ${E_REPORTS} (v15-E*)"
+echo "    diagnostic reports: ${D_REPORTS} (${ROUND}-D*) · execution reports: ${E_REPORTS} (${ROUND}-E*)"
 if [[ "$D_REPORTS" -lt 14 ]]; then
-  echo "    ⚠️  expected 14 diagnostic reports for v15 — found $D_REPORTS"
+  echo "    ⚠️  expected 14 diagnostic reports (v15-class baseline) for ${ROUND} — found $D_REPORTS"
 fi
 
 # ─ 6b. TESTS ─────────────────────────────────────────────────────────
@@ -231,15 +328,30 @@ if [[ ${#FAILURES[@]} -gt 0 ]]; then
 else
   echo "    gates failed this run: none"
 fi
+# بصمة الأدلة (v16-E7 · G6 — advisory هذه الجولة): هل شجرة العمل الحالية
+# هي نفسها التي اخضرّت في آخر تشغيل موثق (docs/evidence/gate-run.json)؟
+# عند عدم التطابق: تحذير BLOCKED معلوماتي فقط — لا يُحمرّ التقرير في
+# v16 (موثّق كـ advisory؛ التشدد يُقرر بعد استقرار الجولات المتتالية).
+if [[ -f docs/evidence/gate-run.json ]]; then
+  _WTREE_NOW=$(_wtree_sha)
+  _WTREE_RECORDED=$($PY -c 'import json; print(json.load(open("docs/evidence/gate-run.json", encoding="utf-8")).get("wtree_sha", ""))' 2>/dev/null || true)
+  if [[ -n "$_WTREE_RECORDED" && "$_WTREE_RECORDED" != "$_WTREE_NOW" ]]; then
+    echo "    ⚠️  ADVISORY (G6) evidence fingerprint: MISMATCH — worktree/HEAD changed since the last green gate run; re-run the full gate before pushing"
+  elif [[ -n "$_WTREE_RECORDED" ]]; then
+    echo "    ✓ evidence fingerprint matches the last green gate run (gate-run.json)"
+  fi
+else
+  echo "    ℹ️  evidence fingerprint: no docs/evidence/gate-run.json yet (first gate run)"
+fi
 
 # ─ 6c. DOCS ──────────────────────────────────────────────────────────
 # فحوص حيوية: وثائق الجولة محدّثة فعلاً (لا أرقام متقادمة تمر الدفع)
 echo "  [DOCS]"
 _docs_checks=(
-  "docs/INDEX.md:v15"
-  "README.md:v15"
-  "CLAUDE.md:v15 Conventions"
-  "docs/deployment.md:إجراءات المالك الإلزامية بعد v15"
+  "docs/INDEX.md:${ROUND}"
+  "README.md:${ROUND}"
+  "CLAUDE.md:${ROUND} Conventions"
+  "docs/deployment.md:إجراءات المالك الإلزامية بعد ${ROUND}"
   "docs/decisions-ledger.md:dec-cron-restore"
 )
 for _pair in "${_docs_checks[@]}"; do
@@ -262,6 +374,16 @@ fi
 echo "────────────────────────────────────────────────────────────────"
 if [[ ${#FAILURES[@]} -eq 0 && $READINESS_BLOCKERS -eq 0 ]]; then
   echo "  ✅ ALL GATES GREEN — readiness READY"
+  # v16-E7 (G6): عند النجاح فقط — تُكتب بصمة الأدلة لهذه اللحظة
+  # {ts, head, wtree_sha, round}؛ جولة الدمج التالية تقارنها قبل الدفع
+  # (advisory) فيتضح إن تغيرت الشجرة بعد آخر اخضرار موثق.
+  mkdir -p docs/evidence
+  _GATE_TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+  _GATE_HEAD=$(git rev-parse HEAD 2>/dev/null || echo unknown)
+  _GATE_WTREE=$(_wtree_sha)
+  printf '{\n  "ts": "%s",\n  "head": "%s",\n  "wtree_sha": "%s",\n  "round": "%s"\n}\n' \
+    "$_GATE_TS" "$_GATE_HEAD" "$_GATE_WTREE" "$ROUND" > docs/evidence/gate-run.json
+  echo "  ℹ️  evidence fingerprint written → docs/evidence/gate-run.json (round ${ROUND})"
   exit 0
 else
   echo "  ❌ FAILED GATES: ${FAILURES[*]:-none} · READINESS BLOCKERS: $READINESS_BLOCKERS"

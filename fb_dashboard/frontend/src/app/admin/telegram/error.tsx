@@ -30,10 +30,12 @@ export default function AdminTelegramError({
           <Button size="lg" className="text-base px-8 h-12" onClick={() => reset()}>
             إعادة المحاولة
           </Button>
+          {/* v16-E3 (D1 C2): un-nested <a><Button> — outline lg visuals
+              moved to a span, the anchor is the single tab stop. */}
           <a href="/admin">
-            <Button variant="outline" size="lg" className="text-base px-8 h-12">
+            <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-12 min-h-11 min-w-11 gap-2.5 px-8 text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
               العودة للوحة التحكم
-            </Button>
+            </span>
           </a>
         </div>
       </div>

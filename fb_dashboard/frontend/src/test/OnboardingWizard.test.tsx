@@ -422,3 +422,52 @@ describe("OnboardingWizard plan grid degradation", () => {
     expect(mocks.push).toHaveBeenCalledWith("/subscribe")
   })
 })
+
+/* v16-E3 (D1 LEAD B — p12-wizard-focus-advance): the forward path has always
+ * re-focused #onboarding-step-title, but handleBack and the step-3 «تخطي
+ * الإعداد» button called setStep() with NO focus management — key={step}
+ * unmounts the clicked button, so focus fell to <body> OUTSIDE the
+ * role="dialog" panel and the modal's Tab trap stopped intercepting. These
+ * pins assert the v16 fix: after «السابق»/«تخطي الإعداد» the active element
+ * IS the new step's title h2 and it lives inside the dialog container. */
+describe("OnboardingWizard focus management (back / skip-setup)", () => {
+  it("«السابق» moves focus to the new step's title inside [role=dialog]", async () => {
+    stubFetch({ [PLANS_ROUTE]: plansResponse })
+    renderWizard()
+
+    // advance to step 1 so «السابق» is a step-back, not a skip
+    clickNext()
+    await screen.findByText("اربط صفحة فيسبوك")
+
+    fireEvent.click(screen.getByRole("button", { name: "السابق" }))
+    await screen.findByText("مرحباً بك في SmartBot!")
+
+    // rAF fires after the remount: focus must have landed on the step title
+    await waitFor(() => {
+      const active = document.activeElement as HTMLElement | null
+      expect(active?.id).toBe("onboarding-step-title")
+      expect(screen.getByRole("dialog").contains(active)).toBe(true)
+    })
+  })
+
+  it("«تخطي الإعداد» (step 3) moves focus to the done step's title inside [role=dialog]", async () => {
+    stubFetch({ [PLANS_ROUTE]: plansResponse })
+    renderWizard()
+
+    clickNext()
+    await screen.findByText("اربط صفحة فيسبوك")
+    clickNext()
+    await screen.findByText("أنشئ أول قاعدة رد")
+    clickNext()
+    await screen.findByText("اختر خطتك")
+
+    fireEvent.click(screen.getByRole("button", { name: "تخطي الإعداد" }))
+    await screen.findByText("كل شيء جاهز!")
+
+    await waitFor(() => {
+      const active = document.activeElement as HTMLElement | null
+      expect(active?.id).toBe("onboarding-step-title")
+      expect(screen.getByRole("dialog").contains(active)).toBe(true)
+    })
+  })
+})

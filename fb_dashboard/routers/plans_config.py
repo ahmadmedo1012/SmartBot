@@ -13,8 +13,18 @@ from config import settings
 from database import AsyncSessionLocal, engine, get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from models import BotLog, RateLimitEntry, Reply, SubscriptionPlan, SystemConfig
-from sqlalchemy import delete, func, select, text
+from models import (
+    AnalyticsEvent,
+    BlacklistedToken,
+    BotLog,
+    Notification,
+    RateLimitEntry,
+    Reply,
+    SubscriptionPayment,
+    SubscriptionPlan,
+    SystemConfig,
+)
+from sqlalchemy import delete, func, select, text, update
 
 BASE_DIR = Path(__file__).resolve().parent.parent  # ponytail: match runner.py's BASE_DIR (fb_dashboard/)
 
@@ -137,7 +147,10 @@ async def public_stats(db=Depends(get_db)):
     try:
         active_tenants = await db.scalar(
             select(func.count(Tenant.id)).where(
-                Tenant.subscription_status.in_(["PAID", "TRIAL", "active"])
+                # v16-E2 (D4): "active" was never written by ANY code path
+                # (writers use PAID/TRIAL/UNPAID/EXPIRED_TRIAL/REJECTED) — a
+                # literal-only filter. Terminal set kept as PAID/TRIAL.
+                Tenant.subscription_status.in_(["PAID", "TRIAL"])
             )
         ) or 0
         total_replies = await db.scalar(select(func.count(Reply.id))) or 0
@@ -217,9 +230,11 @@ CRON_SECRET = os.getenv("CRON_SECRET", "")
 
 @router.api_route("/api/cron/cleanup-logs", methods=["GET", "POST"])
 async def cleanup_old_logs(request: Request):
-    """Delete BotLog entries older than 30 days, expired RateLimitEntry rows and
-    expired blacklisted JWTs. Vercel Cron calls this daily at 03:00 UTC via
-    vercel.json config.
+    """Delete BotLog entries older than 30 days, expired RateLimitEntry rows,
+    expired blacklisted JWTs, analytics events older than 90 days, READ
+    notifications older than 90 days, and receipt ``data:`` URLs on payments
+    that reached a terminal status more than 30 days ago. Vercel Cron calls
+    this daily at 03:00 UTC via vercel.json config.
 
     v15-E3 (D9-H1): the route was POST-only while Vercel Cron issues a GET —
     every daily cleanup answered 405 and the log tables grew unbounded. Both
@@ -231,12 +246,14 @@ async def cleanup_old_logs(request: Request):
     Authorization: Bearer header (what Vercel Cron actually sends) is the
     primary gate.
 
-    v15-E3 (D6-M3 — same gate as bot.py's heartbeat/bot-cycle): the legacy
-    form token (POST body — not logged by proxies, kept as-is) and the
-    ?token= query param (leaks CRON_SECRET into access/proxy logs — logged
-    with a deprecation warning on every use, to be removed with the
-    cron-job.org header migration) still validate so existing cron providers
-    keep beating until they are moved to the header.
+    v16-E2 (D2-LEAD B): the ``?token=`` query-param fallback is REMOVED — it
+    leaked CRON_SECRET into access/proxy logs and the only consumer that ever
+    used it (the cron-job.org channel) is documented DEAD (dec-cron-restore).
+    The POST form-token path stays (a request body is never logged).
+
+    v16-E2 (D6 receipt retention / E2-م7): every step is idempotent — rows
+    that were already cleaned no longer match their WHERE clause, so the
+    daily cron can crash and re-run any number of times safely.
     """
     auth_header = request.headers.get("authorization", "")
     # POST keeps accepting the legacy form body token (test_schema_reconcile
@@ -248,21 +265,12 @@ async def cleanup_old_logs(request: Request):
             token = str(form.get("token") or "")
         except Exception:
             token = ""
-    q_token = request.query_params.get("token", "")
 
     valid = bool(CRON_SECRET) and secrets.compare_digest(auth_header, f"Bearer {CRON_SECRET}")
     if not valid and CRON_SECRET and token and secrets.compare_digest(token, CRON_SECRET):
         valid = True
-    if not valid and CRON_SECRET and q_token and secrets.compare_digest(q_token, CRON_SECRET):
-        log.warning(
-            "cron auth via ?token= query param is deprecated — move the cron "
-            "provider to the Authorization: Bearer header (the query string "
-            "leaks CRON_SECRET into access logs)"
-        )
-        valid = True
     if not valid:
         raise HTTPException(403, "وصول غير مصرح به لمهام الجدولة")
-    from models import BlacklistedToken
     async with AsyncSessionLocal() as db:
         cutoff = utcnow() - timedelta(days=30)
         deleted_logs = await db.execute(
@@ -274,9 +282,64 @@ async def cleanup_old_logs(request: Request):
         deleted_blacklist = await db.execute(
             delete(BlacklistedToken).where(BlacklistedToken.expires_at < utcnow())
         )
+        # ── v16-E2 (E2-م7) retention steps ─────────────────────────────────
+        # Raw analytics events are INPUT to aggregates, not user-revisitable
+        # records; dashboard trends read a 30-day window, so 90d is safely
+        # past anything ever served.
+        cutoff_90d = utcnow() - timedelta(days=90)
+        deleted_analytics = await db.execute(
+            delete(AnalyticsEvent).where(AnalyticsEvent.created_at < cutoff_90d)
+        )
+        # READ notifications older than 90d are dead feed weight; UNREAD ones
+        # stay (the badge contract — a user must still see what they missed).
+        deleted_read_notifs = await db.execute(
+            delete(Notification).where(
+                Notification.read == True,  # noqa: E712 — SQLAlchemy filter idiom
+                Notification.created_at < cutoff_90d,
+            )
+        )
+        # Receipt ``data:`` URLs (base64 payloads, sometimes hundreds of KB per
+        # row on Vercel uploads) on payments that reached a TERMINAL status
+        # (verified/cancelled — the only writers) more than 30d ago: the admin
+        # review that needed the receipt is long over. Surgical JSON edit —
+        # ONLY the receipt_url key is dropped and only when it is a data: URL
+        # (https receipts live in external storage; /static ones on disk);
+        # every other extra_data field (username, sender info) survives.
+        # SubscriptionPayment has no updated_at column, so "terminal for >30d"
+        # is bounded by created_at — terminal status is always reached AFTER
+        # creation, so this never strips early, only possibly late
+        # (conservative in the right direction).
+        stripped_receipts = 0
+        pay_rows = await db.execute(
+            select(SubscriptionPayment.id, SubscriptionPayment.extra_data).where(
+                SubscriptionPayment.status.in_(("verified", "cancelled")),
+                SubscriptionPayment.created_at < cutoff,
+            )
+        )
+        for pay_id, extra in pay_rows.all():
+            if not isinstance(extra, dict):
+                continue
+            receipt = extra.get("receipt_url")
+            if not isinstance(receipt, str) or not receipt.startswith("data:"):
+                continue
+            try:
+                cleaned = dict(extra)
+                cleaned.pop("receipt_url", None)
+                await db.execute(
+                    update(SubscriptionPayment)
+                    .where(SubscriptionPayment.id == pay_id)
+                    .values(extra_data=cleaned)
+                )
+                stripped_receipts += 1
+            except Exception:
+                log.warning("receipt strip failed for payment %s (non-fatal)",
+                            pay_id, exc_info=True)
         await db.commit()
         return ok({
             "deleted_bot_logs": deleted_logs.rowcount,
             "deleted_rate_limits": deleted_rates.rowcount,
             "deleted_blacklisted_tokens": deleted_blacklist.rowcount,
+            "deleted_analytics_events": deleted_analytics.rowcount,
+            "deleted_read_notifications": deleted_read_notifs.rowcount,
+            "stripped_receipt_urls": stripped_receipts,
         })

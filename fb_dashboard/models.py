@@ -300,7 +300,15 @@ class BotAlert(Base):
 class Offer(Base):
     """Special offers and coupons for customer engagement."""
     __tablename__ = "offers"
-    __table_args__ = (Index("ix_offer_active_expires", "is_active", "expires_at"),)
+    __table_args__ = (
+        Index("ix_offer_active_expires", "is_active", "expires_at"),
+        # v16-E5 (D6): المسار الساخن — اختيار العرض لكل رسالة واردة
+        # يفلتر (tenant_id, is_active) (offer_engine.py:41-43 عبر
+        # pipeline.py:331/333)؛ الجدول كان بلا أي فهرس tenant → مسح
+        # كامل لكل رسالة. الترحيلة 015 وreconcile ينشئانه على قواعد
+        # legacy (create_all يبنيه هنا للقواعد الجديدة).
+        Index("ix_offer_tenant_active", "tenant_id", "is_active"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -697,6 +705,13 @@ class SubscriptionPayment(Base):
               sqlite_where=text("status = 'pending'")),
         # v12 E1.7 (D9): مسار الإدارة يفلتر (tenant, status) ويرتب بـ created_at
         Index("ix_sub_payment_tenant_status_created", "tenant_id", "status", "created_at"),
+        # v16-E5 (D6): فهارس 002 اليتيمان — كانت السلسلة وحدها تشاؤهما
+        # (002_indexes.py:66-69) بينما create_all لا يبنيهما → انحراف
+        # تعادل المخططين. إعلانهما هنا يجعل المسارين (create_all والسلسلة)
+        # متطابقين، وحارس 002 (Inspector) يتخطى الإنشاء فلا تكرار.
+        # يخدمان فحص الحالة (status) ومسار الإدارة per-user.
+        Index("ix_sub_payment_user_status", "user_id", "status"),
+        Index("ix_sub_payment_status", "status"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -747,7 +762,13 @@ class TelegramApprover(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     telegram_id = Column(String(50), unique=True, nullable=False)
     label = Column(String(100), default="")
-    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # v16-E5 (D6-H2): كان آخر FK بلا ON DELETE — حذف المستخدم على
+    # PostgreSQL كان يرتد بـ500 (RESTRICT ضمني). العمود nullable أصلًا
+    # فـ SET NULL يحفظ سجل الموافق التاريخي بلا كاتب. الترحيلة 015
+    # تعيد بناء القيد بهذه الصورة على قواعد PG القائمة؛ create_all
+    # يبنيه هنا للقواعد الجديدة (SQLite يفعّله فقط مع PRAGMA
+    # foreign_keys=ON — انظر tests/conftest.py).
+    added_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
 

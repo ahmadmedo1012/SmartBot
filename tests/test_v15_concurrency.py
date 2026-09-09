@@ -23,8 +23,10 @@
              اعتماد: تعطيل آمن برسالة عربية
   [D12-M4]   /api/bot/trigger صادق: الدورة داخل الطلب بموازنة محدودة
              والاستجابة تروي ما حدث فعلًا (اكتمل/ما يزال جاريًا/فشل)
-  [D6-M3]    مسارا الكرون في bot.py يقبلان Bearer و?token= (مع تحذير
-             إهمال) — النمط نفسه للاثنين عبر _cron_authorized
+  [D6-M3→v16-E2] مسارا الكرون في bot.py يقبلان Bearer فقط (?token= أُزيلت
+             نهائياً — حتى السر الصحيح في الاستعلام يرد 403: القناة
+             المستعملة الوحيدة (cron-job.org) موثقة ميتة، والاستعلام يسرّب
+             السر إلى سجلات الوصول)
   [D12-M2]   _cron_lock الميت أُزيل
 
 لا نداء Graph ولا DNS حقيقي يخرج من العملية: كل مسار خارجي مزيّف.
@@ -32,7 +34,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import os
 import tempfile
 import uuid
@@ -1157,26 +1158,26 @@ def _patch_observability(monkeypatch):
     monkeypatch.setattr(obs, "get_last_heartbeat", _last)
 
 
-async def test_cron_heartbeat_bearer_first_and_token_query_deprecated(
-        v10_seed, monkeypatch, caplog):
-    """D6-M3 (نمط موحد لمساري bot.py عبر _cron_authorized): Bearer أولاً →
-    200؛ ?token= يعمل مع تحذير إهمال؛ بلا اعتماد → 403 عربية."""
+async def test_cron_heartbeat_bearer_only_and_token_query_refused(
+        v10_seed, monkeypatch):
+    """v16-E2 (D2-LEAD B — إزالة ?token=): Bearer وحده يمر (200)؛
+    ?token= بالسر الصحيح نفسه → 403 (القناة ميتة والمسار يسرّب السر إلى
+    سجلات الوصول)؛ بلا اعتماد → 403 عربية."""
     import routers.bot as bot_mod
 
     _patch_observability(monkeypatch)
     monkeypatch.setattr(bot_mod, "AsyncSessionLocal", v10_seed.world.sf)
 
     c = v10_seed.world.client
-    with caplog.at_level(logging.WARNING):
-        r = await c.get("/api/cron/heartbeat",
-                        headers={"Authorization": "Bearer test-cron-secret"})
+    r = await c.get("/api/cron/heartbeat",
+                    headers={"Authorization": "Bearer test-cron-secret"})
     assert r.status_code == 200, r.text
     assert r.json()["data"]["published_posts"] == 0
 
+    # v16-E2: even the CORRECT secret in the query string is refused now.
     r = await c.get("/api/cron/heartbeat?token=test-cron-secret")
-    assert r.status_code == 200, r.text
-    assert any("deprecated" in rec.message.lower() for rec in caplog.records), (
-        "the ?token= fallback must log a deprecation warning"
+    assert r.status_code == 403, (
+        f"?token= must be gone (403), got {r.status_code}: {r.text[:200]}"
     )
 
     r = await c.get("/api/cron/heartbeat")
@@ -1188,22 +1189,22 @@ async def test_cron_heartbeat_bearer_first_and_token_query_deprecated(
     assert r.status_code == 403
 
 
-async def test_cron_bot_cycle_accepts_bearer_and_token_query(
-        v10_seed, monkeypatch, caplog):
-    """bot-cycle بالنمط نفسه (توحيد D6-M3 عبر _cron_authorized)."""
+async def test_cron_bot_cycle_accepts_bearer_only(v10_seed, monkeypatch):
+    """bot-cycle بالنمط نفسه (توقيع _cron_authorized الموحّد): Bearer=200،
+    ?token= بالسر الصحيح → 403 (v16-E2)."""
     import routers.bot as bot_mod
 
     monkeypatch.setattr(bot_mod, "AsyncSessionLocal", v10_seed.world.sf)
 
     c = v10_seed.world.client
-    with caplog.at_level(logging.WARNING):
-        r = await c.get("/api/cron/bot-cycle",
-                        headers={"Authorization": "Bearer test-cron-secret"})
+    r = await c.get("/api/cron/bot-cycle",
+                    headers={"Authorization": "Bearer test-cron-secret"})
     assert r.status_code == 200, r.text
 
     r = await c.get("/api/cron/bot-cycle?token=test-cron-secret")
-    assert r.status_code == 200, r.text
-    assert any("deprecated" in rec.message.lower() for rec in caplog.records)
+    assert r.status_code == 403, (
+        f"?token= must be gone (403), got {r.status_code}: {r.text[:200]}"
+    )
 
     r = await c.get("/api/cron/bot-cycle?token=wrong")
     assert r.status_code == 403

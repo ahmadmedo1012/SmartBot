@@ -175,6 +175,9 @@ export default function MarketingPage() {
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="اكتب رسالتك التسويقية هنا…"
                     rows={4}
+                    /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
+                        seam — dir="auto" isolates mixed Arabic/Latin copy. */
+                    dir="auto"
                     className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
                 </div>

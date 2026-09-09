@@ -213,6 +213,19 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     }
   }, [keyword])
 
+  /* v16-E3 (D1 LEAD B — p12-wizard-focus-advance): the forward path already
+   * re-focused the step title via rAF (v15-fix below), but the BACK and
+   * skip-setup paths called setStep() with no focus management — the clicked
+   * button unmounts (key={step} remounts the whole card incl. the footer)
+   * so focus fell to <body> OUTSIDE role="dialog" and the panel-scoped Tab
+   * trap (:274-295) stopped intercepting → the first Tab escaped the modal.
+   * Same rAF pattern, now factored out and shared by all three transitions. */
+  const focusStepTitle = useCallback(() => {
+    requestAnimationFrame(() => {
+      document.getElementById("onboarding-step-title")?.focus()
+    })
+  }, [])
+
   const handleNext = useCallback(async () => {
     // Step 1 (index 1) → save page connection before advancing
     if (step === 1 && pageId) {
@@ -253,23 +266,25 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     /* v15-fix (بطارية p12-t8 — D4 M-04c): عند تقديم الخطوة كان التركيز
      * يقع على body (العنصر السابق يُفك) فلا يعرف قارئ الشاشة أين هو —
      * نعيده إلى عنوان الخطوة الجديدة (نمط v14-E4 في نافذة الدفع) */
-    requestAnimationFrame(() => {
-      document.getElementById("onboarding-step-title")?.focus()
-    })
+    focusStepTitle()
     /* v14-E4 (D2 H1): accessToken added — it is sent to
      * /api/onboarding/connect-page on the step-1→2 transition; without it
      * in the deps a stale/empty token could be POSTed silently when the
      * user typed it after the callback was memoized (pageId/pageName were
      * already listed — the omission was an oversight). */
-  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply])
+  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply, focusStepTitle])
 
   const handleBack = useCallback(() => {
     if (step === 0) {
       onSkip?.()
     } else {
       setStep((s) => s - 1)
+      /* v16-E3 (D1 LEAD B): focus follows the step change — without this,
+       * focus fell to <body> outside role="dialog" (key={step} unmounts the
+       * clicked button) and the modal's Tab trap stopped intercepting. */
+      focusStepTitle()
     }
-  }, [step, onSkip])
+  }, [step, onSkip, focusStepTitle])
 
   useEffect(() => {
     const panel = panelRef.current
@@ -308,7 +323,15 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-step-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      /* v16 (p12 battery finding): the shell was bg-background/80 +
+       * backdrop-blur-sm — axe's color-contrast check composes the
+       * translucent shell with WHATEVER renders behind the dialog (populated
+       * dashboard cards in the battery vs empty skeletons elsewhere), so the
+       * progress header texts (muted-foreground) crossed below 4.5:1
+       * non-deterministically depending on page state. A full-screen
+       * onboarding modal with a SOLID shell is the deterministic contract —
+       * contrast no longer depends on the page behind it. */
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background"
     >
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-accent-foreground/5 to-transparent" />
@@ -480,6 +503,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       onChange={(e) => setReply(e.target.value)}
                       placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل…"
                       rows={3}
+                      /* v16-E3 (D1 C3): raw textarea bypasses the shared
+                         Textarea seam — dir="auto" isolates mixed Arabic/Latin
+                         reply text (bidi garbling risk, same fix as the
+                         dashboard raw fields). */
+                      dir="auto"
                       className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-placeholder-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                     />
                     <p className="text-3xs text-muted-foreground">
@@ -573,6 +601,10 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                 size="sm"
                 onClick={() => {
                   setStep(total - 1)
+                  /* v16-E3 (D1 LEAD B): same focus contract as «السابق»/«التالي» —
+                   * the step-3 skip jumps to the done step; focus must land on
+                   * its title, not <body> outside the dialog. */
+                  focusStepTitle()
                 }}
                 className="gap-1.5"
               >

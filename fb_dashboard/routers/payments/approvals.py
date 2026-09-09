@@ -127,8 +127,22 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
         if sp.user_id:
             user = await db.get(User, sp.user_id)
             if user:
+                # v16-E2 (D4 status-contract): mirror app/telegram.py:113 — the
+                # Telegram path also pins user.plan_id; the HTTP drift left it
+                # stale on HTTP approvals. user.subscription_status was already
+                # written here (write-only then; now actually read — see the
+                # honest login fix in auth.py).
+                user.plan_id = sp.plan_id
                 user.subscription_status = "PAID"
     else:
+        # v16-E2 (D4 dead-branch closure): the rejection now ALSO marks the
+        # TENANT — engine.py:352 (`status == "REJECTED" → False`) existed but
+        # nothing ever wrote tenant.subscription_status="REJECTED", so a
+        # rejected tenant kept full bot replies forever (dead branch + §5.18
+        # matrix violation). The user write below stays as-is.
+        tenant = await db.get(Tenant, sp.tenant_id)
+        if tenant:
+            tenant.subscription_status = "REJECTED"
         if sp.user_id:
             user = await db.get(User, sp.user_id)
             if user:
@@ -242,10 +256,15 @@ async def get_payment_receipt(payment_id: int, db=Depends(get_db), current_user:
         return FileResponse(path, media_type=(mimetypes.guess_type(name)[0] or "image/jpeg"))
 
     if receipt.startswith("https://"):
-        from ai_service import UnsafeImageUrlError, _assert_safe_image_url
+        # v16-E2 (D2-LEAD A / p13-ssrf-receipt-dns): the sync literal-IP guard
+        # never resolved DNS — a hostname like ``receipt.evil.ly`` pointing at
+        # 169.254.169.254 sailed through and the fetch fired inside the
+        # network. Full two-layer guard (sync literal check + getaddrinfo on
+        # the executor), same as the v15-E4 sites.
+        from ai_service import UnsafeImageUrlError, assert_safe_outbound_url
 
         try:
-            _assert_safe_image_url(receipt)
+            await assert_safe_outbound_url(receipt, label="رابط الإيصال")
         except UnsafeImageUrlError:
             raise HTTPException(400, "رابط الإيصال مرفوض") from None
         payload = await _fetch_remote_receipt(receipt)

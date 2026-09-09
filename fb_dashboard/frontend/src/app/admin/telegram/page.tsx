@@ -91,7 +91,13 @@ export default function AdminTelegramPage() {
     queryFn: () => apiFetch("/api/telegram/broadcast-targets").then(unwrapApi<BroadcastTarget[]>),
     retry: 1,
   })
-  const targets: BroadcastTarget[] = Array.isArray(targetsQuery.data) ? targetsQuery.data : []
+  /* v16-E4 (D7 slop-scan): the Array.isArray dual-shape guards are gone —
+   * unwrapApi already types the payload and the backend always returns
+   * ok([...]) (telegram_config.py) — convention v13-3 (single envelope,
+   * no per-call shape guards). `|| []` only covers react-query's
+   * undefined-while-loading state (same idiom as dashboard/support:98
+   * and dashboard/notifications:140). */
+  const targets: BroadcastTarget[] = targetsQuery.data || []
   useEffect(() => {
     if (targetsQuery.isError) brandedToast.error("فشل تحميل جهات الإرسال")
   }, [targetsQuery.isError])
@@ -119,7 +125,7 @@ export default function AdminTelegramPage() {
     queryFn: () => apiFetch("/api/admin/telegram/approvers").then(unwrapApi<Approver[]>),
     retry: 1,
   })
-  const approvers: Approver[] = Array.isArray(approversQuery.data) ? approversQuery.data : []
+  const approvers: Approver[] = approversQuery.data || []
   useEffect(() => {
     if (approversQuery.isError) brandedToast.error("فشل تحميل الموافقين")
   }, [approversQuery.isError])

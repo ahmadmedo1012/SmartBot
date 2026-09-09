@@ -16,6 +16,11 @@
  *   الجديد أيضاً: exec() لتعديلات بذرية البطارية (تُنفَّذ بcommit) —
  *   البطارية تملك قاعدة v15-sim.db المحلية (بذر سقف الاستخدام لp10).
  *
+ * v16-E6 (D3 — بطارية صادقة #2): SIM_ROUND صار يُقرأ من البيئة
+ *   (تصدّره scripts/v16_sim_local_battery.sh — من scripts/round.env إن
+ *   وُجد وإلا v16 صريحة) والافتراضي 'v16': TTL لإدخالات expires يعضّ فعلاً
+ *   — كان عالقاً في v15 فكانت 10 من 12 إدخالاً منتهية تُطبَّق كأنها سارية.
+ *
  * الاستخدام:
  *   import { query, queryOne, queryScalar, exec, recordClaim, checkClaim, preflight } from './db-claims.mjs'
  * أو CLI:
@@ -158,7 +163,10 @@ function allowlist() {
   } catch {
     entries = [] // لا قائمة = صرامة كاملة (لا بوابة صامتة)
   }
-  const currentRound = process.env.SIM_ROUND || 'v15'
+  // v16-E6 (D3 — بطارية صادقة #2): الجولة الحالية من SIM_ROUND (تصدّره
+  // scripts/v16_sim_local_battery.sh من scripts/round.env) — الافتراضي v16
+  // حتى يعضّ TTL فعلاً على الإدخالات المنتهية بعد v15
+  const currentRound = process.env.SIM_ROUND || 'v16'
   const live = {}
   for (const e of entries) {
     if (!e || !e.id) continue

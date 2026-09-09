@@ -421,10 +421,14 @@ async def test_heartbeat_cron_requires_secret(app_client):
 
 async def test_heartbeat_cron_report_shape(app_client):
     ac = app_client
-    r = await ac.get("/api/cron/heartbeat?token=test-cron-secret")
+    # v16-E2: ?token= query auth was removed — Bearer header only (403 otherwise).
+    r = await ac.get("/api/cron/heartbeat",
+                     headers={"Authorization": "Bearer test-cron-secret"})
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert set(data.keys()) >= {"published_posts", "fan_refreshed", "cycles", "errors"}
+    r = await ac.get("/api/cron/heartbeat?token=test-cron-secret")
+    assert r.status_code == 403
 
 
 # ────────────────────────────────────────────────────────────────────

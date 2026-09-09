@@ -9,7 +9,7 @@ import json
 import logging
 
 import httpx
-from ai_service import UnsafeImageUrlError, _assert_safe_image_url
+from ai_service import _IMAGE_MAX_BYTES, UnsafeImageUrlError, assert_safe_outbound_url
 
 log = logging.getLogger("fb-client")
 
@@ -106,19 +106,32 @@ class FBClient:
         (publisher/scheduler/agent) and was fetched server-side with NO
         validation — an attacker-supplied URL reached cloud metadata
         endpoints and the internal network from our server. The ai_service
-        SSRF guard (v10-A8) now runs BEFORE any HTTP client is built; an
-        unsafe URL (non-https scheme, private/loopback/link-local host) is
-        never fetched and the post degrades to text-only — the method's
-        existing failure contract for unusable images.
+        SSRF guard (v10-A8) runs BEFORE any HTTP client is built; an unsafe
+        URL (non-https scheme, private/loopback/link-local host) is never
+        fetched and the post degrades to text-only — the method's existing
+        failure contract for unusable images.
+
+        v16-E1 (D2-LEAD C): the guard is now the DNS-resolving async layer
+        (``assert_safe_outbound_url``) — a hostname that resolves to an
+        internal address (cloud metadata / RFC1918) is refused too, not just
+        literal IPs. The fetched bytes also carry the ai_service 5MB cap
+        (``_IMAGE_MAX_BYTES``): oversized bodies (exfil/DoS via the photo
+        upload channel) degrade to the same text-only contract.
         """
         try:
-            _assert_safe_image_url(image_url)
+            await assert_safe_outbound_url(image_url, label="صورة المنشور")
         except UnsafeImageUrlError as e:
             log.warning(f"image_url rejected by SSRF guard, posting text only: {e}")
             return await self.post_to_page(message)
         # Upload photo to get media_fbid
         client = await _ensure_client()
         resp = await client.get(image_url)
+        # v16-E1: size cap BEFORE the bytes are uploaded to the Graph photo
+        # endpoint — the fetched body used to be relayed uncapped.
+        if len(resp.content) > _IMAGE_MAX_BYTES:
+            log.warning("image body exceeded %d bytes — posting text only",
+                        _IMAGE_MAX_BYTES)
+            return await self.post_to_page(message)
         photo_data = {"access_token": self.token}
         files = {"source": ("photo.jpg", resp.content, "image/jpeg")} if image_url.startswith("http") else None
         if not files:

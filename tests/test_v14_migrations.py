@@ -131,7 +131,8 @@ def test_chain_head_is_013_on_fresh_db(fresh_db):
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
     # v15-E2: الرأس أصبح 014 — حوارس قيود v15 تتخطى قيود create_all
-    assert _version(fresh_db) == "014"
+    # v16-E5: الرأس أصبح 015 — حوارسه (فهرس offers + FK) محروسة بالـInspector
+    assert _version(fresh_db) == "015"
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -268,7 +269,7 @@ def test_chain_heals_legacy_bot_state_end_to_end(fresh_db):
 
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "014"  # v15-E2: الرأس أصبح 014
+    assert _version(fresh_db) == "015"  # v15-E2: الرأس أصبح 014؛ v16-E5: صار 015
 
     # كلا dedup: id=1 (نطاق 012 — قيمة fb_page_id مكررة عبر مستأجرين)
     # وid=4 (نطاق 013 — زوج tenant/key مكرر) حُذفا؛ الباقي سليم

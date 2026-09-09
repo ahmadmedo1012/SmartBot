@@ -240,10 +240,12 @@ def _columns(db_path: Path, table: str) -> set[str]:
 
 def test_chain_head_is_014_on_fresh_db(fresh_db):
     """السلسلة كاملة على قاعدة نظيفة بلا أخطاء: حوارس 014 تتعرف على قيود
-    create_all الجدولية (لا تصادم أسماء) وفهرس البريد التعبيري موجود."""
+    create_all الجدولية (لا تصادم أسماء) وفهرس البريد التعبيري موجود.
+    v16-E5: الرأس الآن 015 — حوارسه (فهرس offers + FK) تتخطى قاعدة
+    create_all السليمة فلا تغيّر شيئًا هنا."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "014"
+    assert _version(fresh_db) == "015"
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -454,7 +456,8 @@ def test_chain_drops_manual_dup_index_from_013_state(fresh_db):
         con.close()
 
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "014"
+    # v16-E5: الرأس الآن 015 — خطوة 014 نفسها لم تتغير
+    assert _version(fresh_db) == "015"
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
     assert "ix_schedpost_status_sched" not in sched_idx
     assert "ix_schedpost_tenant_status_sched" in sched_idx
@@ -467,7 +470,7 @@ def test_chain_drops_manual_dup_index_from_013_state(fresh_db):
 def test_production_boot_path_create_all_reconcile_then_chain(fresh_db):
     """مسار الإقلاع الحرفي (runner lifespan): create_all → reconcile →
     alembic upgrade head على قاعدة فارغة — لا تصادم بين قيود create_all
-    وحوارس السلسلة، والرأس 014 والتنظيفات مطبقة، وفهرس البريد التعبيري
+    وحوارس السلسلة، والرأس 015 والتنظيفات مطبقة، وفهرس البريد التعبيري
     يُكتشف عبر الكتالوج (لا انعكاس) فلا يُعاد إنشاؤه."""
     import warnings as _warnings
 
@@ -493,7 +496,8 @@ def test_production_boot_path_create_all_reconcile_then_chain(fresh_db):
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")  # الخطوة 3: السلسلة فوق القاعدة نفسها
 
-    assert _version(fresh_db) == "014"
+    # v16-E5: الرأس الآن 015
+    assert _version(fresh_db) == "015"
     assert "onboarding_completed" not in _columns(fresh_db, "users")
     assert "amount_numeric" not in _columns(fresh_db, "payment_requests")
     sched_idx = _index_sql(fresh_db, "scheduled_posts")

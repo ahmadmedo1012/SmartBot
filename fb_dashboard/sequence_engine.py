@@ -15,6 +15,12 @@ v15-E2 (D3-L5) — تصحيح الحقيقة أعلاه: العلامة التا
 الميزة تعمل فقط عندما تحمل الاشتراكات tenant_id الصحيح (انظر subscribe
 + ترحيلة 014 التي تعيد أبوة الصفوف القديمة 0). عند تحديث بوابة phase-F
 للواقع، تُحذف الفقرة DEPRECATED أعلاه مع هذا التنويه.
+
+v16-E2 (D4 §Sequence drip): المجدول أعلاه محصور بالإقلاع المحلي فقط
+(app/startup.py خلف !IS_VERCEL) — على Vercel الميزة المدفوعة لم تكن
+تعمل إطلاقاً. المستهلك ``process_due_sequence_steps`` أدناه هو السطح
+الإنتاجي: يُستنزف من ذيل دورة المحرك (bot_engine/engine.py) على كل نبض
+جدولة، بمطالبة ذرّية قبل الإرسال (نمط marketing.py:308-341).
 """
 import asyncio
 import logging
@@ -23,8 +29,8 @@ from datetime import timedelta
 from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
-from models import Sequence, SequenceStep, SequenceSubscription, Subscriber
-from sqlalchemy import func, select
+from models import BotState, Sequence, SequenceStep, SequenceSubscription, Subscriber
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-sequence")
@@ -502,34 +508,241 @@ class SequenceScheduler:
     async def _loop(self):
         """Background loop: poll for due steps every 60 seconds.
 
-        Iterates through all active subscriptions, checks if their
-        current step is due, processes it, and commits changes.
-        Errors in individual steps are caught and logged without
-        affecting other steps in the same batch.
+        v16-E2: the loop now drives the SAME claim-guarded consumer the
+        heartbeat cycle drains (:func:`process_due_sequence_steps`) — ONE
+        send path everywhere. Before, the local scheduler sent WITHOUT a
+        claim while the cycle drained WITH one, so on a single-server box
+        the two could double-send the same due step; and a send that crashed
+        mid-flight left the row retrying every 60s forever.
         """
         while True:
             try:
                 async with AsyncSessionLocal() as session:
-                    due = await self.engine.get_due_subscriptions(session)
-                    processed = 0
-                    for item in due:
-                        try:
-                            ok = await self.engine.process_due_step(item, session)
-                            if ok:
-                                processed += 1
-                        except Exception as exc:
-                            log.error(
-                                f"Step processing error for sub "
-                                f"{item.get('sub_id', '?')}: {exc}",
-                                exc_info=True,
-                            )
-                            continue
-                    await session.commit()
-                    if due:
+                    processed = await process_due_sequence_steps(session)
+                    if processed:
                         log.info(
-                            f"Sequence scheduler: {processed}/{len(due)} "
-                            f"steps processed"
+                            f"Sequence scheduler: {processed} steps processed"
                         )
             except Exception as exc:
                 log.error(f"Sequence scheduler loop error: {exc}", exc_info=True)
             await asyncio.sleep(60)
+
+
+# ── v16-E2 (D4 §Sequence drip): the heartbeat outbox consumer ────────────────
+
+_CLAIM_STATUS = "sending"       # mid-send claim — stale claims are recoverable
+_STALE_CLAIM_SECONDS = 600      # Graph retries are bounded far below this
+
+
+def _claim_key(sub_id: int) -> str:
+    return f"seqstep_claim_{sub_id}"
+
+
+async def recover_stale_sequence_claims(
+    session, stale_after_seconds: int = _STALE_CLAIM_SECONDS,
+) -> int:
+    """v16-E2 — recover sequence subscriptions stuck in ``sending``.
+
+    A consumer that claimed a due step and then died (Vercel freezing the
+    function mid-Graph, a crashed runner) leaves the row in ``sending``
+    forever — invisible to every due scan (``get_due_subscriptions`` reads
+    ``status='active'`` only). Same contract as content_calendar's
+    ``recover_stale_publishing``: the ``seqstep_claim_{id}`` bot_state marker
+    written with the claim carries the timestamp; when it is older than
+    ``stale_after_seconds`` the row goes back to ``active`` so the next beat
+    retries. A claim with NO marker is left alone (conservative — foreign
+    writer without our marker).
+    """
+    from datetime import datetime as _dt
+
+    rows = await session.execute(
+        select(SequenceSubscription).where(SequenceSubscription.status == _CLAIM_STATUS)
+    )
+    stuck = list(rows.scalars().all())
+    if not stuck:
+        return 0
+    cutoff = utcnow() - timedelta(seconds=stale_after_seconds)
+    recovered = 0
+    for sub in stuck:
+        marker = (await session.execute(
+            select(BotState).where(
+                BotState.tenant_id == (sub.tenant_id or 0),
+                BotState.key == _claim_key(sub.id),
+            )
+        )).scalar_one_or_none()
+        if marker is None:
+            continue
+        try:
+            claimed_at = _dt.fromisoformat(marker.value or "")
+        except ValueError:
+            claimed_at = None
+        if claimed_at is not None and claimed_at >= cutoff:
+            continue  # a live consumer holds this claim
+        res = await session.execute(
+            update(SequenceSubscription)
+            .where(SequenceSubscription.id == sub.id,
+                   SequenceSubscription.status == _CLAIM_STATUS)
+            .values(status="active")
+            .returning(SequenceSubscription.id)
+            .execution_options(synchronize_session="fetch")
+        )
+        if res.scalar_one_or_none() is not None:
+            recovered += 1
+    if recovered:
+        await session.commit()
+        log.warning("recovered %d stale sequence step claim(s)", recovered)
+    return recovered
+
+
+async def _drop_claim_marker(session, sub_id: int, tid: int) -> None:
+    """Drop the claim marker row — composed into the caller's transaction."""
+    try:
+        await session.execute(
+            delete(BotState).where(
+                BotState.tenant_id == tid, BotState.key == _claim_key(sub_id))
+        )
+    except Exception:
+        log.debug("could not drop claim marker for sequence step %s", sub_id)
+
+
+async def _release_sequence_claim(session, sub_id: int) -> None:
+    """Release a held claim back to ``active`` (no connected page for the
+    tenant — the v14-E2 "publish once the page gets connected" policy) and
+    drop the marker in the same transaction: a released claim owns nothing."""
+    res = await session.execute(
+        update(SequenceSubscription)
+        .where(SequenceSubscription.id == sub_id,
+               SequenceSubscription.status == _CLAIM_STATUS)
+        .values(status="active")
+        .returning(SequenceSubscription.id)
+        .execution_options(synchronize_session="fetch")
+    )
+    if res.scalar_one_or_none() is not None:
+        sub = await session.get(SequenceSubscription, sub_id)
+        await _drop_claim_marker(session, sub_id, (sub.tenant_id if sub else 0))
+    await session.commit()
+
+
+async def process_due_sequence_steps(session) -> int:
+    """v16-E2 (D4 §Sequence drip) — outbox consumer for due sequence steps.
+
+    CONTRACT (mirrors marketing.process_pending_campaigns, called from
+    BotEngine.cycle()'s drain tail inside try/except so a failure here never
+    breaks the cycle)::
+
+        async def process_due_sequence_steps(session) -> int
+
+    The paid drip feature had ZERO production surface: the scheduler above
+    is gated to the single-server startup, so on Vercel no step was EVER
+    sent. Due steps are now claimed ATOMICALLY before the slow Messenger
+    send —
+
+        UPDATE sequence_subscriptions SET status='sending'
+        WHERE id=:id AND status='active' RETURNING id
+
+    — (marketing.py:308-341 / bot.py claim-marker pattern) so two overlapping
+    beats (or the local scheduler racing a heartbeat cycle) can never both
+    send the same step. The claim is COMMITTED before the send and a
+    ``seqstep_claim_{id}`` bot_state timestamp marker is written in the same
+    transaction (crashed consumers are recovered by
+    :func:`recover_stale_sequence_claims`).
+
+    Per-step failure policy: ONE attempt per beat — a failed send marks the
+    subscription ``failed`` (the module's terminal semantics) and the batch
+    CONTINUES (a broken step never poisons the sweep). Tenants without a
+    connected page keep the subscription ``active`` (claim released — it
+    sends once the page is bound).
+
+    Returns the number of steps sent by THIS pass.
+    """
+    try:
+        await recover_stale_sequence_claims(session)
+    except Exception:
+        log.warning("sequence stale-claim recovery failed (non-fatal)", exc_info=True)
+
+    # The due scan never touches self.fb — a bare engine is the scanner.
+    try:
+        due = await SequenceEngine(None).get_due_subscriptions(session)
+    except Exception:
+        log.warning("sequence due scan failed (non-fatal)", exc_info=True)
+        return 0
+    if not due:
+        return 0
+
+    # tenant annotation (same as _services._TenantSequenceEngineProxy) — the
+    # claim marker and the per-tenant FB client both need it.
+    rows = await session.execute(
+        select(SequenceSubscription.id, SequenceSubscription.tenant_id).where(
+            SequenceSubscription.id.in_([d["sub_id"] for d in due])
+        )
+    )
+    tenant_map = dict(rows.all())
+    for d in due:
+        d["tenant_id"] = tenant_map.get(d["sub_id"]) or 0
+
+    sent = 0
+    for item in due:
+        sub_id = item["sub_id"]
+        tid = int(item.get("tenant_id") or 0)
+        try:
+            # ── claim BEFORE the send (the WHERE guard IS the serialization) ──
+            claim = await session.execute(
+                update(SequenceSubscription)
+                .where(SequenceSubscription.id == sub_id,
+                       SequenceSubscription.status == "active")
+                .values(status=_CLAIM_STATUS)
+                .returning(SequenceSubscription.id)
+                .execution_options(synchronize_session="fetch")
+            )
+            if claim.scalar_one_or_none() is None:
+                continue  # another consumer owns this step — skip cleanly
+            claimed_at = utcnow().isoformat()
+            marker = (await session.execute(
+                select(BotState).where(
+                    BotState.tenant_id == tid, BotState.key == _claim_key(sub_id))
+            )).scalar_one_or_none()
+            if marker is None:
+                session.add(BotState(tenant_id=tid, key=_claim_key(sub_id), value=claimed_at))
+            else:
+                marker.value = claimed_at
+            await session.commit()  # publish the claim before the slow send
+
+            from _services import get_tenant_fb_client
+            client = await get_tenant_fb_client(tid)
+            if client is None:
+                # No connected page: release — sends once the page is bound.
+                await _release_sequence_claim(session, sub_id)
+                continue
+
+            engine = SequenceEngine(client)  # fresh — no shared mutable state
+            step_ok = await engine.process_due_step(item, session)
+
+            # Finalize: advance() already moved current_step (or marked the
+            # row completed); a surviving claim goes back to the runnable
+            # state, a failed send lands on the module's terminal status.
+            sub = await session.get(SequenceSubscription, sub_id)
+            if sub is not None:
+                if step_ok:
+                    sent += 1
+                    if sub.status == _CLAIM_STATUS:
+                        sub.status = "active"
+                else:
+                    sub.status = "failed"
+                    sub.completed_at = utcnow()
+                await _drop_claim_marker(session, sub_id, tid)
+                await session.commit()
+        except Exception as exc:
+            # one broken step must never poison the batch (marketing pattern)
+            log.exception("process_due_sequence_steps: step %s failed: %s", sub_id, exc)
+            try:
+                await session.rollback()
+                sub = await session.get(SequenceSubscription, sub_id)
+                if sub is not None:
+                    sub.status = "failed"
+                    sub.completed_at = utcnow()
+                    await _drop_claim_marker(session, sub_id, tid)
+                    await session.commit()
+            except Exception:
+                log.exception("marking sequence step %s failed did not work", sub_id)
+                await session.rollback()
+    return sent

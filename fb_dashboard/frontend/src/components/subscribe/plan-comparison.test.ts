@@ -1,7 +1,8 @@
 /**
  * v11-A5 — unit tests for the /pricing + /subscribe shared plan logic.
  * Pure functions, no React — pins the GET /api/plans mapping contract
- * (snake_case rows, string features, sentinel unlimited caps).
+ * (snake_case rows, array features — the backend column is JSON
+ * default=list — sentinel unlimited caps).
  */
 import { describe, expect, it } from "vitest"
 
@@ -47,13 +48,6 @@ describe("toComparisonPlan", () => {
     expect(plan.features).toEqual([])
   })
 
-  it("splits string features on newline, comma and Arabic comma, trimming blanks", () => {
-    const plan = toComparisonPlan(
-      baseInput({ features: "ردود آلية\nمتابعة، تقارير, ، " }),
-    )
-    expect(plan.features).toEqual(["ردود آلية", "متابعة", "تقارير"])
-  })
-
   it("keeps array features as-is and coerces string numerics from the API", () => {
     const plan = toComparisonPlan(
       baseInput({ features: ["أول", "ثانٍ"], max_rules: "50", price: 49.5 }),
@@ -61,6 +55,14 @@ describe("toComparisonPlan", () => {
     expect(plan.features).toEqual(["أول", "ثانٍ"])
     expect(plan.maxRules).toBe(50)
     expect(plan.price).toBe(49.5)
+  })
+
+  /* v16-E4: features is typed string[] — a string input is now a compile
+   * error, and the dead split branch is gone (D7 slop-scan). The runtime
+   * fallback for a MISSING key stays pinned above (features → []). */
+  it("maps an empty features array through unchanged (no string-split path)", () => {
+    const plan = toComparisonPlan(baseInput({ features: [] }))
+    expect(plan.features).toEqual([])
   })
 })
 

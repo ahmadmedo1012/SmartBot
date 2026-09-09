@@ -1,5 +1,3 @@
-import { premiumToast } from "@/lib/premium-toast"
-
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -65,11 +63,19 @@ function handleSessionExpired(): void {
   const now = Date.now()
   if (now - _lastSession401At < SESSION_401_DEDUPE_MS) return
   _lastSession401At = now
-  try {
-    premiumToast("error", SESSION_EXPIRED_TOAST_TITLE, SESSION_EXPIRED_TOAST_DESC)
-  } catch {
-    /* the toast must never block the redirect */
-  }
+  /* v16 (D5 bundle / E4 follow-up): sonner + premium-toast (43.2KB chunk)
+   * is imported DYNAMICALLY here — a static import dragged the toaster into
+   * every route that calls apiFetch (landing islands, pricing) even though
+   * public endpoints never 401. The chunk now loads only when a session
+   * actually expires mid-use, always inside a layout that mounts the
+   * AppToaster (dashboard/admin/login/register/connect/subscribe). */
+  import("@/lib/premium-toast")
+    .then(({ premiumToast }) =>
+      premiumToast("error", SESSION_EXPIRED_TOAST_TITLE, SESSION_EXPIRED_TOAST_DESC),
+    )
+    .catch(() => {
+      /* the toast must never block the redirect */
+    })
   if (_sessionRedirectTimer) return
   const current = window.location.pathname + window.location.search
   _sessionRedirectTimer = setTimeout(() => {

@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import { AppToaster } from "@/components/ui/app-toaster"
+
 /* v14-E4 (D1 م-1): /connect had no route-level metadata — the browser tab
  * fell back to the root title/description, wrong for a Facebook-page
  * connection screen. Server layout (same pattern as login/register layouts)
@@ -21,5 +23,14 @@ export const metadata: Metadata = {
 }
 
 export default function ConnectLayout({ children }: { children: React.ReactNode }) {
-  return children
+  // v16-E4 (D5): the toaster mounts HERE — the connect page fires
+  // brandedToast on test-connect/save/copy outcomes and its
+  // authenticated fetches (/api/facebook/settings, /api/webhook/check)
+  // can hit the global 401 session-expiry toast in csrf-client.
+  return (
+    <>
+      {children}
+      <AppToaster />
+    </>
+  )
 }

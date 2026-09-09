@@ -14,7 +14,6 @@ import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
-import { Button } from "@/components/ui/button"
 import { GlowPool } from "@/components/ui/GlowPool"
 import { ScrollParallax } from "@/components/ui/scroll-parallax"
 import { HeroMockup } from "@/components/landing/HeroMockup"
@@ -150,16 +149,24 @@ export default function HomePage() {
                   أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا بذكاء اصطناعي يفهم لهجتك.
                 </p>
 
+                {/* v16-E3 (D1 C2): the two hero CTAs were <Link><Button> — a
+                    nested interactive pair = TWO tab stops per CTA + axe
+                    nested-interactive advisory. The Button's visual classes
+                    moved onto a styled <span> (identical variant/size/effect
+                    classes, interactive-only tokens dropped: cursor, focus
+                    rings, active scale — the anchor is now the single
+                    focusable control; its keyboard focus uses the global
+                    :focus-visible outline fallback). */}
                 <div className="flex flex-wrap gap-3 animate-fade-in-250">
                   <Link href="/subscribe">
-                    <Button size="lg" className="text-base h-12 px-7 shadow-lg shadow-accent-foreground/20">
+                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg shadow-accent-foreground/20 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-12 min-h-11 min-w-11 gap-2.5 px-7 text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
                       ابدأ الآن مجاناً <DirectionalIcon semanticDirection="forward" className="size-4" />
-                    </Button>
+                    </span>
                   </Link>
                   <Link href="/demo">
-                    <Button variant="outline" size="lg" className="text-base h-12 px-7">
+                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-12 min-h-11 min-w-11 gap-2.5 px-7 text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500">
                       <Sparkles className="size-4 ms-1" /> جرب البوت الآن
-                    </Button>
+                    </span>
                   </Link>
                 </div>
 

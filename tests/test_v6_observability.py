@@ -352,7 +352,9 @@ async def test_heartbeat_records_ledger_and_reports_previous(app_client):
     from models import SystemConfig
     from sqlalchemy import select
 
-    r = await app_client.get("/api/cron/heartbeat?token=test-cron-secret")
+    # v16-E2: the ?token= query channel was removed (403) — Bearer header only.
+    r = await app_client.get(
+        "/api/cron/heartbeat", headers={"Authorization": "Bearer test-cron-secret"})
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert "previous_beat" in data  # v6 §E staleness info in the response

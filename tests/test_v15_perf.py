@@ -31,7 +31,7 @@ import subprocess
 import sys
 import time
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "fb_dashboard"))
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
@@ -41,6 +41,7 @@ os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest  # noqa: E402
+from _dayseed import seed_day, utc_day_start  # noqa: E402
 from _utils import app_version, utcnow  # noqa: E402
 from models import BotState, Reply  # noqa: E402
 
@@ -72,15 +73,29 @@ def _async_value(value):
     return _fn
 
 
-async def _seed_reply(sf, tid: int, *, name: str, hours_ago: float, text: str = "رد آلي") -> Reply:
+async def _seed_reply(sf, tid: int, *, name: str,
+                      hours_ago: float | None = None,
+                      text: str = "رد آلي",
+                      at: datetime | None = None) -> Reply:
+    """v16-E6 (F1/D3): ``at=`` يثبّت البذرة على طابع زمني مطلق
+    (``_dayseed.seed_day`` — بذور حدود اليوم المستقلة عن ساعة التشغيل).
+    ``hours_ago`` يبقى للمواقع الأخرى (14 موقعاً) التي نوافذها نسبية
+    وآمنة زمنياً. يُمرَّر أحدهما فقط."""
     from models import Reply as _R
+
+    if at is None:
+        if hours_ago is None:
+            raise ValueError("either at= or hours_ago= is required")
+        at = utcnow() - timedelta(hours=hours_ago)
+    elif hours_ago is not None:
+        raise ValueError("pass at= or hours_ago= — not both")
 
     async with sf() as db:
         r = _R(
             tenant_id=tid, fb_comment_id=f"rc_{uuid.uuid4().hex[:8]}",
             fb_post_id="p_1", commenter_name=name,
             comment_text=f"تعليق {name}", reply_text=text, rule_id=None,
-            created_at=utcnow() - timedelta(hours=hours_ago),
+            created_at=at,
         )
         db.add(r)
         await db.commit()
@@ -295,7 +310,14 @@ async def test_b3_query_count_bounded(v10_seed, monkeypatch):
 
 async def test_b3_trend_matches_get_trend_data(v10_seed, monkeypatch):
     """الرياضيات لم تتغير: trend المحسوب محلياً باستعلام واحد == مخرج
-    _services._get_trend_data (المرجع القائم) على نفس البيانات."""
+    _services._get_trend_data (المرجع القائم) على نفس البيانات.
+
+    v16-E6 (F1 — تصميم D3): البذور الخمس كانت «قبل N ساعة» فتعتمد على
+    ساعة التشغيل (_get_trend_data يجزّئ بمنتصف ليل UTC التقويمي —
+    _services.py:357) وكان الاختبار يفشل حياً في [00:00,02:00) UTC.
+    الآن بذور ``at=seed_day(...)`` مثبتة على حدود اليوم: اليوم /
+    أمس×2 / يوم-3 (هذا الأسبوع) / يوم-9 (الأسبوع الماضي) — مضمونة
+    داخل أيامها التقويمية لأي ساعة جدار (انظر tests/_dayseed.py)."""
     import routers.dashboard_stats as ds_mod
     from _services import _get_trend_data
 
@@ -305,20 +327,73 @@ async def test_b3_trend_matches_get_trend_data(v10_seed, monkeypatch):
     monkeypatch.setattr(ds_mod, "get_tenant_fb_client", no_fb)
 
     uname, tid, _uid = await v10_seed.tenant_user(tenant_name="B3trend")
-    # نوافذ واضحة: اليوم / أمس / هذا الأسبوع / الأسبوع الماضي
-    await _seed_reply(v10_seed.world.sf, tid, name="اليوم", hours_ago=1)
-    await _seed_reply(v10_seed.world.sf, tid, name="أمس1", hours_ago=25)
-    await _seed_reply(v10_seed.world.sf, tid, name="أمس2", hours_ago=26)
-    await _seed_reply(v10_seed.world.sf, tid, name="أسبوع", hours_ago=72)
-    await _seed_reply(v10_seed.world.sf, tid, name="أسبوع-ماضي", hours_ago=9 * 24)
+    # نوافذ واضحة مثبتة على حدود اليوم UTC: اليوم / أمس / هذا الأسبوع /
+    # الأسبوع الماضي — حدود الجرّات: today_start=00:00 · yesterday=أمس ·
+    # week=now-7d · prior_week=now-14d
+    seeded_today = seed_day(0).date()
+    await _seed_reply(v10_seed.world.sf, tid, name="اليوم", at=seed_day(0))
+    await _seed_reply(v10_seed.world.sf, tid, name="أمس1", at=seed_day(-1))
+    await _seed_reply(v10_seed.world.sf, tid, name="أمس2", at=seed_day(-1, hour=11))
+    await _seed_reply(v10_seed.world.sf, tid, name="أسبوع", at=seed_day(-3))
+    await _seed_reply(v10_seed.world.sf, tid, name="أسبوع-ماضي", at=seed_day(-9))
 
     await v10_seed.login(uname)
     r = await v10_seed.world.client.get("/api/dashboard/bundle")
     got = r.json()["data"]["stats"]["trend"]
     async with v10_seed.world.sf() as db:
         expected = await _get_trend_data(db, tid)
+
+    # v16-E6: حارس منتصف الليل الصادق (احتمال مُهمل — D3) — إن عبر
+    # الاختبار منتصف ليل UTC بين البذر والقياس صارت بذور «اليوم» بالأمس
+    # فنتخطى بدل فشل زائف يكسر CI الليلي
+    if utcnow().date() != seeded_today:
+        pytest.skip("midnight crossed mid-test — day-anchored seed windows invalid")
+
     assert got == expected, f"trend math drifted: {got} != {expected}"
     assert got["today"] == -50.0  # 1 اليوم مقابل 2 أمس
+
+
+def test_dayseed_deterministic():
+    """v16-E6 (F1) — عصامية _dayseed: الإزاحات تهبط دائماً داخل اليوم
+    التقويمي المقصود لأي ساعة جدار. اجتياح 24 ساعة كاملة (خطوة 30
+    دقيقة) + حدا منتصف الليل + ساعات غريبة + رفض البذور المستقبلية."""
+    from datetime import datetime as _dt
+
+    # اللحظة الحية أولاً: بذرة اليوم داخل اليوم الجاري، والحد مرآة
+    # تقسيم التطبيق نفسه
+    now = utcnow()
+    assert utc_day_start() == utc_day_start(now)
+    assert seed_day(0).date() == now.date()
+    assert seed_day(0) <= utcnow()  # midpoint of elapsed ≤ أي لحظة لاحقة
+    assert seed_day(-1).date() == now.date() - timedelta(days=1)
+
+    minutes = sorted({0, 1, 59, 719, 1439} | set(range(0, 24 * 60, 30)))
+    for m in minutes:
+        wall = _dt(2026, 9, 9) + timedelta(minutes=m)
+        start = utc_day_start(wall)
+        # day 0: منتصف الجزء المنقضي — دائماً اليوم ودائماً في الماضي
+        d0 = seed_day(0, ref=wall)
+        assert start <= d0 <= wall, f"{wall:%H:%M}: day-0 midpoint escaped today/past"
+        for off in (-1, -2, -3, -9, -30):
+            d = seed_day(off, ref=wall)
+            day = start + timedelta(days=off)
+            assert utc_day_start(d) == day, (
+                f"{wall:%H:%M}: seed_day({off}) landed outside its calendar day")
+            assert day <= d < start, (
+                f"{wall:%H:%M}: seed_day({off}) must stay inside its PAST day")
+            assert d <= wall
+        # ساعات غريبة على الإزاحات السالبة تبقى داخل اليوم المقصود
+        assert utc_day_start(seed_day(-2, hour=0, ref=wall)) == start - timedelta(days=2)
+        assert utc_day_start(seed_day(-2, hour=23.75, ref=wall)) == start - timedelta(days=2)
+
+    # البذور غير الحتمية تُرفض صريحة: المستقبل، hour مع اليوم الجاري،
+    # وhour خارج [0,24)
+    with pytest.raises(ValueError):
+        seed_day(1)
+    with pytest.raises(ValueError):
+        seed_day(0, hour=9)
+    with pytest.raises(ValueError):
+        seed_day(-1, hour=24)
 
 
 async def test_b3_bundle_factory_error_is_500_arabic(v10_seed, monkeypatch):

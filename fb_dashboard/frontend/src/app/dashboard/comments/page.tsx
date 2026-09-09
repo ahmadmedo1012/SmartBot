@@ -135,7 +135,10 @@ export default function CommentsPage() {
                             placeholder="رد سريع…"
                             aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
                             /* v14-E5: raw input bypasses the shared Input component —
-                               apply the AA placeholder token directly. */
+                               apply the AA placeholder token directly.
+                               v16-E3 (D1 C3): dir="auto" isolates the mixed
+                               Arabic/Latin reply being typed. */
+                            dir="auto"
                             className="flex-1 h-8 text-sm rounded-lg border border-input bg-background px-3 placeholder:text-placeholder-text focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                           />
                           <Button

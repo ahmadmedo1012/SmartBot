@@ -227,8 +227,23 @@ async def test_sse_poll_exception_is_swallowed_and_stream_survives(sse_env):
     )
     # terminal close followed the verified snapshot
     assert ("event", "close") in events
-    # first snapshot was still pending (delivered AFTER the two failures)
-    assert statuses[0] == "pending"
+    # v16-E6 de-flake (D3 — reproduced live in the v16 full-suite baseline):
+    # under a stalled event loop the approver timer (0.45s) can beat the
+    # FIRST successful poll, so the first delivered snapshot may already be
+    # the terminal one. The contract pinned by this test is: exceptions
+    # swallowed (proven deterministically below), stream SURVIVES, delivers
+    # the terminal update, closes cleanly, leaks nothing — NOT second-level
+    # ordering of the first snapshot. Both orderings are therefore accepted.
+    assert statuses[0] in ("pending", "verified"), (
+        f"first snapshot must be pending or the post-approval terminal "
+        f"state — got: {statuses}"
+    )
+    # deterministic evidence the exception path actually executed: both
+    # injected poll failures were consumed (raised and swallowed in-loop)
+    assert sse_env.factory.fail_polls == 0, (
+        f"the two injected poll exceptions were never raised — "
+        f"fail_polls={sse_env.factory.fail_polls}"
+    )
     # no session leaked: every __aenter__ got its __aexit__
     assert sse_env.factory.opened == sse_env.factory.closed, (
         f"session leak: opened={sse_env.factory.opened} "
@@ -336,9 +351,18 @@ async def test_sse_two_concurrent_streams_both_receive_the_update(sse_env):
         assert "verified" in statuses, f"stream {i} missed the update: {events}"
         assert ("event", "close") in events, f"stream {i} never closed: {events}"
 
-    # both streams saw the SAME payment identity in the snapshot payload
+    # both streams saw the SAME payment identity in the snapshot payload.
+    # v16-E6 de-flake (D3): pick the first event that IS a status snapshot
+    # ("id"-bearing) instead of blindly the first data line — under a
+    # stalled loop the approver (0.4s) may beat a stream's first successful
+    # poll, and a non-snapshot data line (the close marker ``data: {}``)
+    # must never be mistaken for the snapshot. The contract here is: both
+    # streams got the verified update (asserted above) and it carries the
+    # right payment identity — not which snapshot came first.
     for events in results:
-        snapshot = next(e[1] for e in events if e[0] == "data")
+        snapshot = next(
+            (e[1] for e in events if e[0] == "data" and "id" in e[1]), None)
+        assert snapshot is not None, f"no status snapshot delivered: {events}"
         assert snapshot["id"] == sse_env.payment["id"]
         assert snapshot["plan_name"] == "برو"
     assert sse_env.factory.opened == sse_env.factory.closed

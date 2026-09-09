@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send } from "lucide-react"
+import { CheckCircle, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send, LifeBuoy } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -166,6 +166,14 @@ export default function AdminPage() {
               approvers and diagnostics are discoverable for platform admins. */}
           <Link href="/admin/telegram" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
             <Send className="size-4" /> إعدادات تليجرام
+          </Link>
+          {/* v16-E3 (D4-HIGH merge note): /admin/support was navigation-orphaned
+              on landing — same defect class as /admin/telegram (v14-E4 D1 ع-1).
+              The platform-admin ticket queue is the owner's only in-app channel
+              to SEE support tickets (previously: zero channels — Telegram
+              notify was spawn'd dead on Vercel and no queue route existed). */}
+          <Link href="/admin/support" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
+            <LifeBuoy className="size-4" /> تذاكر الدعم
           </Link>
         </div>
       </div>

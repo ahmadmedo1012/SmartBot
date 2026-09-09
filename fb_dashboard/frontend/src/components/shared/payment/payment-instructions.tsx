@@ -246,6 +246,9 @@ export function BankInstructions({
             accept="image/*"
             className="sr-only peer"
             disabled={uploadingReceipt}
+            /* v16-E3 (D1 C3): dir="auto" — file inputs render the picked
+                filename (Latin/mixed) in the value slot; auto isolates it. */
+            dir="auto"
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (!file) return

@@ -223,10 +223,14 @@ class BotEngine:
                 # its failure NEVER breaks the cycle, and it runs on EVERY
                 # exit path (expiry/quota/no-rules/exception) because the
                 # drain itself is tenant-independent.
+                # v16-E2 (D4 §Sequence drip): a THIRD drain — the sequence
+                # drip outbox consumer (the paid feature that never ran on
+                # Vercel: its scheduler is startup-gated to single-server).
                 await self._drain_broadcast_and_campaigns(session)
 
     async def _drain_broadcast_and_campaigns(self, session) -> None:
-        """v15 §2 — call the two E3-owned pending drains, each fully isolated."""
+        """v15 §2 — call the pending drains (v16-E2: + sequence steps), each
+        fully isolated: one consumer's failure never kills the cycle."""
         try:
             import broadcast_engine as _broadcast_engine
             _drain = getattr(_broadcast_engine, "process_pending", None)
@@ -245,6 +249,16 @@ class BotEngine:
             pass  # E3's module not landed — contract §2 tolerates absence
         except Exception as e:
             self._mon.warn(f"campaign process_pending failed (non-fatal): {e}", module="engine")
+        # v16-E2 (D4 §Sequence drip): claim-guarded consumer — due sequence
+        # steps fire on every heartbeat beat instead of never (the scheduler
+        # behind this is local-startup-only). Same isolation contract.
+        try:
+            from sequence_engine import process_due_sequence_steps as _seq_drain
+            await _seq_drain(session)
+        except ImportError:
+            pass  # sequence module absent — tolerate (contract §2 shape)
+        except Exception as e:
+            self._mon.warn(f"sequence process_due failed (non-fatal): {e}", module="engine")
 
     async def _process_comment(self, session, comment: dict, post_id: str,
                                *, fast_ack: bool = False) -> bool:

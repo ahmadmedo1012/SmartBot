@@ -342,6 +342,9 @@ function RepliesTab() {
               disabled
               placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
               aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
+              /* v16-E3 (D1 C3): dir="auto" — same raw-field bidi isolation
+                  as the live message composer. */
+              dir="auto"
               className="flex-1 h-11 rounded-xl border border-input/60 bg-muted/50 px-4 text-sm"
             />
             <Button variant="orange" size="icon" aria-label="إرسال" disabled>

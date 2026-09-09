@@ -21,6 +21,13 @@ create_all — كلاهما بـ ON CONFLICT (id) DO NOTHING. سلوك SQLite
 كما هو (لا بذر)، ولا-op في الإنتاج (alembic_version تجاوز 003 فلا
 يُعاد تشغيله هناك)؛ الفائدة: PostgreSQL نظيفة (staging/نسخ محلية)
 تمر والسلسلة تكمل، وبيئات عالقة عند 002 تُشفّى ذاتيًا في الإقلاع التالي.
+
+v16 §E5 (D6-VERIFY) — setval صحيح على PG نظيفة: كانت الصيغة
+غير المشروطة setval(seq, COALESCE(MAX(id),0)) مع الصف المزروع
+الوحيد id=0 تستدعي setval(...,0) وهو خارج النطاق (سلسلة صاعدة
+تبدأ من 1) → السلسلة تموت عند 003 على PostgreSQL نظيفة. الآن
+يُستدعى setval فقط عند MAX(id) > 0 — انظر _setval_sql (الثابت
+المنطقي موثّق هناك: سلسلة عذراء nextval=1 لا تتصادم مع id=0 أصلًا).
 """
 from alembic import op
 import sqlalchemy as sa
@@ -50,6 +57,25 @@ def _default_tenant_insert(cols: set[str]) -> str:
         "INSERT INTO tenants (id, name, plan, is_active) "
         "VALUES (0, 'Default Tenant', 'free', true) "
         "ON CONFLICT (id) DO NOTHING"
+    )
+
+
+def _setval_sql(max_id: int | None) -> str | None:
+    """SQL رفع سلسلة tenants.id فوق الصفوف القائمة، أو None عند تخطّيه.
+
+    الثابت (PG نظيفة، D6): بعد إدراج البذرة مباشرة الصف الوحيد هو
+    id=0 → MAX(id)=0 → setval(seq, 0) خارج النطاق (سلسلة PostgreSQL
+    صاعدة لا تقبل 0) فكانت السلسلة تموت عند 003. عند MAX=0 السلسلة
+    عذراء أصلًا (nextval=1) فلا يمكن أن تتصادم مع الصف المزروع id=0 —
+    تخطّي setval هو الصيغة الصحيحة الوحيدة. عند MAX>0 تُرفع السلسلة
+    إلى MAX فيأخذ الإدراج التالي MAX+1.
+    """
+    if not max_id or int(max_id) <= 0:
+        return None
+    return (
+        "SELECT setval("
+        "pg_get_serial_sequence('tenants', 'id'), "
+        f"{int(max_id)})"
     )
 
 
@@ -86,12 +112,17 @@ def upgrade() -> None:
         op.execute(_default_tenant_insert(cols))
 
         # Bump the sequence past the seeded id so future inserts do not
-        # collide with id=0.
-        op.execute(
-            "SELECT setval("
-            "pg_get_serial_sequence('tenants', 'id'), "
-            "(SELECT COALESCE(MAX(id), 0) FROM tenants))"
-        )
+        # collide with id=0. v16-E5 (D6): skip when MAX(id)=0 — the old
+        # unconditional setval(seq, 0) is out of bounds on a fresh
+        # PostgreSQL (ascending sequences start at 1) and killed the whole
+        # chain at 003 there; a virgin sequence (nextval=1) can never
+        # collide with the seeded row id=0 anyway.
+        max_id = bind.execute(
+            sa.text("SELECT COALESCE(MAX(id), 0) FROM tenants")
+        ).scalar()
+        setval_sql = _setval_sql(max_id)
+        if setval_sql is not None:
+            op.execute(setval_sql)
 
 
 def downgrade() -> None:

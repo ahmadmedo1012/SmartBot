@@ -222,7 +222,12 @@ async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: s
                     # Use registry — ensures dedup cache and cooldown are shared with background bot loop
                     engine = get_bot_engine(fb_client, tenant_id=bs.tenant_id)
                     await engine.process_single_comment(comment, post_id)
-                    _track_event("webhook_comment_processed", {"comment_id": comment.get("id",""), "tenant_id": bs.tenant_id})
+                    # v22 (FIX-D): the tenant belongs on the COLUMN (per-tenant
+                    # queries filter AnalyticsEvent.tenant_id), not inside
+                    # metadata_json — W1-D9 F3: 2 prod rows landed t0 this way.
+                    _track_event("webhook_comment_processed",
+                                 {"comment_id": comment.get("id", "")},
+                                 tenant_id=bs.tenant_id)
                     return
                 log.warning(f"webhook comment for page {page_id}: tenant {bs.tenant_id} has no FB client — stored only")
                 return

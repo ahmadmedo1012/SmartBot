@@ -3,6 +3,14 @@ from __future__ import annotations
 """
 Structured logging and diagnostics for SmartBot.
 JSON-formatted logs, health metrics, performance tracking.
+
+v22 (FIX-D) — tenant attribution: ``LogEvent`` carries a tenant_id and the
+BotLog batch writer persists it. Before this, EVERY row landed tenant_id=0
+(302/304 production rows) while its content was tenant-specific, so the
+dashboard activity feed (``BotLog.tenant_id == _tid``) was empty for every
+real tenant despite active bot cycles. Emitters that hold tenant context
+(the per-tenant bot engines) use ``bind_tenant()`` so each event is stamped
+without touching every call site.
 """
 import json
 import logging
@@ -28,7 +36,13 @@ async def _flush_botlog():
             return
         async with AsyncSessionLocal() as session:
             for item in batch:
-                session.add(BotLog(level=item["level"], message=item["message"]))
+                # v22 (FIX-D): the emitter's tenant (bound logger / explicit
+                # kwarg) reaches the row — the model default 0 was the lie.
+                session.add(BotLog(
+                    level=item["level"],
+                    message=item["message"],
+                    tenant_id=int(item.get("tenant_id") or 0),
+                ))
             await session.commit()
     except Exception:
         pass
@@ -54,6 +68,9 @@ class LogEvent:
     rule_id: int | None = None
     intent: str = ""
     latency_ms: float = 0.0
+    #: v22 (FIX-D) — the tenant that emitted this event (0 = unattributed,
+    #: kept out of to_dict() so legacy JSON consumers see no new field).
+    tenant_id: int = 0
     extra: dict = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
@@ -96,7 +113,13 @@ class StructuredLogger:
         # Batch-write to BotLog every 10 events
         try:
             d = event.to_dict()
-            payload = {"level": d.get("level", "INFO"), "message": d.get("message", "")}
+            payload = {
+                "level": d.get("level", "INFO"),
+                "message": d.get("message", ""),
+                # v22 (FIX-D): survives the to_dict() falsy filter only when
+                # non-zero; unattributed events keep the historical 0.
+                "tenant_id": d.get("tenant_id", 0),
+            }
             _botlog_batch.append(payload)
             if len(_botlog_batch) >= 10:
                 spawn(_flush_botlog())
@@ -128,6 +151,62 @@ class StructuredLogger:
             "by_level": counts,
             "error_rate": round(counts["ERROR"] / max(total, 1) * 100, 2),
         }
+
+    def bind_tenant(self, tenant_id: int) -> TenantBoundLogger:
+        """v22 (FIX-D) — a tenant-scoped emitting view of this logger.
+
+        Callers that know their tenant (per-tenant bot engines) get a view
+        that stamps every event; the singleton buffer/broadcast stay shared.
+        """
+        return TenantBoundLogger(self, tenant_id)
+
+
+class TenantBoundLogger:
+    """v22 (FIX-D) — tenant-scoped emitting view over a StructuredLogger.
+
+    The StructuredLogger stays a process-global singleton (its ring buffer
+    feeds /api/logs + diagnostics, and the WS ``log_event`` bridge stays
+    global), but every event emitted through a bound view carries the
+    binding tenant so the BotLog batch writer attributes rows correctly.
+    ``bot_engine`` binds one view per engine instance; plain
+    ``get_logger()`` users keep the historical unattributed behavior.
+    """
+
+    def __init__(self, inner: StructuredLogger, tenant_id: int):
+        self._inner = inner
+        self._tenant_id = int(tenant_id or 0)
+
+    # ── Public logging methods (mirror StructuredLogger) ──
+    def info(self, message: str, **kw):
+        kw.setdefault("tenant_id", self._tenant_id)
+        self._inner.info(message, **kw)
+
+    def warn(self, message: str, **kw):
+        kw.setdefault("tenant_id", self._tenant_id)
+        self._inner.warn(message, **kw)
+
+    def warning(self, message: str, **kw):
+        self.warn(message, **kw)
+
+    def error(self, message: str, **kw):
+        kw.setdefault("tenant_id", self._tenant_id)
+        self._inner.error(message, **kw)
+
+    def debug(self, message: str, **kw):
+        kw.setdefault("tenant_id", self._tenant_id)
+        self._inner.debug(message, **kw)
+
+    def trace(self, message: str, **kw):
+        kw.setdefault("tenant_id", self._tenant_id)
+        self._inner.trace(message, **kw)
+
+    # ── Read-side passthroughs (buffer/stats stay the singleton's) ──
+    def get_buffer(self, level: str | None = None, module: str | None = None,
+                   since: str | None = None, limit: int = 50) -> list[dict]:
+        return self._inner.get_buffer(level=level, module=module, since=since, limit=limit)
+
+    def get_stats(self) -> dict:
+        return self._inner.get_stats()
 
 
 # Singleton

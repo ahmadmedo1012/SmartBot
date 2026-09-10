@@ -64,7 +64,7 @@ class BotEngine:
         self._cycle = 0
         self._post_reply_count: dict[str, int] = {}
         self._last_rate_reset: float = time.time()
-        self._mon = _get_monitor()
+        self._mon = _get_monitor(tenant_id)  # v22 (FIX-D): tenant-bound view — BotLog rows carry the engine's tenant
         self._diag = _get_diag(tenant_id)
         self._dedup_engine = None
         self._rule_cache = None
@@ -764,5 +764,8 @@ class BotEngine:
             return {}
 
     async def _add_log(self, session, level: str, message: str):
-        session.add(BotLog(level=level, message=message))
+        # v22 (FIX-D): the engine knows its tenant — keep it on the row
+        # (t0 rows made the activity feed lie for every tenant).
+        session.add(BotLog(level=level, message=message,
+                           tenant_id=self._tenant_id or 0))
         await session.commit()

@@ -62,9 +62,16 @@ def _get_diag(tenant_id: int = 0):
             _tenant_diag_engines[tenant_id] = DiagnosticsEngine()
         return _tenant_diag_engines[tenant_id]
 
-def _get_monitor():
+def _get_monitor(tenant_id: int = 0):
+    """The shared StructuredLogger, optionally as a tenant-bound view.
+
+    v22 (FIX-D): with a tenant_id, hand back a bound view so every
+    engine/pipeline log event is attributed to that tenant in bot_logs
+    (the batch writer in monitor.py persists event.tenant_id). tenant_id=0
+    keeps the raw singleton — the historical unattributed behavior.
+    """
     global _monitor
     if _monitor is None:
         from monitor import get_logger
         _monitor = get_logger()
-    return _monitor
+    return _monitor.bind_tenant(tenant_id) if tenant_id else _monitor

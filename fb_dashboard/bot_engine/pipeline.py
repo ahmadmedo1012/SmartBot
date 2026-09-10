@@ -222,7 +222,7 @@ class ReplyPipeline:
         self.dedup = dedup_engine
         self.cooldown = cooldown
         self._tenant_id = tenant_id
-        self._mon = _get_monitor()
+        self._mon = _get_monitor(self._tenant_id)  # v22 (FIX-D): tenant-attributed bot_logs
         self._diag = _get_diag(self._tenant_id)
         # v15-D2-H1 — snapshot from get_plan_limits (the engine resolves it,
         # cached 60s). None = unlimited (planless without a seeded Free row /

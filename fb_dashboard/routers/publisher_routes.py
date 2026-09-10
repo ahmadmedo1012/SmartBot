@@ -73,7 +73,9 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         )
         db.add(post)
         await db.commit()
-        _track_event("post_scheduled", {"platform": platform})
+        # v22 (FIX-D): attribute the event to the acting tenant (was t0 —
+        # W1-D9 live: tenant 42 scheduled a post → analytics row tenant_id=0)
+        _track_event("post_scheduled", {"platform": platform}, tenant_id=current_user._tenant_id)
         return ok({"id": post.id, "status": "scheduled", "scheduled_at": scheduled_at})
 
     # Publish immediately
@@ -88,7 +90,8 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         if not result:
             raise HTTPException(400, "فشل النشر على فيسبوك")
         fb_post_id = result.get("id", "")
-        _track_event("post_published", {"platform": "facebook"})
+        # v22 (FIX-D): tenant attribution (was t0)
+        _track_event("post_published", {"platform": "facebook"}, tenant_id=current_user._tenant_id)
         return ok({"platform": "facebook", "post_id": fb_post_id, "status": "published"})
     else:
         # v14-E2 (C-ENG1): fresh engine per request — the tenant's own
@@ -98,5 +101,6 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         result = await engine.publish_to_platform(platform, message, image_url)
         if not result:
             raise HTTPException(400, f"فشل النشر على {engine.get_platform_display_name(platform)}")
-        _track_event("post_published", {"platform": platform})
+        # v22 (FIX-D): tenant attribution (was t0)
+        _track_event("post_published", {"platform": platform}, tenant_id=current_user._tenant_id)
         return ok({**result, "status": "published"})

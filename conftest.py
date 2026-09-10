@@ -47,6 +47,12 @@ os.environ["SENTRY_BOOT_CANARY"] = "off"
 os.environ.setdefault("FACEBOOK_APP_SECRET", "test-app-secret")
 os.environ.setdefault("DEBUG", "True")
 os.environ.setdefault("FERNET_KEY", "")  # not required in DEBUG mode
+# v21 (T4-a): the piggyback-beat middleware (app/piggyback.py) activates on
+# the VERCEL env marker — a CI job or host env that sets it would flip the
+# beat ON for every authenticated test request in the suite. A hermetic
+# suite pins its world: VERCEL is forced OFF (the dedicated piggyback tests
+# patch the module flag directly).
+os.environ.pop("VERCEL", None)
 
 # FORCE the test database — ignore host pollution (v5 §0).
 # Root cause found live: a sandbox `DATABASE_URL=file:/...` leaked into

@@ -359,3 +359,60 @@ async def test_inbox_thread_no_row_live_only(app_client, fake_inbox_fb):
             select(Message).where(
                 Message.fb_conversation_id == "t_unknown99"))).scalars().all()
         assert n == []
+
+
+# ── 7) _parse_fb_time: naive-UTC contract (the production root cause) ────
+# Live-evidenced 2026-09-10: an aware datetime bound to the naive DateTime
+# columns made asyncpg raise DataError "invalid input for query argument"
+# on production Postgres — EVERY posts sync rolled back for 13h while the
+# same code passed on SQLite (aiosqlite serializes any datetime). The
+# parser must now ALWAYS return tz-naive UTC — the whole API convention.
+
+
+def test_parse_fb_time_returns_naive_utc():
+    from routers.facebook_routes import _parse_fb_time
+
+    # Graph format "+0000" — the exact live input that killed production
+    dt = _parse_fb_time("2026-09-09T15:00:00+0000")
+    assert dt is not None
+    assert dt.tzinfo is None, "aware datetime → asyncpg DataError on Postgres"
+    assert (dt.year, dt.month, dt.day, dt.hour) == (2026, 9, 9, 15)
+
+    # Z-suffix form normalizes identically
+    dt2 = _parse_fb_time("2026-07-15T12:30:00Z")
+    assert dt2 is not None and dt2.tzinfo is None
+    assert (dt2.hour, dt2.minute) == (12, 30)
+
+    # Non-UTC offset converts to the correct UTC instant, then stripped
+    dt3 = _parse_fb_time("2026-07-15T18:00:00+03:00")
+    assert dt3 is not None and dt3.tzinfo is None
+    assert (dt3.hour,) == (15,)  # 18:00+03:00 == 15:00 UTC
+
+    # already-naive input passes through untouched
+    dt4 = _parse_fb_time("2026-07-15T10:00:00")
+    assert dt4 is not None and dt4.tzinfo is None and dt4.hour == 10
+
+    # garbage / empty contract unchanged
+    assert _parse_fb_time("") is None
+    assert _parse_fb_time(None) is None
+    assert _parse_fb_time("not-a-date") is None
+
+
+async def test_posts_sync_persists_naive_created_time(app_client, fake_graph):
+    """End-to-end pin: the stored row's created_time is tz-naive (the asyncpg
+    contract) and the response serializes with the Z suffix (iso_z)."""
+    user = await _register(app_client, "v21g")
+    r = await app_client.get("/api/posts")
+    d = r.json()["data"]
+    assert d["synced"] is True and d["total"] == 1
+    assert d["items"][0]["created_time"].endswith("Z"), d["items"][0]
+
+    from database import AsyncSessionLocal
+    from models import Post as PostModel
+    from sqlalchemy import select
+    async with AsyncSessionLocal() as db:
+        row = (await db.execute(
+            select(PostModel).where(PostModel.tenant_id == user["tenant_id"])
+        )).scalar_one()
+        assert row.created_time is not None
+        assert row.created_time.tzinfo is None, "aware row → asyncpg DataError"

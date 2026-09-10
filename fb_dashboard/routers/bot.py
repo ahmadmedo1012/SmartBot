@@ -167,6 +167,111 @@ async def _publish_due_scheduled_posts(report: dict, sf=None) -> int:
     return published
 
 
+async def _automation_sweep(report: dict) -> int:
+    """v21 (T4-a) — heartbeat steps 1-3 as ONE reusable automation sweep.
+
+    Extracted VERBATIM from ``cron_heartbeat`` (byte-identical behavior — the
+    route below now calls this) so the authenticated cron route and the v21
+    piggyback beat (app/piggyback.py — opportunistic advance on warm
+    serverless traffic) drive the SAME work per beat:
+
+      1. publish DUE scheduled posts (claim-guarded — see
+         ``_publish_due_scheduled_posts``)
+      2. refresh fb_fan_count snapshots for connected tenants
+      3. run one bot comment cycle for connected tenants (same engine gate;
+         the cycle's finally-drain also fires sequence drips + broadcast/
+         campaign outboxes — v16-E2 D4)
+
+    Idempotency (why a piggyback beat racing the cron beat can never
+    double-do work):
+      - posts: atomic claim ``scheduled→publishing`` BEFORE any Graph call;
+      - replies: per-tenant BotEngine instances come from the _services
+        registry (get_bot_engine) — the SAME instance shares its dedup
+        caches with the webhook path, and the 48h DB replied-ids window
+        covers cross-instance races (bot_engine/engine.py:279);
+      - fan_count: a snapshot overwrite, not an append.
+
+    Returns the count of sweep-LEVEL failures (per-post/per-tenant errors
+    land in ``report["errors"]`` and do not count — the same contract the
+    v12-E3.6 route answer is built on).
+    """
+    core_failures = 0
+
+    # ── 1. Publish due scheduled posts (tenant-scoped, claim-guarded) ──
+    try:
+        await _publish_due_scheduled_posts(report)
+    except Exception as e:
+        report["errors"].append(f"publish sweep: {str(e)[:120]}")
+        core_failures += 1
+
+    # ── 2. Refresh fan_count snapshots for connected tenants ──
+    try:
+        from models import BotState
+        async with AsyncSessionLocal() as db:
+            rows = await db.execute(
+                select(BotState).where(
+                    BotState.key == "fb_page_id", BotState.tenant_id.isnot(None)
+                )
+            )
+            pages = [(bs.tenant_id, bs.value) for bs in rows.scalars().all() if bs.value]
+        for tenant_id, _page in pages:
+            try:
+                from _services import get_tenant_fb_client
+                fb = await get_tenant_fb_client(tenant_id)
+                if fb is None:
+                    # v20: was a silent skip — fan refresh silently did
+                    # nothing for exactly the tenants whose token was broken
+                    log.warning("fan sweep: tenant %s connected but client "
+                                "resolution failed — skipped", tenant_id)
+                    continue
+                fans = await fb.get_page_fan_count()
+                if fans is None:
+                    continue
+                async with AsyncSessionLocal() as db:
+                    snap = (await db.execute(
+                        select(BotState).where(
+                            BotState.tenant_id == tenant_id,
+                            BotState.key == "fb_fan_count",
+                        )
+                    )).scalar_one_or_none()
+                    if snap is None:
+                        db.add(BotState(tenant_id=tenant_id, key="fb_fan_count", value=str(fans)))
+                    else:
+                        snap.value = str(fans)
+                    await db.commit()
+                report["fan_refreshed"] += 1
+            except Exception as e:
+                report["errors"].append(f"fan {tenant_id}: {str(e)[:80]}")
+    except Exception as e:
+        report["errors"].append(f"fan sweep: {str(e)[:120]}")
+        core_failures += 1
+
+    # ── 3. One bot comment cycle for connected tenants (gated by engine) ──
+    try:
+        from _services import get_bot_engine, get_tenant_fb_client
+        for tenant_id, _page in pages:
+            try:
+                fb = await get_tenant_fb_client(tenant_id)
+                if fb is None:
+                    # v20: was a silent skip — the auto-reply engine quietly
+                    # did NOTHING for tenants whose stored token was broken
+                    # (e.g. a USER token failing every Graph call)
+                    log.warning("bot cycle: tenant %s connected but client "
+                                "resolution failed — no replies will run",
+                                tenant_id)
+                    continue
+                engine = get_bot_engine(fb, tenant_id=tenant_id)
+                await engine.cycle()
+                report["cycles"] += 1
+            except Exception as e:
+                report["errors"].append(f"cycle {tenant_id}: {str(e)[:80]}")
+    except Exception as e:
+        report["errors"].append(f"cycle sweep: {str(e)[:120]}")
+        core_failures += 1
+
+    return core_failures
+
+
 @router.get("/api/bot/status")
 async def bot_status(_=Depends(get_current_user)):
     _bt = _get_bot_task()
@@ -290,6 +395,11 @@ async def cron_heartbeat(request: Request):
       2. refreshes fb_fan_count snapshots for connected tenants
       3. runs one bot comment cycle for connected tenants (same engine gate)
       4. records this beat in the SystemConfig ledger (v6 §E)
+    Steps 1-3 live in ``_automation_sweep`` above — v21 (T4-a) also drives
+    that sweep opportunistically on warm traffic (app/piggyback.py), while
+    THIS authenticated route stays the cron channel: re-arm cron-job.org
+    with the current production secret (docs/cron-setup.md) and it keeps
+    working unchanged.
     Vercel Hobby note: if sub-daily crons are not available, schedule what the
     plan allows — the endpoint itself is idempotent and safe to call often.
     """
@@ -315,77 +425,10 @@ async def cron_heartbeat(request: Request):
         report["errors"].append(f"staleness check: {str(e)[:120]}")
         core_failures += 1
 
-    # ── 1. Publish due scheduled posts (tenant-scoped, claim-guarded) ──
-    try:
-        await _publish_due_scheduled_posts(report)
-    except Exception as e:
-        report["errors"].append(f"publish sweep: {str(e)[:120]}")
-        core_failures += 1
-
-    # ── 2. Refresh fan_count snapshots for connected tenants ──
-    try:
-        from models import BotState
-        async with AsyncSessionLocal() as db:
-            rows = await db.execute(
-                select(BotState).where(
-                    BotState.key == "fb_page_id", BotState.tenant_id.isnot(None)
-                )
-            )
-            pages = [(bs.tenant_id, bs.value) for bs in rows.scalars().all() if bs.value]
-        for tenant_id, _page in pages:
-            try:
-                from _services import get_tenant_fb_client
-                fb = await get_tenant_fb_client(tenant_id)
-                if fb is None:
-                    # v20: was a silent skip — fan refresh silently did
-                    # nothing for exactly the tenants whose token was broken
-                    log.warning("fan sweep: tenant %s connected but client "
-                                "resolution failed — skipped", tenant_id)
-                    continue
-                fans = await fb.get_page_fan_count()
-                if fans is None:
-                    continue
-                async with AsyncSessionLocal() as db:
-                    snap = (await db.execute(
-                        select(BotState).where(
-                            BotState.tenant_id == tenant_id,
-                            BotState.key == "fb_fan_count",
-                        )
-                    )).scalar_one_or_none()
-                    if snap is None:
-                        db.add(BotState(tenant_id=tenant_id, key="fb_fan_count", value=str(fans)))
-                    else:
-                        snap.value = str(fans)
-                    await db.commit()
-                report["fan_refreshed"] += 1
-            except Exception as e:
-                report["errors"].append(f"fan {tenant_id}: {str(e)[:80]}")
-    except Exception as e:
-        report["errors"].append(f"fan sweep: {str(e)[:120]}")
-        core_failures += 1
-
-    # ── 3. One bot comment cycle for connected tenants (gated by engine) ──
-    try:
-        from _services import get_bot_engine, get_tenant_fb_client
-        for tenant_id, _page in pages:
-            try:
-                fb = await get_tenant_fb_client(tenant_id)
-                if fb is None:
-                    # v20: was a silent skip — the auto-reply engine quietly
-                    # did NOTHING for tenants whose stored token was broken
-                    # (e.g. a USER token failing every Graph call)
-                    log.warning("bot cycle: tenant %s connected but client "
-                                "resolution failed — no replies will run",
-                                tenant_id)
-                    continue
-                engine = get_bot_engine(fb, tenant_id=tenant_id)
-                await engine.cycle()
-                report["cycles"] += 1
-            except Exception as e:
-                report["errors"].append(f"cycle {tenant_id}: {str(e)[:80]}")
-    except Exception as e:
-        report["errors"].append(f"cycle sweep: {str(e)[:120]}")
-        core_failures += 1
+    # ── steps 1-3: the shared automation sweep (v21 T4-a — verbatim
+    # extraction; the piggyback beat in app/piggyback.py drives the SAME
+    # sweep on warm traffic, so this route's behavior is unchanged) ──
+    core_failures += await _automation_sweep(report)
 
     # v6 §E — ledger: every authenticated beat is persisted (timestamp +
     # report) so staleness checks and the admin console can see the truth.

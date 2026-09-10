@@ -438,6 +438,35 @@ export interface ScheduledPost {
   published_at?: string | null
 }
 
+// ── Facebook page posts (dashboard/posts, GET /api/posts) ──────────────────
+
+/** Row of GET /api/posts → data.items (facebook_routes.py DB path — the page
+ *  feed rows the best-effort Graph sync persists). */
+export interface FbPost {
+  /** Facebook post id (string) */
+  id: string
+  message?: string
+  created_time?: string
+  likes?: number
+  shares?: number
+  comments?: number
+}
+
+/** v21 — GET /api/posts DB-first envelope (the /api/ads/accounts v19 pattern
+ *  + sync-attempt triage): synced=false + sync_attempted=true = the live
+ *  Graph refresh RAN and failed (UI shows the amber «فشل التحديث من
+ *  فيسبوك» banner; sync_error rides along as the banner's title tooltip);
+ *  synced=false + sync_attempted=false = throttled 30s sync skip — NOT a
+ *  failure, never banner. sync_error is a short English diagnostic ("" on
+ *  success) — never rendered as main text (users read Arabic). */
+export interface PostsResponse extends Paginated<FbPost> {
+  has_next?: boolean
+  source: "db"
+  synced: boolean
+  sync_attempted?: boolean
+  sync_error?: string
+}
+
 // ── Landing / public site ───────────────────────────────────────────────────
 
 /** Row of /api/public/testimonials (empty until real quotes are seeded). */

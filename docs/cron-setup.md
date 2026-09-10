@@ -6,6 +6,15 @@
 > channel must come from an external scheduler. `dec-cron-restore`
 > (docs/decisions-ledger.md) documents the outage this caused: the channel was
 > "mathematically dead" (~288 errors/day expected, 2 observed).
+>
+> **v21 (T4-a) note:** while this channel was dead, an in-code **piggyback
+> beat** (`fb_dashboard/app/piggyback.py`) was added — every AUTHENTICATED
+> user request on a warm serverless instance advances the same automation
+> sweep (throttled to one beat per 300s per instance, non-blocking,
+> Vercel-only). That covers warm-traffic windows, but this external job is
+> STILL required: it is the cold-start/night driver and the independent
+> outage detector (its 503s are alertable when no traffic exists to
+> piggyback on).
 
 ## The exact 1-minute setup (cron-job.org)
 

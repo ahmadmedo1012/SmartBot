@@ -15,10 +15,11 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from _responses import ok
 from _services import _track_event, decrypt_token, encrypt_token, get_tenant_fb_client
+from _utils import iso_z
 from config import settings
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
@@ -103,13 +104,28 @@ def _sync_allowed(store: dict, key, skip_s: float) -> bool:
 
 
 def _parse_fb_time(value) -> datetime | None:
-    """Graph created_time ("2026-09-09T15:00:00+0000") → datetime | None."""
+    """Graph created_time ("2026-09-09T15:00:00+0000") → NAIVE-UTC datetime | None.
+
+    v21 (live root-caused on production 2026-09-10): the parser returned a
+    TZ-AWARE datetime (fromisoformat keeps the "+0000" offset) and asyncpg
+    REFUSES aware datetimes bound to the naive ``DateTime`` columns
+    (TIMESTAMP WITHOUT TIME ZONE) — DataError "invalid input for query
+    argument" — which rolled back EVERY posts sync on production (Neon
+    Postgres) while the exact same code+token passed on SQLite (aiosqlite
+    serializes any datetime). 13 hours of empty posts section, invisible
+    until the v21 sync_error surface exposed it. The comments sync already
+    normalizes (replies.py: astimezone(UTC).replace(tzinfo=None)); the
+    posts parser now matches that contract — the API convention is
+    naive-UTC columns everywhere."""
     if not value:
         return None
     try:
-        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 def _payload(raw: str | None) -> dict:
@@ -792,7 +808,7 @@ async def list_posts(page: int = Query(1, ge=1), per_page: int = Query(10, ge=1,
         {
         "items": [{
             "id": r.fb_post_id, "message": (r.message or "")[:200],
-            "created_time": r.created_time.isoformat() if r.created_time else "",
+            "created_time": iso_z(r.created_time) or "",
             "likes": r.like_count or 0,
             "shares": r.share_count or 0,
             "comments": r.comment_count or 0,
@@ -825,7 +841,7 @@ async def get_post_detail(post_id: str, db=Depends(get_db),
     if row is not None:
         return ok({
             "id": row.fb_post_id, "message": row.message or "",
-            "created_time": row.created_time.isoformat() if row.created_time else "",
+            "created_time": iso_z(row.created_time) or "",
             "permalink_url": f"https://www.facebook.com/{row.fb_post_id}",
             "likes": row.like_count or 0,
             "shares": row.share_count or 0,

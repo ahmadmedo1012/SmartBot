@@ -55,6 +55,7 @@ from app.middleware import (
     security_headers,
     static_cache_middleware,
 )
+from app.piggyback import piggyback_beat_middleware  # v21 (T4-a): warm-traffic automation beat
 from app.spa import dashboard_page, spa_catch_all, unknown_method_catch_all
 from app.startup import (
     _seed_subscription_plans,  # noqa: F401 — re-export (tests import it from runner)
@@ -225,6 +226,16 @@ app.middleware("http")(dedup_middleware)
 app.middleware("http")(rate_limit_middleware)
 app.middleware("http")(csrf_origin_check)
 app.middleware("http")(request_logging_middleware)
+
+# v21 (T4-a) — opportunistic automation piggyback on authenticated warm
+# traffic: Vercel-only, throttled (one beat per window per instance),
+# non-blocking (spawned BEFORE the endpoint work, never awaited by the
+# response) — see app/piggyback.py. Registered AFTER request_logging so it
+# sits OUTSIDE csrf/rate_limit (an authenticated 403/429 request still
+# proves a warm instance) and INSIDE static_cache/security_headers (those
+# never short-circuit, so every response keeps the full header/cache
+# treatment).
+app.middleware("http")(piggyback_beat_middleware)
 
 
 # ⚠️ Register routers — ALL routes MUST be registered here, BEFORE the SPA catch-all at the bottom.

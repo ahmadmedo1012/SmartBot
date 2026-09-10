@@ -57,7 +57,6 @@ async def _seed_plans(sf):
 
 async def test_sequence_plan_gate_free_403(v10_seed):
     """مستأجر Free (أو بلا خطة → صف Free) يُمنع من إنشاء تسلسل: 403 عربية."""
-    from sqlalchemy import update
 
     await _seed_plans(v10_seed.world.sf)
     ua, tid, _uid = await v10_seed.tenant_user(role="admin", tenant_name="D4-GATE")
@@ -90,7 +89,6 @@ async def test_sequence_plan_gate_pro_allowed(v10_seed):
 
 async def test_sequence_plan_gate_failopen_without_plan_rows(v10_seed, monkeypatch):
     """غياب صفوف الخطط كلياً → fail-open (لا يُحرم المستخدم) — عقيدة money-core."""
-    from bot_engine import pipeline as pl
     from models import SubscriptionPlan
     from sqlalchemy import delete
 

@@ -5,6 +5,7 @@ import { brandedToast } from "@/lib/premium-toast"
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav"
 import { SetupWarnings } from "@/components/shared/SetupWarnings"
+import { WebhookHealthBanner } from "@/components/shared/WebhookHealthBanner"
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus"
 import { apiFetch } from "@/lib/csrf-client"
 /* v11-A7 — framer-free page entrance. This motion.div was the only reason
@@ -76,6 +77,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}
         <SetupWarnings />
+        {/* v22-D2 (FIX-F finish): the persisted webhook-subscription verdict
+            (BotState fb_webhook_subscribed) — «متصل لكن الويبهوك غير مفعل»
+            instead of a silently-dead event pipe (NOT dismissible: health
+            signal; hides itself once a re-connect subscribes the page) */}
+        <WebhookHealthBanner />
         {/* v17-E-F2 (D2-P1 — 17 sub-pages entered with zero motion):
             .sb-page-enter (on #page-content above) runs ONCE at first shell
             mount — App Router then swaps only {children} between routes, so

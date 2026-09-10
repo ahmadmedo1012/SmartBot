@@ -3,11 +3,11 @@ from __future__ import annotations
 
 """Inbox & conversations routes."""
 import logging
-from datetime import UTC
+from datetime import UTC, datetime
 
 from _responses import ok
 from _services import _track_event, get_tenant_fb_client
-from _utils import iso_z
+from _utils import iso_z, utcnow
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Conversation, ConversationLabel, ConversationTag, Message, User
@@ -46,6 +46,165 @@ async def _get_inbox_fb(tenant_id: int):
         raise HTTPException(400, "لم يتم إعداد فيسبوك بعد — اربط صفحتك من صفحة /connect")
     _tenant_fb_cache[tenant_id] = (fb, _time.monotonic() + _FB_CACHE_TTL_S)
     return fb
+
+
+def _parse_graph_time(raw) -> datetime | None:
+    """Graph ISO time («2026-09-10T01:05:00+0000» / «…Z») → naive-UTC.
+
+    Same v21 hotfix contract: aware datetimes bound for the naive DateTime
+    columns make asyncpg raise DataError → 500 on production Postgres —
+    every timestamp that crosses the DB boundary is normalized to
+    naive-UTC first (the ``_parse_fb_time`` convention).
+    """
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(
+            s.replace("+0000", "+00:00").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
+
+
+async def _persist_graph_thread(tenant_id: int, conversation_id: str,
+                                messages: list) -> int:
+    """Dedup-persist a fetched Graph thread (v21 pattern — now shared by
+    the empty-thread fall-through AND the v22 staleness re-sync).
+
+    Dedup by (tenant_id, fb_message_id); the conversation row's counters
+    advance by the rows actually written. Best-effort by contract: a
+    persist failure must NEVER 500 the thread read (the live fetch result
+    is already in hand). Returns the number of NEW rows written.
+    """
+    try:
+        async with AsyncSessionLocal() as s2:
+            row = (await s2.execute(
+                select(Conversation).where(
+                    Conversation.tenant_id == tenant_id,
+                    Conversation.fb_conversation_id == conversation_id,
+                )
+            )).scalar_one_or_none()
+            if row is None:
+                return 0
+            mids = [str(m.get("id") or "") for m in messages if m.get("id")]
+            existing: set[str] = set()
+            if mids:
+                for mid in (await s2.execute(
+                    select(Message.fb_message_id).where(
+                        Message.tenant_id == tenant_id,
+                        Message.fb_message_id.in_(mids))
+                )).scalars().all():
+                    existing.add(mid)
+            written = 0
+            newest_at = None
+            newest_text = ""
+            for m in messages:
+                mid = str(m.get("id") or "")
+                if not mid or mid in existing:
+                    continue
+                sender = m.get("from") or {}
+                created = _parse_graph_time(m.get("created_time"))
+                s2.add(Message(
+                    tenant_id=tenant_id, conversation_id=row.id,
+                    fb_message_id=mid, fb_conversation_id=conversation_id,
+                    sender_id=str(sender.get("id", "") or ""),
+                    sender_name=str(sender.get("name", "") or ""),
+                    text=str(m.get("message", "") or ""),
+                    is_from_page=bool(m.get("is_from_page", False)),
+                    created_at=created,
+                ))
+                written += 1
+                if created is not None and (newest_at is None or created > newest_at):
+                    newest_at = created
+                    newest_text = str(m.get("message", "") or "")
+            if written:
+                row.message_count = (row.message_count or 0) + written
+                if newest_at is not None and (row.last_message_at is None
+                                              or newest_at > row.last_message_at):
+                    row.last_message_at = newest_at
+                    row.last_message_text = newest_text[:500]
+            await s2.commit()
+            return written
+    except Exception:
+        log.warning("inbox thread persist failed (tenant=%s conv=%s)",
+                    tenant_id, str(conversation_id)[:40], exc_info=True)
+        return 0
+
+
+async def _resync_thread_if_stale(tenant_id: int, conversation_id: str,
+                                  row: Conversation) -> bool:
+    """v22-D2 (W1-D2 frozen-thread fix): re-sync a NON-EMPTY stored thread.
+
+    The v21 path only persisted a thread when the DB copy was EMPTY —
+    after the first persist the thread froze forever (live evidence
+    2026-09-10: DB 46 vs Graph 47; the newer «الو» 11:02:54 never appeared
+    on any re-open). One cheap ``GET /{conversation}?fields=updated_time,
+    message_count`` probe decides staleness: ``updated_time`` moves on
+    EVERY new message; ``message_count`` is the fallback marker for rows
+    stored without timestamps. Stale → full re-fetch + dedup-persist.
+
+    Never raises and never blocks the DB copy from serving: "not
+    connected", a probe failure, a fetch failure or a persist failure all
+    just leave the stored thread as-is. Returns True when new rows were
+    persisted (caller re-reads the merged thread).
+    """
+    try:
+        fb = await _get_inbox_fb(tenant_id)
+    except HTTPException:
+        return False  # not connected — the DB copy serves (loud 400 stays
+        # the LIST/thread contract for empty threads only)
+    except Exception as exc:
+        log.warning("inbox staleness probe failed (tenant=%s conv=%s): %s",
+                    tenant_id, str(conversation_id)[:40], exc)
+        return False
+    probe = getattr(fb, "get_conversation_meta", None)
+    if probe is None:
+        return False  # client without the v22 seam — keep the v21 contract
+    try:
+        meta = await probe(conversation_id)
+    except Exception as exc:
+        log.warning("inbox staleness probe failed (tenant=%s conv=%s): %s",
+                    tenant_id, str(conversation_id)[:40], exc)
+        return False
+    if not isinstance(meta, dict):
+        return False
+
+    live_updated = _parse_graph_time(meta.get("updated_time"))
+    try:
+        live_count = int(meta.get("message_count") or 0)
+    except (TypeError, ValueError):
+        live_count = 0
+
+    async with AsyncSessionLocal() as s:
+        newest_db = await s.scalar(
+            select(func.max(Message.created_at)).where(
+                Message.conversation_id == row.id))
+        db_count = (await s.scalar(
+            select(func.count(Message.id)).where(
+                Message.conversation_id == row.id)) or 0)
+    if db_count <= 0:
+        return False  # empty thread — the v21 fall-through path owns it
+
+    stale = False
+    if live_updated is not None and (newest_db is None or live_updated > newest_db):
+        stale = True
+    if live_count and live_count > db_count:
+        stale = True
+    if not stale:
+        return False
+
+    try:
+        messages = await fb.get_conversation_messages(conversation_id)
+    except Exception as exc:
+        log.warning("inbox stale re-fetch failed (tenant=%s conv=%s): %s",
+                    tenant_id, str(conversation_id)[:40], exc)
+        return False
+    if not messages:
+        return False
+    return await _persist_graph_thread(tenant_id, conversation_id, messages) > 0
 
 
 @router.get("/api/inbox/conversations")
@@ -235,6 +394,13 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     with an EMPTY persisted thread now falls through to the live Graph
     fetch (and persists what it returns, dedup by fb_message_id) instead
     of answering an empty list.
+
+    v22-D2 (W1-D2 frozen-thread evidence): a NON-EMPTY stored thread used
+    to be served WITHOUT any live check — the thread froze at its first
+    persist (DB 46 vs Graph 47; the newer message never appeared on any
+    re-open). One cheap meta probe (``updated_time`` / ``message_count``)
+    now detects staleness and re-syncs: refetch + dedup-persist, then the
+    merged DB thread serves. Probe failures never break the DB read.
     """
     tenant_id = current_user._tenant_id
     async with AsyncSessionLocal() as s:
@@ -252,6 +418,17 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                 .limit(200)
             )).scalars().all()
             if msgs:
+                # v22-D2: staleness re-sync BEFORE serving — the frozen-
+                # thread fix (see _resync_thread_if_stale). New rows →
+                # re-read so the response carries the merged thread.
+                if await _resync_thread_if_stale(tenant_id, conversation_id, row):
+                    async with AsyncSessionLocal() as s2:
+                        msgs = (await s2.execute(
+                            select(Message)
+                            .where(Message.conversation_id == row.id)
+                            .order_by(Message.created_at.asc())
+                            .limit(200)
+                        )).scalars().all()
                 return ok([{
                     "id": str(m.fb_message_id or m.id),
                     "message": m.text or "",
@@ -272,62 +449,12 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     # discovered via live sync, or thread never webhook-persisted)
     fb = await _get_inbox_fb(tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
-    # v21: persist the fetched thread when the conversation row exists —
-    # dedup by (tenant_id, fb_message_id); the next open serves instantly
-    # from the DB and survives a Graph outage.
-    if messages and row is not None:
-        from datetime import datetime as _dt
-        try:
-            async with AsyncSessionLocal() as s2:
-                mids = [str(m.get("id") or "") for m in messages if m.get("id")]
-                existing: set[str] = set()
-                if mids:
-                    for mid in (await s2.execute(
-                        select(Message.fb_message_id).where(
-                            Message.tenant_id == tenant_id,
-                            Message.fb_message_id.in_(mids))
-                    )).scalars().all():
-                        existing.add(mid)
-                for m in messages:
-                    mid = str(m.get("id") or "")
-                    if not mid or mid in existing:
-                        continue
-                    sender = m.get("from") or {}
-                    created = None
-                    raw_time = str(m.get("created_time", "") or "")
-                    if raw_time:
-                        try:
-                            created = _dt.fromisoformat(
-                                raw_time.replace("+0000", "+00:00")
-                                .replace("Z", "+00:00"))
-                            # v21 hotfix (live-evidenced minutes after the
-                            # first v21 deploy): the SAME aware-vs-naive bug
-                            # the posts parser had — Graph "+0000" times parse
-                            # TZ-AWARE, asyncpg rejects them for the naive
-                            # DateTime columns (DataError is NOT an
-                            # OperationalError → escaped the narrow except →
-                            # 500 on the thread endpoint in production).
-                            # Normalize to naive-UTC like every other path.
-                            if created is not None and created.tzinfo is not None:
-                                created = created.astimezone(UTC).replace(
-                                    tzinfo=None)
-                        except ValueError:
-                            created = None
-                    s2.add(Message(
-                        tenant_id=tenant_id, conversation_id=row.id,
-                        fb_message_id=mid, fb_conversation_id=conversation_id,
-                        sender_id=str(sender.get("id", "") or ""),
-                        sender_name=str(sender.get("name", "") or ""),
-                        text=str(m.get("message", "") or ""),
-                        is_from_page=bool(m.get("is_from_page", False)),
-                        created_at=created,
-                    ))
-                await s2.commit()
-        except Exception:
-            # best-effort by contract: a persist failure must NEVER 500 the
-            # thread read (the live fetch result is already in hand)
-            log.warning("inbox thread persist failed (tenant=%s conv=%s)",
-                        tenant_id, str(conversation_id)[:40], exc_info=True)
+    # v21 → v22-D2: persist the fetched thread — dedup by (tenant_id,
+    # fb_message_id); the next open serves instantly from the DB and
+    # survives a Graph outage. Shared helper (same naive-UTC pattern as
+    # the staleness re-sync path).
+    if messages:
+        await _persist_graph_thread(tenant_id, conversation_id, messages)
     # v4 §2.4 — is_from_page explicit on the live path too (message.data
     # carries the page id on page-sent messages)
     return ok(
@@ -404,16 +531,73 @@ async def inbox_delete_conversation(
     return ok({"ok": True})
 
 
+async def _persist_page_sent_message(tenant_id: int, conversation_id: str,
+                                     message: str, result: dict, fb) -> None:
+    """v22-D2 (W1-D2 §4.2): persist the page's OWN reply at send time.
+
+    The sent message previously appeared only on a future EMPTY-thread
+    fetch — which can never happen once the thread is non-empty, so manual
+    inbox replies vanished from the dashboard until some external re-sync.
+    Attribution: sender = the page (fb.page_id), is_from_page=True, the
+    Graph response's ``message_id`` as the dedup key. Best-effort: a
+    persist failure must never fail the (already-delivered) reply."""
+    mid = str((result or {}).get("message_id") or "")
+    if not mid:
+        return  # no stable id — nothing dedup-safe to persist
+    page_id = str(getattr(fb, "page_id", "") or "")
+    now = utcnow()
+    try:
+        async with AsyncSessionLocal() as db:
+            existing = await db.execute(
+                select(Message.id).where(
+                    Message.tenant_id == tenant_id,
+                    Message.fb_message_id == mid))
+            if existing.scalar_one_or_none() is not None:
+                return  # webhook echo / redelivery already stored it
+            conv = (await db.execute(
+                select(Conversation).where(
+                    Conversation.tenant_id == tenant_id,
+                    Conversation.fb_conversation_id == conversation_id)
+            )).scalar_one_or_none()
+            if conv is None:
+                # live-only conversation (never persisted): create the row so
+                # the reply attaches to the tenant's inbox from now on
+                conv = Conversation(
+                    tenant_id=tenant_id, fb_conversation_id=conversation_id,
+                    message_count=0, unread_count=0)
+                db.add(conv)
+                await db.flush()
+            db.add(Message(
+                tenant_id=tenant_id, conversation_id=conv.id,
+                fb_message_id=mid, fb_conversation_id=conversation_id,
+                sender_id=page_id, sender_name="",
+                text=message, is_from_page=True, created_at=now,
+            ))
+            conv.message_count = (conv.message_count or 0) + 1
+            conv.last_message_text = message[:500]
+            conv.last_message_at = now
+            await db.commit()
+    except Exception:
+        log.warning("page-sent reply persist failed (tenant=%s conv=%s)",
+                    tenant_id, str(conversation_id)[:40], exc_info=True)
+
+
 @router.post("/api/inbox/conversations/{conversation_id}/reply")
 async def inbox_reply(
     conversation_id: str, message: str = Form(...),
     current_user: User = Depends(require_role("editor")),
 ):
-    """Send a reply in a conversation. Tries Messenger first, falls back to private_reply."""
+    """Send a reply in a conversation. Tries Messenger first, falls back to private_reply.
+
+    v22-D2: the page-sent message is PERSISTED at send time (dedup by the
+    Graph message_id) — manual replies used to vanish from the thread
+    until an (impossible) empty-thread re-fetch."""
     fb = await _get_inbox_fb(current_user._tenant_id)
     # Try Messenger conversation reply
     result = await fb.send_conversation_message(conversation_id, message)
     if result:
+        await _persist_page_sent_message(
+            current_user._tenant_id, conversation_id, message, result, fb)
         _track_event("inbox_reply_sent", {"conversation_id": conversation_id}, tenant_id=current_user._tenant_id)
         return ok({"ok": True})
 

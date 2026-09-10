@@ -98,6 +98,14 @@ def telegram_spy(monkeypatch):
     # _ENV_ADMIN_IDS is frozen at module import — patch the module attr, setenv
     # alone would change nothing (the v5 §0 lesson: pin the world explicitly)
     monkeypatch.setattr(tg, "_ENV_ADMIN_IDS", [11111111])
+    # v22 (reverse-order CI): get_admin_ids = env ∪ DB TelegramApprover rows —
+    # tests running BEFORE this file in reverse order leave approver rows in
+    # the SHARED app DB, so every alert fanned out to 4 admins (assert 4 == 1).
+    # Pin the resolution itself: the spy must see exactly ONE recipient.
+    async def _fixed_admin_ids() -> list[int]:
+        return [11111111]
+
+    monkeypatch.setattr(tg, "get_admin_ids", _fixed_admin_ids)
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123456789:AAHtest_token_for_spy")
     return calls
 

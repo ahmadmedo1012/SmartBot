@@ -162,9 +162,20 @@ def upgrade() -> None:
                 "(SELECT MAX(id) FROM offer_claims "
                 "GROUP BY tenant_id, offer_id, fb_user_id)"
             ))
-            op.create_index(
-                _OFFERCLAIM_UQ, _OFFERCLAIM_TABLE, _OFFERCLAIM_COLS, unique=True,
-            )
+            # v24-R4 F10: two serverless boots can race past the guard above
+            # (check-then-create TOCTOU) — the CREATE itself is the arbiter:
+            # a DuplicateObjectError from the OTHER boot's win is swallowed
+            # (both boots converge on the same index), anything else raises.
+            try:
+                op.create_index(
+                    _OFFERCLAIM_UQ, _OFFERCLAIM_TABLE, _OFFERCLAIM_COLS, unique=True,
+                )
+            except Exception as race:
+                msg = str(race).lower()
+                if "already exist" not in msg and "duplicate" not in msg:
+                    raise
+            # The DELETE above already ran; if THIS boot lost the race the
+            # winner ran it too — MAX(id) dedup is idempotent either way.
 
     # ── 3) timestamptz drift heal (D4) — PostgreSQL only, self-diagnosing ─
     if bind.dialect.name == "postgresql":

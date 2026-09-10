@@ -3,7 +3,6 @@ from __future__ import annotations
 """AI & Agent routes: suggest, analyze, generate-reply, analyze-image, status, agent interpret, memory."""
 import logging
 import os
-import secrets
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _responses import fail, ok
@@ -155,7 +154,6 @@ async def agent_interpret(
 ):
     """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
     from agent_engine import get_agent
-    from runner import STATIC_DIR as _STATIC_DIR
 
     # v24-R4 F5: the 5th AI surface joins its siblings' budget (editor gate
     # was already here; the daily cap was not — a viewer-turned-editor or a
@@ -189,20 +187,18 @@ async def agent_interpret(
             payload = buf.getvalue()
         except Exception:
             raise HTTPException(400, "الملف ليس صورة صالحة") from None
-        img_filename = f"agent_{secrets.token_hex(8)}.jpg"
-        # v8-A4: Vercel's function filesystem is READ-ONLY outside /tmp —
-        # writing into STATIC_DIR 500s in production. Mirror the proven
-        # payments.py pattern: embed a data-URI on serverless, write the
-        # file only on a writable (local/standalone) filesystem.
-        _is_vercel = bool(os.getenv("VERCEL"))
-        if _is_vercel:
-            import base64
-            image_url = f"data:image/jpeg;base64,{base64.b64encode(payload).decode()}"
-        else:
-            img_path = _STATIC_DIR / "uploads" / img_filename
-            img_path.parent.mkdir(parents=True, exist_ok=True)
-            img_path.write_bytes(payload)
-            image_url = f"/static/uploads/{img_filename}"
+        # v24-R3 follow-up (B2 H-1 + functional bug): the image_url consumers
+        # are (a) ai_service.analyze_image — which accepts ONLY https:// URLs
+        # or data: URIs (v14-E1 #7 removed local-file support as an LLM-
+        # controllable disclosure path), and (b) publisher engines that never
+        # attach the image. The old non-Vercel branch wrote the JPEG into the
+        # PUBLIC /static mount and set a RELATIVE /static/uploads/… URL —
+        # which analyze_image REFUSES, so agent image analysis silently never
+        # ran on single-server deployments, while the bytes sat world-
+        # readable. One uniform behavior closes both: data-URI everywhere.
+        # No disk write, no public exposure, works on every deployment.
+        import base64
+        image_url = f"data:image/jpeg;base64,{base64.b64encode(payload).decode()}"
 
     try:
         # v4 §3.6 — pass the tenant so agent context counts are scoped.

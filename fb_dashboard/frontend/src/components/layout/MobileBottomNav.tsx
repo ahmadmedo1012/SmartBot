@@ -150,7 +150,9 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(false)}
             aria-label="إغلاق"
             tabIndex={sheetOpen ? 0 : -1}
-            className="size-10 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
+            /* v24-R3/B4 P4: 40px → 44px WCAG 2.5.5 touch target (the sheet's
+               most-used dismiss control, in the thumb zone) */
+            className="size-11 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
           >
             <X className="size-4" />
           </button>

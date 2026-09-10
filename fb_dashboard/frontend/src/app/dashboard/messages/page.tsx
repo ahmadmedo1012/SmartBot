@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
+import { useMe } from "@/hooks/useMe"
 import { countPhrase, formatDate, formatDateOnly, timeAgo } from "@/lib/format"
 import type { Conversation, ConversationList, Message } from "@/lib/types"
 
@@ -71,10 +72,13 @@ const FAB_SHOW_PX = 300
 const MESSAGE_WINDOW = 60
 
 /* v24-C2 (task 8 / A3-M6): per-conversation reply drafts persist to
- * localStorage (`draft:<conversationId>`) so a refresh/crash mid-compose no
+ * localStorage (`draft:<userId>:<conversationId>`) so a refresh/crash mid-compose no
  * longer discards them. Debounced writes on change, flush on blur/unmount,
  * removed on successful send — the in-session per-conv state (v17 D10-M2)
- * stays the source of truth; storage only hydrates what state lacks. */
+ * stays the source of truth; storage only hydrates what state lacks.
+ * v24-R4 F8: the key is USER-SCOPED — a shared device / same-tab user switch
+ * must never hydrate the previous operator's half-written replies (R4's
+ * F8: drafts were keyed by conversation only). */
 const DRAFT_KEY_PREFIX = "draft:"
 const DRAFT_DEBOUNCE_MS = 400
 
@@ -200,6 +204,11 @@ function MessagesView() {
    * native history mutations with useSearchParams, so the URL and the view
    * never disagree. */
   const searchParams = useSearchParams()
+  /* v24-R4 F8: the current operator's id — user-scopes the persisted reply
+   * drafts (same-tab user switch / shared device must not hydrate the
+   * previous operator's half-written replies). Same shared ["me"] cache
+   * entry AuthGuard already resolved — zero extra requests. */
+  const { data: me } = useMe()
   const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("c"))
   /** v24-C2: how many ?c= entries THIS view pushed — the in-thread back row
    * hops straight back to the list entry (history.go(-depth)) instead of
@@ -221,10 +230,15 @@ function MessagesView() {
 
   const persistDraft = useCallback((id: string, text: string) => {
     try {
-      if (text) window.localStorage.setItem(DRAFT_KEY_PREFIX + id, text)
-      else window.localStorage.removeItem(DRAFT_KEY_PREFIX + id)
+      /* v24-R4 F8: user-scoped key — see DRAFT_KEY_PREFIX docblock. The
+         page is inside AuthGuard, so `me` is always resolved by now; the
+         fallback only covers the impossible pre-gate frame. */
+      const uid = me?.user?.id
+      const key = DRAFT_KEY_PREFIX + (uid != null ? `${uid}:` : "") + id
+      if (text) window.localStorage.setItem(key, text)
+      else window.localStorage.removeItem(key)
     } catch { /* private mode / quota — the in-session state draft still works */ }
-  }, [])
+  }, [me?.user?.id])
 
   const flushDraft = useCallback(() => {
     if (draftTimerRef.current) {
@@ -249,9 +263,9 @@ function MessagesView() {
       }
       pendingDraftRef.current = null
     }
-    try { window.localStorage.removeItem(DRAFT_KEY_PREFIX + id) } catch { /* private mode */ }
+    try { window.localStorage.removeItem(DRAFT_KEY_PREFIX + (me?.user?.id != null ? `${me.user.id}:` : "") + id) } catch { /* private mode */ }
     setDrafts((prev) => ({ ...prev, [id]: "" }))
-  }, [])
+  }, [me?.user?.id])
 
   const updateDraft = (text: string) => {
     if (!selectedId) return
@@ -277,10 +291,10 @@ function MessagesView() {
     setDrafts((prev) => {
       if (prev[selectedId] !== undefined) return prev
       let stored: string | null = null
-      try { stored = window.localStorage.getItem(DRAFT_KEY_PREFIX + selectedId) } catch { /* private mode */ }
+      try { stored = window.localStorage.getItem(DRAFT_KEY_PREFIX + (me?.user?.id != null ? `${me.user.id}:` : "") + selectedId) } catch { /* private mode */ }
       return { ...prev, [selectedId]: stored ?? "" }
     })
-  }, [selectedId])
+  }, [selectedId, me?.user?.id])
 
   // v24-C2: flush any pending debounced draft on unmount (navigation away
   // mid-compose still persists it), mirroring the autoreply tone-timer rule.

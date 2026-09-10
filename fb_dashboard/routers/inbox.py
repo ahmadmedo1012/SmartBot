@@ -275,7 +275,7 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     # dedup by (tenant_id, fb_message_id); the next open serves instantly
     # from the DB and survives a Graph outage.
     if messages and row is not None:
-        from datetime import datetime as _dt
+        from datetime import datetime as _dt, timezone as _tz
         try:
             async with AsyncSessionLocal() as s2:
                 mids = [str(m.get("id") or "") for m in messages if m.get("id")]
@@ -299,6 +299,17 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                             created = _dt.fromisoformat(
                                 raw_time.replace("+0000", "+00:00")
                                 .replace("Z", "+00:00"))
+                            # v21 hotfix (live-evidenced minutes after the
+                            # first v21 deploy): the SAME aware-vs-naive bug
+                            # the posts parser had — Graph "+0000" times parse
+                            # TZ-AWARE, asyncpg rejects them for the naive
+                            # DateTime columns (DataError is NOT an
+                            # OperationalError → escaped the narrow except →
+                            # 500 on the thread endpoint in production).
+                            # Normalize to naive-UTC like every other path.
+                            if created is not None and created.tzinfo is not None:
+                                created = created.astimezone(_tz.utc).replace(
+                                    tzinfo=None)
                         except ValueError:
                             created = None
                     s2.add(Message(
@@ -311,7 +322,9 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                         created_at=created,
                     ))
                 await s2.commit()
-        except _OpErr:
+        except Exception:
+            # best-effort by contract: a persist failure must NEVER 500 the
+            # thread read (the live fetch result is already in hand)
             log.warning("inbox thread persist failed (tenant=%s conv=%s)",
                         tenant_id, str(conversation_id)[:40], exc_info=True)
     # v4 §2.4 — is_from_page explicit on the live path too (message.data

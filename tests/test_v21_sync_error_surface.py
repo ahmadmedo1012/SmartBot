@@ -335,6 +335,10 @@ async def test_inbox_empty_thread_falls_through_and_persists(
         assert len(rows) == 2
         assert rows[0].fb_message_id == "m1"
         assert rows[1].is_from_page is True
+        # v21 hotfix pin: Graph "+0000" times must persist tz-NAIVE — an
+        # aware datetime made asyncpg DataError→500 on production Postgres
+        for rw in rows:
+            assert rw.created_at is not None and rw.created_at.tzinfo is None
 
     r2 = await app_client.get("/api/inbox/conversations/t_v21x")
     msgs2 = r2.json()["data"]

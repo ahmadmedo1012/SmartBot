@@ -134,28 +134,43 @@ def _count_field(p: dict, *path: str) -> int:
         return 0
 
 
-async def _sync_page_posts(db, tenant_id: int, fb) -> bool:
-    """Best-effort live posts refresh — returns False ONLY on Graph failure.
+async def _sync_page_posts(db, tenant_id: int, fb) -> tuple[bool, str]:
+    """Best-effort live posts refresh — returns (False, reason) on failure.
 
     Uses the raw fetch (``get_page_posts_raw``): ``None`` = the call itself
     failed → ``synced=False`` so the UI can say «فشل الاتصال» instead of a
-    lying empty list. Non-fatal by contract — DB rows below still serve."""
+    lying empty list. Non-fatal by contract — DB rows below still serve.
+
+    v21: the bool return made production failures INVISIBLE from outside
+    (log.warning only, no surface) — the exact blind spot that kept the
+    live posts section empty for hours with zero diagnosable evidence.
+    The second element is a short machine-readable reason surfaced by the
+    route as ``sync_error`` so an operator (or an agent) can read the
+    ACTUAL failure class from the API response itself."""
+    if fb is None:
+        reason = ("client_none: FB client resolution returned None "
+                  "(decrypt/DB — see server logs)")
+        log.warning("posts sync: %s (tenant=%s)", reason, tenant_id)
+        return False, reason
     try:
         r = await fb.get_page_posts_raw(50)
     except Exception as exc:
         # v20: was a silent False — the sync's Graph failure reason vanished
+        reason = f"graph_exc: {type(exc).__name__}: {str(exc)[:150]}"
         log.warning("posts sync: Graph fetch failed (tenant=%s): %s",
                     tenant_id, exc)
-        return False
+        return False, reason
     if r is None:
-        return False
+        reason = ("graph_failed: posts fetch returned no data — both field "
+                  "sets (full+degraded) rejected or network failed")
+        return False, reason
     posts = r.get("data", []) or []
     if not posts:
-        return True
+        return True, ""
     fb_ids = [str(p.get("id") or "") for p in posts]
     fb_ids = [i for i in fb_ids if i]
     if not fb_ids:
-        return True
+        return True, ""
     try:
         existing = (await db.execute(
             select(Post).where(Post.tenant_id == tenant_id, Post.fb_post_id.in_(fb_ids))
@@ -184,33 +199,42 @@ async def _sync_page_posts(db, tenant_id: int, fb) -> bool:
                 if created is not None:
                     row.created_time = created
         await db.commit()
-        return True
+        return True, ""
     except Exception as exc:
         # v20: was a silent rollback+False — the DB-side failure reason vanished
+        reason = f"db_exc: {type(exc).__name__}: {str(exc)[:150]}"
         log.warning("posts sync: DB write failed (tenant=%s): %s",
                     tenant_id, exc)
         await db.rollback()
-        return False
+        return False, reason
 
 
-async def _sync_ad_accounts(db, tenant_id: int, fb) -> bool:
-    """Best-effort ad-accounts refresh (same contract as _sync_page_posts)."""
+async def _sync_ad_accounts(db, tenant_id: int, fb) -> tuple[bool, str]:
+    """Best-effort ad-accounts refresh (same contract as _sync_page_posts —
+    v21: (ok, reason) tuple, reason surfaced as sync_error)."""
+    if fb is None:
+        reason = ("client_none: FB client resolution returned None "
+                  "(decrypt/DB — see server logs)")
+        log.warning("ads accounts sync: %s (tenant=%s)", reason, tenant_id)
+        return False, reason
     try:
         r = await fb.get_ad_accounts_raw()
     except Exception as exc:
         # v20: silent False → logged
+        reason = f"graph_exc: {type(exc).__name__}: {str(exc)[:150]}"
         log.warning("ads accounts sync: Graph fetch failed (tenant=%s): %s",
                     tenant_id, exc)
-        return False
+        return False, reason
     if r is None:
-        return False
+        reason = "graph_failed: adaccounts fetch returned no data"
+        return False, reason
     accounts = r.get("data", []) or []
     if not accounts:
-        return True
+        return True, ""
     fb_ids = [str(a.get("id") or "") for a in accounts]
     fb_ids = [i for i in fb_ids if i]
     if not fb_ids:
-        return True
+        return True, ""
     try:
         existing = (await db.execute(
             select(AdAccount).where(AdAccount.tenant_id == tenant_id,
@@ -238,10 +262,13 @@ async def _sync_ad_accounts(db, tenant_id: int, fb) -> bool:
                 row.amount_spent = str(a.get("amount_spent", "0") or row.amount_spent)
                 row.balance = str(a.get("balance", "0") or row.balance)
         await db.commit()
-        return True
-    except Exception:
+        return True, ""
+    except Exception as exc:
+        reason = f"db_exc: {type(exc).__name__}: {str(exc)[:150]}"
+        log.warning("ads accounts sync: DB write failed (tenant=%s): %s",
+                    tenant_id, exc)
         await db.rollback()
-        return False
+        return False, reason
 
 
 def _graph_status(raw: dict) -> str:
@@ -745,8 +772,11 @@ async def list_posts(page: int = Query(1, ge=1), per_page: int = Query(10, ge=1,
     fb = await _tenant_fb(current_user)
     tid = current_user._tenant_id
     synced = False
+    sync_error = ""
+    sync_attempted = False
     if _sync_allowed(_POSTS_LAST_SYNC, tid, _POSTS_SYNC_SKIP_S):
-        synced = await _sync_page_posts(db, tid, fb)
+        sync_attempted = True
+        synced, sync_error = await _sync_page_posts(db, tid, fb)
     offset = (page - 1) * per_page
     rows = (await db.execute(
         select(Post)
@@ -773,6 +803,12 @@ async def list_posts(page: int = Query(1, ge=1), per_page: int = Query(10, ge=1,
         "has_next": has_next,
         "source": "db",
         "synced": synced,
+        # v21: live-diagnosis surface — the ACTUAL failure class, readable
+        # from the API response (log-only evidence kept the posts section
+        # empty for hours with zero outside visibility). "" on success;
+        # absent effect on existing consumers (additive keys).
+        "sync_attempted": sync_attempted,
+        "sync_error": sync_error,
     }
     )
 
@@ -875,8 +911,11 @@ async def list_ad_accounts(db=Depends(get_db),
     fb = await _tenant_fb(current_user)
     tid = current_user._tenant_id
     synced = False
+    sync_error = ""
+    sync_attempted = False
     if _sync_allowed(_ADACC_LAST_SYNC, tid, _ADACC_SYNC_SKIP_S):
-        synced = await _sync_ad_accounts(db, tid, fb)
+        sync_attempted = True
+        synced, sync_error = await _sync_ad_accounts(db, tid, fb)
     rows = (await db.execute(
         select(AdAccount).where(AdAccount.tenant_id == tid).order_by(AdAccount.id)
     )).scalars().all()
@@ -890,6 +929,9 @@ async def list_ad_accounts(db=Depends(get_db),
         } for r in rows],
         "source": "db",
         "synced": synced,
+        # v21: same live-diagnosis surface as /api/posts
+        "sync_attempted": sync_attempted,
+        "sync_error": sync_error,
     })
 
 

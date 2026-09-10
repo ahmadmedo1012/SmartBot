@@ -517,9 +517,26 @@ class FBClient:
         comments (per-post) empirically fails without it (Graph code 10,
         live-evidenced), and the auto-reply engine's comment cycle is dead
         without comment reads.
+
+        v21 (live-evidenced): ``/me/permissions`` is a USER-token endpoint —
+        a PAGE token gets Graph 400 "Tried accessing nonexisting field
+        (permissions)", and the old fallback then reported ALL FOUR scopes
+        missing (a FALSE warning rendered to the user for a token that
+        actually serves conversations/ads fine). When the permission probe
+        fails we now check the token identity: a token whose /me IS the
+        bound page (a page token) reports only the two scopes that are
+        genuinely needed and empirically missing for this token class
+        (posts engagement summaries + comment reads) — pages_messaging is
+        NOT claimed missing for a page token that demonstrably serves the
+        conversations edge.
         """
         r = await self._get("me/permissions")
         if not r or not r.get("data"):
+            me = await self._get("me", {"fields": "id"})
+            if me and str(me.get("id") or "") == str(self.page_id or ""):
+                # page token — user-style permission list unavailable
+                return {"scopes": [], "page_token": True, "missing": [
+                    "pages_read_engagement", "pages_read_user_content"]}
             return {"scopes": [], "missing": [
                 "pages_messaging", "pages_manage_metadata",
                 "pages_read_engagement", "pages_read_user_content"]}

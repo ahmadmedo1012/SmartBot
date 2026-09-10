@@ -11,7 +11,7 @@ from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Conversation, ConversationLabel, ConversationTag, Message, User
 from sqlalchemy import and_, func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError as _OpErr
 
 from routers.auth import get_current_user, require_role
 
@@ -225,6 +225,15 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     Webhook-persisted conversations (synthetic or real ids) serve their
     stored thread instantly; live-FB-only conversations fall back to a Graph
     fetch. Response shape unchanged: [{id, message, from, created_time}].
+
+    v21 (browser-evidenced 2026-09-10): the list sync creates Conversation
+    ROWS from Graph metadata (message_count from the conversations edge)
+    without persisting the thread, so a row with a NON-zero message_count
+    could serve ZERO persisted messages — the dashboard showed «45 رسالة»
+    in the list and «لا توجد رسائل في هذه المحادثة» when opened. A row
+    with an EMPTY persisted thread now falls through to the live Graph
+    fetch (and persists what it returns, dedup by fb_message_id) instead
+    of answering an empty list.
     """
     tenant_id = current_user._tenant_id
     async with AsyncSessionLocal() as s:
@@ -241,23 +250,70 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                 .order_by(Message.created_at.asc())
                 .limit(200)
             )).scalars().all()
-            return ok([{
-                "id": str(m.fb_message_id or m.id),
-                "message": m.text or "",
-                "from": {"id": m.sender_id or "", "name": m.sender_name or ("الصفحة" if m.is_from_page else "")},
-                # v4 §2.4 — the frontend compared from.id === "page" which never
-                # matches the numeric page id → page replies rendered as customer
-                # bubbles. Explicit flag is unambiguous.
-                "is_from_page": bool(m.is_from_page),
-                "attachment_type": m.attachment_type or "",
-                "attachment_url": m.attachment_url or "",
-                "postback_payload": m.postback_payload or "",
-                "created_time": iso_z(m.created_at),
-            } for m in msgs])
+            if msgs:
+                return ok([{
+                    "id": str(m.fb_message_id or m.id),
+                    "message": m.text or "",
+                    "from": {"id": m.sender_id or "", "name": m.sender_name or ("الصفحة" if m.is_from_page else "")},
+                    # v4 §2.4 — the frontend compared from.id === "page" which never
+                    # matches the numeric page id → page replies rendered as customer
+                    # bubbles. Explicit flag is unambiguous.
+                    "is_from_page": bool(m.is_from_page),
+                    "attachment_type": m.attachment_type or "",
+                    "attachment_url": m.attachment_url or "",
+                    "postback_payload": m.postback_payload or "",
+                    "created_time": iso_z(m.created_at),
+                } for m in msgs])
+            # v21: empty persisted thread — fall through to the live fetch
+            # below (the row stays loaded via conversation_id for persistence)
 
-    # DB miss → live Graph fetch (conversation discovered via live sync)
+    # DB miss OR empty persisted thread → live Graph fetch (conversation
+    # discovered via live sync, or thread never webhook-persisted)
     fb = await _get_inbox_fb(tenant_id)
     messages = await fb.get_conversation_messages(conversation_id)
+    # v21: persist the fetched thread when the conversation row exists —
+    # dedup by (tenant_id, fb_message_id); the next open serves instantly
+    # from the DB and survives a Graph outage.
+    if messages and row is not None:
+        from datetime import datetime as _dt
+        try:
+            async with AsyncSessionLocal() as s2:
+                mids = [str(m.get("id") or "") for m in messages if m.get("id")]
+                existing: set[str] = set()
+                if mids:
+                    for mid in (await s2.execute(
+                        select(Message.fb_message_id).where(
+                            Message.tenant_id == tenant_id,
+                            Message.fb_message_id.in_(mids))
+                    )).scalars().all():
+                        existing.add(mid)
+                for m in messages:
+                    mid = str(m.get("id") or "")
+                    if not mid or mid in existing:
+                        continue
+                    sender = m.get("from") or {}
+                    created = None
+                    raw_time = str(m.get("created_time", "") or "")
+                    if raw_time:
+                        try:
+                            created = _dt.fromisoformat(
+                                raw_time.replace("+0000", "+00:00")
+                                .replace("Z", "+00:00"))
+                        except ValueError:
+                            created = None
+                    s2.add(Message(
+                        tenant_id=tenant_id, conversation_id=row.id,
+                        fb_message_id=mid, fb_conversation_id=conversation_id,
+                        sender_id=str(sender.get("id", "") or ""),
+                        sender_name=str(sender.get("name", "") or ""),
+                        text=str(m.get("message", "") or ""),
+                        is_from_page=bool(m.get("is_from_page", False)),
+                        created_at=created,
+                    ))
+                await s2.commit()
+        except _OpErr:
+            log.warning("inbox thread persist failed (tenant=%s conv=%s)",
+                        tenant_id, str(conversation_id)[:40], exc_info=True)
     # v4 §2.4 — is_from_page explicit on the live path too (message.data
     # carries the page id on page-sent messages)
     return ok(

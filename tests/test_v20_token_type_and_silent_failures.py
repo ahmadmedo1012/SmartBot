@@ -463,8 +463,9 @@ async def test_self_heal_exchanges_stored_user_token(monkeypatch, tables):
               "name": "Smart Link-الربط الذكي", "fan_count": 5,
               "picture": {"data": {"url": "https://x/p.jpg"}}},
     })
-    from routers.inbox import _tenant_fb_cache
     import time as _time
+
+    from routers.inbox import _tenant_fb_cache
 
     tenant_id = await _seed_tenant_with_stored_token(pid, USER_TOKEN)
     _tenant_fb_cache[tenant_id] = ("stale-user-token-client",
@@ -556,8 +557,9 @@ async def test_decrypt_failure_is_logged_not_silent(monkeypatch, caplog, tables)
         row.scalar_one().value = "garbage-not-fernet!!"
         await db.commit()
 
-    import _services
     import logging
+
+    import _services
     with caplog.at_level(logging.ERROR, logger="fb-api"):
         fb = await _services.get_tenant_fb_client(tenant_id)
     assert fb is None

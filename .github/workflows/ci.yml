@@ -245,7 +245,10 @@ jobs:
           curl -sSfL --retry 3 -o /usr/local/bin/osv-scanner \
             "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64"
           chmod +x /usr/local/bin/osv-scanner
-          osv-scanner version
+          # v22: v2.x CLI has NO `version` subcommand — a positional arg is a
+          # SCAN TARGET ("failed to resolve path: .../version" → exit≠0, the
+          # CI-red class since the v2.5.1 pin). The flag form is the contract.
+          osv-scanner --version
       - name: Gate — OSV scan (both lockfiles, explicit config)
         run: |
           osv-scanner scan --config=.osv-scanner.toml \

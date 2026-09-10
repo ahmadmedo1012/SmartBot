@@ -80,7 +80,7 @@ async def test_facebook_settings_webhook_fixed_arabic_error(v10_seed, monkeypatc
     data = r.json()["data"]
     assert data["ok"] is True
     assert data["webhook"] == {
-        "error": "تعذر تفعيل الويبهوك — تحقق من رمز الوصول ومعرف الصفحة"}
+        "error": "تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"}
     assert "Service temporarily unavailable" not in r.text
     assert "Graph returned" not in r.text
 

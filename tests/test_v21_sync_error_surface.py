@@ -120,7 +120,7 @@ async def _register(ac: AsyncClient, prefix: str) -> dict:
 
 
 async def test_posts_sync_success_empty_error(app_client, fake_graph):
-    user = await _register(app_client, "v21a")
+    await _register(app_client, "v21a")
     r = await app_client.get("/api/posts")
     assert r.status_code == 200, r.text
     d = r.json()["data"]
@@ -134,7 +134,7 @@ async def test_posts_sync_success_empty_error(app_client, fake_graph):
 
 
 async def test_posts_sync_error_graph_failed(app_client, fake_graph):
-    user = await _register(app_client, "v21b")
+    await _register(app_client, "v21b")
     # first sync succeeds and stores a row
     r = await app_client.get("/api/posts")
     assert r.json()["data"]["synced"] is True
@@ -154,7 +154,7 @@ async def test_posts_sync_error_graph_failed(app_client, fake_graph):
 
 
 async def test_posts_throttled_not_attempted_no_error(app_client, fake_graph):
-    user = await _register(app_client, "v21c")
+    await _register(app_client, "v21c")
     r = await app_client.get("/api/posts")
     assert r.json()["data"]["sync_attempted"] is True
     # second call inside the 30s window: skipped, NOT an error
@@ -170,7 +170,7 @@ async def test_posts_throttled_not_attempted_no_error(app_client, fake_graph):
 
 
 async def test_ads_accounts_sync_error_surface(app_client, fake_graph):
-    user = await _register(app_client, "v21d")
+    await _register(app_client, "v21d")
     r = await app_client.get("/api/ads/accounts")
     d = r.json()["data"]
     assert d["synced"] is True and d["sync_error"] == ""
@@ -357,7 +357,6 @@ async def test_inbox_thread_no_row_live_only(app_client, fake_inbox_fb):
     from database import AsyncSessionLocal
     from models import Message
     from sqlalchemy import select
-    user = None
     async with AsyncSessionLocal() as db:
         n = (await db.execute(
             select(Message).where(

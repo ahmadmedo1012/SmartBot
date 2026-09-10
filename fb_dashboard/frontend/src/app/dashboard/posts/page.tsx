@@ -20,6 +20,12 @@ const POST_STATUS_LABELS: Record<string, string> = {
 export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
   const queryClient = useQueryClient()
+  /* v24-C2 (task 3 / A3-P2): النشر والحذف بلمستين — نفس نمط sequences/team
+     داخل المستودع: الضغط الأول يكشف «تأكيد النشر/الحذف + إلغاء» (أزرار
+     44px)، والثاني فقط ينفّذ. النشر يدفع للصفحة الحية على فيسبوك والحذف
+     لا رجعة فيه — لا تنفيذ بلمسة أيقونة واحدة بعد الآن. */
+  const [confirmPublishId, setConfirmPublishId] = useState<number | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   /* v21 (T4-b) — منشورات صفحة فيسبوك: الظرف DB-first من GET /api/posts
    * (نفس نمط /api/ads/accounts في v19): {items, total, page, per_page,
@@ -74,6 +80,8 @@ export default function PostsPage() {
       apiFetch(`/api/scheduled-posts/${id}/publish`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
+      /* v24-C2 (task 3): نُفّذ النشر — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmPublishId(null)
       brandedToast.success("تم النشر على فيسبوك")
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل النشر"),
@@ -84,6 +92,8 @@ export default function PostsPage() {
       apiFetch(`/api/scheduled-posts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
+      /* v24-C2 (task 3): نُفّذ الحذف — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmDeleteId(null)
       brandedToast.success("تم حذف المنشور")
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
@@ -109,9 +119,12 @@ export default function PostsPage() {
               placeholder="اكتب منشوراً جديداً…"
               aria-label="نص المنشور"
               /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                  seam — dir="auto" isolates mixed Arabic/Latin post text. */
+                  seam — dir="auto" isolates mixed Arabic/Latin post text.
+                  v24-C2 (task 4 / A3-P1): text-sm كانت 14px — iOS يكبّر
+                  الإطار عند التركيز؛ الآن text-base md:text-sm (16px على
+                  الجوال) بعقد الـ44px نفسه (min-h-[100px] ≥ 44px). */
               dir="auto"
-              className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
+              className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
             <div className="flex justify-end mt-3">
               {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ النشر…» (mirror:
@@ -244,15 +257,62 @@ export default function PostsPage() {
                       }`}>{POST_STATUS_LABELS[p.status] || p.status}</span>
                       {p.scheduled_at && <span>{formatDate(p.scheduled_at)}</span>}
                     </div>
+                    {/* v24-C2 (task 3 / A3-P2): أثناء التأكيد يستبدل العنقود
+                        كاملاً بأزرار «تأكيد … / إلغاء» (44px، بلا ازدحام على
+                        الشاشات الضيقة) — نفس بصر sequences/team. */}
                     <div className="flex gap-1">
-                      {p.status !== "published" && (
-                        <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} disabled={publishMut.isPending && publishMut.variables === p.id} aria-label="نشر المنشور الآن">
-                          <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
-                        </Button>
+                      {confirmPublishId === p.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => publishMut.mutate(p.id)}
+                            disabled={publishMut.isPending && publishMut.variables === p.id}
+                            loading={publishMut.isPending && publishMut.variables === p.id}
+                          >
+                            <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" /> تأكيد النشر
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmPublishId(null)}
+                            aria-label="إلغاء نشر المنشور"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : confirmDeleteId === p.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteMut.mutate(p.id)}
+                            disabled={deleteMut.isPending && deleteMut.variables === p.id}
+                            loading={deleteMut.isPending && deleteMut.variables === p.id}
+                          >
+                            <Trash2 className="size-3" aria-hidden="true" /> تأكيد الحذف
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteId(null)}
+                            aria-label="إلغاء حذف المنشور"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {p.status !== "published" && (
+                            <Button size="sm" variant="ghost" onClick={() => setConfirmPublishId(p.id)} aria-label="نشر المنشور الآن">
+                              <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="hover:text-destructive" aria-label="حذف المنشور">
+                            <Trash2 className="size-3" aria-hidden="true" />
+                          </Button>
+                        </>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} disabled={deleteMut.isPending && deleteMut.variables === p.id} aria-label="حذف المنشور">
-                        <Trash2 className="size-3" aria-hidden="true" />
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

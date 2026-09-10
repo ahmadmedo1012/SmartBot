@@ -104,7 +104,11 @@ export function LandingTestimonials() {
               style={{ animationDelay: `${i * 100}ms` }}
             >
               {t.metric && (
-                <div className="absolute top-4 left-4 text-3xs font-bold text-accent-foreground/90 bg-accent-foreground/10 px-2.5 py-1 rounded-full border border-accent-foreground/20">
+                /* v24-C6 (WCAG 1.4.3): text-accent-foreground/90 over the
+                   /10 tint composite measured 4.28:1 (dark) at 10px bold —
+                   needs 4.5:1. Full-opacity token: 5.02:1 dark · 5.48:1 light
+                   (the v15-E6 /80→full pattern). */
+                <div className="absolute top-4 left-4 text-3xs font-bold text-accent-foreground bg-accent-foreground/10 px-2.5 py-1 rounded-full border border-accent-foreground/20">
                   {t.metric}
                 </div>
               )}

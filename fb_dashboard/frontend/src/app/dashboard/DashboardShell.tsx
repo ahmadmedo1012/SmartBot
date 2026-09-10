@@ -8,6 +8,7 @@ import { SetupWarnings } from "@/components/shared/SetupWarnings"
 import { WebhookHealthBanner } from "@/components/shared/WebhookHealthBanner"
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus"
 import { apiFetch } from "@/lib/csrf-client"
+import { clearQueryPersistedCache } from "@/lib/query-persist"
 /* v11-A7 — framer-free page entrance. This motion.div was the only reason
  * EVERY dashboard route (26) eagerly shipped the ~116KB framer-motion
  * engine in first-load JS. The springGentle entrance (opacity 0→1, y 12→0,
@@ -36,10 +37,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const { hasActiveSubscription, isLoading: subLoading } = useSubscriptionStatus()
 
-  const handleNavigate = (href: string) => {
-    router.push(href)
-  }
-
   const handleSubscribe = () => {
     router.push("/subscribe")
   }
@@ -49,6 +46,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       await apiFetch("/api/logout", { method: "POST" })
       brandedToast.success("تم تسجيل الخروج")
     } catch { /* ignore */ }
+    /* v24-C3 (A2 #3 hygiene): wipe the persisted react-query cache before
+     * leaving — a same-tab login as a different user must never hydrate
+     * the previous account's dashboard data. */
+    clearQueryPersistedCache()
     router.push("/login")
   }
 
@@ -57,9 +58,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
         {/* v19 Step 1: hide the upsell CTA once the tenant is actively
             subscribed (unknown/loading keeps the button — avoids a
-            hide-flash on first paint for everyone). */}
+            hide-flash on first paint for everyone).
+            v24-C3 (A2 #2): onNavigate is NOT passed — sidebar items are
+            native <Link>s (viewport prefetch); only logout stays
+            programmatic. */}
         <AdminSidebar
-          onNavigate={handleNavigate}
           onLogout={handleLogout}
           onSubscribe={subLoading || !hasActiveSubscription ? handleSubscribe : undefined}
         />
@@ -97,8 +100,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      {/* Mobile navigation (Track F) — visible below md where the sidebar is hidden */}
-      <MobileBottomNav onNavigate={handleNavigate} onLogout={handleLogout} />
+      {/* Mobile navigation (Track F) — visible below md where the sidebar is hidden.
+          v24-C3 (A2 #2): same Link-prefetch contract — no onNavigate, only logout. */}
+      <MobileBottomNav onLogout={handleLogout} />
     </div>
   )
 }

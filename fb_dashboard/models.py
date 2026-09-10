@@ -251,6 +251,14 @@ class ScheduledPost(Base):
     # من القواعد القديمة.
     __table_args__ = (
         Index("ix_schedpost_tenant_status_sched", "tenant_id", "status", "scheduled_at"),
+        # v24-C5 (B3 §2-#4): the due sweep + stale recovery are GLOBAL
+        # (`status='scheduled' AND scheduled_at <= now` — content_calendar
+        # .py:420, bot.py:113-117) — the composite above leads with
+        # tenant_id so it can never serve them. The 002-era name
+        # ix_schedpost_status_sched is historically loaded (dropped again
+        # by 014's duplicate cleanup) — the distinct name avoids any
+        # collision on half-migrated lineages.
+        Index("ix_schedpost_status_sched2", "status", "scheduled_at"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -330,6 +338,17 @@ class Offer(Base):
 class OfferClaim(Base):
     """Track who claimed each offer."""
     __tablename__ = "offer_claims"
+
+    # v24-C5 (B3 §2-#8): claim dedup — the unique key the DB-backed offer
+    # dedup (offer_engine) INSERTs into on every delivery attempt; the
+    # savepoint/IntegrityError catch makes a concurrent double-delivery
+    # (multi-instance Vercel, restarts) collapse to the first winner. The
+    # table existed since phase-D models but NO code ever wrote it and NO
+    # constraint guarded it — migration 017 creates it on legacy DBs
+    # (013 dedup pattern) while create_all builds it here for fresh ones.
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "offer_id", "fb_user_id", name="uq_offerclaim_tenant_offer_user"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -491,7 +510,15 @@ class SequenceSubscription(Base):
     entered_at = Column(DateTime, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (Index("ix_seqsub_tenant_status", "tenant_id", "status"), UniqueConstraint("tenant_id", "subscriber_id", "sequence_id", name="uq_seq_sub"),)
+    # v24-C5 (B3 §2-#5): GLOBAL due scan + stale-claim recovery filter on
+    # status alone (sequence_engine.py get_due_subscriptions / recover_stale
+    # _sequence_claims) — the composite below leads with tenant_id and
+    # cannot serve the cross-tenant sweeps.
+    __table_args__ = (
+        Index("ix_seqsub_tenant_status", "tenant_id", "status"),
+        Index("ix_seqsub_status", "status"),
+        UniqueConstraint("tenant_id", "subscriber_id", "sequence_id", name="uq_seq_sub"),
+    )
 
 
 # ── Broadcasts (One-to-Many) ───────────────────────────────────────────────────
@@ -500,8 +527,16 @@ class SequenceSubscription(Base):
 class Broadcast(Base):
     """One-time broadcast message to a subscriber segment."""
     __tablename__ = "broadcasts"
-    # v12 E1.7 (D9): قائمة البث تُرتّب بـ created_at داخل المستأجر
-    __table_args__ = (Index("ix_broadcast_tenant_created", "tenant_id", "created_at"),)
+    # v24-C5 (B3 §2-#2): the GLOBAL outbox claim scan —
+    # WHERE status='pending' ORDER BY created_at LIMIT n, every cron beat
+    # (broadcast_engine.py:536-539) — has no tenant predicate, so the
+    # tenant-leading composite below can never serve it. No WHERE-
+    # qualification here: both claimable statuses (pending) and the
+    # ORDER BY key live inside the index → index-ordered scan.
+    __table_args__ = (
+        Index("ix_broadcast_tenant_created", "tenant_id", "created_at"),
+        Index("ix_broadcast_status_created", "status", "created_at"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
@@ -568,6 +603,12 @@ class Message(Base):
     __table_args__ = (
         UniqueConstraint("tenant_id", "fb_message_id", name="uq_messages_tenant_fb"),
         Index("ix_messages_conversation", "conversation_id", "created_at"),
+        # v24-C5 (B3 §2-#1): largest-table analytics scan — DM-rule
+        # attribution `tenant + is_from_page + created_at >= cutoff GROUP BY
+        # rule_id` (routers/analytics.py:74-80) and message-total counts
+        # (dashboard_stats.py:177-181) previously seq-scanned every polled
+        # dashboard load. Also the future retention-prune key.
+        Index("ix_messages_tenant_created", "tenant_id", "created_at"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -1060,6 +1101,11 @@ class MarketingCampaign(Base):
     __tablename__ = "marketing_campaigns"
     __table_args__ = (
         Index("ix_campaign_tenant_created", "tenant_id", "created_at"),
+        # v24-C5 (B3 §2-#3): GLOBAL campaign claim — the atomic
+        # `UPDATE ... WHERE status='scheduled' AND scheduled_at <= now
+        # RETURNING id` (routers/marketing.py:333-338) runs every cron beat
+        # across all tenants; the composite above can't serve it.
+        Index("ix_campaign_status_sched", "status", "scheduled_at"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)

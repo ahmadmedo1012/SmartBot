@@ -64,6 +64,10 @@ export default function AutoReplyPage() {
   /* v17-E-F8 (D6 #7): وضع تعديل القاعدة — نفس النموذج يتحول لوضع PUT
      (PUT موجود خلفيًا: /api/rules/{id} — Form: name/keywords/reply_template/priority). */
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null)
+  /* v24-C2 (task 3 / A3-A1): حذف القاعدة بلمستين — نفس نمط sequences/team
+     داخل المستودع: الضغط الأول يكشف «تأكيد الحذف / إلغاء»، والثاني فقط
+     يحذف. لا حذف بلمسة أيقونة واحدة (32px) بعد الآن. */
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   const [name, setName] = useState("")
   const [keyword, setKeyword] = useState("")
   const [replyText, setReplyText] = useState("")
@@ -131,7 +135,12 @@ export default function AutoReplyPage() {
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiFetch(`/api/rules/${id}`, { method: "DELETE" }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); brandedToast.success("تم حذف القاعدة") },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rules"] })
+      /* v24-C2 (task 3): القاعدة حُذفت — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmDeleteId(null)
+      brandedToast.success("تم حذف القاعدة")
+    },
     onError: (e: Error) => brandedToast.error(e.message),
   })
 
@@ -306,7 +315,10 @@ export default function AutoReplyPage() {
                     {toneSaving && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                   </div>
                   {/* v16-E3 (D1 C3) — نفس نهج الصفحة: raw input بـ dir="auto"
-                      يعزل القيم العربية/اللاتينية المختلطة. */}
+                      يعزل القيم العربية/اللاتينية المختلطة.
+                      v24-C2 (task 4 / A3 §2 raw-input drift): h-9 text-sm
+                      كانت تكبّر إطار العرض على iOS عند التركيز — الآن h-11
+                      + text-base md:text-sm (16px على الجوال). */}
                   <input
                     id="ai-tone"
                     value={toneInput}
@@ -318,7 +330,7 @@ export default function AutoReplyPage() {
                     maxLength={TONE_MAX_LEN}
                     placeholder="مثال: ودية ومهنية"
                     dir="auto"
-                    className="w-full h-9 text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                    className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                   />
                 </div>
               )}
@@ -457,7 +469,34 @@ export default function AutoReplyPage() {
                       and target row programmatically (the icon alone isn't a
                       state for SRs — WCAG 4.1.2), and the hover-only opacity
                       reveal now also lifts on keyboard focus. */}
+                  {/* v24-C2 (task 3 / A3-A1): أثناء تأكيد حذف صفٍّ يستبدل
+                      العنقود كاملًا بـ«تأكيد الحذف / إلغاء» — أزرار 44px
+                      (min-h-11) بلا ازدحام على الشاشات الضيقة، ونفس بصر
+                      sequences/team. الفشل يُبقي التأكيد (رسالة الخطأ toast
+                      تظهر) للإعادة أو الإلغاء. */}
                   <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                    {confirmDeleteId === r.id ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteMut.mutate(r.id)}
+                          disabled={deleteMut.isPending && deleteMut.variables === r.id}
+                          loading={deleteMut.isPending && deleteMut.variables === r.id}
+                        >
+                          <Trash2 className="size-3.5" /> تأكيد الحذف
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setConfirmDeleteId(null)}
+                          aria-label={`إلغاء حذف قاعدة ${r.name}`}
+                        >
+                          إلغاء
+                        </Button>
+                      </>
+                    ) : (
+                      <>
                     {/* v17-E-F8 (D6 #7): زر تعديل القاعدة — يفتح النموذج
                         معبّأ بصف القاعدة لوضع PUT. */}
                     <Button
@@ -479,9 +518,13 @@ export default function AutoReplyPage() {
                     <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
                       {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(r.id)} disabled={deleteMut.isPending && deleteMut.variables === r.id} className="size-8 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
+                    {/* v24-C2 (task 3 / A3-A1): الضغط الأول يكشف خطوة التأكيد
+                        (لا حذف مباشر) — أزرار التأكيد تستوفي 44px افتراضيا. */}
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(r.id)} className="size-8 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
                       <Trash2 className="size-3.5" />
                     </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

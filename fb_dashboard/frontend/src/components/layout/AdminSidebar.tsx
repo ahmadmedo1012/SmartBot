@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +32,13 @@ interface AdminSidebarProps {
   navSections?: NavSection[]
   logo?: string
   title?: string
+  /* v24-C3 (A2 #2 + B4 — native <Link> nav items): items are real <Link>s
+   * now (viewport prefetch of the RSC payload, native Enter/Space/middle-
+   * click semantics, no div[role=link] ARIA patching). onNavigate is
+   * OPTIONAL and only used as an INTERCEPTOR by hosts that map sidebar
+   * hrefs to in-page tabs (the /demo switcher): the click is prevented and
+   * delegated, exactly like the old onClick wiring. The real dashboard
+   * shell passes nothing → native Link navigation. */
   onNavigate?: (href: string) => void
   onLogout?: () => void
   onSubscribe?: () => void
@@ -111,6 +119,16 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname() ?? ""
 
+  /* v24-C3: Link click contract — when a host passed the onNavigate
+   * interceptor (demo tab switch), preventDefault and delegate so the URL
+   * never changes; otherwise let <Link> navigate with its prefetch. */
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (onNavigate) {
+      e.preventDefault()
+      onNavigate(href)
+    }
+  }
+
   return (
     <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-e border-border/50 shadow-sm", className)}>
       {/* Logo — the REAL brand image (v3 §5.1): same /brand-icon.png asset
@@ -137,7 +155,12 @@ export function AdminSidebar({
 
       {/* Nav — v6+ framer-free: section stagger is CSS animation-delay,
        * item hover/tap are Tailwind translate/scale (individual CSS props,
-       * composable), active indicator renders per-item (no layoutId slide). */}
+       * composable), active indicator renders per-item (no layoutId slide).
+       * v24-C3 (A2 #2 + B4): items are native <Link>s — App Router
+       * prefetches each section's RSC payload while the link is visible
+       * (the whole 23-section list sits in the desktop viewport), Enter/Space
+       * are native anchor semantics (the old onKeyDown shim is gone), and
+       * the div[role=link] ARIA patch (B4) is now a real link. */}
       <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {navSections.map((section, si) => (
           <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 50}ms` }}>
@@ -153,13 +176,15 @@ export function AdminSidebar({
               {section.items.map((item, ii) => {
                 const active = isActiveItem(item.href, activeHref ?? pathname)
                 return (
-                  <div
+                  <Link
                     key={ii}
                     id={item.tourId}
-                    onClick={() => onNavigate?.(item.href || "#")}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onNavigate?.(item.href || "#") } }}
-                    tabIndex={0}
-                    role="link"
+                    href={item.href ?? "#"}
+                    onClick={(e) => handleLinkClick(e, item.href || "#")}
+                    /* v24-C3: prefetch only in native-Link mode — when a host
+                     * intercepts clicks (demo tab switch), the href is never
+                     * actually navigated, so prefetching it is pure waste. */
+                    prefetch={onNavigate ? false : undefined}
                     aria-current={active ? "page" : undefined}
                     aria-label={item.label}
                     className={cn(
@@ -200,7 +225,7 @@ export function AdminSidebar({
                         {item.badge}
                       </Badge>
                     )}
-                  </div>
+                  </Link>
                 )
               })}
             </div>

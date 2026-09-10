@@ -4,20 +4,38 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Radio, AlertCircle, RefreshCw, Plus, Send } from "lucide-react"
+import { Radio, AlertCircle, AlertTriangle, RefreshCw, Plus, Send, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
+import { countPhrase } from "@/lib/format"
 import type { BroadcastRow } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 const BROADCAST_STATUS_LABELS: Record<string, string> = {
   sent: "مُرسل", pending: "قيد الإرسال", scheduled: "مجدول", failed: "فاشل", draft: "مسودة",
   cancelled: "ملغى", sending: "جارٍ الإرسال",
+}
+
+/* v24-C2 (task 2 / A3-B1): GET /api/broadcasts/{id} detail shape — the list
+ * rows carry no message text, so the confirmation dialog fetches the detail
+ * for the preview snippet, then the purpose-built POST /api/broadcasts/estimate
+ * with the SAME stored filters the engine fan-out uses (active, tenant-scoped
+ * subscribers + platform/tag/date segments — broadcast_engine.py runs the
+ * identical query for both) for the exact audience size. */
+interface BroadcastDetail {
+  id: number
+  name?: string
+  message_template?: string
+  platform_filter?: Record<string, unknown>
+  segment_filters?: Record<string, unknown>
+  status?: string
 }
 
 /* v17-E-F8 (D6 #6): الحالات القابلة للإلغاء — عقد broadcast_engine.cancel_broadcast
@@ -35,6 +53,10 @@ export default function BroadcastPage() {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
+  /* v24-C2 (task 2 / A3-B1): «إرسال» no longer mass-sends on a single tap —
+     the id of the draft being confirmed drives the dialog below; the send
+     mutation fires ONLY from its explicit destructive confirm button. */
+  const [confirmSendId, setConfirmSendId] = useState<number | null>(null)
 
   const { data: broadcasts = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["broadcasts"],
@@ -76,8 +98,49 @@ export default function BroadcastPage() {
     onSuccess: () => {
       brandedToast.success("تم إرسال البث للمشتركين")
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
+      /* v24-C2: the queue succeeded — close the confirmation dialog */
+      setConfirmSendId(null)
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
+  })
+
+  /* v24-C2 (task 2 / A3-B1): the dialog's payload — broadcast detail (message
+   * preview + the stored filters) chained with the exact audience estimate.
+   * Lazily enabled while the dialog is open; failure shows an honest Arabic
+   * error + retry and KEEPS the confirm disabled (an uninformed mass-send is
+   * precisely what this dialog exists to prevent). */
+  const {
+    data: confirmData,
+    isLoading: confirmLoading,
+    isError: confirmError,
+    error: confirmErrorObj,
+    refetch: refetchConfirm,
+  } = useQuery({
+    queryKey: ["broadcast-send-preview", confirmSendId],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/broadcasts/${confirmSendId}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || `فشل تحميل تفاصيل البث (${res.status})`)
+      }
+      const detail = await unwrapApi<BroadcastDetail>(res)
+      const est = await apiFetch("/api/broadcasts/estimate", {
+        method: "POST",
+        body: JSON.stringify({
+          segment_filters: detail.segment_filters ?? {},
+          platform_filter: detail.platform_filter ?? {},
+        }),
+      })
+      if (!est.ok) {
+        const body = await est.json().catch(() => ({}))
+        throw new Error(body.detail || "تعذر تقدير عدد المستلمين")
+      }
+      const { count } = await unwrapApi<{ count: number }>(est)
+      return { detail, count }
+    },
+    enabled: confirmSendId !== null,
+    staleTime: 30000,
+    retry: 1,
   })
 
   /* v17-E-F8 (D6 #6): إلغاء بث معلق/مسودة/قيد الإرسال — POST
@@ -184,13 +247,15 @@ export default function BroadcastPage() {
                     <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status ?? ""] || b.status} · {formatDate(b.scheduled_at || b.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {/* الإرسال للمسودة فقط (عقد send: draft→pending ذرّيًا). */}
+                    {/* الإرسال للمسودة فقط (عقد send: draft→pending ذرّيًا) —
+                        v24-C2 (task 2 / A3-B1): الزر يفتح حوار التأكيد فقط؛
+                        لا إرسال جماعي بلمسة واحدة بعد الآن. */}
                     {b.status === "draft" && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => sendMut.mutate(b.id)}
-                        disabled={sendMut.isPending && sendMut.variables === b.id}
+                        onClick={() => setConfirmSendId(b.id)}
+                        aria-haspopup="dialog"
                       >
                         <Send className="size-3.5 rtl:-scale-x-100" /> إرسال
                       </Button>
@@ -217,6 +282,83 @@ export default function BroadcastPage() {
           ))
         )}
       </div>
+
+      {/* v24-C2 (task 2 / A3-B1): تأكيد الإرسال الجماعي — حجم الجمهور من
+          POST /api/broadcasts/estimate (نفس استعلام التوزيع الفعلي)، معاينة
+          نص الرسالة من GET /api/broadcasts/{id}، تحذير صريح، وزر تأكيد
+          تدميري + إلغاء. لا إرسال جماعي بدون هذه الخطوة. */}
+      <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
+          <DialogDescription>
+            سيُرسل «{confirmData?.detail.name || (confirmSendId !== null ? `بث #${confirmSendId}` : "")}» إلى المشتركين المطابقين عبر الماسنجر.
+          </DialogDescription>
+
+          <div className="space-y-3">
+            {/* حجم الجمهور — العدد الدقيق الذي سيستلم الرسالة */}
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Users className="size-3.5" aria-hidden="true" /> عدد المستلمين المتوقع
+              </span>
+              {confirmLoading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : confirmError ? (
+                <span className="text-xs text-destructive">تعذر تحديد العدد</span>
+              ) : (
+                <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmData?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
+              )}
+            </div>
+
+            {/* معاينة نص الرسالة */}
+            {confirmLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : confirmData?.detail.message_template?.trim() ? (
+              <div className="rounded-lg border border-border/60 bg-background p-3">
+                <p className="text-2xs text-muted-foreground mb-1">معاينة الرسالة</p>
+                <p className="text-sm leading-relaxed line-clamp-3" dir="auto">
+                  {confirmData.detail.message_template}
+                </p>
+              </div>
+            ) : (
+              <p className="flex items-start gap-1.5 text-xs text-warning">
+                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+                هذا البث بلا نص رسالة — تأكد من محتواه قبل الإرسال.
+              </p>
+            )}
+
+            {/* تحذير عدم قابلية التراجع */}
+            <p className="flex items-start gap-2 text-xs text-destructive leading-relaxed" role="alert">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+              تحذير: سيصل البث إلى كل هؤلاء المشتركين دفعة واحدة، ولا يمكن التراجع عن الإرسال بعد بدئه.
+            </p>
+
+            {/* فشل تحميل التفاصيل — إعادة محاولة بلا زر تأكيد أعمى */}
+            {confirmError && (
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="min-w-0 truncate">{(confirmErrorObj as Error)?.message || "تعذر تحميل تفاصيل البث"}</span>
+                <Button size="sm" variant="outline" onClick={() => refetchConfirm()}>
+                  <RefreshCw className="size-3" /> إعادة المحاولة
+                </Button>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => { if (confirmSendId !== null) sendMut.mutate(confirmSendId) }}
+                disabled={confirmLoading || confirmError || (sendMut.isPending && sendMut.variables === confirmSendId)}
+                loading={sendMut.isPending && sendMut.variables === confirmSendId}
+              >
+                <Send className="size-3.5 rtl:-scale-x-100" /> تأكيد الإرسال
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmSendId(null)}>
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

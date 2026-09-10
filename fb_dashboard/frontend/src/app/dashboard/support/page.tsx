@@ -306,7 +306,10 @@ export default function SupportPage() {
                         aria-checked={form.priority === p}
                         data-priority={p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
-                        className={`h-8 rounded-sm border text-xs font-medium transition-all ${
+                        /* v24-C1: h-11 (44px) touch target — raw radios at h-8
+                            (32px) bypassed the Button min-h-11 guarantee
+                            (A1 S3 family). */
+                        className={`h-11 rounded-sm border text-xs font-medium transition-all ${
                           form.priority === p
                             ? "border-accent-foreground bg-accent-foreground/10 text-accent-foreground"
                             : "border-border/50 text-muted-foreground hover:border-accent-foreground/30"
@@ -334,9 +337,11 @@ export default function SupportPage() {
                     placeholder="صف مشكلتك بالتفصيل…"
                     rows={5}
                     /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                        seam — dir="auto" isolates mixed Arabic/Latin text. */
+                        seam — dir="auto" isolates mixed Arabic/Latin text.
+                        v24-C1: text-base (16px) on mobile — iOS no-zoom
+                        contract (text-sm zoomed the viewport on focus). */
                     dir="auto"
-                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
                     /* v12-E4.4: role="alert" alone carries implicit
@@ -505,9 +510,13 @@ export default function SupportPage() {
                                       placeholder="اكتب رداً…"
                                       aria-label="نص الرسالة"
                                       /* v16-E3 (D1 C3): dir="auto" isolates the mixed
-                                          Arabic/Latin reply being typed. */
+                                          Arabic/Latin reply being typed.
+                                          v24-C1: 44px target + 16px font — iOS
+                                          no-zoom contract (h-9 text-xs was a 36px
+                                          target with a 12px font — the worst
+                                          zoom offender in the app). */
                                       dir="auto"
-                                      className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                      className="flex-1 h-11 text-base md:text-sm rounded-sm border border-input bg-transparent px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     />
                                     <Button
                                       size="sm"

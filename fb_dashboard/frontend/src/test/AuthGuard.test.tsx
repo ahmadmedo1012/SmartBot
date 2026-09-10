@@ -1,5 +1,10 @@
 /**
  * v15-E5 — AuthGuard contract (D4-H1 + guard-level 401).
+ * v24-C3 — updated to the shared-react-query contract: the guard's session
+ * check now runs through the SHARED ["me"] react-query entry
+ * (hooks/useMe.ts — one fetch for the guard + useSubscriptionStatus), so
+ * the render harness wraps the guard in a fresh QueryClientProvider per
+ * test (the app mounts it inside QueryProvider — dashboard/admin layouts).
  *
  * D4-H1 pins THE skip fix: the wizard's «تخطي» used a RAW fetch() with no
  * X-CSRF-Token — app/middleware.py's double-submit layer 403'd every skip
@@ -8,9 +13,11 @@
  * through apiFetch, which echoes the csrf cookie the guard's own /api/me GET
  * planted (this is the exact browser sequence the middleware relies on).
  *
- * Guard-level 401: /api/me 401 → immediate /login?redirect=<pathname>
- * (the guard's own raw-fetch redirect — distinct from apiFetch's global
- * D4-H3 redirect covered in ApiGlobal401.test.ts).
+ * Guard-level 401: /api/me 401 → the query settles into its error state
+ * (react-query retries once per the hook's retry: 1) → the guard's effect
+ * redirects to /login?redirect=<pathname> (distinct from apiFetch's global
+ * D4-H3 redirect covered in ApiGlobal401.test.ts). Children never mount in
+ * the pending/failed states — the authorized gate is unchanged.
  *
  * Mock bundle (house pattern): next/navigation usePathname, the two dynamic
  * wizard/tour imports (mocked so no heavy chunk loads), premium-toast spy,
@@ -19,9 +26,24 @@
  * non-configurable; vi.stubGlobal works — RegisterForm.test.tsx precedent).
  */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import AuthGuard from "@/app/dashboard/AuthGuard"
+
+type GuardProps = Parameters<typeof AuthGuard>[0]
+
+/** v24-C3: fresh client per render (house pattern) — no ['me'] leakage
+ * between tests; retry: false would be overridden by the hook's own
+ * retry: 1, which is exactly the production contract under test. */
+function renderGuard(props: GuardProps) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={qc}>
+      <AuthGuard {...props} />
+    </QueryClientProvider>,
+  )
+}
 
 const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
@@ -125,11 +147,7 @@ describe("AuthGuard happy path (authenticated /api/me)", () => {
     })
     stubLocation()
 
-    render(
-      <AuthGuard>
-        <div>dashboard-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({ children: <div>dashboard-content</div> })
 
     expect(await screen.findByText("dashboard-content")).toBeInTheDocument()
     expect(screen.queryByText("mock-wizard-skip")).toBeNull()
@@ -154,11 +172,7 @@ describe("AuthGuard skip — X-CSRF-Token double-submit (D4-H1)", () => {
     // the jar exactly like the browser would (apiFetch reads document.cookie)
     document.cookie = "csrf_token=tok-skip-123"
 
-    render(
-      <AuthGuard>
-        <div>dashboard-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({ children: <div>dashboard-content</div> })
 
     const skip = await screen.findByRole("button", { name: "mock-wizard-skip" })
     fireEvent.click(skip)
@@ -189,11 +203,7 @@ describe("AuthGuard skip — X-CSRF-Token double-submit (D4-H1)", () => {
     stubLocation()
     document.cookie = "csrf_token=tok-skip-123"
 
-    render(
-      <AuthGuard>
-        <div>dashboard-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({ children: <div>dashboard-content</div> })
 
     fireEvent.click(await screen.findByRole("button", { name: "mock-wizard-skip" }))
 
@@ -214,13 +224,11 @@ describe("AuthGuard guard-level 401 (session expired on load)", () => {
     })
     stubLocation()
 
-    render(
-      <AuthGuard>
-        <div>dashboard-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({ children: <div>dashboard-content</div> })
 
-    // the guard retries once (~500ms) before giving up and redirecting
+    // v24-C3: react-query retries the failed /api/me once (the hook's
+    // retry: 1 — the same one-retry contract as the old raw-fetch guard)
+    // before the error state settles and the guard's effect redirects.
     await waitFor(
       () => {
         expect(mocks.href).toBe("/login?redirect=%2Fdashboard%2Fmessages")
@@ -244,11 +252,11 @@ describe("AuthGuard requirePlatformAdmin (v22-D6 — /admin shell gate)", () => 
     })
     stubLocation()
 
-    render(
-      <AuthGuard requiredRole="admin" requirePlatformAdmin>
-        <div>admin-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({
+      children: <div>admin-content</div>,
+      requiredRole: "admin",
+      requirePlatformAdmin: true,
+    })
 
     expect(await screen.findByText("admin-content")).toBeInTheDocument()
     expect(mocks.navReplace).not.toHaveBeenCalled()
@@ -267,11 +275,11 @@ describe("AuthGuard requirePlatformAdmin (v22-D6 — /admin shell gate)", () => 
     })
     stubLocation()
 
-    render(
-      <AuthGuard requiredRole="admin" requirePlatformAdmin>
-        <div>admin-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({
+      children: <div>admin-content</div>,
+      requiredRole: "admin",
+      requirePlatformAdmin: true,
+    })
 
     await waitFor(() => {
       expect(mocks.navReplace).toHaveBeenCalledWith("/dashboard")
@@ -298,11 +306,11 @@ describe("AuthGuard requirePlatformAdmin (v22-D6 — /admin shell gate)", () => 
     })
     stubLocation()
 
-    render(
-      <AuthGuard requiredRole="admin" requirePlatformAdmin>
-        <div>admin-content</div>
-      </AuthGuard>,
-    )
+    renderGuard({
+      children: <div>admin-content</div>,
+      requiredRole: "admin",
+      requirePlatformAdmin: true,
+    })
 
     await waitFor(() => {
       expect(mocks.navReplace).toHaveBeenCalledWith("/dashboard")

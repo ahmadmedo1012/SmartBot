@@ -198,38 +198,48 @@ export default function TeamPage() {
           <div className="space-y-3" role="list">
             {members.map((m) => (
               <Card key={m.id} role="listitem">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground shrink-0">
-                    {(m.username?.[0] || "?").toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{m.username}</p>
-                    {/* v15-E6 (D5-M7): emails are live Latin values —
-                        dir="auto" isolates bidi (leads:64 pattern). */}
-                    <p className="text-xs text-muted-foreground" dir="auto">{m.email || ""}</p>
+                {/* v24-C1 (A1 P1): stacked card on mobile — row 1 = avatar +
+                    truncated name/email, row 2 = role select + confirm/cancel
+                    actions that wrap. The old single row needed ~352px vs
+                    ~295px of card content, clipping the destructive confirm. */}
+                <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground shrink-0">
+                      {(m.username?.[0] || "?").toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{m.username}</p>
+                      {/* v15-E6 (D5-M7): emails are live Latin values —
+                          dir="auto" isolates bidi (leads:64 pattern).
+                          v24-C1: truncate — long Latin usernames/emails used
+                          to widen the row past the card at 375px. */}
+                      <p className="text-xs text-muted-foreground truncate" dir="auto">{m.email || ""}</p>
+                    </div>
                   </div>
                   {m.role === "owner" ? (
                     /* v17-E-F8 (D6-5): المالك بلا تحكم — «owner» ليس دورًا
                         صالحًا في PUT (400) وحذف المالك مدمر؛ الدور يظهر
                         كشارة فقط. */
-                    <div className="flex items-center gap-1 text-xs shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 text-xs justify-end sm:shrink-0">
                       {roleIcon(m.role)}
                       <span>{ROLE_LABELS[m.role] || "مستخدم"}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 justify-end sm:shrink-0">
                       <div className="flex items-center gap-1 text-xs">
                         {roleIcon(m.role)}
                       </div>
                       {/* تغيير الدور — select صريح؛ PUT فوري على التغيير
                           (القيمة المعروضة = دور العضو الحالي، والإلغاء
-                          بإغلاق الselect دون تغيير). */}
+                          بإغلاق الselect دون تغيير).
+                          v24-C1: 44px target + 16px font — iOS no-zoom
+                          contract (matches the form select at page.tsx:152). */}
                       <select
                         value={m.role || "viewer"}
                         onChange={e => changeRole.mutate({ id: m.id, role: e.target.value })}
                         disabled={changeRole.isPending && changeRole.variables?.id === m.id}
                         aria-label={`دور العضو ${m.username}`}
-                        className="h-8 text-xs rounded-lg border border-input/60 bg-background px-2 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                        className="h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       >
                         {ASSIGNABLE_ROLES.map(r => (
                           <option key={r} value={r}>{ROLE_LABELS[r]}</option>

@@ -83,9 +83,13 @@ interface SequenceDetail extends SequenceRow {
   steps: SequenceStepRow[]
 }
 
-/** صف القائمة بعد إثرائها بعدد الخطوات (تفصيل متوازٍ — العقد لا يعده). */
+/** صف القائمة بعد إثرائها بعدد الخطوات (تفصيل متوازٍ — العقد لا يعده).
+ *  v24-C1: step_count/steps are now optional + tolerant — if the backend
+ *  later ships step_count (or inline steps) directly on the list rows, the
+ *  render falls back to them instead of showing «—» (see stepCountOf). */
 interface SequenceCardRow extends SequenceRow {
-  step_count: number // -1 = تعذّر جلب التفاصيل → «—»
+  step_count?: number // -1 = تعذّر جلب التفاصيل → «—»
+  steps?: SequenceStepRow[]
 }
 
 /* ── ثوابت العرض ───────────────────────────────────────────────────────── */
@@ -110,6 +114,14 @@ function delayLabel(days: number, hours: number): string {
   const d = days ? countPhrase(days, "يوم", "يومين", "أيام") : ""
   const h = hours ? countPhrase(hours, "ساعة", "ساعتين", "ساعات") : ""
   return d && h ? `${d} و${h}` : d || h
+}
+
+/* v24-C1: tolerant step-count read for the list cards — the enrichment
+ * (parallel detail fetch) owns step_count today (-1 = fetch failed → «—»),
+ * but the list contract may later ship step_count or inline steps straight
+ * from the backend; fall back instead of rendering «—» for a healthy row. */
+function stepCountOf(s: SequenceCardRow): number {
+  return s.step_count ?? s.steps?.length ?? 0
 }
 
 /* ── محرر الحملة (إنشاء/تحرير + محرر الخطوات + الجمهور) ────────────────── */
@@ -676,7 +688,13 @@ export default function SequencesPage() {
               {sequences.map((s) => (
                 <Card key={s.id}>
                   <CardContent className="p-4 space-y-2.5">
-                    <div className="flex items-center justify-between gap-3">
+                    {/* v24-C1 (A1 P1): stacked on mobile — the actions cluster
+                        (edit + pause/activate + confirm-delete pair) needed
+                        ~368px vs ~295px of card content; shrink-0 on the
+                        cluster blocked flex-wrap from ever engaging, clipping
+                        the destructive confirm at 375px. Actions now stack
+                        under the meta on mobile and wrap within the row ≥sm. */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold truncate">{s.name || `حملة #${s.id}`}</p>
@@ -688,8 +706,10 @@ export default function SequencesPage() {
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{s.description}</p>
                         )}
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {s.step_count >= 0
-                            ? countPhrase(s.step_count, "خطوة", "خطوتين", "خطوات")
+                          {/* v24-C1: tolerant step count (stepCountOf above) —
+                              -1 (detail fetch failed) still renders «—». */}
+                          {stepCountOf(s) >= 0
+                            ? countPhrase(stepCountOf(s), "خطوة", "خطوتين", "خطوات")
                             : "—"}{" "}
                           · {countPhrase(s.subscriber_count ?? 0, "مشترك نشط", "مشتركان نشطان", "مشتركين نشطين")} ·
                           أُرسلت {countPhrase(s.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}
@@ -699,7 +719,9 @@ export default function SequencesPage() {
                           {formatDateOnly(s.updated_at) || "—"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                      {/* v24-C1: shrink-0 dropped so the wrap above can engage
+                          on narrow rows; actions stay end-aligned in RTL. */}
+                      <div className="flex flex-wrap items-center gap-1.5 justify-end">
                         <Button
                           size="sm"
                           variant="outline"

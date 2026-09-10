@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 /* v17-E-F4 (D3 #1): success unified on CheckCircle2 app-wide (the payment
    journey — toast → admin approval — renders ONE success glyph). */
@@ -50,6 +51,7 @@ const statusConfig: Record<string, { label: string; variant: "warning" | "succes
 }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [role, setRole] = useState<string | null>(null)
   // v10-B4 (G2-02): platform admin = tenant_id 0 — gates the cron card
   const [tenantId, setTenantId] = useState<number | null>(null)
@@ -132,7 +134,9 @@ export default function AdminPage() {
           <AlertTriangle className="size-16 text-destructive mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">غير مصرح</h1>
           <p className="text-muted-foreground mb-6">هذه الصفحة مخصصة للمشرفين فقط. ليس لديك صلاحيات كافية للوصول.</p>
-          <Button onClick={() => window.location.href = "/dashboard"}>العودة للوحة التحكم</Button>
+          {/* v24-C3 (A2 #8): العودة للوحة التحكم كانت window.location.href —
+              إعادة تحميل كاملة؛ router.push يبقيها انتقال SPA. */}
+          <Button onClick={() => router.push("/dashboard")}>العودة للوحة التحكم</Button>
         </div>
       </SectionContainer>
     )

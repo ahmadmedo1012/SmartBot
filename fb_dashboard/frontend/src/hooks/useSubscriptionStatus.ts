@@ -1,11 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
-import { usePathname } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
-import { apiFetch } from "@/lib/csrf-client"
-import { unwrapApi } from "@/lib/api"
-import type { ApiUser } from "@/lib/types"
+import { useMe } from "./useMe"
 
 /* v19 Step 1 — the ONE central subscription-status source (frontend half).
  *
@@ -16,17 +11,15 @@ import type { ApiUser } from "@/lib/types"
  * tenants. The backend half (_subscription.py + /api/me snapshot fields)
  * feeds this hook; the hook feeds the shell.
  *
- * Design (useConfig.ts conventions + the react-query ["me"] cache the
- * billing page already owns — one cache, one truth):
- *  - queryKey ["me"]: shared with billing/page.tsx — no duplicate requests,
- *    both consumers invalidate together on refetch.
- *  - staleTime 0 + refetchOnMount "always": EVERY mount re-reads the
- *    server truth (the plan's «بلا أي كاش قديم» — correctness must not
- *    depend on a live SSE channel that background tabs may silently kill;
- *    any later page load sees the real status).
- *  - pathname effect: AuthGuard refetches /api/me per route change; this
- *    mirrors it so a mid-session admin approval flips the sidebar CTA
- *    without a full reload.
+ * v24-C3 (A2 Q1/Q4 — de-dupe /api/me): this hook no longer owns a fetch.
+ * It now derives from the SHARED ["me"] query (hooks/useMe.ts) — the exact
+ * same cache entry AuthGuard gates on — so one /api/me serves the guard,
+ * this CTA gate and billing. The v19 "fresh on every mount" trio
+ * (staleTime 0 + refetchOnMount "always" + the pathname-keyed refetch()
+ * effect) is gone: it doubled /api/me traffic per navigation (A2 Q1) and
+ * re-rendered the shell on every tap. Freshness is now the shared entry's
+ * 60s refetchInterval + 5-minute staleTime (see useMe.ts) — a mid-session
+ * admin approval still flips the sidebar CTA within a minute.
  */
 export interface SubscriptionStatus {
   /** Tenant plan name ("free" | "basic" | …) — /api/me user.subscriptionStatus. */
@@ -40,26 +33,8 @@ export interface SubscriptionStatus {
 }
 
 export function useSubscriptionStatus(): SubscriptionStatus {
-  const pathname = usePathname()
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      const res = await apiFetch("/api/me")
-      if (!res.ok) throw new Error(`فشل تحميل الحساب (${res.status})`)
-      return unwrapApi<{ user: ApiUser }>(res)
-    },
-    // v19: fresh on every mount — the whole point of the fix (no stale cache)
-    staleTime: 0,
-    refetchOnMount: "always",
-    retry: 1,
-  })
-
-  useEffect(() => {
-    if (pathname) void refetch()
-    // refetch identity is stable in react-query v5; pathname drives re-runs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
-
+  // v24-C3: same ["me"] cache entry as AuthGuard/billing — zero extra RTTs.
+  const { data, isLoading } = useMe()
   const user = data?.user
   return {
     plan: user?.subscriptionStatus ?? "free",

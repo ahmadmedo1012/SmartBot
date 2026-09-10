@@ -63,13 +63,15 @@ export function TelegramConfigSection({
                   a new one to replace it. */}
               <Input id="tg-bot-token" type={showToken ? "text" : "password"} value={config.botToken}
                 onChange={(e) => onConfigChange({ ...config, botToken: e.target.value })}
-                placeholder={config.botTokenMasked ? "الرمز محفوظ — أدخل رمزاً جديداً لاستبداله" : "123456789:ABCdefGHIjklmNOPqrstUVwxyz"} className="h-11 rounded-xl text-left pl-10" dir="ltr" />
+                placeholder={config.botTokenMasked ? "الرمز محفوظ — أدخل رمزاً جديداً لاستبداله" : "123456789:ABCdefGHIjklmNOPqrstUVwxyz"} className="h-11 rounded-xl text-left pl-14" dir="ltr" />
+              {/* v24-C1: size-11 (44px) touch target (A1 S3) — pl-14 on the
+                  input clears the wider button inside this LTR island. */}
               <button type="button" onClick={onToggleShowToken}
                 /* v14-E4 (D4 H-06, WCAG 2.5.8 AA 24×24): was a bare absolute
                    icon wrapper ≈16×16px — below the minimum target size.
-                   size-7 (28px) + rounded-md, the exact reveal-toggle recipe
-                   from login:202-203 / register:202-204. */
-                className="absolute end-3 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-90"
+                   rounded-md, the exact reveal-toggle recipe from the login
+                   and register password fields. */
+                className="absolute end-3 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-90"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>
                 {/* v17-E-B2 (D2 §3.3#7): Eye↔EyeOff crossfade instead of the
                     instant swap — the tt-icon recipe (globals.css:507-512)

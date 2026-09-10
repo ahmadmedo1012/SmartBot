@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 /**
  * v6 §B — WCAG contrast measurement, MEASURED not assumed.
- * Parses src/app/globals.css tokens (oklch) for :root (dark, default) and
- * .light, converts oklch -> linear sRGB -> gamma sRGB, alpha-composites
+ * Parses src/app/globals.css tokens (oklch + hex) for :root (dark, default)
+ * and .light, converts oklch -> linear sRGB -> gamma sRGB, alpha-composites
  * translucent tokens over their actual backgrounds, then computes WCAG 2.1
  * contrast ratios for every core text/background pair.
  *
  * AA: >= 4.5:1 normal text, >= 3:1 large text (>=18pt / 14pt bold).
- * Exit 1 if any core pair fails AA.
- * Run: node scripts/check_contrast.mjs   (cwd = fb_dashboard/frontend)
+ * WCAG 1.4.11 non-text (field borders): >= 3:1 — per-pair minimums (5th
+ * tuple element, default 4.5) since v24-C6.
+ * v24-C6 pins (the 4 pairs the B4 a11y audit caught failing): light-mode
+ * --input vs card/background (1.4.11), espresso text on both flame-gradient
+ * ends (ember + saffron, 1.4.3), and the landing badge composite
+ * (accent-foreground over its own 10% tint, 1.4.3). .light inherits :root
+ * tokens it does not override (CSS cascade) — mirrored by merging the maps.
+ * Exit 1 if any pair fails its minimum.
+ * Run: node ../../scripts/check_contrast.mjs   (cwd = fb_dashboard/frontend)
  */
 import { readFileSync } from "fs";
 
@@ -58,20 +65,30 @@ function parseBlock(selector) {
   for (const m of body.matchAll(/--([\w-]+):\s*oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\s*\)/g)) {
     tokens[m[1]] = { L: +m[2], C: +m[3], h: +m[4], a: m[5] === undefined ? 1 : +m[5] };
   }
+  // v24-C6: hex tokens (e.g. --c-espresso #1a130b) — parsed so the flame
+  // gradient's text token can be contrast-checked like every other pair.
+  for (const m of body.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+    tokens[m[1]] = { hex: m[2] };
+  }
   return tokens;
 }
 const dark = parseBlock(":root");
 const light = parseBlock(".light");
+// CSS cascade: .light overrides only what it redefines; everything else
+// (espresso, saffron's :root value if elided, …) inherits from :root.
+const lightAll = { ...dark, ...light };
 
 // resolve token -> sRGB triple (composited over a base when translucent)
 function resolve(tokens, name, baseName) {
   const t = tokens[name];
   if (!t) throw new Error("missing token --" + name);
-  let rgb = oklchToSrgb(t.L, t.C, t.h);
+  let rgb = t.hex
+    ? [0, 2, 4].map((i) => parseInt(t.hex.slice(1 + i, 3 + i), 16) / 255)
+    : oklchToSrgb(t.L, t.C, t.h);
   if (t.a < 1) {
     const base = tokens[baseName];
     if (!base) throw new Error("--" + name + " is translucent but no base given");
-    rgb = over(rgb, t.a, oklchToSrgb(base.L, base.C, base.h));
+    rgb = over(rgb, t.a, resolve(tokens, baseName, null));
   }
   return rgb;
 }
@@ -79,6 +96,7 @@ function resolve(tokens, name, baseName) {
 // ── the measured pairs (the plan's list + the pairs the app really renders) ──
 const PAIRS = [
   // [label, fg token, bg token, bgBase(for translucent bg), minAA]
+  // minAA: 4.5 (default, text AA) · 3.0 (WCAG 1.4.11 non-text, field borders)
   ["foreground / background", "foreground", "background", null],
   ["foreground / card", "foreground", "card", null],
   ["muted-foreground / background", "muted-foreground", "background", null],
@@ -93,19 +111,34 @@ const PAIRS = [
   ["warning / card", "warning", "card", null],
   ["info / card", "info", "card", null],
   ["destructive / card", "destructive", "card", null],
+  // ── v24-C6 pins — the 4 pairs the B4 a11y audit caught failing. Tokens only:
+  // the components (button flame variant, PlanSelector badge, StepIndicator
+  // node, landing metric badge) must keep using these tokens at FULL text
+  // opacity (a /90 text opacity over the /10 tint re-breaks 1.4.3). ──
+  // 1) field borders vs their real adjacent surfaces (light fields are
+  //    bg-transparent → card + background; dark pins the v10-I3 raise too).
+  ["input border / card (1.4.11 non-text)", "input", "card", null, 3.0],
+  ["input border / background (1.4.11 non-text)", "input", "background", null, 3.0],
+  // 2) espresso text on BOTH ends of the flame gradient (the whole ramp is
+  //    monotonic in luminance, so end-pins cover every mid-stop).
+  ["espresso / ember (flame gradient, 1.4.3)", "c-espresso", "c-ember", null, 4.5],
+  ["espresso / saffron (flame gradient, 1.4.3)", "c-espresso", "c-saffron", null, 4.5],
+  // 3) landing metric badge: full accent-foreground over its own 10% tint.
+  ["accent-foreground / badge-tint10-over-card (1.4.3)", "accent-foreground", "__tint10", "card", 4.5],
 ];
 
 let failures = 0;
-for (const [mode, tokens] of [["DARK (:root)", dark], ["LIGHT (.light)", light]]) {
+for (const [mode, tokens] of [["DARK (:root)", dark], ["LIGHT (.light)", lightAll]]) {
   console.log(`\n══ ${mode} ══`);
-  for (const [label, fgTok, bgTok, baseTok] of PAIRS) {
+  for (const [label, fgTok, bgTok, baseTok, min = 4.5] of PAIRS) {
     let fg, bg;
     try {
       fg = resolve(tokens, fgTok, null);
-      if (bgTok === "__tint15") {
-        // the badge/nav real pattern: bg-accent-foreground/15 over card
+      if (bgTok === "__tint15" || bgTok === "__tint10") {
+        // the badge/nav real pattern: bg-accent-foreground/15 (or /10) over card
         const t = tokens[fgTok];
-        bg = over(oklchToSrgb(t.L, t.C, t.h), 0.15, resolve(tokens, baseTok, null));
+        const alpha = bgTok === "__tint15" ? 0.15 : 0.1;
+        bg = over(oklchToSrgb(t.L, t.C, t.h), alpha, resolve(tokens, baseTok, null));
       } else {
         bg = resolve(tokens, bgTok, baseTok);
       }
@@ -114,14 +147,14 @@ for (const [mode, tokens] of [["DARK (:root)", dark], ["LIGHT (.light)", light]]
       continue;
     }
     const ratio = contrast(fg, bg);
-    const ok = ratio >= 4.5 ? "AA ✓" : ratio >= 3 ? "LARGE-ONLY ⚠" : "FAIL ✗";
-    if (ratio < 4.5) failures++;
+    const ok = ratio >= min ? "AA ✓" : ratio >= 3 ? "LARGE-ONLY ⚠" : "FAIL ✗";
+    if (ratio < min) failures++;
     console.log(`  ${ok}  ${ratio.toFixed(2)}:1  ${label}   [fg ${hex(fg)} on ${hex(bg)}]`);
   }
 }
 console.log("");
 if (failures > 0) {
-  console.log(`FAIL contrast gate — ${failures} pair(s) below 4.5:1`);
+  console.log(`FAIL contrast gate — ${failures} pair(s) below their minimum (4.5:1 text / 3:1 non-text)`);
   process.exit(1);
 }
-console.log("PASS contrast gate — every core pair ≥ 4.5:1 (AA, normal text)");
+console.log("PASS contrast gate — every pair ≥ its minimum (4.5:1 text AA · 3:1 WCAG 1.4.11 non-text)");

@@ -12,9 +12,18 @@
  * (.sheet-backdrop/.sheet-panel twins in globals.css) — framer-motion
  * leaves the /demo first-load. The panel stays mounted so the exit
  * transition plays; hidden state is pointer-events-none + tabIndex -1.
+ *
+ * v24-C3 (A2 #2): every nav item is a real <Link> (not a button +
+ * router.push) so App Router prefetches the route's RSC payload while the
+ * link is visible — the always-visible 4 bar items make the hottest
+ * sections effectively instant after the first visit, and the sheet's 23
+ * items prefetch only while the sheet is open (the closed panel is
+ * translate3d'd fully below the viewport, so IntersectionObserver never
+ * marks it visible). Styling/ARIA/focus-trap contracts are unchanged.
  */
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, MessageCircle, BarChart3, Bell, Menu, X, LogOut } from "lucide-react"
 import { defaultNavSections, type NavItem } from "./AdminSidebar"
@@ -38,7 +47,14 @@ export function MobileBottomNav({
   onNavigate,
   onLogout,
 }: {
-  onNavigate: (href: string) => void
+  /* v24-C3 (A2 #2 — Link prefetch): nav items are real <Link>s now (App
+   * Router prefetches the RSC payload when the link enters the viewport →
+   * tapping a bar/sheet section skips the cold route fetch entirely).
+   * onNavigate is OPTIONAL and only used as an INTERCEPTOR: when a host
+   * passes it (the /demo tab switcher), the click is prevented and handed
+   * to the host; the real dashboard shell passes nothing → native Link
+   * navigation. Logout stays the only programmatic action (onLogout). */
+  onNavigate?: (href: string) => void
   onLogout: () => void
 }) {
   const pathname = usePathname()
@@ -82,10 +98,16 @@ export function MobileBottomNav({
     return () => panel.removeEventListener("keydown", handleKeyDown)
   }, [sheetOpen])
 
-  const go = (href: string | undefined) => {
-    if (!href) return
+  /* v24-C3: Link click contract — always close the sheet; when a host
+   * passed the onNavigate interceptor (demo tab switch), preventDefault and
+   * delegate so the URL never changes; otherwise let <Link> navigate (with
+   * the prefetch its viewport visibility already warmed up). */
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string | undefined) => {
     setSheetOpen(false)
-    onNavigate(href)
+    if (onNavigate && href) {
+      e.preventDefault()
+      onNavigate(href)
+    }
   }
 
   return (
@@ -141,10 +163,14 @@ export function MobileBottomNav({
                 {section.items.map((item) => {
                   const active = isActive(item.href, pathname)
                   return (
-                    <button
+                    <Link
                       key={item.label}
-                      type="button"
-                      onClick={() => go(item.href)}
+                      href={item.href ?? "#"}
+                      onClick={(e) => handleLinkClick(e, item.href)}
+                      /* v24-C3: prefetch only in native-Link mode — when a host
+                       * intercepts clicks (demo tab switch), the href is never
+                       * actually navigated, so prefetching it is pure waste. */
+                      prefetch={onNavigate ? false : undefined}
                       tabIndex={sheetOpen ? 0 : -1}
                       className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[color,background-color,border-color,transform] ${
                         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
@@ -152,7 +178,7 @@ export function MobileBottomNav({
                     >
                       <item.icon className="size-5" />
                       <span className="leading-tight text-center">{item.label}</span>
-                    </button>
+                    </Link>
                   )
                 })}
               </div>
@@ -185,10 +211,14 @@ export function MobileBottomNav({
           {BAR_ITEMS.map((item) => {
             const active = isActive(item.href, pathname)
             return (
-              <button
+              <Link
                 key={item.label}
-                type="button"
-                onClick={() => go(item.href)}
+                href={item.href ?? "#"}
+                onClick={(e) => handleLinkClick(e, item.href)}
+                /* v24-C3: prefetch only in native-Link mode — when a host
+                 * intercepts clicks (demo tab switch), the href is never
+                 * actually navigated, so prefetching it is pure waste. */
+                prefetch={onNavigate ? false : undefined}
                 aria-current={active ? "page" : undefined}
                 className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
                   active ? "text-accent-foreground" : "text-muted-foreground"
@@ -197,7 +227,7 @@ export function MobileBottomNav({
                 <item.icon className="size-5" />
                 <span>{item.label}</span>
                 {active && <span className="h-0.5 w-6 rounded-full bg-primary mt-0.5" />}
-              </button>
+              </Link>
             )
           })}
           <button

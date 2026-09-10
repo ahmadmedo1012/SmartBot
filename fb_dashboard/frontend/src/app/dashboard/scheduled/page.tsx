@@ -100,11 +100,16 @@ export default function ScheduledPage() {
               placeholder="محتوى المنشور…"
               aria-label="نص المنشور"
               /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                  seam — dir="auto" isolates mixed Arabic/Latin post text. */
+                  seam — dir="auto" isolates mixed Arabic/Latin post text.
+                  v24-C1: text-base (16px) on mobile — iOS no-zoom contract
+                  (text-sm forced the ~1.14× viewport zoom on every focus). */
               dir="auto"
-              className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
+              className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
             />
-            <div className="flex gap-3 items-end">
+            {/* v24-C1 (A1 P1): stack on mobile — the datetime input was
+                squeezed to ~160px beside the button (the Arabic loading
+                label widens it); full-width input + button on ≥sm. */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
               <div className="flex-1">
                 <Input
                   type="datetime-local"
@@ -112,13 +117,15 @@ export default function ScheduledPage() {
                   onChange={e => setScheduledAt(e.target.value)}
                   aria-label="وقت النشر"
                   min={minDateTime}
-                  className="text-sm"
+                  /* v24-C1: text-sm override dropped — the shared Input base
+                      already ships text-base md:text-sm (iOS no-zoom). */
                 />
               </div>
               {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ الجدولة…» (mirror:
                   support:341-349 / marketing:218) — disabled-only had no
-                  in-flight affordance. */}
-              <Button onClick={() => createMut.mutate()} disabled={!message.trim() || !scheduledAt || createMut.isPending} loading={createMut.isPending}>
+                  in-flight affordance.
+                  v24-C1: w-full on mobile so the button never clips. */}
+              <Button className="w-full sm:w-auto" onClick={() => createMut.mutate()} disabled={!message.trim() || !scheduledAt || createMut.isPending} loading={createMut.isPending}>
                 <CalendarDays className="size-4" /> {createMut.isPending ? "جارٍ الجدولة…" : "جدولة"}
               </Button>
             </div>

@@ -10,6 +10,7 @@ from _responses import fail, ok
 from database import get_db
 from event_bus import event_bus
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+from models import User
 
 from routers.auth import get_current_user, require_role
 
@@ -18,14 +19,42 @@ router = APIRouter(tags=["ai"])
 
 STATIC_DIR = None
 
+# v24-C4 (H2 — AI cost abuse): /api/ai/suggest + /api/ai/analyze were open to
+# the VIEWER role with no per-user limit — a viewer (or any compromised
+# session) could drive unlimited paid LLM calls; only the global per-IP
+# 30-mutations/60s middleware cap applied. Both fixes follow the house
+# precedents: require_role("editor") (like /api/ai/generate-reply) and the
+# change-password per-user DB-backed limiter (auth.py) — 30/day/user/tenant,
+# env-tunable ops knob like SMARTBOT_MUTATE_RATE_LIMIT. DB-backed (not
+# in-memory) because Vercel runs multiple instances.
+_AI_DAILY_MAX = int(os.getenv("SMARTBOT_AI_DAILY_LIMIT", "30"))
+_AI_DAILY_WINDOW_S = 86400
+
+
+async def _ai_daily_budget(db, current_user: User) -> None:
+    """v24-C4 (H2): raise 429 once the user's daily AI-call budget is spent.
+
+    Keyed per (tenant, user) — NOT per-IP (the abuser here owns the session).
+    Runs BEFORE any provider call so a capped user costs nothing; like the
+    change-password precedent, the limiter commits the request session, which
+    is safe because AI endpoints stage no writes before this point."""
+    from _rate_limit import check_rate_limit
+    if not await check_rate_limit(
+        db, f"ai:{current_user._tenant_id}:{current_user.id}",
+        max_attempts=_AI_DAILY_MAX, window_seconds=_AI_DAILY_WINDOW_S,
+    ):
+        raise HTTPException(
+            429, f"تم الوصول إلى الحد اليومي لطلبات الذكاء الاصطناعي ({_AI_DAILY_MAX}) — حاول غداً")
+
 
 @router.post("/api/ai/suggest")
 async def ai_suggest_replies(
     comment_text: str = Form(...), commenter_name: str = Form(""), page_context: str = Form(""),
-    _=Depends(get_current_user),
+    db=Depends(get_db), current_user: User = Depends(require_role("editor")),
 ):
     """Generate 3 AI-powered reply suggestions for a comment."""
     from _services import get_ai, refresh_ai_from_db
+    await _ai_daily_budget(db, current_user)  # v24-C4 (H2)
     await refresh_ai_from_db()  # v4 §5.20 — keys may come from /admin/settings
     ai = get_ai()
     if not ai.available:
@@ -40,9 +69,11 @@ async def ai_suggest_replies(
 
 
 @router.post("/api/ai/analyze")
-async def ai_analyze_tone(comment_text: str = Form(...), _=Depends(get_current_user)):
+async def ai_analyze_tone(comment_text: str = Form(...), db=Depends(get_db),
+                          current_user: User = Depends(require_role("editor"))):
     """Analyze comment tone, sentiment, urgency."""
     from _services import get_ai, refresh_ai_from_db
+    await _ai_daily_budget(db, current_user)  # v24-C4 (H2)
     await refresh_ai_from_db()  # v4 §5.20 — keys may come from /admin/settings
     ai = get_ai()
     if not ai.available:
@@ -54,7 +85,8 @@ async def ai_analyze_tone(comment_text: str = Form(...), _=Depends(get_current_u
 @router.post("/api/ai/generate-reply")
 async def ai_generate_reply(
     comment_text: str = Form(...), commenter_name: str = Form(""),
-    tone: str = Form(""), keywords: str = Form(""), _=Depends(require_role("editor")),
+    tone: str = Form(""), keywords: str = Form(""), db=Depends(get_db),
+    current_user: User = Depends(require_role("editor")),
 ):
     """Generate one auto-reply with keyword context.
 
@@ -63,6 +95,7 @@ async def ai_generate_reply(
     can't tell why» complaint (403 region / quota / model errors were all
     indistinguishable)."""
     from _services import get_ai, refresh_ai_from_db
+    await _ai_daily_budget(db, current_user)  # v24-C4 (H2): same budget as its siblings
     await refresh_ai_from_db()  # v4 §5.20 — keys may come from /admin/settings
     ai = get_ai()
     if not ai.available:
@@ -76,8 +109,10 @@ async def ai_generate_reply(
 
 
 @router.post("/api/ai/analyze-image")
-async def ai_analyze_image(data: dict = Body(...), _=Depends(require_role("editor"))):
+async def ai_analyze_image(data: dict = Body(...), db=Depends(get_db),
+                           current_user: User = Depends(require_role("editor"))):
     from _services import get_ai, refresh_ai_from_db
+    await _ai_daily_budget(db, current_user)  # v24-C4 (H2): same budget as its siblings
     await refresh_ai_from_db()  # v4 §5.20 — keys may come from /admin/settings
     ai = get_ai()
     if not ai.available:

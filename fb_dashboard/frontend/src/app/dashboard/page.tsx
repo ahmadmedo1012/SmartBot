@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   TrendingUp, Activity, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, MessageCircle,
   Users, Inbox, Bot, Link2, Zap,
@@ -96,6 +97,10 @@ function ChartBars({ data }: { data: Record<string, number> }) {
 
 // ── Not connected ──
 function NotConnectedCard() {
+  /* v24-C3 (A2 #8): the EmptyState CTAs navigated with window.location.href
+   * — a full document+JS reload (~1-2s on 3G) that also threw away the
+   * SPA state and react-query cache. router.push keeps it client-side. */
+  const router = useRouter()
   return (
     <Card className="border-dashed">
       <CardContent className="py-2">
@@ -106,11 +111,11 @@ function NotConnectedCard() {
           action={{
             label: "ربط صفحة فيسبوك",
             icon: Link2,
-            onClick: () => { window.location.href = "/connect" },
+            onClick: () => { router.push("/connect") },
           }}
           secondaryAction={{
             label: "إنشاء قاعدة رد أولاً",
-            onClick: () => { window.location.href = "/dashboard/autoreply" },
+            onClick: () => { router.push("/dashboard/autoreply") },
           }}
         />
       </CardContent>
@@ -245,6 +250,8 @@ function BotHealthCard() {
 
 // ── Main Dashboard ──
 export default function DashboardPage() {
+  // v24-C3 (A2 #8): in-app CTA navigation (was window.location.href — see below)
+  const router = useRouter()
   const { data: bundle, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-bundle"],
     queryFn: () => apiFetch("/api/dashboard/bundle").then(unwrapApi<DashboardBundle>),
@@ -414,7 +421,8 @@ export default function DashboardPage() {
                         size="sm"
                         action={{
                           label: "إنشاء قاعدة",
-                          onClick: () => { window.location.href = "/dashboard/autoreply" },
+                          /* v24-C3 (A2 #8): router.push, not a hard reload */
+                          onClick: () => { router.push("/dashboard/autoreply") },
                         }}
                       />
                     )}

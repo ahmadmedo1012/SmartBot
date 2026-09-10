@@ -2,10 +2,11 @@
 # Response contract (Track A): every endpoint returns {"success": bool, "data": ...} via _responses.ok()
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from _responses import ok
 from _services import _track_event, get_publisher_engine, get_tenant_fb_client
+from _utils import utcnow
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException
 from models import ScheduledPost, User
@@ -62,9 +63,24 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
 
     if scheduled_at:
         try:
-            sched = datetime.fromisoformat(scheduled_at)
+            # v24-C4 (H1): normalize like the sibling route
+            # (scheduled_posts_routes.py:64-73 / _parse_fb_time) — a
+            # Z-suffixed or offset ISO string parsed into a TZ-AWARE datetime
+            # was stored into the NAIVE-UTC scheduled_at column: SQLite tests
+            # pass, Neon/asyncpg REFUSES the aware bind (DataError) at commit
+            # → every scheduled multi-platform post write failed in prod
+            # (the exact v21 live bug class).
+            sched = datetime.fromisoformat(
+                scheduled_at.replace("Z", "+00:00").replace("+0000", "+00:00")
+            )
         except ValueError:
             raise HTTPException(400, "صيغة التاريخ غير صالحة — استخدم ISO 8601") from None
+        if sched.tzinfo is not None:
+            sched = sched.astimezone(UTC).replace(tzinfo=None)
+        # v24-C4 (H1): reject past dates like the sibling — this route also
+        # accepted them, silently queueing an instantly-overdue post.
+        if sched <= utcnow():
+            raise HTTPException(400, "لا يمكن جدولة منشور في الماضي — اختر وقتاً مستقبلياً")
         post = ScheduledPost(
             message=message, image_url=image_url, platform=platform,
             scheduled_at=sched, status="scheduled",

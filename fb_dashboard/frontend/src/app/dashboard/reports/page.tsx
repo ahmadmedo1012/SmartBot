@@ -187,12 +187,17 @@ export default function ReportsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {/* v24-C1 (A1 P0): the controls group now wraps internally —
+                      selects go flex-1 min-w-0 and the download button takes
+                      its own full-width row on mobile. The old single-line
+                      group needed ~380px vs ~295px of card content, clipping
+                      the primary PDF download at 375px. */}
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <select
                       value={reportType}
                       onChange={e => setReportType(e.target.value)}
                       aria-label="نوع التقرير"
-                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
+                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 flex-1 min-w-0 sm:flex-none"
                     >
                       {REPORT_TYPES.map(t => (
                         <option key={t.key} value={t.key}>{t.label}</option>
@@ -202,7 +207,7 @@ export default function ReportsPage() {
                       value={reportDays}
                       onChange={e => setReportDays(Number(e.target.value))}
                       aria-label="مدة التقرير"
-                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
+                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 flex-1 min-w-0 sm:flex-none"
                     >
                       {REPORT_PERIODS.map(p => (
                         <option key={p.days} value={p.days}>{p.label}</option>
@@ -213,7 +218,7 @@ export default function ReportsPage() {
                       loading={downloadMut.isPending}
                       disabled={!pdfAvailable || downloadMut.isPending}
                       onClick={() => downloadMut.mutate()}
-                      className="shrink-0"
+                      className="w-full sm:w-auto shrink-0"
                     >
                       <Download className="size-3.5" /> {downloadMut.isPending ? "جارٍ التوليد…" : "تنزيل تقرير PDF"}
                     </Button>

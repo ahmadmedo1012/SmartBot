@@ -748,6 +748,26 @@ class ReplyPipeline:
                     # was a GLOBAL fb_user_id lookup, so the first tenant that
                     # saw a Facebook user "owned" the CRM row forever and every
                     # other tenant's pipeline updated (and read) it.
+                    #
+                    # v24-C4 (P0 — session poisoning): the old plain
+                    # check-then-insert raced on uq_customer_tenant_fbuser
+                    # (webhook + background cycle replying to the SAME new
+                    # commenter): the loser's IntegrityError was swallowed by
+                    # the broad except below WITHOUT a rollback → the shared
+                    # cycle session stayed in PendingRollback → every LATER
+                    # comment failed in stage 9 ("DB log failed") → replies
+                    # silently lost for the rest of the cycle. The insert now
+                    # flushes inside a SAVEPOINT (the credit_wallet /
+                    # _get_or_create_conversation pattern): the loser re-reads
+                    # the winner's row and updates it, and the session is
+                    # never left dirty.
+                    def _crm_touch(c: Customer) -> None:
+                        c.total_interactions = (c.total_interactions or 0) + 1
+                        c.last_intent = intent
+                        c.last_contacted_at = utcnow()
+                        if c.stage == "lead" and intent in ("price_inquiry", "subscription"):
+                            c.stage = "prospect"
+
                     existing = await session.execute(
                         select(Customer).where(
                             Customer.fb_user_id == ctx.from_id,
@@ -755,21 +775,40 @@ class ReplyPipeline:
                         )
                     )
                     c = existing.scalar_one_or_none()
-                    if c:
-                        c.total_interactions = (c.total_interactions or 0) + 1
-                        c.last_intent = intent
-                        c.last_contacted_at = utcnow()
-                        if c.stage == "lead" and intent in ("price_inquiry", "subscription"):
-                            c.stage = "prospect"
+                    if c is not None:
+                        _crm_touch(c)
                     else:
-                        c = Customer(
-                            fb_user_id=ctx.from_id, name=ctx.from_name,
-                            source="facebook", stage="lead", tenant_id=self._tenant_id,
-                            last_intent=intent, total_interactions=1,
-                        )
-                        session.add(c)
+                        try:
+                            async with session.begin_nested():
+                                session.add(Customer(
+                                    fb_user_id=ctx.from_id, name=ctx.from_name,
+                                    source="facebook", stage="lead",
+                                    tenant_id=self._tenant_id,
+                                    last_intent=intent, total_interactions=1,
+                                ))
+                                await session.flush()
+                        except IntegrityError:
+                            # the concurrent creator won the unique constraint —
+                            # heal onto its row (same recovery as the usage
+                            # counter / conversation upsert races)
+                            winner = await session.execute(
+                                select(Customer).where(
+                                    Customer.fb_user_id == ctx.from_id,
+                                    Customer.tenant_id == self._tenant_id,
+                                )
+                            )
+                            c = winner.scalar_one_or_none()
+                            if c is None:
+                                raise  # constraint fired but no row? real error
+                            _crm_touch(c)
                     await session.commit()
                 except Exception as e:
+                    # v24-C4 (P0): NEVER leave the shared cycle session dirty —
+                    # roll back before moving on so later comments still write.
+                    try:
+                        await session.rollback()
+                    except Exception:
+                        pass
                     self._mon.warn(f"CRM update failed: {e}", module="pipeline")
         except Exception as e:
             self._mon.warn(f"context update failed: {e}", module="pipeline")

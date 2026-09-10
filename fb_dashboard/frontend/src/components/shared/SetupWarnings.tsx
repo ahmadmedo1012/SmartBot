@@ -134,7 +134,10 @@ export function SetupWarnings() {
           type="button"
           onClick={dismiss}
           aria-label="إخفاء التنبيهات لهذه الجلسة"
-          className="size-7 shrink-0 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+          /* v24-C1: size-11 (44px) touch target — size-7 (28px) was the
+             most-seen sub-44px target in the app (this banner sits at the
+             top of every dashboard page). aria-label preserved. */
+          className="size-11 shrink-0 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
         >
           <X className="size-3.5" />
         </button>

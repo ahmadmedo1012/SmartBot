@@ -3,9 +3,9 @@
 import { useEffect, useState, useRef } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { unwrapApi } from "@/lib/api"
 import { apiFetch } from "@/lib/csrf-client"
 import { premiumToast } from "@/lib/premium-toast"
+import { useMe } from "@/hooks/useMe"
 
 /* v9-E5: react-joyride (~116KB) was statically imported here → it landed in
  * EVERY dashboard route bundle (26 routes) even though the tour only runs
@@ -43,82 +43,71 @@ export default function AuthGuard({
    * out of a shell whose pages all 403 for them anyway. */
   requirePlatformAdmin?: boolean
 }) {
-  const [authorized, setAuthorized] = useState(false)
-  const [userData, setUserData] = useState<Record<string, unknown> | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
   // Plan §5.2: interactive dashboard tour (react-joyride) right after the wizard
   const [showTour, setShowTour] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const attempts = useRef(0)
   const onboardingChecked = useRef(false)
 
+  /* v24-C3 (A2 #1 — un-block the auth gate + de-dupe /api/me): the guard's
+   * session check now runs through the SHARED react-query ["me"] entry
+   * (hooks/useMe.ts) instead of a raw fetch + local state re-fired on every
+   * pathname change. One /api/me now serves the guard AND the sidebar CTA
+   * (useSubscriptionStatus) AND billing; within the 5-minute staleTime an
+   * in-shell navigation renders children from cache with zero extra
+   * round-trips (the old per-tap serial waterfall: spinner → /api/me →
+   * children → page query). The gate semantics are unchanged: children only
+   * mount once a real (cached or freshly fetched) user passed the role
+   * checks; 401/network failure still lands on /login?redirect=<pathname>.
+   * Transient failures retry exactly once (react-query retry: 1). */
+  const { data, isLoading, isError } = useMe()
+  const user = data?.user
+
   useEffect(() => {
-    const ctrl = new AbortController()
-    let retryTimer: ReturnType<typeof setTimeout> | null = null
-
-    const check = () => {
-      if (ctrl.signal.aborted) return
-      const timer = setTimeout(() => {
-        if (!ctrl.signal.aborted) ctrl.abort()
-      }, 5000)
-
-      fetch("/api/me", { signal: ctrl.signal })
-        .then((r) => {
-          clearTimeout(timer)
-          if (!r.ok) throw new Error(r.statusText)
-          return unwrapApi(r)
-        })
-        .then((d): void => {
-          // unwrapApi already returned the payload: {user: {...}}
-          // reaching here means 200 OK — i.e. authenticated
-          const user = d?.user
-          if (!user) {
-            return void (window.location.href = "/login")
-          }
-          const role = user.role
-          if (requiredRole && role !== requiredRole) {
-            return void (window.location.href = "/dashboard")
-          }
-          // v22-D6: soft redirect (router.replace) so the toast survives the
-          // layout swap — sonner's state is global and the dashboard layout's
-          // AppToaster re-renders it after the navigation. A hard
-          // window.location reload would kill the toast before paint.
-          if (requirePlatformAdmin && user.is_platform_admin !== true) {
-            premiumToast(
-              "error",
-              "لوحة الإدارة متاحة لمسؤول المنصة فقط",
-              "تم إعادتك إلى لوحة التحكم — هذه المنطقة تتطلب صلاحيات مسؤول المنصة",
-            )
-            return void router.replace("/dashboard")
-          }
-          setUserData({ ...user, role })
-          // Check onboarding status: show wizard if not completed
-          const completed = user.onboardingCompleted ?? true
-          if (!completed && !onboardingChecked.current) {
-            onboardingChecked.current = true
-            setShowOnboarding(true)
-          }
-          setAuthorized(true)
-        })
-        .catch(() => {
-          if (attempts.current < 1) {
-            attempts.current++
-            retryTimer = setTimeout(check, 500)
-          } else {
-            /* v12-E4.10: carry the current path — /login's safeRedirect
-             * (login/page.tsx) validates it and lands the user back here
-             * after re-authenticating instead of the bare /dashboard. */
-            window.location.href = "/login?redirect=" + encodeURIComponent(pathname)
-          }
-        })
+    if (isLoading) return
+    if (isError) {
+      /* v12-E4.10: carry the current path — /login's safeRedirect
+       * (login/page.tsx) validates it and lands the user back here
+       * after re-authenticating instead of the bare /dashboard. */
+      window.location.href = "/login?redirect=" + encodeURIComponent(pathname)
+      return
     }
-    check()
-    return () => {
-      ctrl.abort()
-      if (retryTimer !== null) clearTimeout(retryTimer)
+    if (!user) {
+      return void (window.location.href = "/login")
     }
-  }, [pathname, requiredRole, requirePlatformAdmin, router])
+    if (requiredRole && user.role !== requiredRole) {
+      return void (window.location.href = "/dashboard")
+    }
+    // v22-D6: soft redirect (router.replace) so the toast survives the
+    // layout swap — sonner's state is global and the dashboard layout's
+    // AppToaster re-renders it after the navigation. A hard
+    // window.location reload would kill the toast before paint.
+    if (requirePlatformAdmin && user.is_platform_admin !== true) {
+      premiumToast(
+        "error",
+        "لوحة الإدارة متاحة لمسؤول المنصة فقط",
+        "تم إعادتك إلى لوحة التحكم — هذه المنطقة تتطلب صلاحيات مسؤول المنصة",
+      )
+      return void router.replace("/dashboard")
+    }
+    // Check onboarding status: show wizard if not completed
+    const completed = user.onboardingCompleted ?? true
+    if (!completed && !onboardingChecked.current) {
+      onboardingChecked.current = true
+      setShowOnboarding(true)
+    }
+  }, [isLoading, isError, user, requiredRole, requirePlatformAdmin, router, pathname])
+
+  // v24-C3: same authorized contract as the old setAuthorized gate — the
+  // spinner shows ONLY while the session is genuinely unresolved (cold
+  // load); cached /api/me data renders children on the first paint.
+  const authorized =
+    !isLoading &&
+    !isError &&
+    !!user &&
+    (!requiredRole || user.role === requiredRole) &&
+    (!requirePlatformAdmin || user.is_platform_admin === true)
 
   if (!authorized) {
     return (

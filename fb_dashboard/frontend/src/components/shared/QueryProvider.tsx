@@ -1,7 +1,8 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { ReactNode, useState } from "react"
+import { ReactNode, useEffect, useState } from "react"
+import { attachQueryPersister } from "@/lib/query-persist"
 
 /* v12-E5.2 — QueryClientProvider moved from the ROOT providers into the
  * /dashboard and /admin layouts.
@@ -29,5 +30,15 @@ export function QueryProvider({ children }: { children: ReactNode }) {
         defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
       }),
   )
+
+  /* v24-C3 (A2 #3 — persist the query cache): hydrate from sessionStorage
+   * right after mount (async by design — the server HTML rendered the
+   * pending skeletons, so restoring data during the first client render
+   * would be a hydration mismatch), then persist cache changes (debounced,
+   * ~500KB cap, ['me'] never persisted — see lib/query-persist.ts). A
+   * refresh or back-navigation then paints cached data instantly and
+   * revalidates in the background (stale entries refetch on mount). */
+  useEffect(() => attachQueryPersister(queryClient), [queryClient])
+
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }

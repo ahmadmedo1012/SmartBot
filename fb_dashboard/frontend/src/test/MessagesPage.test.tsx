@@ -24,6 +24,20 @@
  *     cache with ZERO refetch (staleTime 20s + gcTime 300s) — pinned via
  *     the GET call count staying at 1 across a switch away and back
  *
+ * v24-C2 — mobile flows pins (thread↔URL, windowing, drafts, a11y):
+ *   - opening a thread pushes ?c=<id> into the URL; browser back pops it
+ *     and returns to the list; mounting with ?c= opens the thread (refresh
+ *     keeps the place); the in-thread back row lands on the list too
+ *   - body[data-chat-focus] marks the open thread (bottom-nav hide hook)
+ *     and is removed again when it closes
+ *   - the thread scroller is a role="log" aria-live=polite region (B4-P1)
+ *   - only the newest 60 bubbles render; «تحميل الرسائل الأقدم» prepends
+ *     the hidden batch (A3-M1 windowing)
+ *   - per-conversation drafts persist to localStorage (draft:<id>),
+ *     restore across a full remount, and are removed on successful send
+ *   - the conversation control is a real button inside an <li> (role
+ *     "listitem" no longer suppresses button semantics — B4)
+ *
  * Mock bundle (house pattern from SettingsChangePassword/OnboardingWizard
  * tests): QueryClientProvider, premium-toast spy, URL-router fetch stub,
  * next/link + next/image anchors, matchMedia stub (jsdom implements none —
@@ -31,7 +45,7 @@
  * (same jsdom gap).
  */
 import type { ReactNode } from "react"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -65,6 +79,15 @@ vi.mock("next/image", () => ({
     // eslint-disable-next-line @next/next/no-img-element
     return <img alt={alt} src={src} />
   },
+}))
+
+/* v24-C2 (task 1): the page now reads the open thread from useSearchParams.
+ * The mock reflects jsdom's REAL URL — the component pushes ?c= entries via
+ * window.history.pushState (jsdom updates location), and the popstate
+ * listener re-reads location on traversal, so the whole URL↔thread contract
+ * is exercisable without Next's router. */
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }))
 
 /** Build a real Response with a JSON body (house helper). */
@@ -143,6 +166,18 @@ function renderMessages() {
   )
 }
 
+/* v24-C2 (task 10): list semantics moved to the <li> wrappers — the
+ * conversation control itself is the plain button INSIDE the listitem. */
+function clickConversation(item: HTMLElement) {
+  fireEvent.click(within(item).getByRole("button"))
+}
+
+async function openConversationAt(index: number) {
+  const items = await screen.findAllByRole("listitem")
+  clickConversation(items[index])
+  return items[index]
+}
+
 /* jsdom implements no scrollIntoView either — the page's scroll contract
  * calls it on every thread load. Stashed so assertions can inspect calls. */
 const originalScrollIntoView = Element.prototype.scrollIntoView
@@ -152,6 +187,11 @@ beforeEach(() => {
   mocks.toastSuccess.mockClear()
   mocks.toastError.mockClear()
   installMatchMedia(false) // motion allowed by default, like most visitors
+  /* v24-C2: reset the URL (tests below push ?c= entries — jsdom's history is
+     shared across cases in a file) and the persisted per-conversation drafts
+     (task 8: localStorage survives across tests in the same jsdom). */
+  window.history.replaceState(null, "", "/dashboard/messages")
+  window.localStorage.clear()
   scrollIntoView = vi.fn()
   Element.prototype.scrollIntoView =
     scrollIntoView as unknown as typeof Element.prototype.scrollIntoView
@@ -171,7 +211,7 @@ describe("thread error branch (D1 §5.1)", () => {
     })
     renderMessages()
 
-    fireEvent.click(await screen.findByRole("listitem"))
+    clickConversation(await screen.findByRole("listitem"))
 
     // the backend's Arabic detail surfaces verbatim (support:449-455 mirror)
     expect(await screen.findByText("تعذر الوصول إلى فيسبوك")).toBeInTheDocument()
@@ -204,7 +244,7 @@ describe("mark-read on open (D10-M3, E-B1 contract)", () => {
     await screen.findAllByRole("listitem")
     expect(screen.getByText("4")).toBeInTheDocument() // unread badge before open
 
-    fireEvent.click(screen.getAllByRole("listitem")[0]) // أحمد
+    await openConversationAt(0) // أحمد
     await screen.findByText("السلام عليكم")
 
     // fire-and-forget POST fired exactly once for the opened thread
@@ -229,20 +269,20 @@ describe("reply draft isolation (D10-M2 — financial hazard)", () => {
     })
     renderMessages()
 
-    fireEvent.click((await screen.findAllByRole("listitem"))[0]) // أحمد
+    await openConversationAt(0) // أحمد
     await screen.findByText("السلام عليكم")
     const replyA = screen.getByLabelText("نص الرد") as HTMLTextAreaElement
     fireEvent.change(replyA, { target: { value: "رد مخصص للعميل أحمد" } })
     expect(replyA.value).toBe("رد مخصص للعميل أحمد")
 
     // switch to سارة — her reply box must NOT carry أحمد's draft
-    fireEvent.click(screen.getAllByRole("listitem")[1])
+    clickConversation(screen.getAllByRole("listitem")[1])
     await waitFor(() => {
       expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("")
     })
 
     // back to أحمد — the draft is restored, not lost
-    fireEvent.click(screen.getAllByRole("listitem")[0])
+    clickConversation(screen.getAllByRole("listitem")[0])
     await waitFor(() => {
       expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe(
         "رد مخصص للعميل أحمد",
@@ -263,7 +303,7 @@ describe("reply draft isolation (D10-M2 — financial hazard)", () => {
     })
     renderMessages()
 
-    fireEvent.click((await screen.findAllByRole("listitem"))[0])
+    clickConversation((await screen.findAllByRole("listitem"))[0])
     await screen.findByText("السلام عليكم")
     fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "مرحباً بك" } })
     fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
@@ -291,7 +331,7 @@ describe("reply draft isolation (D10-M2 — financial hazard)", () => {
     })
     renderMessages()
 
-    fireEvent.click(await screen.findByRole("listitem"))
+    clickConversation(await screen.findByRole("listitem"))
     await screen.findByText("السلام عليكم")
     fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "محاولة رد" } })
     fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
@@ -314,7 +354,7 @@ describe("programmatic scroll under reduced motion (D2-P1)", () => {
     })
     renderMessages()
 
-    fireEvent.click(await screen.findByRole("listitem"))
+    clickConversation(await screen.findByRole("listitem"))
     await screen.findByText("السلام عليكم")
 
     // (أ) first load of the thread lands instantly — "auto", never a crawl
@@ -351,7 +391,7 @@ describe("instant inbox (v23 — optimistic send + instant cache)", () => {
     })
     renderMessages()
 
-    fireEvent.click(await screen.findByRole("listitem"))
+    clickConversation(await screen.findByRole("listitem"))
     await screen.findByText("السلام عليكم")
     fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "رد لحظي قبل الخادم" } })
     fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
@@ -384,7 +424,7 @@ describe("instant inbox (v23 — optimistic send + instant cache)", () => {
     })
     renderMessages()
 
-    fireEvent.click(await screen.findByRole("listitem"))
+    clickConversation(await screen.findByRole("listitem"))
     await screen.findByText("السلام عليكم")
     fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "محاولة تفاؤلية" } })
     fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
@@ -425,11 +465,11 @@ describe("instant inbox (v23 — optimistic send + instant cache)", () => {
     expect(screen.getByRole("status")).toHaveAttribute("aria-label", "تحديث لحظي كل ثوانٍ")
 
     // open أحمد — his thread is fetched live (first sighting)
-    fireEvent.click((await screen.findAllByRole("listitem"))[0])
+    clickConversation((await screen.findAllByRole("listitem"))[0])
     expect(await screen.findByText("سؤال أحمد عن السعر")).toBeInTheDocument()
 
     // switch to سارة — her thread loads
-    fireEvent.click(screen.getAllByRole("listitem")[1])
+    clickConversation(screen.getAllByRole("listitem")[1])
     expect(await screen.findByText("استفسار سارة عن التوصيل")).toBeInTheDocument()
 
     // GET-only count (callsFor matches the mark-read POST url too)
@@ -439,9 +479,173 @@ describe("instant inbox (v23 — optimistic send + instant cache)", () => {
 
     // back to أحمد — the cached thread paints INSTANTLY (staleTime 20s):
     // his messages are on screen and NOT a single refetch was fired
-    fireEvent.click(screen.getAllByRole("listitem")[0])
+    clickConversation(screen.getAllByRole("listitem")[0])
     expect(await screen.findByText("سؤال أحمد عن السعر")).toBeInTheDocument()
     expect(screen.queryByText("استفسار سارة عن التوصيل")).toBeNull()
     expect(c1ThreadGets()).toBe(1) // ← the staleTime pin: cache-served, zero refetch
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// v24-C2 — thread ↔ URL (?c= deep link + back-to-list + immersive marker)
+// ═════════════════════════════════════════════════════════════════════
+
+describe("v24-C2 — thread ↔ URL (?c=)", () => {
+  it("opening a thread pushes ?c= into the URL; browser back returns to the list and clears chat-focus", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+
+    // the thread is now URL state — refresh/share/deep-link all keep it
+    expect(window.location.search).toBe("?c=c1")
+    // immersive-thread marker on <body> (the bottom-nav hide hook, task 6)
+    expect(document.body.dataset.chatFocus).toBe("1")
+    // the thread scroller announces incoming messages (B4-P1, task 9)
+    expect(screen.getByRole("log")).toHaveAttribute("aria-live", "polite")
+
+    // browser/Android back pops the pushed entry — back to the list, not
+    // out of the page (jsdom implements history traversal + popstate)
+    window.history.back()
+    await waitFor(() => expect(screen.queryByText("السلام عليكم")).toBeNull())
+    expect(window.location.search).toBe("")
+    expect(document.body.dataset.chatFocus).toBeUndefined()
+  })
+
+  it("mounting with ?c= already in the URL opens the thread directly (refresh keeps the place)", async () => {
+    // the deep link: only the mark-read POST may fire — the thread GET is
+    // the same endpoint, so pin both, plus the thread's presence
+    window.history.replaceState(null, "", "/dashboard/messages?c=c1")
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+    })
+    renderMessages()
+
+    expect(await screen.findByText("السلام عليكم")).toBeInTheDocument()
+    expect(document.body.dataset.chatFocus).toBe("1")
+  })
+
+  it("the in-thread back row returns to the list without leaving the page", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+
+    // the pushed entry unwinds (history.go(-1)) — URL back to the bare list
+    // (jsdom's traversal is async: the view flips synchronously via state,
+    //  the history entry lands a task later)
+    fireEvent.click(screen.getByRole("button", { name: /كل المحادثات/ }))
+    await waitFor(() => expect(screen.queryByText("السلام عليكم")).toBeNull())
+    await waitFor(() =>
+      expect(window.location.pathname + window.location.search).toBe("/dashboard/messages"),
+    )
+    expect(document.body.dataset.chatFocus).toBeUndefined()
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════
+// v24-C2 — message windowing (newest 60 + «تحميل الرسائل الأقدم»)
+// ═════════════════════════════════════════════════════════════════════
+
+describe("v24-C2 — message windowing", () => {
+  it("renders only the newest 60 bubbles; the load-earlier button prepends the rest", async () => {
+    const bigThread: Message[] = Array.from({ length: 80 }, (_, i): Message => ({
+      id: `m${i}`,
+      message: `رسالة رقم ${i}`,
+      is_from_page: i % 2 === 0,
+      created_time: null,
+    }))
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: bigThread }),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+
+    // newest 60 of 80: m20..m79 on screen, m0..m19 held back
+    expect(await screen.findByText("رسالة رقم 79")).toBeInTheDocument()
+    expect(screen.getByText("رسالة رقم 20")).toBeInTheDocument()
+    expect(screen.queryByText("رسالة رقم 19")).toBeNull()
+    expect(screen.queryByText("رسالة رقم 0")).toBeNull()
+
+    // the affordance names what's hidden, and prepends one batch
+    const loadBtn = screen.getByRole("button", { name: /تحميل الرسائل الأقدم/ })
+    expect(loadBtn).toHaveTextContent("(20)")
+    fireEvent.click(loadBtn)
+
+    expect(await screen.findByText("رسالة رقم 0")).toBeInTheDocument()
+    expect(screen.getByText("رسالة رقم 19")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /تحميل الرسائل الأقدم/ })).toBeNull()
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════
+// v24-C2 — draft persistence (localStorage draft:<id>, task 8 / A3-M6)
+// ═════════════════════════════════════════════════════════════════════
+
+describe("v24-C2 — draft persistence", () => {
+  it("a draft survives blur + full remount (refresh) and is cleared on send", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/reply": () => jsonRes({ success: true, data: { message_id: "m3" } }),
+    })
+    const first = renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+    fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "مسودة مهمة" } })
+    fireEvent.blur(screen.getByLabelText("نص الرد")) // blur flushes the debounce
+    expect(window.localStorage.getItem("draft:c1")).toBe("مسودة مهمة")
+
+    // full unmount + remount (a refresh): the stored draft hydrates the
+    // thread's composer on open — the mid-compose refresh no longer loses it
+    first.unmount()
+    const second = renderMessages()
+    clickConversation(await screen.findByRole("listitem"))
+    await waitFor(() => {
+      expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("مسودة مهمة")
+    })
+
+    // a successful send clears the draft in state AND storage
+    fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إرسال الرد"))
+    await waitFor(() => {
+      expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("")
+    })
+    expect(window.localStorage.getItem("draft:c1")).toBeNull()
+    second.unmount()
+  })
+
+  it("a FAILED send keeps the stored draft too (retry after refresh still has the text)", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/reply": () => jsonRes({ detail: "تعذر الإرسال إلى فيسبوك" }, 502),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+    fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "محاولة رد" } })
+    fireEvent.blur(screen.getByLabelText("نص الرد"))
+    fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalled())
+    // the draft survives in both places for a corrected retry
+    expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("محاولة رد")
+    expect(window.localStorage.getItem("draft:c1")).toBe("محاولة رد")
   })
 })

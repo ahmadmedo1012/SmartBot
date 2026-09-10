@@ -128,6 +128,11 @@ export default function AdminSupportPage() {
       apiFetch(`/api/admin/support/tickets?status=${status}&page=${page}`).then(
         unwrapApi<TicketsPage>,
       ),
+    /* v24-C3 (A2 #5/Q5 — keepPreviousData): page/filter switches keep the
+     * previous rows on screen (dimmed via the isFetching opacity-60 cue on
+     * the table container below) instead of flashing the full skeleton —
+     * the exact proven pattern from messages/page.tsx (v8 C8 / v23). */
+    placeholderData: (prev) => prev,
     retry: 1,
   })
 

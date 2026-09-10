@@ -176,9 +176,12 @@ export default function MarketingPage() {
                     placeholder="اكتب رسالتك التسويقية هنا…"
                     rows={4}
                     /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                        seam — dir="auto" isolates mixed Arabic/Latin copy. */
+                        seam — dir="auto" isolates mixed Arabic/Latin copy.
+                        v24-C2 (task 4 / A3 §2 raw-input drift): text-sm كانت
+                        14px — iOS يكبّر إطار العرض عند التركيز؛ الآن
+                        text-base md:text-sm + min-h-11 (عقد 44px). */
                     dir="auto"
-                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 min-h-11 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                   />
                 </div>
                 <div className="space-y-2">

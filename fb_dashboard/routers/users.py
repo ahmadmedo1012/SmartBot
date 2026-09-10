@@ -7,6 +7,7 @@ from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException
 from models import NotificationPreference, SubscriptionPlan, User
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 
 from routers.auth import is_platform_admin, require_role
 
@@ -70,7 +71,17 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
     pw_hash = hash_password(password)
     user = User(username=username, password_hash=pw_hash, role=role, tenant_id=current_user._tenant_id)
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        # v24-C4 (M1): two concurrent create_user calls with the same username
+        # race past the pre-check above; the loser hit uq_user_tenant_username
+        # at commit → raw 500 (register.py:295-312 already maps this to 409).
+        # Same contract here: rollback first, then the SAME Arabic message the
+        # pre-check answers so the client sees one behavior, not two.
+        await db.rollback()
+        log.warning("create_user race conflict (tenant %s): %s", current_user._tenant_id, exc)
+        raise HTTPException(409, "اسم المستخدم موجود مسبقاً في مساحة عملك") from exc
     await db.refresh(user)
     return ok({"id": user.id})
 

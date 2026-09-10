@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { useQuery } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { countPhrase, toArabicNumber } from "@/lib/format"
 import {
@@ -86,6 +87,10 @@ function isPlanLocked(e: unknown): boolean {
 
 /** حالة «متاحة في Premium» الصادقة — بديل بطاقة الخطأ عند 403 الخطة. */
 function PremiumLockBody({ feature }: { feature: string }) {
+  /* v24-C3 (A2 #8): ترقية الخطة كانت window.location.href — إعادة تحميل
+   * كاملة للصفحة تُسقط حالة SPA وذاكرة react-query؛ router.push يحافظ
+   * عليهما. */
+  const router = useRouter()
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
       <div className="size-11 rounded-2xl border border-warning/20 bg-warning/10 flex items-center justify-center">
@@ -97,7 +102,7 @@ function PremiumLockBody({ feature }: { feature: string }) {
           خطتك الحالية لا تتضمن هذه الميزة. رقِّ خطتك من صفحة الاشتراك للاطلاع عليها.
         </p>
       </div>
-      <Button size="sm" variant="outline" onClick={() => { window.location.href = "/subscribe" }}>
+      <Button size="sm" variant="outline" onClick={() => { router.push("/subscribe") }}>
         <Crown className="size-3.5" /> ترقية الخطة
       </Button>
     </div>

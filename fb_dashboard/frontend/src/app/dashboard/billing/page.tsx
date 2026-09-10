@@ -342,7 +342,9 @@ export default function BillingPage() {
                     aria-checked={effectiveProvider === pr}
                     disabled={requiresBank && pr !== "bank"}
                     onClick={() => setProvider(pr)}
-                    className={`h-8 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    /* v24-C1: h-11 (44px) touch target — h-8 tabs (32px)
+                        bypassed the Button min-h-11 guarantee (A1 S3). */
+                    className={`h-11 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                       effectiveProvider === pr
                         ? "border-accent-foreground bg-accent-foreground/10 text-accent-foreground"
                         : "border-border/60 text-muted-foreground hover:border-accent-foreground/30"
@@ -380,7 +382,9 @@ export default function BillingPage() {
                       placeholder={String(selectedPlan.price)}
                       inputMode="decimal"
                       dir="ltr"
-                      className="w-32 h-10 text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                      /* v24-C1: 44px target + 16px font — iOS no-zoom contract
+                          (h-10 text-sm zoomed the viewport on focus). */
+                      className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                     />
                   </div>
                   <div className="space-y-1">

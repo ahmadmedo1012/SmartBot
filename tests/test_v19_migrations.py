@@ -73,7 +73,7 @@ def _table_names(db_path: Path) -> set:
 def test_chain_head_is_016_on_fresh_db(fresh_db):
     """The full chain 001→016 runs clean; head lands on 016 with all tables."""
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "016"
+    assert _version(fresh_db) == "017"
     tables = _table_names(fresh_db)
     for t in _TABLES:
         assert t in tables, f"missing table {t}"
@@ -83,7 +83,7 @@ def test_016_upgrade_twice_is_idempotent(fresh_db):
     command.upgrade(_alembic_cfg(), "head")
     # second run at the same head: upgrade() must be a no-op (Inspector guards)
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "016"
+    assert _version(fresh_db) == "017"
     tables = _table_names(fresh_db)
     for t in _TABLES:
         assert t in tables

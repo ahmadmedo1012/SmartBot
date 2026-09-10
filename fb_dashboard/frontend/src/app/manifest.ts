@@ -11,7 +11,9 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#bc4700",
     lang: "ar",
     dir: "rtl",
-    orientation: "portrait",
+    /* v24-C6 (WCAG 1.3.4 Orientation): `orientation: "portrait"` was removed —
+     * installed-PWA users on landscape phones/tablets were locked out of the
+     * app. No orientation key = the OS orientation follows the user. */
     categories: ["productivity", "business"],
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

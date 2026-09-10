@@ -30,10 +30,37 @@ from _utils import iso_z, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import BotState, Sequence, SequenceStep, SequenceSubscription, Subscriber
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import bindparam, delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-sequence")
+
+
+def _due_filter(session, now):
+    """v24-C5 — the due condition ``entered_at + step delay <= now`` as a
+    SQL WHERE fragment (bound at call time), per dialect (the _day_expr
+    house pattern from dashboard_stats.py):
+
+    - SQLite: julianday REAL arithmetic (``delay_days + delay_hours/24``).
+      Stored ISO strings parse with full fractional seconds; double
+      precision on a ~2.46e6 day value gives ~4e-5 s of slack — four orders
+      of magnitude below the 60 s poll granularity. NULL entered_at →
+      NULL → row filtered (the old per-row code skipped it on TypeError).
+    - PostgreSQL: interval arithmetic keeps microsecond exactness.
+    """
+    bind = getattr(session, "bind", None)
+    if bind is not None and bind.dialect.name == "sqlite":
+        return text(
+            "julianday(sequence_subscriptions.entered_at) "
+            "+ sequence_steps.delay_days + sequence_steps.delay_hours / 24.0 "
+            "<= julianday(:due_now)"
+        ).bindparams(bindparam("due_now", now.strftime("%Y-%m-%d %H:%M:%S.%f")))
+    return text(
+        "sequence_subscriptions.entered_at "
+        "+ sequence_steps.delay_days * interval '1 day' "
+        "+ sequence_steps.delay_hours * interval '1 hour' "
+        "<= :due_now"
+    ).bindparams(bindparam("due_now", now))
 
 
 class SequenceEngine:
@@ -333,66 +360,65 @@ class SequenceEngine:
         Calculates scheduled time from entered_at + delay of the current step.
         Only returns subscriptions where current_time >= scheduled_time.
         Includes subscriber info for message sending.
+
+        v24-C5 (B3 §3): the old scan loaded EVERY active subscription, then
+        ran two queries per row (steps + subscriber) — O(2N+1) queries on
+        every beat, unbounded. It is now ONE joined query with every filter
+        pushed into SQL:
+          - ``status = 'active'`` (served by ix_seqsub_status, migration 017);
+          - the current step is joined ON (sequence_id, step_order) — rows
+            with no matching step drop out (the old code skipped them
+            per-row);
+          - the subscriber is joined — a missing subscriber drops (old skip);
+          - due-ness ``entered_at + delay <= now`` is computed in SQL per
+            dialect (:func:`_due_filter`) — no per-row Python queries left.
+        The per-row ``try/except`` went away together with the per-row
+        queries; a NULL entered_at now simply fails the comparison (the
+        old TypeError-skip). Pathological duplicate step_order rows are
+        deduped per subscription keeping the first by (step_order, id) —
+        the row the old loop would have picked.
+
+        The returned dicts keep the exact previous contract, plus
+        ``tenant_id`` from the subscription row itself (the _services
+        proxy and process_due_sequence_steps used to re-fetch it with an
+        extra query — B3 §3 note).
         """
-        result = await session.execute(
-            select(SequenceSubscription).where(
-                SequenceSubscription.status == "active"
+        now = utcnow()
+        stmt = (
+            select(SequenceSubscription, SequenceStep, Subscriber)
+            .join(
+                SequenceStep,
+                (SequenceStep.sequence_id == SequenceSubscription.sequence_id)
+                & (SequenceStep.step_order == SequenceSubscription.current_step),
+            )
+            .join(Subscriber, Subscriber.id == SequenceSubscription.subscriber_id)
+            .where(SequenceSubscription.status == "active")
+            .where(_due_filter(session, now))
+            .order_by(
+                SequenceSubscription.id, SequenceStep.step_order, SequenceStep.id
             )
         )
-        subs = result.scalars().all()
-        now = utcnow()
+        rows = (await session.execute(stmt)).all()
+
         due: list[dict] = []
-
-        for sub in subs:
-            try:
-                # Load sequence steps
-                steps_result = await session.execute(
-                    select(SequenceStep)
-                    .where(SequenceStep.sequence_id == sub.sequence_id)
-                    .order_by(SequenceStep.step_order)
-                )
-                steps = steps_result.scalars().all()
-                if not steps:
-                    continue
-
-                # Match current step by step_order
-                step: SequenceStep | None = None
-                for s in steps:
-                    if s.step_order == sub.current_step:
-                        step = s
-                        break
-                if step is None:
-                    continue
-
-                # Check if it's time for this step
-                scheduled = sub.entered_at + timedelta(
-                    days=step.delay_days,
-                    hours=step.delay_hours,
-                )
-                if now < scheduled:
-                    continue
-
-                # Load subscriber
-                sub_row = await session.get(Subscriber, sub.subscriber_id)
-                if not sub_row:
-                    continue
-
-                due.append({
-                    "sub_id": sub.id,
-                    "seq_id": sub.sequence_id,
-                    "step_index": sub.current_step,
-                    "step": step,
-                    "subscriber_id": sub_row.id,
-                    "subscriber_platform": sub_row.platform,
-                    "subscriber_fb_id": sub_row.fb_user_id,
-                    "subscriber_name": sub_row.name,
-                    "subscriber_first_name": sub_row.first_name,
-                    "message_template": step.message_template,
-                })
-            except Exception as exc:
-                log.error(f"Error checking due sub {sub.id}: {exc}", exc_info=True)
-                continue
-
+        seen: set[int] = set()
+        for sub, step, sub_row in rows:
+            if sub.id in seen:
+                continue  # duplicate step_order rows — keep the first pick
+            seen.add(sub.id)
+            due.append({
+                "sub_id": sub.id,
+                "seq_id": sub.sequence_id,
+                "step_index": sub.current_step,
+                "step": step,
+                "subscriber_id": sub_row.id,
+                "subscriber_platform": sub_row.platform,
+                "subscriber_fb_id": sub_row.fb_user_id,
+                "subscriber_name": sub_row.name,
+                "subscriber_first_name": sub_row.first_name,
+                "message_template": step.message_template,
+                "tenant_id": sub.tenant_id or 0,
+            })
         return due
 
     async def process_due_step(self, due: dict, session) -> bool:
@@ -669,16 +695,11 @@ async def process_due_sequence_steps(session) -> int:
     if not due:
         return 0
 
-    # tenant annotation (same as _services._TenantSequenceEngineProxy) — the
-    # claim marker and the per-tenant FB client both need it.
-    rows = await session.execute(
-        select(SequenceSubscription.id, SequenceSubscription.tenant_id).where(
-            SequenceSubscription.id.in_([d["sub_id"] for d in due])
-        )
-    )
-    tenant_map = dict(rows.all())
+    # v24-C5: the due dicts carry tenant_id from the joined subscription
+    # row itself — the old extra IN(...) annotation query is gone (the
+    # _services proxy overwrites the same key with the identical value).
     for d in due:
-        d["tenant_id"] = tenant_map.get(d["sub_id"]) or 0
+        d.setdefault("tenant_id", 0)
 
     sent = 0
     for item in due:

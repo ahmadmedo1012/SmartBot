@@ -86,7 +86,21 @@ async def webhook_receive(request: Request):
     if not hmac.compare_digest(sig, expected):
         raise HTTPException(401, "Invalid signature")
 
-    data = json.loads(body)
+    # v24-C4 (M9): the body was parsed with a bare json.loads AFTER the
+    # signature check — a malformed (or non-object) payload from a
+    # secret-holder raised JSONDecodeError/AttributeError → raw 500 →
+    # Facebook retries the same poison payload forever (retry storm).
+    # A 400 tells the platform the event is unrecoverable; the signature
+    # check above stays FIRST (verified order unchanged — only
+    # secret-holders can ever reach this branch).
+    try:
+        data = json.loads(body)
+    except ValueError:
+        log.warning("webhook body is not valid JSON (%d bytes) — rejected 400", len(body))
+        raise HTTPException(400, "Invalid JSON payload") from None
+    if not isinstance(data, dict):
+        log.warning("webhook body is not a JSON object — rejected 400")
+        raise HTTPException(400, "Invalid JSON payload")
     log.debug(f"Webhook received: {json.dumps(data, ensure_ascii=False)[:500]}")
     if data.get("object") and data.get("object") != "page":
         return {"ok": True}

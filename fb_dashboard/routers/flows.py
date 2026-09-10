@@ -10,6 +10,7 @@ from models import Flow, FlowExecution, User
 from sqlalchemy import select
 
 from routers.auth import get_current_user, require_role
+from routers.broadcasts import _json_body, _required_key
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["flows"])
@@ -32,9 +33,12 @@ async def list_flows(db=Depends(get_db), current_user: User = Depends(get_curren
 
 @router.post("/api/flows")
 async def create_flow(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
+    # v24-C4 (H3): body["name"] → KeyError → 500 + false CRITICAL alert on a
+    # plain client typo — adopt the v15-E3 clean-422 convention (broadcasts).
+    body = await _json_body(request)
+    name = _required_key(body, "name")
     flow = Flow(
-        name=body["name"],
+        name=name,
         description=body.get("description", ""),
         nodes=body.get("nodes", []),
         edges=body.get("edges", []),
@@ -74,7 +78,8 @@ async def update_flow(flow_id: int, request: Request, db=Depends(get_db), curren
     )).scalar_one_or_none()
     if not flow:
         raise HTTPException(404, "التدفق غير موجود")
-    body = await request.json()
+    # v24-C4 (H3): malformed JSON → 422 Arabic, not a 500 (v15-E3 convention).
+    body = await _json_body(request)
     for key in ("name", "description", "nodes", "edges", "status"):
         if key in body:
             setattr(flow, key, body[key])
@@ -109,7 +114,8 @@ async def toggle_flow(flow_id: int, db=Depends(get_db), current_user: User = Dep
 
 @router.post("/api/flows/{flow_id}/test")
 async def test_flow(flow_id: int, request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
-    body = await request.json()
+    # v24-C4 (H3): malformed JSON → 422 Arabic, not a 500 (v15-E3 convention).
+    body = await _json_body(request)
     flow = (await db.execute(
         select(Flow).where(Flow.id == flow_id, Flow.tenant_id == current_user._tenant_id)
     )).scalar_one_or_none()

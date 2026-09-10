@@ -227,9 +227,12 @@ function LoginForm() {
                   placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={formError ? "login-form-error" : undefined}
-                  className="border-0 bg-transparent ps-9 pe-10 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  className="border-0 bg-transparent ps-9 pe-14 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                {/* v24-C1: size-11 (44px) touch target — size-7 (28px) was a
+                    sub-44px target (A1 S3); pe-14 on the input keeps the
+                    typed text clear of the wider button. aria-label intact. */}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order (the

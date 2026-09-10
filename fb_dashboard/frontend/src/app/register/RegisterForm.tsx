@@ -200,14 +200,19 @@ function RegisterForm() {
                   placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", password.length > 0 && "password-validity")}
-                  className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  className="border-0 bg-transparent ps-9 pe-[4.5rem] focus-visible:ring-0 focus-visible:ring-offset-0" />
+                {/* v24-C1: validity icon moved to end-14 — the reveal toggle
+                    grew to a 44px target (size-11) and would otherwise cover
+                    this glyph; input pe-[4.5rem] clears both. */}
                 {password.length > 0 && (
-                  <span id="password-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
+                  <span id="password-validity" className="absolute end-14 top-1/2 -translate-y-1/2">
                     {passwordOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
+                {/* v24-C1: size-11 (44px) touch target — size-7 (28px) was a
+                    sub-44px target (A1 S3). aria-label intact. */}
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order. */}
@@ -230,14 +235,19 @@ function RegisterForm() {
                   placeholder="نفس كلمة المرور أعلاه" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
                   aria-describedby={describedBy(formError && "register-form-error", confirm.length > 0 && "confirm-validity")}
-                  className="border-0 bg-transparent ps-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
+                  className="border-0 bg-transparent ps-9 pe-[4.5rem] focus-visible:ring-0 focus-visible:ring-offset-0" />
+                {/* v24-C1: validity icon moved to end-14 — the reveal toggle
+                    grew to a 44px target (size-11) and would otherwise cover
+                    this glyph; input pe-[4.5rem] clears both. */}
                 {confirm.length > 0 && (
-                  <span id="confirm-validity" className="absolute end-8 top-1/2 -translate-y-1/2">
+                  <span id="confirm-validity" className="absolute end-14 top-1/2 -translate-y-1/2">
                     {password === confirm ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
                   </span>
                 )}
+                {/* v24-C1: size-11 (44px) touch target — size-7 (28px) was a
+                    sub-44px target (A1 S3). aria-label intact. */}
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute end-2 top-1/2 -translate-y-1/2 size-7 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label={showConfirm ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                   {/* v12-E4.1: tabIndex={-1} removed — the reveal toggle is an
                       interactive control and must sit in the tab order. */}

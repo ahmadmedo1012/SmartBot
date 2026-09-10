@@ -243,7 +243,13 @@
   /* Saffron-heat warm palette (dark) — Smart-Menu parity.
      ember/saffron drive the flame gradient (flame buttons, wizard nodes);
      espresso is the foreground on warm surfaces; bloom is brand pink heat. */
-  --c-ember: oklch(0.44 0.17 52);            /* pressed/depth of flame */
+  /* v24-C6 (WCAG 1.4.3): espresso text on the ember end of the flame
+   * gradient measured 2.24:1 (4.5:1 needed — darkening espresso can't fix
+   * it: even pure black caps at 2.55:1 on 0.44). Lightness floor for 4.5:1
+   * vs espresso is 0.61; 0.62 measures 4.77:1 at the ember end while the
+   * saffron end stays 8.97:1 and every mid-stop sits between (monotonic
+   * luminance) — the ember→saffron fire ramp keeps its hue/identity. */
+  --c-ember: oklch(0.62 0.17 52);            /* v24-C6: 2.24:1 → 4.77:1 (WCAG 1.4.3, espresso text) */
   --c-flame: oklch(0.55 0.19 45);            /* brand heat (== accent-foreground) — Smart-Menu parity */
   --c-ash: oklch(0.75 0.012 70);             /* warm neutral — UI text */
   --c-ash-dim: oklch(0.4 0.008 65);          /* warm muted — secondary text/borders */
@@ -307,7 +313,14 @@
   --placeholder-text: oklch(0.52 0.015 70);
   --destructive: oklch(0.58 0.2 25);
   --border: oklch(0.86 0.008 70);
-  --input: oklch(0.86 0.008 70);
+  /* v24-C6 (WCAG 1.4.11 non-text 3:1) — the light counterpart of the v10-I3
+   * dark raise that stopped at .dark. 0.86 measured 1.53:1 vs card / 1.47:1
+   * vs background (unfocused fields visually disappear on paper, same
+   * complaint that motivated the dark fix). 0.64 measures 3.36:1 vs card and
+   * 3.22:1 vs background (light-mode fields are bg-transparent, so those two
+   * are the real adjacent surfaces; disabled:bg-muted fields are exempt).
+   * --border stays 0.86: dividers are decorative, not field boundaries. */
+  --input: oklch(0.64 0.008 70); /* v24-C6: 1.53:1 → 3.36:1 vs card (WCAG 1.4.11) */
 
   /* Light-mode status colors — darker variants for AA on white (matches
      Smart-Menu's dual-lightness semantic scale) */
@@ -322,10 +335,12 @@
   --destructive-soft: oklch(0.58 0.2 25 / 0.12);
   --overlay: oklch(0 0 0 / 0.25);
 
-  /* Saffron-heat warm palette (light) — Smart-Menu parity: ember takes
-     middle depth, saffron glow unchanged, shimmer sweep near-black on
-     paper. espresso/bloom inherit from :root (theme-independent). */
-  --c-ember: oklch(0.5 0.15 52);             /* middle depth */
+  /* Saffron-heat warm palette (light) — Smart-Menu parity: ember raised to the
+     4.5:1 floor for espresso text (v24-C6: 2.91:1 → 4.79:1 at the gradient's
+     ember end — see the :root --c-ember note), saffron glow unchanged,
+     shimmer sweep near-black on paper. espresso/bloom inherit from :root
+     (theme-independent). */
+  --c-ember: oklch(0.62 0.15 52);             /* v24-C6: 2.91:1 → 4.79:1 (WCAG 1.4.3, espresso text) */
   --c-flame: oklch(0.42 0.17 48);            /* pressed brand heat (light) */
   --c-ash: oklch(0.36 0.012 70);             /* warm ink on paper */
   --c-ash-dim: oklch(0.55 0.01 70);          /* warm muted (light) */

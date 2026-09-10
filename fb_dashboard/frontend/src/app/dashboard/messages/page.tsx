@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { Suspense, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -54,15 +55,33 @@ function usePrefersReducedMotion(): boolean {
  * messages (10s poll) should follow — see the scroll contract below. */
 const NEAR_BOTTOM_PX = 150
 
+/* v24-C2 (task 7 / A3-M1): message windowing — the thread renders only the
+ * newest MESSAGE_WINDOW bubbles; older history loads 60-at-a-time via the
+ * «تحميل الرسائل الأقدم» button pinned at the top of the scroller. The 5s
+ * poll then re-diffs at most 60 keyed nodes instead of 200 (the jank tax
+ * A2/A3 measured on long threads). */
+const MESSAGE_WINDOW = 60
+
+/* v24-C2 (task 8 / A3-M6): per-conversation reply drafts persist to
+ * localStorage (`draft:<conversationId>`) so a refresh/crash mid-compose no
+ * longer discards them. Debounced writes on change, flush on blur/unmount,
+ * removed on successful send — the in-session per-conv state (v17 D10-M2)
+ * stays the source of truth; storage only hydrates what state lacks. */
+const DRAFT_KEY_PREFIX = "draft:"
+const DRAFT_DEBOUNCE_MS = 400
+
 function ConvItem({ conv, selectedId, onSelect }: {
   conv: Conversation; selectedId: string | null; onSelect: (id: string) => void
 }) {
   const hasUnread = Number(conv.unread_count) > 0
   const selected = selectedId === conv.id
   return (
+    /* v24-C2 (task 10 / B4): role="listitem" on a <button> overrides the
+       button's implicit role and suppresses its semantics for AT — the list
+       semantics now live on the real <li> wrappers (below), the button stays
+       a button. aria-current (selection) is kept. */
     <button
       onClick={() => onSelect(conv.id)}
-      role="listitem"
       aria-current={selected ? "true" : undefined}
       className={`group w-full text-start p-3 cursor-pointer border-b border-border/60 transition-colors duration-150
         ${selected
@@ -114,7 +133,49 @@ function ConvItem({ conv, selectedId, onSelect }: {
   )
 }
 
+/* v24-C2 (task 1 / A3-M2+N5): the open thread is URL state now (`?c=<id>`)
+ * — deep links, notification routing, refresh-keeps-place, and honest
+ * browser/Android-back semantics (back returns to the conversation list
+ * instead of leaving the page) all fall out of that. Next 16 requires a
+ * Suspense boundary around useSearchParams for statically-prerendered pages,
+ * so the page export is a thin boundary and the real tree lives in
+ * MessagesView below. */
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={<MessagesFallback />}>
+      <MessagesView />
+    </Suspense>
+  )
+}
+
+/** v24-C2: prerender/hydration shell for the useSearchParams Suspense
+ * boundary — same header + list skeleton the loading state already uses, so
+ * the static HTML and the first client paint match (no flash). */
+function MessagesFallback() {
+  return (
+    <div className="flex-1 flex flex-col" aria-busy="true">
+      <PageHeader
+        icon={<Inbox className="size-4" />}
+        title="الرسائل"
+        subtitle="صندوق الوارد الموحد"
+        compact
+      />
+      <div className="flex-1 p-4 space-y-3" dir="rtl">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex gap-3 items-center">
+            <Skeleton className="size-11 rounded-full shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-2 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function MessagesView() {
   const [filter, setFilter] = useState("all")
   const [search, setSearch] = useState("")
   // v9-B3 — search used to feed the queryKey directly: every keystroke fired
@@ -124,7 +185,19 @@ export default function MessagesPage() {
     const t = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(t)
   }, [search])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  /* v24-C2 (task 1 / A3-M2): selectedId is seeded from the `?c=` search
+   * param on mount (deep link / refresh) and thereafter driven by local
+   * state that open/close keep in lockstep with the history stack via
+   * pushState/replaceState + the popstate listener below — Next 16 syncs
+   * native history mutations with useSearchParams, so the URL and the view
+   * never disagree. */
+  const searchParams = useSearchParams()
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("c"))
+  /** v24-C2: how many ?c= entries THIS view pushed — the in-thread back row
+   * hops straight back to the list entry (history.go(-depth)) instead of
+   * peeling threads one by one, and falls back to replaceState when the
+   * thread was deep-linked (depth 0 — back would exit the app). */
+  const pushDepthRef = useRef(0)
   // v17-E-F1 (D10-M2 — financial hazard): the reply draft used to be ONE shared
   // string that followed the selection — text typed for customer A reappeared
   // (and could be SENT) in customer B's thread after switching. Drafts are now
@@ -132,9 +205,78 @@ export default function MessagesPage() {
   // you come back, and only the thread that was actually replied to is cleared.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const replyText = selectedId ? (drafts[selectedId] ?? "") : ""
+  /* v24-C2 (task 8): debounced localStorage twin of the per-conv drafts —
+   * pendingDraftRef holds the last keystrokes so blur/unmount can flush them
+   * before the component goes away. */
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingDraftRef = useRef<{ id: string; text: string } | null>(null)
+
+  const persistDraft = useCallback((id: string, text: string) => {
+    try {
+      if (text) window.localStorage.setItem(DRAFT_KEY_PREFIX + id, text)
+      else window.localStorage.removeItem(DRAFT_KEY_PREFIX + id)
+    } catch { /* private mode / quota — the in-session state draft still works */ }
+  }, [])
+
+  const flushDraft = useCallback(() => {
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current)
+      draftTimerRef.current = null
+    }
+    const pending = pendingDraftRef.current
+    if (pending) {
+      pendingDraftRef.current = null
+      persistDraft(pending.id, pending.text)
+    }
+  }, [persistDraft])
+
+  /** v24-C2: clear one thread's draft everywhere (state + storage + any
+   * pending debounce) — called on successful send so the draft can't
+   * resurrect from a straggling timer after the reply landed. */
+  const clearDraft = useCallback((id: string) => {
+    if (pendingDraftRef.current?.id === id) {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
+        draftTimerRef.current = null
+      }
+      pendingDraftRef.current = null
+    }
+    try { window.localStorage.removeItem(DRAFT_KEY_PREFIX + id) } catch { /* private mode */ }
+    setDrafts((prev) => ({ ...prev, [id]: "" }))
+  }, [])
+
   const updateDraft = (text: string) => {
-    if (selectedId) setDrafts((prev) => ({ ...prev, [selectedId]: text }))
+    if (!selectedId) return
+    const id = selectedId // captured for the async timer — switching threads
+    setDrafts((prev) => ({ ...prev, [id]: text })) // mid-debounce must not misfile it
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    pendingDraftRef.current = { id, text }
+    draftTimerRef.current = setTimeout(() => {
+      draftTimerRef.current = null
+      const pending = pendingDraftRef.current
+      if (pending) {
+        pendingDraftRef.current = null
+        persistDraft(pending.id, pending.text)
+      }
+    }, DRAFT_DEBOUNCE_MS)
   }
+
+  /* v24-C2 (task 8): hydrate a thread's draft from storage when it's opened
+   * with nothing in state yet (refresh / crash mid-compose). Errors are
+   * swallowed — storage is an enhancement, never a gate. */
+  useEffect(() => {
+    if (!selectedId) return
+    setDrafts((prev) => {
+      if (prev[selectedId] !== undefined) return prev
+      let stored: string | null = null
+      try { stored = window.localStorage.getItem(DRAFT_KEY_PREFIX + selectedId) } catch { /* private mode */ }
+      return { ...prev, [selectedId]: stored ?? "" }
+    })
+  }, [selectedId])
+
+  // v24-C2: flush any pending debounced draft on unmount (navigation away
+  // mid-compose still persists it), mirroring the autoreply tone-timer rule.
+  useEffect(() => () => { flushDraft() }, [flushDraft])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -259,6 +401,78 @@ export default function MessagesPage() {
     if (msgIsError) prevThreadRef.current = { id: null, count: 0 }
   }, [msgIsError])
 
+  /* v24-C2 (task 1 / A3-M2+N1): browser/Android back inside a thread pops the
+   * pushed ?c= entry — the URL loses the param and the view returns to the
+   * list (instead of back exiting the whole page). Next 16's own history
+   * sync re-renders useSearchParams with the same value; the listener keeps
+   * the local selection in lockstep without depending on it, and keeps the
+   * push-depth ledger honest for the back row below. */
+  useEffect(() => {
+    const onPopState = () => {
+      const c = new URLSearchParams(window.location.search).get("c")
+      pushDepthRef.current = c ? Math.max(0, pushDepthRef.current - 1) : 0
+      setSelectedId(c)
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [])
+
+  /** v24-C2: open a conversation — a real history entry is pushed (?c=<id>)
+   * so hardware back walks back to the list, and refresh keeps the thread. */
+  const openConversation = useCallback((id: string) => {
+    pushDepthRef.current += 1
+    window.history.pushState(null, "", `/dashboard/messages?c=${encodeURIComponent(id)}`)
+    setSelectedId(id)
+  }, [])
+
+  /** v24-C2: in-thread back row — hop straight to the list entry we pushed
+   * from (all thread entries in one go), or strip the param via replaceState
+   * when the thread was deep-linked (nothing of ours to pop — back must not
+   * exit the app). */
+  const closeThread = useCallback(() => {
+    const depth = pushDepthRef.current
+    pushDepthRef.current = 0
+    setSelectedId(null)
+    if (depth > 0) window.history.go(-depth) // popstate re-syncs (idempotent)
+    else window.history.replaceState(null, "", "/dashboard/messages")
+  }, [])
+
+  /* v24-C2 (task 6 / A3-M3): immersive thread — while a conversation is open
+   * the page marks <body data-chat-focus="1"> (cleanup removes it) and the
+   * injected style below hides the mobile bottom nav + collapses the shell's
+   * nav padding to the safe-area, so the composer extends into the freed
+   * space. Desktop is untouched (the nav is md:hidden there already). */
+  useEffect(() => {
+    if (!selectedId) return
+    document.body.dataset.chatFocus = "1"
+    return () => { delete document.body.dataset.chatFocus }
+  }, [selectedId])
+
+  /* v24-C2 (task 7): the windowing state — reset to the newest 60 whenever
+   * the thread changes so an old «load earlier» never leaks across threads. */
+  const [messageWindow, setMessageWindow] = useState(MESSAGE_WINDOW)
+  useEffect(() => { setMessageWindow(MESSAGE_WINDOW) }, [selectedId])
+  const hiddenCount = Math.max(0, messages.length - messageWindow)
+  const visibleMessages = hiddenCount > 0 ? messages.slice(messages.length - messageWindow) : messages
+
+  /* v24-C2 (task 7): load-earlier anchor — remember the scrollHeight BEFORE
+   * the prepend, then after the DOM update add the height delta back to
+   * scrollTop so the viewport stays pinned to the same message (prepending
+   * above the anchor would otherwise yank the view to older history). */
+  const pendingAnchorRef = useRef<number | null>(null)
+  const loadOlderMessages = useCallback(() => {
+    const el = scrollContainerRef.current
+    pendingAnchorRef.current = el ? el.scrollHeight : null
+    setMessageWindow((w) => w + MESSAGE_WINDOW)
+  }, [])
+  useLayoutEffect(() => {
+    const prev = pendingAnchorRef.current
+    if (prev === null) return
+    pendingAnchorRef.current = null
+    const el = scrollContainerRef.current
+    if (el) el.scrollTop += el.scrollHeight - prev
+  })
+
   const sendMut = useMutation({
     mutationFn: ({ id, text }: { id: string; text: string }) =>
       apiFetch(`/api/inbox/conversations/${id}/reply`, {
@@ -284,9 +498,10 @@ export default function MessagesPage() {
     onSuccess: (_res, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages", id] })
       queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] })
-      // v17-E-F1 (D10-M2): clear ONLY the replied thread's draft — the id
-      // from variables stays exact even if the user switches mid-flight.
-      setDrafts((prev) => ({ ...prev, [id]: "" }))
+      // v17-E-F1 (D10-M2) → v24-C2 (task 8): clear ONLY the replied thread's
+      // draft — the id from variables stays exact even if the user switches
+      // mid-flight — in state, storage, and any pending debounce write.
+      clearDraft(id)
       brandedToast.success("تم إرسال الرد")
       // (ب) a successful reply lands the thread at the newest message
       scrollToBottom("smooth")
@@ -314,6 +529,23 @@ export default function MessagesPage() {
 
   return (
     <div className="flex-1 flex flex-col">
+      {/* v24-C2 (task 6 / A3-M3): scoped style for the immersive thread —
+          body[data-chat-focus] is set by the effect above ONLY while a
+          conversation is open (effect cleanup removes it), so these rules are
+          inert on the list view and on every other page. The nav selector
+          matches MobileBottomNav's root signature (fixed inset-x-0 bottom-0
+          z-30 md:hidden) plus its aria-label without editing that component
+          (another agent owns it); #page-content is the shell's stable skip-
+          link target — its bottom padding (4rem + safe-area) collapses to the
+          safe-area so the composer extends into the freed strip. */}
+      <style>{`
+        /* v24-C2: hide the mobile bottom nav inside an open thread */
+        body[data-chat-focus="1"] nav[class*="fixed inset-x-0 bottom-0"],
+        body[data-chat-focus="1"] nav[aria-label="التنقل الرئيسي"] { display: none; }
+        @media (max-width: 767px) {
+          body[data-chat-focus="1"] #page-content { padding-bottom: env(safe-area-inset-bottom); }
+        }
+      `}</style>
       <PageHeader
         /* v17-E-F1 (D3): Bell collided with the notifications section
             (same glyph in AdminSidebar/MobileBottomNav/notifications header).
@@ -434,11 +666,18 @@ export default function MessagesPage() {
                   : "ستظهر محادثاتك مع العملاء هنا فور وصول أول رسالة إلى صفحتك"}
               />
             ) : (
-              <div role="list">
+              /* v24-C2 (task 10 / B4): real list semantics — <ul role="list">
+                 + <li> wrappers carry the list/listitem roles (Tailwind
+                 preflight strips ul padding/bullets), the conversation
+                 buttons stay plain buttons (role="listitem" on a <button>
+                 suppressed its native role). */
+              <ul role="list">
                 {conversations.map((conv) => (
-                  <ConvItem key={conv.id} conv={conv} selectedId={selectedId} onSelect={setSelectedId} />
+                  <li key={conv.id}>
+                    <ConvItem conv={conv} selectedId={selectedId} onSelect={openConversation} />
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </div>
@@ -458,14 +697,23 @@ export default function MessagesPage() {
             </div>
           ) : (
             <>
-              {/* Mobile back-to-list (master-detail) */}
+              {/* Mobile back-to-list (master-detail) — v24-C2 (task 1): now
+                  goes through closeThread so the history stack unwinds with
+                  the view (hardware back and the row land on the same list). */}
               <div className="md:hidden flex items-center gap-2 p-2 border-b border-border bg-card/80">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} className="h-9">
+                <Button variant="ghost" size="sm" onClick={closeThread} className="h-9">
                   <DirectionalIcon semanticDirection="forward" className="size-4" /> كل المحادثات
                 </Button>
               </div>
               <div
                 ref={scrollContainerRef}
+                /* v24-C2 (task 9 / B4-P1): the thread is a live log — new
+                    bubbles (5s poll) and optimistic replies are announced
+                    politely to screen readers; role="log" is the semantically
+                    correct "append-only stream" region. */
+                role="log"
+                aria-live="polite"
+                aria-label="الرسائل"
                 className={cn(
                   "flex-1 overflow-y-auto p-4 space-y-3 transition-opacity",
                   /* v23: placeholder threads (previous conversation's bubbles
@@ -503,76 +751,96 @@ export default function MessagesPage() {
                     description="اكتب أول رد من مربع الإرسال في الأسفل لبدء الحوار مع العميل."
                   />
                 ) : (
-                  messages.map((msg, i) => {
-                    // v4 §2.4 — explicit backend flag; the old from?.id === "page"
-                    // comparison never matched → page replies rendered as
-                    // customer bubbles (wrong side + wrong color)
-                    const isPage = msg.is_from_page === true
-                    const hasImage = !!msg.attachment_url && msg.attachment_type === "image"
-                    const isSticker = !!msg.attachment_url && msg.attachment_type === "sticker"
-                    /* v23: optimistic rows are stamped with id "optimistic-*";
-                       they dim while their POST is in flight so pending vs
-                       delivered is distinguishable at a glance. opacity-70 on
-                       the muted page bubble is transient (in-flight only) — the
-                       v14-E5 opacity bans were measured on the tiny primary-
-                       bubble meta text, not full muted bubbles. */
-                    const isOptimistic =
-                      typeof msg.id === "string" && msg.id.startsWith("optimistic-")
-                    return (
-                      <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
-                        <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
-                          isPage ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
-                        } ${isOptimistic && sendMut.isPending ? "opacity-70" : ""}`}>
-                          {/* v4 §4.11 — attachments/stickers are persisted now;
-                              render them instead of an empty text bubble */}
-                          {hasImage && msg.attachment_url && (
-                            // v6 §D — next/image (was raw <img>): explicit
-                            // dimensions reserve layout space (no CLS) and
-                            // h-auto preserves the intrinsic ratio once loaded.
-                            <Image
-                              src={msg.attachment_url}
-                              alt="مرفق"
-                              width={480}
-                              height={360}
-                              unoptimized
-                              className="rounded-lg max-w-full h-auto mb-1"
-                            />
-                          )}
-                          {isSticker && msg.attachment_url && (
-                            <Image
-                              src={msg.attachment_url}
-                              alt="ملصق"
-                              width={96}
-                              height={96}
-                              unoptimized
-                              className="rounded-lg size-24 object-cover mb-1"
-                            />
-                          )}
-                          {/* v14-E5 (D4 H-05 family): opacity-70 on the primary
-                              bubble measured 3.14:1 — inherit the full bubble
-                              text color instead (passes in both bubbles). */}
-                          {msg.postback_payload && !msg.message && (
-                            <p className="text-2xs mb-0.5">اختيار: {msg.postback_payload}</p>
-                          )}
-                          {/* v15-E6 (D5-M7): message bodies are live customer
-                              values — dir="auto" isolates Latin/mixed text
-                              (same pattern as the sender name above). */}
-                          {msg.message && <p dir="auto">{msg.message}</p>}
-                          {/* v14-E5 (D4 H-05 family): opacity-50 measured 2.25:1 on
-                              the primary bubble — same treatment. */}
-                          {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
-                            <p>مرفق غير مدعوم</p>
-                          )}
-                          {/* v14-E5 (D4 H-05): /70 on the primary bubble measured
-                              3.14:1 — full primary-foreground passes
-                              (4.94:1 dark / 9.02:1 light). */}
-                          <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
-                            {msg.created_time ? formatDate(msg.created_time) : ""}
-                          </p>
-                        </div>
+                  <>
+                    {/* v24-C2 (task 7 / A3-M1): windowing affordance — only the
+                        newest 60 bubbles render; this prepends the previous
+                        batch while the layout-effect above anchors the
+                        scroll to the same message. */}
+                    {hiddenCount > 0 && (
+                      <div className="flex justify-center pt-1 pb-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={loadOlderMessages}
+                          aria-label={`تحميل الرسائل الأقدم (${hiddenCount})`}
+                        >
+                          <ChevronUp className="size-3.5" />
+                          تحميل الرسائل الأقدم
+                          <span className="text-2xs text-muted-foreground">({hiddenCount})</span>
+                        </Button>
                       </div>
-                    )
-                  })
+                    )}
+                    {visibleMessages.map((msg, i) => {
+                      // v4 §2.4 — explicit backend flag; the old from?.id === "page"
+                      // comparison never matched → page replies rendered as
+                      // customer bubbles (wrong side + wrong color)
+                      const isPage = msg.is_from_page === true
+                      const hasImage = !!msg.attachment_url && msg.attachment_type === "image"
+                      const isSticker = !!msg.attachment_url && msg.attachment_type === "sticker"
+                      /* v23: optimistic rows are stamped with id "optimistic-*";
+                         they dim while their POST is in flight so pending vs
+                         delivered is distinguishable at a glance. opacity-70 on
+                         the muted page bubble is transient (in-flight only) — the
+                         v14-E5 opacity bans were measured on the tiny primary-
+                         bubble meta text, not full muted bubbles. */
+                      const isOptimistic =
+                        typeof msg.id === "string" && msg.id.startsWith("optimistic-")
+                      return (
+                        <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
+                          <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
+                            isPage ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
+                          } ${isOptimistic && sendMut.isPending ? "opacity-70" : ""}`}>
+                            {/* v4 §4.11 — attachments/stickers are persisted now;
+                                render them instead of an empty text bubble */}
+                            {hasImage && msg.attachment_url && (
+                              // v6 §D — next/image (was raw <img>): explicit
+                              // dimensions reserve layout space (no CLS) and
+                              // h-auto preserves the intrinsic ratio once loaded.
+                              <Image
+                                src={msg.attachment_url}
+                                alt="مرفق"
+                                width={480}
+                                height={360}
+                                unoptimized
+                                className="rounded-lg max-w-full h-auto mb-1"
+                              />
+                            )}
+                            {isSticker && msg.attachment_url && (
+                              <Image
+                                src={msg.attachment_url}
+                                alt="ملصق"
+                                width={96}
+                                height={96}
+                                unoptimized
+                                className="rounded-lg size-24 object-cover mb-1"
+                              />
+                            )}
+                            {/* v14-E5 (D4 H-05 family): opacity-70 on the primary
+                                bubble measured 3.14:1 — inherit the full bubble
+                                text color instead (passes in both bubbles). */}
+                            {msg.postback_payload && !msg.message && (
+                              <p className="text-2xs mb-0.5">اختيار: {msg.postback_payload}</p>
+                            )}
+                            {/* v15-E6 (D5-M7): message bodies are live customer
+                                values — dir="auto" isolates Latin/mixed text
+                                (same pattern as the sender name above). */}
+                            {msg.message && <p dir="auto">{msg.message}</p>}
+                            {/* v14-E5 (D4 H-05 family): opacity-50 measured 2.25:1 on
+                                the primary bubble — same treatment. */}
+                            {!msg.message && !hasImage && !isSticker && !msg.postback_payload && (
+                              <p>مرفق غير مدعوم</p>
+                            )}
+                            {/* v14-E5 (D4 H-05): /70 on the primary bubble measured
+                                3.14:1 — full primary-foreground passes
+                                (4.94:1 dark / 9.02:1 light). */}
+                            <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
+                              {msg.created_time ? formatDate(msg.created_time) : ""}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                      })}
+                  </>
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -596,6 +864,10 @@ export default function MessagesPage() {
                     <Textarea
                       value={replyText}
                       onChange={e => updateDraft(e.target.value)}
+                      /* v24-C2 (task 8): blur flushes the debounced draft
+                          persist — leaving the field mid-compose writes it
+                          immediately instead of waiting for the 400ms timer. */
+                      onBlur={flushDraft}
                       onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="اكتب رداً…"
                       aria-label="نص الرد"

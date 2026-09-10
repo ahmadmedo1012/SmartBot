@@ -69,6 +69,11 @@ export interface ApiUser {
   /** Onboarding wizard completion flag from /api/me (camelCase — see
    *  subscriptionStatus). AuthGuard consumes it to re-show the wizard. */
   onboardingCompleted?: boolean
+  /** v24-C3: platform-admin gate flag from /api/me (v22-D6) — true only for
+   *  the bootstrap/platform admin; every self-registered tenant admin gets
+   *  false/absent. Typed here so the shared ['me'] query consumers (AuthGuard)
+   *  read it without Record<string, unknown> casts. */
+  is_platform_admin?: boolean
 }
 
 // ── Inbox (conversations & messages) ────────────────────────────────────────

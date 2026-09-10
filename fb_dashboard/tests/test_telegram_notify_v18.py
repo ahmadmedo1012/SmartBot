@@ -139,7 +139,9 @@ async def test_telegram_notify_counts_sent_and_preserves_buttons(tg):
         assert call["timeout"] == tg.mod._HTTP_TIMEOUT_S, "10s timeout must be passed to httpx"
     payload = tg.calls[0]["json"]
     assert payload["chat_id"] == ADMIN_A
-    assert payload["parse_mode"] == "Markdown"
+    # v22-D7 (FIX-B): HTML mode replaced Markdown (escaping fix) — the
+    # buttons contract below is unchanged.
+    assert payload["parse_mode"] == "HTML"
     assert payload["reply_markup"]["inline_keyboard"] == [
         [{"text": "🟢 موافقة", "callback_data": "pay_app:33"}],
         [{"text": "🔴 رفض", "callback_data": "pay_rej:33"}],

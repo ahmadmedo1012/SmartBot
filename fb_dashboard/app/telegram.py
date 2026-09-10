@@ -33,6 +33,7 @@ from models import (
     User,
 )
 from sqlalchemy import select, update
+from telegram_bot import escape_user_text
 
 log = logging.getLogger("fb-api")
 
@@ -112,8 +113,40 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                     if user:
                         user.plan_id = sp.plan_id
                         user.subscription_status = "PAID"
+            # v22-D7 (FIX-B #2 — approval parity): the HTTP admin route
+            # (routers/payments/approvals.py:150-166) pushes an in-app
+            # notification to the payment owner on every decision; the
+            # Telegram-button path never did — the owner got the Telegram
+            # verdict but the USER only learned the outcome by re-checking
+            # billing. Mirrored EXACTLY (same status values, same Arabic
+            # title/body) so both approval channels now notify in-app.
+            try:
+                from routers.notifications import push_notification
+                if new_status == "verified":
+                    await push_notification(
+                        db, sp.tenant_id,
+                        title="تم تأكيد الدفع وتفعيل الاشتراك",
+                        body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                        type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+                    )
+                else:
+                    await push_notification(
+                        db, sp.tenant_id,
+                        title="تم رفض طلب الدفع",
+                        body=f"رُفضت دفعة بقيمة {float(sp.amount):.2f} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
+                        type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+                    )
+            except Exception:
+                pass
             await db.commit()
-            msg_text = f"✅ *تم تأكيد الاشتراك* #{payment_id}\nالباقة: {sp.plan_name}\nالمستخدم: {sp.extra_data.get('username','')}"
+            # v22-D7 (FIX-B #1): editMessageText is now parse_mode=HTML —
+            # plan_name/username are user data («مميز_السعر», ``fixb_x``) and
+            # must be escaped, bold via <b>…</b> (was *…* Markdown).
+            msg_text = (
+                f"✅ <b>تم تأكيد الاشتراك</b> #{payment_id}\n"
+                f"الباقة: {escape_user_text(sp.plan_name)}\n"
+                f"المستخدم: {escape_user_text((sp.extra_data or {}).get('username', '') or '')}"
+            )
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"], msg_text)
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
@@ -148,7 +181,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"✅ *تم تأكيد الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
+                                   f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await runner.answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
         else:
@@ -156,7 +189,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"❌ *تم رفض الدفع* #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {pr.username}")
+                                   f"❌ <b>تم رفض الدفع</b> #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await runner.answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}

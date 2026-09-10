@@ -339,14 +339,19 @@ async def _read_behavior(db, tenant_id: int) -> dict:
 
 def _ai_status_sync() -> dict:
     """The probe's sync half — get_ai() is a cached lazy singleton, so this
-    is a cheap in-memory read after the (awaited) refresh in the route."""
+    is a cheap in-memory read after the (awaited) refresh in the route.
+
+    v23: ai_last_error rides along (empty = healthy-or-never-called) so the
+    behavior card can say WHY a configured provider fails (region 403 /
+    quota / model) instead of an inscrutable silent fallback."""
     try:
         from _services import get_ai
         ai = get_ai()
         return {"ai_available": bool(ai.available),
-                "ai_provider": str(ai.provider_name or "none")}
+                "ai_provider": str(ai.provider_name or "none"),
+                "ai_last_error": str(getattr(ai, "last_error", "") or "")}
     except Exception:
-        return {"ai_available": False, "ai_provider": "none"}
+        return {"ai_available": False, "ai_provider": "none", "ai_last_error": ""}
 
 
 @router.get("/api/bot/behavior")

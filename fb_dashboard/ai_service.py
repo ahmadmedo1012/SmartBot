@@ -275,6 +275,13 @@ class AIService:
         self._model = os.getenv("AI_MODEL", "gemini-1.5-flash")
         self._openai_model = os.getenv("OPENAI_MODEL",
             os.getenv("AI_MODEL", "gpt-4o-mini"))
+        # v23: the honest-failure surface — the owner's complaint was «AI
+        # doesn't work» with ZERO indication why. Every provider call now
+        # stashes its last error (short, provider-message only, never a
+        # traceback) so /api/ai/* and /api/bot/behavior can SHOW the reason
+        # (403 region / 401 key / 429 quota / model-not-found) instead of
+        # a silent empty reply.
+        self.last_error: str = ""
 
     def _detect_provider(self) -> str:
         # Check actual import success, not just env var
@@ -409,6 +416,8 @@ class AIService:
                 r = await model.generate_content_async(prompt)
                 return (r.text or "").strip()
         except Exception as e:
+            # v23: honest failure — stash the reason for the surfaces above.
+            self.last_error = str(e)[:200]
             log.error(f"Generate reply error: {e}", exc_info=True)
         return None
 

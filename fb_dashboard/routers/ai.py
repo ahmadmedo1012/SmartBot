@@ -56,7 +56,12 @@ async def ai_generate_reply(
     comment_text: str = Form(...), commenter_name: str = Form(""),
     tone: str = Form(""), keywords: str = Form(""), _=Depends(require_role("editor")),
 ):
-    """Generate one auto-reply with keyword context."""
+    """Generate one auto-reply with keyword context.
+
+    v23: an empty reply now carries the WHY (ai.last_error) — the silent
+    empty-string answer was exactly the owner's «AI doesn't work and I
+    can't tell why» complaint (403 region / quota / model errors were all
+    indistinguishable)."""
     from _services import get_ai, refresh_ai_from_db
     await refresh_ai_from_db()  # v4 §5.20 — keys may come from /admin/settings
     ai = get_ai()
@@ -64,7 +69,10 @@ async def ai_generate_reply(
         raise HTTPException(400, "AI غير مفعل")
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()] if keywords else None
     reply = await ai.generate_reply(comment_text, commenter_name, tone, kw_list)
-    return ok({"reply": reply or ""})
+    out = {"reply": reply or ""}
+    if not reply:
+        out["error"] = ai.last_error or "المزوّد لم يرجع رداً"
+    return ok(out)
 
 
 @router.post("/api/ai/analyze-image")

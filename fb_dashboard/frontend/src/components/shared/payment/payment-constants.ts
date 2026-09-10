@@ -23,6 +23,15 @@ export interface PendingPayment {
 
 // Balance-transfer destination numbers. Admin-editable via SystemConfig
 // (balance_transfer_phone_1 / _2) — these are the pre-config fallbacks.
+// v22 (FIX-C verified — DO NOT "swap"): Libyan operator prefixes are
+// Libyana 092/094 and Al Madar 091/093 (libyana.ly transfer example
+// `*122*092/94XXXXXXX*1000#`; wazi.almadar.ly; en.wikipedia "Telephone
+// numbers in Libya"). So 0910089975 (091) IS the Al Madar number →
+// DEFAULT_MADAR_PHONE, and 0942119637 (094) IS the Libyana number →
+// DEFAULT_LIBYANA_PHONE. The mapping phone_1→مدار / phone_2→ليبيانا
+// (index.tsx) matches the production SystemConfig rows exactly — the
+// W1-D5 "swapped wallets" finding was a false positive (inverted prefix
+// assumption). Pinned by PaymentDialog.test.tsx (wallet mapping regression).
 export const DEFAULT_MADAR_PHONE = "0910089975"
 export const DEFAULT_LIBYANA_PHONE = "0942119637"
 

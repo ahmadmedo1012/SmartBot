@@ -122,6 +122,16 @@ export function PaymentDialog({
       setProvider("bank")
     }
   }, [requiresBank, provider])
+  // v22 (FIX-C verified — DO NOT "swap"): SystemConfig semantics are
+  // balance_transfer_phone_1 = مدار wallet / _2 = ليبيانا wallet (admin
+  // settings labels + plans_config.py allowlist agree). With Libya's real
+  // operator prefixes (Libyana 092/094, Al Madar 091/093), the production
+  // rows (0910089975 / 0942119637) land each number under its TRUE network
+  // tab — 091→مدار, 094→ليبيانا. The USSD templates follow the provider
+  // (*122* = Libyana's official transfer code per libyana.ly, *140* =
+  // Al Madar's services menu per customercare.almadar.ly), so the number
+  // embedded in each quick-transfer code is always network-correct.
+  // Regression-pinned in PaymentDialog.test.tsx ("wallet network mapping").
   const MADAR_PHONE = (config?.balance_transfer_phone_1 as string) || DEFAULT_MADAR_PHONE
   const LIBYANA_PHONE = (config?.balance_transfer_phone_2 as string) || DEFAULT_LIBYANA_PHONE
 

@@ -6,13 +6,63 @@ import logging
 from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from models import Message, Reply, Rule, User
+from models import Message, Reply, Rule, SubscriptionPlan, User
 from sqlalchemy import func, select
 
 from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["rules"])
+
+# v22-D3 (D3-B1): رسالة 403 العربية لحد قواعد الرد — نفس بنية حد الفريق
+# (users.py _TEAM_LIMIT_MSG، سابقة v17-E-B2). N = max_rules للخطة الحالية.
+_RULES_LIMIT_MSG = "حد قواعد الرد لخطتك هو {n} — رقِّ خطتك"
+
+# v22-D3 (D3-B2): كلمات مفتاحية فارغة بعد التقسيم (مثال: " ، ، ") كانت
+# تُخزَّن كقائمة [] = قاعدة catch-all ضمنية ترد على كل تعليق (محرك
+# المطابقة يعتبر [] و["__catch_all__"] مطابقة شاملة). الرفض عند الحدود
+# (API) — عقد الـ catch-all الصريح في المحرك يبقى لعرض مستقبلي مقصود
+# (كلمة "__catch_all__" الصريحة لا تزال مقبولة كوثيقة عمد).
+_KEYWORDS_REQUIRED_MSG = "الكلمات المفتاحية مطلوبة"
+
+
+async def _enforce_max_rules(db, tenant_id: int) -> None:
+    """v22-D3 (D3-B1) — حد قواعد الرد عند الإنشاء (كان بلا حارس إطلاقاً).
+
+    نفس سابقة حد الفريق في users.py (v17-E-B2): القراءة عبر
+    get_plan_limits (نقطة قراءة الخطة الوحيدة D2-H1: plan_id أو خطة
+    Free للمستأجر بلا خطة، مع انحدار الولايات المنتهية إلى Free)، ثم
+    fetch صف الخطة لقراءة max_rules. غياب صفوف الخطط = fail-open بلا
+    حد (عقيدة money-core). العدّ = إجمالي قواعد المستأجر (كلها، وليس
+    المفعّل فقط) — "N قواعد رد" في وعد الخطة يعني حجم كتاب القواعد
+    (نفس دلالة max_team التي تعد كل المقاعد بما فيها المالك).
+    """
+    # استيراد محلي داخل الدالة — نفس سابقة users.py (تحاشي سلسلة استيراد
+    # المحرك الثقيل عند تشغيل الوحدات).
+    from bot_engine.pipeline import get_plan_limits
+    limits = await get_plan_limits(db, tenant_id)
+    if limits is None:
+        return
+    plan = await db.get(SubscriptionPlan, limits["plan_id"])
+    max_rules = getattr(plan, "max_rules", None) if plan is not None else None
+    if max_rules is None:
+        return
+    count = int(await db.scalar(
+        select(func.count()).select_from(Rule).where(Rule.tenant_id == tenant_id)) or 0)
+    if count >= int(max_rules):
+        raise HTTPException(403, _RULES_LIMIT_MSG.format(n=int(max_rules)))
+
+
+def _keywords_list(raw: str) -> list[str]:
+    """v22-D3 (D3-B2) — تقسيم الكلمات + رفض القائمة الفارغة.
+
+    " ، ، " كان يمر التحقق (الفحص القديم على السلسلة الخام) ثم يُخزَّن
+    [] = catch-all ضمني يرد على كل تعليق. الآن: 400 عربية نظيفة.
+    """
+    kw = [k.strip() for k in raw.split(",") if k.strip()]
+    if not kw:
+        raise HTTPException(400, _KEYWORDS_REQUIRED_MSG)
+    return kw
 
 
 class RulePayload:
@@ -124,10 +174,12 @@ async def list_rules(
 async def create_rule(request: Request, db=Depends(get_db),
                       current_user: User = Depends(require_role("editor"))):
     p = await _rule_payload(request, require_priority=True)
+    # v22-D3 (D3-B1): حد قواعد الرد قبل الإنشاء — سابقة get_plan_limits
+    await _enforce_max_rules(db, current_user._tenant_id)
     # v4 §5.14 — priority is finally settable from the API/UI (was write-dead:
     # every rule defaulted to 999 and UI had no field)
     priority = max(1, min(999, p.priority or 999))
-    kw_list = [k.strip() for k in p.keywords.split(",") if k.strip()]
+    kw_list = _keywords_list(p.keywords)
     rule = Rule(name=p.name, keywords=kw_list, reply_template=p.reply_template,
                 description=p.description, dm_template=p.dm_template, priority=priority)
     rule.tenant_id = current_user._tenant_id
@@ -148,7 +200,7 @@ async def update_rule(rule_id: int, request: Request, db=Depends(get_db),
     if not rule:
         raise HTTPException(404, "القاعدة غير موجودة")
     rule.name = p.name
-    rule.keywords = [k.strip() for k in p.keywords.split(",") if k.strip()]
+    rule.keywords = _keywords_list(p.keywords)
     rule.reply_template = p.reply_template
     rule.dm_template = p.dm_template
     rule.description = p.description

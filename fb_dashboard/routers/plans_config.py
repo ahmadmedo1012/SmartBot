@@ -74,8 +74,17 @@ async def list_plans(db=Depends(get_db)):
 # FloatingWhatsApp.
 _PUBLIC_CONFIG_KEYS = frozenset({
     # payment instructions (/subscribe + PaymentDialog)
-    "balance_transfer_phone_1",       # مدار
-    "balance_transfer_phone_2",       # ليبيانا
+    # v22 (FIX-C verified ground truth — DO NOT "swap" these): the key→network
+    # mapping below is CORRECT per Libya's official operator assignments
+    # (Libyana prefixes 092/094 — libyana.ly transfer example `*122*092/94…`;
+    # Al Madar prefixes 091/093 — wazi.almadar.ly "091/093"; en.wikipedia
+    # "Telephone numbers in Libya"). Production rows (SELECT-verified
+    # 2026-09-10): phone_1='0910089975' → Al Madar number under مدار ✓;
+    # phone_2='0942119637' → Libyana number under ليبيانا ✓. The W1-D5
+    # "swapped numbers" finding rested on the inverted prefix assumption
+    # (091=Libyana) — false positive; see docs/reports/v22-rules.md §2.
+    "balance_transfer_phone_1",       # مدار (أرقام المدار 091/093)
+    "balance_transfer_phone_2",       # ليبيانا (أرقام ليبيانا 092/094)
     "bank_transfer_bank_name",
     "bank_transfer_account_number",
     "bank_transfer_iban",
@@ -109,6 +118,9 @@ async def public_config(db=Depends(get_db)):
         if not r.is_secret:
             config[r.key] = r.value
     # env fallbacks — only for keys the admin hasn't set in DB
+    # (same verified key→network mapping as the allowlist above: phone_2 is
+    # the ليبيانا key → LIBYANA_WALLET_PHONE; phone_1 is the مدار key →
+    # MADAR_WALLET_PHONE — 092/094 vs 091/093 prefixes respectively)
     env_fallbacks = {
         "balance_transfer_phone_2": settings.LIBYANA_WALLET_PHONE,   # ليبيانا
         "balance_transfer_phone_1": settings.MADAR_WALLET_PHONE,     # مدار

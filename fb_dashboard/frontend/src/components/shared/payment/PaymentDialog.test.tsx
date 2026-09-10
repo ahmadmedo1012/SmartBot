@@ -121,6 +121,51 @@ describe("PaymentDialog USSD quick-transfer codes", () => {
   })
 })
 
+describe("PaymentDialog wallet network mapping (v22 FIX-C regression)", () => {
+  /* v22 FIX-C: the W1-D5 «wallet numbers swapped» finding was a FALSE
+   * POSITIVE — it assumed Libyana=091 / Al Madar=094, while Libya's real
+   * operator prefixes are Libyana 092/094 and Al Madar 091/093
+   * (libyana.ly official transfer example `*122*092/94XXXXXXX*1000#`;
+   * wazi.almadar.ly "091/093"; en.wikipedia "Telephone numbers in Libya").
+   * /api/config semantics (plans_config.py allowlist + admin settings
+   * labels): balance_transfer_phone_1 = the مدار wallet key,
+   * balance_transfer_phone_2 = the ليبيانا wallet key. Feeding the
+   * PRODUCTION SystemConfig values through that contract, each tab must
+   * render its own network's number — pinning the money path so no future
+   * "fix" can cross the networks. */
+  it("renders the 094… (Libyana) number under ليبيانا and the 091… (Al Madar) number under مدار", async () => {
+    mocks.config = {
+      balance_transfer_phone_1: "0910089975", // production DB value — مدار key (091 = Al Madar)
+      balance_transfer_phone_2: "0942119637", // production DB value — ليبيانا key (094 = Libyana)
+    }
+    renderDialog({ price: 19 })
+
+    // default tab ليبيانا → the 094 number + Libyana's official *122* code
+    expect(screen.getByText("أرسل المبلغ إلى ليبيانا")).toBeInTheDocument()
+    expect(screen.getByText("0942119637")).toBeInTheDocument()
+    expect(screen.getByText("*122*218942119637*19000*1#")).toBeInTheDocument()
+
+    // switch to مدار → the 091 number + Al Madar's official *140* code
+    fireEvent.click(screen.getByRole("button", { name: "مدار" }))
+    await waitFor(() => {
+      expect(screen.getByText("أرسل المبلغ إلى مدار")).toBeInTheDocument()
+    })
+    // the wallet phone card carries the 091 number (exact text node)…
+    expect(screen.getByText("0910089975")).toBeInTheDocument()
+    // …and Al Madar's official *140* quick-transfer code embeds it too
+    expect(screen.getByText("*140*4*1*19*0910089975#")).toBeInTheDocument()
+  })
+
+  it("keeps each network's fallback constant network-correct when /api/config has no rows", () => {
+    mocks.config = {} // no DB rows, no env fallbacks — constants path
+    renderDialog({ price: 19 })
+
+    // ليبيانا default = 0942119637 (Libyana prefix 094) — NOT the 091 number
+    expect(screen.getByText("0942119637")).toBeInTheDocument()
+    expect(screen.queryByText("0910089975")).toBeNull()
+  })
+})
+
 describe("PaymentDialog auto bank-switch above the wallet cap", () => {
   it("locks the wallets, hints at the cap and renders the bank form", async () => {
     mocks.config = { mobile_wallet_cap: "99" } // arrives as a string from /api/config

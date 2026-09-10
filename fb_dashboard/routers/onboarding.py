@@ -25,7 +25,6 @@ import asyncio
 import logging
 
 import httpx
-
 from _crypto import encrypt_token
 from _responses import ok
 from database import get_db

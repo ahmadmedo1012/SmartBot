@@ -205,6 +205,13 @@ async def _automation_sweep(report: dict) -> int:
         core_failures += 1
 
     # ── 2. Refresh fan_count snapshots for connected tenants ──
+    # (v22-D2: the same loop now ALSO records the webhook-subscription
+    # health state per tenant — one cheap GET /{page}/subscribed_apps per
+    # beat per connected tenant, persisted to BotState
+    # ``fb_webhook_subscribed`` by routers.facebook_routes. The W1-D2 root
+    # cause: pages were "connected" with subscribed_apps = [] for MONTHS —
+    # zero events, zero comments — with no persisted signal anywhere. The
+    # beat is the only driver that runs without the owner browsing.)
     try:
         from models import BotState
         async with AsyncSessionLocal() as db:
@@ -240,6 +247,16 @@ async def _automation_sweep(report: dict) -> int:
                         snap.value = str(fans)
                     await db.commit()
                 report["fan_refreshed"] += 1
+                # v22-D2: record the webhook-subscription health verdict —
+                # the LOUD persistent signal (never raises; failures become
+                # state, see record_webhook_subscription_state).
+                try:
+                    from routers.facebook_routes import record_webhook_subscription_state
+                    await record_webhook_subscription_state(
+                        None, tenant_id, fb, source="heartbeat")
+                    report["webhook_checked"] = report.get("webhook_checked", 0) + 1
+                except Exception as e:
+                    report["errors"].append(f"webhook {tenant_id}: {str(e)[:80]}")
             except Exception as e:
                 report["errors"].append(f"fan {tenant_id}: {str(e)[:80]}")
     except Exception as e:

@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from _responses import ok
 from _services import _track_event, decrypt_token, encrypt_token, get_tenant_fb_client
@@ -124,7 +124,7 @@ def _parse_fb_time(value) -> datetime | None:
     except (ValueError, TypeError):
         return None
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        parsed = parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed
 
 
@@ -227,7 +227,15 @@ async def _sync_page_posts(db, tenant_id: int, fb) -> tuple[bool, str]:
 
 async def _sync_ad_accounts(db, tenant_id: int, fb) -> tuple[bool, str]:
     """Best-effort ad-accounts refresh (same contract as _sync_page_posts —
-    v21: (ok, reason) tuple, reason surfaced as sync_error)."""
+    v21: (ok, reason) tuple, reason surfaced as sync_error).
+
+    v22-D2 (W1-D2 live evidence): with a PAGE token ``me/adaccounts`` is a
+    STRUCTURAL 400 #100 (page tokens cannot list user ad accounts — not a
+    permission to grant, not a connectivity failure). The reason carries the
+    ``page_token_unsupported:`` prefix so the route can answer the honest
+    «غير متاح برمز صفحة — يتطلب رمز مستخدم بحساب إعلاني» state instead of
+    the misleading «فشل الاتصال بفيسبوك» (which sent owners chasing token
+    problems that do not exist)."""
     if fb is None:
         reason = ("client_none: FB client resolution returned None "
                   "(decrypt/DB — see server logs)")
@@ -243,6 +251,14 @@ async def _sync_ad_accounts(db, tenant_id: int, fb) -> tuple[bool, str]:
         return False, reason
     if r is None:
         reason = "graph_failed: adaccounts fetch returned no data"
+        return False, reason
+    if r.get("_error"):
+        if r.get("_class") == "page_token_unsupported":
+            # the honest structural verdict — NOT a retryable failure
+            return False, ("page_token_unsupported: me/adaccounts غير متاح "
+                           "برمز صفحة — يتطلب رمز مستخدم بحساب إعلاني "
+                           "(ads_read)")
+        reason = f"graph_error: {str(r.get('_body') or '')[:150]}"
         return False, reason
     accounts = r.get("data", []) or []
     if not accounts:
@@ -394,6 +410,157 @@ async def _tenant_state(db, tenant_id: int, key: str) -> str:
     return (bs.value if bs and bs.value else "")
 
 
+# ── v22-D2: the LOUD webhook-subscription health state ────────────────────
+# W1-D2 root cause: the connect-time ``POST /{page}/subscribed_apps`` fails
+# with 403 #200 (the FB app lacks ``pages_manage_metadata``) and the failure
+# was reduced to a soft Arabic warning riding ONE response field nobody
+# renders — so the page shows «متصل ✓» while Facebook delivers ZERO events
+# (subscribed_apps = [] — live-verified for t23 AND t24): comments/replies/
+# subscribers/unread are permanently 0 and messages appear only when the
+# owner opens a thread. The honest fix is a PERSISTED health signal, written
+# from every path that can see the truth, served to every surface:
+#
+#   BotState key "fb_webhook_subscribed" (the fb_token_check pattern) —
+#   value = {"ts": epoch, "subscribed": bool, "fields": [...],
+#            "error": str, "missing": [perm…], "source": connect|test|heartbeat}
+#
+# Writers: PUT /api/facebook/settings (connect), POST /api/facebook/test,
+# and the heartbeat/piggyback automation sweep (routers/bot.py fan step —
+# one cheap GET per beat per connected tenant). Readers: GET /api/facebook/
+# settings (the connect-page banner), POST /api/facebook/test, and the
+# frontend dashboard banner (WebhookHealthBanner). No new tables — the
+# existing (tenant_id, key) BotState row, upserted.
+FB_WEBHOOK_STATE_KEY = "fb_webhook_subscribed"
+
+
+def _webhook_state_payload(probe: dict, source: str,
+                           missing_extra: list[str] | None = None) -> str:
+    """Probe verdict → the compact JSON persisted in BotState.
+
+    ``error`` is a SHORT CLASS (``http_403`` / ``probe_failed`` / "") — the
+    raw Graph body stays in server logs; payloads stay Arabic-safe (the
+    v17-E-B3 English-leak contract).
+    """
+    missing: list[str] = []
+    if not probe.get("subscribed"):
+        perm = str(probe.get("missing_permission") or "")
+        if perm:
+            missing.append(perm)
+    for perm in missing_extra or []:
+        if perm and perm not in missing:
+            missing.append(perm)
+    return json.dumps({
+        "ts": int(time.time()),
+        "subscribed": bool(probe.get("subscribed")),
+        "fields": list(probe.get("fields") or [])[:12],
+        "error": str(probe.get("error") or "")[:60],
+        "missing": missing,
+        "source": str(source or "")[:24],
+    }, ensure_ascii=False)
+
+
+async def _read_webhook_state(db, tenant_id: int) -> dict:
+    """Stored verdict → dict ({} when never written — "unknown", not False)."""
+    raw = await _tenant_state(db, tenant_id, FB_WEBHOOK_STATE_KEY)
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+async def record_webhook_subscription_state(sf, tenant_id: int, fb,
+                                            *, source: str = "heartbeat",
+                                            subscribe_error: str = "",
+                                            probe_override: dict | None = None) -> dict:
+    """Probe the page's webhook subscription and PERSIST the verdict.
+
+    One cheap ``GET /{page}/subscribed_apps``; the result is upserted into
+    BotState (``fb_webhook_subscribed``) so every surface — connect page,
+    dashboard banner, /api/facebook/test — reads the SAME persisted truth
+    instead of re-deriving it or (worse) never learning it. Never raises:
+    a probe failure is recorded as ``subscribed: false`` + the error text,
+    the callers keep their contracts. Returns the persisted state dict.
+
+    ``sf``: session factory (AsyncSessionLocal by the caller) — injectable
+    so tests drive the write against their own engine.
+    """
+    probe: dict = {"subscribed": False, "fields": [], "error": "",
+                   "error_code": None, "missing_permission": ""}
+    if probe_override is not None:
+        # caller already KNOWS the verdict (e.g. a successful subscribe
+        # POST) — persist it directly, zero extra Graph calls.
+        probe = dict(probe_override)
+    else:
+        checker = getattr(fb, "check_page_subscription", None)
+        if checker is None:
+            # this client cannot probe (a test fake, or an exotic client) —
+            # NO verdict, persist nothing ("unknown" is not "false").
+            return {}
+        try:
+            probe = await checker()
+        except Exception as exc:
+            probe["error"] = f"probe_exc_{type(exc).__name__}"
+            log.warning("webhook health probe failed (tenant=%s): %s",
+                        tenant_id, exc)
+    # ``subscribe_error`` is the failed POST's Graph body — EVIDENCE for the
+    # missing-permission verdict only; its raw text never lands in the state
+    # (the v17-E-B3 no-English-leak contract covers BotState payloads too).
+    missing_extra: list[str] = []
+    if subscribe_error and "pages_manage_metadata" in str(subscribe_error):
+        missing_extra.append("pages_manage_metadata")
+    payload = _webhook_state_payload(probe, source, missing_extra)
+    state = json.loads(payload)
+    try:
+        from database import AsyncSessionLocal as _default_sf
+        factory = sf or _default_sf
+        async with factory() as db:
+            row = await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id == tenant_id,
+                    BotState.key == FB_WEBHOOK_STATE_KEY))
+            bs = row.scalar_one_or_none()
+            if bs:
+                bs.value = payload
+            else:
+                db.add(BotState(tenant_id=tenant_id,
+                                key=FB_WEBHOOK_STATE_KEY, value=payload))
+            await db.commit()
+    except Exception as exc:
+        log.warning("webhook health state persist failed (tenant=%s): %s",
+                    tenant_id, exc)
+    if not state.get("subscribed"):
+        log.warning("FB webhook NOT subscribed (tenant=%s page=%s source=%s "
+                    "error=%r missing=%s) — live events are OFF until the "
+                    "owner grants the missing permission(s) and re-connects",
+                    tenant_id,
+                    str(getattr(fb, "page_id", "") or "")[:40], source,
+                    state.get("error"), state.get("missing"))
+    return state
+
+
+def _classify_subscribe_failure(webhook_result: dict | None) -> str:
+    """(v22-D2) The subscribe POST's Graph error → the REAL Arabic cause.
+
+    The old message blamed «رمز الوصول ومعرف الصفحة» — both wrong for the
+    live 403 #200 (the app lacks pages_manage_metadata; the token and page
+    id are fine). English Graph detail stays in the log; the user gets the
+    true diagnosis + the fix path."""
+    if not webhook_result:
+        return ""
+    body = str(webhook_result.get("body") or "")
+    if webhook_result.get("_error") and "pages_manage_metadata" in body:
+        return ("تعذر تفعيل الويبهوك — تطبيق SmartBot لم تُمنح له صلاحية "
+                "pages_manage_metadata لدى فيسبوك (خطأ 403). منح الصلاحية "
+                "ثم إعادة الربط يفعّل الرسائل والتعليقات اللحظية.")
+    if webhook_result.get("_error"):
+        return ("تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في "
+                "developers.facebook.com ثم أعد الربط")
+    return ""
+
+
 @router.get("/api/facebook/settings")
 async def get_facebook_settings(db=Depends(get_db), current_user: User = Depends(get_current_user)):
     tenant_id = current_user.tenant_id or 0
@@ -415,6 +582,13 @@ async def get_facebook_settings(db=Depends(get_db), current_user: User = Depends
     token_ok = token_check.get("status") in ("", "page_token",
                                              "user_token_exchanged", None)
 
+    # v22-D2: the PERSISTED webhook-subscription verdict (written by the
+    # connect gate / test endpoint / heartbeat sweep). ``subscribed`` is
+    # absent (never probed) vs false (probed, not subscribed) vs true — the
+    # connect page + dashboard banner render the loud «متصل لكن الويبهوك
+    # غير مفعل — البيانات الحية معطلة» state off exactly this field.
+    webhook_state = await _read_webhook_state(db, tenant_id)
+
     return ok(
         {
         "page_id": page_id,
@@ -423,6 +597,11 @@ async def get_facebook_settings(db=Depends(get_db), current_user: User = Depends
         "page_name": page_name,
         "token_check": token_check or None,
         "token_ok": token_ok,
+        # v22-D2 — None (unknown / never probed) is NOT false: only a
+        # probed-and-negative verdict may drive the red banner.
+        "webhook_subscribed": (bool(webhook_state.get("subscribed"))
+                               if webhook_state else None),
+        "webhook_state": webhook_state or None,
     }
     )
 
@@ -530,6 +709,8 @@ async def update_facebook_settings(
                         tenant_id, exc)
 
     webhook_result = None
+    webhook_state: dict = {}
+    subscribe_error_raw = ""
     page_profile = {}
     try:
         if page_id:
@@ -576,9 +757,9 @@ async def update_facebook_settings(
                                 tenant_id, page_id[:40], exc_info=True)
             # Auto-subscribe webhook after saving valid token
             if subscribe and page_id:
+                from fb_client import FBClient
+                tmp = FBClient(access_token, page_id)
                 try:
-                    from fb_client import FBClient
-                    tmp = FBClient(access_token, page_id)
                     webhook_result = await tmp.subscribe_page_webhooks()
                 except Exception as e:
                     # v17-E-B3 (D9 #3): the Graph API's English error text never
@@ -586,7 +767,19 @@ async def update_facebook_settings(
                     # payload carries a fixed Arabic message.
                     log.warning("webhook subscribe failed (tenant=%s page=%s): %s",
                                 tenant_id, page_id[:40], str(e)[:300])
-                    webhook_result = {"error": "تعذر تفعيل الويبهوك — تحقق من رمز الوصول ومعرف الصفحة"}
+                    webhook_result = {"_error": True, "body": str(e)[:300]}
+                if webhook_result and webhook_result.get("_error"):
+                    # v17-E-B3: English Graph detail stays in the LOG; the
+                    # payload carries the REAL Arabic diagnosis (was: the
+                    # raw English body — or the wrong «تحقق من رمز الوصول
+                    # ومعرف الصفحة» for a 403 #200 that is neither).
+                    subscribe_error_raw = str(webhook_result.get("body") or "")
+                    log.warning("webhook subscribe rejected (tenant=%s page=%s): %s",
+                                tenant_id, page_id[:40],
+                                str(webhook_result.get("body") or "")[:300])
+                    real_cause = _classify_subscribe_failure(webhook_result)
+                    webhook_result = ({"error": real_cause} if real_cause else
+                                      {"error": "تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"})
 
         # Store page identity snapshot for instant UI display (no live calls)
         if page_id and page_profile:
@@ -612,6 +805,40 @@ async def update_facebook_settings(
         log.warning("facebook settings write conflict: %s", exc)
         raise HTTPException(409, _page_double_bind_message(exc)) from exc
 
+    # v22-D2 (W1-D2 root-cause companion) — AFTER the settings commit: one
+    # cheap GET /{page}/subscribed_apps is the ground truth (a failed POST
+    # with a pre-existing subscription still counts as subscribed) and the
+    # verdict is PERSISTED in BotState (fb_webhook_subscribed) for the
+    # connect-page banner, the dashboard banner and /api/facebook/test —
+    # the loud signal that replaces the old one-response whisper. Running
+    # after the commit also keeps its own short transaction from sharing
+    # the (still-open) route transaction on the single test connection.
+    # The probe runs ONLY when the subscribe POST produced a Graph-shaped
+    # verdict (success or _error+status): a plain EXCEPTION means the
+    # network itself is unknown — skip (the test endpoint/heartbeat will
+    # classify later) instead of stacking a second doomed Graph call.
+    graph_shaped = bool(
+        webhook_result and (
+            webhook_result.get("success") is not None
+            or isinstance(webhook_result.get("status"), int)))
+    if subscribe and page_id and access_token and graph_shaped:
+        try:
+            if webhook_result.get("success") is True:
+                # the POST succeeded — the page IS subscribed; record it
+                # directly (zero extra Graph calls, no probe race).
+                webhook_state = await record_webhook_subscription_state(
+                    None, tenant_id, None, source="connect",
+                    probe_override={"subscribed": True})
+            else:
+                from fb_client import FBClient
+                probe_client = FBClient(access_token, page_id)
+                webhook_state = await record_webhook_subscription_state(
+                    None, tenant_id, probe_client, source="connect",
+                    subscribe_error=subscribe_error_raw)
+        except Exception as exc:  # never block the save on the probe
+            log.warning("webhook health probe at connect failed (tenant=%s): %s",
+                        tenant_id, exc)
+
     # Evict cached per-tenant FB clients so new credentials take effect immediately
     # (inbox router caches clients in _tenant_fb_cache; BotEngine registry in _services)
     try:
@@ -628,7 +855,13 @@ async def update_facebook_settings(
     _track_event("fb_settings_updated", {"page_id": page_id[:40]}, tenant_id=tenant_id)
     return ok({"ok": True, "webhook": webhook_result or "skipped",
                "page_name": page_profile.get("name", ""),
-               "token_exchanged": token_exchanged})
+               "token_exchanged": token_exchanged,
+               # v22-D2: the subscription verdict the connect page can render
+               # LOUDLY (the old ``webhook`` error field was ignored by every
+               # consumer — the silent-failure root cause).
+               "webhook_subscribed": (bool(webhook_state.get("subscribed"))
+                                      if webhook_state else None),
+               "webhook_state": webhook_state or None})
 
 
 @router.post("/api/facebook/test")
@@ -691,13 +924,22 @@ async def test_facebook_connection(
         fan_count = await client.get_page_fan_count()
         # Check token scopes
         scope_check = await client.check_token_scopes()
+        # v22-D2: the webhook-subscription verdict — probed AND persisted so
+        # every surface (connect page banner, dashboard banner, the next
+        # GET /settings) reads the same truth. The test click is the owner's
+        # natural "what's wrong?" moment: it must answer "متصل لكن الويبهوك
+        # غير مفعل — البيانات الحية معطلة" when that is the live state.
+        webhook_state = await record_webhook_subscription_state(
+            None, tenant_id, client, source="test")
         # v20: connected requires the fan_count READ to succeed (None = the
         # Graph call failed — the old code still answered connected:true)
         connected = fan_count is not None and verdict.get("status") in (
             "page_token", "exchanged")
         result = {"connected": connected, "fan_count": fan_count or 0,
                   "token_type": token_type, "token_exchanged": token_exchanged,
-                  "scopes": scope_check}
+                  "scopes": scope_check,
+                  "webhook_subscribed": bool(webhook_state.get("subscribed")),
+                  "webhook_state": webhook_state}
 
         # v20 self-heal on test: persist the exchanged PAGE token so the
         # user's own test click repairs the stored credentials immediately
@@ -763,6 +1005,22 @@ async def test_facebook_connection(
             result["warning"] = (
                 f"التوكن ينقصه الصلاحيات التالية: {'، '.join(scope_check['missing'])}. "
                 "قد لا تعمل بعض ميزات البوت بشكل كامل."
+            )
+        # v22-D2 (W1-D2): the merged three-critical-permission verdict —
+        # pages_manage_metadata (webhook subscription) + the scopes diff
+        # (pages_read_engagement / pages_read_user_content for page
+        # tokens) — one honest list for the connect-page warning UI.
+        if result["webhook_subscribed"] is False:
+            result["missing_permissions"] = sorted(set(
+                list(scope_check.get("missing") or [])
+                + list(webhook_state.get("missing") or [])))
+            result["webhook_warning"] = (
+                "متصل لكن الويبهوك غير مفعل — البيانات الحية معطلة: لن تصل "
+                "الرسائل والتعليقات لحظياً ولن يعمل الرد التلقائي. "
+                + (f"الصلاحيات الناقصة: {'، '.join(result['missing_permissions'])}. "
+                   if result["missing_permissions"] else "")
+                + "امنح التطبيق الصلاحيات من developers.facebook.com ثم أعد "
+                  "توليد الرمز وأعد الربط من صفحة الربط."
             )
         return ok(result)
     except Exception as e:
@@ -932,6 +1190,11 @@ async def list_ad_accounts(db=Depends(get_db),
     if _sync_allowed(_ADACC_LAST_SYNC, tid, _ADACC_SYNC_SKIP_S):
         sync_attempted = True
         synced, sync_error = await _sync_ad_accounts(db, tid, fb)
+    # v22-D2: the honest ads state — a page token structurally cannot query
+    # me/adaccounts; the UI renders «غير متاح برمز صفحة…» instead of the
+    # misleading «فشل الاتصال بفيسبوك» (empty rows + this flag = honest
+    # degradation, NOT a retry-loop failure).
+    ads_unavailable = sync_error.startswith("page_token_unsupported")
     rows = (await db.execute(
         select(AdAccount).where(AdAccount.tenant_id == tid).order_by(AdAccount.id)
     )).scalars().all()
@@ -948,6 +1211,11 @@ async def list_ad_accounts(db=Depends(get_db),
         # v21: same live-diagnosis surface as /api/posts
         "sync_attempted": sync_attempted,
         "sync_error": sync_error,
+        # v22-D2 — honest structural state for page-token tenants
+        "ads_unavailable": ads_unavailable,
+        "ads_unavailable_reason": (
+            "غير متاح برمز صفحة — يتطلب رمز مستخدم بحساب إعلاني" if ads_unavailable
+            else ""),
     })
 
 

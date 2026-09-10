@@ -38,6 +38,12 @@ class FBClient:
     def __init__(self, token: str, page_id: str):
         self.token = token
         self.page_id = page_id
+        # v22-D2: (status_code, error_text) of the LAST failed ``_get`` — a
+        # side-channel so health probes can CLASSIFY a failure (403 #200 →
+        # missing pages_manage_metadata) through the same ``_get`` seam every
+        # test fake already patches, without a second raw-HTTP code path.
+        # ``None`` after a success; never read for control flow.
+        self._last_get_error: tuple[int, str] | None = None
 
     # ── Low-level HTTP ───────────────────────────────────────────
 
@@ -47,15 +53,49 @@ class FBClient:
         try:
             r = await client.get(f"{API_BASE}/{path}", params=p)
             if r.status_code != 200:
+                # v22-D2: keep the failure class for the health probes
+                self._last_get_error = (r.status_code, r.text[:300])
                 log.error(f"GET {r.status_code} {path[:50]}: {r.text[:150]}")
                 return None
+            self._last_get_error = None
             return r.json()
         except httpx.TimeoutException:
+            self._last_get_error = (0, "timeout")
             log.error(f"GET timeout: {path[:50]}", exc_info=True)
             return None
         except Exception as e:
+            self._last_get_error = (0, str(e)[:300])
             log.error(f"GET err: {e}", exc_info=True)
             return None
+
+    async def _get_with_status(self, path: str,
+                               params: dict | None = None) -> tuple[int, dict | None, str]:
+        """(status_code, parsed_body_or_None, error_text) — v22-D2.
+
+        ``_get`` collapses EVERY non-200 into None, which is the right
+        contract for data fetches but erases the failure CLASS a health
+        probe needs: ``GET /{page}/subscribed_apps`` answering 403 #200
+        («Requires pages_manage_metadata») must be distinguishable from a
+        200 with an EMPTY data list (not subscribed) and from a timeout —
+        the loud health state names the exact missing permission off this
+        distinction (W1-D2 evidence: t23 200 {"data":[]} vs t25 403 #200).
+        """
+        client = await _ensure_client()
+        p = {"access_token": self.token, **(params or {})}
+        try:
+            r = await client.get(f"{API_BASE}/{path}", params=p)
+            if r.status_code != 200:
+                return r.status_code, None, r.text[:300]
+            try:
+                return 200, r.json(), ""
+            except Exception:
+                return 200, None, r.text[:300]
+        except httpx.TimeoutException:
+            log.error(f"GET timeout: {path[:50]}", exc_info=True)
+            return 0, None, "timeout"
+        except Exception as e:
+            log.error(f"GET err: {path[:50]}: {e}", exc_info=True)
+            return 0, None, str(e)[:300]
 
     async def _post(self, path: str, data: dict | None = None,
                     max_retries: int = 3) -> dict | None:
@@ -270,6 +310,18 @@ class FBClient:
         })
         return (r or {}).get("data", [])
 
+    async def get_conversation_meta(self, conversation_id: str) -> dict | None:
+        """One conversation's freshness markers — v22-D2 (thread staleness).
+
+        ``updated_time`` moves on EVERY new message in the thread and
+        ``message_count`` is the total — the cheap GET that lets the inbox
+        decide whether the stored thread is stale (DB 46 vs live 47 — the
+        W1-D2 frozen-thread evidence) WITHOUT re-fetching the messages on
+        every 10s UI poll. ``None`` = probe failed (non-fatal, caller keeps
+        the DB copy)."""
+        return await self._get(
+            f"{conversation_id}", {"fields": "updated_time,message_count"})
+
     async def get_conversation_messages(self, conversation_id: str,
                                         limit: int = 50) -> list:
         r = await self._get(f"{conversation_id}/messages", {
@@ -439,9 +491,32 @@ class FBClient:
 
     async def get_ad_accounts_raw(self) -> dict | None:
         """v19 Step 2: RAW ``_get`` payload — None = Graph failure (see
-        get_page_posts_raw for the empty-vs-failed rationale)."""
-        return await self._get("me/adaccounts",
-                               {"fields": "id,name,account_status,currency,amount_spent,balance"})
+        get_page_posts_raw for the empty-vs-failed rationale).
+
+        v22-D2 (W1-D2 live evidence): with a PAGE token ``me/adaccounts``
+        answers 400 #100 «Tried accessing nonexisting field (adaccounts)» —
+        a STRUCTURAL token-type limitation, not a permission to grant and
+        not a connectivity failure. The old None-return made every ads UI
+        render «فشل الاتصال بفيسبوك» (wrong diagnosis, wrong advice). A 4xx
+        now answers a shaped ``{"_error": True, "_status": …, "_class":
+        "page_token_unsupported"|"graph_error", "_body": …, "data": []}``
+        payload (the ``_post`` convention) so the route can degrade
+        HONESTLY: «غير متاح برمز صفحة — يتطلب رمز مستخدم بحساب إعلاني»."""
+        status, body, err_text = await self._get_with_status(
+            "me/adaccounts",
+            {"fields": "id,name,account_status,currency,amount_spent,balance"})
+        if status == 200 and body is not None:
+            return body
+        if 400 <= status < 500:
+            structural = "adaccounts" in err_text and (
+                "nonexisting field" in err_text or "(#100)" in err_text)
+            return {
+                "_error": True, "_status": status,
+                "_class": ("page_token_unsupported" if structural
+                           else "graph_error"),
+                "_body": err_text[:200], "data": [],
+            }
+        return None  # 5xx / network / timeout — the honest-None contract
 
     async def get_campaigns(self, ad_account_id: str, limit: int = 20) -> list:
         fields = "id,name,status,objective,created_time,adsets{name,status,daily_budget,lifetime_budget,start_time,end_time}"
@@ -508,6 +583,52 @@ class FBClient:
         else:
             log.warning(f"Webhook subscribe returned unexpected: {str(result)[:200]}")
         return result
+
+    async def check_page_subscription(self) -> dict:
+        """THE webhook health probe — v22-D2 (W1-D2 root-cause companion).
+
+        ``GET /{page}/subscribed_apps`` is the single source of truth for
+        "will Facebook deliver ANY event to this app": ``200 {"data": []}``
+        means definitively NOT subscribed (the live t23/t24 evidence —
+        zero events, zero comments, zero subscribers forever), 200 with
+        data means subscribed, 403 #200 means the app lacks
+        ``pages_manage_metadata`` (the t25 evidence — the exact permission
+        whose absence also fails the connect-time POST).
+
+        Goes through ``self._get`` (the seam every test fake patches — a
+        fake returning None simply means "probe failed, unclassified",
+        never a second network path). Returns a plain dict, NEVER raises:
+          {"subscribed": bool, "fields": [str], "error": str(class-only),
+           "error_code": int|None, "missing_permission": ""}
+        The ``error`` value is a SHORT CLASS (``http_403``/``probe_failed``)
+        — the raw Graph body stays in the server log, never in payloads.
+        """
+        out = {"subscribed": False, "fields": [], "error": "",
+               "error_code": None, "missing_permission": ""}
+        r = await self._get(f"{self.page_id}/subscribed_apps",
+                            {"fields": "subscribed_fields"})
+        if r is not None:
+            data = r.get("data") or []
+            fields: list[str] = []
+            for app in data:
+                fields.extend(str(f) for f in (app.get("subscribed_fields") or []) if f)
+            out["subscribed"] = bool(data)
+            out["fields"] = sorted(set(fields))
+            return out
+        status, text = (getattr(self, "_last_get_error", None) or (0, ""))
+        out["error"] = f"http_{status}" if status else "probe_failed"
+        out["error_code"] = status or None
+        try:
+            err = (json.loads(text) or {}).get("error") or {}
+            if err.get("code") is not None:
+                out["error_code"] = int(err.get("code"))
+            msg = str(err.get("message") or "")
+            if "pages_manage_metadata" in msg or (
+                    out["error_code"] == 200 and status == 403):
+                out["missing_permission"] = "pages_manage_metadata"
+        except Exception:
+            pass
+        return out
 
     async def check_token_scopes(self) -> dict:
         """Check which Facebook permissions the current token has.

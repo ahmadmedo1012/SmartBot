@@ -3,6 +3,7 @@ from __future__ import annotations
 
 """Inbox & conversations routes."""
 import logging
+from datetime import UTC
 
 from _responses import ok
 from _services import _track_event, get_tenant_fb_client
@@ -11,7 +12,8 @@ from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from models import Conversation, ConversationLabel, ConversationTag, Message, User
 from sqlalchemy import and_, func, select
-from sqlalchemy.exc import IntegrityError, OperationalError as _OpErr
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import OperationalError as _OpErr
 
 from routers.auth import get_current_user, require_role
 
@@ -145,7 +147,6 @@ async def inbox_list(
     # محاولة واحدة بعد 300ms تحمي وضع التطوير المحلي والبطارية.
     import asyncio as _asyncio
 
-    from sqlalchemy.exc import OperationalError as _OpErr
     rows = None
     for _attempt in range(2):
         try:
@@ -275,7 +276,7 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
     # dedup by (tenant_id, fb_message_id); the next open serves instantly
     # from the DB and survives a Graph outage.
     if messages and row is not None:
-        from datetime import datetime as _dt, timezone as _tz
+        from datetime import datetime as _dt
         try:
             async with AsyncSessionLocal() as s2:
                 mids = [str(m.get("id") or "") for m in messages if m.get("id")]
@@ -308,7 +309,7 @@ async def inbox_messages(conversation_id: str, current_user: User = Depends(get_
                             # 500 on the thread endpoint in production).
                             # Normalize to naive-UTC like every other path.
                             if created is not None and created.tzinfo is not None:
-                                created = created.astimezone(_tz.utc).replace(
+                                created = created.astimezone(UTC).replace(
                                     tzinfo=None)
                         except ValueError:
                             created = None

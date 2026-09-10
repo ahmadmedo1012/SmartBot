@@ -27,10 +27,12 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
   href: "",
   replace: vi.fn(),
+  navReplace: vi.fn(),
 }))
 
 vi.mock("next/navigation", () => ({
   usePathname: (): string => "/dashboard/messages",
+  useRouter: (): { replace: (to: string) => void } => ({ replace: mocks.navReplace }),
 }))
 
 /* dynamic() targets — mocked at module level so no real chunk loads. */
@@ -100,6 +102,7 @@ function stubLocation(pathname = "/dashboard/messages") {
 beforeEach(() => {
   mocks.toast.mockClear()
   mocks.replace.mockClear()
+  mocks.navReplace.mockClear()
   // clean csrf cookie jar between cases (jsdom Set-Cookie semantics)
   document.cookie = "csrf_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT"
 })
@@ -225,5 +228,85 @@ describe("AuthGuard guard-level 401 (session expired on load)", () => {
       { timeout: 4000 },
     )
     expect(screen.queryByText("dashboard-content")).toBeNull()
+  })
+})
+
+describe("AuthGuard requirePlatformAdmin (v22-D6 — /admin shell gate)", () => {
+  it("keeps a platform admin (is_platform_admin=true) inside the shell", async () => {
+    stubFetch({
+      "GET /api/me": () =>
+        jsonRes({
+          success: true,
+          data: {
+            user: { id: 1, role: "admin", tenant_id: 5, is_platform_admin: true, onboardingCompleted: true },
+          },
+        }),
+    })
+    stubLocation()
+
+    render(
+      <AuthGuard requiredRole="admin" requirePlatformAdmin>
+        <div>admin-content</div>
+      </AuthGuard>,
+    )
+
+    expect(await screen.findByText("admin-content")).toBeInTheDocument()
+    expect(mocks.navReplace).not.toHaveBeenCalled()
+    expect(mocks.toast).not.toHaveBeenCalled()
+  })
+
+  it("redirects a tenant admin (is_platform_admin=false) to /dashboard with an Arabic toast and never renders the children", async () => {
+    stubFetch({
+      "GET /api/me": () =>
+        jsonRes({
+          success: true,
+          data: {
+            user: { id: 9, role: "admin", tenant_id: 77, is_platform_admin: false, onboardingCompleted: true },
+          },
+        }),
+    })
+    stubLocation()
+
+    render(
+      <AuthGuard requiredRole="admin" requirePlatformAdmin>
+        <div>admin-content</div>
+      </AuthGuard>,
+    )
+
+    await waitFor(() => {
+      expect(mocks.navReplace).toHaveBeenCalledWith("/dashboard")
+    })
+    expect(mocks.toast).toHaveBeenCalledWith(
+      "error",
+      "لوحة الإدارة متاحة لمسؤول المنصة فقط",
+      "تم إعادتك إلى لوحة التحكم — هذه المنطقة تتطلب صلاحيات مسؤول المنصة",
+    )
+    // the shell never mounted its (403-everything) children — UX gate, the
+    // API 403s remain the security layer (documented in admin/layout.tsx)
+    expect(screen.queryByText("admin-content")).toBeNull()
+  })
+
+  it("treats a missing is_platform_admin key as not-platform-admin (fail-closed guard, server stays the enforcer)", async () => {
+    stubFetch({
+      "GET /api/me": () =>
+        jsonRes({
+          success: true,
+          data: {
+            user: { id: 3, role: "admin", tenant_id: 5, onboardingCompleted: true },
+          },
+        }),
+    })
+    stubLocation()
+
+    render(
+      <AuthGuard requiredRole="admin" requirePlatformAdmin>
+        <div>admin-content</div>
+      </AuthGuard>,
+    )
+
+    await waitFor(() => {
+      expect(mocks.navReplace).toHaveBeenCalledWith("/dashboard")
+    })
+    expect(screen.queryByText("admin-content")).toBeNull()
   })
 })

@@ -22,7 +22,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // (telegram/settings/approvals) fire brandedToast on every mutation.
   return (
     <QueryProvider>
-      <AuthGuard requiredRole="admin">
+      {/* v22-D6 (W1-D6 #7-م1): requirePlatformAdmin — every self-registered
+          user is role="admin" of their own tenant, so requiredRole="admin"
+          alone let the whole /admin shell render for them (empty own-tenant
+          queue + honest 403 cards). The /api/me boolean now gates the shell
+          (UX only — the API 403s behind require_platform_admin remain the
+          real security layer) with an Arabic toast + dashboard redirect. */}
+      <AuthGuard requiredRole="admin" requirePlatformAdmin>
         {/* v13-D9-K4: admin routes render their own page shells without the
             public pages' #page-content span — the root layout's skip link
             resolved to nothing here. */}

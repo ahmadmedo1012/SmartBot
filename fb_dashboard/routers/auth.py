@@ -344,6 +344,14 @@ async def auth_me(current_user: User = Depends(get_current_user), db=Depends(get
             "name": current_user.email or current_user.username,
             "role": current_user.role, "tenant_id": current_user.tenant_id,
             "email": current_user.email, "phone": current_user.phone or "",
+            # v22-D6 (W1-D6 #7-م1): non-sensitive boolean so the frontend can
+            # keep the /admin shell out of tenant admins' way (UX only — the
+            # real security layer stays the API 403s behind
+            # require_platform_admin; a spoofed client value grants nothing).
+            # Derived with the SAME helper those guards use (tenant 0/None or
+            # the delegated flag), so the guard can never disagree with the
+            # enforcement it mirrors.
+            "is_platform_admin": is_platform_admin(current_user),
             "subscriptionStatus": plan,
             **sub,
             "permissions": [],

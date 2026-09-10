@@ -9,7 +9,10 @@ Full system (plan §4.3):
   POST /api/support/tickets/{id}/reply     → owner or admin replies
   POST /api/support/tickets/{id}/close     → admin closes (owner can too)
   GET  /api/admin/support/tickets          → v16-E2: platform-admin cross-tenant queue
+  POST /api/admin/support/tickets/{id}/close  → v17-E-F8: platform close + notify
+  POST /api/admin/support/tickets/{id}/reply  → v22-D10: platform reply + notify
 Priorities: low | medium | high | urgent.
+Statuses: open | pending (admin replied, awaiting customer) | closed.
 """
 from __future__ import annotations
 
@@ -17,7 +20,7 @@ import logging
 import os
 
 from _responses import ok
-from _utils import iso_z
+from _utils import iso_z, utcnow
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from models import SupportTicket, SupportTicketReply, Tenant, User
@@ -31,6 +34,17 @@ log = logging.getLogger("fb-api")
 router = APIRouter(prefix="/api/support", tags=["support"])
 
 _PRIORITIES = {"low", "medium", "high", "urgent"}
+
+# ── v22-D10 (W1-D10 BUG-3/BUG-5): حدود صحّة التذاكر ──────────────────────────
+# السقوف مطابقة لأعمدة النموذج (subject String(200))؛ الردود نص Text بلا سقف
+# DB-side فالحد مطبّق في المسار. 422 (لا 400) لأنها أخطاء حجم حمولة صريحة
+# قبل أي معالجة — عقد واضح بدل القصّ الصامت للموضوع (200 حرفاً مخزّنة
+# بلا علم المستخدم) والتخزين غير المحدود للنص (جسم 800 حرف خُزّن كاملاً).
+_SUBJECT_MAX_CHARS = 200    # models.SupportTicket.subject String(200)
+_BODY_MAX_CHARS = 2000
+_REPLY_MAX_CHARS = 2000
+_TICKET_RATE_MAX = 10       # per user per hour (BUG-3: كان بلا أي حد)
+_TICKET_RATE_WINDOW = 3600
 
 # v10-A3: PUBLIC route with NO auth — an explicit allowlist (same pattern as
 # /api/config, v8-A1) is the only safe read. The previous "every non-secret
@@ -90,7 +104,22 @@ async def create_ticket(
     db=Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Create a support ticket (plan §4.3 step 1) — notifies Telegram admins."""
+    """Create a support ticket (plan §4.3 step 1) — notifies Telegram admins.
+
+    v22-D10 (W1-D10 BUG-3/BUG-5): rate-limited per user (10/hour — a script
+    could previously flood the table AND the owner's single Telegram
+    recipient, one message per ticket) with an Arabic 429, and length caps
+    (subject ≤ 200, body ≤ 2000) answer honest 422s instead of silently
+    truncating the subject. The rate check runs BEFORE validation on
+    purpose (same order as register/login): invalid payloads still count
+    toward the window, so a flood of garbage can't bypass the limit.
+    """
+    from _rate_limit import check_rate_limit
+    if not await check_rate_limit(db, f"support:{current_user.id}",
+                                  max_attempts=_TICKET_RATE_MAX,
+                                  window_seconds=_TICKET_RATE_WINDOW):
+        raise HTTPException(429, "أنشأت عددًا كبيرًا من التذاكر — حاول بعد ساعة")
+
     subject = (payload.get("subject") or "بدون عنوان").strip()
     body = (payload.get("message") or payload.get("body") or "").strip()
     email = (payload.get("email") or current_user.email or "").strip()
@@ -98,6 +127,10 @@ async def create_ticket(
 
     if len(body) < 10:
         raise HTTPException(400, "الرسالة يجب أن تكون 10 أحرف على الأقل")
+    if len(body) > _BODY_MAX_CHARS:
+        raise HTTPException(422, f"الرسالة يجب ألا تتجاوز {_BODY_MAX_CHARS} حرفاً")
+    if len(subject) > _SUBJECT_MAX_CHARS:
+        raise HTTPException(422, f"الموضوع يجب ألا يتجاوز {_SUBJECT_MAX_CHARS} حرفاً")
     if priority not in _PRIORITIES:
         raise HTTPException(400, f"الأولوية يجب أن تكون إحدى: {', '.join(sorted(_PRIORITIES))}")
 
@@ -105,7 +138,7 @@ async def create_ticket(
         tenant_id=current_user._tenant_id,
         user_id=current_user.id,
         email=email,
-        subject=subject[:200],
+        subject=subject,
         body=body,
         priority=priority,
         status="open",
@@ -210,19 +243,30 @@ async def reply_ticket(
     db=Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Reply on a ticket (plan §4.3 steps 2-3): owner replies, admin replies too."""
+    """Reply on a ticket (plan §4.3 steps 2-3): owner replies, admin replies too.
+
+    v22-D10 (W1-D10 BUG-4): الرد على تذكرة مغلقة = 400 صريح. الكود القديم
+    كان يعيد فتح التذكرة بصمت (closed → open) بينما الواجهة تخفي مربع
+    الرد وتعد المستخدم بـ«أرسل طلباً جديداً» — الآن الـ API يقول نفس
+    الحقيقة. العقد: المغلقة غير قابلة للتعديل؛ التذكرة الجديدة هي مسار
+    العودة (لا توجد حالة «إعادة فتح»). حدود الرد كحدود الإنشاء (BUG-5).
+    """
     message = (payload.get("message") or "").strip()
     if len(message) < 2:
         raise HTTPException(400, "الرسالة مطلوبة")
+    if len(message) > _REPLY_MAX_CHARS:
+        raise HTTPException(422, f"رسالة الرد يجب ألا تتجاوز {_REPLY_MAX_CHARS} حرفاً")
     t = await db.get(SupportTicket, ticket_id)
     if not t or t.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "التذكرة غير موجودة")
+    if t.status == "closed":
+        raise HTTPException(400, "التذكرة مغلقة — افتح تذكرة جديدة")
 
     is_admin = current_user.role == "admin" and (t.user_id != current_user.id)
     r = SupportTicketReply(ticket_id=t.id, user_id=current_user.id, is_admin=is_admin, message=message)
     db.add(r)
     t.status = "pending" if is_admin else "open"   # admin replied → awaiting user
-    t.updated_at = __import__("datetime").datetime.utcnow()
+    t.updated_at = utcnow()
     await db.commit()
 
     # in-app notification for the ticket owner
@@ -248,7 +292,7 @@ async def close_ticket(
     if not t or t.tenant_id != current_user._tenant_id:
         raise HTTPException(404, "التذكرة غير موجودة")
     t.status = "closed"
-    t.updated_at = __import__("datetime").datetime.utcnow()
+    t.updated_at = utcnow()
     if t.user_id:
         await push_notification(
             db, t.tenant_id,
@@ -305,6 +349,25 @@ async def admin_queue_support_tickets(
         list_q.order_by(desc(SupportTicket.created_at))
         .offset((page - 1) * limit).limit(limit)
     )
+    page_rows = rows.all()
+    # v22-D10 (W1-D10 BUG-1/BUG-6): the thread rides on every queue row —
+    # the admin console renders the full conversation (the customer's
+    # replies included) instead of answering blind from the subject alone.
+    # One IN() query for the whole page, ordered by created_at within each
+    # ticket — additive to the contract (existing keys untouched).
+    replies_by_ticket: dict[int, list[dict]] = {}
+    ticket_ids = [t.id for t, _name in page_rows]
+    if ticket_ids:
+        reply_rows = await db.execute(
+            select(SupportTicketReply)
+            .where(SupportTicketReply.ticket_id.in_(ticket_ids))
+            .order_by(SupportTicketReply.created_at, SupportTicketReply.id)
+        )
+        for rep in reply_rows.scalars().all():
+            replies_by_ticket.setdefault(rep.ticket_id, []).append({
+                "id": rep.id, "message": rep.message, "is_admin": rep.is_admin,
+                "created_at": iso_z(rep.created_at),
+            })
     items = [{
         "id": t.id,
         "tenant_id": t.tenant_id,
@@ -317,7 +380,8 @@ async def admin_queue_support_tickets(
         "status": t.status,
         "created_at": iso_z(t.created_at),
         "updated_at": iso_z(t.updated_at),
-    } for t, tenant_name in rows.all()]
+        "replies": replies_by_ticket.get(t.id, []),
+    } for t, tenant_name in page_rows]
     return ok({"items": items, "total": total, "page": page})
 
 
@@ -340,7 +404,7 @@ async def admin_close_support_ticket(
     if t.status == "closed":
         return ok({"id": t.id, "status": t.status})
     t.status = "closed"
-    t.updated_at = __import__("datetime").datetime.utcnow()
+    t.updated_at = utcnow()
     if t.user_id:
         await push_notification(
             db, t.tenant_id,
@@ -350,6 +414,59 @@ async def admin_close_support_ticket(
         )
     await db.commit()
     return ok({"id": t.id, "status": t.status})
+
+
+# ── v22-D10 (W1-D10 BUG-1): رد فريق الدعم من طابور المنصة ────────────────────
+# الحلقة كانت باتجاه واحد في الإنتاج: مسار الرد الوحيد محصور بالمستأجر
+# (لمدير المنصة 404 — مثبت في v17-E-F8)، ولا مربع رد في /admin/support —
+# فالوعد «سيتواصل معك فريق الدعم خلال 24 ساعة» كان مساراً ميتاً. هذا
+# المسار يكمل الصورة بنفس نمط الإغلاق v17-E-F8 (require_platform_admin
+# عابر للمستأجرين): رد is_admin=true + حالة pending «بانتظار العميل» +
+# إشعار داخل التطبيق لصاحب التذكرة (نفس عقد مسار المستأجر: المرآة
+# الكاملة لـ approvals.py push_notification).
+# CSRF يسري عليه (مسار تحوّل عادي — ليس في قائمة الإعفاء) — الواجهة
+# ترسل عبر apiFetch الذي يرفع X-CSRF-Token تلقائياً.
+# العقد المعلن للتذكرة المغلقة: 400 (مثل مسار المستأجر — المغلقة غير
+# قابلة للرد؛ التذكرة الجديدة هي مسار العودة).
+@platform_admin_router.post("/api/admin/support/tickets/{ticket_id}/reply")
+async def admin_reply_support_ticket(
+    ticket_id: int,
+    payload: dict = Body(...),
+    db=Depends(get_db),
+    current_user: User = Depends(require_platform_admin),
+):
+    message = (payload.get("message") or "").strip()
+    if len(message) < 2:
+        raise HTTPException(400, "الرسالة مطلوبة")
+    if len(message) > _REPLY_MAX_CHARS:
+        raise HTTPException(422, f"رسالة الرد يجب ألا تتجاوز {_REPLY_MAX_CHARS} حرفاً")
+    t = await db.get(SupportTicket, ticket_id)
+    if not t:
+        raise HTTPException(404, "التذكرة غير موجودة")
+    if t.status == "closed":
+        raise HTTPException(400, "التذكرة مغلقة — افتح تذكرة جديدة")
+
+    r = SupportTicketReply(ticket_id=t.id, user_id=current_user.id,
+                           is_admin=True, message=message)
+    db.add(r)
+    t.status = "pending"   # support replied → awaiting the customer
+    t.updated_at = utcnow()
+    await db.commit()
+
+    # in-app notification for the ticket owner (mirror of the tenant route's
+    # is_admin branch: push AFTER the reply is durable, then commit again)
+    if t.user_id:
+        await push_notification(
+            db, t.tenant_id,
+            title=f"رد الدعم على تذكرتك #{t.id}",
+            body=message[:200], type_="support", link="/dashboard/support",
+            user_id=t.user_id,
+        )
+        await db.commit()
+    return ok({
+        "id": r.id, "is_admin": True, "status": t.status,
+        "message": r.message, "created_at": iso_z(r.created_at),
+    })
 
 
 router.routes.extend(platform_admin_router.routes)

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { unwrapApi } from "@/lib/api"
 import { apiFetch } from "@/lib/csrf-client"
@@ -33,9 +33,15 @@ const TOUR_SEEN_KEY = "smartbot-tour-completed"
 export default function AuthGuard({
   children,
   requiredRole,
+  requirePlatformAdmin,
 }: {
   children: React.ReactNode
   requiredRole?: string
+  /** v22-D6 (W1-D6 #7-م1): /admin shell gate — UX only. The API 403s
+   * behind require_platform_admin stay the real security layer; this just
+   * keeps tenant admins (every self-registered user has role="admin")
+   * out of a shell whose pages all 403 for them anyway. */
+  requirePlatformAdmin?: boolean
 }) {
   const [authorized, setAuthorized] = useState(false)
   const [userData, setUserData] = useState<Record<string, unknown> | null>(null)
@@ -43,6 +49,7 @@ export default function AuthGuard({
   // Plan §5.2: interactive dashboard tour (react-joyride) right after the wizard
   const [showTour, setShowTour] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const attempts = useRef(0)
   const onboardingChecked = useRef(false)
 
@@ -73,6 +80,18 @@ export default function AuthGuard({
           if (requiredRole && role !== requiredRole) {
             return void (window.location.href = "/dashboard")
           }
+          // v22-D6: soft redirect (router.replace) so the toast survives the
+          // layout swap — sonner's state is global and the dashboard layout's
+          // AppToaster re-renders it after the navigation. A hard
+          // window.location reload would kill the toast before paint.
+          if (requirePlatformAdmin && user.is_platform_admin !== true) {
+            premiumToast(
+              "error",
+              "لوحة الإدارة متاحة لمسؤول المنصة فقط",
+              "تم إعادتك إلى لوحة التحكم — هذه المنطقة تتطلب صلاحيات مسؤول المنصة",
+            )
+            return void router.replace("/dashboard")
+          }
           setUserData({ ...user, role })
           // Check onboarding status: show wizard if not completed
           const completed = user.onboardingCompleted ?? true
@@ -99,7 +118,7 @@ export default function AuthGuard({
       ctrl.abort()
       if (retryTimer !== null) clearTimeout(retryTimer)
     }
-  }, [pathname, requiredRole])
+  }, [pathname, requiredRole, requirePlatformAdmin, router])
 
   if (!authorized) {
     return (

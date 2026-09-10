@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, RefreshCw, Inbox, CheckCircle2 } from "lucide-react"
+import { AlertTriangle, RefreshCw, Inbox, CheckCircle2, ChevronLeft, Send } from "lucide-react"
 import Link from "next/link"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { SectionContainer } from "@/components/ui/SectionContainer"
@@ -24,9 +24,19 @@ import "@/components/shared/enter-motion.css"
  * v16-E3 (plan §1-E3-م6) — platform-admin support ticket queue.
  *
  * Consumes the E2 contract GET /api/admin/support/tickets →
- * ok({items: [{id, subject, status, priority, tenant_name, created_at,
- * email}], total, page}) — the owner's live alerting channel across ALL
- * tenants (Telegram notifications stay the optional push channel).
+ * ok({items: [{id, subject, body, replies, status, priority, tenant_name,
+ * created_at, email}], total, page}) — the owner's live alerting channel
+ * across ALL tenants (Telegram notifications stay the optional push channel).
+ *
+ * v22-D10 (W1-D10 BUG-1 + BUG-6): the loop is finally TWO-WAY. The queue row
+ * used to show the subject only (body hidden despite the API returning it)
+ * with a close button and NO reply box — the "سيتواصل معك فريق الدعم خلال
+ * 24 ساعة" promise was a dead path. Rows are now expandable (grid-rows
+ * disclosure, dashboard/support pattern): the full body, the whole thread
+ * (replies[] rides on each queue row since v22-D10) and a reply box wired to
+ * POST /api/admin/support/tickets/{id}/reply (platform-admin gated, CSRF via
+ * apiFetch, Arabic errors surface as toasts). Reply → status=pending
+ * «بانتظار العميل» + in-app notification for the ticket owner.
  *
  * Statuses/priorities mirror routers/support.py: status open | pending
  * (admin replied, awaiting the customer) | closed; priority low | medium |
@@ -38,14 +48,33 @@ import "@/components/shared/enter-motion.css"
  * NO dual-shape guards anywhere.
  */
 
+interface AdminSupportReply {
+  id: number
+  message?: string
+  is_admin?: boolean
+  created_at?: string | null
+}
+
 interface AdminSupportTicket {
   id: number
   subject: string
+  body: string
   status: string
   priority: string
   tenant_name: string
   created_at: string
   email: string
+  /** v22-D10: thread rides on the queue row — the admin answers with full
+   * context (the customer's replies included), not from the subject alone. */
+  replies?: AdminSupportReply[]
+}
+
+interface AdminReplyResult {
+  id: number
+  is_admin: boolean
+  status: string
+  message: string
+  created_at?: string | null
 }
 
 type TicketsPage = Paginated<AdminSupportTicket>
@@ -76,6 +105,8 @@ const PRIORITY_CONFIG: Record<
 export default function AdminSupportPage() {
   const [status, setStatus] = useState("all")
   const [page, setPage] = useState(1)
+  const [openTicketId, setOpenTicketId] = useState<number | null>(null)
+  const [replyText, setReplyText] = useState("")
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -124,6 +155,25 @@ export default function AdminSupportPage() {
     onError: (e: Error) => brandedToast.error(e.message || "فشل إغلاق التذكرة"),
   })
 
+  /* v22-D10 (W1-D10 BUG-1): رد فريق الدعم — POST
+   * /api/admin/support/tickets/{id}/reply (require_platform_admin عابر
+   * للمستأجرين؛ مسار المستأجر يرد 404 لمدير المنصة). الرد يخطر صاحب
+   * التذكرة داخل التطبيق ويقلب الحالة إلى pending «بانتظار العميل».
+   * apiFetch يرفع X-CSRF-Token تلقائياً (مسار تحوّل عادي — ليس معفى). */
+  const replyMut = useMutation({
+    mutationFn: (vars: { id: number; message: string }) =>
+      apiFetch(`/api/admin/support/tickets/${vars.id}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ message: vars.message }),
+      }).then(unwrapApi<AdminReplyResult>),
+    onSuccess: (d, vars) => {
+      brandedToast.success(`تم إرسال رد الدعم على التذكرة #${formatNumber(vars.id)}`)
+      setReplyText("")
+      queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] })
+    },
+    onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال الرد"),
+  })
+
   return (
     <SectionContainer className="min-h-screen py-8">
       {/* Visually-hidden page heading — SectionHeader renders the visible title
@@ -131,7 +181,7 @@ export default function AdminSupportPage() {
       <h1 className="sr-only">طابور تذاكر الدعم</h1>
       <SectionHeader
         title="تذاكر الدعم"
-        description="كل تذاكر المستأجرين عبر المنصة في مكان واحد — قناة اطلاع حية لمالك المنصة"
+        description="كل تذاكر المستأجرين عبر المنصة في مكان واحد — اقرأ التذكرة كاملة، ردّ عليها، ثم أغلقها عند الحل"
       />
 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
@@ -229,57 +279,165 @@ export default function AdminSupportPage() {
                 </thead>
                 <tbody>
                   {tickets.map((t) => (
-                    <tr
-                      key={t.id}
-                      className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up"
-                    >
-                      <td className="p-3 font-medium" data-label="الرقم">
-                        #{formatNumber(t.id)}
-                      </td>
-                      {/* v15-E6 (D5-M7) pattern: subject/tenant/email are live
-                          values (Arabic/Latin/mixed) — dir="auto" isolates
-                          bidi per cell. */}
-                      <td className="p-3 font-medium" data-label="الموضوع" dir="auto">
-                        {t.subject}
-                      </td>
-                      <td className="p-3 text-muted-foreground" data-label="المستأجر" dir="auto">
-                        {t.tenant_name}
-                      </td>
-                      <td className="p-3" data-label="الأولوية">
-                        <Badge variant={PRIORITY_CONFIG[t.priority]?.variant}>
-                          {PRIORITY_CONFIG[t.priority]?.label ?? t.priority}
-                        </Badge>
-                      </td>
-                      <td className="p-3" data-label="الحالة">
-                        <Badge variant={STATUS_CONFIG[t.status]?.variant}>
-                          {STATUS_CONFIG[t.status]?.label ?? t.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground text-xs" data-label="البريد" dir="auto">
-                        {t.email}
-                      </td>
-                      <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
-                        {t.created_at ? formatDateOnly(t.created_at) : "-"}
-                      </td>
-                      <td className="p-3" data-label="إجراء">
-                        {/* v17-E-F8 (D6 #5): إغلاق التذكرة — يظهر للمفتوحة/
-                            بانتظار العميل فقط (المغلقة لا تُغلق مرتين). */}
-                        {t.status !== "closed" ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => closeMut.mutate(t.id)}
-                            disabled={closeMut.isPending && closeMut.variables === t.id}
-                            loading={closeMut.isPending && closeMut.variables === t.id}
-                            aria-label={`إغلاق التذكرة رقم ${t.id}`}
+                    /* v22-D10: كل تذكرة = صف الجدول + صف توسيع بعرض كامل
+                     * (colSpan) يحمل نص التذكرة والخيط ومربع الرد — نمط
+                     * grid-rows الخاصية نفسه المستخدم في dashboard/support. */
+                    <Fragment key={t.id}>
+                      <tr className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
+                        <td className="p-3 font-medium" data-label="الرقم">
+                          #{formatNumber(t.id)}
+                        </td>
+                        <td className="p-3 font-medium" data-label="الموضوع">
+                          <button
+                            type="button"
+                            className="w-full flex items-center justify-between gap-3 text-start"
+                            onClick={() => setOpenTicketId(openTicketId === t.id ? null : t.id)}
+                            aria-expanded={openTicketId === t.id}
+                            aria-controls={`admin-ticket-thread-${t.id}`}
+                            aria-label={`عرض تفاصيل التذكرة رقم ${t.id}`}
                           >
-                            <CheckCircle2 className="size-3.5" aria-hidden="true" /> إغلاق
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
+                            <span dir="auto" className="min-w-0 truncate">{t.subject}</span>
+                            {/* v7 §2.2 EXCEPTION (documented, not replaced):
+                                disclosure chevron — an expand/collapse indicator
+                                that ROTATES -90° when open, not a
+                                reading-direction semantic. ChevronLeft is the
+                                correct RTL glyph; flipping it would invert the
+                                expand gesture (dashboard/support precedent). */}
+                            <ChevronLeft
+                              className={`size-4 text-muted-foreground shrink-0 transition-transform ${openTicketId === t.id ? "-rotate-90" : ""}`}
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </td>
+                        <td className="p-3 text-muted-foreground" data-label="المستأجر" dir="auto">
+                          {t.tenant_name}
+                        </td>
+                        <td className="p-3" data-label="الأولوية">
+                          <Badge variant={PRIORITY_CONFIG[t.priority]?.variant}>
+                            {PRIORITY_CONFIG[t.priority]?.label ?? t.priority}
+                          </Badge>
+                        </td>
+                        <td className="p-3" data-label="الحالة">
+                          <Badge variant={STATUS_CONFIG[t.status]?.variant}>
+                            {STATUS_CONFIG[t.status]?.label ?? t.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-muted-foreground text-xs" data-label="البريد" dir="auto">
+                          {t.email}
+                        </td>
+                        <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
+                          {t.created_at ? formatDateOnly(t.created_at) : "-"}
+                        </td>
+                        <td className="p-3" data-label="إجراء">
+                          {/* v17-E-F8 (D6 #5): إغلاق التذكرة — يظهر للمفتوحة/
+                              بانتظار العميل فقط (المغلقة لا تُغلق مرتين). */}
+                          {t.status !== "closed" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => closeMut.mutate(t.id)}
+                              disabled={closeMut.isPending && closeMut.variables === t.id}
+                              loading={closeMut.isPending && closeMut.variables === t.id}
+                              aria-label={`إغلاق التذكرة رقم ${t.id}`}
+                            >
+                              <CheckCircle2 className="size-3.5" aria-hidden="true" /> إغلاق
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      <tr aria-hidden={openTicketId !== t.id}>
+                        <td colSpan={8} className="p-0 border-b-0">
+                          {/* v17-E-F8 (D2-P1) pattern: حركة فتح/طي — grid-rows
+                              [0fr→1fr] + transition-all؛ الغلاف موجود دائمًا
+                              (مطابق aria-controls) ويُدار بـ data-open. */}
+                          <div
+                            id={`admin-ticket-thread-${t.id}`}
+                            data-open={openTicketId === t.id || undefined}
+                            aria-hidden={openTicketId !== t.id}
+                            className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-300"
+                          >
+                            <div className="overflow-hidden">
+                              {openTicketId === t.id && (
+                                <div className="px-4 py-4 bg-muted/20 border-t border-border/40 space-y-3">
+                                  {/* v22-D10 (BUG-6): نص التذكرة كاملاً — كان
+                                      الجدول يخفيه رغم أن الـ API يعيده. */}
+                                  <div>
+                                    <p className="text-3xs font-bold text-muted-foreground mb-1">
+                                      نص التذكرة
+                                    </p>
+                                    <p dir="auto" className="text-xs leading-relaxed whitespace-pre-wrap break-words">
+                                      {t.body || "—"}
+                                    </p>
+                                  </div>
+
+                                  {/* الخيط (replies[] من نفس الاستجابة) */}
+                                  {(t.replies ?? []).length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-3xs font-bold text-muted-foreground">
+                                        المحادثة ({formatNumber((t.replies ?? []).length)})
+                                      </p>
+                                      {(t.replies ?? []).map((r) => (
+                                        <div
+                                          key={r.id}
+                                          className={`text-xs rounded-lg p-3 ${
+                                            r.is_admin
+                                              ? "bg-accent-foreground/5 border border-accent-foreground/20"
+                                              : "bg-muted/50"
+                                          }`}
+                                        >
+                                          <p className="font-bold mb-1 text-3xs">
+                                            {r.is_admin ? "فريق الدعم" : "العميل"}
+                                          </p>
+                                          <p dir="auto" className="text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
+                                            {r.message}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {t.status !== "closed" ? (
+                                    /* v22-D10 (BUG-1): مربع الرد — المسار
+                                       المفقود كله. raw input + text-base
+                                       md:text-sm (أرضية iOS 16px — v17 #4)
+                                       و dir="auto" لعزل النص المختلط. */
+                                    <div className="flex gap-2 pt-1">
+                                      <input
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        placeholder="اكتب رد فريق الدعم…"
+                                        aria-label={`نص رد الدعم على التذكرة رقم ${t.id}`}
+                                        dir="auto"
+                                        className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-base md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        className="h-9 gap-1.5"
+                                        disabled={replyMut.isPending || replyText.trim().length < 2}
+                                        loading={replyMut.isPending && replyMut.variables?.id === t.id}
+                                        onClick={() => {
+                                          replyMut.mutate({ id: t.id, message: replyText.trim() })
+                                        }}
+                                        aria-label={`إرسال رد الدعم على التذكرة رقم ${t.id}`}
+                                      >
+                                        <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
+                                        رد
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-2xs text-success text-center py-1" role="status">
+                                      هذه التذكرة مغلقة — لا يمكن الرد عليها
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

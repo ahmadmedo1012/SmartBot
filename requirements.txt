@@ -6,7 +6,7 @@ aiosqlite>=0.20.0
 pydantic-settings>=2.0.0
 jinja2>=3.1.0
 python-multipart>=0.0.31
-httpx>=0.28.0
+httpx>=2.12.0,<3  # v22: OSV PYSEC-2026-3844..3849 (httpx 2.9.1, 3 High) — floor at the fixed line
 bcrypt>=5.0.0
 PyJWT>=2.13.0
 python-dotenv>=1.0.0
@@ -28,7 +28,12 @@ sentry-sdk[fastapi]>=2.19.0        # v6 §C — error tracking (Sentry OR Glitch
 # (D7-F3: cold alarm). The engine itself probes availability and falls back
 # to fpdf2 when missing — but the guard needs the real library. The plan
 # grants this as the one documented new dependency (v15 §3).
-weasyprint>=60.0
+fpdf2>=2.8.2,<3                    # v22 (D9-F1): the PDF FALLBACK engine — was undeclared, so CI AND
+                                   # Vercel had NO fpdf: the fallback was structurally dead in every
+                                   # deployed environment (tests passed only where an agent had
+                                   # hand-installed it). Declared now: reports degrade honestly AND
+                                   # actually render serverless (fpdf2 is pure-Python — no pango).
+weasyprint>=68.0,<69  # v22: pin — floating floor let CI resolve untested majors (URLFetcherResponse API drift)
 
 # Testing
 pytest>=8.3.0

@@ -356,6 +356,21 @@ async def lifespan(app: FastAPI):
         import runner  # deferred — canonical _bot_task handle
         if runner._bot_task:
             runner._bot_task.cancel()
+        # v22 (CI flake root cause, documented since v13): shutdown cancelled
+        # ONLY _bot_task — the sequence/calendar schedulers and the health
+        # push kept ticking PAST `engine.dispose()`, and a tick racing the
+        # loop close stranded a transaction on the shared SQLite connection
+        # ("database is locked" for every later test in the process — the
+        # flake that forced CI's one-transparent-retry policy, which itself
+        # failed twice under --cov timing). Cancel EVERY registered
+        # background task and AWAIT the cancellations (bounded) before
+        # disposing the engine.
+        from _async import _bg_tasks
+        pending = [t for t in list(_bg_tasks) if not t.done()]
+        for t in pending:
+            t.cancel()
+        if pending:
+            await asyncio.wait(pending, timeout=5)
         # fb is lazy — only close if actually initialized
         r = object.__getattribute__(fb, '_v')
         if r is not None:

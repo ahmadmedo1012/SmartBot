@@ -105,9 +105,23 @@ async def test_sequence_plan_gate_failopen_without_plan_rows(v10_seed, monkeypat
         await _seed_plans(v10_seed.world.sf)  # restore rows for later tests
 
 
-async def test_scheduled_post_publish_without_page_honest_400(v10_seed):
+async def test_scheduled_post_publish_without_page_honest_400(v10_seed, monkeypatch):
     """v22-D4 live evidence pin: النشر اليدوي لمستأجر بلا صفحة مرتبطة →
-    400 «لا توجد صفحة فيسبوك مرتبطة بحسابك» (لا نشر صامت، لا 500)."""
+    400 «لا توجد صفحة فيسبوك مرتبطة بحسابك» (لا نشر صامت، لا 500).
+
+    Deterministic contract test: get_tenant_fb_client is patched to return
+    None (the unconnected state) in the ROUTE's namespace — the live
+    equivalent was verified against production (curl → 400). Patching
+    keeps the test independent of the SHARED app-DB BotState rows other
+    tests leave behind (CI order made the tenant-id space collide with a
+    connected fixture tenant → a real client → 200 — not a route bug).
+    """
+    import routers.scheduled_posts_routes as spr
+
+    async def _no_client(tenant_id: int):
+        return None
+
+    monkeypatch.setattr(spr, "get_tenant_fb_client", _no_client)
     ua, tid, _uid = await v10_seed.tenant_user(role="admin", tenant_name="D4-NOFB")
     v10_seed.auth(ua, tid)
     c = v10_seed.world.client

@@ -786,9 +786,12 @@ async def test_sse_per_poll_short_sessions_fresh_reads(sse_env, monkeypatch):
     statuses = [e.get("status") for e in events]
     assert "verified" in statuses, f"SSE never saw the approval: {statuses}"
     assert "pending" in statuses, f"first read missing: {statuses}"
-    # ≥3 دورات استطلاع (تغيّر الحالة بعد ~0.45s بدورة 0.15s) — عقد v18:
-    # جلسة قصيرة لكل دورة (لا جلسة محفوظة عبر النوم):
-    assert created["n"] >= 3, f"per-poll sessions expected, opened only {created['n']}"
+    # ≥2 دورات استطلاع (تغيّر الحالة بعد ~0.45s بدورة 0.15s) — عقد v18:
+    # جلسة قصيرة لكل دورة (لا جلسة محفوظة عبر النوم). v22: الحد الأدنى
+    # 2 بدل 3 — عدّاءات GitHub البطيئة تحت --cov تُكمل دورتين فقط في
+    # النافذة؛ الدلالة نفسها باقية (جلسة واحدة محفوظة عبر النوم كانت
+    # ستعطي n=1، فالعدّ ≥2 يثبت الدورات القصيرة).
+    assert created["n"] >= 2, f"per-poll sessions expected, opened only {created['n']}"
     # ولا جلسة معلقة بعد انتهاء التيار (كل جلسة فُتحت أُغلقت فوراً):
     assert created["n"] <= 8, f"suspicious session churn: {created['n']} in ~1s"
     # الانتهاء الطبيعي (verified) يُفرغ العدّة — لا تسريب سقف

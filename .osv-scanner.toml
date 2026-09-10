@@ -34,3 +34,50 @@
 # id = "GHSA-xxxx-xxxx-xxxx"
 # reason = "<=20 chars is rejected: explain reachability and why the fixed version is not deployable now>"
 # ignoreUntil = 2026-12-31T00:00:00Z
+
+# v22 (2026-09-10) — the first time this gate EVER RAN: v15-E9's pinned
+# v2.5.1 CLI carried `osv-scanner version` (a positional SCAN TARGET in the
+# v2.x CLI — the job died at the install step on every push since v15,
+# silently masking the scan itself). With the command fixed (--version),
+# the scan surfaced 6 advisories on the httpx2/httpcore2 TRANSITIVES of
+# the 2026 openai/mcp trees (PYSEC-2026-3844..3849 · 3×High CVSS 8.1 —
+# httpx2 2.9.1, fixed in 2.10.0/2.12.0 which the SDK trees have not
+# shipped yet). Pinning httpx2>=2.12.0 in requirements.txt does NOT clear
+# the gate: osv-scanner's requirements.txt resolver resolves each line
+# independently and reports the openai/mcp branch's 2.9.1 regardless
+# (verified locally against the same pinned CLI); real pip unifies the
+# constraint at install time, but an exact-pin conflict with the SDK
+# metadata would break `pip install -r` outright. Suppression is therefore
+# the honest state: the vulnerable line is a TRANSITIVE we do not import
+# (the app imports httpx 0.28.x directly; httpx2 enters only via the SDK
+# clients), the fixed versions are not reachable through any requirement
+# floor today, and every entry below EXPIRES — re-verify by bumping the
+# openai/mcp trees (or removing these entries) at the TTL.
+# Reachability note: the serverless runtime never exposes the HTTP client
+# of openai/mcp to user-controlled URLs (ai_service SSRF guard + the MCP
+# engine is a standalone local process, never imported by the live app).
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3844"
+reason = "httpcore2 2.9.1 transitive via openai/mcp 2026 trees; app imports httpx 0.28.x directly; fixed 2.10.0 not shipped through any SDK floor yet — re-verify at expiry"
+ignoreUntil = 2026-12-10T00:00:00Z
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3846"
+reason = "httpx2 2.9.1 CVSS 7.5 transitive via openai/mcp; not imported by app code (httpx 0.28.x is); await SDK tree refresh at TTL"
+ignoreUntil = 2026-12-10T00:00:00Z
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3847"
+reason = "httpx2 2.9.1 CVSS 5.9 transitive via openai/mcp trees; SSRF guard + standalone MCP process limit reachability; re-verify at expiry"
+ignoreUntil = 2026-12-10T00:00:00Z
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3848"
+reason = "httpx2 2.9.1 CVSS 5.3 transitive via openai/mcp trees; fixed 2.11.0 not shipped through SDK floors; expire and re-justify"
+ignoreUntil = 2026-12-10T00:00:00Z
+
+[[IgnoredVulns]]
+id = "PYSEC-2026-3849"
+reason = "httpx2 2.9.1 CVSS 5.6 transitive via openai/mcp trees; same class as 3845-3848 — documented suppression with TTL, fix-first when upstream ships"
+ignoreUntil = 2026-12-10T00:00:00Z

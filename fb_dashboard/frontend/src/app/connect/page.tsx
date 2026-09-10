@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
-import type { WebhookCheck } from "@/lib/types"
+import type { FacebookTokenCheck, WebhookCheck } from "@/lib/types"
 import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
@@ -32,6 +32,12 @@ type ConnectTestResult = {
   error?: string
   warning?: string
   scopes?: { scopes?: string[]; missing?: string[] }
+  /** v20: "page" | "user" | "unknown" — a USER token passes the old
+   * public-field probes while every data path is dead; surfaced honestly. */
+  token_type?: string
+  /** v20: the backend exchanged a user token for the PAGE token and
+   * persisted it — the stored credentials are repaired by this very click. */
+  token_exchanged?: boolean
 }
 
 export default function ConnectPage() {
@@ -41,13 +47,13 @@ export default function ConnectPage() {
   const [fanCount, setFanCount] = useState(0)
   const [scopeWarnings, setScopeWarnings] = useState<string[]>([])
   const [errorMsg, setErrorMsg] = useState("")
-  const [existing, setExisting] = useState<{ page_id: string; connected: boolean; page_name?: string } | null>(null)
+  const [existing, setExisting] = useState<{ page_id: string; connected: boolean; page_name?: string; token_check?: FacebookTokenCheck | null; token_ok?: boolean } | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(true)
   const [wh, setWh] = useState<WebhookCheck | null>(null)
 
   useEffect(() => {
     apiFetch("/api/facebook/settings")
-      .then(unwrapApi<{ page_id: string; connected: boolean; page_name?: string }>)
+      .then(unwrapApi<{ page_id: string; connected: boolean; page_name?: string; token_check?: FacebookTokenCheck | null; token_ok?: boolean }>)
       .then((d) => {
         setExisting(d)
         if (d.page_id) setPageId(d.page_id)
@@ -95,6 +101,12 @@ export default function ConnectPage() {
       )
       const tr = await apiFetch("/api/facebook/test", { method: "POST" })
       const td = await unwrapApi<ConnectTestResult>(tr)
+      if (td.token_exchanged) {
+        /* v20: the backend detected a stored USER token, exchanged it for
+         * the page token AND persisted the repair — tell the user their data
+         * paths just came alive instead of a bare fan-count toast. */
+        brandedToast.success("تم اكتشاف رمز مستخدم واستبداله برمز صفحة تلقائياً — اتصال البيانات أصبح فعّالاً")
+      }
       if (td.connected) {
         setFanCount(td.fan_count ?? 0)
         setStatus("saving")
@@ -177,6 +189,24 @@ export default function ConnectPage() {
                 {existing?.page_id ? `معرف الصفحة: ${existing.page_id}` : "متصل"}
               </span>
             </span>
+
+            {/* v20 §5.2 — a stored token that is known-bad must never render as
+                a silently-empty dashboard: the verdict from the backend
+                self-heal gets a loud banner with a re-connect path. */}
+            {existing?.token_ok === false && existing.token_check && (
+              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <div className="leading-relaxed">
+                  <p className="font-medium">تعذّر الاتصال بصفحة فيسبوك — أعد الربط</p>
+                  <p className="mt-1 text-2xs text-destructive/85">
+                    {existing.token_check.detail || "الرمز المخزّن لا يعمل مع بيانات الصفحة."}
+                  </p>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => setExisting({ ...existing, connected: false })}>
+                    إعادة الربط الآن
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Webhook health checklist — honest state (plan v3) */}
             {wh && (

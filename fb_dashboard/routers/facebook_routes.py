@@ -354,12 +354,23 @@ async def get_facebook_settings(db=Depends(get_db), current_user: User = Depends
         page_id = settings.FACEBOOK_PAGE_ID or ""
         has_token = bool(settings.FACEBOOK_ACCESS_TOKEN)
 
+    # v20: surface the last stored-token verdict (written by the self-heal
+    # and the connect gate) so the UI can say «تعذّر الاتصال بصفحة فيسبوك —
+    # أعد الربط» instead of rendering a silently-empty dashboard. Shape:
+    # {"ts": epoch, "status": page_token|user_token_exchanged|
+    #  not_page_admin|unverified, "detail": str}
+    token_check = _payload(await _tenant_state(db, tenant_id, "fb_token_check"))
+    token_ok = token_check.get("status") in ("", "page_token",
+                                             "user_token_exchanged", None)
+
     return ok(
         {
         "page_id": page_id,
         "has_token": has_token,
         "connected": bool(page_id and has_token),
         "page_name": page_name,
+        "token_check": token_check or None,
+        "token_ok": token_ok,
     }
     )
 
@@ -429,6 +440,43 @@ async def update_facebook_settings(
     # (another tenant bound the same page concurrently, or a same-tenant key
     # race on uq_botstate_tenant_key) surfaces as IntegrityError HERE and is
     # answered with the specific Arabic 409, never a raw 500.
+    # v20 (live evidence): USER access tokens pass every public-field probe
+    # (name/fan_count/picture → «متصل ✓») and then fail EVERY data path with
+    # Graph code 190 subcode 2069032 / code 10 — silently. The connect flow
+    # must refuse to store a token that cannot serve page data:
+    #   - already a Page token            → store as-is
+    #   - User token administering page   → EXCHANGE for the page token (the
+    #     /me/accounts exchange is live-proven) and store the PAGE token
+    #   - User token NOT administering it → loud Arabic 400 (never a silent
+    #     empty dashboard later)
+    #   - /me unreachable (network/invalid) → non-fatal: store as-is; the
+    #     upgraded /api/facebook/test reports the real state afterwards
+    token_exchanged = False
+    if access_token and page_id:
+        from fb_client import FBClient
+        try:
+            verdict = await FBClient(access_token, page_id).ensure_page_token()
+            if verdict.get("status") == "not_page_admin":
+                identity = (verdict.get("identity") or {}).get("id", "")
+                log.warning("connect rejected: USER token (identity=%s) does not "
+                            "administer page %s (tenant=%s)", identity,
+                            page_id[:40], tenant_id)
+                raise HTTPException(
+                    400,
+                    "الرمز الذي أدخلته رمز مستخدم لا يدير هذه الصفحة — انسخ Page Access Token الخاص بالصفحة من إعدادات فيسبوك ثم أعد المحاولة")
+            if verdict.get("status") == "exchanged":
+                access_token = verdict["token"]
+                token_exchanged = True
+                log.info("connect: USER token auto-exchanged for a PAGE token "
+                         "(tenant=%s page=%s)", tenant_id, page_id[:40])
+        except HTTPException:
+            raise
+        except Exception as exc:
+            # probe itself failed (network/Graph) — never block saving on a
+            # transient probe; the self-heal + test endpoint will catch it.
+            log.warning("token type probe failed pre-save (tenant=%s): %s",
+                        tenant_id, exc)
+
     webhook_result = None
     page_profile = {}
     try:
@@ -460,17 +508,26 @@ async def update_facebook_settings(
                         tenant_id=tenant_id, key="fb_access_token", value=encrypted
                     )
                 )
+            # v20: the page-identity snapshot (name/fans/picture) runs for
+            # EVERY token save — the old code fetched it only inside the
+            # ``if subscribe and page_id`` webhook branch, so the connect
+            # page's test button (subscribe_webhook: false) saved a token
+            # while NEVER persisting the page name → settings showed a bare
+            # numeric ID forever (the «الآيدي فقط» complaint).
+            if page_id:
+                try:
+                    from fb_client import FBClient
+                    page_profile = await FBClient(access_token, page_id).get_page_profile()
+                except Exception:
+                    # v20: silent {} swallowed the reason — log it now
+                    log.warning("page profile snapshot failed (tenant=%s page=%s)",
+                                tenant_id, page_id[:40], exc_info=True)
             # Auto-subscribe webhook after saving valid token
             if subscribe and page_id:
                 try:
                     from fb_client import FBClient
                     tmp = FBClient(access_token, page_id)
                     webhook_result = await tmp.subscribe_page_webhooks()
-                    # Initial profile sync (plan v3 §4.5): page name + fan count
-                    try:
-                        page_profile = await tmp.get_page_profile()
-                    except Exception:
-                        page_profile = {}
                 except Exception as e:
                     # v17-E-B3 (D9 #3): the Graph API's English error text never
                     # reaches the user — technical detail goes to the log, the
@@ -518,7 +575,8 @@ async def update_facebook_settings(
 
     _track_event("fb_settings_updated", {"page_id": page_id[:40]}, tenant_id=tenant_id)
     return ok({"ok": True, "webhook": webhook_result or "skipped",
-               "page_name": page_profile.get("name", "")})
+               "page_name": page_profile.get("name", ""),
+               "token_exchanged": token_exchanged})
 
 
 @router.post("/api/facebook/test")
@@ -533,15 +591,122 @@ async def test_facebook_connection(
     if not token_enc or not page_id:
         return ok({"connected": False, "fan_count": 0, "error": "لم يتم تعيين بيانات فيسبوك"})
 
-    token = decrypt_token(token_enc)
+    # v20: decrypt moved INSIDE the guarded region — it used to sit outside
+    # the try, so a decrypt failure (rotated key) raised an unhandled 500.
+    from fb_client import FBClient
     try:
-        from fb_client import FBClient
+        token = decrypt_token(token_enc)
+    except Exception as exc:
+        log.error("facebook test: token decrypt FAILED (tenant=%s): %s",
+                  tenant_id, exc, exc_info=True)
+        return ok({"connected": False, "fan_count": 0, "token_type": "unreadable",
+                   "error": "تعذّر فك تشفير رمز الوصول المخزّن — أعد ربط الصفحة"})
 
-        tmp = FBClient(token, page_id)
-        fan_count = await tmp.get_page_fan_count()
+    # v20: a USER token used to pass this endpoint (fan_count is a public
+    # field — connected:true while every data path failed with Graph code
+    # 190/10). The test now verifies the token TYPE first, attempts the
+    # page-token exchange, and only then trusts fan_count. connected:true
+    # requires a working PAGE token, not a public-field fluke.
+    verdict: dict = {"status": "unverified"}
+    try:
+        verdict = await FBClient(token, page_id).ensure_page_token()
+    except Exception as exc:
+        log.warning("facebook test: token probe failed (tenant=%s): %s",
+                    tenant_id, exc)
+
+    token_type = {
+        "page_token": "page",
+        "exchanged": "user",
+        "not_page_admin": "user",
+        "unverified": "unknown",
+    }.get(verdict.get("status"), "unknown")
+
+    if verdict.get("status") == "not_page_admin":
+        identity = (verdict.get("identity") or {}).get("id", "")
+        log.warning("facebook test: USER token (identity=%s) does not administer "
+                    "page %s (tenant=%s)", identity, page_id[:40], tenant_id)
+        return ok({"connected": False, "fan_count": 0, "token_type": token_type,
+                   "error": "الرمز المخزّن رمز مستخدم لا يدير هذه الصفحة — أعد الربط بـ Page Access Token"})
+
+    effective_token = token
+    token_exchanged = False
+    if verdict.get("status") == "exchanged":
+        token_exchanged = True
+        effective_token = verdict["token"]
+
+    try:
+        client = FBClient(effective_token, page_id)
+        fan_count = await client.get_page_fan_count()
         # Check token scopes
-        scope_check = await tmp.check_token_scopes()
-        result = {"connected": True, "fan_count": fan_count, "scopes": scope_check}
+        scope_check = await client.check_token_scopes()
+        # v20: connected requires the fan_count READ to succeed (None = the
+        # Graph call failed — the old code still answered connected:true)
+        connected = fan_count is not None and verdict.get("status") in (
+            "page_token", "exchanged")
+        result = {"connected": connected, "fan_count": fan_count or 0,
+                  "token_type": token_type, "token_exchanged": token_exchanged,
+                  "scopes": scope_check}
+
+        # v20 self-heal on test: persist the exchanged PAGE token so the
+        # user's own test click repairs the stored credentials immediately
+        # (otherwise the repair waits for the cron heartbeat's TTL window).
+        if token_exchanged:
+            try:
+                encrypted = encrypt_token(effective_token)
+                existing = await db.execute(
+                    select(BotState).where(
+                        BotState.tenant_id == tenant_id,
+                        BotState.key == "fb_access_token"))
+                row = existing.scalar_one_or_none()
+                if row:
+                    row.value = encrypted
+                else:
+                    db.add(BotState(tenant_id=tenant_id, key="fb_access_token",
+                                    value=encrypted))
+                # refresh the identity snapshot too (name/fans/picture)
+                profile = {}
+                try:
+                    profile = await client.get_page_profile()
+                except Exception:
+                    log.warning("profile snapshot after test-exchange failed "
+                                "(tenant=%s)", tenant_id, exc_info=True)
+                for key, value in (
+                    ("fb_page_name", profile.get("name", "")),
+                    ("fb_fan_count", str(profile.get("fan_count", 0) or 0)),
+                    ("fb_picture_url", profile.get("picture", "")),
+                    ("fb_token_check", json.dumps(
+                        {"ts": int(time.time()), "status": "user_token_exchanged",
+                         "detail": "استُبدل رمز المستخدم برمز صفحة تلقائياً"},
+                        ensure_ascii=False)),
+                ):
+                    if not value:
+                        continue
+                    prow = await db.execute(
+                        select(BotState).where(
+                            BotState.tenant_id == tenant_id, BotState.key == key))
+                    pbs = prow.scalar_one_or_none()
+                    if pbs:
+                        pbs.value = str(value)
+                    else:
+                        db.add(BotState(tenant_id=tenant_id, key=key,
+                                        value=str(value)))
+                await db.commit()
+                # evict per-instance caches built on the old user token
+                try:
+                    from routers.inbox import _tenant_fb_cache as _inbox_cache
+                    _inbox_cache.pop(tenant_id, None)
+                except Exception:
+                    pass
+                log.info("facebook test: stored USER token exchanged + persisted "
+                         "as PAGE token (tenant=%s page=%s)", tenant_id,
+                         page_id[:40])
+            except Exception as exc:
+                await db.rollback()
+                log.error("facebook test: exchange persist failed (tenant=%s): %s",
+                          tenant_id, exc, exc_info=True)
+
+        if not connected:
+            result["error"] = "الرمز المخزّن لا يعمل — تحقق من صلاحيته أو أعد الربط"
         if scope_check.get("missing"):
             result["warning"] = (
                 f"التوكن ينقصه الصلاحيات التالية: {'، '.join(scope_check['missing'])}. "
@@ -553,7 +718,7 @@ async def test_facebook_connection(
         # connect page renders td.error in errorMsg + toast) — log it instead.
         log.warning("facebook connection test failed (tenant=%s page=%s): %s",
                     tenant_id, page_id[:40], str(e)[:300])
-        return ok({"connected": False, "fan_count": 0,
+        return ok({"connected": False, "fan_count": 0, "token_type": token_type,
                    "error": "فشل الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"})
 
 

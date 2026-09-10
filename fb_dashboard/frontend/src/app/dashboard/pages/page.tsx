@@ -62,6 +62,13 @@ export default function PagesPage() {
       const res = await apiFetch("/api/facebook/test", { method: "POST" })
       const json = await unwrapApi<FacebookTestResult>(res)
       setTestResult(json)
+      /* v20: the backend exchanged a stored USER token for the PAGE token
+       * and persisted it — refresh the settings block (name/verdict) so the
+       * page reflects the repaired state without a manual reload. */
+      if (json.token_exchanged) {
+        brandedToast.success("تم اكتشاف رمز مستخدم واستبداله برمز صفحة تلقائياً")
+        queryClient.invalidateQueries({ queryKey: ["facebook-settings"] })
+      }
       if (json.connected) {
         brandedToast.success(`تم الاتصال — متابعو الصفحة: ${formatNumber(json.fan_count)}`)
       } else {
@@ -109,10 +116,23 @@ export default function PagesPage() {
                   {connected ? <CheckCircle2 className="size-5 text-success" /> : <XCircle className="size-5 text-muted-foreground" />}
                 </div>
                 <div>
-                  <p className="font-bold text-sm">{connected ? "صفحة متصلة" : "غير متصلة"}</p>
+                  <p className="font-bold text-sm">{connected ? (data?.page_name || "صفحة متصلة") : "غير متصلة"}</p>
                   <p className="text-xs text-muted-foreground">{data?.page_id ? `المعرف: ${data.page_id}` : "لم يتم ربط أي صفحة بعد"}</p>
                 </div>
               </div>
+              {/* v20 §5.2 — a known-bad stored token gets a loud banner, not
+                  a silently-empty dashboard (verdict from the self-heal). */}
+              {connected && data?.token_ok === false && data.token_check && (
+                <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+                  <div className="leading-relaxed">
+                    <p className="font-medium text-destructive">تعذّر الاتصال بصفحة فيسبوك</p>
+                    <p className="mt-1 text-xs text-destructive/85">
+                      {data.token_check.detail || "الرمز المخزّن لا يعمل مع بيانات الصفحة — أعد إدخال رمز الوصول أدناه."}
+                    </p>
+                  </div>
+                </div>
+              )}
               {connected && data?.page_id && (
                 <Button size="sm" variant="outline" onClick={handleTest} disabled={testing}>
                   {testing ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
@@ -135,6 +155,11 @@ export default function PagesPage() {
                 {testResult.connected && (
                   <>
                     <p className="text-sm">متابعو الصفحة: {formatNumber(testResult.fan_count)}</p>
+                    {testResult.token_type && (
+                      <p className="text-xs text-muted-foreground">
+                        نوع الرمز: {testResult.token_type === "page" ? "رمز صفحة (سليم)" : testResult.token_type === "user" ? "رمز مستخدم (تم الاستبدال أو يحتاج استبدالاً)" : "غير معروف"}
+                      </p>
+                    )}
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (

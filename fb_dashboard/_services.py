@@ -331,6 +331,19 @@ async def get_tenant_fb_client(tenant_id: int):
     v14-E2: DB failures return None (with a warning) instead of raising —
     callers treat None as "tenant not connected" (400/حذف تخطٍّ) rather than
     a 500, and the schedulers' per-cycle resolution can't crash the loop.
+
+    v20 (live evidence 2026-09-10): a tenant whose STORED token is a User
+    Access Token builds a client that "works" for public fields but fails
+    every data path (posts/conversations/comments) with Graph code 190/10 —
+    silently. Two additions:
+      1. decrypt failure is LOGGED (was a bare ``except: return None`` —
+         the single most invisible failure in the whole chain)
+      2. self-heal: once per TTL per tenant we verify the stored token's
+         TYPE and, if it is a user token that administers the bound page,
+         exchange it for the page token, re-encrypt + persist it, refresh
+         the page-identity snapshot and evict stale client caches. The
+         5-minute cron heartbeat resolves clients for every connected
+         tenant, so the repair rolls out fleet-wide without user action.
     """
     try:
         async with AsyncSessionLocal() as db:
@@ -349,9 +362,197 @@ async def get_tenant_fb_client(tenant_id: int):
         return None
     try:
         token = decrypt_token(token_bs.value)
-    except Exception:
+    except Exception as exc:
+        # v20: this was a totally silent None — a rotated FERNET_KEY or
+        # corrupted row made EVERY data path skip the tenant with zero log
+        # evidence. The real exception text is the diagnostic gold here.
+        log.error("get_tenant_fb_client: token decrypt FAILED for tenant %s "
+                  "(rotated key / corrupted row?) — every FB path for this "
+                  "tenant is dead: %s", tenant_id, exc, exc_info=True)
         return None
-    return __import__('fb_client', fromlist=['FBClient']).FBClient(token, page_id_bs.value or "")
+    page_id = page_id_bs.value or ""
+    if not page_id:
+        return None
+
+    # ── v20 self-heal: stored-token type verification (throttled) ──
+    effective_token = token
+    try:
+        if _token_check_due(tenant_id):
+            repaired = await _repair_stored_user_token(tenant_id, page_id, token)
+            if repaired:
+                effective_token = repaired
+    except Exception as exc:  # never block client resolution on repair
+        log.warning("token self-heal errored for tenant %s: %s", tenant_id, exc,
+                    exc_info=True)
+    return __import__('fb_client', fromlist=['FBClient']).FBClient(effective_token, page_id)
+
+
+# ── v20: stored-token self-heal machinery ─────────────────────────────────
+# A verdict persisted in BotState (fb_token_check) lets a cold serverless
+# instance trust a recent check instead of re-probing Graph; the module cache
+# keeps the hot path (every request) at zero cost.
+_TOKEN_TYPE_CHECK_TTL_S = 6 * 3600.0
+_TOKEN_TYPE_CACHE: dict[int, float] = {}  # tenant_id -> monotonic stamp
+
+
+def _token_check_due(tenant_id: int) -> bool:
+    """True when this instance should verify the tenant's stored token type.
+
+    v20 fix: the sentinel for "never checked" must be None, NOT 0.0 —
+    ``monotonic() - 0.0 < TTL`` is true on any machine/lambda younger than
+    the TTL (6h), which would throttle the very FIRST check forever on
+    short-lived serverless instances (the exact deploy target).
+    """
+    import time as _time
+    last = _TOKEN_TYPE_CACHE.get(tenant_id)
+    if last is not None and _time.monotonic() - last < _TOKEN_TYPE_CHECK_TTL_S:
+        return False
+    _TOKEN_TYPE_CACHE[tenant_id] = _time.monotonic()
+    return True
+
+
+def _reset_token_type_cache() -> None:
+    """Test seam: clear the throttling state between test cases."""
+    _TOKEN_TYPE_CACHE.clear()
+
+
+async def _read_token_check(db, tenant_id: int) -> dict:
+    row = await db.execute(
+        select(BotState).where(BotState.tenant_id == tenant_id, BotState.key == "fb_token_check")
+    )
+    bs = row.scalar_one_or_none()
+    try:
+        data = json.loads(bs.value or "{}") if bs else {}
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+async def _stamp_token_check(tenant_id: int, status: str, detail: str = "") -> None:
+    """Persist the last token-type verdict for UI surfacing + cross-instance TTL."""
+    import time as _time
+    payload = json.dumps(
+        {"ts": int(_time.time()), "status": status, "detail": (detail or "")[:300]},
+        ensure_ascii=False)
+    try:
+        async with AsyncSessionLocal() as s:
+            row = await s.execute(
+                select(BotState).where(BotState.tenant_id == tenant_id,
+                                       BotState.key == "fb_token_check"))
+            bs = row.scalar_one_or_none()
+            if bs:
+                bs.value = payload
+            else:
+                s.add(BotState(tenant_id=tenant_id, key="fb_token_check", value=payload))
+            await s.commit()
+    except Exception as exc:
+        log.warning("could not persist token check verdict (tenant=%s): %s",
+                    tenant_id, exc)
+
+
+async def _repair_stored_user_token(tenant_id: int, page_id: str, token: str) -> str | None:
+    """Verify the STORED token is a Page token; exchange + persist if not.
+
+    Returns the effective plaintext token when a repair happened (caller
+    must build the client with it), or None when the stored token is kept
+    as-is (already a page token / not repairable / unverified).
+    """
+    import time as _time
+    FBClient = __import__('fb_client', fromlist=['FBClient']).FBClient
+    probe = FBClient(token, page_id)
+
+    # Trust a recent persisted verdict on cold instances (one SELECT beats
+    # two Graph round-trips): skip probing unless the verdict is stale.
+    try:
+        async with AsyncSessionLocal() as db:
+            verdict = await _read_token_check(db, tenant_id)
+    except Exception:
+        verdict = {}
+    if verdict.get("ts") and _time.time() - verdict.get("ts", 0) < _TOKEN_TYPE_CHECK_TTL_S:
+        return None
+
+    result = await probe.ensure_page_token()
+    status = result.get("status")
+
+    if status == "page_token":
+        await _stamp_token_check(tenant_id, "page_token")
+        return None
+
+    if status == "exchanged":
+        page_token = result["token"]
+        profile = {}
+        try:
+            profile = await FBClient(page_token, page_id).get_page_profile()
+        except Exception as exc:
+            log.warning("page profile snapshot after token exchange failed "
+                        "(tenant=%s): %s", tenant_id, exc)
+        try:
+            async with AsyncSessionLocal() as s:
+                row = await s.execute(
+                    select(BotState).where(BotState.tenant_id == tenant_id,
+                                           BotState.key == "fb_access_token"))
+                bs = row.scalar_one_or_none()
+                encrypted = encrypt_token(page_token)
+                if bs:
+                    bs.value = encrypted
+                else:
+                    s.add(BotState(tenant_id=tenant_id, key="fb_access_token",
+                                   value=encrypted))
+                # identity snapshot — the «ID only, no page name» complaint:
+                # with a working PAGE token the real name/fans/picture are
+                # persisted so the dashboard stops showing a bare number.
+                for key, value in (
+                    ("fb_page_name", profile.get("name", "")),
+                    ("fb_fan_count", str(profile.get("fan_count", 0) or 0)),
+                    ("fb_picture_url", profile.get("picture", "")),
+                ):
+                    if not value:
+                        continue
+                    prow = await s.execute(
+                        select(BotState).where(BotState.tenant_id == tenant_id,
+                                               BotState.key == key))
+                    pbs = prow.scalar_one_or_none()
+                    if pbs:
+                        pbs.value = str(value)
+                    else:
+                        s.add(BotState(tenant_id=tenant_id, key=key, value=str(value)))
+                await s.commit()
+        except Exception as exc:
+            log.error("token exchange PERSIST failed (tenant=%s) — repair not "
+                      "applied, will retry next TTL window: %s", tenant_id, exc,
+                      exc_info=True)
+            return None
+        # Evict stale per-instance caches holding the old user-token client
+        # (the same best-effort eviction the settings PUT performs).
+        try:
+            from routers.inbox import _tenant_fb_cache as _inbox_cache
+            _inbox_cache.pop(tenant_id, None)
+        except Exception:
+            pass
+        await _stamp_token_check(tenant_id, "user_token_exchanged",
+                                 "استُبدل رمز المستخدم برمز صفحة تلقائياً")
+        log.info("v20 self-heal: tenant %s stored USER token exchanged for a "
+                 "PAGE token and persisted (page name snapshot: %r)",
+                 tenant_id, profile.get("name", ""))
+        return page_token
+
+    if status == "not_page_admin":
+        identity = (result.get("identity") or {}).get("id", "?")
+        await _stamp_token_check(tenant_id, "not_page_admin",
+                                 f"رمز مستخدم ({identity}) لا يدير هذه الصفحة — أعد الربط برمز صفحة")
+        log.warning("v20: tenant %s stores a USER token (identity=%s) that does "
+                    "NOT administer page %s — every data path fails with Graph "
+                    "code 190/10. User must re-connect with a Page token.",
+                    tenant_id, identity, page_id[:40])
+        return None
+
+    # "unverified" — /me failed: invalid token or transient network. Log it
+    # loudly (the old chain never said a word) but keep the old contract.
+    await _stamp_token_check(tenant_id, "unverified", "تعذّر التحقق من نوع الرمز")
+    log.warning("v20: token type UNVERIFIED for tenant %s (page=%s) — /me probe "
+                "failed; storing verdict, retry next TTL window",
+                tenant_id, page_id[:40])
+    return None
 
 # Trend helper
 async def _get_trend_data(db, tenant_id: int) -> dict:

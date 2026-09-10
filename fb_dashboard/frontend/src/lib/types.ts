@@ -451,12 +451,24 @@ export interface Testimonial {
 
 // ── Facebook connection (dashboard/pages) ──────────────────────────────────
 
+/** v20: last stored-token verdict written by the backend self-heal /
+ *  connect gate — lets the UI say «أعد الربط» instead of an empty page. */
+export interface FacebookTokenCheck {
+  ts?: number
+  status?: "page_token" | "user_token_exchanged" | "not_page_admin" | "unverified" | string
+  detail?: string
+}
+
 /** GET /api/facebook/settings payload. */
 export interface FacebookSettings {
   page_id?: string
   has_token?: boolean
   connected?: boolean
   page_name?: string
+  /** v20: null when no verdict was ever written; token_ok=false means the
+   *  stored token is known-bad (not_page_admin / unverified). */
+  token_check?: FacebookTokenCheck | null
+  token_ok?: boolean
 }
 
 /** POST /api/facebook/test payload. */
@@ -466,6 +478,11 @@ export interface FacebookTestResult {
   error?: string
   warning?: string
   scopes?: { scopes?: string[] }
+  /** v20: "page" | "user" | "unknown" | "unreadable". */
+  token_type?: string
+  /** v20: true when the backend auto-exchanged a user token for a page
+   *  token and PERSISTED it (self-heal on test). */
+  token_exchanged?: boolean
 }
 
 // ── Webhook health (connect page) ──────────────────────────────────────────

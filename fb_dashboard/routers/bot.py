@@ -257,6 +257,12 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
             from _services import get_tenant_fb_client
             fb_cli = await get_tenant_fb_client(tenant.id)
             if not fb_cli:
+                # v20: this used to be a bare ``continue`` — a tenant with a
+                # stored page+token that fails client resolution (decrypt
+                # failure / missing row) was skipped with zero evidence.
+                log.warning("cron cycle: tenant %s has fb_page_id stored but FB "
+                            "client resolution failed — skipping (see "
+                            "get_tenant_fb_client logs)", tenant.id)
                 continue
             from _services import get_bot_engine
             engine = get_bot_engine(fb_cli, tenant_id=tenant.id)
@@ -331,6 +337,10 @@ async def cron_heartbeat(request: Request):
                 from _services import get_tenant_fb_client
                 fb = await get_tenant_fb_client(tenant_id)
                 if fb is None:
+                    # v20: was a silent skip — fan refresh silently did
+                    # nothing for exactly the tenants whose token was broken
+                    log.warning("fan sweep: tenant %s connected but client "
+                                "resolution failed — skipped", tenant_id)
                     continue
                 fans = await fb.get_page_fan_count()
                 if fans is None:
@@ -361,6 +371,12 @@ async def cron_heartbeat(request: Request):
             try:
                 fb = await get_tenant_fb_client(tenant_id)
                 if fb is None:
+                    # v20: was a silent skip — the auto-reply engine quietly
+                    # did NOTHING for tenants whose stored token was broken
+                    # (e.g. a USER token failing every Graph call)
+                    log.warning("bot cycle: tenant %s connected but client "
+                                "resolution failed — no replies will run",
+                                tenant_id)
                     continue
                 engine = get_bot_engine(fb, tenant_id=tenant_id)
                 await engine.cycle()

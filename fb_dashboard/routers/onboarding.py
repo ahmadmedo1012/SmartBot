@@ -24,6 +24,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+import httpx
+
 from _crypto import encrypt_token
 from _responses import ok
 from database import get_db
@@ -89,15 +91,73 @@ async def connect_page(
     tenant = await db.get(Tenant, current_user.tenant_id)
     if not tenant:
         raise HTTPException(404, "المساحة غير موجودة")
+
+    # v20 (live evidence): the wizard was the PRIMARY entry point for the
+    # user-token bug — it encrypted and stored ANY token with zero type
+    # validation, while its own test-connection probed only public fields
+    # (name/fan_count) that a USER token passes. Same gate as PUT
+    # /api/facebook/settings now: reject a user token that can't administer
+    # the page; auto-exchange one that can; keep page tokens as-is.
+    access_token = (body.access_token or "").strip()
+    page_id = (body.page_id or "").strip()
+    token_exchanged = False
+    if access_token and page_id:
+        from fb_client import FBClient
+        try:
+            verdict = await FBClient(access_token, page_id).ensure_page_token()
+            if verdict.get("status") == "not_page_admin":
+                identity = (verdict.get("identity") or {}).get("id", "")
+                log.warning("onboarding connect rejected: USER token (identity=%s) "
+                            "does not administer page %s (tenant=%s)", identity,
+                            page_id[:40], current_user.tenant_id)
+                raise HTTPException(
+                    400,
+                    "الرمز الذي أدخلته رمز مستخدم لا يدير هذه الصفحة — انسخ Page Access Token الخاص بالصفحة ثم أعد المحاولة")
+            if verdict.get("status") == "exchanged":
+                access_token = verdict["token"]
+                token_exchanged = True
+                log.info("onboarding connect: USER token auto-exchanged for a "
+                         "PAGE token (tenant=%s page=%s)",
+                         current_user.tenant_id, page_id[:40])
+        except HTTPException:
+            raise
+        except Exception as exc:
+            # transient probe failure must not block the wizard save; the
+            # self-heal + dashboard test will surface/repair it later
+            log.warning("onboarding token probe failed (tenant=%s): %s",
+                        current_user.tenant_id, exc)
+
+    # v20: page identity snapshot on EVERY wizard save — a token that works
+    # deserves a name/fans/picture row even when the wizard's page_name
+    # field is empty (that empty field used to leave the settings screen
+    # showing a bare numeric ID).
+    profile_snapshot = {}
+    if access_token and page_id:
+        try:
+            from fb_client import FBClient as _FBC
+            profile_snapshot = await _FBC(access_token, page_id).get_page_profile()
+        except Exception:
+            log.warning("onboarding profile snapshot failed (tenant=%s page=%s)",
+                        current_user.tenant_id, page_id[:40], exc_info=True)
+
     try:
-        if body.page_id:
-            await _upsert_botstate(db, current_user.tenant_id, "fb_page_id", body.page_id.strip())
-        if body.page_name:
-            await _upsert_botstate(db, current_user.tenant_id, "fb_page_name", body.page_name.strip())
-        if body.access_token:
+        if page_id:
+            await _upsert_botstate(db, current_user.tenant_id, "fb_page_id", page_id)
+        effective_name = (body.page_name or "").strip() or profile_snapshot.get("name", "")
+        if effective_name:
+            await _upsert_botstate(db, current_user.tenant_id, "fb_page_name", effective_name)
+        if profile_snapshot.get("fan_count") is not None:
+            await _upsert_botstate(
+                db, current_user.tenant_id, "fb_fan_count",
+                str(profile_snapshot.get("fan_count", 0) or 0))
+        if profile_snapshot.get("picture"):
+            await _upsert_botstate(
+                db, current_user.tenant_id, "fb_picture_url",
+                str(profile_snapshot.get("picture")))
+        if access_token:
             await _upsert_botstate(
                 db, current_user.tenant_id, "fb_access_token",
-                encrypt_token(body.access_token.strip()),
+                encrypt_token(access_token),
             )
         await db.commit()
     except IntegrityError:
@@ -143,9 +203,10 @@ async def connect_page(
             webhook_result = {"_error": True, "body": str(e)[:200]}
 
     data = {
-        "page_id": body.page_id,
+        "page_id": page_id or body.page_id,
         "webhook_subscribed": subscribed,
         "webhook": webhook_result or "skipped",
+        "token_exchanged": token_exchanged,
     }
     if not subscribed:
         data["webhook_hint"] = (
@@ -191,7 +252,11 @@ async def test_connection(
             from _crypto import decrypt_token
             try:
                 token = decrypt_token(bs.value)
-            except Exception:
+            except Exception as exc:
+                # v20: was a silent ``token = ""`` — a decrypt failure here
+                # hid a rotated-key/corruption problem behind "أدخل الرمز".
+                log.error("onboarding test: token decrypt FAILED (tenant=%s): %s",
+                          current_user._tenant_id, exc, exc_info=True)
                 token = ""
 
     if not page_id or not token:
@@ -201,11 +266,26 @@ async def test_connection(
         return ok({"connected": False, "error": "أدخل معرف الصفحة ورمز الوصول"})
 
     try:
-        import httpx
+        # v20: the OLD probe (fields=name,fan_count) passes with a USER
+        # token — public fields — and told the user «متصل ✓» while every
+        # data path was already dead (Graph 190/10). The probe now verifies
+        # the token TYPE (and attempts the page-token exchange) BEFORE
+        # trusting public fields for display.
+        from fb_client import FBClient
+        probe = FBClient(token, page_id)
+        verdict = await probe.ensure_page_token()
+        token_type = {
+            "page_token": "page", "exchanged": "user",
+            "not_page_admin": "user", "unverified": "unknown",
+        }.get(verdict.get("status"), "unknown")
+        if verdict.get("status") == "not_page_admin":
+            return ok({"connected": False, "token_type": token_type,
+                    "error": "الرمز الذي أدخلته رمز مستخدم لا يدير هذه الصفحة — انسخ Page Access Token الخاص بالصفحة"})
+        effective_token = verdict.get("token", token)
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(
                 f"https://graph.facebook.com/v21.0/{page_id}",
-                params={"fields": "name,fan_count", "access_token": token},
+                params={"fields": "name,fan_count", "access_token": effective_token},
             )
         if r.status_code != 200:
             detail = ""
@@ -215,10 +295,10 @@ async def test_connection(
             except Exception:
                 pass
             # v12-E2.11: ok() envelope (see above)
-            return ok({"connected": False,
+            return ok({"connected": False, "token_type": token_type,
                     "error": f"فشل التحقق من فيسبوك: {detail or r.status_code}"})
         data = r.json()
-        return ok({"connected": True,
+        return ok({"connected": True, "token_type": token_type,
                 "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)})
     except Exception as e:
         # v12-E2.11: ok() envelope (see above)

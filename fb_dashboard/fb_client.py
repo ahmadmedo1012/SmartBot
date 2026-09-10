@@ -347,6 +347,65 @@ class FBClient:
             "picture": pic,
         }
 
+    # ── Token type / Page-token exchange (v20) ────────────────────
+
+    async def get_me_identity(self) -> dict:
+        """Who does this token represent? (v20 live-evidence fix)
+
+        ``GET /me`` answers the PAGE id for a Page access token and the USER
+        id for a User access token — the single cheapest reliable type probe.
+        Returns {} on failure (invalid token / network) — ``_get`` already
+        logged the Graph error text.
+        """
+        r = await self._get("me", {"fields": "id,name"})
+        if not r or r.get("_error") or not r.get("id"):
+            return {}
+        return {"id": str(r.get("id")), "name": str(r.get("name") or "")}
+
+    async def get_page_access_token(self) -> str:
+        """Exchange a USER token for this page's PAGE access token.
+
+        Live-evidenced 2026-09-10: ``GET /{page_id}?fields=access_token`` with
+        a user token that administers the page returns a fresh page token
+        (worked against production while every data call with the user token
+        failed). Returns "" when unavailable (user doesn't manage this page,
+        or the token is already a page token / invalid) — ``_get`` logs why.
+        """
+        r = await self._get(f"{self.page_id}", {"fields": "access_token"})
+        if not r or r.get("_error"):
+            return ""
+        return str(r.get("access_token") or "")
+
+    async def ensure_page_token(self) -> dict:
+        """v20 root-fix: verify this token is a PAGE token; exchange if not.
+
+        THE BUG (documented live, not guessed): a USER access token passes
+        every public-field probe (name / fan_count / picture → "connected ✓")
+        while /posts, /conversations and /comments all reject it —
+        ``code 190 subcode 2069032 "User Access Token Is Not Supported"``
+        and ``code 10 "Requested Page Does Not Match Page Access Token"`` —
+        and every old failure path swallowed those errors silently.
+
+        Returns one of:
+          {"status": "page_token"}                      token already correct
+          {"status": "exchanged", "token": <page tok>}  user token swapped
+          {"status": "not_page_admin", "identity": …}   user token can't
+                                                         manage this page
+          {"status": "unverified"}                       /me failed (invalid
+                                                         or network — non
+                                                         fatal, callers keep
+                                                         the old contract)
+        """
+        me = await self.get_me_identity()
+        if not me:
+            return {"status": "unverified"}
+        if me.get("id") == str(self.page_id or ""):
+            return {"status": "page_token"}
+        page_token = await self.get_page_access_token()
+        if page_token:
+            return {"status": "exchanged", "token": page_token, "identity": me}
+        return {"status": "not_page_admin", "identity": me}
+
     # ── Insights / Ads ────────────────────────────────────────────
 
     async def get_post_insights(self, post_id: str) -> dict:

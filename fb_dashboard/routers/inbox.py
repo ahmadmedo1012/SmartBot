@@ -18,9 +18,14 @@ from routers.auth import get_current_user, require_role
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["inbox"])
 
-# ponytail: per-tenant fb client cache — dict[tenant_id, FBClient].
+# ponytail: per-tenant fb client cache — dict[tenant_id, (FBClient, expires_at)].
 # Evict on token refresh. Replace with Redis-backed registry when multi-worker.
-_tenant_fb_cache: dict[int, object] = {}
+# v20: entries now carry a TTL (10 min) — on multi-instance serverless deploys
+# the eviction performed on instance A (settings save / token self-heal)
+# could never reach instance B, whose cache kept serving a stale/broken token
+# until the instance recycled. A TTL bounds that divergence window.
+_tenant_fb_cache: dict[int, tuple[object, float]] = {}
+_FB_CACHE_TTL_S = 600.0
 
 # v8-A12: monotonic timestamp of the last successful Graph sync per tenant —
 # the polling messages page re-synced on every 10s poll before this.
@@ -28,12 +33,17 @@ _INBOX_LAST_SYNC: dict[int, float] = {}
 
 async def _get_inbox_fb(tenant_id: int):
     """Resolve (and cache) the tenant's FB client. Awaited — get_tenant_fb_client is async."""
-    if tenant_id not in _tenant_fb_cache:
-        fb = await get_tenant_fb_client(tenant_id)
-        if fb is None:
-            raise HTTPException(400, "لم يتم إعداد فيسبوك بعد — اربط صفحتك من صفحة /connect")
-        _tenant_fb_cache[tenant_id] = fb
-    return _tenant_fb_cache[tenant_id]
+    import time as _time
+    cached = _tenant_fb_cache.get(tenant_id)
+    if cached is not None and cached[1] > _time.monotonic():
+        return cached[0]
+    if cached is not None:
+        _tenant_fb_cache.pop(tenant_id, None)  # expired
+    fb = await get_tenant_fb_client(tenant_id)
+    if fb is None:
+        raise HTTPException(400, "لم يتم إعداد فيسبوك بعد — اربط صفحتك من صفحة /connect")
+    _tenant_fb_cache[tenant_id] = (fb, _time.monotonic() + _FB_CACHE_TTL_S)
+    return fb
 
 
 @router.get("/api/inbox/conversations")
@@ -63,8 +73,13 @@ async def inbox_list(
     # + commit); now one IN(...) fetch, diff in Python, add_all.
     import time as _time
     now = _time.monotonic()
-    last = _INBOX_LAST_SYNC.get(tenant_id, 0.0)
-    if now - last < 30:
+    # v20 fix: the default sentinel is None (never synced), NOT 0.0 —
+    # ``now - 0.0 < 30`` is true on any lambda younger than 30s, skipping the
+    # very first sync on every short-lived serverless instance. The DB rows
+    # still serve, but the live refresh (and its token self-heal side effect)
+    # was starved exactly where it mattered most.
+    last = _INBOX_LAST_SYNC.get(tenant_id)
+    if last is not None and now - last < 30:
         convos = None
     else:
         _INBOX_LAST_SYNC[tenant_id] = now
@@ -72,7 +87,15 @@ async def inbox_list(
         try:
             fb = await _get_inbox_fb(tenant_id)
             convos = await fb.get_conversations(50)
-        except Exception:
+        except HTTPException:
+            # v20: "not connected" is a legitimate state (a distinct 400 the
+            # route below reports) — debug-level only, no warning noise.
+            convos = None  # not connected — DB rows below still serve
+        except Exception as exc:
+            # v20: was ``convos = None`` with zero logging — an expired token,
+            # a user-token rejection (Graph code 10) or a network failure all
+            # vanished here and the inbox just looked empty forever.
+            log.warning("inbox live sync failed (tenant=%s): %s", tenant_id, exc)
             convos = None  # expired token / offline — DB rows below still serve
     if convos:
         try:

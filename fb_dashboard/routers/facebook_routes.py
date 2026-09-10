@@ -142,7 +142,10 @@ async def _sync_page_posts(db, tenant_id: int, fb) -> bool:
     lying empty list. Non-fatal by contract — DB rows below still serve."""
     try:
         r = await fb.get_page_posts_raw(50)
-    except Exception:
+    except Exception as exc:
+        # v20: was a silent False — the sync's Graph failure reason vanished
+        log.warning("posts sync: Graph fetch failed (tenant=%s): %s",
+                    tenant_id, exc)
         return False
     if r is None:
         return False
@@ -182,7 +185,10 @@ async def _sync_page_posts(db, tenant_id: int, fb) -> bool:
                     row.created_time = created
         await db.commit()
         return True
-    except Exception:
+    except Exception as exc:
+        # v20: was a silent rollback+False — the DB-side failure reason vanished
+        log.warning("posts sync: DB write failed (tenant=%s): %s",
+                    tenant_id, exc)
         await db.rollback()
         return False
 
@@ -191,7 +197,10 @@ async def _sync_ad_accounts(db, tenant_id: int, fb) -> bool:
     """Best-effort ad-accounts refresh (same contract as _sync_page_posts)."""
     try:
         r = await fb.get_ad_accounts_raw()
-    except Exception:
+    except Exception as exc:
+        # v20: silent False → logged
+        log.warning("ads accounts sync: Graph fetch failed (tenant=%s): %s",
+                    tenant_id, exc)
         return False
     if r is None:
         return False

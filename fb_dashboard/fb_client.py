@@ -94,6 +94,17 @@ class FBClient:
         if after:
             params["after"] = after
         r = await self._get(f"{self.page_id}/posts", params)
+        # v20 (live-evidenced permission split): likes.summary needs
+        # pages_read_engagement and comments.summary needs
+        # pages_read_user_content — neither is effective on every page token
+        # (app review pending). The WHOLE posts list used to die with them.
+        # Degrade to the base fields (shares included) so posts still serve
+        # with counters at 0 — better a real post than an empty section.
+        if r is None:
+            log.warning("posts fetch with engagement summaries failed — "
+                        "degrading to base fields (counts render as 0)")
+            params["fields"] = "id,message,created_time,shares"
+            r = await self._get(f"{self.page_id}/posts", params)
         return (r or {}).get("data", []), (r or {}).get("paging")
 
     async def get_page_posts_raw(self, limit: int = 50) -> dict | None:
@@ -101,10 +112,18 @@ class FBClient:
         means the Graph call itself FAILED (error/timeout/offline), an empty
         ``data`` list means the page genuinely has no posts. The route-level
         sync needs that distinction so it can mark ``synced=False`` and the
-        UI can say «فشل الاتصال» instead of a lying empty state."""
+        UI can say «فشل الاتصال» instead of a lying empty state.
+
+        v20: same engagement-summary degradation as get_page_posts — a page
+        token without pages_read_engagement/pages_read_user_content still
+        syncs the posts list (counters at 0) instead of nothing at all."""
         params = {"limit": limit, "fields": "id,message,created_time,"
                    "likes.summary(true),shares,comments.summary(true)"}
-        return await self._get(f"{self.page_id}/posts", params)
+        r = await self._get(f"{self.page_id}/posts", params)
+        if r is None:
+            params["fields"] = "id,message,created_time,shares"
+            r = await self._get(f"{self.page_id}/posts", params)
+        return r
 
     async def post_to_page(self, message: str) -> dict | None:
         return await self._post(f"{self.page_id}/feed", {"message": message})
@@ -493,14 +512,21 @@ class FBClient:
     async def check_token_scopes(self) -> dict:
         """Check which Facebook permissions the current token has.
         Returns {scopes: [...], missing: [...]}.
+
+        v20: pages_read_user_content added to the required set — reading
+        comments (per-post) empirically fails without it (Graph code 10,
+        live-evidenced), and the auto-reply engine's comment cycle is dead
+        without comment reads.
         """
         r = await self._get("me/permissions")
         if not r or not r.get("data"):
             return {"scopes": [], "missing": [
-                "pages_messaging", "pages_manage_metadata", "pages_read_engagement"]}
+                "pages_messaging", "pages_manage_metadata",
+                "pages_read_engagement", "pages_read_user_content"]}
 
         granted = [p["permission"] for p in r["data"] if p.get("status") == "granted"]
-        required = {"pages_messaging", "pages_manage_metadata", "pages_read_engagement"}
+        required = {"pages_messaging", "pages_manage_metadata",
+                    "pages_read_engagement", "pages_read_user_content"}
         missing = [s for s in required if s not in granted]
         return {"scopes": granted, "missing": missing}
 

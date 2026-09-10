@@ -430,6 +430,29 @@ async def test_facebook_test_connected_false_when_fan_count_unreadable(
 # ── 5) get_tenant_fb_client self-heal (the fleet-wide repair) ──────────────
 
 
+async def test_posts_fetch_degrades_when_summaries_rejected(monkeypatch):
+    """v20 permission split (live-evidenced): likes/comments summaries need
+    pages_read_engagement / pages_read_user_content — a page token without
+    them must still serve the posts list (counters 0), not an empty section."""
+    calls: list[dict] = []
+    import fb_client as fb_mod
+
+    async def fake_get(self, path, params=None):
+        calls.append({"path": path, "fields": (params or {}).get("fields", "")})
+        if "summary" in (params or {}).get("fields", ""):
+            return None  # Graph rejects the summary fields (code 10)
+        return {"data": [{"id": "p1", "message": "مرحبا", "created_time":
+                          "2026-09-01T10:00:00+0000", "shares": {"count": 2}}]}
+
+    monkeypatch.setattr(fb_mod.FBClient, "_get", fake_get)
+    r = await fb_mod.FBClient(PAGE_TOKEN, PAGE_ID).get_page_posts_raw(50)
+    assert r is not None and len(r["data"]) == 1  # degraded, not dead
+    assert "summary" not in calls[-1]["fields"]
+
+    posts, _ = await fb_mod.FBClient(PAGE_TOKEN, PAGE_ID).get_page_posts(10)
+    assert posts and posts[0]["id"] == "p1"
+
+
 async def test_self_heal_exchanges_stored_user_token(monkeypatch, tables):
     """A stored USER token is exchanged + persisted + snapshot refreshed + the
     inbox cache evicted — and the returned client carries the PAGE token."""

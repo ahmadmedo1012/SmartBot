@@ -5,12 +5,39 @@ import logging
 from _responses import ok
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Request
-from models import Sequence, User
+from models import Sequence, SubscriptionPlan, User
 
 from routers.auth import get_current_user, require_role
 
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["sequences"])
+
+
+async def _enforce_has_sequences(db, tenant_id: int) -> None:
+    """v22-D4 — بوابة خطة التسلسلات عند الإنشاء (كانت مفقودة كلياً).
+
+    التسلسلات تُباع على خطتي Pro/Enterprise فقط (has_sequences=true)،
+    بينما أنشأ مستأجرو Free تسلسلات فعلياً في الإنتاج (دليل v22:
+    sequences.id=1 tenant 48 Free، id=2 tenant 46 Free). CLAUDE.md v15
+    Convention #5: «ميزة مدفوعة بلا حارس هي علة لا TODO».
+
+    نفس سابقة _enforce_max_rules في rules.py (v22-D3): القراءة عبر
+    get_plan_limits (نقطة قراءة الخطة الوحيدة، مع انحدار المنتهية إلى
+    Free)؛ غياب صف الخطة أو العلم = fail-open (عقيدة money-core)؛
+    has_sequences=false → 403 عربية بالرسالة نفسها التي تستخدمها
+    واجهة الترقية.
+    """
+    from bot_engine.pipeline import get_plan_limits
+    limits = await get_plan_limits(db, tenant_id)
+    if limits is None:
+        return
+    plan = await db.get(SubscriptionPlan, limits["plan_id"])
+    has = getattr(plan, "has_sequences", None) if plan is not None else None
+    if has is None or has:
+        return
+    raise HTTPException(
+        403, "الحملات التسلسلية متاحة في خطة احترافي أو أعلى — رقِّ خطتك")
+
 
 
 @router.get("/api/sequences")
@@ -23,6 +50,8 @@ async def list_sequences(db=Depends(get_db), current_user: User = Depends(get_cu
 async def create_sequence(request: Request, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     from _services import sequence_engine
     body = await request.json()
+    # v22-D4: بوابة الخطة قبل الإنشاء — Pro/Enterprise فقط
+    await _enforce_has_sequences(db, current_user._tenant_id)
     seq_id = await sequence_engine.create_sequence(
         name=body["name"],
         description=body.get("description", ""),

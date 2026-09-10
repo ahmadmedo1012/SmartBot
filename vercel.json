@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo 'API project — no build needed (entry: api/index.py)'",
+  "buildCommand": "echo 'API project — no build needed (entry: api/index.py)' && printf '%s' \"$VERCEL_GIT_COMMIT_SHA\" > fb_dashboard/COMMIT_SHA",
   "installCommand": "pip install -r requirements.txt",
   "framework": "fastapi",
   "regions": [

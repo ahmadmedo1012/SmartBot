@@ -111,6 +111,23 @@ NEXT_PUBLIC_DOMAIN=https://bot.smart-link.ly
 
 بعد الدخول: **غيّر كلمة المرور** واضبط بيانات البنك عبر `POST /api/admin/config`.
 
+## انضباط النشر — بوابة الترقية للإنتاج (v22 §0) 🔒
+
+حادثة 403 (2026-09-10): أمر curl للنبض `Authorization: Bearer $CRON_SECRET` رجع 403 بينما النشرات «Ready». **التشخيص الفعلي:** كل النشرات الأخيرة كانت `target=production` فعلاً (Git Integration يرقّي `main` تلقائياً — `link.productionBranch=main`)، لكن قيمة `CRON_SECRET` في بيئة الإنتاج لم تكن مطابقة للسر المعروف، **وتغيير أي متغير بيئة لا يسري إلا بنشرة جديدة** — النشرة الخادمة بُنيت قبل ضبط القيمة الصحيحة. العِبرة المعمارية: «النشرة Ready» لا تعني «التغيير يسري».
+
+### القواعد الملزمة (كل وكيل/بشري ينشر)
+
+1. **كل دفع لـ`main` = نشرة إنتاج تلقائية** (Git Integration، Production Branch = `main` — مُتحقَّق). لا حاجة لأي إجراء يدوي.
+2. **أمر CLI؟ دائماً `--prod` بلا استثناء** — `vercel deploy` عارية تنشئ نشرة **معاينة** حتى من `main`، وهذا مصدر نظرية «نشرات Ready غير مُرقّاة» الأصلية.
+3. **بوابة ما بعد النشر (لا يُعلَن نجاح أي نشر قبلها):**
+   ```bash
+   curl -s https://api.smart-link.ly/api/version | jq -r .data.commit_sha   # == git rev-parse HEAD محلياً
+   curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $CRON_SECRET" \
+        https://api.smart-link.ly/api/cron/heartbeat                          # 200
+   ```
+   `/api/version` (v22 §0.3) endpoint عام يرجع **هوية الكود الخادم فعلياً**: `commit_sha` من `VERCEL_GIT_COMMIT_SHA` أو ملف `fb_dashboard/COMMIT_SHA` يخبزه buildCommand عند البناء (`printf %s $VERCEL_GIT_COMMIT_SHA > fb_dashboard/COMMIT_SHA`) — غير قابل للتخزين في CDN (ليس في `_CACHEABLE_API_PREFIXES`) حتى لا تقرأ البوابة جواب نشرة قديمة.
+4. **غيّرت متغير بيئة؟ انشر فوراً بعده** — المتغير يسري على النشرات التي تُبنى بعده فقط.
+
 ## العمليات المستمرة
 
 | العملية | الآلية |

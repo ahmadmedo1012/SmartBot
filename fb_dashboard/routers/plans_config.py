@@ -223,6 +223,62 @@ async def healthz():
 # /api/support/ticket behind a plans_config stub.
 
 
+# ── v22 §0.3 — deployment verification gate ──────────────────────────────────
+
+
+def _deploy_commit_sha() -> str:
+    """The exact code identity this serverless instance is running.
+
+    Two sources, tried in order:
+      1. ``VERCEL_GIT_COMMIT_SHA`` — injected into the function runtime for
+         git-connected deployments (the normal case: push to main).
+      2. ``fb_dashboard/COMMIT_SHA`` — baked at BUILD time by vercel.json's
+         buildCommand (``printf %s $VERCEL_GIT_COMMIT_SHA > COMMIT_SHA``).
+         Belt-and-suspenders for CLI/``--prebuilt`` deployments where the
+         runtime env var may be absent but the build saw it.
+    Empty string means "not a git deployment" (local dev, tests) — callers
+    render ``unknown`` rather than inventing a value.
+    """
+    sha = os.getenv("VERCEL_GIT_COMMIT_SHA", "").strip()
+    if sha:
+        return sha
+    try:
+        return (BASE_DIR / "COMMIT_SHA").read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+@router.get("/api/version")
+async def api_version():
+    """v22 §0.3 — PUBLIC deployment verification gate (same trust level as
+    /healthz: no credentials, no tenant data — only code identity).
+
+    Post-deploy gate contract (docs/deployment.md v22): after every deploy,
+    curl this on the production domain and compare ``commit_sha`` to the
+    local ``git rev-parse HEAD``. A mismatch (or ``unknown``) means the
+    newest deployment was never promoted to the production alias — the
+    exact class of the 2026-09-10 403 incident ("Ready" previews while an
+    older deployment kept serving the domain). No deploy may be called
+    successful until this check passes.
+
+    Deliberately NOT in the cacheable API prefixes (app/middleware.py): the
+    CDN holding a previous deployment's answer for s-maxage seconds would
+    defeat the gate right after an alias switch.
+    """
+    sha = _deploy_commit_sha()
+    return ok(
+        {
+            "version": app_version(),
+            "commit_sha": sha or "unknown",
+            "commit_sha_short": sha[:8] if sha else "unknown",
+            "git_ref": os.getenv("VERCEL_GIT_COMMIT_REF", "").strip() or None,
+            "deployment_env": os.getenv("VERCEL_ENV", "").strip() or None,
+            "region": os.getenv("VERCEL_REGION", "").strip() or None,
+            "timestamp": iso_z(utcnow()),
+        }
+    )
+
+
 # ── Internal cron endpoints (protected by CRON_SECRET) ──────────────────────────
 
 CRON_SECRET = os.getenv("CRON_SECRET", "")

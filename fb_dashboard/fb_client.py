@@ -289,11 +289,46 @@ class FBClient:
         return all_comments
 
     async def reply_to_comment(self, comment_id: str, message: str) -> dict | None:
+        """Post a public reply on a comment.
+
+        v23: the message MAY embed a mention token ``@[{user-id}]`` — Graph
+        renders it as a real tag (live-evidenced 2026-09-10: the reply came
+        back with ``message_tags[0]`` populated, so the commenter gets the
+        Facebook notification). The caller (pipeline Stage 7) builds it.
+        """
         r = await self._post(f"{comment_id}/comments", {"message": message})
         return None if r and r.get("_error") else r
 
     async def send_private_reply(self, comment_id: str, message: str) -> dict | None:
-        return await self._post(f"{comment_id}/private_replies", {"message": message})
+        """DM the author of a comment (ONE message per comment, within 7 days).
+
+        v23 (live-evidenced 2026-09-10): the documented edge
+        ``POST /{comment-id}/private_replies`` answers Graph code 100
+        subcode 33 ("object … cannot be loaded due to missing permissions")
+        for this token class, while ``POST /{page-id}/messages`` with
+        ``recipient={"comment_id": ...}`` succeeds AND — crucially — the
+        response carries ``recipient_id``: the commenter's user id, which
+        is exactly what the webhook `from` field no longer delivers (the
+        2024+ privacy change hides comment authors from both reads and
+        feed webhooks). The pipeline uses that id to @mention the
+        commenter in the public reply.
+
+        Returns the Graph dict (``recipient_id`` + ``message_id`` on
+        success), ``None`` on failure — same contract as ``send_dm``.
+        """
+        if not comment_id:
+            return None
+        data = {
+            "recipient": json.dumps({"comment_id": comment_id}),
+            "message": json.dumps({"text": message}),
+        }
+        r = await self._post(f"{self.page_id}/messages", data, max_retries=1)
+        if r and r.get("_error"):
+            log.warning(
+                "private reply failed (comment %s): %s",
+                comment_id[:24], r.get("body", "")[:160])
+            return None
+        return r
 
     async def delete_comment(self, comment_id: str) -> dict | None:
         return await self._post(f"{comment_id}", {"method": "delete"})
@@ -641,32 +676,47 @@ class FBClient:
 
         v21 (live-evidenced): ``/me/permissions`` is a USER-token endpoint —
         a PAGE token gets Graph 400 "Tried accessing nonexisting field
-        (permissions)", and the old fallback then reported ALL FOUR scopes
-        missing (a FALSE warning rendered to the user for a token that
-        actually serves conversations/ads fine). When the permission probe
-        fails we now check the token identity: a token whose /me IS the
-        bound page (a page token) reports only the two scopes that are
-        genuinely needed and empirically missing for this token class
-        (posts engagement summaries + comment reads) — pages_messaging is
-        NOT claimed missing for a page token that demonstrably serves the
-        conversations edge.
-        """
-        r = await self._get("me/permissions")
-        if not r or not r.get("data"):
-            me = await self._get("me", {"fields": "id"})
-            if me and str(me.get("id") or "") == str(self.page_id or ""):
-                # page token — user-style permission list unavailable
-                return {"scopes": [], "page_token": True, "missing": [
-                    "pages_read_engagement", "pages_read_user_content"]}
-            return {"scopes": [], "missing": [
-                "pages_messaging", "pages_manage_metadata",
-                "pages_read_engagement", "pages_read_user_content"]}
+        (permissions)".
 
-        granted = [p["permission"] for p in r["data"] if p.get("status") == "granted"]
+        v23 (live-evidenced 2026-09-10): the v21 fallback then assumed page
+        tokens cannot be introspected and reported two scopes "missing"
+        unconditionally — a FALSE warning shown to an owner whose token
+        actually HAS both (the live complaint this round). The fix: a PAGE
+        token CAN read its own ``debug_token`` introspection (the same call
+        /api/diagnostics/permissions already uses for the global token) —
+        the scopes list there is the honest source. Only when BOTH probes
+        fail do we fall back to the v21 conservative answer.
+        """
         required = {"pages_messaging", "pages_manage_metadata",
                     "pages_read_engagement", "pages_read_user_content"}
-        missing = [s for s in required if s not in granted]
-        return {"scopes": granted, "missing": missing}
+        r = await self._get("me/permissions")
+        if r and r.get("data"):
+            granted = [p["permission"] for p in r["data"] if p.get("status") == "granted"]
+            missing = [s for s in required if s not in granted]
+            return {"scopes": granted, "missing": missing}
+
+        # v23: page token — introspect itself via debug_token (honest scopes)
+        d = await self._get("debug_token", {"input_token": self.token})
+        if d and d.get("data"):
+            scopes = d["data"].get("scopes") or []
+            if not scopes:
+                # granular form: [{scope, permissions:[...]}, ...]
+                scopes = [str(g.get("scope") or "") for g in
+                          (d["data"].get("granular_scopes") or []) if g.get("scope")]
+            granted = [s for s in scopes if s]
+            if granted:
+                missing = [s for s in required if s not in granted]
+                return {"scopes": granted, "page_token": True, "missing": missing}
+
+        # both probes failed — v21 conservative answer (unchanged doctrine)
+        me = await self._get("me", {"fields": "id"})
+        if me and str(me.get("id") or "") == str(self.page_id or ""):
+            # page token — user-style permission list unavailable
+            return {"scopes": [], "page_token": True, "missing": [
+                "pages_read_engagement", "pages_read_user_content"]}
+        return {"scopes": [], "missing": [
+            "pages_messaging", "pages_manage_metadata",
+            "pages_read_engagement", "pages_read_user_content"]}
 
     # ── Lifecycle ─────────────────────────────────────────────────
 

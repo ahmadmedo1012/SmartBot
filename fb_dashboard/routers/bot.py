@@ -301,6 +301,129 @@ async def bot_status(_=Depends(get_current_user)):
     )
 
 
+# ── v23: bot behavior switches (mention / DM-on-comment / AI fallback) ──────
+
+#: The ONE source of truth for the behavior defaults — mirrored by the
+#: pipeline's own loader (bot_engine/pipeline.py::_behavior). Adding a
+#: switch = add it here AND there (both keyed by BotState rows).
+_BOT_BEHAVIOR_DEFAULTS: dict[str, object] = {
+    "mention_in_replies": True,   # the owner's explicit ask — on by default
+    "comment_dm_enabled": False,  # a deliberate feature to enable
+    "ai_auto_reply": False,       # opt-in: provider must be configured too
+    "ai_tone": "",
+}
+
+
+async def _read_behavior(db, tenant_id: int) -> dict:
+    """v23 — tenant's behavior switches with defaults for missing rows."""
+    behavior = dict(_BOT_BEHAVIOR_DEFAULTS)
+    try:
+        rows = await db.execute(
+            select(BotState).where(
+                BotState.tenant_id == tenant_id,
+                BotState.key.in_(list(behavior.keys())),
+            )
+        )
+        for row in rows.scalars().all():
+            if row.key not in behavior:
+                continue
+            raw = (row.value or "").strip()
+            if isinstance(behavior[row.key], bool):
+                behavior[row.key] = raw == "1"
+            else:
+                behavior[row.key] = raw[:40]
+    except Exception as e:
+        log.warning("behavior read failed (tenant %s): %s", tenant_id, e)
+    return behavior
+
+
+def _ai_status_sync() -> dict:
+    """The probe's sync half — get_ai() is a cached lazy singleton, so this
+    is a cheap in-memory read after the (awaited) refresh in the route."""
+    try:
+        from _services import get_ai
+        ai = get_ai()
+        return {"ai_available": bool(ai.available),
+                "ai_provider": str(ai.provider_name or "none")}
+    except Exception:
+        return {"ai_available": False, "ai_provider": "none"}
+
+
+@router.get("/api/bot/behavior")
+async def get_bot_behavior(db=Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    """v23 — the autoreply page's «سلوك البوت» card reads this.
+
+    Includes the live AI provider status so the owner sees WHY the AI
+    switch would be a no-op (no key) without digging into admin settings.
+    Keys/DB are refreshed via refresh_ai_from_db so a saved key applies
+    without a redeploy (v4 §5.20 doctrine).
+    """
+    behavior = await _read_behavior(db, current_user._tenant_id or 0)
+    try:
+        from _services import refresh_ai_from_db
+        await refresh_ai_from_db()
+    except Exception:
+        pass
+    behavior.update(_ai_status_sync())
+    return ok(behavior)
+
+
+@router.put("/api/bot/behavior")
+async def update_bot_behavior(request: Request, db=Depends(get_db),
+                              current_user: User = Depends(require_role("editor"))):
+    """v23 — flip the switches. editor+ (same guard class as /api/rules).
+
+    Body: JSON with any of the four keys. Unknown keys are rejected with
+    422 (a typo must not silently write a dead BotState row the pipeline
+    would never read). ai_tone is capped at 40 chars (it lands inside an
+    LLM prompt — bounded input, bounded prompt).
+    """
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(422, "جسم الطلب يجب أن يكون JSON صالحاً") from exc
+    if not isinstance(body, dict) or not body:
+        raise HTTPException(422, "جسم الطلب فارغ أو غير صالح")
+
+    unknown = [k for k in body if k not in _BOT_BEHAVIOR_DEFAULTS]
+    if unknown:
+        raise HTTPException(422, f"مفاتيح غير معروفة: {', '.join(unknown)}")
+
+    tenant_id = current_user._tenant_id or 0
+    updates: dict[str, str] = {}
+    for key, value in body.items():
+        if isinstance(_BOT_BEHAVIOR_DEFAULTS[key], bool):
+            if not isinstance(value, bool):
+                raise HTTPException(422, f"قيمة {key} يجب أن تكون منطقية (true/false)")
+            updates[key] = "1" if value else "0"
+        else:
+            text = str(value or "").strip()
+            if len(text) > 40:
+                raise HTTPException(422, "نبرة الذكاء الاصطناعي يجب ألا تتجاوز 40 حرفاً")
+            updates[key] = text
+
+    try:
+        for key, value in updates.items():
+            row = (await db.execute(
+                select(BotState).where(
+                    BotState.tenant_id == tenant_id, BotState.key == key)
+            )).scalar_one_or_none()
+            if row:
+                row.value = value
+            else:
+                db.add(BotState(tenant_id=tenant_id, key=key, value=value))
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        log.error("behavior write failed (tenant %s): %s", tenant_id, e)
+        raise HTTPException(500, "تعذر حفظ إعدادات سلوك البوت") from e
+
+    behavior = await _read_behavior(db, tenant_id)
+    behavior.update(_ai_status_sync())
+    return ok(behavior)
+
+
 @router.post("/api/bot/restart")
 async def restart_bot(current_user: User = Depends(require_platform_admin), db=Depends(get_db)):
     # v12-E2.1: platform-admin only — restart kills the GLOBAL bot loop that

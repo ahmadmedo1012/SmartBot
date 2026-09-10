@@ -144,7 +144,14 @@ export default function MessagesPage() {
     queryKey: ["inbox-conversations", filter, debouncedSearch],
     queryFn: () => apiFetch(`/api/inbox/conversations?status=${filter}&search=${encodeURIComponent(debouncedSearch)}`).then(unwrapApi<ConversationList>),
     placeholderData: (prev) => prev,
-    refetchInterval: 15000,
+    /* v23: 15s→8s poll — the inbox is the app's most time-critical surface
+       (a customer is waiting on the other side); 8s keeps unread badges and
+       list order within one attention blink without hammering the Graph API. */
+    refetchInterval: 8000,
+    /* v23: 15s staleTime — remounts/coming back to the tab within 15s reuse
+       the cached list instead of flashing skeletons; the 8s poll above still
+       refreshes it on cadence, so freshness never regresses. */
+    staleTime: 15000,
     retry: (failureCount, err) => {
       // Don't retry a "page not connected" setup error
       if (err instanceof ApiError && err.status === 400) return false
@@ -163,11 +170,27 @@ export default function MessagesPage() {
     isError: msgIsError,
     error: msgError,
     refetch: refetchMessages,
+    /* v23: surfaces the placeholder state above so the swapped-in previous
+       thread can be dimmed (same honesty cue as the list's isFetching dim). */
+    isPlaceholderData: msgIsPlaceholder,
   } = useQuery({
     queryKey: ["inbox-messages", selectedId],
     queryFn: () => apiFetch(`/api/inbox/conversations/${selectedId}`).then(unwrapApi<Message[]>),
     enabled: !!selectedId,
-    refetchInterval: 10000,
+    /* v23: 10s→5s poll — a reply landing on the customer's phone should show
+       up here while the conversation is still "hot" (5s ≈ reading rhythm). */
+    refetchInterval: 5000,
+    /* v23: 20s staleTime + 5min gcTime — switching back to a thread you just
+       read serves its cached messages INSTANTLY (fresh ⇒ no refetch, no
+       skeleton flash) and background-revalidates once stale; 5min gcTime
+       keeps recently-read threads warm across master-detail switches. */
+    staleTime: 20000,
+    gcTime: 300000,
+    /* v23: keepPreviousData twin of the list (v8 C8) — switching threads
+       keeps the previous thread's bubbles on screen (dimmed, below) while
+       the new one loads instead of flashing the skeleton; the cached/fresh
+       path above is what covers the actual "returning" case. */
+    placeholderData: (prev) => prev,
   })
 
   const queryClient = useQueryClient()
@@ -241,6 +264,23 @@ export default function MessagesPage() {
       apiFetch(`/api/inbox/conversations/${id}/reply`, {
         method: "POST", body: new URLSearchParams({ message: text }),
       }),
+    /* v23 (instant send): the reply used to appear only after the POST
+       round-trip — on a slow link the composer felt dead for seconds.
+       onMutate stamps a temporary bubble into the thread cache so the user
+       sees their reply the frame they hit send; the onSuccess invalidate
+       swaps it for the server's persisted copy. The optimistic row matches
+       the REAL Message shape (types.ts): text→message, created_at→
+       created_time, is_from_page renders it on the page side. */
+    onMutate: async ({ id, text }) => {
+      // cancel any in-flight thread poll so it can't stomp the optimistic row
+      await queryClient.cancelQueries({ queryKey: ["inbox-messages", id] })
+      const previous = queryClient.getQueryData<Message[]>(["inbox-messages", id])
+      queryClient.setQueryData<Message[]>(["inbox-messages", id], (old) => [
+        ...(old ?? []),
+        { id: `optimistic-${Date.now()}`, message: text, is_from_page: true, created_time: new Date().toISOString() },
+      ])
+      return { previous }
+    },
     onSuccess: (_res, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["inbox-messages", id] })
       queryClient.invalidateQueries({ queryKey: ["inbox-conversations"] })
@@ -251,7 +291,19 @@ export default function MessagesPage() {
       // (ب) a successful reply lands the thread at the newest message
       scrollToBottom("smooth")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
+    /* v23: rollback — a failed POST pulls the optimistic bubble back out
+       (snapshot restore) so the thread never LIES about a delivered reply;
+       the draft stays for a corrected retry (v17 D10-M2 semantics). The
+       no-snapshot branch (thread never cached) just filters the temp row. */
+    onError: (e: Error, { id }, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(["inbox-messages", id], context.previous)
+      } else {
+        queryClient.setQueryData<Message[]>(["inbox-messages", id], (old) =>
+          (old ?? []).filter((m) => !String(m.id ?? "").startsWith("optimistic-")))
+      }
+      brandedToast.error(e.message || "فشل الإرسال")
+    },
   })
 
   const handleSend = () => {
@@ -281,15 +333,31 @@ export default function MessagesPage() {
           selectedId ? "hidden md:flex" : "flex"
         )}>
           <div className="p-3 border-b border-border space-y-2">
-            <div className="relative">
-              <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="بحث في المحادثات…"
-                aria-label="البحث في المحادثات"
-                className="ps-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
-              />
+            <div className="flex items-center gap-2">
+              {/* v23 (instant inbox): live badge — the faster polls (8s list /
+                  5s thread) make the inbox effectively realtime; the pulsing
+                  dot says so right beside the search. bg-success is the house
+                  green token (PageHeader/badge family), animate-pulse-dot is
+                  the existing globals keyframe (same cue as the unread dot),
+                  and RTL flex order puts it at the row start. */}
+              <span
+                role="status"
+                aria-label="تحديث لحظي كل ثوانٍ"
+                className="flex items-center gap-1.5 shrink-0"
+              >
+                <span className="size-1.5 rounded-full bg-success animate-pulse-dot" aria-hidden="true" />
+                <span className="text-2xs text-muted-foreground">مباشر</span>
+              </span>
+              <div className="relative flex-1">
+                <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="بحث في المحادثات…"
+                  aria-label="البحث في المحادثات"
+                  className="ps-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
+                />
+              </div>
             </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
               {FILTERS.map(f => (
@@ -396,7 +464,16 @@ export default function MessagesPage() {
                   <DirectionalIcon semanticDirection="forward" className="size-4" /> كل المحادثات
                 </Button>
               </div>
-              <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div
+                ref={scrollContainerRef}
+                className={cn(
+                  "flex-1 overflow-y-auto p-4 space-y-3 transition-opacity",
+                  /* v23: placeholder threads (previous conversation's bubbles
+                     shown while the new one loads) dim like the list's
+                     isFetching state — an honesty cue, not a content change. */
+                  msgIsPlaceholder && "opacity-60",
+                )}
+              >
                 {msgLoading ? (
                   <div className="space-y-3">
                     {[1,2,3].map(i => (
@@ -433,11 +510,19 @@ export default function MessagesPage() {
                     const isPage = msg.is_from_page === true
                     const hasImage = !!msg.attachment_url && msg.attachment_type === "image"
                     const isSticker = !!msg.attachment_url && msg.attachment_type === "sticker"
+                    /* v23: optimistic rows are stamped with id "optimistic-*";
+                       they dim while their POST is in flight so pending vs
+                       delivered is distinguishable at a glance. opacity-70 on
+                       the muted page bubble is transient (in-flight only) — the
+                       v14-E5 opacity bans were measured on the tiny primary-
+                       bubble meta text, not full muted bubbles. */
+                    const isOptimistic =
+                      typeof msg.id === "string" && msg.id.startsWith("optimistic-")
                     return (
                       <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
                         <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
                           isPage ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
-                        }`}>
+                        } ${isOptimistic && sendMut.isPending ? "opacity-70" : ""}`}>
                           {/* v4 §4.11 — attachments/stickers are persisted now;
                               render them instead of an empty text bubble */}
                           {hasImage && msg.attachment_url && (

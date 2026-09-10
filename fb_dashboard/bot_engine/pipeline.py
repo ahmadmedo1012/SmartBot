@@ -31,6 +31,11 @@ from bot_engine.text import TemplateRenderer
 
 log = logging.getLogger("fb-bot")
 
+# v23: bot-behavior switches (BotState) TTL — same freshness class as the
+# plan-limits cache; a toggle flip applies within a minute without a
+# per-comment query cost.
+_BEHAVIOR_TTL_S = 60.0
+
 
 # -------------------------------------------------------------------
 # v15-E1 money core — plan limits / usage counters / gate telemetry
@@ -228,6 +233,105 @@ class ReplyPipeline:
         # cached 60s). None = unlimited (planless without a seeded Free row /
         # DB error — the documented fail-open doctrine).
         self._plan_limits = plan_limits or None
+        # v23: per-tenant bot behavior (BotState) — 60s TTL cache so the
+        # per-comment cost is one indexed query per minute, not per comment.
+        self._behavior_cache: dict | None = None
+        self._behavior_at = 0.0
+
+    async def _behavior(self, session) -> dict:
+        """v23 — the tenant's bot-behavior switches from BotState.
+
+        Defaults follow the product decision of this round: mentions ON
+        (the owner's explicit ask — the reply notifies the commenter),
+        DM-on-comment OFF (a deliberate feature to enable), AI fallback
+        OFF. Unknown/missing rows → defaults; a DB error → the last
+        cached values (fail-open, never block a reply on settings).
+        """
+        now = time.time()
+        if self._behavior_cache is not None and (now - self._behavior_at) < _BEHAVIOR_TTL_S:
+            return self._behavior_cache
+        behavior: dict = {
+            "mention_in_replies": True,
+            "comment_dm_enabled": False,
+            "ai_auto_reply": False,
+            "ai_tone": "",
+        }
+        try:
+            from models import BotState
+            rows = await session.execute(
+                select(BotState).where(
+                    BotState.tenant_id == self._tenant_id,
+                    BotState.key.in_(list(behavior.keys())),
+                )
+            )
+            for row in rows.scalars().all():
+                if row.key not in behavior:
+                    continue
+                raw = (row.value or "").strip()
+                if isinstance(behavior[row.key], bool):
+                    behavior[row.key] = raw == "1"
+                else:
+                    behavior[row.key] = raw
+        except Exception as e:
+            self._mon.warn(f"behavior load failed: {e}", module="pipeline")
+        self._behavior_cache = behavior
+        self._behavior_at = now
+        return behavior
+
+    async def _ai_fallback_reply(self, session, ctx, intent: str) -> str | None:
+        """v23 — the AI auto-reply the owner actually asked for.
+
+        The whole complaint behind this feature: keys were configured
+        (SystemConfig openai/gemini) yet the reply pipeline consulted AI
+        NOWHERE — suggestions existed only as a manual dashboard helper.
+        When a comment matches NO rule and the tenant enabled
+        ``ai_auto_reply``, the configured provider generates the reply
+        (Libyan-dialect prompt, one-shot, ≤600 chars) instead of the bot
+        staying silent.
+
+        Guards (each documented):
+          * plan gate ``has_ai`` — the money gate doctrine (throttled log);
+          * 8s ``asyncio.timeout`` — the webhook ACK must not sit behind a
+            hung provider (v15-D8-B4 doctrine extended to the LLM call);
+          * length/validate — a degenerate provider answer (empty, giant,
+            or brace-broken) never reaches the page;
+          * ANY failure → None → the pipeline continues to the honest
+            "no matching rule" path. AI is an enhancement, never a hazard.
+        """
+        behavior = await self._behavior(session)
+        if not behavior.get("ai_auto_reply"):
+            return None
+        if self._plan_limits and self._plan_limits.get("has_ai") is False:
+            await money_gate_log(
+                session, self._tenant_id,
+                "تم إيقاف رد الذكاء الاصطناعي — الميزة غير متاحة في خطتك الحالية، "
+                "قم بالترقية من صفحة الفواتير لتفعيلها",
+                key="has_ai",
+            )
+            self._mon.warn("AI fallback skipped — has_ai plan gate",
+                           module="pipeline")
+            return None
+        try:
+            from _services import get_ai, refresh_ai_from_db
+            await refresh_ai_from_db()  # SystemConfig keys apply without redeploy
+            ai = get_ai()
+            if not ai.available:
+                self._mon.warn("AI fallback: no provider configured",
+                               module="pipeline")
+                return None
+            tone = str(behavior.get("ai_tone") or "")
+            async with asyncio.timeout(8.0):
+                text = await ai.generate_reply(ctx.text, ctx.from_first, tone=tone)
+            text = (text or "").strip()
+            if 3 <= len(text) <= 600 and TemplateRenderer.validate(text):
+                return text
+            self._mon.warn("AI fallback reply rejected (empty/oversized/broken)",
+                           module="pipeline")
+        except TimeoutError:
+            self._mon.warn("AI fallback timed out (8s)", module="pipeline")
+        except Exception as e:
+            self._mon.warn(f"AI fallback failed: {e}", module="pipeline")
+        return None
 
     async def process(self, session, raw_comment: dict, post_id: str,
                       matcher: IntentAwareMatcher, send_attempts: int = 3) -> bool:
@@ -288,8 +392,21 @@ class ReplyPipeline:
             return False
 
         if not template or not TemplateRenderer.validate(template):
-            self._mon.debug("no matching rule", comment_id=ctx.cid[:12], intent=intent)
-            return False
+            # v23: AI fallback — the owner's complaint "الذكاء الاصطناعي غير
+            # مستفاد منه رغم تفعيلي" — the pipeline consulted AI nowhere.
+            # With ai_auto_reply ON, a no-rule comment gets a generated
+            # reply instead of silence. rule_id stays None (AI-generated,
+            # Reply.rule_id is nullable — rules keep their own attribution).
+            ai_reply = await self._ai_fallback_reply(session, ctx, intent)
+            if ai_reply:
+                template = ai_reply
+                rule_id = None
+                self._mon.info(f"✨ AI fallback for {ctx.from_first}",
+                               comment_id=ctx.cid[:12], intent=intent or "",
+                               module="pipeline")
+            else:
+                self._mon.debug("no matching rule", comment_id=ctx.cid[:12], intent=intent)
+                return False
 
         # Stage 5: Cooldown
         try:
@@ -345,6 +462,88 @@ class ReplyPipeline:
             self._mon.error(f"render failed: {e}", module="pipeline")
             return False
 
+        # v23 (Stage 7.5) — behavior switches are needed from here on:
+        behavior = await self._behavior(session)
+
+        # v23 (Stage 7.7) — DM-on-comment + commenter-id resolution.
+        #
+        # The owner's feature: "رسالة مباشرة بمجرد تعليقه (كميزة يمكن تفعيلها)"
+        # — with comment_dm_enabled ON, the commenter gets a Messenger DM
+        # the moment they comment (ONE per comment, 7-day window, via
+        # recipient={"comment_id": ...} — live-proven 2026-09-10).
+        #
+        # WHY THIS RUNS BEFORE THE PUBLIC REPLY: the 2024+ privacy change
+        # hides comment authors (webhook `from` and Graph reads both), and
+        # the DM response's ``recipient_id`` is the ONLY remaining way to
+        # resolve the commenter's user id — which the mention (Stage 7.8)
+        # then uses so the public reply actually NOTIFIES them.
+        # dm_template (if the matched rule has one) wins as the DM text;
+        # otherwise the feature sends the public reply text privately.
+        dm_sent = False
+        if behavior.get("comment_dm_enabled"):
+            if self._plan_limits and self._plan_limits.get("has_dm") is False:
+                # v15-D2-H1 — has_dm was decorative (no enforcement point);
+                # the private reply to commenters now STOPS for plans without it.
+                await money_gate_log(
+                    session, self._tenant_id,
+                    "تم إيقاف الرد الخاص (DM) — ميزة الرد الخاص على التعليقات غير متاحة "
+                    "في خطتك الحالية، قم بالترقية من صفحة الفواتير لتفعيلها",
+                    key="has_dm",
+                )
+                self._mon.warn("DM skipped — has_dm plan gate",
+                               comment_id=ctx.cid[:12], module="pipeline")
+            else:
+                dm_text = ""
+                try:
+                    if dm_template:
+                        dm_text = TemplateRenderer.render(dm_template, ctx)
+                    elif reply:
+                        dm_text = reply
+                except Exception:
+                    dm_text = reply
+                if dm_text:
+                    try:
+                        dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
+                        if dm_result and not dm_result.get("_error"):
+                            dm_sent = True
+                            # The one remaining commenter-id resolver: the
+                            # recipient Graph echoed back. Backfill ctx so
+                            # the mention (7.8), CRM (Stage 10) and the
+                            # Comment row (Stage 9) carry the real id.
+                            rid = str(dm_result.get("recipient_id") or "")
+                            if rid and not ctx.from_id:
+                                ctx.from_id = rid
+                                ctx.raw = dict(ctx.raw or {}, **{"from": {"id": rid}})
+                                self._mon.info("commenter resolved via DM recipient_id",
+                                               comment_id=ctx.cid[:12], module="pipeline")
+                            self._mon.info(f"✓ DM sent to commenter {ctx.from_first}",
+                                           comment_id=ctx.cid[:12])
+                        else:
+                            fb_err = "(unknown)"
+                            if dm_result and dm_result.get("_error"):
+                                fb_err = dm_result.get("body", dm_result.get("error", fb_err))
+                            self._mon.warn(f"DM-on-comment failed: {fb_err}",
+                                           comment_id=ctx.cid[:12], module="pipeline")
+                    except Exception as e:
+                        self._mon.warn(f"DM-on-comment failed: {e}",
+                                       comment_id=ctx.cid[:12], module="pipeline")
+
+        # v23 (Stage 7.8) — @mention the commenter in the public reply.
+        # The owner's requirement: the reply must TAG the commenter so the
+        # notification reaches them. ``@[{user-id}]`` renders as a real
+        # mention tag (live-evidenced: the reply came back with
+        # message_tags populated). Sent-only: the stored Reply row keeps
+        # the clean text the owner reads; the log carries the mention fact.
+        mention_prefix = ""
+        try:
+            page_id_str = str(self.fb.page_id)
+            if (behavior.get("mention_in_replies")
+                    and ctx.from_id
+                    and ctx.from_id not in ("None", "0", page_id_str)):
+                mention_prefix = f"@[{ctx.from_id}] "
+        except Exception:
+            mention_prefix = ""
+
         # Stage 7.5: v15-D2-H1 — plan quota gate (max_replies) BEFORE sending.
         # The snapshot's freshness is bounded by the engine's 60s limits cache
         # (soft limit, documented); the counter INCREMENT itself is always exact.
@@ -367,19 +566,24 @@ class ReplyPipeline:
             user_type = "frequent" if user_ctx.is_frequent() else "returning" if user_ctx.is_returning() else "new"
         self._mon.info(f"→ Reply to {ctx.from_first}",
                        comment_id=ctx.cid[:12], intent=intent, rule_id=rule_id,
-                       extra={"user_type": user_type, "sales_stage": sales_stage or ""})
+                       extra={"user_type": user_type, "sales_stage": sales_stage or "",
+                              "mention": bool(mention_prefix), "dm_sent": dm_sent,
+                              "ai_generated": rule_id is None and bool(template)})
 
         # Stage 8: Send with exponential backoff.
         # v15-D8-B4 — the caller picks the attempt budget: the webhook path
         # (fast_ack) gets ONE inline attempt so the HTTP 200 ACK to Facebook
         # is not held behind Graph retries+backoff; the background cycle
         # keeps the full retry budget (no ACK pressure there).
+        # v23: the mention prefix travels WITH the sent text — the stored
+        # Reply row keeps the clean reply for the owner's dashboard.
         result = None
         max_attempts = max(1, int(send_attempts))
         send_started = time.time()
+        send_text = f"{mention_prefix}{reply}"
         for attempt in range(max_attempts):
             try:
-                result = await self.fb.reply_to_comment(ctx.cid, reply)
+                result = await self.fb.reply_to_comment(ctx.cid, send_text)
                 if result:
                     self._diag.record_cycle((time.time() - send_started) * 1000)
                     break
@@ -408,8 +612,12 @@ class ReplyPipeline:
         await self.dedup.mark(ctx.cid)
 
         # Stage 8b: Send DM (private reply or messenger)
-        dm_sent = False
-        if dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
+        # v23: superseded by Stage 7.7 when comment_dm_enabled is ON — this
+        # block now serves the legacy path only (a matched rule WITH a
+        # dm_template while the feature switch is OFF). dm_sent from 7.7
+        # short-circuits it so a comment never gets TWO private replies.
+        dm_sent_local = False
+        if (not dm_sent) and dm_template and ctx.from_id and ctx.from_id != str(self.fb.page_id):
             if self._plan_limits and self._plan_limits.get("has_dm") is False:
                 # v15-D2-H1 — has_dm was decorative (no enforcement point);
                 # the private reply to commenters now STOPS for plans without it.
@@ -425,10 +633,15 @@ class ReplyPipeline:
                 try:
                     log.info(f"DM attempt to {ctx.from_first}: template={dm_template[:50]}")
                     dm_text = TemplateRenderer.render(dm_template, ctx)
-                    # Strategy 1: Private reply — works when page has pages_manage_metadata
+                    # Strategy 1: Private reply — the recipient={comment_id}
+                    # form (live-proven v23); Graph echoes the commenter's
+                    # user id back, resolving the author when `from` is hidden.
                     dm_result = await self.fb.send_private_reply(ctx.cid, dm_text)
                     if dm_result and not dm_result.get("_error"):
-                        dm_sent = True
+                        dm_sent_local = True
+                        rid = str((dm_result or {}).get("recipient_id") or "")
+                        if rid and not ctx.from_id:
+                            ctx.from_id = rid
                     else:
                         fb_err = "(unknown)"
                         if dm_result and dm_result.get("_error"):
@@ -440,14 +653,14 @@ class ReplyPipeline:
                             ctx.from_id, dm_text,
                             messaging_type="MESSAGE_TAG", tag="POST_PURCHASE_UPDATE")
                         if dm_result:
-                            dm_sent = True
+                            dm_sent_local = True
                         else:
                             # Strategy 3: RESPONSE — requires user messaged page in last 24h
                             dm_result = await self.fb.send_dm(
                                 ctx.from_id, dm_text, messaging_type="RESPONSE")
                             if dm_result:
-                                dm_sent = True
-                    if dm_sent:
+                                dm_sent_local = True
+                    if dm_sent_local:
                         self._mon.info(f"✓ DM sent to {ctx.from_first}", comment_id=ctx.cid[:12])
                     else:
                         self._mon.warn("× DM failed after all strategies",
@@ -474,6 +687,9 @@ class ReplyPipeline:
                 fb_post_id=ctx.post_id,
                 commenter_name=ctx.from_name,
                 comment_text=ctx.text,
+                # v23: the clean reply text — the @[id] mention prefix is a
+                # delivery mechanism (notification), not content; the log's
+                # extra={mention:...} carries the fact for audits.
                 reply_text=reply,
                 rule_id=rule_id,
             ))
@@ -499,6 +715,11 @@ class ReplyPipeline:
                     session.add(_crow)
                 _crow.reply_text = reply
                 _crow.replied_by_bot = True
+                # v23: a late-resolved commenter id (DM recipient_id) heals
+                # rows stored empty by the polling path — audience/CRM views
+                # stop collapsing everyone into "صديقنا".
+                if ctx.from_id and not _crow.commenter_id:
+                    _crow.commenter_id = str(ctx.from_id)
             except Exception as _ce:
                 self._mon.debug(f"comment upsert skipped: {_ce}", comment_id=ctx.cid[:12])
             await session.commit()

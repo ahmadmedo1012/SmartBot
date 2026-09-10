@@ -131,6 +131,30 @@ export interface ReplyRule {
   description?: string
 }
 
+/* v23: GET/PUT /api/bot/behavior — بطاقة سلوك البوت في صفحة الردود
+ * التلقائية. الحقول المنطقية تحرّر المفاتيح الثلاثة (منشن المعلّق /
+ * رسالة مباشرة عند التعليق / رد AI عند عدم التطابق)، بينما ai_available
+ * + ai_provider قراءة فقط من جهة الخادم (لا يُرسلهما PUT). */
+export interface BotBehavior {
+  /** يبدأ رد البوت بإشارة (منشن) لاسم المعلّق. الافتراضي true. */
+  mention_in_replies: boolean
+  /** رد خاص في ماسنجر لمن يعلّق (مرة لكل تعليق خلال 7 أيام). الافتراضي false. */
+  comment_dm_enabled: boolean
+  /** رد ذكاء اصطناعي عند عدم مطابقة أي قاعدة. الافتراضي false. */
+  ai_auto_reply: boolean
+  /** نبرة ردود AI الحرة (نص حر، ≤40 حرفاً). الافتراضي "". */
+  ai_tone: string
+  /** قراءة فقط: هل يوجد مفتاح مزود AI صالح في إعدادات الأدمن؟ */
+  ai_available: boolean
+  /** قراءة فقط: المزود المُعد حالياً — "none" عند غياب المفاتيح. */
+  ai_provider: "openai" | "gemini" | "none"
+}
+
+/** PUT /api/bot/behavior body — كل الحقول اختيارية (patch semantics). */
+export type BotBehaviorPatch = Partial<
+  Pick<BotBehavior, "mention_in_replies" | "comment_dm_enabled" | "ai_auto_reply" | "ai_tone">
+>
+
 // ── Comments ────────────────────────────────────────────────────────────────
 
 /** Row of /api/comments → data.items (replies.py DB path). */

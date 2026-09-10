@@ -14,6 +14,16 @@
  *     prefers-reduced-motion (D2-P1: JS scrollIntoView bypasses the
  *     global CSS override)
  *
+ * v23 — instant inbox pins (the messages page "instant" round):
+ *   - optimistic send: the reply bubble is stamped into the thread cache
+ *     BEFORE the POST resolves (onMutate) — a never-resolving fetch mock
+ *     pins that the text is on screen while the request is still in flight
+ *   - failed send rollback: the optimistic bubble is pulled back out
+ *     (snapshot restore) and the draft survives for a corrected retry
+ *   - instant cache: returning to a recently-opened thread serves it from
+ *     cache with ZERO refetch (staleTime 20s + gcTime 300s) — pinned via
+ *     the GET call count staying at 1 across a switch away and back
+ *
  * Mock bundle (house pattern from SettingsChangePassword/OnboardingWizard
  * tests): QueryClientProvider, premium-toast spy, URL-router fetch stub,
  * next/link + next/image anchors, matchMedia stub (jsdom implements none —
@@ -65,7 +75,11 @@ function jsonRes(body: unknown, status = 200): Response {
   })
 }
 
-function stubFetch(routes: Record<string, () => Response>) {
+/* v23: makers may also return a PROMISE that the test resolves later —
+ * that's how the optimistic-send tests pin "the UI moved before the
+ * network answered". The async stub below flattens it back to a
+ * Promise<Response>, so fetch's signature still holds. */
+function stubFetch(routes: Record<string, () => Response | Promise<Response>>) {
   const calls: { method: string; url: string; body?: string }[] = []
   const fn = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url)
@@ -319,5 +333,115 @@ describe("programmatic scroll under reduced motion (D2-P1)", () => {
     // the D2 regression pin: the JS-API smooth scroll leaked past the CSS
     // guard before this fix
     expect(scrollIntoView).not.toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" }))
+  })
+})
+
+describe("instant inbox (v23 — optimistic send + instant cache)", () => {
+  it("optimistic send: the reply bubble is on screen BEFORE the server answers", async () => {
+    // a POST that stays in flight until the test releases it — the only way
+    // to pin "the UI moved first, the network is still pending"
+    let releaseReply!: (res: Response) => void
+    const api = stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/reply": () =>
+        new Promise<Response>((resolve) => {
+          releaseReply = resolve
+        }),
+    })
+    renderMessages()
+
+    fireEvent.click(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+    fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "رد لحظي قبل الخادم" } })
+    fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
+
+    // the optimistic bubble is in the thread while the POST is still in
+    // flight: exactly one reply call, and no success toast yet. selector:"p"
+    // pins the BUBBLE itself — the composer textarea also carries the text
+    // as a controlled value, which would make the query a false positive.
+    expect(
+      await screen.findByText("رد لحظي قبل الخادم", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(api.callsFor("/api/inbox/conversations/c1/reply")).toHaveLength(1)
+    expect(mocks.toastSuccess).not.toHaveBeenCalled()
+
+    // release the server — the onSuccess invalidate swaps the temp bubble
+    // for the persisted copy
+    releaseReply(jsonRes({ success: true, data: { message_id: "m3" } }))
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم إرسال الرد"))
+  })
+
+  it("a failed send rolls the optimistic bubble back and keeps the draft", async () => {
+    let failReply!: (res: Response) => void
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+      "POST /api/inbox/conversations/c1/reply": () =>
+        new Promise<Response>((resolve) => {
+          failReply = resolve
+        }),
+    })
+    renderMessages()
+
+    fireEvent.click(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+    fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "محاولة تفاؤلية" } })
+    fireEvent.click(screen.getByRole("button", { name: "إرسال الرد" }))
+
+    // the optimistic bubble flashes in… (selector:"p" — the composer keeps
+    // the same text as its controlled value, see the test above)
+    expect(
+      await screen.findByText("محاولة تفاؤلية", { selector: "p" }),
+    ).toBeInTheDocument()
+
+    // …then the 502 rolls it back out of the thread (snapshot restore)
+    failReply(jsonRes({ detail: "تعذر الإرسال إلى فيسبوك" }, 502))
+    await waitFor(() =>
+      expect(screen.queryByText("محاولة تفاؤلية", { selector: "p" })).toBeNull(),
+    )
+    // the thread is back to its exact server state
+    expect(screen.getByText("السلام عليكم")).toBeInTheDocument()
+    expect(screen.getByText("أهلاً بك!")).toBeInTheDocument()
+    // the draft survives the rollback for a corrected retry (v17 D10-M2)
+    expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("محاولة تفاؤلية")
+    expect(mocks.toastError).toHaveBeenCalledWith("تعذر الإرسال إلى فيسبوك")
+  })
+
+  it("returning to a recently-opened conversation serves its thread from cache — zero refetch", async () => {
+    const api = stubFetch({
+      [LIST_ROUTE]: () =>
+        jsonRes({ success: true, data: { items: [conv("c1", "أحمد"), conv("c2", "سارة")], total: 2 } }),
+      // distinct bodies per thread — "in cache" vs "placeholder" must be
+      // distinguishable in the DOM, not just in the call log
+      "GET /api/inbox/conversations/c1": () =>
+        jsonRes({ success: true, data: [{ id: "c1-m1", message: "سؤال أحمد عن السعر", is_from_page: false, created_time: null }] }),
+      "GET /api/inbox/conversations/c2": () =>
+        jsonRes({ success: true, data: [{ id: "c2-m1", message: "استفسار سارة عن التوصيل", is_from_page: false, created_time: null }] }),
+    })
+    renderMessages()
+
+    // the live badge announces the polling cadence (v23 instant inbox)
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "تحديث لحظي كل ثوانٍ")
+
+    // open أحمد — his thread is fetched live (first sighting)
+    fireEvent.click((await screen.findAllByRole("listitem"))[0])
+    expect(await screen.findByText("سؤال أحمد عن السعر")).toBeInTheDocument()
+
+    // switch to سارة — her thread loads
+    fireEvent.click(screen.getAllByRole("listitem")[1])
+    expect(await screen.findByText("استفسار سارة عن التوصيل")).toBeInTheDocument()
+
+    // GET-only count (callsFor matches the mark-read POST url too)
+    const c1ThreadGets = () =>
+      api.calls.filter((c) => c.method === "GET" && c.url === "/api/inbox/conversations/c1").length
+    expect(c1ThreadGets()).toBe(1)
+
+    // back to أحمد — the cached thread paints INSTANTLY (staleTime 20s):
+    // his messages are on screen and NOT a single refetch was fired
+    fireEvent.click(screen.getAllByRole("listitem")[0])
+    expect(await screen.findByText("سؤال أحمد عن السعر")).toBeInTheDocument()
+    expect(screen.queryByText("استفسار سارة عن التوصيل")).toBeNull()
+    expect(c1ThreadGets()).toBe(1) // ← the staleTime pin: cache-served, zero refetch
   })
 })

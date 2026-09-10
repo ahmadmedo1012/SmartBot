@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { LogEntry } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
@@ -24,14 +25,20 @@ const LOG_LEVEL_TEXT: Record<string, string> = {
   info: "text-info",
 }
 
+/* v24-R2 (A2 #6/#7): مفتاح مستقر للاستطلاع المرئي — نفس مفتاح useQuery. */
+const LOGS_KEY = ["activity-logs"]
+
 
 export default function ActivityPage() {
+  /* v24-R2 (A2 #6/#7): 15s → استطلاع مرئي — المؤقّت يتوقف تمامًا في تبويب
+   * الخلفية (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(15_000, LOGS_KEY)
   const { data: logs = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["activity-logs"],
+    queryKey: LOGS_KEY,
     // v13-L3 (dec-envelope-prune): /api/logs returns ok([...]) — single
     // envelope via unwrapApi; `?? []` is null-safety only (bad JSON → null).
     queryFn: () => apiFetch("/api/logs?limit=100").then((res) => unwrapApi<LogEntry[]>(res)),
-    refetchInterval: 15000,
+    refetchInterval,
   })
 
   const logItems = logs ?? []
@@ -68,13 +75,15 @@ export default function ActivityPage() {
                         log.level === "error" ? "bg-destructive" :
                         log.level === "warning" ? "bg-warning" : "bg-success"
                       }`} aria-hidden="true" />
-                      <span className={`text-3xs font-medium ${LOG_LEVEL_TEXT[log.level] || "text-muted-foreground"}`}>
+                      {/* v24-R2 (B4 floor): text-3xs (10px) → text-xs — حده أدنى 12px */}
+                      <span className={`text-xs font-medium ${LOG_LEVEL_TEXT[log.level] || "text-muted-foreground"}`}>
                         {LOG_LEVEL_LABEL[log.level] || log.level}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">{log.message}</p>
-                      <p className="text-2xs text-muted-foreground mt-0.5">
+                      {/* v24-R2 (B4 floor): text-2xs (11px) → text-xs — حده أدنى 12px */}
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {log.created_at ? formatDate(log.created_at) : ""}
                       </p>
                     </div>

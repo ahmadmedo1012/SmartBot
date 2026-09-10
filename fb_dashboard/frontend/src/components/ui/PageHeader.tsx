@@ -47,8 +47,14 @@ export function PageHeader({
         className
       )}
     >
-      <div className={cn("px-6", compact ? "h-12" : "h-14")}>
-        <div className="flex items-center justify-between h-full gap-3">
+      {/* v24-R2 (B4 P4): fixed h-12/h-14 → min-h on the flex row (the text
+          container). The height:100% inner row relied on the fixed parent and
+          broke once the parent grew via min-height — the row itself now owns
+          the minimum height (identical 48/56px visual, items-center kept),
+          and the header grows instead of clipping when 200% zoom makes the
+          status chip / breadcrumbs wrap. */}
+      <div className="px-6">
+        <div className={cn("flex items-center justify-between gap-3", compact ? "min-h-12" : "min-h-14")}>
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {icon && (
               <div

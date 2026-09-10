@@ -73,20 +73,27 @@ def client_ip(request) -> str:
     (cross-user 429 lockouts, useless brute-force caps: the v24-B1 V1 finding).
     When we KNOW a proxy is in front (``VERCEL``, or ``SMARTBOT_TRUST_XFF=1``
     for other trusted deployments), honor the proxy-appended
-    ``X-Forwarded-For``: validate every entry's format, strip ports, and take
-    the left-most PUBLIC IP. Without that marker the header is freely
-    client-spoofable, so we fall back to ``request.client.host`` exactly as
-    before — never trusting a self-declared IP on a direct connection.
+    ``X-Forwarded-For``: validate every entry's format, strip ports.
 
-    NOTE (v24-C4, for the orchestrator): auth.py:135/262/444/491 and
-    payments/wallet.py:185 + payments/plans.py:95 should adopt this helper
-    too — those files are outside this agent's ownership.
+    SPOOF HARDENING (v24-R4 F1): the trusted proxy APPENDS the real client IP
+    as the LAST hop; everything LEFT of it is client-supplied and freely
+    forgeable. The v24-C4 left-most-public behavior let any client mint a
+    fresh bucket per request (rate-limit bypass) or impersonate a victim's
+    IP (targeted 429 lockout). The RIGHT-MOST valid entry is the hop the
+    proxy actually observed, so that — and only that — keys the bucket.
+    Without the proxy marker the header is ignored entirely and we fall
+    back to ``request.client.host`` exactly as before — a self-declared IP
+    is never trusted on a direct connection.
+
+    NOTE: auth.py login/register limiters + payments limiter sites adopted
+    this helper in v24-R3.
     """
     host = request.client.host if request.client else "unknown"
     if not (os.getenv("VERCEL") or os.getenv("SMARTBOT_TRUST_XFF") == "1"):
         return host
-    for hop in (request.headers.get("x-forwarded-for") or "").split(","):
+    # v24-R4 F1: right-most (proxy-appended) hop wins; left entries are spoofable
+    for hop in reversed((request.headers.get("x-forwarded-for") or "").split(",")):
         ip = _normalize_ip_entry(hop)
-        if ip is not None and not _is_private_ip(ip):
+        if ip is not None:
             return ip
     return host

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -54,6 +54,14 @@ function usePrefersReducedMotion(): boolean {
 /** v17-E-F1 (D7-P1): the "near the bottom" window that decides whether new
  * messages (10s poll) should follow — see the scroll contract below. */
 const NEAR_BOTTOM_PX = 150
+
+/* v24-R1 (task 1 / A3 §8-6): the scroll-to-bottom FAB appears once the
+ * viewport sits this far past the bottom (≈ a screen-peek of history) —
+ * far enough that the newest message is genuinely out of sight, near
+ * enough that the affordance shows before the user starts hunting for it.
+ * Deliberately ABOVE the follow window (150px): inside it the thread
+ * auto-follows new messages, so a FAB would be noise. */
+const FAB_SHOW_PX = 300
 
 /* v24-C2 (task 7 / A3-M1): message windowing — the thread renders only the
  * newest MESSAGE_WINDOW bubbles; older history loads 60-at-a-time via the
@@ -280,6 +288,36 @@ function MessagesView() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  /* v24-R1 (task 1/2): scroll-position tracking for the thread — the
+   * scroll-to-bottom FAB needs "is the viewport scrolled up", and the
+   * new-messages pill needs "is the user reading history". nearBottomRef
+   * mirrors the NEAR_BOTTOM_PX window for non-render reads (the growth
+   * effect below); the rAF-throttled scroll listener keeps both in sync. */
+  const [showScrollFab, setShowScrollFab] = useState(false)
+  const [newMessageCount, setNewMessageCount] = useState(0)
+  const nearBottomRef = useRef(true)
+  const scrollScheduledRef = useRef(false)
+  const scrollRafIdRef = useRef<number | null>(null)
+
+  /* v24-R1 (task 4 / A3 §9-13, messages-scoped): connectivity strip —
+   * online/offline event listeners flip a slim role="status" banner under
+   * the page header; react-query's own retry + poll cadence IS the "auto
+   * retry" the copy promises, so no extra refetch wiring is needed. The
+   * initial online check lives in the effect (not the state initializer)
+   * so the server-prerendered HTML and hydration always agree. */
+  const [isOffline, setIsOffline] = useState(false)
+  useEffect(() => {
+    setIsOffline(!window.navigator.onLine)
+    const goOffline = () => setIsOffline(true)
+    const goOnline = () => setIsOffline(false)
+    window.addEventListener("offline", goOffline)
+    window.addEventListener("online", goOnline)
+    return () => {
+      window.removeEventListener("offline", goOffline)
+      window.removeEventListener("online", goOnline)
+    }
+  }, [])
+
   // v8 C8 — keepPreviousData: switching filters/search keeps the previous
   // list on screen (dimmed via isFetching) instead of flashing skeletons
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
@@ -379,27 +417,85 @@ function MessagesView() {
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: effective }), 50)
   }, [prefersReducedMotion])
 
-  const prevThreadRef = useRef<{ id: string | null; count: number }>({ id: null, count: 0 })
+  /* v24-R1 (task 1/2): the FAB and the new-messages pill share one action —
+   * jump to the newest message. The pill's count resets here (not only in
+   * the scroll listener) so its promise is kept the moment it's clicked,
+   * even before the smooth scroll lands and fires the listener. */
+  const jumpToLatest = useCallback(() => {
+    setNewMessageCount(0)
+    scrollToBottom("smooth")
+  }, [scrollToBottom])
+
+  const prevThreadRef = useRef<{ id: string | null; count: number; realCount: number }>({ id: null, count: 0, realCount: 0 })
   useEffect(() => {
     if (messages.length === 0) return
     const prev = prevThreadRef.current
+    /* v24-R1 (task 2): optimistic rows (id "optimistic-*") are the user's
+     * OWN in-flight reply — they must never surface as "رسائل جديدة". */
+    const realCount = messages.filter((m) => !String(m.id ?? "").startsWith("optimistic-")).length
     if (prev.id !== selectedId) {
       scrollToBottom("auto") // (أ) fresh thread → land at the newest message
+      // v24-R1 (task 2): no stale pill rides along into a fresh thread
+      setNewMessageCount(0)
     } else if (messages.length > prev.count) {
       const el = scrollContainerRef.current
       // (ج) follow new messages ONLY when the user is at/near the bottom
       if (!el || el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX) {
         scrollToBottom("smooth")
+      } else if (realCount > prev.realCount) {
+        /* v24-R1 (task 2 / A3 §8-6): the honest poll — new messages landed
+         * while the user reads history, so COUNT them in the pill instead
+         * of yanking the viewport: the 5s poll keeps its cadence, the
+         * scroll contract (أ/ب/ج) stays intact, and the user stays put. */
+        setNewMessageCount((n) => n + (realCount - prev.realCount))
       }
     }
-    prevThreadRef.current = { id: selectedId, count: messages.length }
+    prevThreadRef.current = { id: selectedId, count: messages.length, realCount }
   }, [messages, selectedId, scrollToBottom])
 
   // A failed-then-retried thread re-lands at the bottom: the error card
   // collapses the scroll area, so treat recovery like a fresh open.
   useEffect(() => {
-    if (msgIsError) prevThreadRef.current = { id: null, count: 0 }
+    if (msgIsError) prevThreadRef.current = { id: null, count: 0, realCount: 0 }
   }, [msgIsError])
+
+  /* v24-R1 (task 1): the scroll listener — rAF-throttled (scroll events fire
+   * far faster than frames; one distance read per frame is plenty) and
+   * passive (the handler never cancels scroll). It recomputes BOTH
+   * affordances' truth: the FAB's >FAB_SHOW_PX window, and the near-bottom
+   * window that clears the new-messages pill when the user returns to the
+   * tail by hand (N resets on scroll-to-bottom, not only on pill click).
+   * The gate is a boolean (not the rAF id): a frame id assigned AFTER the
+   * callback already ran (sync rAF — see the vitest stub) would go stale
+   * and swallow every later scroll; the id ref survives only to cancel a
+   * still-pending frame on unmount. */
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const onScroll = () => {
+      if (scrollScheduledRef.current) return
+      scrollScheduledRef.current = true
+      scrollRafIdRef.current = window.requestAnimationFrame(() => {
+        scrollScheduledRef.current = false
+        scrollRafIdRef.current = null
+        const el = scrollContainerRef.current
+        if (!el) return
+        const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+        nearBottomRef.current = distance <= NEAR_BOTTOM_PX
+        setShowScrollFab(distance > FAB_SHOW_PX)
+        if (nearBottomRef.current) setNewMessageCount(0)
+      })
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      el.removeEventListener("scroll", onScroll)
+      if (scrollRafIdRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafIdRef.current)
+        scrollRafIdRef.current = null
+      }
+      scrollScheduledRef.current = false
+    }
+  }, [selectedId])
 
   /* v24-C2 (task 1 / A3-M2+N1): browser/Android back inside a thread pops the
    * pushed ?c= entry — the URL loses the param and the view returns to the
@@ -408,9 +504,18 @@ function MessagesView() {
    * the local selection in lockstep without depending on it, and keeps the
    * push-depth ledger honest for the back row below. */
   useEffect(() => {
-    const onPopState = () => {
+    const onPopState = (ev: PopStateEvent) => {
       const c = new URLSearchParams(window.location.search).get("c")
-      pushDepthRef.current = c ? Math.max(0, pushDepthRef.current - 1) : 0
+      /* v24-R4 F4: read the depth THIS history entry recorded when it was
+       * pushed — event.state is entry-scoped, so a forward traversal back
+       * into one of our ?c= entries restores its true depth (the old
+       * decrement-on-every-popstate ledger went to 0 after forward
+         traversals, so closeThread replaceState'd over a ?c= entry that
+         still lived in the FORWARD stack — hardware back then reopened
+         the thread the user had just closed). */
+      const st = ev.state as { sbDepth?: number } | null
+      pushDepthRef.current =
+        typeof st?.sbDepth === "number" ? st.sbDepth : c ? Math.max(0, pushDepthRef.current - 1) : 0
       setSelectedId(c)
     }
     window.addEventListener("popstate", onPopState)
@@ -421,7 +526,15 @@ function MessagesView() {
    * so hardware back walks back to the list, and refresh keeps the thread. */
   const openConversation = useCallback((id: string) => {
     pushDepthRef.current += 1
-    window.history.pushState(null, "", `/dashboard/messages?c=${encodeURIComponent(id)}`)
+    /* v24-R4 F4: stamp OUR depth onto the pushed entry — merged with
+       * whatever state Next 16 keeps there (spread first, never replace),
+       * so popstate can read the entry's own depth instead of guessing
+       * from direction. */
+    window.history.pushState(
+      { ...(window.history.state ?? {}), sbDepth: pushDepthRef.current },
+      "",
+      `/dashboard/messages?c=${encodeURIComponent(id)}`,
+    )
     setSelectedId(id)
   }, [])
 
@@ -449,21 +562,54 @@ function MessagesView() {
   }, [selectedId])
 
   /* v24-C2 (task 7): the windowing state — reset to the newest 60 whenever
-   * the thread changes so an old «load earlier» never leaks across threads. */
+   * the thread changes so an old «load earlier» never leaks across threads.
+   * v24-R1 (task 1/2): a fresh thread also lands at the bottom — no FAB
+   * and no pending "new messages" pill carried over from the previous
+   * thread's scroll position. */
   const [messageWindow, setMessageWindow] = useState(MESSAGE_WINDOW)
-  useEffect(() => { setMessageWindow(MESSAGE_WINDOW) }, [selectedId])
+  useEffect(() => {
+    setMessageWindow(MESSAGE_WINDOW)
+    setShowScrollFab(false)
+    setNewMessageCount(0)
+    nearBottomRef.current = true
+  }, [selectedId])
   const hiddenCount = Math.max(0, messages.length - messageWindow)
   const visibleMessages = hiddenCount > 0 ? messages.slice(messages.length - messageWindow) : messages
+
+  /* v24-R1 (task 3 / A3-M5): identity for the mobile thread header — the
+   * conversation row is already loaded (same list query), so this costs no
+   * extra request: subject → first sender (mirrors the list row's own
+   * precedence), with the first CUSTOMER message's sender as the fallback
+   * for deep links whose thread isn't in the currently filtered list. */
+  const selectedConv = conversations.find((c) => c.id === selectedId)
+  const threadIdentity =
+    selectedConv?.subject || selectedConv?.senders?.[0]?.name ||
+    messages.find((m) => m.is_from_page !== true)?.from?.name || "بدون اسم"
+  const threadMessageCount = selectedConv?.message_count ?? messages.length
 
   /* v24-C2 (task 7): load-earlier anchor — remember the scrollHeight BEFORE
    * the prepend, then after the DOM update add the height delta back to
    * scrollTop so the viewport stays pinned to the same message (prepending
    * above the anchor would otherwise yank the view to older history). */
   const pendingAnchorRef = useRef<number | null>(null)
+  /* v24-R4 F3: while a batch of OLDER messages is being prepended (or the
+   * thread is loading/placeholder) the live region must stay SILENT —
+   * role="log" regions announce content mutations, and a prepend/thread
+   * swap would make the SR read out the whole 60-bubble region in one
+   * burst. Only steady-state appends (new message, optimistic reply)
+   * should ever be announced. */
+  const [liveSuppressed, setLiveSuppressed] = useState(false)
+  const liveSuppressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const loadOlderMessages = useCallback(() => {
     const el = scrollContainerRef.current
     pendingAnchorRef.current = el ? el.scrollHeight : null
+    setLiveSuppressed(true)
+    if (liveSuppressTimer.current) clearTimeout(liveSuppressTimer.current)
+    liveSuppressTimer.current = setTimeout(() => setLiveSuppressed(false), 900)
     setMessageWindow((w) => w + MESSAGE_WINDOW)
+  }, [])
+  useEffect(() => () => {
+    if (liveSuppressTimer.current) clearTimeout(liveSuppressTimer.current)
   }, [])
   useLayoutEffect(() => {
     const prev = pendingAnchorRef.current
@@ -555,6 +701,23 @@ function MessagesView() {
         subtitle="صندوق الوارد الموحد"
         compact
       />
+
+      {/* v24-R1 (task 4): slim connectivity strip — sticky directly under the
+          compact page header (h-12 = top-12) so it stays visible while the
+          list/thread scrolls, auto-dismisses the moment the `online` event
+          fires, and is scoped to the messages page (a global indicator is
+          another agent's scope). warning tokens + WifiOff mirror the posts/
+          ads stale-sync banners (the in-repo connectivity visual language);
+          role="status" announces the change without stealing focus. */}
+      {isOffline && (
+        <div
+          role="status"
+          className="sticky top-12 z-20 flex items-center justify-center gap-2 h-9 px-3 bg-warning/15 border-b border-warning/30 text-warning text-xs font-medium"
+        >
+          <WifiOff className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>انقطع الاتصال بالإنترنت — سيتم إعادة المحاولة تلقائياً</span>
+        </div>
+      )}
 
       <div className="flex-1 flex" dir="rtl">
         {/* Conversations list — responsive master-detail (plan v3 §7c):
@@ -697,14 +860,55 @@ function MessagesView() {
             </div>
           ) : (
             <>
-              {/* Mobile back-to-list (master-detail) — v24-C2 (task 1): now
-                  goes through closeThread so the history stack unwinds with
-                  the view (hardware back and the row land on the same list). */}
+              {/* Mobile back-to-list + thread identity (master-detail).
+                  v24-C2 (task 1): goes through closeThread so the history
+                  stack unwinds with the view (hardware back and the row land
+                  on the same list).
+                  v24-R1 (task 3 / A3-M5): the row now also carries WHO you
+                  are replying to — subscriber name + avatar + message count
+                  (data already loaded, zero extra requests). The back control
+                  became icon-only (44px, aria-label keeps the accessible
+                  name) to free the width the identity needs; «forward» was
+                  v24-C2's slip — every other back-navigation in the app
+                  (login/connect/demo/admin) uses the "back" semantic, which
+                  in RTL points toward the conversation-list column. */}
               <div className="md:hidden flex items-center gap-2 p-2 border-b border-border bg-card/80">
-                <Button variant="ghost" size="sm" onClick={closeThread} className="h-9">
-                  <DirectionalIcon semanticDirection="forward" className="size-4" /> كل المحادثات
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeThread}
+                  aria-label="كل المحادثات"
+                  className="size-11 p-0 shrink-0"
+                >
+                  <DirectionalIcon semanticDirection="back" variant="chevron" className="size-5" />
                 </Button>
+                {/* v24-R1 (task 3): avatar initials tile — the same 45%/32%
+                    hue recipe as ConvItem (contrast-pinned in v15-E6); 36px
+                    keeps the row compact; aria-hidden because the name sits
+                    right beside it (no double announcement). */}
+                <div
+                  aria-hidden="true"
+                  className="size-9 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
+                  style={{ background: `hsl(${(threadIdentity.length * 37) % 360}, 45%, 32%)` }}
+                >
+                  {initials(threadIdentity)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {/* live subscriber name — dir="auto" isolates bidi
+                      (v14-E5 pattern) for Latin/mixed Facebook names */}
+                  <p className="text-sm font-bold truncate" dir="auto">{threadIdentity}</p>
+                  <p className="text-2xs text-muted-foreground truncate">
+                    {countPhrase(threadMessageCount, "رسالة", "رسالتين", "رسائل")}
+                  </p>
+                </div>
               </div>
+              {/* v24-R1 (task 1/2): relative wrapper around the scroller — the
+                  FAB and the new-messages pill anchor to the scroll
+                  VIEWPORT's bottom edge (always above the composer, whatever
+                  its current height), never to the scrolling content (an
+                  absolutely-positioned child of the scroller itself would
+                  scroll away with the messages). */}
+              <div className="relative flex-1 min-h-0 flex flex-col">
               <div
                 ref={scrollContainerRef}
                 /* v24-C2 (task 9 / B4-P1): the thread is a live log — new
@@ -712,7 +916,13 @@ function MessagesView() {
                     politely to screen readers; role="log" is the semantically
                     correct "append-only stream" region. */
                 role="log"
-                aria-live="polite"
+                /* v24-R4 F3: silent while the region is being wholesale
+                   replaced (thread switch → placeholder, fetch → skeletons,
+                   load-earlier → prepend batch). "off" during those windows
+                   + "polite" when steady means ONLY genuine appends (new
+                   message / optimistic reply) are announced — never a
+                   60-node burst. */
+                aria-live={liveSuppressed || msgLoading || msgIsPlaceholder ? "off" : "polite"}
                 aria-label="الرسائل"
                 className={cn(
                   "flex-1 overflow-y-auto p-4 space-y-3 transition-opacity",
@@ -843,6 +1053,46 @@ function MessagesView() {
                   </>
                 )}
                 <div ref={messagesEndRef} />
+              </div>
+
+                {/* v24-R1 (task 1 / A3 §8-6): scroll-to-bottom FAB — appears
+                    only when the viewport is >FAB_SHOW_PX past the newest
+                    message (rAF-throttled scroll listener above); 44px
+                    circular icon-only control (aria-label, theme tokens — no
+                    raw colors). ChevronDown is a VERTICAL glyph — the
+                    directional-icon flip rule (rtl:-scale-x-100) does not
+                    apply (§2.2). */}
+                {showScrollFab && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={jumpToLatest}
+                    aria-label="الانتقال لآخر رسالة"
+                    className="absolute bottom-3 end-3 z-10 size-11 rounded-full bg-card shadow-lg shadow-foreground/10"
+                  >
+                    <ChevronDown className="size-5" aria-hidden="true" />
+                  </Button>
+                )}
+
+                {/* v24-R1 (task 2): new-messages pill — the poll's honest
+                    surface when new messages land while the user reads
+                    history. The wrapper is a PERSISTENT polite live region
+                    (mounting a fresh aria-live node announces nothing in most
+                    AT) so count changes are spoken; the pill sits at a fixed
+                    offset above the FAB's slot so it never jumps when the FAB
+                    appears/disappears, and never overlaps the composer. */}
+                <div aria-live="polite" className="absolute bottom-16 end-3 z-10">
+                  {newMessageCount > 0 && (
+                    <Button
+                      variant="orange"
+                      size="sm"
+                      onClick={jumpToLatest}
+                      className="h-11 rounded-full px-4 text-xs"
+                    >
+                      رسائل جديدة ({newMessageCount})
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">

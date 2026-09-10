@@ -92,7 +92,11 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     Rate-limited to 5 attempts/min per IP to prevent Telegram-bot flooding.
     """
     # Rate limit: 5 attempts/min per IP (graceful degradation if DB unavailable)
-    ip = request.client.host if request.client else "unknown"
+    # v24-R3 (B1 V1 / C4 handoff): honest client IP — request.client.host behind
+    # the Vercel proxy is the PROXY's address (all users in ONE sub: bucket);
+    # client_ip() honors X-Forwarded-For only behind a known proxy.
+    from _rate_limit import client_ip
+    ip = client_ip(request)
     try:
         from _rate_limit import check_rate_limit
         async with AsyncSessionLocal() as rl_db:

@@ -58,8 +58,11 @@ async def widget_ai_insights(db=Depends(get_db), current_user: User = Depends(ge
 
 
 @router.get("/api/widgets/response-time")
-async def widget_response_time(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Average response time (mock — FB doesn't return timing, so we use reply count by hour as proxy)."""
+async def widget_response_time(days: int = Query(7, ge=1, le=90), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Average response time (mock — FB doesn't return timing, so we use reply count by hour as proxy).
+
+    v24-R3 (M3): days bounded 1..90 (was unbounded — a negative value cut
+    off in the FUTURE = empty result; a huge value scanned the whole table)."""
     _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=days)
     row = await db.execute(
@@ -77,8 +80,11 @@ async def widget_response_time(days: int = Query(7), db=Depends(get_db), current
 
 
 @router.get("/api/widgets/sentiment-trend")
-async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Sentiment distribution over time."""
+async def widget_sentiment_trend(days: int = Query(7, ge=1, le=90), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Sentiment distribution over time.
+
+    v24-R3 (M3): days bounded 1..90 (was unbounded — same class as
+    response-time above)."""
     _tid = current_user._tenant_id
     from sqlalchemy import Date
     from sqlalchemy import cast as sql_cast
@@ -99,8 +105,11 @@ async def widget_sentiment_trend(days: int = Query(7), db=Depends(get_db), curre
 
 
 @router.get("/api/widgets/top-keywords")
-async def widget_top_keywords(limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Most triggered rules (keywords proxy)."""
+async def widget_top_keywords(limit: int = Query(10, ge=1, le=200), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Most triggered rules (keywords proxy).
+
+    v24-R3 (M2): limit bounded 1..200 (was unbounded — a client could pass
+    10^7 and force a GROUP BY over the whole table)."""
     _tid = current_user._tenant_id
     try:
         agg_rows = await db.execute(

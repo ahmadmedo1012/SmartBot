@@ -114,3 +114,29 @@ if _IS_PROD and os.environ.get("TELEGRAM_WEBHOOK_ALLOW_UNVERIFIED", "") == "true
         "disables Telegram webhook authentication — remove it from the production environment "
         "and set TELEGRAM_WEBHOOK_SECRET instead"
     )
+
+# v24-R3 (B2 M-1): DEBUG=true is the local-dev convenience switch, but it
+# ALSO silently (a) mints session cookies WITHOUT the Secure flag
+# (routers/auth.py login/logout), (b) adds localhost/127.0.0.1 to the CSRF
+# origin allowlist (app/middleware.py), and (c) no-ops every fail-fast above
+# (_IS_PROD). The behavior stays (dev needs it) — but a deployment that
+# looks like production must SAY so at boot instead of quietly running
+# insecure. One warning, once: config.py imports exactly once per process,
+# before the lifespan starts. "Not localhost" detection = deployment
+# markers (Vercel env of any kind / a bound Neon project); a plain
+# single-server box has no marker to read — its DEBUG signal is the env var
+# itself, which docs/deployment.md already documents as false.
+if settings.DEBUG:
+    _deploy_markers = [m for m, on in (
+        ("VERCEL_ENV=production", _VERCEL_ENV == "production"),
+        ("VERCEL", bool(os.getenv("VERCEL"))),
+        ("NEON_PROJECT_ID", bool(os.getenv("NEON_PROJECT_ID"))),
+    ) if on]
+    if _deploy_markers:
+        log.warning(
+            "DEBUG=true is active in a non-local deployment (%s) — session cookies "
+            "are set WITHOUT the Secure flag, localhost is trusted for CSRF origins, "
+            "and the SECRET_KEY/CRON_SECRET/FERNET_KEY fail-fasts are skipped. "
+            "Set DEBUG=false in this environment unless this is intentional.",
+            ", ".join(_deploy_markers),
+        )

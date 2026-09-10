@@ -523,9 +523,13 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
                 log.error(f"Cron cycle err tenant {tenant.id}: {e}", exc_info=True)
                 results.append({"tenant_id": tenant.id, "status": "error"})
         return ok({"ok": True, "tenants_processed": len(results), "shard": shard})
-    except Exception as e:
+    except Exception:
         log.exception("Cron bot cycle error")
-        return fail(f"فشل دورة الجدولة: {str(e)[:120]}")
+        # v24-R3 (B2 M-4): was f"فشل دورة الجدولة: {str(e)[:120]}" — exception
+        # text must not ride the response; the traceback above keeps the
+        # detail server-side (cron is Bearer-secret-gated, still no need to
+        # leak internals).
+        return fail("فشل دورة الجدولة — راجع سجلات الخادم")
 
 
 @router.get("/api/cron/heartbeat")
@@ -670,6 +674,9 @@ async def trigger_manual_reply(_=Depends(require_platform_admin)):
                 "سيكملها نبض الجدولة التالي؛ راقب /api/logs"
             ),
         })
-    except Exception as e:
+    except Exception:
         log.exception("trigger cycle failed")
-        return fail(f"فشل تشغيل دورة البوت: {str(e)[:120]}")
+        # v24-R3 (B2 M-4): was f"فشل تشغيل دورة البوت: {str(e)[:120]}" — the
+        # platform-admin surface gets the fixed Arabic message only; the
+        # traceback above carries the detail (Sentry sees it).
+        return fail("فشل تشغيل دورة البوت — راجع سجلات الخادم")

@@ -201,11 +201,28 @@ async def _run_bot_loop():
             async with AsyncSessionLocal() as db:
                 tenants = await db.execute(select(Tenant).where(Tenant.is_active == True))
             for tenant in tenants.scalars().all():
-                fb = await get_tenant_fb_client(tenant.id)
-                if not fb:
-                    continue
-                engine = get_bot_engine(fb, tenant_id=tenant.id)
-                await engine.cycle()
+                # v24-R3 (M6 — tenant loop isolation): the try/except used to
+                # wrap the WHOLE tenant loop, so one tenant's engine.cycle()
+                # raise aborted every remaining tenant for that pass (a single
+                # broken token = every later tenant's replies silently stop).
+                # Mirrors _automation_sweep's per-tenant catch (routers/bot.py
+                # §3): the failing tenant is logged WITH its id and reported;
+                # the loop moves on to the next tenant.
+                try:
+                    fb = await get_tenant_fb_client(tenant.id)
+                    if not fb:
+                        continue
+                    engine = get_bot_engine(fb, tenant_id=tenant.id)
+                    await engine.cycle()
+                except Exception as e:
+                    log.exception("Bot loop error — tenant %s skipped this pass",
+                                  tenant.id)
+                    try:
+                        from _observability import capture_exception
+
+                        capture_exception(e)
+                    except Exception:
+                        pass
         except Exception as e:
             # v12-E3.5b (D12): the bot loop is the revenue path — a cycle
             # failure must reach Sentry with its traceback, not just a

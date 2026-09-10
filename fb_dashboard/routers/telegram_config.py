@@ -217,8 +217,12 @@ async def diagnose(dry_run: bool = Query(False), db=Depends(get_db), _=Depends(r
                     r = await client.post(f"https://api.telegram.org/bot{token}/sendMessage",
                         json={"chat_id": target, "text": "🔍 اختبار SmartBot — الإشعارات تعمل"}, timeout=10)
                 result["dryRunResult"] = "ok" if r.is_success else f"fail: {r.text[:200]}"
-            except Exception as e:
-                result["dryRunResult"] = f"err: {e}"
+            except Exception:
+                # v24-R3 (B2 M-4): was f"err: {e}" — httpx exception text
+                # (URLs, hostnames) must not ride the platform-admin
+                # response; generic marker + server-side traceback.
+                log.exception("telegram diagnose: dry-run send failed")
+                result["dryRunResult"] = "err: send_failed"
     return ok(result)
 
 @router.get("/admin/telegram/approvers")
@@ -306,8 +310,13 @@ async def test_telegram(db=Depends(get_db), _=Depends(require_platform_admin)):
                 sent += 1
             else:
                 last_err = "فشل الإرسال — تحقق من التوكن وأن البوت بدأ محادثة مع المستلم"
-        except Exception as e:
-            last_err = str(e)[:160]
+        except Exception:
+            # v24-R3 (B2 M-4): was str(e)[:160] → raised verbatim in the 400
+            # detail — generic Arabic surface; the traceback stays in the
+            # server log (the platform admin loses nothing actionable that
+            # the fixed hint below does not already say).
+            log.exception("telegram test send failed")
+            last_err = "فشل الإرسال — حدث خطأ في الاتصال بتيليجرام؛ راجع سجلات الخادم"
     if sent == 0:
         raise HTTPException(400, last_err or "فشل الإرسال")
     return ok({"sent": True, "recipients": sent})

@@ -97,13 +97,20 @@ describe("PageHeader", () => {
     expect(nav.querySelectorAll("svg").length).toBe(1)
   })
 
-  it("switches the bar height h-14 → h-12 in compact mode", () => {
+  it("switches the bar height min-h-14 → min-h-12 in compact mode", () => {
+    /* v24-R2 (B4 P4): the height moved from the outer padding wrapper (fixed
+     * h-12/h-14 — clipped 200%-zoom text) to the inner flex row as min-h —
+     * same 48/56px visual, but the row GROWS when zoomed text wraps. */
     const { container, unmount } = render(<PageHeader title="أ" compact />)
-    expect(container.querySelector("header > div")).toHaveClass("h-12")
+    const row = container.querySelector("header > div > div") as HTMLElement
+    expect(row).toHaveClass("min-h-12")
+    expect(row).not.toHaveClass("h-12")
     unmount()
 
     const regular = render(<PageHeader title="ب" />)
-    expect(regular.container.querySelector("header > div")).toHaveClass("h-14")
+    const regularRow = regular.container.querySelector("header > div > div") as HTMLElement
+    expect(regularRow).toHaveClass("min-h-14")
+    expect(regularRow).not.toHaveClass("h-14")
   })
 
   it("renders the subtitle and actions slots", () => {

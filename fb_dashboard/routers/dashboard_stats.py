@@ -149,8 +149,13 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
             # overview — consistent everywhere.
             fan_count = await fb.get_page_fan_count()
             connected = True
-    except Exception as e:
-        connection_error = str(e)[:120]
+    except Exception:
+        # v24-R3 (B2 M-4): the raw str(e)[:120] rode the bundle response to
+        # any authenticated viewer — Graph/FB exception text can embed
+        # hostnames, page ids and partial URLs. Generic Arabic surface; the
+        # traceback stays in the server log.
+        log.exception("dashboard bundle: connection probe failed (tenant %s)", _tid)
+        connection_error = "تعذر التحقق من اتصال فيسبوك — حاول تحديث الصفحة"
 
     # v4 §3.7 — honest fallback: serve the stored connect-time/heartbeat
     # value; when nothing is stored yet, say so instead of a fake 0+healthy.

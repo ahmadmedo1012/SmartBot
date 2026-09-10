@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { unwrapApi } from "@/lib/api"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { AnalyticsOverview } from "@/lib/types"
 /* v9-B14 — lazy recharts: the direct import pulled the ~344KB recharts chunk
  * into this route's first-load JS; the lazy barrel defers it until render. */
@@ -58,6 +59,15 @@ const SENTIMENT_LABELS: Record<string, string> = {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 const WINDOW_DAYS = 30
+
+/* v24-R2 (A2 #6/#7): مفاتيح الاستعلامات مرفوعة إلى ثوابت — تمرّر إلى
+ * usePollingWhenVisible (هوية مستقرة) وإلى useQuery نفسه. */
+const OVERVIEW_KEY = ["analytics-overview"]
+const DAILY_TREND_KEY = ["analytics-daily-trend"]
+const HEATMAP_KEY = ["analytics-hourly-heatmap"]
+const PEAK_HOUR_KEY = ["analytics-peak-hour"]
+const TOP_RULES_KEY = ["analytics-top-rules"]
+const PERIOD_COMPARISON_KEY = ["analytics-period-comparison"]
 
 /** صف /api/analytics/daily-trend. */
 interface DailyTrendRow {
@@ -111,10 +121,13 @@ function PremiumLockBody({ feature }: { feature: string }) {
 
 /* ── 1) الاتجاه اليومي (مخطط خطي) ── */
 function DailyTrendSection() {
+  /* v24-R2 (A2 #6/#7): 60s → استطلاع مرئي — يتوقف تمامًا في الخلفية
+   * ويجدّد فور العودة متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(60_000, DAILY_TREND_KEY)
   const q = useQuery({
-    queryKey: ["analytics-daily-trend"],
+    queryKey: DAILY_TREND_KEY,
     queryFn: () => apiFetch(`/api/analytics/daily-trend?days=${WINDOW_DAYS}`).then(unwrapApi<DailyTrendRow[]>),
-    refetchInterval: 60000,
+    refetchInterval,
     retry: 1,
   })
   const rows = q.data ?? []
@@ -149,10 +162,12 @@ function DailyTrendSection() {
 
 /* ── 2) خريطة النشاط بالساعة (heatmap CSS grid) ── */
 function HeatmapSection() {
+  /* v24-R2 (A2 #6/#7): مرئي — أنظر القسم 1 أعلاه. */
+  const refetchInterval = usePollingWhenVisible(60_000, HEATMAP_KEY)
   const q = useQuery({
-    queryKey: ["analytics-hourly-heatmap"],
+    queryKey: HEATMAP_KEY,
     queryFn: () => apiFetch(`/api/analytics/hourly-heatmap?days=${WINDOW_DAYS}`).then(unwrapApi<HeatmapCell[]>),
-    refetchInterval: 60000,
+    refetchInterval,
     retry: 1,
   })
   const cells = q.data ?? []
@@ -194,10 +209,12 @@ function HeatmapSection() {
 
 /* ── 3) ساعة الذروة (بطاقة صغيرة) ── */
 function PeakHourSection() {
+  /* v24-R2 (A2 #6/#7): مرئي — أنظر القسم 1 أعلاه. */
+  const refetchInterval = usePollingWhenVisible(60_000, PEAK_HOUR_KEY)
   const q = useQuery({
-    queryKey: ["analytics-peak-hour"],
+    queryKey: PEAK_HOUR_KEY,
     queryFn: () => apiFetch(`/api/analytics/peak-hour?days=${WINDOW_DAYS}`).then(unwrapApi<{ peak_hour: number | null }>),
-    refetchInterval: 60000,
+    refetchInterval,
     retry: 1,
   })
   const peak = q.data?.peak_hour
@@ -230,10 +247,12 @@ function PeakHourSection() {
 
 /* ── 4) أكثر القواعد تشغيلًا (قائمة بحصص) ── */
 function TopRulesSection() {
+  /* v24-R2 (A2 #6/#7): مرئي — أنظر القسم 1 أعلاه. */
+  const refetchInterval = usePollingWhenVisible(60_000, TOP_RULES_KEY)
   const q = useQuery({
-    queryKey: ["analytics-top-rules"],
+    queryKey: TOP_RULES_KEY,
     queryFn: () => apiFetch(`/api/analytics/top-rules?days=${WINDOW_DAYS}&limit=10`).then(unwrapApi<AdvancedTopRule[]>),
-    refetchInterval: 60000,
+    refetchInterval,
     retry: 1,
   })
   const rules = q.data ?? []
@@ -293,10 +312,12 @@ function TopRulesSection() {
 
 /* ── 5) مقارنة الفترات ── */
 function PeriodComparisonSection() {
+  /* v24-R2 (A2 #6/#7): مرئي — أنظر القسم 1 أعلاه. */
+  const refetchInterval = usePollingWhenVisible(60_000, PERIOD_COMPARISON_KEY)
   const q = useQuery({
-    queryKey: ["analytics-period-comparison"],
+    queryKey: PERIOD_COMPARISON_KEY,
     queryFn: () => apiFetch(`/api/analytics/period-comparison?days=${WINDOW_DAYS}`).then(unwrapApi<PeriodComparison>),
-    refetchInterval: 60000,
+    refetchInterval,
     retry: 1,
   })
   const d = q.data
@@ -329,12 +350,13 @@ function PeriodComparisonSection() {
           <div className="rounded-lg border border-border/60 p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">الفترة الحالية</p>
             <p className="text-2xl font-bold tabular-nums">{countPhrase(now, "رد", "ردين", "ردود")}</p>
-            <p className="text-2xs text-muted-foreground mt-1">آخر {toArabicNumber(WINDOW_DAYS)} يومًا</p>
+            {/* v24-R2 (B4 floor): text-2xs (11px) → text-xs — حده أدنى 12px للقراءة */}
+            <p className="text-xs text-muted-foreground mt-1">آخر {toArabicNumber(WINDOW_DAYS)} يومًا</p>
           </div>
           <div className="rounded-lg border border-border/60 p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">الفترة السابقة</p>
             <p className="text-2xl font-bold tabular-nums">{countPhrase(before, "رد", "ردين", "ردود")}</p>
-            <p className="text-2xs text-muted-foreground mt-1">{toArabicNumber(WINDOW_DAYS)} يومًا قبلها</p>
+            <p className="text-xs text-muted-foreground mt-1">{toArabicNumber(WINDOW_DAYS)} يومًا قبلها</p>
           </div>
           <div className="rounded-lg border border-border/60 p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">التغيّر</p>
@@ -359,10 +381,13 @@ function PeriodComparisonSection() {
 }
 
 export default function AnalyticsPage() {
+  /* v24-R2 (A2 #6/#7): استعلام الـoverview ذو الـ60s أصبح مرئيًا أيضًا —
+   * المجموع 7 استعلامات مُدارة بالخطاف في هذه الصفحة. */
+  const refetchInterval = usePollingWhenVisible(60_000, OVERVIEW_KEY)
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["analytics-overview"],
+    queryKey: OVERVIEW_KEY,
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi<AnalyticsOverview>),
-    refetchInterval: 60000,
+    refetchInterval,
   })
 
   const stats = [
@@ -493,7 +518,7 @@ export default function AnalyticsPage() {
               <Sparkles className="size-4 text-muted-foreground" aria-hidden="true" />
               تحليلات متقدمة
             </h2>
-            <p className="text-2xs text-muted-foreground mt-1">أنماط نشاط أعمق خلال آخر {toArabicNumber(WINDOW_DAYS)} يومًا</p>
+            <p className="text-xs text-muted-foreground mt-1">أنماط نشاط أعمق خلال آخر {toArabicNumber(WINDOW_DAYS)} يومًا</p>
           </div>
 
           <DailyTrendSection />

@@ -267,6 +267,41 @@ _ANALYZE_TONE_SYSTEM = """أنت محلل مشاعر متخصص في اللهج�
 # AI Service
 # ---------------------------------------------------------------------------
 
+
+def _expected_provider_error_types() -> tuple[type[BaseException], ...]:
+    """v24-R3 (M7): the EXPECTED failure family for a provider vision call.
+
+    ``analyze_image`` used to swallow ``Exception`` wholesale — provider
+    errors, transport errors AND genuine code bugs all answered "" (a
+    silent failure indistinguishable from an honest empty result). The
+    tuple below is the "expected" set: transport/timeout (httpx,
+    asyncio.TimeoutError == TimeoutError on 3.12), decode/value errors
+    (bad base64 — binascii.Error subclasses ValueError — malformed
+    payloads) and OS-level image errors (PIL's UnidentifiedImageError
+    subclasses OSError). Provider SDK API errors are included best-effort
+    (installed SDKs only). Anything OUTSIDE this family now propagates to
+    the caller, which already maps unexpected exceptions to a generic
+    Arabic failure (agent_engine.process / the image_analyze tool).
+    """
+    types: list[type[BaseException]] = [httpx.HTTPError, TimeoutError, ValueError, OSError]
+    try:  # best-effort: the OpenAI SDK's API error family (auth/quota/5xx)
+        from openai import APIError as _OpenAIAPIError  # type: ignore[assignment]
+
+        types.append(_OpenAIAPIError)
+    except Exception:
+        pass
+    try:  # best-effort: the Gemini SDK's GoogleAPIError family
+        from google.api_core.exceptions import GoogleAPIError  # type: ignore[assignment]
+
+        types.append(GoogleAPIError)
+    except Exception:
+        pass
+    return tuple(types)
+
+
+_EXPECTED_PROVIDER_ERRORS = _expected_provider_error_types()
+
+
 class AIService:
     def __init__(self):
         self._provider = self._detect_provider()
@@ -428,7 +463,9 @@ class AIService:
     async def analyze_image(self, image_path_or_url: str, prompt: str = "وصف هذه الصورة بالعربية") -> str:
         """Analyze an image using AI vision — https URLs or ``data:image/`` URIs ONLY.
 
-        Returns an Arabic description (empty string = refusal/unavailable).
+        Returns an Arabic description (empty string = refusal/unavailable —
+        with the REASON on ``self.last_error`` since v24-R3, same honest-
+        failure surface as generate_reply).
 
         v14-E1 #7 (D8-H1): local-file support is REMOVED. The image source is
         LLM-controllable (agent tool params come from a model reading user
@@ -476,8 +513,15 @@ class AIService:
             # v15-E4 (D6-H2): رفضنا المضبوطة يُعرض كما هو (رسالة عربية آمنة) —
             # لا تُبتلع في الخطأ العام: المستخدم/الوكيل يحتاج معرفة السبب.
             raise
-        except Exception as e:
+        except _EXPECTED_PROVIDER_ERRORS as e:
+            # v24-R3 (M7): the expected provider/transport failure family →
+            # honest "" + the reason on last_error (the v23 surface). Unexpected
+            # exceptions are NO LONGER swallowed: they propagate to the caller
+            # (agent_engine.process / the image_analyze tool), which already
+            # answers a generic Arabic failure instead of a silent empty result.
+            self.last_error = str(e)[:200]
             log.error(f"analyze_image error: {e}", exc_info=True)
+            return ""
         return ""
 
     async def _openai_vision(self, image_url: str, prompt: str) -> str:
@@ -505,6 +549,11 @@ class AIService:
         timeout, 5MB streamed cap) instead of the old raw ``client.get``
         (unbounded, no explicit timeout). The URL itself was already
         DNS-checked by ``analyze_image`` before dispatch.
+
+        v24-R3 (M7): base64 decoding and the Pillow decode of a multi-MB
+        image are 100-300ms+ of pure CPU — both now run in a worker thread
+        (``asyncio.to_thread``) instead of blocking the event loop (every
+        concurrent request used to stall behind one image).
         """
         genai = self._google_module
         if not genai:
@@ -514,16 +563,24 @@ class AIService:
         if image_url.startswith("data:"):
             import base64
             _, b64 = image_url.split(",", 1)
-            img_data = base64.b64decode(b64)
+            img_data = await asyncio.to_thread(base64.b64decode, b64)
         elif image_url.startswith(("http://", "https://")):
             img_data = await _fetch_image_bytes(image_url)
             if img_data is None:
                 log.warning("gemini vision: guarded fetch refused/failed for remote image")
                 return ""
-        import io
 
-        import PIL.Image
-        img = PIL.Image.open(io.BytesIO(img_data)) if img_data else None
+        def _decode_image(data: bytes):
+            import io
+
+            import PIL.Image
+            img = PIL.Image.open(io.BytesIO(data))
+            img.load()  # force the full decode HERE, inside the worker thread
+            return img
+
+        img = None
+        if img_data:
+            img = await asyncio.to_thread(_decode_image, img_data)
         if img is None:
             return ""
         r = await model.generate_content_async([prompt, img])

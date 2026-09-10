@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
+import { clearQueryPersistedCache } from "@/lib/query-persist"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
@@ -97,6 +98,16 @@ function LoginForm() {
     const t = setInterval(() => setLockoutSeconds((s) => Math.max(0, s - 1)), 1000)
     return () => clearInterval(t)
   }, [lockoutSeconds])
+
+  useEffect(() => {
+    // v24-R4 F2 (belt-and-braces): the persisted react-query cache is
+    // user-scoped and must never outlive its session in this tab. The 401
+    // path and manual logout wipe it too — this mount-time wipe covers any
+    // OTHER forced exit (tab crash + restore, direct URL entry) AND any
+    // debounce straggler that raced the navigation here. Anonymous mount =
+    // nothing of value is lost; the store rebuilds after this login.
+    clearQueryPersistedCache()
+  }, [])
 
   useEffect(() => {
     apiFetch("/api/me")

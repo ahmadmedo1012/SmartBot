@@ -156,6 +156,11 @@ async def agent_interpret(
     """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
     from agent_engine import get_agent
     from runner import STATIC_DIR as _STATIC_DIR
+
+    # v24-R4 F5: the 5th AI surface joins its siblings' budget (editor gate
+    # was already here; the daily cap was not — a viewer-turned-editor or a
+    # script could run unbounded paid LLM calls through the agent path).
+    await _ai_daily_budget(db, current_user)
     agent = get_agent()
 
     image_url = ""

@@ -198,8 +198,13 @@ async def connect_page(
                 webhook_result = result
         except TimeoutError:
             webhook_result = {"_error": True, "body": "timeout"}
-        except Exception as e:
-            webhook_result = {"_error": True, "body": str(e)[:200]}
+        except Exception:
+            # v24-R3 (B2 M-4): was str(e)[:200] in the response body — provider
+            # exception text must not reach the client. Generic marker + the
+            # detail stays server-side.
+            log.exception("onboarding: page webhook subscribe failed (tenant %s)",
+                          current_user.tenant_id)
+            webhook_result = {"_error": True, "body": "subscribe_failed"}
 
     data = {
         "page_id": page_id or body.page_id,

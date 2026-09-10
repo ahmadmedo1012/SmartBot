@@ -180,9 +180,12 @@ async def _payment_rate_limit(request: Request, key: str, max_attempts: int = 10
     the check itself fails (never blocks legitimate payments on limiter hiccups).
     """
     try:
-        from _rate_limit import check_rate_limit
+        from _rate_limit import check_rate_limit, client_ip
         async with AsyncSessionLocal() as rl_db:
-            if not await check_rate_limit(rl_db, f"{key}:{request.client.host if request.client else 'unknown'}",
+            # v24-R3 (B1 V1 / C4 handoff): honest client IP — behind the Vercel
+            # proxy every user shared ONE <key>: bucket (cross-user 429s);
+            # client_ip() honors X-Forwarded-For only behind a known proxy.
+            if not await check_rate_limit(rl_db, f"{key}:{client_ip(request)}",
                                           max_attempts=max_attempts, window_seconds=window):
                 raise HTTPException(429, "محاولات كثيرة — حاول بعد قليل")
     except HTTPException:

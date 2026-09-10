@@ -1,4 +1,16 @@
-"""Distributed Redis cache — shared across all Vercel instances."""
+"""Distributed Redis cache — shared across all Vercel instances.
+
+v24-R3 (M5 — serialization owner): THIS module is the single serialization
+layer for everything it stores — ``set`` json-encodes once, ``get`` json-
+decodes once, callers pass/receive live objects. ``api_cache`` used to
+pre-dump its values to a JSON string and hand that string here (double
+encoding: Redis held a JSON string OF a JSON string, and the two layers
+used incompatible read conventions — a mixed consumer corrupted silently).
+api_cache now passes objects and namespaces its keys under ``apic:v2:``
+so pre-v24 double-encoded entries are never read back (they age out via
+their own TTL). Keep this contract: never store a pre-encoded JSON string
+through ``set``.
+"""
 from __future__ import annotations
 
 import asyncio

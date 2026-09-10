@@ -500,19 +500,26 @@ def test_client_ip_ignores_spoofed_xff_without_proxy(monkeypatch):
     assert client_ip(req) == "7.7.7.7"
 
 
-def test_client_ip_vercel_takes_leftmost_public_ip(monkeypatch):
+def test_client_ip_vercel_takes_proxy_appended_rightmost_ip(monkeypatch):
+    """v24-R4 F1 spoof hardening: the trusted proxy APPENDS the real client IP
+    as the LAST hop; left entries are client-supplied and forgeable. The
+    right-most VALID entry must win — a spoofed left hop must NEVER key the
+    bucket (fresh-bucket bypass / victim-IP lockout)."""
     from _rate_limit import client_ip
     monkeypatch.setenv("VERCEL", "1")
-    # left-most public wins over a private proxy hop
-    assert client_ip(_FakeRequest(xff="93.184.216.34, 10.0.0.1")) == "93.184.216.34"
-    # ports stripped (v4 and [v6] forms)
+    # THE spoof pin: forged left hop ignored, proxy-appended real IP wins
+    assert client_ip(_FakeRequest(xff="6.6.6.6, 93.184.216.34")) == "93.184.216.34"
+    # multiple forged left hops still lose to the right-most (appended) hop
+    assert client_ip(_FakeRequest(xff="6.6.6.6, 8.8.8.8, 1.2.3.4")) == "1.2.3.4"
+    # single entry (direct proxy hop): ports stripped (v4 and [v6] forms)
     assert client_ip(_FakeRequest(xff="93.184.216.34:54321")) == "93.184.216.34"
     v6 = "[2606:2800:220:1:248:1893:25c8:1946]:8443"
     assert client_ip(_FakeRequest(xff=v6)) == "2606:2800:220:1:248:1893:25c8:1946"
-    # garbage entries skipped, next valid public entry used
-    assert client_ip(_FakeRequest(xff="garbage, 8.8.4.4")) == "8.8.4.4"
-    # all entries private/unparsable → the connection host (proxy) is kept
-    assert client_ip(_FakeRequest(client_host="10.1.2.3", xff="10.0.0.5, 127.0.0.1")) == "10.1.2.3"
+    # garbage right-most entries skipped, next valid (right-ward) entry used
+    assert client_ip(_FakeRequest(xff="8.8.4.4, garbage")) == "8.8.4.4"
+    # a private right-most entry is still the proxy-observed client (CGNAT) —
+    # it keys the bucket (trust anchor), not the connection host
+    assert client_ip(_FakeRequest(client_host="10.1.2.3", xff="10.0.0.5, 127.0.0.1")) == "127.0.0.1"
     # no header at all → the connection host
     assert client_ip(_FakeRequest(client_host="10.1.2.3")) == "10.1.2.3"
 

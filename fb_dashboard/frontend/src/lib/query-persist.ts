@@ -57,6 +57,12 @@ interface PersistedCache {
   queries: PersistedQueryEntry[]
 }
 
+/** v24-R4 F2: bumped by every clear — a scheduled/straggler flush captured
+ * an older epoch and must NOT re-write the wiped store after logout
+ * (the 800ms debounce could beat the navigation to /login and resurrect
+ * the previous user's cache). */
+let clearEpoch = 0
+
 function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined"
 }
@@ -162,8 +168,13 @@ export function attachQueryPersister(queryClient: QueryClient): () => void {
 
   let timer: ReturnType<typeof setTimeout> | null = null
   let lastWritten: string | null = null
+  let epochAtSchedule = clearEpoch
   const flush = (): void => {
     timer = null
+    // v24-R4 F2: a clear() happened after this flush was scheduled — the
+    // store was wiped on purpose (logout / 401 expiry); a straggler write
+    // would resurrect the previous account's data into the next login.
+    if (epochAtSchedule !== clearEpoch) return
     try {
       const payload = serializeCache(queryClient)
       if (payload === null || payload === lastWritten) return
@@ -176,6 +187,7 @@ export function attachQueryPersister(queryClient: QueryClient): () => void {
 
   const unsubscribe = queryClient.getQueryCache().subscribe(() => {
     if (timer !== null) return // debounce: one write per burst of updates
+    epochAtSchedule = clearEpoch
     timer = setTimeout(flush, SAVE_DEBOUNCE_MS)
   })
 
@@ -186,9 +198,16 @@ export function attachQueryPersister(queryClient: QueryClient): () => void {
 }
 
 /** v24-C3: wipe the persisted cache — called on logout so a same-tab
- * login-as-a-different-user can never hydrate the previous account's data. */
+ * login-as-a-different-user can never hydrate the previous account's data.
+ * v24-R4 F2: also bumps the epoch so an in-flight debounced flush is
+ * cancelled (straggler-write guard) — and is now called from THREE exits:
+ * manual logout (DashboardShell), the 401 session-expiry redirect
+ * (csrf-client), and login page mount (belt-and-braces for any other
+ * forced exit — the storage is user-scoped and must never outlive its
+ * session in the same tab). */
 export function clearQueryPersistedCache(): void {
   if (!isBrowser()) return
+  clearEpoch++
   try {
     window.sessionStorage.removeItem(STORAGE_KEY)
   } catch {

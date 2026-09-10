@@ -13,7 +13,6 @@ import logging
 import mimetypes
 import os
 from datetime import timedelta
-from pathlib import Path
 
 from _responses import ok
 from _utils import iso_z, utcnow
@@ -247,11 +246,15 @@ async def get_payment_receipt(payment_id: int, db=Depends(get_db), current_user:
         return Response(content=payload, media_type=mime)
 
     if receipt.startswith("/static/uploads/receipts/"):
-        from routers.payments.bank import _UPLOAD_DIR
+        # v24-R3 (B2 H-1): the marker resolves to the PRIVATE upload dir
+        # (with a fallback to the legacy static location for rows uploaded
+        # before the move) — receipts are served ONLY through this
+        # authenticated route, never through the public /static mount.
+        from routers.payments.bank import resolve_receipt_path
 
         name = os.path.basename(receipt)  # strips any traversal characters
-        path = Path(_UPLOAD_DIR) / name
-        if name in (".", "..") or not path.is_file():
+        path = resolve_receipt_path(name)
+        if path is None:
             raise HTTPException(404, "لا يوجد إيصال لهذه الدفعة")
         return FileResponse(path, media_type=(mimetypes.guess_type(name)[0] or "image/jpeg"))
 

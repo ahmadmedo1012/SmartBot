@@ -370,10 +370,22 @@ async def test_upload_receipt_ok():
         url = r.json()["data"]["url"]
         assert url.startswith("/static/uploads/receipts/"), url
         assert url.endswith(".jpg")
-        # الملف موجود فعلاً على القرص
+        # v24-R3 (B2 H-1): the URL above is the DB MARKER (prefix-validated by
+        # plans.py and resolved by the authenticated GET /api/payments/receipt/{id}).
+        # The actual file must now live in the PRIVATE upload root — OUTSIDE
+        # the unauthenticated /static mount — and must NOT exist under static/.
         from pathlib import Path
-        p = Path(FB_DIR) / "static" / "uploads" / "receipts" / url.rsplit("/", 1)[1]
-        assert p.exists(), p
+
+        from _utils import private_upload_dir
+
+        name = url.rsplit("/", 1)[1]
+        private_p = private_upload_dir("receipts") / name
+        assert private_p.exists(), private_p
+        # THE security assertion: the PII receipt is NOT world-readable via /static
+        static_p = Path(FB_DIR) / "static" / "uploads" / "receipts" / name
+        assert not static_p.exists(), (
+            f"receipt leaked into the public static mount: {static_p} (v24-R3 H-1 regression)"
+        )
     finally:
         await _teardown(fixture)
 

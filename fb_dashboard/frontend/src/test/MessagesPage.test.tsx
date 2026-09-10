@@ -35,8 +35,27 @@
  *     the hidden batch (A3-M1 windowing)
  *   - per-conversation drafts persist to localStorage (draft:<id>),
  *     restore across a full remount, and are removed on successful send
+ *     (v24-R1 task 5 re-verified: failed sends keep the draft — the pins
+ *     above and in "reply draft isolation" are the contract)
  *   - the conversation control is a real button inside an <li> (role
  *     "listitem" no longer suppresses button semantics — B4)
+ *
+ * v24-R1 — thread hardening pins (mobile chat UX round 2):
+ *   - scroll-to-bottom FAB: hidden at the bottom, appears only >300px up
+ *     (mock scrollTop/scrollHeight/clientHeight — jsdom lays out nothing),
+ *     clicking it smooth-scrolls to the newest message, and it anchors to
+ *     the scroller's wrapper (the scroll viewport, never the content — an
+ *     absolute child of the scroller itself would scroll away)
+ *   - new-messages pill: a poll that grows the thread while the user reads
+ *     history surfaces «رسائل جديدة (N)» in a persistent polite live
+ *     region WITHOUT yanking the scroll position (scrollIntoView call
+ *     count frozen); returning to the tail resets N; growth near the
+ *     bottom still auto-follows (no pill); clicking the pill jumps + resets
+ *   - thread identity header: the mobile back row carries the subscriber
+ *     name (+ count, + decorative initials) — from the loaded conversation
+ *     row, with the first customer message's sender as deep-link fallback
+ *   - offline banner: the `offline` event mounts a role="status" strip,
+ *     `online` dismisses it
  *
  * Mock bundle (house pattern from SettingsChangePassword/OnboardingWizard
  * tests): QueryClientProvider, premium-toast spy, URL-router fetch stub,
@@ -45,7 +64,7 @@
  * (same jsdom gap).
  */
 import type { ReactNode } from "react"
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -157,13 +176,35 @@ function threadOf(id: string): Message[] {
   ]
 }
 
-function renderMessages() {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={qc}>
-      <MessagesPage />
-    </QueryClientProvider>,
-  )
+function renderMessages(qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return {
+    qc,
+    ...render(
+      <QueryClientProvider client={qc}>
+        <MessagesPage />
+      </QueryClientProvider>,
+    ),
+  }
+}
+
+/* v24-R1: jsdom performs no layout — scrollHeight/clientHeight/scrollTop
+ * are all 0. Redefine them on the scroller instance so the page's distance
+ * math (FAB threshold, near-bottom window) is drivable from the test. */
+function mockScrollMetrics(el: HTMLElement, distance: number, total = 2000, view = 500) {
+  const top = total - view - distance
+  Object.defineProperty(el, "scrollHeight", { configurable: true, get: () => total })
+  Object.defineProperty(el, "clientHeight", { configurable: true, get: () => view })
+  Object.defineProperty(el, "scrollTop", { configurable: true, get: () => top, set: () => {} })
+}
+
+/** v24-R1: the scroll listener throttles via requestAnimationFrame — run
+ * the frame synchronously so fireEvent.scroll's state update lands before
+ * the assertion (jsdom's own rAF is async). */
+function installSyncRaf() {
+  vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+    cb(0)
+    return 0
+  })
 }
 
 /* v24-C2 (task 10): list semantics moved to the <li> wrappers — the
@@ -647,5 +688,238 @@ describe("v24-C2 — draft persistence", () => {
     // the draft survives in both places for a corrected retry
     expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("محاولة رد")
     expect(window.localStorage.getItem("draft:c1")).toBe("محاولة رد")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// v24-R1 — scroll-to-bottom FAB (task 1 / A3 §8-6)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("v24-R1 — scroll-to-bottom FAB (task 1)", () => {
+  it("hidden at the bottom and for a small 200px peek; appears >300px up; click jumps to the newest message", async () => {
+    installSyncRaf()
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+
+    const scroller = screen.getByRole("log")
+    // fresh thread = at the bottom → no FAB
+    expect(screen.queryByRole("button", { name: "الانتقال لآخر رسالة" })).toBeNull()
+
+    // 200px up (inside the auto-follow window) — still no FAB
+    mockScrollMetrics(scroller, 200)
+    fireEvent.scroll(scroller)
+    expect(screen.queryByRole("button", { name: "الانتقال لآخر رسالة" })).toBeNull()
+
+    // 400px up → the FAB appears
+    mockScrollMetrics(scroller, 400)
+    fireEvent.scroll(scroller)
+    const fab = screen.getByRole("button", { name: "الانتقال لآخر رسالة" })
+    expect(fab).toBeInTheDocument()
+    // the FAB anchors to the scroller's WRAPPER (the scroll viewport), never
+    // to the scrolling content — an absolute child of the scroller itself
+    // would scroll away with the messages
+    expect(fab.parentElement).toBe(scroller.parentElement)
+
+    // clicking it jumps to the newest message (smooth — motion allowed)
+    fireEvent.click(fab)
+    await waitFor(() =>
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" })),
+    )
+
+    // scrolling back to the bottom hides it again
+    mockScrollMetrics(scroller, 0)
+    fireEvent.scroll(scroller)
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "الانتقال لآخر رسالة" })).toBeNull(),
+    )
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// v24-R1 — new-messages pill (task 2 — the honest 5s poll)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("v24-R1 — new-messages pill (task 2)", () => {
+  it("a poll that grows the thread while the user reads history surfaces the pill, NOT a scroll yank", async () => {
+    installSyncRaf()
+    let thread = threadOf("c1")
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: thread }),
+      "POST /api/inbox/conversations/c1/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+    })
+    const { qc } = renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+    // let the (أ) fresh-thread landing fire BEFORE freezing the scroll count
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled())
+    const initialScrolls = scrollIntoView.mock.calls.length
+
+    // the user scrolls up into history
+    const scroller = screen.getByRole("log")
+    mockScrollMetrics(scroller, 1400)
+    fireEvent.scroll(scroller)
+
+    // the 5s poll lands new messages server-side — driven deterministically
+    // here via the query cache (the poll calls the same queryFn/path); the
+    // observer's re-render is async, so wait for the pill instead of
+    // asserting it synchronously
+    thread = [
+      ...threadOf("c1"),
+      { id: "c1-m3", message: "رسالة وصلت أثناء قراءة السجل", is_from_page: false, created_time: null },
+    ]
+    await act(async () => {
+      await qc.invalidateQueries({ queryKey: ["inbox-messages", "c1"] })
+    })
+
+    // the pill — not a yank — is the poll's honest result
+    const pill = await screen.findByRole("button", { name: "رسائل جديدة (1)" })
+    expect(pill).toBeInTheDocument()
+    // its count changes are announced politely (persistent live region)
+    expect(pill.closest("[aria-live='polite']")).not.toBeNull()
+    // the viewport was NEVER yanked: no scroll beyond the initial landing
+    expect(scrollIntoView.mock.calls.length).toBe(initialScrolls)
+
+    // manual return to the tail clears N without any click
+    mockScrollMetrics(scroller, 100)
+    fireEvent.scroll(scroller)
+    await waitFor(() => expect(screen.queryByRole("button", { name: /رسائل جديدة/ })).toBeNull())
+
+    // …and growth NEAR the bottom still auto-follows (the v24-C2 scroll
+    // contract is intact): smooth follow, no pill
+    thread = [
+      ...thread,
+      { id: "c1-m4", message: "رسالة رابعة", is_from_page: false, created_time: null },
+    ]
+    await act(async () => {
+      await qc.invalidateQueries({ queryKey: ["inbox-messages", "c1"] })
+    })
+    await waitFor(() => expect(screen.getByText("رسالة رابعة")).toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: /رسائل جديدة/ })).toBeNull()
+    await waitFor(() =>
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" })),
+    )
+  })
+
+  it("clicking the pill jumps to the newest message and resets the count", async () => {
+    installSyncRaf()
+    let thread = threadOf("c1")
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: thread }),
+      "POST /api/inbox/conversations/c1/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+    })
+    const { qc } = renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+
+    const scroller = screen.getByRole("log")
+    mockScrollMetrics(scroller, 1400)
+    fireEvent.scroll(scroller)
+
+    thread = [
+      ...threadOf("c1"),
+      { id: "c1-m3", message: "رسالة جديدة", is_from_page: false, created_time: null },
+    ]
+    await act(async () => {
+      await qc.invalidateQueries({ queryKey: ["inbox-messages", "c1"] })
+    })
+    await screen.findByRole("button", { name: "رسائل جديدة (1)" })
+
+    fireEvent.click(screen.getByRole("button", { name: "رسائل جديدة (1)" }))
+    // the jump is smooth and the count is gone the moment the pill delivers
+    await waitFor(() =>
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ behavior: "smooth" })),
+    )
+    await waitFor(() => expect(screen.queryByRole("button", { name: /رسائل جديدة/ })).toBeNull())
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// v24-R1 — thread identity header (task 3 / A3-M5)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("v24-R1 — thread identity header (task 3)", () => {
+  it("the mobile back row names the subscriber (name + count + decorative initials)", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد", 0, 12)], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+    })
+    renderMessages()
+
+    clickConversation(await screen.findByRole("listitem"))
+    await screen.findByText("السلام عليكم")
+
+    // the back control kept its accessible name (icon-only now, 44px)
+    const back = screen.getByRole("button", { name: "كل المحادثات" })
+    const header = back.parentElement as HTMLElement
+    // WHO you're replying to is in the header row
+    expect(within(header).getByText("أحمد")).toBeInTheDocument()
+    expect(within(header).getByText(/رسالة|رسالتين|رسائل/)).toBeInTheDocument()
+    // the initials tile is decorative (the name sits right beside it)
+    expect(within(header).getByText("أ")).toHaveAttribute("aria-hidden", "true")
+  })
+
+  it("deep link with the thread missing from the filtered list falls back to the first customer sender", async () => {
+    window.history.replaceState(null, "", "/dashboard/messages?c=c9")
+    stubFetch({
+      // the filtered/searched list does not contain the open thread
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [], total: 0 } }),
+      "GET /api/inbox/conversations/c9": () =>
+        jsonRes({
+          success: true,
+          data: [
+            {
+              id: "c9-m1",
+              message: "مرحبا",
+              is_from_page: false,
+              from: { id: "s9", name: "خالد العميل" },
+              created_time: null,
+            },
+            { id: "c9-m2", message: "أهلاً", is_from_page: true, created_time: null },
+          ],
+        }),
+      "POST /api/inbox/conversations/c9/read": () => jsonRes({ success: true, data: { unread: 0 } }),
+    })
+    renderMessages()
+
+    expect(await screen.findByText("مرحبا")).toBeInTheDocument()
+    const header = screen.getByRole("button", { name: "كل المحادثات" }).parentElement as HTMLElement
+    expect(within(header).getByText("خالد العميل")).toBeInTheDocument()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════
+// v24-R1 — offline banner (task 4, messages-scoped)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("v24-R1 — offline banner (task 4)", () => {
+  it("the offline event mounts a role=status strip; the online event dismisses it", async () => {
+    stubFetch({
+      [LIST_ROUTE]: () => jsonRes({ success: true, data: { items: [conv("c1", "أحمد")], total: 1 } }),
+      "GET /api/inbox/conversations/c1": () => jsonRes({ success: true, data: threadOf("c1") }),
+    })
+    renderMessages()
+    await screen.findAllByRole("listitem")
+
+    // online (jsdom default) → no banner
+    expect(screen.queryByText(/انقطع الاتصال بالإنترنت/)).toBeNull()
+
+    // the browser reports connectivity loss
+    fireEvent(window, new Event("offline"))
+    const banner = screen.getByText("انقطع الاتصال بالإنترنت — سيتم إعادة المحاولة تلقائياً")
+    expect(banner.closest('[role="status"]')).not.toBeNull()
+
+    // connectivity returns → auto-dismiss
+    fireEvent(window, new Event("online"))
+    await waitFor(() => expect(screen.queryByText(/انقطع الاتصال بالإنترنت/)).toBeNull())
   })
 })

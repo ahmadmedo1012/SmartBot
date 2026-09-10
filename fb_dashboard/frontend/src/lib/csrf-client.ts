@@ -1,3 +1,5 @@
+import { clearQueryPersistedCache } from "@/lib/query-persist"
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -63,6 +65,12 @@ function handleSessionExpired(): void {
   const now = Date.now()
   if (now - _lastSession401At < SESSION_401_DEDUPE_MS) return
   _lastSession401At = now
+  /* v24-R4 F2: the sessionStorage query cache is user-scoped, and a full-page
+   * location.replace does NOT clear sessionStorage — the next login (possibly
+   * a DIFFERENT user in the same tab) would hydrate the expired account's
+   * cached dashboard data. Wipe it BEFORE leaving; the epoch bump also
+   * cancels any in-flight debounced flush that could resurrect it. */
+  clearQueryPersistedCache()
   /* v16 (D5 bundle / E4 follow-up): sonner + premium-toast (43.2KB chunk)
    * is imported DYNAMICALLY here — a static import dragged the toaster into
    * every route that calls apiFetch (landing islands, pricing) even though

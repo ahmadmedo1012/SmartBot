@@ -132,8 +132,12 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     username = body.get("username", "")
     password = body.get("password", "")
     email_lookup = username if "@" in username else ""
-    ip = request.client.host if request and request.client else "unknown"
-    from _rate_limit import check_rate_limit
+    # v24-R3 (B1 V1 / C4 handoff): honest client IP for the login throttle —
+    # behind the Vercel proxy request.client.host is the PROXY's address (all
+    # users shared ONE login: bucket → cross-user 429 lockouts). client_ip()
+    # honors X-Forwarded-For only when a proxy is known to be in front.
+    from _rate_limit import check_rate_limit, client_ip
+    ip = client_ip(request) if request else "unknown"
     if not await check_rate_limit(db, f"login:{ip}", max_attempts=10, window_seconds=60):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 60 ثانية")
     # Two-step lookup: username first (unique per tenant), then email.
@@ -259,8 +263,9 @@ async def register(body: dict = Body(None), request: Request = None, db=Depends(
     email = body.get("email", "")
     password = body.get("password", "")
     name = body.get("name", username)
-    ip = request.client.host if request.client else "unknown"
-    from _rate_limit import check_rate_limit
+    # v24-R3 (B1 V1 / C4 handoff): honest client IP — same reason as login.
+    from _rate_limit import check_rate_limit, client_ip
+    ip = client_ip(request) if request else "unknown"
     if not await check_rate_limit(db, f"register:{ip}", max_attempts=5, window_seconds=300):
         raise HTTPException(429, "محاولات كثيرة جداً — حاول بعد 5 دقائق")
     if len(username) < 3 or len(username) > 32 or not re.match(r'^[\w.-]+$', username):
@@ -441,7 +446,10 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     # user (including one stolen before the reset) dies on its next request.
     user.token_ver = int(getattr(user, "token_ver", 0) or 0) + 1
     await db.commit()
-    ip = request.client.host if request and request.client else "unknown"
+    # v24-R3 (B1 V1 / C4 handoff): the audit row records the honest client IP
+    # (proxy-resolved), not the proxy's own address.
+    from _rate_limit import client_ip
+    ip = client_ip(request) if request else "unknown"
     await log_audit(db, "reset_password", actor_id=current_user.id, target_type="user",
                     target_id=user_id, ip=ip, tenant_id=current_user._tenant_id)
     # v22 FIX-A (W1-D1 B-2): log_audit is add+flush — with no commit after it
@@ -470,7 +478,7 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     # أداء المنصة كلها بنفسه. المفتاح per-user لا per-IP (المهاجم هنا
     # صاحب الجلسة نفسها). يُحسب قبل التحقق — المحاولات الفاشلة هي
     # المقصودة (brute-force لكلمة المرور الحالية).
-    from _rate_limit import check_rate_limit
+    from _rate_limit import check_rate_limit, client_ip
     if not await check_rate_limit(
         db, f"change-password:{current_user.id}", max_attempts=5, window_seconds=3600,
     ):
@@ -488,7 +496,8 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     # other devices) are revoked; the login flow re-mints a fresh token.
     current_user.token_ver = int(getattr(current_user, "token_ver", 0) or 0) + 1
     await db.commit()
-    ip = request.client.host if request and request.client else "unknown"
+    # v24-R3 (B1 V1 / C4 handoff): honest client IP for the audit row.
+    ip = client_ip(request) if request else "unknown"
     await log_audit(db, "change_password", actor_id=current_user.id, ip=ip,
                     tenant_id=current_user._tenant_id)
     # v22 FIX-A (W1-D1 B-2): same fix as admin_reset_password — the flushed

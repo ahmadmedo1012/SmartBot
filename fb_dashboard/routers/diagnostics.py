@@ -47,7 +47,10 @@ async def diagnostic_cycles(_=Depends(require_platform_admin)):
 
 
 @router.get("/api/diagnostics/recent-errors")
-async def diagnostic_errors(limit: int = Query(20), _=Depends(require_platform_admin)):
+async def diagnostic_errors(limit: int = Query(20, ge=1, le=200), _=Depends(require_platform_admin)):
+    # v24-R3 (M2): limit bounded 1..200 (was a bare default 20 — unbounded
+    # from the client; a huge value made get_recent_errors slice the whole
+    # ring, 0/negative values corrupted the [-limit:] slice).
     from diagnostics import get_diagnostics
     return ok({"errors": get_diagnostics().get_recent_errors(limit)})
 

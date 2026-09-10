@@ -189,19 +189,62 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     return resp
 
 
+def _logout_expiry_naive_utc(exp: int | float) -> datetime:
+    """Epoch exp of a JWT → NAIVE-UTC datetime (the repo DateTime convention).
+
+    v22 FIX-A (W1-D1 B-1, live on production 2026-09-10): the old inline
+    ``datetime.fromtimestamp(exp, tz=UTC)`` handed asyncpg a TZ-AWARE
+    datetime for ``blacklisted_tokens.expires_at`` — a
+    ``TIMESTAMP WITHOUT TIME ZONE`` column — and asyncpg (Neon/PG)
+    REJECTS that bind (DataError) at commit; the surrounding
+    ``except Exception: pass`` swallowed it, so on production the logout
+    blacklist row was NEVER written: a logged-out (or stolen) session token
+    stayed valid for up to 24h. SQLite (aiosqlite) accepts aware datetimes,
+    which is why local tests never caught it — same bug class as the v21
+    posts-sync fix (``_parse_fb_time``: astimezone(UTC).replace(tzinfo=None));
+    this helper matches that contract and is unit-tested for it.
+    """
+    return datetime.fromtimestamp(exp, tz=UTC).replace(tzinfo=None)
+
+
 @router.post("/api/logout")
 async def logout(request: Request, db=Depends(get_db)):
     token = request.cookies.get("token")
+    # Decode failures (expired / invalid signature) are NOT write failures: the
+    # session is already dead — nothing left to revoke, and the cookie delete
+    # below completes the client-side logout. The DB write, however, MUST
+    # succeed (or fail loudly) — that asymmetry is the whole point of v22 FIX-A.
+    payload = None
     if token:
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-            jti = payload.get("jti", "")
-            exp = payload.get("exp")
-            if jti and exp:
-                db.add(BlacklistedToken(jti=jti, expires_at=datetime.fromtimestamp(exp, tz=UTC)))
+        except jwt.PyJWTError:
+            payload = None
+    if payload:
+        jti = payload.get("jti", "")
+        exp = payload.get("exp")
+        # make_token always mints jti+exp; a valid-signature token without
+        # both is a pre-v12 relic — unrevokable by blacklist, and token_ver
+        # (v12-E2.4) remains the revocation channel for those. Nothing to do.
+        if jti and exp:
+            try:
+                db.add(BlacklistedToken(jti=jti, expires_at=_logout_expiry_naive_utc(exp)))
                 await db.commit()
-        except Exception:
-            pass
+            except Exception:
+                # v22 FIX-A (W1-D1 B-1): NEVER swallow this again. A logout
+                # whose revocation write failed must not answer 200 — the
+                # user would believe the session is closed while it lives up
+                # to 24h (mirror of the honest-503 heartbeat ledger: a beat
+                # that cannot do its job must not look green). Log loudly,
+                # roll back, and fail the request so the client retries.
+                await db.rollback()
+                log.exception(
+                    "logout: blacklist insert FAILED (jti=%s…) — session NOT revoked",
+                    str(jti)[:8],
+                )
+                raise HTTPException(
+                    500, "تعذر إبطال الجلسة على الخادم — يرجى المحاولة مرة أخرى"
+                ) from None
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok())
     resp.delete_cookie("token", httponly=True, secure=secure, samesite="lax")
@@ -393,6 +436,12 @@ async def admin_reset_password(body: dict = Body(None), request: Request = None,
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "reset_password", actor_id=current_user.id, target_type="user",
                     target_id=user_id, ip=ip, tenant_id=current_user._tenant_id)
+    # v22 FIX-A (W1-D1 B-2): log_audit is add+flush — with no commit after it
+    # the audit row was flushed into a session that closed without
+    # committing → silently lost (live evidence: successful prod resets left
+    # zero reset_password rows). Mirror the platform_update_user pattern
+    # (admin_routes.py): commit → log_audit → commit.
+    await db.commit()
     return ok({"updated": True})
 
 
@@ -434,6 +483,9 @@ async def change_password(body: dict = Body(None), request: Request = None, db=D
     ip = request.client.host if request and request.client else "unknown"
     await log_audit(db, "change_password", actor_id=current_user.id, ip=ip,
                     tenant_id=current_user._tenant_id)
+    # v22 FIX-A (W1-D1 B-2): same fix as admin_reset_password — the flushed
+    # audit row needs its own commit or it is lost at session close.
+    await db.commit()
     return ok({"changed": True})
 
 

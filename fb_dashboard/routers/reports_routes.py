@@ -41,8 +41,20 @@ def _image_data_uri(raw: bytes) -> str:
 
 @router.get("/api/reports/status")
 async def pdf_reports_status(_=Depends(get_current_user)):
-    """Check PDF generation engine availability."""
-    return ok({"available": pdf_engine.is_available(), "engine": pdf_engine.engine_name})
+    """Check PDF generation engine availability.
+
+    v22-F1 (W1-D9): this route used to 500 in production — the lazy import
+    of the engine raised OSError (Vercel lacks pango) and the old probe
+    caught only ImportError. The probe now survives ANY import failure, so
+    this answers 200 with {"available": false, "engine": "none"} and the
+    frontend disables the PDF button with its honest Arabic message
+    («محرك التقارير غير متاح حالياً على الخادم») instead of a dead button
+    that 500s on click. ``probe_error`` is diagnostics-only (the OSError
+    text), ignored by the FE contract.
+    """
+    return ok({"available": pdf_engine.is_available(),
+               "engine": pdf_engine.engine_name,
+               "probe_error": pdf_engine.probe_error()})
 
 
 @router.post("/api/reports/generate")
@@ -64,6 +76,14 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
         raise HTTPException(400, "قيمة days غير صالحة") from None
     if not 1 <= days <= 365:
         raise HTTPException(400, "days يجب أن يكون بين 1 و 365")
+    # v22-F1 (W1-D9): the engine can be legitimately UNAVAILABLE on the
+    # runtime (Vercel serverless: weasyprint's OSError for missing pango
+    # system libs, fpdf2 not installed). Answer a clean 503 with the same
+    # Arabic wording the frontend disabled state shows — NEVER the old
+    # 500 (the lazy import used to explode before any logic ran; 4×500 in
+    # production, see W1-D9 F1).
+    if not pdf_engine.is_available():
+        raise HTTPException(503, "محرك التقارير غير متاح حالياً على الخادم — يرجى المحاولة لاحقاً")
     tenant_id = current_user._tenant_id
     b = body.get("branding", {})
     from pdf_reports_engine import BrandingConfig

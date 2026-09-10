@@ -18,9 +18,14 @@ from routers.auth import get_current_user, require_platform_admin, require_role
 log = logging.getLogger("fb-api")
 router = APIRouter(tags=["analytics"])
 
+# v22-F5 (W1-D9): every ``days`` query param is bounded ge=1 le=365 — the
+# same range POST /api/reports/generate has always enforced. ``days=-5``
+# used to pass through (200 with ``date_range_days: -5`` → a future cutoff
+# → silently empty data); FastAPI now answers 422 before any query runs.
+
 
 @router.get("/api/analytics/overview")
-async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_overview(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     """Aggregated analytics overview."""
     _tid = current_user._tenant_id
     cutoff = utcnow() - timedelta(days=days)
@@ -146,7 +151,7 @@ async def analytics_overview(days: int = Query(30), db=Depends(get_db), current_
 
 
 @router.get("/api/analytics/export")
-async def analytics_export(format: str = Query("csv"), days: int = Query(30),
+async def analytics_export(format: str = Query("csv"), days: int = Query(30, ge=1, le=365),
                            db=Depends(get_db), current_user: User = Depends(require_role("admin"))):
     """Export replies as CSV or JSON."""
     _tid = current_user._tenant_id
@@ -227,49 +232,49 @@ async def analytics_scheduler_check(db=Depends(get_db), current_user: User = Dep
 
 
 @router.get("/api/analytics/dashboard")
-async def analytics_dashboard(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_dashboard(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_dashboard_overview(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/daily-trend")
-async def analytics_daily_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_daily_trend(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_daily_trend(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/hourly-heatmap")
-async def analytics_hourly_heatmap(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_hourly_heatmap(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_hourly_heatmap(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/top-rules")
-async def analytics_top_rules(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_top_rules(days: int = Query(30, ge=1, le=365), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_top_rules(days, limit, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/sentiment-trend")
-async def analytics_sentiment_trend(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_sentiment_trend(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_sentiment_trend(days, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/peak-hour")
-async def analytics_peak_hour(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_peak_hour(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     peak = await analytics_engine.get_peak_hour(days, db, tenant_id=current_user._tenant_id)
     return ok({"peak_hour": peak})
 
 
 @router.get("/api/analytics/top-commenters")
-async def analytics_top_commenters(days: int = Query(30), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_top_commenters(days: int = Query(30, ge=1, le=365), limit: int = Query(10), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_top_commenters(days, limit, db, tenant_id=current_user._tenant_id))
 
 
 @router.get("/api/analytics/period-comparison")
-async def analytics_period_comparison(days: int = Query(30), db=Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analytics_period_comparison(days: int = Query(30, ge=1, le=365), db=Depends(get_db), current_user: User = Depends(get_current_user)):
     from _services import analytics_engine
     return ok(await analytics_engine.get_period_comparison(days, db, tenant_id=current_user._tenant_id))

@@ -69,8 +69,9 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
         NO live Graph call for connected tenants — the heartbeat cron
         (routers/bot.py §2) refreshes fb_fan_count for every connected
         tenant each beat, and the connect flow writes it at connect time;
-        the legacy env-credential fallback (bootstrap mode) keeps its live
-        call (v10-B3 contract, test-pinned);
+        the legacy env-credential fallback keeps its live call ONLY in the
+        bootstrap single-tenant space (tenant 0 — v22-F2, was every
+        unconnected tenant before: cross-tenant fan bleed);
       * 60s per-tenant response cache (see dashboard_bundle).
     """
     now = utcnow()
@@ -132,13 +133,22 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
             # for every connected tenant on each beat, so the snapshot is at
             # worst one beat old.
             connected = True
-        else:
-            # legacy single-tenant env fallback (bootstrap mode only) —
-            # v10-B3 contract, preserved: only when env credentials actually
-            # exist (multi-tenant production has both empty).
-            if has_global_fb_credentials():
-                fan_count = await fb.get_page_fan_count()
-                connected = True
+        elif _tid == 0 and has_global_fb_credentials():
+            # v22-F2 (W1-D9) — cross-tenant bleed closed. The legacy
+            # env-credential fallback is the BOOTSTRAP single-tenant space
+            # (tenant 0) ONLY — the same gate agent_engine._get_fb(0) has
+            # kept since v15 («tenant 0 مع اعتمادات env: عميل المنصة —
+            # سلوك التوافق محفوظ عمداً»). Production carries global env
+            # credentials for the OWNER's page, so the old unconditional
+            # fallback served the owner's fan_count (5) + connected=true to
+            # EVERY unconnected tenant (fresh t42, also t22) while
+            # /api/analytics/overview honestly showed 0 — two different
+            # KPIs for the same tenant on two dashboard pages. Real tenants
+            # (tid ≠ 0) now derive fan_count/connected strictly from their
+            # OWN BotState (snapshot above), same source as the analytics
+            # overview — consistent everywhere.
+            fan_count = await fb.get_page_fan_count()
+            connected = True
     except Exception as e:
         connection_error = str(e)[:120]
 

@@ -683,9 +683,13 @@ async def test_b3_bundle_zero_graph_calls_without_credentials(v10_seed, monkeypa
     assert data["stats"]["fan_count"] == 0  # لا رقم معجبين بدون مصدر
 
 
-async def test_b3_bundle_graph_called_when_credentials_exist(v10_seed, monkeypatch):
-    """الشاهد المضاد: عند وجود اعتمادات عامة يظل النداء يحدث (السلوك القديم
-    محفوظ) — يثبت أن اختبار «صفر نداءات» أعلاه يقيس شيئًا حقيقيًا."""
+async def test_b3_bundle_no_bleed_for_real_tenants_when_credentials_exist(v10_seed, monkeypatch):
+    """v22-F2 (W1-D9) — عقد جديد يحل محل السلوك القديم: عند وجود اعتمادات
+    عامة (env) لا يحصل مستأجر حقيقي (tid ≠ 0) على نداء Graph ولا شارة
+    «متصل» ولا fan المالك. القديم كان يستدعي العميل العام ويُظهر fan=4321
+    للمستأجرين غير المربوطين (نزيف عابر للمستأجرين في الإنتاج: fan=5
+    للمالك على كل لوحة). نفس مصدر /api/analytics/overview الآن: حالة
+    المستأجر نفسه."""
     import routers.dashboard_stats as ds_mod
 
     calls: list[int] = []
@@ -703,10 +707,40 @@ async def test_b3_bundle_graph_called_when_credentials_exist(v10_seed, monkeypat
     monkeypatch.setattr(ds_mod, "has_global_fb_credentials", lambda: True)
 
     uname, tid, _uid = await v10_seed.tenant_user(tenant_name="B3-Pos")
+    assert tid != 0
     await v10_seed.login(uname)
     r = await v10_seed.world.client.get("/api/dashboard/bundle")
     assert r.status_code == 200, r.text
     data = r.json()["data"]
-    assert calls == [1], "expected exactly one Graph call with credentials present"
+    assert calls == [], "platform env client must NEVER serve a real tenant's bundle"
+    assert data["connection"]["connected"] is False, data["connection"]
+    assert data["stats"]["fan_count"] == 0, data["stats"]
+
+
+async def test_b3_bundle_bootstrap_tenant0_keeps_env_client(v10_seed, monkeypatch):
+    """مساحة الـbootstrap الأحادية (tenant 0) مع اعتمادات env: نداء العميل
+    العام محفوظ عمداً — نفس بوابة agent_engine._get_fb(0) («سلوك التوافق»)."""
+    import routers.dashboard_stats as ds_mod
+
+    calls: list[int] = []
+
+    class RecorderFB:
+        async def get_page_fan_count(self):
+            calls.append(1)
+            return 4321
+
+    async def no_tenant_fb(_tid):
+        return None
+
+    monkeypatch.setattr(ds_mod, "fb", RecorderFB())
+    monkeypatch.setattr(ds_mod, "get_tenant_fb_client", no_tenant_fb)
+    monkeypatch.setattr(ds_mod, "has_global_fb_credentials", lambda: True)
+
+    uname, tid, _uid = await v10_seed.platform_admin()
+    v10_seed.auth(uname, 0)
+    r = await v10_seed.world.client.get("/api/dashboard/bundle")
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
+    assert calls == [1], "expected exactly one Graph call for bootstrap tenant 0"
     assert data["connection"]["connected"] is True, data["connection"]
     assert data["stats"]["fan_count"] == 4321, data["stats"]

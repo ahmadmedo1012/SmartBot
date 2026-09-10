@@ -21,15 +21,28 @@ from sqlalchemy import Date, cast, desc, func, select
 log = logging.getLogger("fb-pdf-reports")
 
 _WEASYPRINT = False
+_WEASYPRINT_ERR = ""
 _FPDF = False
 try:
     import weasyprint  # noqa: F401 — availability probe
     _WEASYPRINT = True
-except ImportError:
+except Exception as exc:  # v22-F1 (W1-D9): the probe must survive ANY import failure
+    # Vercel serverless installs the weasyprint wheel but `import weasyprint`
+    # raises **OSError** ("cannot load library 'libpango-1.0-0'") because the
+    # runtime image lacks the pango/cairo system libraries. The old probe
+    # caught only ImportError, so the OSError escaped, the lazy proxy
+    # (`_services.pdf_engine`) re-raised it on EVERY access and all five
+    # /api/reports/* routes answered 500 before any report logic ran
+    # (status included — 4×500 in production, Vercel log evidence in
+    # W1-D9 F1). ANY failure here means "engine unavailable on this
+    # runtime" — the routes degrade honestly instead of 500-ing.
+    _WEASYPRINT_ERR = f"{type(exc).__name__}: {exc}"[:300]
+    log.warning("weasyprint availability probe FAILED (%s) — PDF routes "
+                "will degrade to engine-unavailable", _WEASYPRINT_ERR)
     try:
         from fpdf import FPDF  # noqa: F401 — fallback availability probe
         _FPDF = True
-    except ImportError:
+    except Exception:
         pass
 
 
@@ -129,6 +142,13 @@ class PdfReportsEngine:
 
     def is_available(self) -> bool:
         return _WEASYPRINT or _FPDF
+
+    def probe_error(self) -> str:
+        """v22-F1: why the primary engine is unavailable (empty when healthy).
+
+        Diagnostics only — ``/api/reports/status`` surfaces it so an operator
+        can see the pango/cairo OSError without reading Vercel logs."""
+        return "" if _WEASYPRINT else _WEASYPRINT_ERR
 
     def _engine_check(self):
         if not self.is_available():
@@ -278,7 +298,12 @@ class PdfReportsEngine:
         pdf.add_font("DejaVu", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", uni=True)
         pdf.set_font("DejaVu", "", 10)
         pdf.multi_cell(0, 8, html)
-        return pdf.output(dest="S").encode("latin-1")  # ponytail: fpdf fallback is degraded; upgrade to weasyprint
+        # v22-F1: fpdf2 (>=2.2) returns a bytearray from output() — the old
+        # ``.encode("latin-1")`` was fpdf1's str contract and raises
+        # AttributeError on bytearray (the fallback path was dead even where
+        # fpdf2 was installed). Accept both shapes.
+        data = pdf.output(dest="S")
+        return data.encode("latin-1") if isinstance(data, str) else bytes(data)  # ponytail: fpdf fallback is degraded; upgrade to weasyprint
 
     async def _render_async(self, html: str) -> bytes:
         """v14-E2 (D6 #7): ``_render`` off the event loop (asyncio.to_thread).

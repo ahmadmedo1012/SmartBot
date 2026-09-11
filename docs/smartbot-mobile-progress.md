@@ -9,15 +9,15 @@
 |---|---|---|
 | Audit (Full + Security) | ✅ مكتملة | evidence حقيقي في الخطة §Audit Findings |
 | Migration Plan | ✅ مكتملة | docs/web-to-mobile/smartbot-mobile-plan.md |
-| P0 Backend additive (Bearer + /api/auth/token) | ✅ مكتملة | pytest أمامي 1045/1045 · عكسي بلا إخفاقات جديدة · ruff نظيف |
+| P0 Backend additive (Bearer + /api/auth/token) | ✅ مكتملة | pytest أمامي 1105/1105 (بعد دمج v24) · عكسي بلا إخفاقات جديدة · ruff نظيف |
 | P1 هيكل Expo + API client + auth | ✅ مكتملة | tsc 0 أخطاء · 28/28 اختبار وحدة |
 | P2 التابات الأساسية | ✅ مكتملة | Dashboard/Messages+رد/Comments+رد+إخفاء/Analytics |
 | P3 شاشات Stack | ✅ مكتملة | 16 شاشة كاملة (audience…calendar) |
 | P4 حالات الشاشات | ✅ مكتملة | مكونات مركزية في كل شاشة |
-| P5 QA | ✅ مكتملة | expo-doctor 21/21 · vitest 28/28 · export bundle نجح |
-| P6 Git & Vercel | ⬜ لم تبدأ | — |
-| P7 EAS/Build | ⬜ لم تبدأ | — |
-| P8 التقارير النهائية | ⬜ لم تبدأ | — |
+| P5 QA | ✅ مكتملة | expo-doctor 21/21 · vitest 28/28 · lint 0/0 · export bundle نجح |
+| P6 Git & Vercel | ✅ مكتملة | push إلى main (4 commits) + auto-deploy READY + E2E حي كامل |
+| P7 EAS/Build | ✅ مكتملة | APK 110.6MB FINISHED + مُنزّل ومُتحقق (ly.smartlink.smartbot v1.0.0) |
+| P8 التقارير النهائية | ✅ مكتملة | docs/smartbot-mobile-final-report.md |
 
 ## Completed Tasks
 
@@ -52,13 +52,25 @@
 ## Test Results
 
 - Backend P0 (تشغيل فعلي 2026-09-11):
-  - `pytest -q` (أمامي): **1045 passed, 0 failed** (خط الأساس 1038 + 7 جديدة)
+  - `pytest -q` (أمامي): **1105 passed, 0 failed** (بعد دمج v24 + اختباراتي — تشغيلان متتاليان ناجحان)
   - عكسي: إخفاقاته التسعة موجودة أصلًا في main (فئة flake موثقة في CI) — اختبارات الموبايل السبعة تمر في الاتجاهين
   - `ruff check fb_dashboard api tests scripts`: All checks passed
   - ملف الاختبار الجديد: tests/test_mobile_auth_api.py (7 اختبارات: token endpoint، Bearer auth، بقاء الكوكي، أولوية الكوكي، رفض garbage، logout بالـ Bearer)
+- Mobile (تشغيل فعلي 2026-09-11):
+  - `npx tsc --noEmit` → 0 أخطاء
+  - `npx vitest run` → **28/28** (عميل API 12 + التنسيق العربي 16)
+  - `npx expo-doctor` → **21/21**
+  - `npx expo lint` → **0 errors, 0 warnings**
+  - `npx expo export` → الباقة تُبنى بالكامل
+- E2E حي على الإنتاج api.smart-link.ly (بعد النشر — تشغيل فعلي):
+  - register → 200 · /api/auth/token → JWT 268 حرفًا (expiresIn 86400)
+  - /api/me بالـ Bearer → بيانات حقيقية · /api/dashboard/bundle → حزمة كاملة
+  - POST /api/rules بالـ Bearer → 200 (تجاوز CSRF كما هو مصمم) · GET → شكل صحيح
+  - POST /api/logout بالـ Bearer → 200 ثم التوكن → **401 (مُبطَل فعليًا)**
+  - بيانات الفحص نُظفت (القاعدة حُذفت + خروج)
 
 ## Next Actions
 
-1. P0: تعديلات الباكند (Bearer + /api/auth/token + logout Bearer) + اختبارات + بوابة.
-2. إنشاء venv للباكند وتشغيل pytest للتأكد من web regression.
-3. P1: هيكل Expo.
+1. انتظار اكتمال بناء EAS Android (75825032) وتنزيل الـ artifact.
+2. المستخدم: اختبار APK على جهاز حقيقي (checklist في التقرير النهائي).
+3. مراجعة docs/smartbot-mobile-final-report.md.

@@ -1,10 +1,11 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { brandedToast } from "@/lib/premium-toast"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { MessageSquare, Reply, AlertCircle, RefreshCw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,8 +14,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { AiSuggestDialog, type AiSuggestResult } from "@/components/ai/AiSuggestDialog"
-import { formatDateOnly, timeAgo } from "@/lib/format"
+import { countPhrase, formatDateOnly, formatNumber, timeAgo } from "@/lib/format"
 import type { CommentRow } from "@/lib/types"
+
+/* v25 (W-06): عقد /api/comments (routers/replies.py:139) — حد فقط
+ * (limit ge=1 le=200) بلا offset/صفحات؛ «تحميل المزيد» يوسّع النافذة
+ * بزيادة limit (30 → 60 → … → 200) حتى سقف الخلفية — لا سبيل آخر
+ * للوصول للتعليقات الأقدم. */
+const COMMENTS_INITIAL = 30
+const COMMENTS_STEP = 30
+const COMMENTS_MAX = 200
 
 
 export default function CommentsPage() {
@@ -23,19 +32,36 @@ export default function CommentsPage() {
    * Dialog عرضيّ — الطلب نفسه يعيش في suggestMut تحت، فتتشارك البطاقة
    * في الصف وزر الصف حالة loading نفسها. */
   const [suggestFor, setSuggestFor] = useState<CommentRow | null>(null)
+  /* v25 (W-06): حجم نافذة التعليقات — يبدأ 30 ويتوسع بـ«تحميل المزيد»
+   * حتى سقف الخلفية (200). مفتاح الاستعلام يتبع limit فتُجلب النافذة
+   * الأوسع كاملة (الخلفية تُرجع أول N بالترتيب الزمني نفسه). */
+  const [commentsLimit, setCommentsLimit] = useState(COMMENTS_INITIAL)
   const queryClient = useQueryClient()
+  /* v25 (W-14): مفتاح ديناميكي (يتبع limit) — useMemo يثبّت المرجع بين
+   * العروض لخطاف الاستطلاع المرئي (نفس عقد activity/analytics للثابت). */
+  const commentsKey = useMemo(
+    () => ["comments", commentsLimit] as const,
+    [commentsLimit],
+  )
 
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["comments"],
+  /* v25 (W-14): 20s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(20_000, commentsKey)
+  const { data, isLoading, isFetching, isPlaceholderData, isError, error, refetch } = useQuery({
+    queryKey: commentsKey,
     queryFn: async () => {
-      const res = await apiFetch("/api/comments?limit=30")
+      const res = await apiFetch(`/api/comments?limit=${commentsLimit}`)
       if (!res.ok) throw new Error(`فشل تحميل التعليقات (${res.status})`)
       // v13-L3 (dec-envelope-prune): /api/comments returns ok({items, source})
       // — single envelope via unwrapApi; `?? []` is null-safety only.
       const json = await unwrapApi<{ items: CommentRow[]; source: string }>(res)
       return json?.items ?? []
     },
-    refetchInterval: 20000,
+    /* v25 (W-06): توسيع النافذة يُبقي الصفوف السابقة معروضة (بهتة
+     * isFetching عبر المؤشر أدناه) بدل وميض الهيكل الكامل — نمط
+     * admin/support v24-C3. */
+    placeholderData: (prev) => prev,
+    refetchInterval,
     retry: 1,
   })
   const comments = data ?? []
@@ -253,6 +279,33 @@ export default function CommentsPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* v25 (W-06): «تحميل المزيد» — الصفحة كانت محصورة في أحدث 30
+            تعليقاً للأبد؛ النافذة تتوسع حتى سقف الخلفية (200) مع عدّاد
+            صادق للمعروض. آخر نافذة غير ممتلئة أو بلوغ السقف = لا زر. */}
+        {!isLoading && !isError && comments.length > 0 && (
+          <div className="flex flex-col items-center gap-2 pt-1">
+            {comments.length >= commentsLimit && commentsLimit < COMMENTS_MAX ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setCommentsLimit((l) => Math.min(COMMENTS_MAX, l + COMMENTS_STEP))
+                }
+                disabled={isFetching && isPlaceholderData}
+              >
+                تحميل المزيد
+              </Button>
+            ) : commentsLimit >= COMMENTS_MAX ? (
+              <p className="text-2xs text-muted-foreground">
+                تم الوصول للحد الأقصى للعرض ({formatNumber(COMMENTS_MAX)} تعليق)
+              </p>
+            ) : null}
+            <p className="text-2xs text-muted-foreground" role="status">
+              {countPhrase(comments.length, "تعليق معروض", "تعليقان معروضان", "تعليقات معروضة")}
+            </p>
           </div>
         )}
       </div>

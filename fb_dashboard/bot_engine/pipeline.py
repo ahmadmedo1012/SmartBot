@@ -20,7 +20,7 @@ from datetime import datetime
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
 from fb_client import FBClient
-from models import BotLog, Customer, Reply, SubscriptionPlan, Tenant, UsageCounter
+from models import BotLog, Customer, Reply, Subscriber, SubscriptionPlan, Tenant, UsageCounter
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
@@ -137,6 +137,21 @@ async def get_plan_limits(session, tenant_id: int) -> dict | None:
         "replies_used": int(used),
         "period_start": anchor,
     }
+
+
+def _accounting_session():
+    """v25 (D-03): resolve the usage-accounting session factory through the
+    ENGINE module's binding — the established hermetic-test seam (the
+    ``eng_world`` fixture patches ``bot_engine.engine.AsyncSessionLocal``);
+    resolving it dynamically (instead of this module's own import-time
+    binding) keeps the money-path tests hermetic and the accounting pointed
+    at the same database the engine itself writes to."""
+    try:
+        from bot_engine import engine as _eng  # function-level: no import cycle
+        return _eng.AsyncSessionLocal()
+    except Exception:
+        from database import AsyncSessionLocal
+        return AsyncSessionLocal()
 
 
 async def increment_replies_used(session, tenant_id: int, n: int = 1,
@@ -669,18 +684,35 @@ class ReplyPipeline:
                     self._mon.warn(f"dm failed: {e}", comment_id=ctx.cid[:12], module="pipeline")
 
         # Stage 9: Log to DB (+ unified usage counting — v15-D2-H3/D12-H3)
+        # v25 (D-03 + D-01): المحاسبة انتقلت إلى معاملة قصيرة مستقلة —
+        # كانت في نفس معاملة صف الرد، فسباق التكرار عبر instances (يُرسِل
+        # هذا الرد فعلاً للعميل ثم يفشل INSERT بحجر uq_reply) كان يُرجِع
+        # الزيادة معه → فوترة ناقصة صامتة. الآن البilling ينجو من dedup
+        # rollback لأن الرد سُلِّم فعلًا قبل هذه المرحلة. وفي نفس المعاملة:
+        # عدّاد Subscriber.reply_count (D-01) الذي لم يكن يُكتَب أبدًا —
+        # جمهور "engaged" وفلتر min_replies كانا صامتي الخطأ.
         try:
-            # +1 atomically in the SAME transaction as the Reply row — this is
-            # the ONE counting point serving BOTH comment paths (cycle +
-            # webhook; the webhook path previously never counted at all).
-            # Counted BEFORE adding the Reply row so the increment's
-            # SAVEPOINT flush never sees the pending row (a duplicate-reply
-            # IntegrityError from that flush would be misread as the counter's
-            # create race); this stage's IntegrityError rollback reverts both.
-            await increment_replies_used(
-                session, self._tenant_id, 1,
-                period_start=(self._plan_limits or {}).get("period_start"),
-            )
+            async with _accounting_session() as _u_session:
+                await increment_replies_used(
+                    _u_session, self._tenant_id, 1,
+                    period_start=(self._plan_limits or {}).get("period_start"),
+                )
+                # v25 (D-01): زيادة ذرية مشروطة بوجود المشترك — لا INSERT.
+                if ctx.from_id:
+                    await _u_session.execute(
+                        update(Subscriber)
+                        .where(
+                            Subscriber.tenant_id == self._tenant_id,
+                            Subscriber.fb_user_id == str(ctx.from_id),
+                        )
+                        .values(
+                            reply_count=func.coalesce(Subscriber.reply_count, 0) + 1,
+                        )
+                    )
+                await _u_session.commit()
+        except Exception as _ue:
+            self._mon.error(f"usage accounting failed: {_ue}", module="pipeline")
+        try:
             session.add(Reply(
                 tenant_id=self._tenant_id,
                 fb_comment_id=ctx.cid,

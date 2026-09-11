@@ -3,7 +3,7 @@
  * GET /api/inbox/conversations/{id} (thread) · POST .../reply (Form) · POST .../read.
  * فقاعات رسائل RTL + إدخال رد لاصق أسفل مع KeyboardAvoidingView.
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -47,12 +47,15 @@ export default function ConversationScreen() {
     refetchInterval: 15_000,
   })
 
-  // فتح المحادثة = مقروءة (نفس عقد الويب v17-E-B1)
+  // فتح المحادثة = مقروءة (نفس عقد الويب v17-E-B1) — M-22: تنقية قائمة
+  // المحادثات بعد النجاح حتى يزول شارز "الجديدة" فورًا
   useEffect(() => {
     if (id) {
-      apiPost(`/api/inbox/conversations/${id}/read`).catch(() => undefined)
+      apiPost(`/api/inbox/conversations/${id}/read`)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['inbox-conversations'] }))
+        .catch(() => undefined)
     }
-  }, [id])
+  }, [id, queryClient])
 
   const replyMutation = useMutation({
     mutationFn: (message: string) => apiPostForm(`/api/inbox/conversations/${id}/reply`, { message }),
@@ -95,6 +98,13 @@ export default function ConversationScreen() {
     [colors],
   )
 
+  // M-22: آخر الرسائل في الأسفل — نمرر لآخر المحتوى كلما نما (تحميل أولي
+  // أو رسالة جديدة) بدل ترك المستخدم أعلى الخيط
+  const listRef = useRef<FlatList<ThreadMessage>>(null)
+  const scrollToEnd = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: false })
+  }, [])
+
   if (isLoading) return <LoadingState label="جارٍ تحميل المحادثة…" />
 
   return (
@@ -127,10 +137,12 @@ export default function ConversationScreen() {
         <ErrorState message="لا توجد رسائل في هذه المحادثة" onRetry={() => refetch()} />
       ) : (
         <FlatList
+          ref={listRef}
           data={thread}
           keyExtractor={(m) => String(m.id)}
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, gap: spacing.sm }}
+          onContentSizeChange={scrollToEnd}
           inverted={false}
         />
       )}

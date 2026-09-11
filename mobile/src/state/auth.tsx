@@ -7,7 +7,8 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as SecureStore from 'expo-secure-store'
-import { apiFetch, setAuthToken, setUnauthorizedHandler, ApiError } from '@/services/api'
+import { apiFetch, getAuthToken, setAuthToken, setUnauthorizedHandler, ApiError } from '@/services/api'
+import { queryClient } from '@/lib/query-client'
 import type { AuthTokenResponse, User } from '@/types/api'
 
 const TOKEN_KEY = 'smartbot.jwt'
@@ -77,23 +78,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
-    const token = await SecureStore.getItemAsync(TOKEN_KEY).catch(() => null)
-    setAuthToken(null)
-    await clearSession().catch(() => undefined)
-    setState({ user: null, token: null, status: 'unauthenticated' })
-    // إبطال الخادم best-effort (شبكة/انقطاع لا يمنعان الخروج المحلي)
-    if (token) {
+    // M-07 (v25): إبطال jti على الخادم أولاً — بينما التوكن ما زال مضبوطًا
+    // في حامل الطلبات — ثم يُمسح محليًا. الترتيب القديم كان يمسح التوكن
+    // قبل الاستدعاء فيذهب POST /api/logout بلا Bearer → لا إبطال →
+    // التوكن يبقى صالحاً ≤24 ساعة.
+    if (getAuthToken()) {
       try {
         await apiFetch('/api/logout', { method: 'POST', skipAuthRedirect: true, timeoutMs: 8000 })
       } catch {
-        /* التوكن المحذوف محليًا؛ انتهاء صلاحيته 24h كحد أقصى */
+        /* انقطاع الشبكة لا يمنع الخروج المحلي — انتهاء التوكن 24h كحد أقصى */
       }
     }
+    // M-08: تنقية ذاكرة React Query كاملة — حتى لا يرى مستخدم ثانٍ على
+    // نفس الجهاز وميض بيانات المستأجر السابق بعد الخروج.
+    queryClient.clear()
+    setAuthToken(null)
+    await clearSession().catch(() => undefined)
+    setState({ user: null, token: null, status: 'unauthenticated' })
   }, [])
 
   // 401 المركزي من أي شاشة → خروج (بدون حلقات — إزالة ازدواج داخل api.ts)
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      // M-08: انتهاء الجلسة = ذاكرة استعلام فارغة (نفس منطق الخروج اليدوي)
+      queryClient.clear()
       setAuthToken(null)
       clearSession().catch(() => undefined)
       setState({ user: null, token: null, status: 'unauthenticated' })

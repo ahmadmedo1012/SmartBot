@@ -4,7 +4,7 @@
  * العقد الحقيقي: name · keywords (سلسلة مفصولة بفواصل عند الكتابة) · reply_template · enabled.
  */
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { radius, spacing } from '@/constants/theme'
@@ -156,9 +156,14 @@ export default function AutoreplyScreen() {
         />
       )}
 
-      {/* Sheet تحرير/إنشاء — حقول العقد الحقيقي */}
+      {/* Sheet تحرير/إنشاء — حقول العقد الحقيقي — M-21: KAV لئلا تغطي لوحة
+          المفاتيح الحقول على iOS */}
       <Modal visible={sheetVisible} transparent animationType="slide" onRequestClose={() => (setEditing(null), setShowNew(false))}>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
           <Pressable style={{ flex: 1 }} accessibilityLabel="إغلاق" onPress={() => (setEditing(null), setShowNew(false))} />
           <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -186,7 +191,7 @@ export default function AutoreplyScreen() {
               </Row>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </StackScreen>
   )

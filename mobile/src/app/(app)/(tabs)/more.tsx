@@ -80,7 +80,7 @@ export default function MoreScreen() {
             </View>
           </Row>
           {!user?.onboardingCompleted ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/onboarding' as never)} style={{ marginTop: spacing.md }}>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/onboarding' })} style={{ marginTop: spacing.md }}>
               <Card style={{ backgroundColor: colors.warningSoft, borderWidth: 0 }}>
                 <Row style={{ gap: spacing.sm }}>
                   <Icon name="alert-circle" size={18} color={colors.warning} />
@@ -147,7 +147,7 @@ function Section({ title, items, unread }: { title: string; items: MoreItem[]; u
             key={item.href}
             accessibilityRole="button"
             accessibilityLabel={item.title}
-            onPress={() => router.push(item.href as never)}
+            onPress={() => router.push({ pathname: item.href })}
             style={({ pressed }) => [
               styles.item,
               { opacity: pressed ? 0.6 : 1, backgroundColor: pressed ? colors.muted : 'transparent' },

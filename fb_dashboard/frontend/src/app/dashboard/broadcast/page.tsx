@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { countPhrase } from "@/lib/format"
 import type { BroadcastRow } from "@/lib/types"
 import { formatDate } from "@/lib/format"
@@ -48,6 +49,10 @@ const CANCELLABLE_STATUSES = new Set(["draft", "pending", "sending"])
  * broadcast despite being titled "إرسال رسائل جماعية". Now it owns a real
  * create→send flow (POST /api/broadcasts + POST /{id}/send). */
 
+/* v25 (W-14): مفتاح استعلام البث — مرفوع لثبات المرجع لخطاف
+ * الاستطلاع المرئي (نفس عقد activity/analytics). */
+const BROADCASTS_KEY = ["broadcasts"] as const
+
 export default function BroadcastPage() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
@@ -58,10 +63,13 @@ export default function BroadcastPage() {
      mutation fires ONLY from its explicit destructive confirm button. */
   const [confirmSendId, setConfirmSendId] = useState<number | null>(null)
 
+  /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(30_000, BROADCASTS_KEY)
   const { data: broadcasts = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ["broadcasts"],
+    queryKey: BROADCASTS_KEY,
     queryFn: () => apiFetch("/api/broadcasts").then(unwrapApi<BroadcastRow[]>),
-    refetchInterval: 30000,
+    refetchInterval,
   })
 
   const createMut = useMutation({

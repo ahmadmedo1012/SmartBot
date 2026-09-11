@@ -1,6 +1,8 @@
 /**
  * شاشة الأدوات — العروض + قوالب الردود (نفس الويب /dashboard/tools):
- * GET /api/offers · POST /api/offers/{id}/toggle · GET /api/templates.
+ * GET /api/offers (مصفوفة مجردة) · POST /api/offers/{id}/toggle · GET /api/templates.
+ * عقد v25 (M-18): العروض {title, code, discount_value, used_count, is_active}
+ * والقوالب {name, text} (لا discount/claims/content).
  */
 import { useState } from 'react'
 import { FlatList } from 'react-native'
@@ -10,6 +12,7 @@ import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'
 import { apiGet, apiPost } from '@/services/api'
+import { extractItems } from '@/lib/envelope'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDate, formatNumber } from '@/lib/format'
 import type { Offer, ReplyTemplate } from '@/types/api'
@@ -18,17 +21,21 @@ export default function ToolsScreen() {
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<'offers' | 'templates'>('offers')
 
-  const { data: offers, isLoading: offersLoading, isError: offersError, error: oErr, refetch: oRefetch } = useQuery<Offer[]>({
+  const { data: offers, isLoading: offersLoading, isError: offersError, error: oErr, refetch: oRefetch } = useQuery<unknown, Error, Offer[]>({
     queryKey: ['offers'],
-    queryFn: () => apiGet<Offer[]>('/api/offers'),
+    queryFn: () => apiGet('/api/offers'),
+    select: (res) => extractItems<Offer>(res),
     enabled: tab === 'offers',
   })
+  const offerList = offers ?? []
 
-  const { data: templates, isLoading: tplLoading, isError: tplError, error: tErr, refetch: tRefetch } = useQuery<ReplyTemplate[]>({
+  const { data: templates, isLoading: tplLoading, isError: tplError, error: tErr, refetch: tRefetch } = useQuery<unknown, Error, ReplyTemplate[]>({
     queryKey: ['templates'],
-    queryFn: () => apiGet<ReplyTemplate[]>('/api/templates'),
+    queryFn: () => apiGet('/api/templates'),
+    select: (res) => extractItems<ReplyTemplate>(res),
     enabled: tab === 'templates',
   })
+  const templateList = templates ?? []
 
   const toggleMutation = useMutation({
     mutationFn: (id: number) => apiPost(`/api/offers/${id}/toggle`),
@@ -50,16 +57,16 @@ export default function ToolsScreen() {
       {tab === 'offers' ? (
         offersError ? (
           <ErrorState message={describeError(oErr)} onRetry={() => oRefetch()} />
-        ) : (offers ?? []).length === 0 ? (
+        ) : offerList.length === 0 ? (
           <EmptyState message="لا عروض بعد" hint="أنشئ عرضًا ترويجيًا لجمهورك من لوحة الويب الكاملة" />
         ) : (
           <FlatList
-            data={offers ?? []}
+            data={offerList}
             keyExtractor={(o) => String(o.id)}
             onRefresh={() => oRefetch()}
             contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
             renderItem={({ item }) => {
-              const active = item.is_active ?? item.active ?? false
+              const active = item.is_active ?? false
               return (
                 <Card>
                   <Row style={{ justifyContent: 'space-between' }}>
@@ -73,10 +80,26 @@ export default function ToolsScreen() {
                       {item.description}
                     </AppText>
                   ) : null}
-                  <Row style={{ marginTop: spacing.md, gap: spacing.lg }}>
+                  <Row style={{ marginTop: spacing.md, gap: spacing.lg, flexWrap: 'wrap' }}>
                     {item.code ? <Badge tone="brand" text={item.code} /> : null}
-                    {item.discount != null ? <AppText variant="caption" color="mutedFg">خصم {formatNumber(String(item.discount))}%</AppText> : null}
-                    {item.claims != null ? <AppText variant="caption" color="mutedFg">{formatNumber(item.claims)} مطالبة</AppText> : null}
+                    {/* M-18: الحقول الفعلية — discount_value + used_count */}
+                    {item.discount_value != null ? (
+                      <AppText variant="caption" color="mutedFg">
+                        خصم {formatNumber(item.discount_value)}
+                        {item.discount_type === 'percentage' ? '%' : item.discount_type === 'fixed' ? ' د.ل' : ''}
+                      </AppText>
+                    ) : null}
+                    {typeof item.used_count === 'number' ? (
+                      <AppText variant="caption" color="mutedFg">
+                        {formatNumber(item.used_count)} مطالبة
+                        {typeof item.max_uses === 'number' ? ` من ${formatNumber(item.max_uses)}` : ''}
+                      </AppText>
+                    ) : null}
+                    {item.expires_at ? (
+                      <AppText variant="caption" color="mutedFg">
+                        حتى {formatDate(item.expires_at)}
+                      </AppText>
+                    ) : null}
                   </Row>
                   <Row style={{ marginTop: spacing.md }}>
                     <Button
@@ -84,7 +107,7 @@ export default function ToolsScreen() {
                       size="sm"
                       variant="secondary"
                       onPress={() => toggleMutation.mutate(item.id)}
-                      loading={toggleMutation.isPending}
+                      loading={toggleMutation.isPending && toggleMutation.variables === item.id}
                     />
                   </Row>
                 </Card>
@@ -94,11 +117,11 @@ export default function ToolsScreen() {
         )
       ) : tplError ? (
         <ErrorState message={describeError(tErr)} onRetry={() => tRefetch()} />
-      ) : (templates ?? []).length === 0 ? (
+      ) : templateList.length === 0 ? (
         <EmptyState message="لا قوالب بعد" hint="احفظ ردودًا جاهزة لإعادة استخدامها في القواعد" />
       ) : (
         <FlatList
-          data={templates ?? []}
+          data={templateList}
           keyExtractor={(t) => String(t.id)}
           onRefresh={() => tRefetch()}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
@@ -106,16 +129,13 @@ export default function ToolsScreen() {
             <Card>
               <Row style={{ justifyContent: 'space-between' }}>
                 <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
-                  {item.name ?? item.title ?? 'قالب'}
+                  {item.name ?? 'قالب'}
                 </AppText>
-                {item.created_at ? (
-                  <AppText variant="caption" color="mutedFg">
-                    {formatDate(item.created_at)}
-                  </AppText>
-                ) : null}
+                {item.category ? <Badge tone="muted" text={item.category} /> : null}
               </Row>
+              {/* M-18: نص القالب في text — لا content/body */}
               <AppText variant="small" color="mutedFg" style={{ marginTop: spacing.sm }} numberOfLines={4}>
-                {item.content ?? item.body ?? ''}
+                {item.text ?? ''}
               </AppText>
             </Card>
           )}

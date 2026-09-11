@@ -297,7 +297,12 @@ async def inbox_list(
                     s.add_all(new_rows)
                 await s.commit()
         except Exception:
-            pass  # non-fatal — DB rows below still serve
+            # v25 (B-06): كان يُبتلع بلا سجل — محادثات جديدة لا تُخزَّن
+            # والقائمة تخدم صفوفًا قديمة بلا أي أثر يفسر السبب.
+            log.warning(
+                "inbox conversation upsert failed — serving existing rows",
+                exc_info=True,
+            )
 
     # ── 2) DB rows → response items (legacy shape) ──
     # v15-fix (بطارية p11-t10): قفل SQLite العابر (database is locked — كتابة

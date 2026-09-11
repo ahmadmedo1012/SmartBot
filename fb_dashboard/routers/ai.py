@@ -118,6 +118,9 @@ async def ai_analyze_image(data: dict = Body(...), db=Depends(get_db),
         raise HTTPException(status_code=503, detail="خدمة الذكاء الاصطناعي غير متاحة حالياً")
     text = data.get("text", "")
     prompt = f"حلل هذا الطلب: {text}\n\nماذا يحتوي؟ قدم وصف مختصر بالعربية"
+    # v25 (B-04): كان الاستثناء يُبتلع بصمت ويعاد نص فارغ بلا أثر — نفس
+    # فئة الفشل الصامت التي استأصلها v20. الآن يُسجَّل ويُنقل السبب
+    # (عقد v23 في generate-reply: الرد الفارغ يحمل السبب).
     try:
         if ai._provider == "openai" and ai._openai_client:
             r = await ai._openai_client.chat.completions.create(
@@ -130,9 +133,10 @@ async def ai_analyze_image(data: dict = Body(...), db=Depends(get_db),
             model = ai._google_module.GenerativeModel(ai._model)
             r = await model.generate_content_async(prompt)
             return ok({"analysis": (r.text or "").strip()[:100]})
-    except Exception:
-        pass
-    return ok({"analysis": ""})
+    except Exception as e:
+        log.error("ai_analyze_image provider call failed: %s", e, exc_info=True)
+        return ok({"analysis": "", "error": ai.last_error or "فشل تحليل الصورة"})
+    return ok({"analysis": "", "error": "لا يوجد مزوّد AI مهيأ"})
 
 
 @router.get("/api/ai/status")
@@ -153,7 +157,12 @@ async def agent_interpret(
     current_user=Depends(require_role("editor")),
 ):
     """AI Agent: interpret Arabic command, auto-execute via brain+tools+memory."""
+    # v25 (B-02): هذا المسار كان الوحيد الذي لا يحدّث مفاتيح AI من DB
+    # قبل الاستخدام — كل مسارات /api/ai/* تفعل، فكانت مفاتيح /admin/settings
+    # لا تصل للوكيل متعدد العقول أبدًا (انحدار صامت إلى heuristic).
+    from _services import refresh_ai_from_db
     from agent_engine import get_agent
+    await refresh_ai_from_db()
 
     # v24-R4 F5: the 5th AI surface joins its siblings' budget (editor gate
     # was already here; the daily cap was not — a viewer-turned-editor or a

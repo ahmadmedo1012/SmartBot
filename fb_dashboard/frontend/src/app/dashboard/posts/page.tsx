@@ -4,11 +4,13 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { Newspaper, Send, Trash2, AlertCircle, RefreshCw, WifiOff, ThumbsUp, MessageSquare, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost, PostsResponse } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
@@ -16,6 +18,10 @@ import { formatDate, formatNumber } from "@/lib/format"
 const POST_STATUS_LABELS: Record<string, string> = {
   published: "منشور", scheduled: "مجدول", draft: "مسودة", failed: "فاشل",
 }
+
+/* v25 (W-14): مفتاح استعلام المسودات — مرفوع لثبات المرجع لخطاف
+ * الاستطلاع المرئي (نفس عقد activity/analytics). */
+const DRAFTS_KEY = ["scheduled-posts"] as const
 
 export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
@@ -26,6 +32,11 @@ export default function PostsPage() {
      لا رجعة فيه — لا تنفيذ بلمسة أيقونة واحدة بعد الآن. */
   const [confirmPublishId, setConfirmPublishId] = useState<number | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  /* v25 (W-07): صفحة منشورات فيسبوك الحالية — /api/posts (facebook_routes
+   * .py:1036) يقبل page ge=1 + per_page (10 افتراضياً) ويُرجع الظرف
+   * {items,total,page,per_page,has_next}؛ القسم كان يعرض أول 10 فقط بلا
+   * سبيل للأقدم. الصفحة 1 تبقى بلا معامل (عقد الخلفية الافتراضي نفسه). */
+  const [fbPage, setFbPage] = useState(1)
 
   /* v21 (T4-b) — منشورات صفحة فيسبوك: الظرف DB-first من GET /api/posts
    * (نفس نمط /api/ads/accounts في v19): {items, total, page, per_page,
@@ -42,21 +53,33 @@ export default function PostsPage() {
     error: fbError,
     refetch: refetchFb,
   } = useQuery({
-    queryKey: ["fb-posts"],
+    queryKey: ["fb-posts", fbPage],
     queryFn: async () => {
-      const res = await apiFetch("/api/posts")
+      /* v25 (W-07): صفحة 1 بلا معامل (الافتراضي الخلفي نفسه — يبقي عقد
+       * الاستهلاك الحالي)، والأعلى تحمل page صراحةً. */
+      const res = await apiFetch(fbPage === 1 ? "/api/posts" : `/api/posts?page=${fbPage}`)
       if (!res.ok) throw new Error(`فشل تحميل منشورات فيسبوك (${res.status})`)
       return unwrapApi<PostsResponse>(res)
     },
+    /* v25 (W-07): تبديل الصفحة يُبقي الصفوف السابقة معروضة (بهتة
+     * isFetching) بدل وميض الهيكل — نمط admin/support v24-C3. */
+    placeholderData: (prev) => prev,
     retry: 1,
   })
   const fbPosts = fbEnvelope?.items ?? []
   const syncFailed = fbEnvelope?.synced === false && fbEnvelope?.sync_attempted === true
+  /* v25 (W-07): المؤشرات من الظرف — has_next يقرّر «التالي»، وعدد الصفحات
+   * من total/per_page (مثل audience/leads). */
+  const fbShownPage = fbEnvelope?.page ?? fbPage
+  const fbTotalPages = Math.max(1, Math.ceil((fbEnvelope?.total ?? 0) / (fbEnvelope?.per_page ?? 10)))
 
+  /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const draftsRefetchInterval = usePollingWhenVisible(30_000, DRAFTS_KEY)
   const { data: posts = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["scheduled-posts"],
+    queryKey: DRAFTS_KEY,
     queryFn: () => apiFetch("/api/scheduled-posts").then(unwrapApi<ScheduledPost[]>),
-    refetchInterval: 30000,
+    refetchInterval: draftsRefetchInterval,
     retry: 1,
   })
   // v4 §2.5 — API failure previously rendered as "لا توجد منشورات بعد"
@@ -210,6 +233,35 @@ export default function PostsPage() {
                     </CardContent>
                   </Card>
                 ))
+              )}
+
+              {/* v25 (W-07): مِرقاة صفحات منشورات فيسبوك — القسم كان يعرض أول
+                  10 فقط؛ has_next من الظرف يقرّر «التالي» (مع احتياط
+                  total/per_page) — نمط admin/support v24-C3. */}
+              {!fbLoading && !fbIsError && fbPosts.length > 0 && (
+                <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFbPage((p) => Math.max(1, p - 1))}
+                    disabled={fbPage <= 1}
+                    aria-label="الصفحة السابقة"
+                  >
+                    <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
+                  </Button>
+                  <span className="text-xs text-muted-foreground" role="status">
+                    صفحة {formatNumber(fbShownPage)} من {formatNumber(fbTotalPages)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFbPage((p) => p + 1)}
+                    disabled={!(fbEnvelope?.has_next ?? fbShownPage < fbTotalPages)}
+                    aria-label="الصفحة التالية"
+                  >
+                    التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
+                  </Button>
+                </div>
               )}
             </div>
           )}

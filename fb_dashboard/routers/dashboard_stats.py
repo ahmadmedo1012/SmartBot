@@ -189,6 +189,8 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
         total_messages = msg_row.total or 0
         bot_message_replies = msg_row.bot or 0
     except Exception:
+        # v25 (B-16): نفس الفئة — أصفار صامتة بلا سبب مسجَّل.
+        log.warning("dashboard message stats query failed", exc_info=True)
         total_conversations = total_messages = unread_messages = bot_message_replies = 0
 
     top = None
@@ -196,7 +198,9 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
         stmt = select(Reply.rule_id, func.count(Reply.id).label("cnt")).where(Reply.tenant_id == _tid).group_by(Reply.rule_id).order_by(desc("cnt")).limit(1)
         top = (await db.execute(stmt)).first()
     except Exception:
-        pass
+        # v25 (B-16): كان يُبتلع بصمت — لوحة التحكم تعرض أصفارًا بلا سبب
+        # مفهوم (نفس فئة "يبدو فارغًا بدل مكسورًا" التي استأصلها v20).
+        log.warning("dashboard top-rule query failed", exc_info=True)
 
     rule_rows = await db.execute(select(Rule).where(Rule.tenant_id == _tid))
     all_rules = rule_rows.scalars().all()

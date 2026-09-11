@@ -693,8 +693,14 @@ class BotEngine:
                     period_start=(limits or {}).get("period_start"),
                 )
                 await session.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            # v25 (B-05): كان يُبتلع بصمت — المحاسبة هنا هي عدّاد حدود الخطة
+            # + سجل التدقيق؛ فقدانها = فوترة ناقصة بلا أثر لأحد.
+            self._mon.error(
+                f"DM reply accounting failed: {e} — reply was DELIVERED but "
+                "usage counter/audit row were lost",
+                module="webhook",
+            )
 
         # Live stats broadcast (WS + SSE — same event as comments)
         try:

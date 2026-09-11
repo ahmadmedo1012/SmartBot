@@ -76,7 +76,16 @@ export function middleware(request: NextRequest) {
     }
 
     // Auth gate: protect admin and dashboard routes
-    if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) {
+    /* v25 (W-12): /connect added to the cookie gate — the page's own 401
+     * redirect (window.location.replace after /api/facebook/settings 401s)
+     * only fires AFTER the page mounts, so an anonymous visitor saw the
+     * connect skeleton flash first. Same cookie-presence check + redirect
+     * contract as /dashboard & /admin (login?redirect=<pathname>). */
+    if (
+      pathname.startsWith("/admin") ||
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/connect")
+    ) {
       const token = request.cookies.get("token")?.value;
       if (!token) {
         const loginUrl = new URL("/login", request.url);

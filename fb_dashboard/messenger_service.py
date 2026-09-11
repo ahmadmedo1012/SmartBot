@@ -20,7 +20,7 @@ from _async import spawn  # v9-A11: GC-safe background tasks
 from _utils import utcnow
 from database import AsyncSessionLocal
 from models import Conversation, Message
-from sqlalchemy import select
+from sqlalchemy import func, select, update  # v25 (D-04): atomic conversation counters
 from sqlalchemy.exc import IntegrityError
 
 log = logging.getLogger("fb-messenger")
@@ -201,11 +201,23 @@ async def persist_message(db, tenant_id: int, page_id: str, messaging: dict,
     db.add(m)
 
     ts = _ts_from_epoch(messaging.get("timestamp") or (messaging.get("message") or {}).get("timestamp"))
-    conv.message_count = (conv.message_count or 0) + 1
-    conv.last_message_text = (text or (f"[{att_type}]" if att_type else payload))[:500]
-    conv.last_message_at = ts or utcnow()
+    # v25 (D-04): عدّادات ذرية (SQL expressions) بدل read-modify-write —
+    # كانت الزيادات تُفقد عند تزامن معالجة ويبهوك متزامنة.
+    await db.execute(
+        update(Conversation)
+        .where(Conversation.id == conv.id)
+        .values(
+            message_count=func.coalesce(Conversation.message_count, 0) + 1,
+            last_message_text=(text or (f"[{att_type}]" if att_type else payload))[:500],
+            last_message_at=ts or utcnow(),
+        )
+    )
     if not is_from_page:
-        conv.unread_count = (conv.unread_count or 0) + 1
+        await db.execute(
+            update(Conversation)
+            .where(Conversation.id == conv.id)
+            .values(unread_count=func.coalesce(Conversation.unread_count, 0) + 1)
+        )
     await db.flush()
     return m
 
@@ -419,9 +431,16 @@ async def _persist_bot_reply(db, tenant_id: int, page_id: str, user_id: str,
         # v4 §5.19 — rule attribution for per-rule DM stats
         rule_id=reply_info.get("rule_id"),
     ))
-    conv.message_count = (conv.message_count or 0) + 1
-    conv.last_message_text = reply_info.get("text", "")[:500]
-    conv.last_message_at = utcnow()
+    # v25 (D-04): عدّاد ذرّي — انظر persist_message.
+    await db.execute(
+        update(Conversation)
+        .where(Conversation.id == conv.id)
+        .values(
+            message_count=func.coalesce(Conversation.message_count, 0) + 1,
+            last_message_text=reply_info.get("text", "")[:500],
+            last_message_at=utcnow(),
+        )
+    )
 
 
 def _is_recent(messaging: dict) -> bool:

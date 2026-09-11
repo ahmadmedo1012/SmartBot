@@ -692,16 +692,17 @@ function MessagesView() {
       {/* v24-C2 (task 6 / A3-M3): scoped style for the immersive thread —
           body[data-chat-focus] is set by the effect above ONLY while a
           conversation is open (effect cleanup removes it), so these rules are
-          inert on the list view and on every other page. The nav selector
-          matches MobileBottomNav's root signature (fixed inset-x-0 bottom-0
-          z-30 md:hidden) plus its aria-label without editing that component
-          (another agent owns it); #page-content is the shell's stable skip-
-          link target — its bottom padding (4rem + safe-area) collapses to the
-          safe-area so the composer extends into the freed strip. */}
+          inert on the list view and on every other page.
+          v25 (W-15): the nav selector now targets MobileBottomNav's stable
+          data-nav-root="mobile" attribute (added in the component) instead of
+          the fragile class-string match — a Tailwind class rename can no
+          longer silently break the hide rule. #page-content is the shell's
+          stable skip-link target — its bottom padding (4rem + safe-area)
+          collapses to the safe-area so the composer extends into the freed
+          strip. */}
       <style>{`
-        /* v24-C2: hide the mobile bottom nav inside an open thread */
-        body[data-chat-focus="1"] nav[class*="fixed inset-x-0 bottom-0"],
-        body[data-chat-focus="1"] nav[aria-label="التنقل الرئيسي"] { display: none; }
+        /* v25 (W-15): hide the mobile bottom nav inside an open thread */
+        body[data-chat-focus="1"] nav[data-nav-root="mobile"] { display: none; }
         @media (max-width: 767px) {
           body[data-chat-focus="1"] #page-content { padding-bottom: env(safe-area-inset-bottom); }
         }

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { ApiUser } from "@/lib/types"
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,13 +24,20 @@ const ROLE_LABELS: Record<string, string> = {
  * — الرسالة تظهر toast صادقة إن اختاره المستخدم. */
 const ASSIGNABLE_ROLES = ["admin", "editor", "viewer"] as const
 
+/* v25 (W-14): مفتاح استعلام الفريق — مرفوع لثبات المرجع لخطاف
+ * الاستطلاع المرئي (نفس عقد activity/analytics). */
+const TEAM_KEY = ["team-members"] as const
+
 export default function TeamPage() {
   const queryClient = useQueryClient()
 
+  /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(30_000, TEAM_KEY)
   const { data: members = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["team-members"],
+    queryKey: TEAM_KEY,
     queryFn: () => apiFetch("/api/team/members").then(unwrapApi<ApiUser[]>),
-    refetchInterval: 30000,
+    refetchInterval,
     retry: 1,
   })
 
@@ -269,7 +277,7 @@ export default function TeamPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="size-8 p-0 hover:text-destructive"
+                          className="size-11 p-0 hover:text-destructive"
                           onClick={() => setConfirmDeleteId(m.id)}
                           aria-label={`حذف العضو ${m.username}`}
                         >

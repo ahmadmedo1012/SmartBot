@@ -26,6 +26,10 @@ import Link from "next/link"
 import { unwrapApi } from "@/lib/api"
 import { formatDateOnly, formatNumber } from "@/lib/format"
 import { CronHeartbeatCard } from "@/components/shared/CronHeartbeatCard"
+/* v25 (W-10): جلب /api/me الخام عبر useEffect استُبدل بالخطاف المشترك
+ * useMe() (v24-C3) — مدخل كاش واحد (AuthGuard/CTA/هذه الصفحة) بلا طلب
+ * مكرر لكل تحميل؛ نفس بيانات {user} (role + tenant_id). */
+import { useMe } from "@/hooks/useMe"
 
 interface Payment {
   id: number
@@ -52,9 +56,15 @@ const statusConfig: Record<string, { label: string; variant: "warning" | "succes
 
 export default function AdminPage() {
   const router = useRouter()
-  const [role, setRole] = useState<string | null>(null)
+  /* v25 (W-10): useMe() بدل useEffect خام — نفس دور "جارٍ التحميل" أثناء
+   * الجلب الأول، والفشل يهبط لـ role=null (نفس سلوك catch القديم: عرض
+   * «غير مصرح» بدل البقاء في حالة تحميل أبدية). */
+  const meQuery = useMe()
+  const role = meQuery.data?.user?.role ?? null
   // v10-B4 (G2-02): platform admin = tenant_id 0 — gates the cron card
-  const [tenantId, setTenantId] = useState<number | null>(null)
+  const tenantId =
+    typeof meQuery.data?.user?.tenant_id === "number" ? meQuery.data.user.tenant_id : null
+  const roleLoading = meQuery.isLoading
   const [payments, setPayments] = useState<Payment[]>([])
   const [filter, setFilter] = useState("pending")
   const [loading, setLoading] = useState(true)
@@ -65,7 +75,6 @@ export default function AdminPage() {
    * isError/retry pattern as every other page). */
   const [loadError, setLoadError] = useState(false)
   const [actionId, setActionId] = useState<number | null>(null)
-  const [roleLoading, setRoleLoading] = useState(true)
 
   useEffect(() => {
     const meta = document.createElement("meta")
@@ -73,17 +82,6 @@ export default function AdminPage() {
     meta.content = "noindex, nofollow"
     document.head.appendChild(meta)
     return () => meta.remove()
-  }, [])
-
-  useEffect(() => {
-    apiFetch("/api/me")
-      .then(unwrapApi)
-      .then((d) => {
-        setRole(d?.user?.role || null)
-        setTenantId(typeof d?.user?.tenant_id === "number" ? d.user.tenant_id : null)
-        setRoleLoading(false)
-      })
-      .catch(() => { setRole(null); setRoleLoading(false) })
   }, [])
 
   const fetchPayments = useCallback(async () => {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { Clock, CalendarDays, Send, Trash2 , AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,9 +15,18 @@ import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
+/* v25 (W-14): مفتاح استعلام المجدولة — مرفوع لثبات المرجع لخطاف
+ * الاستطلاع المرئي (نفس عقد activity/analytics). */
+const SCHEDULED_KEY = ["scheduled-posts", "scheduled"] as const
+
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
+  /* v25 (W-03 — نمط posts/sequences المؤسسي): النشر يدفع للصفحة الحية على
+   * فيسبوك والحذف لا رجعة فيه — الضغط الأول يكشف «تأكيد النشر/الحذف +
+   * إلغاء» (أزرار 44px)، والثاني فقط ينفّذ. لا تنفيذ بلمسة أيقونة واحدة. */
+  const [confirmPublishId, setConfirmPublishId] = useState<number | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   // v9-B1 — the datetime-local `min` used to be computed during render from
   // Date.now(): the server renders it in UTC while the client re-renders it
   // in +02 → guaranteed hydration mismatch. Compute it client-side only,
@@ -33,10 +43,13 @@ export default function ScheduledPage() {
 
   // v9-B2 — API failure previously rendered as "لا توجد منشورات مجدولة"
   // (data looked empty instead of broken — same v4 §2.5 pattern posts fixed)
+  /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(30_000, SCHEDULED_KEY)
   const { data: posts = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["scheduled-posts", "scheduled"],
+    queryKey: SCHEDULED_KEY,
     queryFn: () => apiFetch("/api/scheduled-posts?status=scheduled").then(unwrapApi<ScheduledPost[]>),
-    refetchInterval: 30000,
+    refetchInterval,
     retry: 1,
   })
 
@@ -65,6 +78,8 @@ export default function ScheduledPage() {
       apiFetch(`/api/scheduled-posts/${id}/publish`, { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
+      /* v25 (W-03): نُفّذ النشر — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmPublishId(null)
       brandedToast.success("تم النشر")
     },
     onError: (e: Error) => brandedToast.error(e.message),
@@ -75,6 +90,8 @@ export default function ScheduledPage() {
       apiFetch(`/api/scheduled-posts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scheduled-posts"] })
+      /* v25 (W-03): نُفّذ الحذف — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmDeleteId(null)
       brandedToast.success("تم الحذف")
     },
     onError: (e: Error) => brandedToast.error(e.message),
@@ -165,13 +182,64 @@ export default function ScheduledPage() {
                       <CalendarDays className="size-3" />
                       <span>{p.scheduled_at ? formatDate(p.scheduled_at) : "بدون تاريخ"}</span>
                     </div>
+                    {/* v25 (W-03 — مرآة حرفية لعنقود posts): أثناء التأكيد
+                        يستبدل العنقود كاملاً بأزرار «تأكيد … / إلغاء» (44px)،
+                        والضغط الثاني فقط ينفّذ — النشر يدفع للصفحة الحية
+                        والحذف لا رجعة فيه. */}
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => publishMut.mutate(p.id)} disabled={publishMut.isPending && publishMut.variables === p.id} aria-label="نشر المنشور المجدول الآن">
-                        <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteMut.mutate(p.id)} disabled={deleteMut.isPending && deleteMut.variables === p.id} aria-label="حذف المنشور المجدول">
-                        <Trash2 className="size-3" aria-hidden="true" />
-                      </Button>
+                      {confirmPublishId === p.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => publishMut.mutate(p.id)}
+                            disabled={publishMut.isPending && publishMut.variables === p.id}
+                            loading={publishMut.isPending && publishMut.variables === p.id}
+                          >
+                            <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" /> تأكيد النشر
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmPublishId(null)}
+                            aria-label="إلغاء نشر المنشور المجدول"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : confirmDeleteId === p.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteMut.mutate(p.id)}
+                            disabled={deleteMut.isPending && deleteMut.variables === p.id}
+                            loading={deleteMut.isPending && deleteMut.variables === p.id}
+                          >
+                            <Trash2 className="size-3" aria-hidden="true" /> تأكيد الحذف
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteId(null)}
+                            aria-label="إلغاء حذف المنشور المجدول"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {/* v25 (W-09): size-11 p-0 — هدف لمس 44px صريح
+                              (كان size-ghost افتراضياً؛ الأيقونة تبقى صغيرة
+                              داخل منطقة اللمس الأكبر). */}
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmPublishId(p.id)} className="size-11 p-0" aria-label="نشر المنشور المجدول الآن">
+                            <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="size-11 p-0 hover:text-destructive" aria-label="حذف المنشور المجدول">
+                            <Trash2 className="size-3" aria-hidden="true" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>

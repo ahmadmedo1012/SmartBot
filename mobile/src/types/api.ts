@@ -104,21 +104,27 @@ export interface InboxMessage {
   [k: string]: unknown
 }
 
+/** مغلّف القوائم المقسّمة — عقد الباكند Paginated<T> (ان lib/envelope.ts). */
+export type PaginatedEnvelope<T> = {
+  items: T[]
+  total?: number
+  page?: number
+  per_page?: number
+}
+
+/** عقد عنصر تعليق — GET /api/comments (routers/replies.py: DB-first). */
 export interface CommentItem {
-  id: number
-  post_id?: string | number | null
-  post_permalink?: string | null
-  author_name?: string | null
-  from_name?: string | null
-  commenter?: string | null
+  id: string
+  post_id?: string | null
   message?: string | null
-  text?: string | null
+  from_name?: string | null
+  from_id?: string | null
   created_time?: string | null
-  created_at?: string | null
-  replied?: boolean
-  has_reply?: boolean
-  hidden?: boolean
+  replied_at?: string | null
+  reply_text?: string | null
+  /** حقول قد تُضاف مستقبلًا — تُعرض فقط عند وجودها */
   sentiment?: string | null
+  hidden?: boolean
   [k: string]: unknown
 }
 
@@ -136,15 +142,34 @@ export interface Rule {
   [k: string]: unknown
 }
 
+/** عقد /api/analytics/overview — routers/analytics.py (المفاتيح الفعلية). */
 export interface AnalyticsOverview {
-  totals?: {
-    messages?: number
-    replies?: number
-    comments?: number
-    subscribers?: number
-    [k: string]: unknown
-  }
-  daily?: TrendPoint[]
+  total_replies?: number
+  today_replies?: number
+  total_comments?: number
+  subscribers_count?: number
+  daily_breakdown?: Record<string, number>
+  hourly_heatmap?: Record<string, Record<string, number>>
+  top_rules?: { rule_id?: number; name?: string | null; count?: number }[]
+  sentiment_distribution?: { positive?: number; negative?: number; neutral?: number }
+  peak_hour?: number | null
+  fan_count?: number | null
+  date_range_days?: number
+  [k: string]: unknown
+}
+
+/** عقد /api/analytics/dashboard — analytics_engine.get_dashboard_overview. */
+export interface DashboardAnalytics {
+  total_replies?: number
+  today_replies?: number
+  total_messages?: number
+  total_subscribers?: number
+  total_conversations?: number
+  total_customers?: number
+  active_rules?: number
+  unique_commenters?: number
+  change_pct?: number | null
+  period_days?: number
   [k: string]: unknown
 }
 
@@ -159,53 +184,57 @@ export interface TopCommenter {
 
 export interface ScheduledPost {
   id: number
-  content?: string | null
   message?: string | null
+  image_url?: string | null
   scheduled_at?: string | null
   status?: string
-  published?: boolean
+  fb_post_id?: string | null
+  published_at?: string | null
   [k: string]: unknown
 }
 
+/** عقد بث — GET/POST /api/broadcasts (routers/broadcasts.py). */
 export interface Broadcast {
   id: number
-  message?: string | null
-  content?: string | null
+  name?: string | null
   status?: string
-  audience?: string
-  recipients?: number
-  sent?: number
-  failed?: number
+  total_recipients?: number
+  sent_count?: number
+  failed_count?: number
+  opened_count?: number
+  created_by?: string | null
   created_at?: string | null
   sent_at?: string | null
   [k: string]: unknown
 }
 
+/** عقد مشترك — GET /api/subscribers (subscriber_engine.search). */
 export interface Subscriber {
   id: number
+  fb_user_id?: string | null
   name?: string | null
   first_name?: string | null
-  last_name?: string | null
-  psid?: string | null
-  phone?: string | null
-  email?: string | null
-  tags?: string[] | { id: number; name: string }[]
-  subscribed?: boolean
-  is_subscribed?: boolean
-  created_at?: string | null
+  platform?: string | null
+  tags?: { id: number; name: string; color?: string | null }[]
+  reply_count?: number
+  first_seen_at?: string | null
+  last_interaction_at?: string | null
   [k: string]: unknown
 }
 
+/** عقد عميل CRM — GET /api/crm/customers (routers/crm_routes.py). */
 export interface Customer {
   id: number
   name?: string | null
   phone?: string | null
-  email?: string | null
-  address?: string | null
+  source?: string | null
+  stage?: string | null
+  total_interactions?: number
+  interested_in?: string | null
+  last_intent?: string | null
   notes?: string | null
-  total_orders?: number
-  total_spent?: number
-  created_at?: string | null
+  first_seen_at?: string | null
+  last_contacted_at?: string | null
   [k: string]: unknown
 }
 
@@ -219,40 +248,36 @@ export interface TeamMember {
   [k: string]: unknown
 }
 
+/** عقد سجل النشاط — GET /api/logs (routers/bot.py: لا id في الصفوف). */
 export interface LogEntry {
-  id: number
-  event?: string
-  action?: string
-  level?: string
+  level?: string | null
   message?: string | null
-  detail?: string | null
   created_at?: string | null
-  ts?: string | null
   [k: string]: unknown
 }
 
+/** عقد عرض — GET /api/offers (routers/offers_routes.py). */
 export interface Offer {
   id: number
   title?: string | null
   code?: string | null
-  discount?: number | string | null
   description?: string | null
+  discount_type?: string | null
+  discount_value?: number
+  max_uses?: number | null
+  used_count?: number
   is_active?: boolean
-  active?: boolean
-  claims?: number
-  max_claims?: number | null
   expires_at?: string | null
   [k: string]: unknown
 }
 
+/** عقد قالب رد — GET /api/templates (routers/templates_routes.py: text). */
 export interface ReplyTemplate {
   id: number
   name?: string | null
-  title?: string | null
-  content?: string | null
-  body?: string | null
+  text?: string | null
   category?: string | null
-  created_at?: string | null
+  shortcut?: string | null
   [k: string]: unknown
 }
 
@@ -262,12 +287,16 @@ export interface WalletBalance {
   [k: string]: unknown
 }
 
+/** عقد عملية دفع — GET /api/payments/history (payment_requests + subscription_payments مدمجة). */
 export interface PaymentRecord {
-  id: number
+  /** رقم في payment_requests، أو "s{رقم}" في subscription_payments */
+  payment_id: number | string
+  kind?: 'topup' | 'subscription' | string
   amount?: number
-  method?: string
+  provider?: string | null
+  phone?: string | null
   status?: string
-  kind?: string
+  note?: string | null
   created_at?: string | null
   [k: string]: unknown
 }
@@ -283,13 +312,17 @@ export interface NotificationItem {
   [k: string]: unknown
 }
 
+/** عقد تذكرة دعم — GET /api/support/tickets (routers/support.py: body). */
 export interface SupportTicket {
   id: number
   subject?: string | null
-  message?: string | null
+  body?: string | null
+  priority?: string | null
   status?: string
+  email?: string | null
   created_at?: string | null
-  replies?: { id: number; message?: string | null; created_at?: string | null; [k: string]: unknown }[]
+  updated_at?: string | null
+  replies_count?: number
   [k: string]: unknown
 }
 
@@ -303,11 +336,14 @@ export interface FacebookSettings {
   [k: string]: unknown
 }
 
+/** عقد حساب إعلاني — GET /api/ads/accounts (DB-first، الرصيد سلسلة). */
 export interface AdAccount {
   id: string
-  name?: string
-  currency?: string
-  balance?: number
+  name?: string | null
+  account_status?: number
+  currency?: string | null
+  amount_spent?: string | null
+  balance?: string | null
   [k: string]: unknown
 }
 
@@ -324,25 +360,32 @@ export interface Sequence {
   [k: string]: unknown
 }
 
+/** عقد حملة تسويقية — GET /api/marketing/campaigns (routers/marketing.py). */
 export interface MarketingCampaign {
   id: number
   name?: string | null
-  title?: string | null
-  channel?: string
-  status?: string
-  sent?: number
-  recipients?: number
+  message?: string | null
+  audience?: string | null
+  status?: string | null
+  scheduled_at?: string | null
+  sent_count?: number
+  delivered_count?: number
+  opened_count?: number
+  clicked_count?: number
   created_at?: string | null
   [k: string]: unknown
 }
 
+/** عقد عنصر تقويم — GET /api/calendar (content_calendar._post_to_dict). */
 export interface CalendarEntry {
   id: number
-  content?: string | null
   message?: string | null
+  image_url?: string | null
   scheduled_at?: string | null
-  date?: string | null
-  status?: string
+  status?: string | null
+  platform?: string | null
+  created_by?: string | null
+  fb_post_id?: string | null
   [k: string]: unknown
 }
 

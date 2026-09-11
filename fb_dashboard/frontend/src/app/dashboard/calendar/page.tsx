@@ -71,7 +71,9 @@ export default function CalendarPage() {
                   chevrons. Identical rendering (back→RTL: right, forward→RTL:
                   left); the component owns the glyph + the rtl flip. */}
               <div className="flex gap-1">
-                <Button size="sm" variant="ghost" onClick={() => shiftMonth(-1)} disabled={!month} aria-label="الشهر السابق" className="size-8 p-0">
+                {/* v25 (W-09): size-11 p-0 — هدف لمس 44px صريح (كان size-8؛
+                    الشيفرون يبقى صغيراً داخل منطقة اللمس الأكبر). */}
+                <Button size="sm" variant="ghost" onClick={() => shiftMonth(-1)} disabled={!month} aria-label="الشهر السابق" className="size-11 p-0">
                   <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" />
                 </Button>
                 {!isCurrentMonth && month && (
@@ -79,7 +81,7 @@ export default function CalendarPage() {
                     الشهر الحالي
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => shiftMonth(1)} disabled={!month} aria-label="الشهر التالي" className="size-8 p-0">
+                <Button size="sm" variant="ghost" onClick={() => shiftMonth(1)} disabled={!month} aria-label="الشهر التالي" className="size-11 p-0">
                   <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
                 </Button>
               </div>

@@ -7,6 +7,7 @@ import { countPhrase } from "@/lib/format"
 import {
   Megaphone,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
   Send,
   Users,
@@ -16,9 +17,11 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 
@@ -59,10 +62,24 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "فشلت",
 }
 
+/* v25 (W-01): تسمية الجمهور في حوار تأكيد الإرسال — نفس مصدر تسميات
+ * نموذج الإنشاء أعلاه (AUDIENCES) بلا ازدواج نصّي. */
+const AUDIENCE_LABELS: Record<string, string> = Object.fromEntries(
+  AUDIENCES.map((a) => [a.value, a.label]),
+)
+
 export default function MarketingPage() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: "", message: "", audience: "all" })
+  /* v25 (W-01 — معيار v24-C2 كصفحة البث): «إرسال» الحملة لم يعد إرسالاً
+   * جماعياً بلمسة واحدة — الضغط يفتح حوار «تأكيد الإرسال الجماعي» مع
+   * تقدير حجم الجمهور من مسار الخلفية نفسه، والزر التدميري داخل الحوار
+   * هو الوحيد الذي يطلق POST /campaigns/{id}/send. */
+  const [confirmSendId, setConfirmSendId] = useState<number | null>(null)
+  /* v25 (W-02 — نمط posts/sequences): حذف الحملة بلمستين — الضغط الأول
+   * يكشف «تأكيد الحذف / إلغاء» بدل زر الأيقونة المدمرة المباشرة. */
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["marketing-campaigns"],
@@ -110,6 +127,8 @@ export default function MarketingPage() {
     },
     onSuccess: (d) => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
+      /* v25 (W-01): نُفّذ الإرسال — أغلق حوار التأكيد */
+      setConfirmSendId(null)
       // v12-E5.5: Arabic plural via countPhrase (was raw `${n} مشترك` —
       // broken for 0/1/2 and non-Arabic numeral shaping; D10 i18n finding).
       const sent = d?.sent_count ?? 0
@@ -127,6 +146,8 @@ export default function MarketingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["marketing-campaigns"] })
+      /* v25 (W-02): نُفّذ الحذف — أعد عنقود الإجراءات لوضعه الطبيعي */
+      setConfirmDeleteId(null)
       brandedToast.success("تم حذف الحملة")
     },
     onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
@@ -136,6 +157,30 @@ export default function MarketingPage() {
   // v12-E2.12) — the optional chain only covers the react-query loading window.
   const campaigns: Campaign[] = data?.items ?? []
   const audienceCount: number = audienceQuery.data?.count ?? 0
+
+  /* v25 (W-01): حمولة حوار التأكيد — صف الحملة قيد التأكيد (للاسم/الجمهور/
+   * معاينة الرسالة) + تقدير الجمهور من GET /api/marketing/audience-size
+   * (routers/marketing.py:133 — نفس الاستعلام الذي ينفّذه التوزيع عند
+   * الإرسال، بغلاف ok({audience,count})). مُفعّل فقط والحوار مفتوح؛ فشل
+   * التقدير يُبقي زر التأكيد معطلاً (إرسال جماعي غير مُخبَر هو ما يمنعه
+   * هذا الحوار) مع إعادة محاولة عربية. */
+  const confirmCampaign = campaigns.find((c) => c.id === confirmSendId) ?? null
+  const confirmAudience = confirmCampaign?.audience ?? ""
+  const {
+    data: confirmEstimate,
+    isLoading: estimateLoading,
+    isError: estimateError,
+    refetch: refetchEstimate,
+  } = useQuery({
+    queryKey: ["marketing-send-preview", confirmSendId],
+    queryFn: async () => {
+      const res = await apiFetch(`/api/marketing/audience-size?audience=${encodeURIComponent(confirmAudience)}`)
+      return unwrapApi<{ audience: string; count: number }>(res)
+    },
+    enabled: confirmSendId !== null && !!confirmAudience,
+    staleTime: 30000,
+    retry: 1,
+  })
 
   return (
     <div className="flex-1 flex flex-col">
@@ -283,28 +328,55 @@ export default function MarketingPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {/* v25 (W-01): الزر يفتح حوار «تأكيد الإرسال الجماعي»
+                            فقط — لا إرسال جماعي بلمسة واحدة بعد الآن. */}
                         {c.status === "draft" && (
                           <Button
                             size="sm"
-                            onClick={() => sendMutation.mutate(c.id)}
-                            loading={sendMutation.isPending && sendMutation.variables === c.id}
-                            className="gap-1.5 h-7"
+                            onClick={() => setConfirmSendId(c.id)}
+                            aria-haspopup="dialog"
+                            className="gap-1.5 h-11"
                           >
                             <Send className="size-3 rtl:-scale-x-100" />
                             إرسال
                           </Button>
                         )}
-                        {c.status !== "sending" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteMutation.mutate(c.id)}
-                            disabled={deleteMutation.isPending && deleteMutation.variables === c.id}
-                            aria-label="حذف الحملة"
-                            className="h-7 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
+                        {/* v25 (W-02 — نمط posts): أثناء التأكيد يستبدل
+                            العنقود كاملاً بأزرار «تأكيد الحذف / إلغاء»
+                            (44px) والضغط الثاني فقط ينفّذ DELETE. */}
+                        {confirmDeleteId === c.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteMutation.mutate(c.id)}
+                              disabled={deleteMutation.isPending && deleteMutation.variables === c.id}
+                              loading={deleteMutation.isPending && deleteMutation.variables === c.id}
+                            >
+                              <Trash2 className="size-3" aria-hidden="true" /> تأكيد الحذف
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmDeleteId(null)}
+                              aria-label="إلغاء حذف الحملة"
+                            >
+                              إلغاء
+                            </Button>
+                          </>
+                        ) : (
+                          c.status !== "sending" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmDeleteId(c.id)}
+                              disabled={deleteMutation.isPending && deleteMutation.variables === c.id}
+                              aria-label="حذف الحملة"
+                              className="h-11 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>
@@ -331,6 +403,81 @@ export default function MarketingPage() {
           )}
         </div>
       </div>
+
+      {/* v25 (W-01 — معيار v24-C2 كصفحة البث): حوار «تأكيد الإرسال الجماعي»
+          — تقدير عدد المستلمين من /api/marketing/audience-size (نفس استعلام
+          التوزيع الفعلي)، معاينة نص الرسالة من صف الحملة، تحذير صريح بعدم
+          قابلية التراجع، وزر تدميري + إلغاء. لا إرسال جماعي بدونه. */}
+      <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
+          <DialogDescription>
+            سيُرسل «{confirmCampaign?.name || (confirmSendId !== null ? `حملة #${confirmSendId}` : "")}» إلى {AUDIENCE_LABELS[confirmAudience] || "المشتركين"} عبر الماسنجر.
+          </DialogDescription>
+
+          <div className="space-y-3">
+            {/* حجم الجمهور — العدد الذي سيستلم الرسالة */}
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Users className="size-3.5" aria-hidden="true" /> عدد المستلمين المتوقع
+              </span>
+              {estimateLoading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : estimateError ? (
+                <span className="text-xs text-destructive">تعذر تحديد العدد</span>
+              ) : (
+                <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmEstimate?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
+              )}
+            </div>
+
+            {/* معاينة نص الرسالة */}
+            {confirmCampaign?.message?.trim() ? (
+              <div className="rounded-lg border border-border/60 bg-background p-3">
+                <p className="text-2xs text-muted-foreground mb-1">معاينة الرسالة</p>
+                <p className="text-sm leading-relaxed line-clamp-3" dir="auto">
+                  {confirmCampaign.message}
+                </p>
+              </div>
+            ) : (
+              <p className="flex items-start gap-1.5 text-xs text-warning">
+                <AlertTriangle className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+                هذه الحملة بلا نص رسالة — تأكد من محتواها قبل الإرسال.
+              </p>
+            )}
+
+            {/* تحذير عدم قابلية التراجع */}
+            <p className="flex items-start gap-2 text-xs text-destructive leading-relaxed" role="alert">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+              تحذير: سيصل البث إلى كل هؤلاء المشتركين دفعة واحدة، ولا يمكن التراجع عن الإرسال بعد بدئه.
+            </p>
+
+            {/* فشل تحميل التقدير — إعادة محاولة بلا زر تأكيد أعمى */}
+            {estimateError && (
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="min-w-0 truncate">تعذر تقدير حجم الجمهور — لا يمكن التأكيد بلا معاينة</span>
+                <Button size="sm" variant="outline" onClick={() => refetchEstimate()}>
+                  <RefreshCw className="size-3" /> إعادة المحاولة
+                </Button>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => { if (confirmSendId !== null) sendMutation.mutate(confirmSendId) }}
+                disabled={estimateLoading || estimateError || (sendMutation.isPending && sendMutation.variables === confirmSendId)}
+                loading={sendMutation.isPending && sendMutation.variables === confirmSendId}
+              >
+                <Send className="size-3.5 rtl:-scale-x-100" /> تأكيد الإرسال
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmSendId(null)}>
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

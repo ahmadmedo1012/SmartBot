@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
    الثلاثة مع دعم disabled أثناء الـPUT التفاؤلي. */
 import { Switch } from "@/components/ui/switch"
 import { unwrapApi } from "@/lib/api"
+import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { BotBehavior, BotBehaviorPatch, ReplyRule } from "@/lib/types"
 
 /* v23 (المهمة 2-ب): بطاقة «سلوك البوت» فوق قسم القواعد — المنشن/الرسالة
@@ -59,6 +60,23 @@ const AI_PROVIDER_LABEL: Record<BotBehavior["ai_provider"], string> = {
   none: "—",
 }
 
+/* v25 (W-14): مفتاح استعلام القواعد — مرفوع لثبات المرجع لخطاف
+ * الاستطلاع المرئي (نفس عقد activity/analytics). */
+const RULES_KEY = ["rules"] as const
+
+/* v25 (W-13 — تثبيت عميل لعقد أولوية القاعدة): الخادم يقبل أعداداً صحيحة
+ * 1-999 فقط (rules.py Form priority)؛ إدخال خارج النطاق أو غير رقمي كان
+ * يُرسل كما هو فيفشل 422 بصمت نموذج كامل. المصحّح يحوّل أي قيمة إلى عدد
+ * صحيح داخل النطاق (غير الرقمي → الافتراضي 50) عند blur وعند الإرسال. */
+const PRIORITY_MIN = 1
+const PRIORITY_MAX = 999
+const PRIORITY_DEFAULT = 50
+function clampPriority(raw: string): string {
+  const n = parseInt(raw, 10)
+  if (Number.isNaN(n)) return String(PRIORITY_DEFAULT)
+  return String(Math.min(PRIORITY_MAX, Math.max(PRIORITY_MIN, n)))
+}
+
 export default function AutoReplyPage() {
   const [showForm, setShowForm] = useState(false)
   /* v17-E-F8 (D6 #7): وضع تعديل القاعدة — نفس النموذج يتحول لوضع PUT
@@ -74,14 +92,17 @@ export default function AutoReplyPage() {
   const [priority, setPriority] = useState("50")
   const queryClient = useQueryClient()
 
+  /* v25 (W-14): 30s → استطلاع مرئي — المؤقّت يتوقف تماماً في تبويب الخلفية
+   * (false) ويعود فور العودة مع تجديد فوري متى تقادمت البيانات. */
+  const refetchInterval = usePollingWhenVisible(30_000, RULES_KEY)
   const { data: rules = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["rules"],
+    queryKey: RULES_KEY,
     queryFn: async () => {
       const res = await apiFetch("/api/rules")
       if (!res.ok) throw new Error(`فشل تحميل القواعد (${res.status})`)
       return unwrapApi<ReplyRule[]>(res)
     },
-    refetchInterval: 30000,
+    refetchInterval,
     retry: 1,
   })
 
@@ -90,6 +111,8 @@ export default function AutoReplyPage() {
     // (name, keywords, reply_template, priority). The old body sent
     // keyword/reply_text → guaranteed 422, so NO rule was ever creatable
     // from this page.
+    /* v25 (W-13): الأولوية تُرسل بعد التثبيت (1-999 عدد صحيح) — إدخال
+     * خارج النطاق لم يعد يصل الخادم أساساً. */
     mutationFn: () =>
       apiFetch("/api/rules", {
         method: "POST",
@@ -97,7 +120,7 @@ export default function AutoReplyPage() {
           name: name.trim() || keyword.trim(),
           keywords: keyword.trim(),
           reply_template: replyText.trim(),
-          priority: priority.trim() || "50",
+          priority: clampPriority(priority),
         }),
       }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); setShowForm(false); setName(""); setKeyword(""); setReplyText(""); setPriority("50"); brandedToast.success("تم إنشاء القاعدة") },
@@ -121,7 +144,8 @@ export default function AutoReplyPage() {
           name: name.trim() || keyword.trim(),
           keywords: keyword.trim(),
           reply_template: replyText.trim(),
-          priority: priority.trim() || "50",
+          /* v25 (W-13): نفس تثبيت الإنشاء — 1-999 عدد صحيح. */
+          priority: clampPriority(priority),
         }),
       }),
     onSuccess: () => {
@@ -400,6 +424,9 @@ export default function AutoReplyPage() {
                   id="rule-priority"
                   value={priority}
                   onChange={e => setPriority(e.target.value)}
+                  /* v25 (W-13): تثبيت عند مغادرة الحقل — أي قيمة خارج 1-999
+                     أو غير رقمية تُصحّح فوراً (نفس ما سيُرسل للخادم). */
+                  onBlur={() => setPriority(p => clampPriority(p))}
                   inputMode="numeric"
                   dir="auto"
                   className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
@@ -498,11 +525,13 @@ export default function AutoReplyPage() {
                     ) : (
                       <>
                     {/* v17-E-F8 (D6 #7): زر تعديل القاعدة — يفتح النموذج
-                        معبّأ بصف القاعدة لوضع PUT. */}
+                        معبّأ بصف القاعدة لوضع PUT.
+                        v25 (W-09): size-11 p-0 — هدف لمس 44px صريح (كان
+                        size-8؛ الأيقونة تبقى صغيرة داخل منطقة اللمس). */}
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="size-8 p-0"
+                      className="size-11 p-0"
                       onClick={() => {
                         setEditingRuleId(r.id)
                         setShowForm(false)
@@ -515,12 +544,14 @@ export default function AutoReplyPage() {
                     >
                       <Pencil className="size-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-8 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
+                    {/* v25 (W-09): size-11 p-0 — هدف لمس 44px صريح (كان size-8). */}
+                    <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-11 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
                       {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
                     </Button>
                     {/* v24-C2 (task 3 / A3-A1): الضغط الأول يكشف خطوة التأكيد
-                        (لا حذف مباشر) — أزرار التأكيد تستوفي 44px افتراضيا. */}
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(r.id)} className="size-8 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
+                        (لا حذف مباشر) — أزرار التأكيد تستوفي 44px افتراضيا.
+                        v25 (W-09): size-11 p-0 صريح (كان size-8). */}
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(r.id)} className="size-11 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
                       <Trash2 className="size-3.5" />
                     </Button>
                       </>

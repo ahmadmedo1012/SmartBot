@@ -4,7 +4,6 @@ from __future__ import annotations
 Schedule, approve, and publish content across Facebook, Instagram, WhatsApp.
 """
 import asyncio
-import json
 import logging
 from datetime import date, datetime, timedelta
 
@@ -345,7 +344,9 @@ class ContentCalendarEngine:
         post.published_at = utcnow()
         await clear_claim_marker(session, post_id, tid)
         await session.commit()
-        spawn(self._track("post_published", {"scheduled_post_id": post_id}))
+        # v25 (D-07): كان الحدث يُكتب بلا tenant_id (يهبط في المستأجر 0 فلا
+        # يراه أي مستأجر في تحليلاته) وبترميز JSON مزدوج.
+        spawn(self._track("post_published", {"scheduled_post_id": post_id}, tenant_id=tid))
         return True
 
     async def _mark_failed(self, post: ScheduledPost, session, reason: str) -> None:
@@ -461,16 +462,20 @@ class ContentCalendarEngine:
             "fb_post_id": p.fb_post_id or "",
         }
 
-    async def _track(self, event_type: str, metadata: dict | None = None):
+    async def _track(self, event_type: str, metadata: dict | None = None,
+                     tenant_id: int = 0):
         try:
             async with AsyncSessionLocal() as s:
                 s.add(AnalyticsEvent(
                     event_type=event_type,
-                    metadata_json=json.dumps(metadata or {}, ensure_ascii=False),
+                    tenant_id=tenant_id,
+                    # v25 (D-07): قاموس أصلي داخل عمود JSON — كان يُخزّن
+                    # سلسلة مزدوجة الترميز فيضطر القراء للتفريع على النوع.
+                    metadata_json=metadata or {},
                 ))
                 await s.commit()
         except Exception:
-            pass
+            log.warning("calendar analytics track failed", exc_info=True)
 
 
 class CalendarScheduler:

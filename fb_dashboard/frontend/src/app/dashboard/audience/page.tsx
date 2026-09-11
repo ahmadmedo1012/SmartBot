@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
@@ -8,11 +9,21 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { AnalyticsOverview, Paginated, Subscriber, TopCommenter } from "@/lib/types"
-import { countPhrase, formatDateOnly } from "@/lib/format"
+import { countPhrase, formatDateOnly, formatNumber } from "@/lib/format"
+
+/* v25 (W-05): عقد /api/subscribers (routers/subscribers_tags_routes.py:20 +
+ * subscriber_engine.search) — page ge=1 وper_page ge=1 le=200 بغلاف
+ * {items,total,page,per_page}؛ الصفحة كانت تجلب أول 10 مشتركين فقط إلى
+ * الأبد بلا أي سبيل للوصول لما بعدها. */
+const SUBS_PER_PAGE = 10
 
 export default function AudiencePage() {
+  /* v25 (W-05): صفحة المشتركين الحالية — تتبع مفتاح الاستعلام فتُجلب
+   * النافذة المطلوبة من الخلفية. */
+  const [subsPage, setSubsPage] = useState(1)
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["analytics-overview"],
     queryFn: () => apiFetch("/api/analytics/overview?days=30").then(unwrapApi<AnalyticsOverview>),
@@ -25,11 +36,23 @@ export default function AudiencePage() {
   })
   // v4 §7.25 — real subscriber list (feed: messenger events)
   const subsQuery = useQuery({
-    queryKey: ["subscribers", "audience"],
-    queryFn: () => apiFetch("/api/subscribers?per_page=10").then(unwrapApi<Paginated<Subscriber>>),
+    queryKey: ["subscribers", "audience", subsPage],
+    queryFn: () =>
+      apiFetch(`/api/subscribers?page=${subsPage}&per_page=${SUBS_PER_PAGE}`).then(
+        unwrapApi<Paginated<Subscriber>>,
+      ),
+    /* v25 (W-05): تبديل الصفحة يُبقي الصفوف السابقة معروضة (بهتة isFetching
+     * عبر المؤشر أدناه) بدل وميض الهيكل — نمط admin/support v24-C3. */
+    placeholderData: (prev) => prev,
     refetchInterval: 60000,
     retry: 1,
   })
+  /* v25 (W-05): المؤشرات من الظرف نفسه — الصفحة الفعلية من data.page (تحمي
+   * من انزياح الحد الأدنى)، وعدد الصفحات من total/per_page. */
+  const subsTotal = subsQuery.data?.total ?? 0
+  const shownPage = subsQuery.data?.page ?? subsPage
+  const totalPages = Math.max(1, Math.ceil(subsTotal / (subsQuery.data?.per_page ?? SUBS_PER_PAGE)))
+  const hasNextPage = shownPage < totalPages
 
   return (
     <div className="flex-1 flex flex-col">
@@ -187,6 +210,36 @@ export default function AudiencePage() {
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* v25 (W-05): مِرقاة الصفحات — القائمة كانت محصورة في أول 10
+                مشتركين؛ السابق/التالي + «صفحة X من Y» من الظرف الفعلي
+                (نمط admin/support v24-C3: DirectionalIcon chevrons). تُخفى
+                عند التحميل/الخطأ/الفراغ. */}
+            {!subsQuery.isLoading && !subsQuery.isError && subsTotal > 0 && (
+              <div className="flex items-center justify-center gap-3 pt-3 mt-1 border-t border-border/60">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSubsPage((p) => Math.max(1, p - 1))}
+                  disabled={subsPage <= 1}
+                  aria-label="الصفحة السابقة"
+                >
+                  <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
+                </Button>
+                <span className="text-xs text-muted-foreground" role="status">
+                  صفحة {formatNumber(shownPage)} من {formatNumber(totalPages)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSubsPage((p) => p + 1)}
+                  disabled={!hasNextPage}
+                  aria-label="الصفحة التالية"
+                >
+                  التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
+                </Button>
               </div>
             )}
           </CardContent>

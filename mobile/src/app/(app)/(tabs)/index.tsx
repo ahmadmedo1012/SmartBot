@@ -32,7 +32,7 @@ interface Bundle {
   rules_count: number
   active_rules_count: number
   bot_status: { running: boolean; interval: number }
-  ai_status: { available: boolean; provider_name: string }
+  ai_status: { available: boolean; provider: string } // M-23: المفتاح provider (لا provider_name)
   recent_replies: { id: number; commenter_name: string | null; comment_text: string | null; reply_text: string | null; created_at: string | null }[]
 }
 
@@ -148,7 +148,7 @@ export default function DashboardScreen() {
             </View>
             <AppText variant="caption" color="mutedFg" style={{ marginTop: spacing.sm }}>
               حالة البوت: {data?.bot_status.running ? 'يعمل' : 'متوقف'} · الذكاء الاصطناعي:{' '}
-              {data?.ai_status.available ? `متاح (${data.ai_status.provider_name})` : 'غير مفعّل'}
+              {data?.ai_status.available ? `متاح (${data.ai_status.provider})` : 'غير مفعّل'}
             </AppText>
           </Card>
 
@@ -226,7 +226,7 @@ function QuickAction({ label, icon, href }: { label: string; icon: React.Compone
         <AppText
           variant="smallBold"
           numberOfLines={1}
-          onPress={() => router.push(href as never)}
+          onPress={() => router.push({ pathname: href })}
           style={{ flex: 1 }}
         >
           {label}

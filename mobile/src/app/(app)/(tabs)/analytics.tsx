@@ -1,7 +1,9 @@
 /**
  * تاب التحليلات — نفس مصدر الويب (/dashboard/analytics):
- * GET /api/analytics/overview?days=30 + daily-trend + sentiment + top-commenters.
- * بطاقات إحصاء + رسم أعمدة SVG (بديل recharts الأصلي) + قائمة أفضل المعلقين.
+ * GET /api/analytics/overview?days=N — عقد v25 (routers/analytics.py):
+ * {total_replies, today_replies, total_comments?, daily_breakdown: {"2026-09-01": n},
+ *  hourly_heatmap, top_rules, sentiment_distribution, peak_hour, fan_count} (M-09).
+ * بطاقات إحصاء + رسم أعمدة SVG + قائمة أفضل المعلقين (name/count).
  */
 import { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -15,19 +17,7 @@ import { Badge, Card, KpiCard, Row } from '@/components/ui'
 import { apiGet } from '@/services/api'
 import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
 import { formatNumber } from '@/lib/format'
-
-interface Overview {
-  totals?: {
-    messages?: number
-    replies?: number
-    comments?: number
-    subscribers?: number
-    [k: string]: unknown
-  }
-  daily?: { date: string; count: number }[]
-  sentiment?: { positive?: number; negative?: number; neutral?: number }
-  [k: string]: unknown
-}
+import type { AnalyticsOverview, TrendPoint } from '@/types/api'
 
 /** رسم أعمدة SVG خالص — بديل recharts المكتبي (بلا تبعيات ثقيلة). */
 function BarChart({ data, color, height = 160 }: { data: { label: string; value: number }[]; color: string; height?: number }) {
@@ -54,25 +44,28 @@ export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets()
   const [days, setDays] = useState(30)
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<Overview>({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<AnalyticsOverview>({
     queryKey: ['analytics-overview', days],
-    queryFn: () => apiGet<Overview>(`/api/analytics/overview?days=${days}`),
+    queryFn: () => apiGet<AnalyticsOverview>(`/api/analytics/overview?days=${days}`),
   })
 
-  const { data: commenters } = useQuery<{ name: string | null; comments: number }[]>({
+  const { data: commenters } = useQuery<{ name: string | null; count?: number }[]>({
     queryKey: ['top-commenters'],
-    queryFn: () => apiGet<{ name: string | null; comments: number }[]>('/api/analytics/top-commenters?limit=5'),
+    queryFn: () => apiGet<{ name: string | null; count?: number }[]>('/api/analytics/top-commenters?limit=5'),
   })
 
+  // M-09: daily_breakdown خريطة {"2026-09-01": n} — نحوّلها للنقاط الزمنية
   const daily = useMemo(() => {
-    const d = (data?.daily ?? []) as { date: string; count: number }[]
-    return d.slice(-14).map((p) => ({
-      label: (p.date ?? '').slice(5),
-      value: Number(p.count ?? 0),
-    }))
+    const breakdown = data?.daily_breakdown ?? {}
+    return Object.entries(breakdown)
+      .map(([date, count]) => ({ date, count: Number(count ?? 0) }) as TrendPoint)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-14)
+      .map((p) => ({ label: (p.date ?? '').slice(5), value: p.count }))
   }, [data])
 
-  const sentiment = data?.sentiment ?? {}
+  // M-09: المشاعر من sentiment_distribution (لا sentiment)
+  const sentiment = data?.sentiment_distribution ?? {}
   const sentimentTotal = (sentiment.positive ?? 0) + (sentiment.negative ?? 0) + (sentiment.neutral ?? 0)
 
   if (isLoading) return <LoadingState label="جارٍ تحميل التحليلات…" />
@@ -107,13 +100,29 @@ export default function AnalyticsScreen() {
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : (
         <PullToRefresh refreshing={isRefetching} onRefresh={() => refetch()}>
+          {/* M-09: المفاتيح الفعلية للعقد — وكل بطاقة تُعرض فقط إذا وُجدت بياناتها */}
           <Row style={{ gap: spacing.md }}>
-            <KpiCard label="الرسائل" value={formatNumber(data?.totals?.messages as number)} tone="brand" />
-            <KpiCard label="ردود البوت" value={formatNumber(data?.totals?.replies as number)} tone="success" />
+            {data?.total_replies != null ? (
+              <KpiCard label="إجمالي الردود" value={formatNumber(data.total_replies)} tone="success" />
+            ) : null}
+            {data?.today_replies != null ? (
+              <KpiCard label="ردود اليوم" value={formatNumber(data.today_replies)} tone="brand" />
+            ) : null}
           </Row>
+          {(data?.total_replies == null && data?.today_replies == null) ? (
+            <Card>
+              <AppText variant="small" color="mutedFg" style={{ textAlign: 'center' }}>
+                لا بيانات ردود في هذه الفترة بعد
+              </AppText>
+            </Card>
+          ) : null}
           <Row style={{ gap: spacing.md, marginTop: spacing.md }}>
-            <KpiCard label="التعليقات" value={formatNumber(data?.totals?.comments as number)} tone="info" />
-            <KpiCard label="المشتركون" value={formatNumber(data?.totals?.subscribers as number)} tone="warning" />
+            {data?.total_comments != null ? (
+              <KpiCard label="التعليقات" value={formatNumber(data.total_comments)} tone="info" />
+            ) : null}
+            {data?.fan_count != null ? (
+              <KpiCard label="معجبو الصفحة" value={formatNumber(data.fan_count)} tone="warning" />
+            ) : null}
           </Row>
 
           {/* الاتجاه اليومي */}
@@ -171,7 +180,7 @@ export default function AnalyticsScreen() {
                       </AppText>
                     </Row>
                     <AppText variant="small" color="mutedFg">
-                      {formatNumber(c.comments)} تعليق
+                      {formatNumber(c.count ?? 0)} تعليق
                     </AppText>
                   </Row>
                 ))}

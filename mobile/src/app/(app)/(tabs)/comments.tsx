@@ -1,10 +1,11 @@
 /**
  * تاب التعليقات — نفس مصدر الويب (/dashboard/comments):
- * GET /api/comments?limit=30 · POST /api/replies/{id}/reply (Form) · POST /api/comments/{id}/hide.
- * رد سريع من bottom sheet + إخفاء تعليق + فلتر الحالة.
+ * GET /api/comments?limit=50 · POST /api/replies/{id}/reply (Form) · POST /api/comments/{id}/hide.
+ * عقد v25 (routers/replies.py): الرد مغلّف {items, source, synced} — ليس مصفوفة (M-01).
+ * رد سريع من bottom sheet + إخفاء تعليق + فلتر الحالة (تصفية محلية).
  */
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
@@ -13,40 +14,42 @@ import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { apiGet, apiPost, apiPostForm } from '@/services/api'
+import { extractItems } from '@/lib/envelope'
 import { describeError, EmptyState, ErrorState, LoadingState } from '@/components/state-views'
 import { timeAgo } from '@/lib/format'
+import type { CommentItem } from '@/types/api'
 
-interface CommentRow {
-  id: string
-  post_id?: string | null
-  author_name?: string | null
-  from_name?: string | null
-  commenter?: string | null
-  message?: string | null
-  text?: string | null
-  created_time?: string | null
-  replied?: boolean
-  has_reply?: boolean
-  hidden?: boolean
-  sentiment?: string | null
+/** عقد GET /api/comments بعد فك envelope {success,data} (M-01). */
+interface CommentsResponse {
+  items: CommentItem[]
+  source?: string
+  synced?: boolean
+}
+
+/** حالة الرد على تعليق (M-19): الرد موجود إذا وُجد نص رد أو طابع زمني له. */
+function isReplied(item: CommentItem): boolean {
+  return !!(item.reply_text ?? item.replied_at)
 }
 
 export default function CommentsScreen() {
   const { colors, fontBody } = useTheme()
   const insets = useSafeAreaInsets()
   const queryClient = useQueryClient()
-  const [replyTo, setReplyTo] = useState<CommentRow | null>(null)
+  const [replyTo, setReplyTo] = useState<CommentItem | null>(null)
   const [draft, setDraft] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<CommentRow[]>({
-    queryKey: ['comments', filter],
-    queryFn: () => apiGet<CommentRow[]>(`/api/comments?limit=50`),
+  // M-20: الفلتر محلي بالكامل — لا يشارك queryKey (كان يستنسخ استعلامات
+  // متطابقة لكل تبديل تبويب). الاستعلام واحد والت صفية على العميل.
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<CommentsResponse, Error, CommentItem[]>({
+    queryKey: ['comments'],
+    queryFn: () => apiGet<CommentsResponse>('/api/comments?limit=50'),
+    select: (res) => extractItems<CommentItem>(res),
     refetchInterval: 30_000,
   })
 
-  const comments = (data ?? []).filter((c) => (filter === 'pending' ? !(c.replied ?? c.has_reply) : true))
+  const comments = (data ?? []).filter((c) => (filter === 'pending' ? !isReplied(c) : true))
 
   const replyMutation = useMutation({
     mutationFn: ({ id, message }: { id: string; message: string }) =>
@@ -127,9 +130,11 @@ export default function CommentsScreen() {
           refreshing={isRefetching}
           contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md }}
           renderItem={({ item }) => {
-            const name = item.author_name ?? item.from_name ?? item.commenter ?? 'مستخدم'
-            const text = item.message ?? item.text ?? ''
-            const replied = item.replied ?? item.has_reply ?? false
+            const name = item.from_name ?? 'مستخدم'
+            const text = item.message ?? ''
+            const replied = isReplied(item)
+            // M-31: حالة الإخفاء لكل صف — لا spinner مشترك على كل الأزرار
+            const hidingThis = hideMutation.isPending && hideMutation.variables === item.id
             return (
               <Card>
                 <Row style={{ justifyContent: 'space-between' }}>
@@ -144,6 +149,7 @@ export default function CommentsScreen() {
                         <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
                           {name}
                         </AppText>
+                        {/* الميول وال إخفاء يُعرضان فقط إذا وُجدا في العقد */}
                         {item.sentiment ? <Badge tone={sentimentTone(item.sentiment)} text={item.sentiment === 'positive' ? 'إيجابي' : item.sentiment === 'negative' ? 'سلبي' : 'محايد'} /> : null}
                       </Row>
                       <AppText variant="caption" color="mutedFg">
@@ -156,12 +162,19 @@ export default function CommentsScreen() {
                 <AppText variant="body" style={{ marginTop: spacing.md }}>
                   {text}
                 </AppText>
+                {replied && item.reply_text ? (
+                  <View style={[styles.replyPreview, { backgroundColor: colors.muted }]}>
+                    <AppText variant="small" numberOfLines={2} style={{ color: colors.accentFg }}>
+                      ↩ {item.reply_text}
+                    </AppText>
+                  </View>
+                ) : null}
                 {!item.hidden ? (
                   <Row style={{ marginTop: spacing.md, gap: spacing.md }}>
                     {!replied ? (
                       <Button title="رد" size="sm" onPress={() => setReplyTo(item)} />
                     ) : null}
-                    <Button title="إخفاء" size="sm" variant="ghost" onPress={() => hideMutation.mutate(String(item.id))} loading={hideMutation.isPending} />
+                    <Button title="إخفاء" size="sm" variant="ghost" onPress={() => hideMutation.mutate(item.id)} loading={hidingThis} />
                   </Row>
                 ) : null}
               </Card>
@@ -170,18 +183,23 @@ export default function CommentsScreen() {
         />
       )}
 
-      {/* Bottom sheet للرد السريع (بديل الـ modal المكتب) */}
+      {/* Bottom sheet للرد السريع (بديل الـ modal المكتب) — M-21: KAV لئلا يغطي
+          لوحة المفاتيح حقل الإدخال على iOS */}
       <Modal visible={!!replyTo} transparent animationType="slide" onRequestClose={() => setReplyTo(null)}>
-        <View style={styles.sheetBackdrop}>
+        <KeyboardAvoidingView
+          style={styles.sheetBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
           <Pressable style={{ flex: 1 }} accessibilityLabel="إغلاق" onPress={() => setReplyTo(null)} />
           <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: insets.bottom + spacing.md }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             <AppText variant="subtitle" style={{ marginTop: spacing.md }}>
-              الرد على {replyTo?.author_name ?? replyTo?.from_name ?? 'التعليق'}
+              الرد على {replyTo?.from_name ?? 'التعليق'}
             </AppText>
-            {replyTo?.message ?? replyTo?.text ? (
+            {replyTo?.message ? (
               <AppText variant="small" color="mutedFg" style={{ marginTop: spacing.xs }} numberOfLines={2}>
-                «{replyTo.message ?? replyTo.text}»
+                «{replyTo.message}»
               </AppText>
             ) : null}
             <TextInput
@@ -199,11 +217,11 @@ export default function CommentsScreen() {
               ]}
             />
             <Row style={{ marginTop: spacing.md }}>
-              <Button title="إرسال الرد" onPress={() => replyTo && draft.trim() && replyMutation.mutate({ id: String(replyTo.id), message: draft.trim() })} loading={replyMutation.isPending} disabled={!draft.trim()} />
+              <Button title="إرسال الرد" onPress={() => replyTo && draft.trim() && replyMutation.mutate({ id: replyTo.id, message: draft.trim() })} loading={replyMutation.isPending} disabled={!draft.trim()} />
               <Button title="إلغاء" variant="ghost" onPress={() => setReplyTo(null)} />
             </Row>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   )
@@ -214,6 +232,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.sm },
   filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 6 },
   avatar: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  replyPreview: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   sheetHandle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },

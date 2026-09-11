@@ -15,6 +15,11 @@ import type { Offer, ReplyTemplate } from "@/lib/types"
 
 export default function ToolsPage() {
   const queryClient = useQueryClient()
+  /* v25 (W-04 — نمط posts/sequences المؤسسي): حذف القالب/العرض بلمستين —
+   * الضغط الأول يكشف «تأكيد الحذف / إلغاء» (أزرار 44px)، والثاني فقط
+   * ينفّذ DELETE. لا حذف بلمسة أيقونة واحدة بعد الآن. */
+  const [confirmDeleteTmplId, setConfirmDeleteTmplId] = useState<number | null>(null)
+  const [confirmDeleteOfferId, setConfirmDeleteOfferId] = useState<number | null>(null)
 
   const { data: offers = [], isLoading: offLoad, isError: offErr, error: offError, refetch: offRefetch } = useQuery({
     queryKey: ["offers"],
@@ -71,7 +76,7 @@ export default function ToolsPage() {
 
   const deleteTmpl = useMutation({
     mutationFn: (id: number) => apiFetch(`/api/templates/${id}`, { method: "DELETE" }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["templates"] }); brandedToast.success("تم حذف القالب") },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["templates"] }); setConfirmDeleteTmplId(null); brandedToast.success("تم حذف القالب") },
     onError: (e: Error) => brandedToast.error(e.message),
   })
 
@@ -115,7 +120,7 @@ export default function ToolsPage() {
 
   const deleteOffer = useMutation({
     mutationFn: (id: number) => apiFetch(`/api/offers/${id}`, { method: "DELETE" }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["offers"] }); brandedToast.success("تم حذف العرض") },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["offers"] }); setConfirmDeleteOfferId(null); brandedToast.success("تم حذف العرض") },
     onError: (e: Error) => brandedToast.error(e.message),
   })
 
@@ -193,6 +198,7 @@ export default function ToolsPage() {
                       <Button
                         size="sm"
                         variant="ghost"
+                        className="size-11 p-0"
                         onClick={() => {
                           setEditingTmplId(t.id)
                           setShowTmplForm(false)
@@ -204,9 +210,33 @@ export default function ToolsPage() {
                       >
                         <Pencil className="size-3" />
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteTmpl.mutate(t.id)} disabled={deleteTmpl.isPending && deleteTmpl.variables === t.id} aria-label="حذف القالب">
-                        <Trash2 className="size-3" />
-                      </Button>
+                      {/* v25 (W-04): الضغط الأول يكشف خطوة التأكيد — الضغط
+                          الثاني فقط ينفّذ DELETE (أزرار 44px افتراضياً). */}
+                      {confirmDeleteTmplId === t.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteTmpl.mutate(t.id)}
+                            disabled={deleteTmpl.isPending && deleteTmpl.variables === t.id}
+                            loading={deleteTmpl.isPending && deleteTmpl.variables === t.id}
+                          >
+                            <Trash2 className="size-3" aria-hidden="true" /> تأكيد الحذف
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteTmplId(null)}
+                            aria-label="إلغاء حذف القالب"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteTmplId(t.id)} className="size-11 p-0 hover:text-destructive" aria-label={`حذف القالب ${t.name}`}>
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -329,9 +359,33 @@ export default function ToolsPage() {
                         disabled={toggleOffer.isPending && toggleOffer.variables === o.id}
                         aria-label={`تبديل حالة العرض ${o.title}`}
                       />
-                      <Button size="sm" variant="ghost" onClick={() => deleteOffer.mutate(o.id)} disabled={deleteOffer.isPending && deleteOffer.variables === o.id} aria-label={`حذف العرض ${o.title}`}>
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      {/* v25 (W-04): حذف العرض بلمستين — نفس نمط القوالب أعلاه
+                          (تأكيد الحذف/إلغاء 44px؛ الضغط الثاني فقط ينفّذ). */}
+                      {confirmDeleteOfferId === o.id ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteOffer.mutate(o.id)}
+                            disabled={deleteOffer.isPending && deleteOffer.variables === o.id}
+                            loading={deleteOffer.isPending && deleteOffer.variables === o.id}
+                          >
+                            <Trash2 className="size-3" aria-hidden="true" /> تأكيد الحذف
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDeleteOfferId(null)}
+                            aria-label="إلغاء حذف العرض"
+                          >
+                            إلغاء
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteOfferId(o.id)} disabled={deleteOffer.isPending && deleteOffer.variables === o.id} aria-label={`حذف العرض ${o.title}`}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -115,14 +115,24 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
         raise HTTPException(400, "الدفعة غير موجودة أو تمت معالجتها")
     if decision == "verified":
         tenant = await db.get(Tenant, sp.tenant_id)
-        if tenant:
-            plan = await db.get(SubscriptionPlan, sp.plan_id)
-            if plan:
-                tenant.plan_id = sp.plan_id
-                tenant.subscription_status = "PAID"
-                tenant.plan_start = utcnow()
-                tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
-                tenant.plan = plan.name.lower()
+        plan = await db.get(SubscriptionPlan, sp.plan_id)
+        # v25 (B-20): كانت الموافقة تعلّم الدفعة "verified" وتُخطر المستخدم
+        # بـ"تم التفعيل" حتى لو كان الـTenant أو الخطة مفقودين — حالة جزئية
+        # بلا أي أثر (لا تفعيل فعلي + إشعار كاذب). الآن: تسجيل حرج + إشعار
+        # صادق + إظهار الحقيقة في الاستجابة للأدمن.
+        _activation_failed = tenant is None or plan is None
+        if _activation_failed:
+            log.critical(
+                "payment %s verified but activation incomplete: tenant=%s plan=%s "
+                "(tenant row or plan row missing) — manual follow-up required",
+                sp.id, sp.tenant_id, sp.plan_id,
+            )
+        if tenant and plan:
+            tenant.plan_id = sp.plan_id
+            tenant.subscription_status = "PAID"
+            tenant.plan_start = utcnow()
+            tenant.plan_end = utcnow() + timedelta(days=plan.period_days)
+            tenant.plan = plan.name.lower()
         if sp.user_id:
             user = await db.get(User, sp.user_id)
             if user:
@@ -139,6 +149,7 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
         # nothing ever wrote tenant.subscription_status="REJECTED", so a
         # rejected tenant kept full bot replies forever (dead branch + §5.18
         # matrix violation). The user write below stays as-is.
+        _activation_failed = False
         tenant = await db.get(Tenant, sp.tenant_id)
         if tenant:
             tenant.subscription_status = "REJECTED"
@@ -149,11 +160,19 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
     # In-app notification (plan §4.2 — payment alerts)
     try:
         from routers.notifications import push_notification
-        if decision == "verified":
+        if decision == "verified" and not _activation_failed:
             await push_notification(
                 db, sp.tenant_id,
                 title="تم تأكيد الدفع وتفعيل الاشتراك",
                 body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                type_="payment", link="/dashboard/billing", user_id=sp.user_id,
+            )
+        elif decision == "verified":
+            # v25 (B-20): إشعار صادق بدل إشعار التفعيل الكاذب.
+            await push_notification(
+                db, sp.tenant_id,
+                title="تم تسجيل الدفع دون تفعيل",
+                body=f"سُجّلت دفعة بقيمة {float(sp.amount):.2f} د.ل لكن تعذّر تفعيل الباقة — فريق الدعم سيتواصل معك",
                 type_="payment", link="/dashboard/billing", user_id=sp.user_id,
             )
         else:
@@ -164,9 +183,10 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
                 type_="payment", link="/dashboard/billing", user_id=sp.user_id,
             )
     except Exception:
-        pass
+        # v25 (B-20): كان يُبتلع بلا أثر — الإشعار جزء من عقد الموافقة.
+        log.warning("payment %s: user notification failed", sp.id, exc_info=True)
     await db.commit()
-    return ok({"ok": True, "status": decision})
+    return ok({"ok": True, "status": decision, "activated": decision == "verified" and not _activation_failed})
 
 
 # ── v14-E1 #4: protected receipt download ─────────────────────────────────────

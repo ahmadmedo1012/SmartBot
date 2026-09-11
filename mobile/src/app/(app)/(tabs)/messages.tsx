@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
+import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Row } from '@/components/ui'
@@ -39,12 +40,15 @@ export default function MessagesScreen() {
   const insets = useSafeAreaInsets()
   const [search, setSearch] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(false)
+  // M-20: تأخير البحث 400ms قبل دخوله queryKey — كل ضغطة مفتاح كانت
+  // تطلق طلب API جديدًا (مع refetchInterval 15s = إغراق).
+  const debouncedSearch = useDebouncedValue(search, 400)
 
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<InboxResponse>({
-    queryKey: ['inbox-conversations', search, unreadOnly],
+    queryKey: ['inbox-conversations', debouncedSearch, unreadOnly],
     queryFn: () =>
       apiGet<InboxResponse>(
-        `/api/inbox/conversations?per_page=50${search ? `&search=${encodeURIComponent(search)}` : ''}${unreadOnly ? '&status=unread' : ''}`,
+        `/api/inbox/conversations?per_page=50${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}${unreadOnly ? '&status=unread' : ''}`,
       ),
     refetchInterval: 15_000, // إيقاع الويب نفسه (10-15s)
   })
@@ -130,7 +134,7 @@ export default function MessagesScreen() {
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
-          message={search || unreadOnly ? 'لا نتائج مطابقة' : 'لا محادثات بعد'}
+          message={debouncedSearch || unreadOnly ? 'لا نتائج مطابقة' : 'لا محادثات بعد'}
           hint="عندما يراسلك زبائن صفحتك ستظهر محادثاتهم هنا فورًا"
         />
       ) : (

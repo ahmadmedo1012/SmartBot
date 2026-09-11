@@ -1,9 +1,12 @@
 /**
  * شاشة العملاء المتوقعين — CRM (نفس الويب /dashboard/leads):
- * GET /api/crm/customers — بطاقات عملاء مع إضافة عميل جديد.
+ * GET /api/crm/customers — عقد v25 (routers/crm_routes.py): مغلّف
+ * {total,page,per_page,items} (M-04) — ليس مصفوفة.
+ * POST /api/crm/customers — Form-encoded: fb_user_id (مطلوب) + name + phone
+ * (الإنشاء القديم أرسل JSON بلا fb_user_id → 422 دائمًا — تدفق ميت M-04).
  */
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { radius, spacing } from '@/constants/theme'
@@ -11,9 +14,10 @@ import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
-import { apiGet, apiPost } from '@/services/api'
+import { apiGet, apiPostForm } from '@/services/api'
+import { extractItems } from '@/lib/envelope'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
-import { formatDate, formatMoney } from '@/lib/format'
+import { formatDate, formatNumber } from '@/lib/format'
 import type { Customer } from '@/types/api'
 
 export default function LeadsScreen() {
@@ -22,20 +26,39 @@ export default function LeadsScreen() {
   const [showNew, setShowNew] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [fbUserId, setFbUserId] = useState('')
   const [notes, setNotes] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<Customer[]>({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<
+    { total?: number; page?: number; per_page?: number; items: Customer[] },
+    Error,
+    Customer[]
+  >({
     queryKey: ['crm-customers'],
-    queryFn: () => apiGet<Customer[]>('/api/crm/customers'),
+    queryFn: () => apiGet('/api/crm/customers?per_page=100'),
+    select: (res) => extractItems<Customer>(res),
   })
+  const customers = data ?? []
 
   const addMutation = useMutation({
-    mutationFn: () => apiPost('/api/crm/customers', { name: name.trim(), phone: phone.trim(), notes: notes.trim() }),
+    mutationFn: () => {
+      // العقد (crm_routes.py): Form-encoded + fb_user_id مطلوب — نولّده من
+      // الاسم + الطابع الزمني إذا تركه المستخدم فارغًا
+      const effectiveFbId =
+        fbUserId.trim() || `lead-${name.trim().replace(/\s+/g, '-')}-${Date.now()}`.toLowerCase()
+      return apiPostForm('/api/crm/customers', {
+        fb_user_id: effectiveFbId,
+        name: name.trim(),
+        phone: phone.trim(),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
+      })
+    },
     onSuccess: () => {
       setShowNew(false)
       setName('')
       setPhone('')
+      setFbUserId('')
       setNotes('')
       setFormError(null)
       queryClient.invalidateQueries({ queryKey: ['crm-customers'] })
@@ -46,7 +69,7 @@ export default function LeadsScreen() {
   return (
     <StackScreen
       title="العملاء المتوقعون"
-      subtitle={`${data?.length ?? 0} عميل`}
+      subtitle={`${customers.length} عميل`}
       action={
         <Button title="عميل جديد" size="sm" onPress={() => setShowNew(true)} />
       }
@@ -54,11 +77,11 @@ export default function LeadsScreen() {
     >
       {isError ? (
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
-      ) : (data ?? []).length === 0 ? (
+      ) : customers.length === 0 ? (
         <EmptyState message="لا عملاء بعد" hint="أضف عملاءك المتوقعين وتابعهم من هنا" />
       ) : (
         <FlatList
-          data={data ?? []}
+          data={customers}
           keyExtractor={(c) => String(c.id)}
           onRefresh={() => refetch()}
           refreshing={isRefetching}
@@ -69,20 +92,22 @@ export default function LeadsScreen() {
                 <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
                   {item.name ?? 'عميل'}
                 </AppText>
-                {item.total_spent ? <Badge tone="success" text={formatMoney(item.total_spent)} /> : null}
+                {item.stage ? <Badge tone={item.stage === 'lead' ? 'warning' : 'brand'} text={item.stage === 'lead' ? 'متوقع' : item.stage} /> : null}
               </Row>
               <Row style={{ marginTop: spacing.sm, gap: spacing.lg }}>
                 {item.phone ? <AppText variant="small" color="mutedFg">📞 {item.phone}</AppText> : null}
-                {item.email ? <AppText variant="small" color="mutedFg">✉ {item.email}</AppText> : null}
+                {typeof item.total_interactions === 'number' ? (
+                  <AppText variant="small" color="mutedFg">{formatNumber(item.total_interactions)} تفاعل</AppText>
+                ) : null}
               </Row>
               {item.notes ? (
                 <AppText variant="small" color="mutedFg" style={{ marginTop: spacing.xs }} numberOfLines={2}>
                   {item.notes}
                 </AppText>
               ) : null}
-              {item.created_at ? (
+              {item.last_contacted_at || item.first_seen_at ? (
                 <AppText variant="caption" color="mutedFg" style={{ marginTop: spacing.xs }}>
-                  أُضيف {formatDate(item.created_at)}
+                  {item.last_contacted_at ? `آخر تواصل ${formatDate(item.last_contacted_at)}` : `أُضيف ${formatDate(item.first_seen_at)}`}
                 </AppText>
               ) : null}
             </Card>
@@ -90,9 +115,13 @@ export default function LeadsScreen() {
         />
       )}
 
-      {/* Sheet عميل جديد */}
+      {/* Sheet عميل جديد — M-21: KAV لئلا تغطي لوحة المفاتيح الحقول على iOS */}
       <Modal visible={showNew} transparent animationType="slide" onRequestClose={() => setShowNew(false)}>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
           <Pressable style={{ flex: 1 }} accessibilityLabel="إغلاق" onPress={() => setShowNew(false)} />
           <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -102,6 +131,16 @@ export default function LeadsScreen() {
             <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
               <AppInput label="الاسم" value={name} onChangeText={setName} placeholder="اسم العميل" accessibilityLabel="اسم العميل" />
               <AppInput label="الهاتف" value={phone} onChangeText={setPhone} placeholder="09xxxxxxxx" keyboardType="phone-pad" accessibilityLabel="هاتف العميل" />
+              <AppInput
+                label="معرف فيسبوك (اختياري)"
+                value={fbUserId}
+                onChangeText={setFbUserId}
+                placeholder="يُولّد تلقائيًا إذا تُرك فارغًا"
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="معرف فيسبوك للعميل"
+                hint="مطلوب من الخادم — نولّده لك تلقائيًا عند الترك فارغًا"
+              />
               <AppInput label="ملاحظات (اختياري)" value={notes} onChangeText={setNotes} placeholder="ما يهمك عن هذا العميل" multiline accessibilityLabel="ملاحظات" />
               {formError ? (
                 <AppText variant="small" style={{ color: colors.destructive }}>
@@ -114,7 +153,7 @@ export default function LeadsScreen() {
               </Row>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </StackScreen>
   )

@@ -144,12 +144,17 @@ function SequenceEditor({
   seqId,
   row,
   onClosed,
+  onCreateBound,
 }: {
   /** null = إنشاء؛ رقم = تحرير حملة قائمة. */
   seqId: number | null
   /** صف القائمة للعدّادات الحية (يحدَّث عبر invalidate دون مسح التعديلات). */
   row?: SequenceCardRow
   onClosed: () => void
+  /* v25 (W-08): يُستدعى عندما تنجح POST الحملة لكن تفشل بعض الخطوات —
+   * يُعاد ربط المحرر بوضع التحرير على الحملة المُنشأة نفسها بدل تركه
+   * في وضع «إنشاء» يعيد إنشاء حملة مكررة عند إعادة المحاولة. */
+  onCreateBound?: (createdId: number) => void
 }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState("")
@@ -162,6 +167,16 @@ function SequenceEditor({
 
   const isCreate = seqId === null
 
+  /* v25 (W-08 — إنشاء غير ذرّي بمتانة): POST /api/sequences ثم N من
+   * POST الخطوات؛ فشل منتصف الحلقة كان يترك حملة جزئية + محرراً يظن أنه لم
+   * ينشئ شيئاً، فإعادة المحاولة تُنشئ حملة مكررة (وأخطاء الخطوات تعاد).
+   * الآن: يُتعقّب معرّف الحملة المُنشأة ومعرّفات الخطوات المحفوظة (فهرس
+   * → id)؛ عند الفشل يُستدعى onCreateBound فيرتبط المحرر بالحملة نفسها،
+   * وتُعلّم الخطوات المحفوظة بمعرّفاتها فتُرسل PUT عند إعادة المحاولة
+   * بدل POST مكرر — لا إنشاء مكرر ولا خطوات يُتيمّة. */
+  const createdIdRef = useRef<number | null>(null)
+  const savedStepIdsRef = useRef<Map<number, number>>(new Map())
+
   const detail = useQuery({
     queryKey: ["sequence", seqId],
     queryFn: () => apiFetch(`/api/sequences/${seqId}`).then(unwrapApi<SequenceDetail>),
@@ -170,9 +185,16 @@ function SequenceEditor({
   })
 
   /* الترطيب مرة واحدة لكل فتح — invalidate لاحق (اشتراك جديد) يجب ألا
-   * يمسح تعديلات المستخدم الجارية؛ العدّادات الحية تأتي من row لا من detail. */
+   * يمسح تعديلات المستخدم الجارية؛ العدّادات الحية تأتي من row لا من detail.
+   * v25 (W-08): استثناء واحد — إعادة الربط بعد إنشاء جزئي: الترطيب من
+   * الخادم سيطمس مسودات الخطوات الفاشلة؛ تُحتفظ المسودات المحلية (وقد
+   * عُلّمت الخطوات المحفوظة بمعرّفاتها) ويُعدّ المحرر مُرطّباً. */
   useEffect(() => {
     if (isCreate || !detail.data || hydrated.current) return
+    if (seqId !== null && seqId === createdIdRef.current) {
+      hydrated.current = true
+      return
+    }
     hydrated.current = true
     setName(detail.data.name)
     setDescription(detail.data.description ?? "")
@@ -243,9 +265,14 @@ function SequenceEditor({
           body: JSON.stringify({ name: name.trim(), description: description.trim() }),
         }).then(unwrapApi<{ id: number }>)
         if (!created?.id) throw new Error("تعذر إنشاء الحملة")
+        /* v25 (W-08): تعقّب الحملة المُنشأة ومعرّفات الخطوات المحفوظة —
+           مرآة onError أسفل. */
+        createdIdRef.current = created.id
+        savedStepIdsRef.current = new Map()
         for (let i = 0; i < steps.length; i++) {
           const d = await postStep(created.id, i, steps[i]!)
           if (!d?.id) throw new Error(`تعذر حفظ الخطوة ${i + 1}`)
+          savedStepIdsRef.current.set(i, d.id)
         }
         return
       }
@@ -293,7 +320,31 @@ function SequenceEditor({
       queryClient.invalidateQueries({ queryKey: ["sequences"] })
       onClosed()
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل حفظ الحملة"),
+    onError: (e: Error) => {
+      /* v25 (W-08): الحملة وُجدت فعلاً وفشلت بعض الخطوات — لا نغلق ولا
+       * نُبقي وضع «إنشاء» (إعادة المحاولة كانت ستُنشئ مكررة): علّم الخطوات
+       * المحفوظة بمعرّفاتها (PUT عند إعادة المحاولة)، اربط المحرر بالحملة
+       * نفسها، حدّث القائمة (الحملة الجزئية ظاهرة الآن)، وتوست غير حاجب
+       * يشرح الخطوة التالية. */
+      const createdId = createdIdRef.current
+      if (isCreate && createdId != null) {
+        const savedIds = savedStepIdsRef.current
+        setSteps((prev) =>
+          prev.map((st, i) => {
+            const saved = savedIds.get(i)
+            return saved != null && st.id == null ? { ...st, id: saved } : st
+          }),
+        )
+        onCreateBound?.(createdId)
+        queryClient.invalidateQueries({ queryKey: ["sequences"] })
+        brandedToast.warning(
+          "تم إنشاء الحملة لكن فشل حفظ بعض الخطوات — أكمل التعديل",
+          e.message,
+        )
+        return
+      }
+      brandedToast.error(e.message || "فشل حفظ الحملة")
+    },
   })
 
   /* ── الجمهور: إضافة مشترك عبر عقد subscribe ── */
@@ -571,7 +622,7 @@ export default function SequencesPage() {
   const queryClient = useQueryClient()
   /** null = مغلق؛ {mode:"create"} أو {mode:"edit", id, row}. */
   const [editor, setEditor] = useState<
-    { mode: "create" } | { mode: "edit"; id: number; row: SequenceCardRow } | null
+    { mode: "create" } | { mode: "edit"; id: number; row?: SequenceCardRow } | null
   >(null)
   /** تأكيد حذف من خطوتين (عربي) — id الحملة في وضع التأكيد. */
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
@@ -645,6 +696,10 @@ export default function SequencesPage() {
               seqId={editor.mode === "edit" ? editor.id : null}
               row={editor.mode === "edit" ? editor.row : undefined}
               onClosed={() => setEditor(null)}
+              /* v25 (W-08): إنشاء جزئي فاشل — المحرر يتحول لوضع التحرير
+               * على الحملة المُنشأة (بلا صف قائمة بعد — العدّادات تظهر
+               * بعد invalidate التالي). */
+              onCreateBound={(createdId) => setEditor({ mode: "edit", id: createdId })}
             />
           )}
 

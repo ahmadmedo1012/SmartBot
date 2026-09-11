@@ -1,35 +1,62 @@
 /**
  * شاشة الاشتراك في خطة (نفس الويب /pricing + /subscribe):
- * GET /api/plans (عام) · POST /api/subscriptions (طلب اشتراك).
+ * GET /api/plans (عام) · POST /api/subscriptions.
+ * عقد v25 (routers/payments/plans.py — M-11): الطلب JSON
+ * {plan_id, amount (= سعر الخطة رقمًا), provider (liyana|madar|bank),
+ *  phone (≥7 أرقام — مطلوب لغير البنكي)} — الطلب القديم كان يرسل plan_id
+ * فقط → 400 «المبلغ غير مطابق» دائمًا (تدفق ميت).
  */
 import { useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing } from '@/constants/theme'
+import { radius, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'
+import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
 import { LoadingState, ErrorState, describeError } from '@/components/state-views'
 import { formatMoney } from '@/lib/format'
 import type { Plan } from '@/types/api'
 
+type Provider = 'liyana' | 'madar' | 'bank'
+
+const PROVIDERS: { id: Provider; label: string }[] = [
+  { id: 'liyana', label: 'ليبيانا' },
+  { id: 'madar', label: 'مدار' },
+  { id: 'bank', label: 'تحويل بنكي' },
+]
+
 export default function SubscribeScreen() {
   const { colors } = useTheme()
   const [actionError, setActionError] = useState<string | null>(null)
   const [requested, setRequested] = useState<number | null>(null)
+  // نموذج إتمام الطلب (M-11): الخطة قيد الاشتراك + المزود + الهاتف
+  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null)
+  const [provider, setProvider] = useState<Provider>('liyana')
+  const [phone, setPhone] = useState('')
 
   const { data: plans, isLoading, isError, error, refetch } = useQuery<Plan[]>({
     queryKey: ['plans'],
     queryFn: () => apiGet<Plan[]>('/api/plans'),
   })
 
+  const phoneValid = phone.trim().length >= 7
+
   const subscribeMutation = useMutation({
-    mutationFn: (planId: number) => apiPost('/api/subscriptions', { plan_id: planId }),
-    onSuccess: (_data, planId) => {
+    mutationFn: (plan: Plan) =>
+      apiPost('/api/subscriptions', {
+        plan_id: plan.id,
+        amount: plan.price, // يجب أن يطابق سعر الخطة رقمًا (شرط الخادم)
+        provider,
+        phone: phone.trim(),
+      }),
+    onSuccess: (_data, plan) => {
       setActionError(null)
-      setRequested(planId)
+      setRequested(plan.id)
+      setCheckoutPlan(null)
+      setPhone('')
     },
     onError: (e) => setActionError(describeError(e)),
   })
@@ -85,7 +112,12 @@ export default function SubscribeScreen() {
                   ) : (
                     <Button
                       title={`اشترك — ${formatMoney(plan.price)}`}
-                      onPress={() => subscribeMutation.mutate(plan.id)}
+                      onPress={() => {
+                        setCheckoutPlan(plan)
+                        setProvider('liyana')
+                        setPhone('')
+                        setActionError(null)
+                      }}
                       loading={subscribeMutation.isPending}
                     />
                   )}
@@ -98,6 +130,92 @@ export default function SubscribeScreen() {
           </AppText>
         </ScrollView>
       )}
+
+      {/* Sheet إتمام الاشتراك (M-11): المبلغ + مزود الدفع + الهاتف */}
+      <Modal visible={!!checkoutPlan} transparent animationType="slide" onRequestClose={() => setCheckoutPlan(null)}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <Pressable style={{ flex: 1 }} accessibilityLabel="إغلاق" onPress={() => setCheckoutPlan(null)} />
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
+            <AppText variant="subtitle" style={{ marginTop: spacing.md }}>
+              إتمام الاشتراك — {checkoutPlan?.name_ar}
+            </AppText>
+            <Row style={{ justifyContent: 'space-between', marginTop: spacing.md }}>
+              <AppText variant="small" color="mutedFg">
+                المبلغ المطلوب
+              </AppText>
+              <AppText variant="smallBold" style={{ color: colors.accentFg }}>
+                {formatMoney(checkoutPlan?.price ?? 0)}
+              </AppText>
+            </Row>
+            <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
+              <View>
+                <AppText variant="small" color="mutedFg" style={{ marginBottom: spacing.xs }}>
+                  مزود الدفع
+                </AppText>
+                <Row style={{ gap: spacing.sm }}>
+                  {PROVIDERS.map((p) => (
+                    <Pressable
+                      key={p.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={p.label}
+                      onPress={() => setProvider(p.id)}
+                      style={[
+                        styles.chip,
+                        {
+                          borderColor: provider === p.id ? colors.primary : colors.border,
+                          backgroundColor: provider === p.id ? `${colors.primary}24` : 'transparent',
+                        },
+                      ]}
+                    >
+                      <AppText variant="smallBold" style={{ color: provider === p.id ? colors.accentFg : colors.mutedFg }}>
+                        {p.label}
+                      </AppText>
+                    </Pressable>
+                  ))}
+                </Row>
+              </View>
+              <AppInput
+                label="رقم الهاتف"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="09xxxxxxxx"
+                keyboardType="phone-pad"
+                accessibilityLabel="رقم هاتف الدفع"
+                hint="مطلوب (7 أرقام على الأقل) لإتمام الحوالة"
+              />
+              {actionError ? (
+                <AppText variant="small" style={{ color: colors.destructive }}>
+                  {actionError}
+                </AppText>
+              ) : null}
+              <Row>
+                <Button
+                  title="إرسال طلب الاشتراك"
+                  onPress={() => checkoutPlan && subscribeMutation.mutate(checkoutPlan)}
+                  loading={subscribeMutation.isPending}
+                  disabled={!phoneValid}
+                />
+                <Button title="إلغاء" variant="ghost" onPress={() => setCheckoutPlan(null)} />
+              </Row>
+              <AppText variant="caption" color="mutedFg" style={{ textAlign: 'center' }}>
+                يُرسل الطلب للأدمن مع تعليمات الحوالة — التأكيد عبر تيليجرام
+              </AppText>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </StackScreen>
   )
 }
+
+const styles = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 8 },
+})

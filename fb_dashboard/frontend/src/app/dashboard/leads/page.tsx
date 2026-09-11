@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
@@ -7,24 +8,39 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
+import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
-import { formatDateOnly } from "@/lib/format"
+import { formatDateOnly, formatNumber } from "@/lib/format"
 
 export default function LeadsPage() {
-  const { data: customers = [], isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["crm-customers"],
+  /* v25 (W-07): صفحة العملاء الحالية — /api/crm/customers (routers/
+   * crm_routes.py:26) يقبل page ge=1 وper_page (افتراضي 25) ويُرجع
+   * {items,total,page,per_page}؛ الصفحة كانت تعرض أول نافذة فقط بلا أي
+   * سبيل للصفحات التالية. */
+  const [page, setPage] = useState(1)
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["crm-customers", page],
     queryFn: async () => {
-      const res = await apiFetch("/api/crm/customers")
+      const res = await apiFetch(`/api/crm/customers?page=${page}`)
       if (!res.ok) throw new Error(`فشل تحميل العملاء (${res.status})`)
       // API returns a paginated envelope {total, page, per_page, items} —
       // this page maps the LIST. The old code mapped the envelope object
       // itself and crashed with "e.map is not a function" on first render.
-      const d = await unwrapApi<{ items: CrmCustomer[]; total: number; page: number; per_page: number }>(res)
-      return d?.items ?? []
+      return unwrapApi<{ items: CrmCustomer[]; total: number; page: number; per_page: number }>(res)
     },
+    /* v25 (W-07): تبديل الصفحة يُبقي الصفوف السابقة معروضة (بهتة
+     * isFetching) بدل وميض الهيكل — نمط admin/support v24-C3. */
+    placeholderData: (prev) => prev,
     retry: 1,
   })
+  const customers = data?.items ?? []
+  /* v25 (W-07): المؤشرات من الظرف — الصفحة الفعلية من data.page، وعدد
+   * الصفحات من total/per_page (عقد admin/support نفسه مع «من Y» الإضافي
+   * لأن هذا الظرف يفصح عن per_page). */
+  const shownPage = data?.page ?? page
+  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.per_page ?? 25)))
+  const hasNextPage = shownPage < totalPages
 
   return (
     <div className="flex-1 flex flex-col">
@@ -77,6 +93,35 @@ export default function LeadsPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* v25 (W-07): مِرقاة الصفحات — مرآة لنمط admin/support (v24-C3:
+            السابق/التالي عبر DirectionalIcon chevrons + مؤشر «صفحة X من Y»
+            role=status)؛ تُخفى عند التحميل/الخطأ. */}
+        {!isLoading && !isError && (
+          <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              aria-label="الصفحة السابقة"
+            >
+              <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
+            </Button>
+            <span className="text-xs text-muted-foreground" role="status">
+              صفحة {formatNumber(shownPage)} من {formatNumber(totalPages)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!hasNextPage}
+              aria-label="الصفحة التالية"
+            >
+              التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
+            </Button>
           </div>
         )}
       </div>

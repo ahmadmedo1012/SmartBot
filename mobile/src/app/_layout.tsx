@@ -9,7 +9,7 @@ import { I18nManager } from 'react-native'
 import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import {
   useFonts,
   Cairo_400Regular,
@@ -25,6 +25,7 @@ import {
 } from '@expo-google-fonts/readex-pro'
 import * as SplashScreen from 'expo-splash-screen'
 import { dark } from '@/constants/theme'
+import { queryClient } from '@/lib/query-client'
 import { AuthProvider, useAuth } from '@/state/auth'
 import { LoadingState } from '@/components/state-views'
 
@@ -33,17 +34,6 @@ I18nManager.allowRTL(true)
 I18nManager.forceRTL(true)
 
 SplashScreen.preventAutoHideAsync()
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // لا نافذة على الموبايل — polling صريح حيث يلزم (نفس إيقاعات الويب)
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 30_000,
-    },
-  },
-})
 
 function AppShell() {
   const { status } = useAuth()

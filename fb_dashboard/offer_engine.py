@@ -16,7 +16,7 @@ fast-path hint only; the database is the source of truth.
 """
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update  # v25 (D-02): func/update for capacity+counter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -114,14 +114,30 @@ class OfferEngine:
         attempts (or two serverless instances) can now never both deliver
         the same offer to the same user.
         """
+        # v25 (D-02): كانت القراءة تعرض كل العروض النشطة بلا فحص للصلاحية
+        # أو السعة — عرض منتهٍ أو مستنفد (max_uses) يُسلَّم للأبد ولا يُعدّ
+        # used_count أبدًا. الآن: الفلترة الزمنية + السعة في الاستعلام،
+        # وزيادة ذرية عند التسليم الفائز.
+        from _utils import utcnow as _now
         from models import Offer
+        _now_v = _now()
         try:
-            stmt = select(Offer).where(Offer.is_active == True)
+            stmt = select(Offer).where(
+                Offer.is_active == True,
+                # start window (NULL = already started)
+                (Offer.starts_at.is_(None)) | (Offer.starts_at <= _now_v),
+                # expiry (NULL = never expires)
+                (Offer.expires_at.is_(None)) | (Offer.expires_at > _now_v),
+                # capacity (NULL/0 = unlimited)
+                (Offer.max_uses.is_(None)) | (Offer.max_uses == 0)
+                | (func.coalesce(Offer.used_count, 0) < Offer.max_uses),
+            )
             if tenant_id:
                 stmt = stmt.where(Offer.tenant_id == tenant_id)
             result = await session.execute(stmt)
             offers = result.scalars().all()
         except Exception:
+            log.warning("offer selection query failed", exc_info=True)
             return None
 
         if not offers:
@@ -142,6 +158,8 @@ class OfferEngine:
         # ponytail: single-offer selection. Multi-offer A/B testing when >5 offers.
         for best in offers:
             if not user_id:
+                # v25 (D-02): زيادة ذرية للسعة حتى بلا مفتاح مستخدم.
+                await self._bump_used(session, best.id)
                 return self._offer_dict(best)  # no user → no dedup key → nothing to claim
             try:
                 won = await self.record_claim(
@@ -153,10 +171,28 @@ class OfferEngine:
                 log.warning("offer claim write failed — delivering without claim", exc_info=True)
                 won = True
             if won:
+                # v25 (D-02): كل تسليم فعلي يزيد used_count ذريًا — الفحص
+                # أعلاه يمنع تجاوز max_uses بعد الآن.
+                await self._bump_used(session, best.id)
                 return self._offer_dict(best)
             # IntegrityError: another instance delivered this one — the
             # loop advances to the next unclaimed candidate.
         return None
+
+    @staticmethod
+    async def _bump_used(session: AsyncSession, offer_id: int) -> None:
+        """v25 (D-02): atomic used_count increment — survives concurrent
+        deliveries (UPDATE not read-modify-write), never raises (best-effort
+        accounting; the claim row remains the hard dedup guarantee)."""
+        from models import Offer
+        try:
+            await session.execute(
+                update(Offer)
+                .where(Offer.id == offer_id)
+                .values(used_count=func.coalesce(Offer.used_count, 0) + 1)
+            )
+        except Exception:
+            log.warning("offer used_count bump failed (id=%s)", offer_id, exc_info=True)
 
     @staticmethod
     def _offer_dict(best) -> dict:

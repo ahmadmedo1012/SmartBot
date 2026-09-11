@@ -205,7 +205,11 @@ export function MobileBottomNav({
       </div>
 
       {/* ── Bottom bar ── */}
+      {/* v25 (W-15): data-nav-root="mobile" — المحدّد المستقر الذي تستهدفه
+          قاعدة إخفاء الخيط الغامر في messages/page.tsx (بدل مطابقة سلاسل
+          className الهشة). */}
       <nav
+        data-nav-root="mobile"
         className="fixed inset-x-0 bottom-0 z-30 md:hidden border-t border-border bg-card/95 backdrop-blur-md safe-area-pb"
         aria-label="التنقل الرئيسي"
       >

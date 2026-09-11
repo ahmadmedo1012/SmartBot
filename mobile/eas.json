@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.smart-link.ly"
+        "EXPO_PUBLIC_API_URL": "http://localhost:8000"
       },
       "ios": {
         "simulator": true
@@ -17,7 +17,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.smart-link.ly"
+        "EXPO_PUBLIC_API_URL": "http://localhost:8000"
       },
       "android": {
         "buildType": "apk"

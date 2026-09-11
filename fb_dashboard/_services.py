@@ -295,6 +295,16 @@ async def refresh_ai_from_db() -> None:
         _mod._openai = None   # reset lazy providers
         _mod._google = None
         _ai_service = None    # rebuilt by the next get_ai()
+        # v25 (B-02 — عطل "AI multi-agent غير فعّال"): مسار الوكيل يخزّن
+        # singleton خاصًا به (agent_brain._ai) — بدونه يظل الوكيل على مفاتيح
+        # env القديمة حتى بعد الحفظ من /admin/settings، وينحدر صامتًا إلى
+        # heuristic. إبطال الذاكرة يجعل brain.reason() يبني خدمة جديدة
+        # بالمفاتيح المحدّثة.
+        try:
+            import agent_brain as _brain
+            _brain._ai = None
+        except Exception:
+            pass
 
 # Bot engine — per-tenant dict registry (same pattern as _get_ctx/_get_offer)
 _bot_engines: dict[int, BotEngine] = {}
@@ -592,10 +602,12 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
     async def _write():
         try:
             async with AsyncSessionLocal() as s:
-                ev = AnalyticsEvent(event_type=event_type, metadata_json=json.dumps(metadata or {}, ensure_ascii=False))
-                if tenant_id:
-                    ev.tenant_id = tenant_id
-                s.add(ev)
+                # v25 (D-07): قاموس أصلي داخل عمود JSON (لا ترميز مزدوج)
+                # وtenant_id يُكتَب دائمًا (الافتراضي 0 = منصي، كان يُسقط
+                # العمود كليًا عندما يكون 0 فيتقاطع مع سلوك SQLAlchemy
+                # الافتراضي — الآن صريح).
+                s.add(AnalyticsEvent(event_type=event_type, tenant_id=tenant_id or 0,
+                                     metadata_json=metadata or {}))
                 await s.commit()
         except Exception:
             pass

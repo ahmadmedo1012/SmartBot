@@ -260,7 +260,34 @@ class SequenceEngine:
         يعمل). كما أن الالتزام يجري داخل SAVEPOINT (نمط _wallet.credit_wallet
         المجرب في v14) — تكرار uq_seq_sub يُرجع نقطة الحفظ فقط، بينما كان
         rollback() الكامل يسمم معاملة المستدعي ويُلغي كل تغييراته المعلقة.
+        v25 (B-01 — IDOR): التحقق من الملكية قبل أي كتابة — المشترك
+        والتسلسل يجب أن ينتميا لمستأجر المستدعي. سابقًا كان معرّف مشترك
+        من مستأجر آخر يُدرَج بلا تحقق، ثم يرسل له وكيل drip رسائل
+        بتوكن صفحة هذا المستأجر (كتابة عبر المستأجرين).
         """
+        if tenant_id:
+            own_sub = (await session.execute(
+                select(Subscriber.id).where(
+                    Subscriber.id == subscriber_id,
+                    Subscriber.tenant_id == tenant_id,
+                )
+            )).scalar_one_or_none()
+            if own_sub is None:
+                log.warning(
+                    "sequence subscribe rejected: subscriber %s not in tenant %s",
+                    subscriber_id, tenant_id,
+                )
+                return False
+        seq_stmt = select(Sequence).where(Sequence.id == sequence_id)
+        if tenant_id:
+            seq_stmt = seq_stmt.where(Sequence.tenant_id == tenant_id)
+        seq = (await session.execute(seq_stmt)).scalar_one_or_none()
+        if seq is None:
+            log.warning(
+                "sequence subscribe rejected: sequence %s not in tenant %s",
+                sequence_id, tenant_id or 0,
+            )
+            return False
         try:
             async with session.begin_nested():
                 sub = SequenceSubscription(
@@ -274,35 +301,43 @@ class SequenceEngine:
                 await session.flush()
         except IntegrityError:
             return False
-        stmt = select(Sequence).where(Sequence.id == sequence_id)
-        if tenant_id:
-            stmt = stmt.where(Sequence.tenant_id == tenant_id)
-        seq = (await session.execute(stmt)).scalar_one_or_none()
-        if seq:
-            seq.total_subscribers = (seq.total_subscribers or 0) + 1
+        # v25 (D-04): عدّاد ذري بدل read-modify-write — نفس نمط usage_counters.
+        await session.execute(
+            update(Sequence)
+            .where(Sequence.id == sequence_id)
+            .values(total_subscribers=func.coalesce(Sequence.total_subscribers, 0) + 1)
+        )
         return True
 
     async def unsubscribe(
         self, subscriber_id: int, sequence_id: int, session, tenant_id: int = 0
     ) -> bool:
-        """Unsubscribe a user from a sequence."""
-        result = await session.execute(
-            select(SequenceSubscription).where(
-                SequenceSubscription.subscriber_id == subscriber_id,
-                SequenceSubscription.sequence_id == sequence_id,
-            )
+        """Unsubscribe a user from a sequence.
+
+        v25 (B-01 — IDOR): فلترة tenant على صف الاشتراك نفسه — كانت
+        البحث بلا فلتر فيمكن لمستأجر آخر قلب حالة اشتراك لا يملكه.
+        """
+        stmt = select(SequenceSubscription).where(
+            SequenceSubscription.subscriber_id == subscriber_id,
+            SequenceSubscription.sequence_id == sequence_id,
         )
+        if tenant_id:
+            stmt = stmt.where(SequenceSubscription.tenant_id == tenant_id)
+        result = await session.execute(stmt)
         sub = result.scalar_one_or_none()
         if not sub:
             return False
         sub.status = "unsubscribed"
         sub.completed_at = utcnow()
-        stmt = select(Sequence).where(Sequence.id == sequence_id)
-        if tenant_id:
-            stmt = stmt.where(Sequence.tenant_id == tenant_id)
-        seq = (await session.execute(stmt)).scalar_one_or_none()
-        if seq and seq.total_subscribers > 0:
-            seq.total_subscribers -= 1
+        # v25 (D-04): عدّاد ذري بالنقص.
+        await session.execute(
+            update(Sequence)
+            .where(
+                Sequence.id == sequence_id,
+                func.coalesce(Sequence.total_subscribers, 0) > 0,
+            )
+            .values(total_subscribers=func.coalesce(Sequence.total_subscribers, 0) - 1)
+        )
         return True
     async def advance(
         self, subscriber_id: int, sequence_id: int, session

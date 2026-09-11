@@ -20,6 +20,7 @@ from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError  # v25 (B-03/D-08): cross-instance pending guard
 from telegram_bot import notify_admins_new_subscription
 
 from routers.auth import get_current_user
@@ -183,7 +184,19 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
             extra_data=bank_extra,
         )
         db.add(sp)
-        await db.commit()  # inside the lock — the pending check stays atomic
+        # v25 (B-03/D-08): القفل داخل العملية لا يحمي عبر instances متعددة
+        # (Vercel) — فهرس ix_sub_payment_user_pending الفريد الجزئي هو الحارس
+        # الحقيقي، لكن IntegrityError كانت تمرّ خامًا كـ 500. الآن تُحوّل إلى
+        # 400 ودّية بنفس رسالة القفل المحلي.
+        try:
+            await db.commit()  # inside the lock — the pending check stays atomic
+        except IntegrityError:
+            await db.rollback()
+            log.warning(
+                "cross-instance duplicate pending payment: user %s",
+                current_user.id,
+            )
+            raise HTTPException(400, "لديك طلب دفع معلق — انتظر الموافقة أو ألغِه") from None  # v25: constraint-race translation
         await db.refresh(sp)
 
     # v14-E1 #3: inline (was spawn) — Vercel kills post-response tasks; the
@@ -283,9 +296,11 @@ async def cancel_pending_subscription(body: dict = Body(...), db=Depends(get_db)
             .order_by(SubscriptionPayment.id.desc())
             .limit(1)
         )).scalars().first()
-    # Tenant isolation — same rule as subscription_status: 404 (never 403)
-    # keeps foreign payment ids indistinguishable from nonexistent ones.
-    if not sp or (sp.user_id != current_user.id and sp.tenant_id != (current_user._tenant_id or 0)):
+    # v25 (B-11): الإلغاء للمالك فقط — كانت العزلة "المالك أو نفس المستأجر"
+    # فيمكن لعضو بأدنى صلاحية (viewer) إلغاء دفعة مالك المستأجر المعلقة
+    # (sabotage). المسار خدمة ذاتية للمالك؛ إلغاءات الأدمن تمرّ من
+    # لوحة الإدارة بقرار موثّق.
+    if not sp or sp.user_id != current_user.id:
         raise HTTPException(404, "الدفعة غير موجودة")
     if sp.status != "pending":
         raise HTTPException(400, "لا يمكن إلغاء طلب غير معلق")
@@ -363,7 +378,19 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
             upgraded_from=tenant.plan_id,
         )
         db.add(sp)
-        await db.commit()  # inside the lock — the pending check stays atomic
+        # v25 (B-03/D-08): القفل داخل العملية لا يحمي عبر instances متعددة
+        # (Vercel) — فهرس ix_sub_payment_user_pending الفريد الجزئي هو الحارس
+        # الحقيقي، لكن IntegrityError كانت تمرّ خامًا كـ 500. الآن تُحوّل
+        # إلى 400 ودّية بنفس رسالة القفل المحلي.
+        try:
+            await db.commit()  # inside the lock — the pending check stays atomic
+        except IntegrityError:
+            await db.rollback()
+            log.warning(
+                "cross-instance duplicate pending payment: user %s",
+                current_user.id,
+            )
+            raise HTTPException(400, "لديك طلب ترقية معلق") from None  # v25: constraint-race translation
         await db.refresh(sp)
 
     # v14-E1 #3: inline (was spawn) — same Vercel rationale as create.

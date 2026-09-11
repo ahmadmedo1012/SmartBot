@@ -1,23 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
+/* v25 (W-10): استعلام /api/me الخاص بالصفحة (مفتاح ["current-user"] منفصل)
+   * استُبدل بالخطاف المشترك useMe() (v24-C3) — مدخل واحد في الكاش يخدم
+   * AuthGuard وCTA الاشتراك وهذه الصفحة؛ طلبات مكررة أقل واتساق
+   * انتهاء الصلاحية. نفس الواجهة البصرية — بيانات {user} نفسها. */
+import { useMe } from "@/hooks/useMe"
 import { Settings, User, Shield, Mail, Lock, KeyRound, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { LoadingState, ErrorState } from "@/components/ui/EmptyState"
-import { unwrapApi } from "@/lib/api"
-import type { ApiUser } from "@/lib/types"
 
 export default function SettingsPage() {
-  const { data: raw, isLoading, isError, refetch } = useQuery({
-    queryKey: ["current-user"],
-    queryFn: () => apiFetch("/api/me").then((res) => unwrapApi<{ user?: ApiUser }>(res)),
-  })
+  const { data: raw, isLoading, isError, refetch } = useMe()
   // v13-L3: /api/me answers ok({user}) (auth.py, v12-E2.10) — unwrapApi
   // returns {user}; the optional chain only covers the react-query
   // loading window. Same typed pattern as admin/telegram/page.tsx:57.

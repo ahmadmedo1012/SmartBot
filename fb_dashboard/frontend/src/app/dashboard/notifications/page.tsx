@@ -24,6 +24,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState, ErrorState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { formatNumber } from "@/lib/format"
+
+/* v25 (W-07): عقد /api/notifications (routers/notifications.py:97) — حد أقصى
+ * le=200 بلا offset/صفحات؛ «تحميل المزيد» يوسّع النافذة بزيادة limit
+ * (50 → 100 → … → 200) حتى سقف الخلفية — نفس نهج التعليقات. */
+const NOTIFICATIONS_INITIAL = 50
+const NOTIFICATIONS_STEP = 50
+const NOTIFICATIONS_MAX = 200
 
 interface NotificationItem {
   id: number
@@ -99,15 +107,21 @@ const TOGGLES = [
 export default function NotificationsPage() {
   const queryClient = useQueryClient()
   const router = useRouter()
+  /* v25 (W-07): حجم نافذة الخلاصة — يبدأ 50 ويتوسع بـ«تحميل المزيد» حتى
+   * سقف الخلفية (200). مفتاح الاستعلام يتبع limit فتُجلب النافذة الأوسع. */
+  const [feedLimit, setFeedLimit] = useState(NOTIFICATIONS_INITIAL)
 
   // ── Notification feed (plan §4.2) ──
   const feedQuery = useQuery({
-    queryKey: ["notifications-feed"],
+    queryKey: ["notifications-feed", feedLimit],
     queryFn: async () => {
-      const res = await apiFetch("/api/notifications")
+      const res = await apiFetch(`/api/notifications?limit=${feedLimit}`)
       if (!res.ok) throw new Error(`تعذر تحميل الإشعارات (${res.status})`)
       return unwrapApi(res)
     },
+    /* v25 (W-07): توسيع النافذة يُبقي الصفوف السابقة معروضة (بهتة
+     * isFetching) بدل وميض الهيكل الكامل — نمط admin/support v24-C3. */
+    placeholderData: (prev) => prev,
     retry: 1,
   })
 
@@ -211,7 +225,9 @@ export default function NotificationsPage() {
                   variant="ghost"
                   onClick={() => markAllMutation.mutate()}
                   disabled={markAllMutation.isPending}
-                  className="text-xs h-7 gap-1.5"
+                  /* v25 (W-09): h-11 — هدف لمس 44px صريح (كان h-7؛ النص
+                      والأيقونة يبقيان بنفس الكثافة البصرية). */
+                  className="text-xs h-11 gap-1.5"
                 >
                   <CheckCheck className="size-3.5" />
                   تحديد الكل كمقروء
@@ -301,6 +317,31 @@ export default function NotificationsPage() {
                     </div>
                   )
                 })}
+              </div>
+            )}
+
+            {/* v25 (W-07): «تحميل المزيد» — الخلاصة كانت محصورة في أحدث 50
+                إشعاراً للأبد؛ النافذة تتوسع حتى سقف الخلفية (200) مع عدّاد
+                صادق للمعروض. آخر نافذة غير ممتلئة أو بلوغ السقف = لا زر. */}
+            {!feedQuery.isLoading && !feedQuery.isError && notifications.length > 0 && (
+              <div className="flex flex-col items-center gap-2 pt-1">
+                {notifications.length >= feedLimit && feedLimit < NOTIFICATIONS_MAX ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setFeedLimit((l) => Math.min(NOTIFICATIONS_MAX, l + NOTIFICATIONS_STEP))}
+                    disabled={feedQuery.isFetching && feedQuery.isPlaceholderData}
+                  >
+                    تحميل المزيد
+                  </Button>
+                ) : feedLimit >= NOTIFICATIONS_MAX ? (
+                  <p className="text-2xs text-muted-foreground">
+                    تم الوصول للحد الأقصى للعرض ({formatNumber(NOTIFICATIONS_MAX)} إشعار)
+                  </p>
+                ) : null}
+                <p className="text-2xs text-muted-foreground" role="status">
+                  {formatNumber(notifications.length)} إشعار معروض
+                </p>
               </div>
             )}
           </section>

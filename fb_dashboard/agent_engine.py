@@ -137,8 +137,12 @@ class AgentEngine:
 
             if image_url:
                 try:
-                    from ai_service import AIService
-                    ai = AIService()
+                    # v25 (B-02): get_ai() لا AIService() المباشرة — الوكيل
+                    # كان يبني خدمة من مفاتيح env فقط فلا تصلها مفاتيح DB
+                    # المحفوظة من /admin/settings أبدًا (سبب عطل "AI غير
+                    # فعال" رغم إدخال المفاتيح).
+                    from _services import get_ai
+                    ai = get_ai()
                     if ai.available:
                         analysis = await ai.analyze_image(image_url)
                         if analysis:
@@ -309,8 +313,11 @@ class AgentEngine:
                         "message_ar": "تم تحسين النص ✅"}
 
             elif action == "image_analyze":
-                from ai_service import AIService, UnsafeImageUrlError
-                ai = AIService()
+                # v25 (B-02): نفس الإصلاح — خدمة عبر get_ai() حتى ترى
+                # المفاتيح المحدّثة من قاعدة البيانات.
+                from _services import get_ai
+                from ai_service import UnsafeImageUrlError
+                ai = get_ai()
                 img_url = params.get("image_url", "")
                 if img_url and ai.available:
                     try:

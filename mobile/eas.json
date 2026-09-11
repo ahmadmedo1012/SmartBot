@@ -3,9 +3,6 @@
     "version": ">= 13.0.0",
     "appVersionSource": "remote"
   },
-  "app": {
-    "projectId": ""
-  },
   "build": {
     "development": {
       "developmentClient": true,

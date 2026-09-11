@@ -46,7 +46,12 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://api.smart-link.ly"
-    }
+      "apiUrl": "https://api.smart-link.ly",
+      "router": {},
+      "eas": {
+        "projectId": "1b1a744c-102b-4c79-8462-1ffb6ea77002"
+      }
+    },
+    "owner": "rh2011"
   }
 }

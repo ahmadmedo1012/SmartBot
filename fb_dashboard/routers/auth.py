@@ -16,7 +16,14 @@ from config import settings
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
-from models import AuditLog, BlacklistedToken, SubscriptionPlan, Tenant, User
+from models import (  # v25 (B-09): NotificationPreference for admin telegram prefs
+    AuditLog,
+    BlacklistedToken,
+    NotificationPreference,
+    SubscriptionPlan,
+    Tenant,
+    User,
+)
 from sqlalchemy import desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 
@@ -587,19 +594,57 @@ async def list_users(page: int = Query(1, ge=1), per_page: int = Query(50, ge=1,
     })
 
 
+# v25 (B-09): مفاتيح تفضيلات إشعارات تيليغرام للإدارة — كانت الـPUT وهمية
+# (ترد الجسم ولا تخزّن شيئًا فتضيع إعدادات المالك بعد كل تحديث صفحة).
+_TELEGRAM_PREF_KEYS = ("telegramNotifyOrders", "telegramNotifyPayments",
+                       "telegramNotifySettings")
+
+
+def _telegram_pref_defaults() -> dict:
+    return {k: True for k in _TELEGRAM_PREF_KEYS}
+
+
 @router.get("/api/admin/notification-preferences")
-async def get_notification_prefs(current_user: User = Depends(get_current_user)):
-    return ok({
-        "telegramNotifyOrders": True,
-        "telegramNotifyPayments": True,
-        "telegramNotifySettings": True,
-    })
+async def get_notification_prefs(db=Depends(get_db), current_user: User = Depends(get_current_user)):
+    row = await db.execute(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id)
+    )
+    pref = row.scalar_one_or_none()
+    saved = (pref.preferences or {}) if pref else {}
+    out = _telegram_pref_defaults()
+    for k in _TELEGRAM_PREF_KEYS:
+        if k in saved:
+            out[k] = bool(saved[k])
+    return ok(out)
 
 
 @router.put("/api/admin/notification-preferences")
-async def update_notification_prefs(body: dict = Body(None), current_user: User = Depends(get_current_user)):
-    return ok({
-        "telegramNotifyOrders": body.get("telegramNotifyOrders", True) if body else True,
-        "telegramNotifyPayments": body.get("telegramNotifyPayments", True) if body else True,
-        "telegramNotifySettings": body.get("telegramNotifySettings", True) if body else True,
-    })
+async def update_notification_prefs(
+    body: dict = Body(None), db=Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # v25 (B-09): تخزين حقيقي في NotificationPreference (نفس جدول
+    # /api/notifications/settings — مفاتيح تيليغرام منفصلة عن مفاتيح
+    # التنبيهات)، مع دمج التفضيلات المحفوظة سابقًا.
+    prefs_in = body or {}
+    row = await db.execute(
+        select(NotificationPreference).where(
+            NotificationPreference.user_id == current_user.id)
+    )
+    pref = row.scalar_one_or_none()
+    merged = (pref.preferences or {}) if pref else {}
+    for k in _TELEGRAM_PREF_KEYS:
+        if k in prefs_in:
+            merged[k] = bool(prefs_in[k])
+    clean = {k: bool(merged.get(k, True)) for k in _TELEGRAM_PREF_KEYS}
+    if pref:
+        pref.preferences = merged
+    else:
+        db.add(NotificationPreference(
+            user_id=current_user.id,
+            tenant_id=current_user._tenant_id,
+            preferences=merged,
+        ))
+    await db.commit()
+    return ok(clean)

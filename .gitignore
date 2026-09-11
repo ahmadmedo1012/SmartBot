@@ -43,6 +43,9 @@ fb_dashboard/static/uploads/
 
 # E2E test-run artifacts (regenerated on demand)
 fb_dashboard/e2e_artifacts/
+# v25 (S-03): المسار المتشابك الفعلي لقطات التشغيل — كانت الأنماط السابقة
+# تشير إلى مسارات غير موجودة فتصل 14 ملفًا إلى git.
+fb_dashboard/frontend/e2e/e2e_artifacts/
 
 # Playwright test-run output (regenerated on demand)
 fb_dashboard/frontend/e2e_artifacts/

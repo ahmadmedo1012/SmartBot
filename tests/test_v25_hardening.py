@@ -362,3 +362,31 @@ async def test_reply_count_incremented_after_comment_reply(v10_world, monkeypatc
         sub = (await db.execute(
             select(Subscriber).where(Subscriber.fb_user_id == f"u_rc_{tag}"))).scalar_one()
         assert (sub.reply_count or 0) >= 1, f"reply_count must be written, got {sub.reply_count}"
+
+
+# ══════════════════════════════════════════════════════════════════
+# B-09 — تفضيلات إشعارات الإدارة تُخزَّن فعلاً
+# ══════════════════════════════════════════════════════════════════
+
+async def test_admin_notification_prefs_persist(world):
+    """PUT /api/admin/notification-preferences كان يعيد الجسم بلا تخزين —
+    الآن يُحفظ في NotificationPreference ويُقرأ مرة أخرى."""
+    from routers.auth import make_token
+
+    sf = world.sf
+    tag = uuid.uuid4().hex[:6]
+    tid, owner_id, _, owner_name, _ = await _seed_tenant_with_users(sf, tag)
+
+    _auth(world.client, make_token(owner_name, tid))
+    r_put = await world.client.put(
+        "/api/admin/notification-preferences",
+        json={"telegramNotifyOrders": False, "telegramNotifyPayments": True},
+    )
+    assert r_put.status_code == 200, r_put.text
+    assert r_put.json()["data"]["telegramNotifyOrders"] is False
+
+    r_get = await world.client.get("/api/admin/notification-preferences")
+    assert r_get.status_code == 200
+    data = r_get.json()["data"]
+    assert data["telegramNotifyOrders"] is False, "pref must SURVIVE a re-read (B-09)"
+    assert data["telegramNotifyPayments"] is True

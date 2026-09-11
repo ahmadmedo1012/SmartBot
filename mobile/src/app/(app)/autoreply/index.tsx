@@ -13,6 +13,7 @@ import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiDelete, apiGet, apiPost, apiPut } from '@/services/api'
+import { confirmAction } from '@/lib/confirm'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import type { Rule } from '@/types/api'
 
@@ -67,9 +68,21 @@ export default function AutoreplyScreen() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiDelete(`/api/rules/${id}`),
+    // v26 (W-26): حذف قاعدة رد نهائي — تأكيد بلمسة ثانية (معيار v24-C2؛
+    // الحذف يوقف الردود فورًا عن الكلمات المفتاحية المرتبطة).
+    mutationFn: async (id: number) => {
+      const confirmed = await confirmAction({
+        title: 'حذف قاعدة الرد؟',
+        message: 'ستتوقف هذه القاعدة عن الرد على التعليقات والرسائل المطابقة فورًا.',
+        confirmText: 'حذف نهائي',
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiDelete(`/api/rules/${id}`)
+    },
     onSuccess: invalidate,
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      if (!String((e as Error)?.message).includes('cancelled')) setError(describeError(e))
+    },
   })
 
   function openEditor(rule?: Rule) {

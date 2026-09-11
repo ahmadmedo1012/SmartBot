@@ -17,6 +17,7 @@ import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
+import { confirmAction, recipientCountMessage } from '@/lib/confirm'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { timeAgo } from '@/lib/format'
 import type { Broadcast } from '@/types/api'
@@ -77,21 +78,65 @@ export default function BroadcastScreen() {
   })
 
   const sendMutation = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/broadcasts/${id}/send`),
+    mutationFn: async (id: number) => {
+      // v26 (W-26 تكافؤ W-01 مع الويب): لمسة ثانية مقصودة قبل الإرسال
+      // الجماعي + معاينة حجم الجمهور عبر /estimate — نفس معيار v24-C2
+      // الذي يطبّقه الويب. التقدير بلا شبكة عند الفشل (فشل التقدير لا
+      // يمنع التأكيد — الرسالة تقول "الجمهور كاملًا").
+      let recipients: number | null = null
+      try {
+        const detail = await apiGet<{ segment_filters?: unknown; platform_filter?: unknown }>(`/api/broadcasts/${id}`)
+        const est = await apiPost<{ estimated_recipients?: number } | number>('/api/broadcasts/estimate', {
+          segment_filters: (detail as { segment_filters?: unknown })?.segment_filters ?? {},
+          platform_filter: (detail as { platform_filter?: unknown })?.platform_filter ?? {},
+        })
+        const n = typeof est === 'number' ? est : (est as { estimated_recipients?: number })?.estimated_recipients
+        if (typeof n === 'number') recipients = n
+      } catch {
+        /* فشل التقدير لا يمنع التأكيد */
+      }
+      const confirmed = await confirmAction({
+        title: 'تأكيد الإرسال الجماعي',
+        message: recipientCountMessage(recipients),
+        confirmText: 'إرسال الآن',
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiPost(`/api/broadcasts/${id}/send`)
+    },
     onSuccess: () => {
       setActionError(null)
       invalidate()
     },
-    onError: (e) => setActionError(describeError(e)),
+    onError: (e) => {
+      // إلغاء المستخدم ليس خطأً يُعرض
+      const msg = describeError(e)
+      if (msg !== 'cancelled' && !String((e as Error)?.message).includes('cancelled')) {
+        setActionError(msg)
+      }
+    },
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/broadcasts/${id}/cancel`),
+    mutationFn: async (id: number) => {
+      // v26 (W-26): إلغاء حملة فعل غير قابل للتراجع — تأكيد مثل الويب
+      const confirmed = await confirmAction({
+        title: 'إلغاء هذا البث؟',
+        message: 'لن يُرسَل هذا البث لمشتريكه ولن يمكن إعادته لمسودة بعد الإلغاء.',
+        confirmText: 'إلغاء البث',
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiPost(`/api/broadcasts/${id}/cancel`)
+    },
     onSuccess: () => {
       setActionError(null)
       invalidate()
     },
-    onError: (e) => setActionError(describeError(e)),
+    onError: (e) => {
+      const msg = describeError(e)
+      if (msg !== 'cancelled' && !String((e as Error)?.message).includes('cancelled')) {
+        setActionError(msg)
+      }
+    },
   })
 
   return (

@@ -16,6 +16,7 @@ import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiDelete, apiGet, apiPost, apiPostForm } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
+import { confirmAction } from '@/lib/confirm'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDate } from '@/lib/format'
 import type { ScheduledPost } from '@/types/api'
@@ -56,15 +57,39 @@ export default function ScheduledScreen() {
   })
 
   const publishMutation = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/scheduled-posts/${id}/publish`),
+    // v26 (W-26): نشر فوري على صفحة فيسبوك — فعل عام لا يمكن التراجع
+    // عنه — تأكيد بلمسة ثانية (معيار v24-C2 كما في الويب).
+    mutationFn: async (id: number) => {
+      const confirmed = await confirmAction({
+        title: 'نشر المنشور الآن؟',
+        message: 'سيُنشر المنشور على صفحتك على فيسبوك فورًا وسيظهر لجمهورك.',
+        confirmText: 'نشر الآن',
+        destructive: false,
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiPost(`/api/scheduled-posts/${id}/publish`)
+    },
     onSuccess: invalidate,
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      if (!String((e as Error)?.message).includes('cancelled')) setError(describeError(e))
+    },
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiDelete(`/api/scheduled-posts/${id}`),
+    // v26 (W-26): حذف نهائي — تأكيد بلمسة ثانية.
+    mutationFn: async (id: number) => {
+      const confirmed = await confirmAction({
+        title: 'حذف هذا المنشور؟',
+        message: 'سيُحذف المنشور نهائيًا مع جدولته ولا يمكن استرجاعه.',
+        confirmText: 'حذف نهائي',
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiDelete(`/api/scheduled-posts/${id}`)
+    },
     onSuccess: invalidate,
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      if (!String((e as Error)?.message).includes('cancelled')) setError(describeError(e))
+    },
   })
 
   return (

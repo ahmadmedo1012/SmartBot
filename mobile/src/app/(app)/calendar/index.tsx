@@ -15,6 +15,7 @@ import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiDelete, apiGet, apiPost, apiPut } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
+import { confirmAction } from '@/lib/confirm'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDateOnly } from '@/lib/format'
 import type { CalendarEntry } from '@/types/api'
@@ -55,9 +56,20 @@ export default function CalendarScreen() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiDelete(`/api/calendar/${id}`),
+    // v26 (W-26): حذف نهائي — تأكيد بلمسة ثانية (معيار v24-C2).
+    mutationFn: async (id: number) => {
+      const confirmed = await confirmAction({
+        title: 'حذف هذا المنشور من التقويم؟',
+        message: 'سيُحذف المنشور نهائيًا من التقويم ولا يمكن استرجاعه.',
+        confirmText: 'حذف نهائي',
+      })
+      if (!confirmed) throw new Error('cancelled')
+      return apiDelete(`/api/calendar/${id}`)
+    },
     onSuccess: invalidate,
-    onError: (e) => setError(describeError(e)),
+    onError: (e) => {
+      if (!String((e as Error)?.message).includes('cancelled')) setError(describeError(e))
+    },
   })
 
   const sorted = [...(data ?? [])].sort(

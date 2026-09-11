@@ -1,7 +1,7 @@
 /**
  * شاشة الردود التلقائية — قواعد البوت (نفس الويب /dashboard/autoreply):
  * GET /api/rules · POST /api/rules · PUT /api/rules/{id} · toggle · DELETE.
- * جدول الويب → بطاقات + sheet تحرير.
+ * العقد الحقيقي: name · keywords (سلسلة مفصولة بفواصل عند الكتابة) · reply_template · enabled.
  */
 import { useState } from 'react'
 import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
@@ -16,31 +16,43 @@ import { apiDelete, apiGet, apiPost, apiPut } from '@/services/api'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import type { Rule } from '@/types/api'
 
+function keywordsText(r: Rule): string {
+  if (Array.isArray(r.keywords)) return r.keywords.join('، ')
+  return String(r.keywords ?? '')
+}
+
 export default function AutoreplyScreen() {
   const { colors } = useTheme()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState<Rule | null>(null)
   const [showNew, setShowNew] = useState(false)
-  const [keyword, setKeyword] = useState('')
+  const [name, setName] = useState('')
+  const [keywords, setKeywords] = useState('')
   const [reply, setReply] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error: queryError, refetch, isRefetching } = useQuery<Rule[]>({
     queryKey: ['rules'],
     queryFn: () => apiGet<Rule[]>('/api/rules'),
+    refetchInterval: 30_000,
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['rules'] })
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = { keyword: keyword.trim(), reply: reply.trim() }
+      const payload = {
+        name: name.trim(),
+        keywords: keywords.trim(),
+        reply_template: reply.trim(),
+      }
       return editing ? apiPut(`/api/rules/${editing.id}`, payload) : apiPost('/api/rules', payload)
     },
     onSuccess: () => {
       setEditing(null)
       setShowNew(false)
-      setKeyword('')
+      setName('')
+      setKeywords('')
       setReply('')
       setError(null)
       invalidate()
@@ -63,12 +75,14 @@ export default function AutoreplyScreen() {
   function openEditor(rule?: Rule) {
     if (rule) {
       setEditing(rule)
-      setKeyword(rule.keyword ?? '')
-      setReply(rule.reply ?? '')
+      setName(rule.name ?? '')
+      setKeywords(keywordsText(rule))
+      setReply(rule.reply_template ?? '')
     } else {
       setEditing(null)
       setShowNew(true)
-      setKeyword('')
+      setName('')
+      setKeywords('')
       setReply('')
     }
     setError(null)
@@ -104,40 +118,45 @@ export default function AutoreplyScreen() {
           onRefresh={() => refetch()}
           refreshing={isRefetching}
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
-          renderItem={({ item }) => {
-            const active = item.is_active ?? item.active ?? true
-            return (
-              <Card>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Badge tone={active ? 'success' : 'muted'} text={active ? 'نشطة' : 'موقوفة'} />
-                  {typeof item.priority === 'number' ? <Badge tone="muted" text={`أولوية ${item.priority}`} /> : null}
+          renderItem={({ item }) => (
+            <Card>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Badge tone={item.enabled ? 'success' : 'muted'} text={item.enabled ? 'نشطة' : 'موقوفة'} />
+                {typeof item.priority === 'number' ? <Badge tone="muted" text={`أولوية ${item.priority}`} /> : null}
+              </Row>
+              <AppText variant="smallBold" style={{ marginTop: spacing.md }}>
+                {item.name ?? 'قاعدة'}
+              </AppText>
+              <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+                <Row style={{ gap: spacing.sm }}>
+                  <Badge tone="brand" text="إذا" />
+                  <AppText variant="small" style={{ flex: 1 }} numberOfLines={1}>
+                    {keywordsText(item)}
+                  </AppText>
                 </Row>
-                <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-                  <Row style={{ gap: spacing.sm }}>
-                    <Badge tone="brand" text="إذا" />
-                    <AppText variant="smallBold" style={{ flex: 1 }} numberOfLines={1}>
-                      {item.keyword}
-                    </AppText>
-                  </Row>
-                  <Row style={{ gap: spacing.sm }}>
-                    <Badge tone="info" text="رد" />
-                    <AppText variant="small" color="mutedFg" style={{ flex: 1 }} numberOfLines={2}>
-                      {item.reply}
-                    </AppText>
-                  </Row>
-                </View>
-                <Row style={{ marginTop: spacing.md }}>
-                  <Button title={active ? 'إيقاف' : 'تنشيط'} size="sm" variant="secondary" onPress={() => toggleMutation.mutate(item)} />
-                  <Button title="تحرير" size="sm" variant="ghost" onPress={() => openEditor(item)} />
-                  <Button title="حذف" size="sm" variant="ghost" onPress={() => deleteMutation.mutate(item.id)} />
+                <Row style={{ gap: spacing.sm }}>
+                  <Badge tone="info" text="رد" />
+                  <AppText variant="small" color="mutedFg" style={{ flex: 1 }} numberOfLines={2}>
+                    {item.reply_template ?? ''}
+                  </AppText>
                 </Row>
-              </Card>
-            )
-          }}
+              </View>
+              {typeof item.replies_count === 'number' && item.replies_count > 0 ? (
+                <AppText variant="caption" color="mutedFg" style={{ marginTop: spacing.xs }}>
+                  أطلقت {item.replies_count} ردًا
+                </AppText>
+              ) : null}
+              <Row style={{ marginTop: spacing.md }}>
+                <Button title={item.enabled ? 'إيقاف' : 'تنشيط'} size="sm" variant="secondary" onPress={() => toggleMutation.mutate(item)} />
+                <Button title="تحرير" size="sm" variant="ghost" onPress={() => openEditor(item)} />
+                <Button title="حذف" size="sm" variant="ghost" onPress={() => deleteMutation.mutate(item.id)} />
+              </Row>
+            </Card>
+          )}
         />
       )}
 
-      {/* Sheet تحرير/إنشاء */}
+      {/* Sheet تحرير/إنشاء — حقول العقد الحقيقي */}
       <Modal visible={sheetVisible} transparent animationType="slide" onRequestClose={() => (setEditing(null), setShowNew(false))}>
         <View style={styles.backdrop}>
           <Pressable style={{ flex: 1 }} accessibilityLabel="إغلاق" onPress={() => (setEditing(null), setShowNew(false))} />
@@ -147,7 +166,14 @@ export default function AutoreplyScreen() {
               {editing ? 'تحرير القاعدة' : 'قاعدة رد جديدة'}
             </AppText>
             <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
-              <AppInput label="الكلمة المفتاحية" value={keyword} onChangeText={setKeyword} placeholder="مثال: سعر، متوفر، توصيل" accessibilityLabel="الكلمة المفتاحية" />
+              <AppInput label="اسم القاعدة" value={name} onChangeText={setName} placeholder="مثال: استفسار الأسعار" accessibilityLabel="اسم القاعدة" />
+              <AppInput
+                label="الكلمات المفتاحية (فاصلة بينها)"
+                value={keywords}
+                onChangeText={setKeywords}
+                placeholder="سعر، كم، بتاع كم"
+                accessibilityLabel="الكلمات المفتاحية"
+              />
               <AppInput label="نص الرد" value={reply} onChangeText={setReply} placeholder="رد البوت التلقائي…" multiline accessibilityLabel="نص الرد" />
               {error ? (
                 <AppText variant="small" style={{ color: colors.destructive }}>
@@ -155,7 +181,7 @@ export default function AutoreplyScreen() {
                 </AppText>
               ) : null}
               <Row>
-                <Button title="حفظ" onPress={() => saveMutation.mutate()} loading={saveMutation.isPending} disabled={!keyword.trim() || !reply.trim()} />
+                <Button title="حفظ" onPress={() => saveMutation.mutate()} loading={saveMutation.isPending} disabled={!name.trim() || !keywords.trim() || !reply.trim()} />
                 <Button title="إلغاء" variant="ghost" onPress={() => (setEditing(null), setShowNew(false))} />
               </Row>
             </View>

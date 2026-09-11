@@ -124,15 +124,15 @@ export interface CommentItem {
 
 export interface Rule {
   id: number
-  keyword: string
-  reply: string
+  name: string | null
+  keywords: string[] | string
+  reply_template: string | null
+  dm_template?: string | null
+  enabled: boolean
+  description?: string | null
+  bot_type?: string
   priority?: number
-  is_active?: boolean
-  active?: boolean
-  dm_action?: string | null
-  use_ai?: boolean
-  matches?: number
-  created_at?: string | null
+  replies_count?: number
   [k: string]: unknown
 }
 

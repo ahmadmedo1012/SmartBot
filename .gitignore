@@ -7,11 +7,11 @@ __pycache__/
 test-results/
 .vercel
 .env*
+!.env.example
 .vercel_python_packages
 *.db
 *.log
 node_modules/
-mobile/
 _scratch/
 .superpowers/
 .agents/

@@ -48,7 +48,25 @@ def make_token(username: str, tenant_id: int = 0, token_ver: int = 0) -> str:
 
 
 async def get_current_user(request: Request, db=Depends(get_db)):
+    # Mobile (v-mobile-P0): Expo/React Native clients authenticate with the
+    # same JWT make_token() mints, carried as ``Authorization: Bearer <jwt>``
+    # — a native app has no cookie-jar contract with the API domain and
+    # keeps the token in SecureStore instead. PRIORITY IS COOKIE-FIRST so
+    # the browser path stays byte-identical to pre-mobile behavior: an
+    # authenticated browser holding the HttpOnly ``token`` cookie keeps
+    # working even when a tool attaches a Bearer header (the documented
+    # CSRF-skip pattern — tests/test_v12_observability.py
+    # test_csrf_bearer_authorization_skips_validation pins this). Native
+    # clients never acquire a ``token`` cookie (only /api/login sets it,
+    # and mobile uses /api/auth/token, which sets none), so the Bearer
+    # fallback is what serves them. The CSRF double-submit layer already
+    # treats any Authorization-bearing request as outside the cookie layer
+    # (app/middleware.py v12-E3.3), so no middleware change is needed here.
     token = request.cookies.get("token")
+    if not token:
+        _authz = request.headers.get("authorization", "")
+        if _authz.startswith("Bearer "):
+            token = _authz[7:].strip()
     if not token:
         raise HTTPException(401, "غير مصرح به")
     try:
@@ -127,6 +145,30 @@ async def require_platform_admin(current_user: User = Depends(require_role("admi
 
 @router.post("/api/login")
 async def login(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
+    user, token, login_plan, login_sub = await _authenticate_login(body, request, db)
+    secure = not getattr(settings, 'DEBUG', False)
+    resp = JSONResponse(ok({
+        "user": {
+            "id": user.id, "username": user.username, "name": user.email or user.username,
+            "role": user.role, "tenant_id": user.tenant_id,
+            "subscriptionStatus": login_plan,
+            **login_sub,
+        }
+    }))
+    resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
+                    max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
+    return resp
+
+
+async def _authenticate_login(body, request, db):
+    """Shared credential path for /api/login (cookie transport) and
+    /api/auth/token (Bearer transport — v-mobile-P0).
+
+    Moved VERBATIM from the old login() body (decomposition = move, not
+    rewrite — v13 Convention #1): validation, per-IP rate limit, two-step
+    user lookup, password verify, token mint, audit + commit, honest plan
+    + subscription snapshot. Returns ``(user, token, login_plan, login_sub)``.
+    """
     if not body:
         raise HTTPException(400, "جسم الطلب JSON مطلوب")
     username = body.get("username", "")
@@ -179,18 +221,30 @@ async def login(body: dict = Body(None), request: Request = None, db=Depends(get
     # snapshot block (same derivation as /api/me) lets the frontend gate the
     # «اشتراك» CTA and the backend guards share ONE source of truth.
     login_sub = await subscription_snapshot(db, user)
-    secure = not getattr(settings, 'DEBUG', False)
-    resp = JSONResponse(ok({
+    return user, token, login_plan, login_sub
+
+
+@router.post("/api/auth/token")
+async def auth_token(body: dict = Body(None), request: Request = None, db=Depends(get_db)):
+    """Mobile login (v-mobile-P0): identical credentials contract to
+    /api/login, but the JWT is returned in the response body for
+    Expo/React Native clients (SecureStore) instead of an HttpOnly cookie.
+
+    No cookie is set — browsers must keep using /api/login. The endpoint is
+    CSRF-exempt (pre-session, same class as /api/login) and rate-limited by
+    the same per-IP login limiter inside _authenticate_login.
+    """
+    user, token, login_plan, login_sub = await _authenticate_login(body, request, db)
+    return ok({
+        "token": token,
+        "expiresIn": int(ACCESS_TOKEN_EXPIRE.total_seconds()),
         "user": {
             "id": user.id, "username": user.username, "name": user.email or user.username,
             "role": user.role, "tenant_id": user.tenant_id,
             "subscriptionStatus": login_plan,
             **login_sub,
-        }
-    }))
-    resp.set_cookie(key="token", value=token, httponly=True, secure=secure, samesite="lax",
-                    max_age=int(ACCESS_TOKEN_EXPIRE.total_seconds()))
-    return resp
+        },
+    })
 
 
 def _logout_expiry_naive_utc(exp: int | float) -> datetime:
@@ -213,7 +267,13 @@ def _logout_expiry_naive_utc(exp: int | float) -> datetime:
 
 @router.post("/api/logout")
 async def logout(request: Request, db=Depends(get_db)):
-    token = request.cookies.get("token")
+    # Mobile (v-mobile-P0): Bearer-carried tokens log out through the same
+    # revocation path — the header transport mirrors the cookie transport.
+    _authz = request.headers.get("authorization", "")
+    if _authz.startswith("Bearer "):
+        token = _authz[7:].strip()
+    else:
+        token = request.cookies.get("token")
     # Decode failures (expired / invalid signature) are NOT write failures: the
     # session is already dead — nothing left to revoke, and the cookie delete
     # below completes the client-side logout. The DB write, however, MUST

@@ -66,7 +66,7 @@ async def rate_limit_middleware(request: Request, call_next):
         path = request.url.path
         # v8-A6: exact path-prefix match — the old substring `p in path`
         # also exempted paths like /api/x/telegram-leak or /api/register-page.
-        if not any(path.startswith(p) for p in ("/api/login", "/api/register", "/webhook", "/api/telegram")):
+        if not any(path.startswith(p) for p in ("/api/login", "/api/register", "/api/auth/token", "/webhook", "/api/telegram")):
             # v24-C4: honest client IP — request.client.host behind the Vercel
             # proxy is the PROXY address (all users in ONE bucket → cross-user
             # 429 lockouts). client_ip() honors X-Forwarded-For only when a
@@ -140,6 +140,7 @@ CSRF_HEADER = "X-CSRF-Token"
 CSRF_EXEMPT_PREFIXES = (
     "/api/login",     # pre-session — no csrf cookie could exist yet
     "/api/register",  # pre-session
+    "/api/auth/token",  # pre-session (mobile Bearer login — same class as /api/login)
     "/api/telegram/",  # Telegram payment webhook (server-to-server)
     "/api/webhook/",   # Facebook webhooks (signature-verified server-to-server)
     "/api/cron/",      # CRON_SECRET Bearer-authed machine calls

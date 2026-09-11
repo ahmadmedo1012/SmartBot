@@ -3,7 +3,7 @@
  * GET /api/me (بيانات) · POST /api/auth/change-password · خيارات الحساب.
  */
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'

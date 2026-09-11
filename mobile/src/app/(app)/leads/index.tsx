@@ -3,7 +3,7 @@
  * GET /api/crm/customers — بطاقات عملاء مع إضافة عميل جديد.
  */
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { radius, spacing } from '@/constants/theme'
@@ -17,7 +17,7 @@ import { formatDate, formatMoney } from '@/lib/format'
 import type { Customer } from '@/types/api'
 
 export default function LeadsScreen() {
-  const { colors, fontBody } = useTheme()
+  const { colors } = useTheme()
   const queryClient = useQueryClient()
   const [showNew, setShowNew] = useState(false)
   const [name, setName] = useState('')

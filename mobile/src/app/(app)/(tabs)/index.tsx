@@ -4,11 +4,11 @@
  * KPIs + رسم 7 أيام + حالة الاتصال + آخر الردود.
  */
 import { useCallback, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import Svg, { Line, Path, Circle } from 'react-native-svg'
+import Svg, { Path, Circle } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'

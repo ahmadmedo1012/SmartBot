@@ -3,7 +3,7 @@
  * GET /api/facebook/settings · PUT /api/facebook/settings · POST /api/facebook/test.
  */
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'

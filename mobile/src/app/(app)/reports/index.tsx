@@ -3,7 +3,7 @@
  * GET /api/analytics/dashboard · POST /api/reports/generate (PDF).
  */
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
@@ -27,7 +27,7 @@ export default function ReportsScreen() {
   const { colors } = useTheme()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const { data, isLoading, isError, error, refetch } = useQuery<DashboardAnalytics>({
+  const { data, isLoading, isError, error } = useQuery<DashboardAnalytics>({
     queryKey: ['analytics-dashboard'],
     queryFn: () => apiGet<DashboardAnalytics>('/api/analytics/dashboard'),
   })

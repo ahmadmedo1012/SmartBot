@@ -4,9 +4,9 @@
  * الاشتراك عبر /api/plans + /api/subscriptions.
  */
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { router } from 'expo-router'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
@@ -14,9 +14,9 @@ import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'
 import { apiGet, apiPost } from '@/services/api'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
-import { formatDate, formatMoney, formatNumber } from '@/lib/format'
+import { formatDate, formatMoney } from '@/lib/format'
 import { useAuth } from '@/state/auth'
-import type { PaymentRecord, Plan, WalletBalance } from '@/types/api'
+import type { PaymentRecord, WalletBalance } from '@/types/api'
 
 export default function BillingScreen() {
   const { colors } = useTheme()

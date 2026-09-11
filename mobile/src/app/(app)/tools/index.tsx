@@ -3,9 +3,8 @@
  * GET /api/offers · POST /api/offers/{id}/toggle · GET /api/templates.
  */
 import { useState } from 'react'
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
@@ -16,7 +15,6 @@ import { formatDate, formatNumber } from '@/lib/format'
 import type { Offer, ReplyTemplate } from '@/types/api'
 
 export default function ToolsScreen() {
-  const { colors } = useTheme()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<'offers' | 'templates'>('offers')
 

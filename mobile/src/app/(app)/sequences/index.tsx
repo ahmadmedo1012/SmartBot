@@ -2,9 +2,8 @@
  * شاشة الحملات التسلسلية (نفس الويب /dashboard/sequences):
  * GET /api/sequences — عرض الحملات وعدد الخطوات والمشتركين.
  */
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
-import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, Row } from '@/components/ui'
@@ -15,7 +14,6 @@ import { formatDate } from '@/lib/format'
 import type { Sequence } from '@/types/api'
 
 export default function SequencesScreen() {
-  const { colors } = useTheme()
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<Sequence[]>({
     queryKey: ['sequences'],
     queryFn: () => apiGet<Sequence[]>('/api/sequences'),

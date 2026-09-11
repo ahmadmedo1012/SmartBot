@@ -13,7 +13,6 @@ import { Badge, Card, Row } from '@/components/ui'
 import { Icon, type IconName } from '@/components/icon'
 import { apiGet } from '@/services/api'
 import { useAuth } from '@/state/auth'
-import { formatNumber } from '@/lib/format'
 
 interface MoreItem {
   title: string
@@ -61,43 +60,6 @@ export default function MoreScreen() {
 
   const unread = notifSettings?.unread
 
-  function Section({ title, items }: { title: string; items: MoreItem[] }) {
-    return (
-      <Card>
-        <AppText variant="subtitle" color="mutedFg">
-          {title}
-        </AppText>
-        <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
-          {items.map((item) => (
-            <Pressable
-              key={item.href}
-              accessibilityRole="button"
-              accessibilityLabel={item.title}
-              onPress={() => router.push(item.href as never)}
-              style={({ pressed }) => [
-                styles.item,
-                { opacity: pressed ? 0.6 : 1, backgroundColor: pressed ? colors.muted : 'transparent' },
-              ]}
-            >
-              <Row style={{ gap: spacing.md, flex: 1 }}>
-                <Icon name={item.icon} size={20} color={colors.accentFg} />
-                <AppText variant="body" style={{ flex: 1 }}>
-                  {item.title}
-                </AppText>
-              </Row>
-              <Row style={{ gap: spacing.sm }}>
-                {item.href.includes('notifications') && typeof unread === 'number' && unread > 0 ? (
-                  <Badge tone="brand" text={String(unread)} />
-                ) : null}
-                <Icon name="chevron-left" size={18} color={colors.mutedFg} />
-              </Row>
-            </Pressable>
-          ))}
-        </View>
-      </Card>
-    )
-  }
-
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxxl * 2, gap: spacing.lg }}>
@@ -131,9 +93,9 @@ export default function MoreScreen() {
           ) : null}
         </Card>
 
-        <Section title="النمو" items={GROWTH} />
-        <Section title="الإدارة" items={MANAGEMENT} />
-        <Section title="الحساب" items={ACCOUNT} />
+        <Section title="النمو" items={GROWTH} unread={unread} />
+        <Section title="الإدارة" items={MANAGEMENT} unread={unread} />
+        <Section title="الحساب" items={ACCOUNT} unread={unread} />
 
         {/* تسجيل الخروج */}
         <Pressable
@@ -170,3 +132,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 })
+
+/** قسم من أقسام «المزيد» — مكون مستقل خارج الشاشة (قاعدة react-hooks). */
+function Section({ title, items, unread }: { title: string; items: MoreItem[]; unread?: number }) {
+  const { colors } = useTheme()
+  return (
+    <Card>
+      <AppText variant="subtitle" color="mutedFg">
+        {title}
+      </AppText>
+      <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
+        {items.map((item) => (
+          <Pressable
+            key={item.href}
+            accessibilityRole="button"
+            accessibilityLabel={item.title}
+            onPress={() => router.push(item.href as never)}
+            style={({ pressed }) => [
+              styles.item,
+              { opacity: pressed ? 0.6 : 1, backgroundColor: pressed ? colors.muted : 'transparent' },
+            ]}
+          >
+            <Row style={{ gap: spacing.md, flex: 1 }}>
+              <Icon name={item.icon} size={20} color={colors.accentFg} />
+              <AppText variant="body" style={{ flex: 1 }}>
+                {item.title}
+              </AppText>
+            </Row>
+            <Row style={{ gap: spacing.sm }}>
+              {item.href.includes('notifications') && typeof unread === 'number' && unread > 0 ? (
+                <Badge tone="brand" text={String(unread)} />
+              ) : null}
+              <Icon name="chevron-left" size={18} color={colors.mutedFg} />
+            </Row>
+          </Pressable>
+        ))}
+      </View>
+    </Card>
+  )
+}

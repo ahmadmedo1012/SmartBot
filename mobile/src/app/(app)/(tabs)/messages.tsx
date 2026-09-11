@@ -4,15 +4,14 @@
  * قائمة FlatList مع بحث + فلتر غير المقروء، والدخول لمحادثة عبر stack.
  */
 import { useCallback, useMemo, useState } from 'react'
-import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import { Pressable } from 'react-native'
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
-import { Badge, Card, Row } from '@/components/ui'
+import { Badge, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { apiGet } from '@/services/api'
 import { describeError, EmptyState, ErrorState, LoadingState } from '@/components/state-views'

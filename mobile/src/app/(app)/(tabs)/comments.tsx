@@ -8,7 +8,7 @@ import { FlatList, Modal, Pressable, StyleSheet, TextInput, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { radius, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'

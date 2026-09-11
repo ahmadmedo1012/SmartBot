@@ -9,7 +9,7 @@ import { LoadingState } from '@/components/state-views'
 
 export default function AppLayout() {
   const { colors } = useTheme()
-  const { status, user } = useAuth()
+  const { status } = useAuth()
 
   if (status === 'loading') return <LoadingState />
   if (status !== 'authenticated') return <Redirect href="/(auth)/login" />

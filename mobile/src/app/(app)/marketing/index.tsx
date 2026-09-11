@@ -2,7 +2,7 @@
  * شاشة التسويق (نفس الويب /dashboard/marketing):
  * GET /api/marketing/campaigns · /api/marketing/audience-size.
  */
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'

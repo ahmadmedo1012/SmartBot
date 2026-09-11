@@ -3,9 +3,8 @@
  * GET /api/ads/accounts — حسابات إعلانية مع الرصيد.
  * (الحملات التفصيلية تُدار من الويب — هنا نظرة سريعة للجيب.)
  */
-import { FlatList, StyleSheet, View } from 'react-native'
+import { FlatList } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
-import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, Row } from '@/components/ui'
@@ -16,7 +15,6 @@ import { formatMoney } from '@/lib/format'
 import type { AdAccount } from '@/types/api'
 
 export default function AdsScreen() {
-  const { colors } = useTheme()
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<AdAccount[]>({
     queryKey: ['ads-accounts'],
     queryFn: () => apiGet<AdAccount[]>('/api/ads/accounts'),

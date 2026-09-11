@@ -3,11 +3,10 @@
  * GET /api/plans (عام) · POST /api/subscriptions (طلب اشتراك).
  */
 import { useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
-import { router } from 'expo-router'
+import { ScrollView, View } from 'react-native'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { StackScreen } from '@/components/screen-header'

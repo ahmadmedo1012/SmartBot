@@ -4,12 +4,12 @@
  * بطاقات إحصاء + رسم أعمدة SVG (بديل recharts الأصلي) + قائمة أفضل المعلقين.
  */
 import { useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg'
+import Svg, { Line, Rect } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, KpiCard, Row } from '@/components/ui'
 import { apiGet } from '@/services/api'

@@ -139,7 +139,7 @@ export default function CommentsScreen() {
               <Card>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Row style={{ gap: spacing.sm, flex: 1 }}>
-                    <View style={[styles.avatar, { backgroundColor: colors.muted }]}>
+                    <View style={[styles.avatar, { backgroundColor: `${colors.accentFg}1a` }]}>
                       <AppText variant="smallBold" style={{ color: colors.accentFg }}>
                         {(name ?? '؟').charAt(0)}
                       </AppText>

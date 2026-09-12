@@ -8,9 +8,9 @@
  *  - recipientCountMessage تصوغ عدد المستلمين بصدق (0 = لا أحد)
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { confirmAction, recipientCountMessage } from './confirm'
 
-type AlertFn = typeof import('react-native').Alert.alert
-let lastCall: { title: string; message: string; buttons: Array<{ text: string; style?: string; onPress?: () => void }>; options?: { cancelable?: boolean } } | null = null
+let lastCall: { title: string; message: string; buttons: { text: string; style?: string; onPress?: () => void }[]; options?: { cancelable?: boolean } } | null = null
 
 vi.mock('react-native', () => ({
   Alert: {
@@ -19,8 +19,6 @@ vi.mock('react-native', () => ({
     },
   },
 }))
-
-import { confirmAction, recipientCountMessage } from './confirm'
 
 function press(text: string) {
   const btn = lastCall?.buttons.find((b) => b.text === text)

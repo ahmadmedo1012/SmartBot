@@ -1,12 +1,14 @@
 /**
  * SmartBot Mobile — التخطيط الجذري.
  *
- * - RTL عربي أولًا (I18nManager.forceRTL — التطبيق عربي بالكامل مثل الويب).
+ * - RTL عربي أولًا: كتابة الإعداد الأصلي قبل أي رسم + بوابة ensureRTL
+ *   (نمط المالك) تضمن اتجاه RTL صحيحًا من أول فتح بعد تثبيت نظيف —
+ *   ليس من الفتح الثاني كما كان قبل الإصلاح.
  * - الخطوط: Cairo (متن) + Readex Pro (عناوين) — نفس هوية الويب.
  * - المزودات: QueryClient (نفس مكتبة الويب) + AuthProvider.
  */
 import { I18nManager } from 'react-native'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -26,10 +28,12 @@ import {
 import * as SplashScreen from 'expo-splash-screen'
 import { dark } from '@/constants/theme'
 import { queryClient } from '@/lib/query-client'
+import { ensureRTL } from '@/lib/ensure-rtl'
 import { AuthProvider, useAuth } from '@/state/auth'
 import { LoadingState } from '@/components/state-views'
 
-// عربي أولًا — قبل أي رسم (يُطبق من الإقلاع الأول)
+// عربي أولًا — قبل أي رسم: يُكتب الإعداد الأصلي في كل إقلاع JS (يبقى
+// للأبد)، وبوابة ensureRTL أدناه تفرض سريانه فورًا داخل أول فتح.
 I18nManager.allowRTL(true)
 I18nManager.forceRTL(true)
 
@@ -37,6 +41,7 @@ SplashScreen.preventAutoHideAsync()
 
 function AppShell() {
   const { status } = useAuth()
+  const [rtlReady, setRtlReady] = useState(false)
   const [fontsLoaded] = useFonts({
     Cairo_400Regular,
     Cairo_600SemiBold,
@@ -48,13 +53,26 @@ function AppShell() {
     ReadexPro_700Bold,
   })
 
+  // بوابة RTL: لا نرسم أي شاشة قبل حسم الاتجاه. إن قررت البوابة إعادة
+  // التحميل (تثبيت نظيف أول مرة) فستبدأ الجلسة من جديد RTL من أول إطار
+  // وشاشة البداية تظل ظاهرة خلالها — المستخدم لا يرى أي وميض LTR.
   useEffect(() => {
-    if (fontsLoaded && status !== 'loading') {
+    let alive = true
+    ensureRTL().then(() => {
+      if (alive) setRtlReady(true)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (fontsLoaded && rtlReady && status !== 'loading') {
       SplashScreen.hideAsync().catch(() => undefined)
     }
-  }, [fontsLoaded, status])
+  }, [fontsLoaded, rtlReady, status])
 
-  if (!fontsLoaded || status === 'loading') {
+  if (!fontsLoaded || !rtlReady || status === 'loading') {
     return <LoadingState label="جارٍ تجهيز SmartBot…" />
   }
 

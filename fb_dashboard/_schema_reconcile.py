@@ -358,6 +358,38 @@ _INDEX_HEAL_V16: list[tuple[str, tuple[str, ...], str]] = [
      "ON subscribers (tenant_id, platform, status)"),
 ]
 
+# v28 (D-05): قيود FK CASCADE التي تشفيها الشبكة على قواعد PostgreSQL
+# القديمة — نفس قائمة الترحيلة 018 (CASCADE_FKS) — بشكل
+# (label, table, column, parent_table, rule). عقيدة مختلفة عن الفهارس
+# أعلاه: قيود FK لا تظهر في get_indexes ولا pg_indexes ولا
+# sqlite_master(type='index')، لذا يعكسها الفرع في reconcile_schema عبر
+# get_foreign_keys + ondelete مباشرة (ولا تشمل telegram_approvers —
+# SET NULL شفاؤه ملك الترحيلة 015، والـVALIDATE ملك 018).
+_FK_HEAL: list[tuple[str, str, str, str, str]] = [
+    ("subscriber_tags.subscriber_id~cascade",
+     "subscriber_tags", "subscriber_id", "subscribers", "CASCADE"),
+    ("subscriber_tags.tag_id~cascade",
+     "subscriber_tags", "tag_id", "tags", "CASCADE"),
+    ("flow_executions.flow_id~cascade",
+     "flow_executions", "flow_id", "flows", "CASCADE"),
+    ("flow_executions.subscriber_id~cascade",
+     "flow_executions", "subscriber_id", "subscribers", "CASCADE"),
+    ("sequence_steps.sequence_id~cascade",
+     "sequence_steps", "sequence_id", "sequences", "CASCADE"),
+    ("sequence_subscriptions.subscriber_id~cascade",
+     "sequence_subscriptions", "subscriber_id", "subscribers", "CASCADE"),
+    ("sequence_subscriptions.sequence_id~cascade",
+     "sequence_subscriptions", "sequence_id", "sequences", "CASCADE"),
+    ("broadcast_recipients.broadcast_id~cascade",
+     "broadcast_recipients", "broadcast_id", "broadcasts", "CASCADE"),
+    ("broadcast_recipients.subscriber_id~cascade",
+     "broadcast_recipients", "subscriber_id", "subscribers", "CASCADE"),
+    ("conversation_assignees.user_id~cascade",
+     "conversation_assignees", "user_id", "users", "CASCADE"),
+    ("messages.conversation_id~cascade",
+     "messages", "conversation_id", "conversations", "CASCADE"),
+]
+
 # ثوابت server_default فقط — دوال مثل now() يرفضها SQLite في ADD COLUMN
 # وليست "قيمًا افتراضية آمنة" للشفاء.
 _CONSTANT_DEFAULT_RE = re.compile(r"^[0-9A-Za-z_.'\-]+$")
@@ -450,7 +482,9 @@ def reconcile_schema(bind) -> list[str]:
         List of "<table>.<column>" strings for every column added, plus
         "<table>.<index>" labels for every healed index/constraint, plus
         "<table>.<column>~null" labels for server_default columns whose
-        legacy NULL values were backfilled
+        legacy NULL values were backfilled, plus "<table>.<column>~cascade"
+        labels for every healed FK constraint (v28 D-05 — PostgreSQL legacy
+        only; SQLite gets the constraints via create_all parity)
         (empty when the schema already matches — the common case).
     """
     from models import Base  # local import: no circularity (models imports nothing back)
@@ -531,5 +565,52 @@ def reconcile_schema(bind) -> list[str]:
                 "reconcile: could not ensure %s — leaving it to the alembic chain",
                 label, exc_info=True,
             )
+
+    # v28 (D-05): FK CASCADE healing على جداول الإنتاج القديمة — الشبكة
+    # الأمينة لما تبنيه الترحيلة 018 (belt-and-suspenders، نمط 015/016).
+    # الآلية أعلاه «فهرسية الشكل»: قيود FK لا تظهر في get_indexes ولا في
+    # pg_indexes ولا sqlite_master(type='index') — لذا هذا الفرع يعكس
+    # get_foreign_keys + ondelete ويقارن القاعدة المطلوبة مباشرة.
+    # PostgreSQL فقط: SQLite يستقبل القيود عبر create_all (شكل النموذج)
+    # والسلوك يثبت عبر PRAGMA في الاختبارات (سابقة 015). عقيدة الشبكة
+    # محفوظة: أي فشل = تحذير ومتابعة — السلسلة هي المسار الموثوق.
+    if bind.dialect.name == "postgresql":
+        for label, table, column, parent, rule in _FK_HEAL:
+            if table not in existing_tables or parent not in existing_tables:
+                continue
+            try:
+                fks = sa.inspect(bind).get_foreign_keys(table)
+                fks = [fk for fk in fks
+                       if fk.get("constrained_columns") == [column]]
+                if fks and all(
+                    (fk.get("ondelete") or fk.get("options", {}).get("ondelete")) == rule
+                    for fk in fks
+                ):
+                    continue  # بشكل النموذج أصلاً — no-op
+                # تنظيف الأيتام أولاً (ما كان CASCADE سيحذفه لحظة الحذف
+                # الأصلي) — نفس ترتيب الترحيلة 018.
+                bind.execute(sa.text(
+                    f"DELETE FROM {table} WHERE {column} IS NOT NULL "
+                    f"AND {column} NOT IN (SELECT id FROM {parent})"
+                ))
+                for fk in fks:
+                    name = fk.get("name")
+                    if name:
+                        bind.execute(sa.text(
+                            f'ALTER TABLE {table} DROP CONSTRAINT "{name}"'
+                        ))
+                bind.execute(sa.text(
+                    f"ALTER TABLE {table} ADD CONSTRAINT "
+                    f"{table}_{column}_fkey FOREIGN KEY ({column}) "
+                    f"REFERENCES {parent} (id) ON DELETE {rule} NOT VALID"
+                ))
+                added.append(label)
+                log.info("reconcile: ensured %s", label)
+            except Exception:
+                log.warning(
+                    "reconcile: could not ensure %s — leaving it to the "
+                    "alembic chain (018)",
+                    label, exc_info=True,
+                )
 
     return added

@@ -156,7 +156,7 @@ def test_chain_reaches_012_and_enforces_unique(fresh_db):
     # v16-E5: الرأس أصبح 015 (فهرس offers الساخن + FK SET NULL) —
     # كلاهما محروس بالـInspector/اللهجة فلا يتأثر شكل العيّنة
     # v19: الرأس أصبح 016 (جداول fb_posts/ad_* — إنشاءات محروسة)
-    assert _version(fresh_db) == "017"
+    assert _version(fresh_db) == "018"  # v28 (D-05): head bumped to 018
 
     # dedup: الأقدم (id=1) حُذف، الأحدث (id=2) بقي، الفرادة (id=3) بقت،
     # وأزواج balance/fb_fan_count متطابقة القيمة نجت كليهما (6 صفوف)

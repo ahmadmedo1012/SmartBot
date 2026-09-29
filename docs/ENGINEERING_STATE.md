@@ -23,10 +23,10 @@
 
 ## 2. CURRENT STATE
 
-- **Branch:** `main` @ `063d7eed` — "feat(v26): adversarial cross-tenant sweep (40 vectors, all blocked) + mobile destructive-action confirms (W-26)" — **pushed & live in production**
-- **Working tree:** docs/ENGINEERING_STATE.md (this update)
-- **Production:** `/api/version` = `063d7eed` (production, iad1) · heartbeat 200 · web HTTP 200
-- **v26 verdict:** READY FOR REAL DEVICE TESTING (see §8)
+- **Branch:** `main` @ `bd3d4576` — "fix(mobile v27): RTL from first open + real brand logo + web-aligned auth screens" — **pushed & live in production**
+- **Working tree:** docs/ENGINEERING_STATE.md (v28 session-start update)
+- **Production:** last live-verified at `063d7eed` (v26); re-verification scheduled this session after v28 pushes
+- **v28 session:** OPEN — push pipeline restored (PAT verified, repo-owner scoped); deep round in progress
 
 ## 3. KNOWN DEFECTS / OPEN ITEMS
 
@@ -58,6 +58,21 @@
 - [x] **FIX W-26 (web↔mobile parity, P1):** mobile one-tap destructive actions → 6 flows now confirm (broadcast mass-SEND with `/estimate` audience preview — parity with web W-01; campaign cancel; scheduled publish; scheduled delete; calendar delete; autoreply delete) via new `mobile/src/lib/confirm.ts` (Alert destructive style, Promise-based) + user-cancel swallowed
 - [x] Commit `063d7eed` pushed → production auto-deployed → verified live
 - [x] Final regression: **pytest 1115/1115 · web vitest 416/416 · mobile vitest 47/47 (38+9 new) · tsc 0/0 · lint clean**
+
+## 4b. SESSION LOG (v28 — 2026-09-30) — IN PROGRESS
+
+Scope: the deepest/most comprehensive round yet — execute every documented next-action (§7) + a new adversarial sweep deeper than v26's 40 vectors.
+
+- [x] Fresh clone @ `bd3d4576`; tree clean; branches main/develop mapped
+- [x] Push credentials re-established (user-provided PAT, verified repo-owner: push+admin on SmartBot); stored OUTSIDE repo (`~/../.agent-creds`, chmod 600), never committed, revocation reminder queued for session close
+- [x] This session-start commit pushed → pipeline proven
+- [ ] Baseline gate battery on fresh clone (venv + pytest 1115+ / web tsc+vitest / mobile tsc+vitest+lint / ruff / secret-scan)
+- [ ] **D-05 (P0 of §7):** FK CASCADE on legacy Neon prod — NOT VALID → VALIDATE migration (018) + `_schema_reconcile` entry + sync migration test
+- [ ] **S-06:** password policy beyond length-only (complexity + common-password screen)
+- [ ] **W-27:** replace 19 direct `AsyncSessionLocal()` usages with DI `get_session` (inbox×8, bot×3, plans_config×2, marketing×2, payments×3, admin×1)
+- [ ] **N+1 batch:** D-09 (tags count), D-10 (broadcast fan-out), D-12 (inbox search), W-11 (sequences list)
+- [ ] **v28 adversarial round:** new sweep file, >40 vectors, deeper axes than v26
+- [ ] Full regression + docs round-update + push each verified batch + live production verification
 
 ## 5. TESTS EXECUTED (v26 session)
 

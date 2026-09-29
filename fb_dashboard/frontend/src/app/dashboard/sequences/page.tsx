@@ -10,7 +10,8 @@
  * خريطة العقد المقروءة من routers/sequences.py (غلاف _responses.ok):
  *   GET    /api/sequences                       → list_sequences: صفوف {id,name,
  *          description,status,total_subscribers,total_sent,subscriber_count,
- *          created_at,updated_at} — بلا عدد خطوات (تُجلب تفاصيلًا).
+ *          created_at,updated_at,step_count} — step_count منذ v24-C4
+ *          (v28 W-11: أُلغي fan-out التفاصيل لكل صف).
  *   POST   /api/sequences {name,description?}   → {id} (editor role)
  *   GET    /api/sequences/{id}                  → كائن + steps[] مفصّلة
  *   PUT    /api/sequences/{id} {name?,description?,status?} → {ok} (editor)
@@ -116,10 +117,10 @@ function delayLabel(days: number, hours: number): string {
   return d && h ? `${d} و${h}` : d || h
 }
 
-/* v24-C1: tolerant step-count read for the list cards — the enrichment
- * (parallel detail fetch) owns step_count today (-1 = fetch failed → «—»),
- * but the list contract may later ship step_count or inline steps straight
- * from the backend; fall back instead of rendering «—» for a healthy row. */
+/* v24-C1: tolerant step-count read for the list cards. v28 (W-11): the
+ * per-id detail fan-out that used to own step_count is GONE — the field
+ * ships on the list contract itself (v24-C4); the fallbacks stay for older
+ * payloads / inline steps. */
 function stepCountOf(s: SequenceCardRow): number {
   return s.step_count ?? s.steps?.length ?? 0
 }
@@ -629,23 +630,12 @@ export default function SequencesPage() {
 
   const { data: sequences = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["sequences"],
-    queryFn: async () => {
-      const list = await apiFetch("/api/sequences").then(unwrapApi<SequenceRow[]>)
-      /* عقد القائمة لا يشمل عدد الخطوات — جلب تفاصيل متوازٍ (قوائم إدارية
-       * صغيرة؛ فشل تفصيل يتدرّج إلى «—» دون إسقاط القائمة). */
-      const counts = await Promise.all(
-        (list ?? []).map(async (s) => {
-          try {
-            const d = await apiFetch(`/api/sequences/${s.id}`).then(unwrapApi<SequenceDetail>)
-            return [s.id, d?.steps?.length ?? 0] as const
-          } catch {
-            return [s.id, -1] as const
-          }
-        }),
-      )
-      const stepCounts = new Map(counts)
-      return (list ?? []).map((s) => ({ ...s, step_count: stepCounts.get(s.id) ?? -1 }))
-    },
+    /* v28 (W-11, N+1 fix): the list contract ships step_count since v24-C4
+     * (ONE grouped COUNT server-side). The old Promise.all detail fan-out
+     * fired N × GET /api/sequences/{id} (N HTTP round-trips + 2N backend
+     * queries per page load) AND overwrote the backend value — stepCountOf
+     * below already reads the list field. */
+    queryFn: () => apiFetch("/api/sequences").then(unwrapApi<SequenceRow[]>),
     retry: 1,
   })
 

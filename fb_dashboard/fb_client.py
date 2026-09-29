@@ -7,6 +7,7 @@ Full API: posts, comments, conversations, ads, insights, messaging.
 import asyncio
 import json
 import logging
+import weakref
 
 import httpx
 from ai_service import _IMAGE_MAX_BYTES, UnsafeImageUrlError, assert_safe_outbound_url
@@ -15,7 +16,9 @@ log = logging.getLogger("fb-client")
 
 API_BASE = "https://graph.facebook.com/v22.0"
 _http: httpx.AsyncClient | None = None
-_http_lock = asyncio.Lock()
+_http_lock: asyncio.Lock | None = None
+_http_loop_ref: weakref.ref | None = None
+_self_client: httpx.AsyncClient | None = None
 
 # v15-E7 (D8-B2): concurrency cap for the multi-post comment fan-out. 5 keeps
 # us far from Graph rate limits while turning 10 serial round-trips into ~2
@@ -24,13 +27,39 @@ COMMENT_FETCH_CONCURRENCY = 5
 
 
 async def _ensure_client():
-    global _http
+    """Return the shared Graph API client (loop-aware singleton).
+
+    v28 (D-ENV2): the old module-level ``asyncio.Lock`` + client singleton
+    bound themselves to the FIRST event loop they ever ran on. Production
+    runs one loop per process so nothing surfaced, but the test suite spins
+    a fresh loop per test — every test after the first either got the dead
+    client («Event loop is closed» from httpcore) or the lock itself refused
+    («Lock is bound to a different event loop»). The newer starlette/httpcore
+    resolved on fresh installs surfaced it (23 red on a pristine tree). The
+    fix: a loop change rebuilds BOTH the lock and OUR OWN client — an
+    externally injected ``_http`` (tests patch the module global directly,
+    e.g. test_track_g_engine.make_old_client) is owned by its injector and
+    left untouched (identity check against ``_self_client``). Mutual
+    exclusion is preserved within a loop (the only place it means anything —
+    the previous loop is dead by construction); the rebuild block has no
+    awaits, so it is atomic under a single loop's cooperative scheduling.
+    """
+    global _http, _http_lock, _http_loop_ref, _self_client
+    loop = asyncio.get_running_loop()
+    if _http_loop_ref is None or _http_loop_ref() is not loop:
+        if _http is _self_client:  # OUR client, bound to a now-dead loop
+            _http = None
+        _http_lock = None
+        _http_loop_ref = weakref.ref(loop)
+    if _http_lock is None:
+        _http_lock = asyncio.Lock()
     if _http is None:
         async with _http_lock:
             if _http is None:
                 limits = httpx.Limits(
                     max_keepalive_connections=10, max_connections=20, keepalive_expiry=30)
                 _http = httpx.AsyncClient(timeout=15, limits=limits)
+                _self_client = _http
     return _http
 
 
@@ -724,4 +753,7 @@ class FBClient:
         global _http
         if _http:
             await _http.aclose()
-            _http = None
+            _http = None  # closed is closed — injected or not; re-inject to reuse
+        # v28 (D-ENV2): keep _http_loop_ref — a same-loop re-ensure after close
+        # simply builds a fresh client; a NEW loop triggers the rebuild branch
+        # in _ensure_client and rebuilds the guard there.

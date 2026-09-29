@@ -3,8 +3,9 @@
  *
  * Pins (the testable half of the promise):
  *   - list cards render the REAL backend statuses (draft/active/paused) +
- *     step counts joined from the per-id detail fetches (the list serializer
- *     has no steps field — the page enriches it in parallel)
+ *     step counts straight from the list contract's step_count field
+ *     (v24-C4; v28 W-11 removed the per-id detail fan-out — this suite now
+ *     PINS that no /api/sequences/{id} fires on page load)
  *   - create flow saves steps with 0-BASED step_order (engine contract:
  *     subscribe starts current_step=0, so 1-based numbering never fires —
  *     documented in tests/test_v11_broadcast_sequence.py) AND reflects
@@ -95,6 +96,7 @@ const ACTIVE_SEQ = {
   total_subscribers: 3,
   total_sent: 12,
   subscriber_count: 2,
+  step_count: 2,
   created_at: "2026-09-01T10:00:00Z",
   updated_at: "2026-09-05T10:00:00Z",
 }
@@ -106,6 +108,7 @@ const DRAFT_SEQ = {
   total_subscribers: 0,
   total_sent: 0,
   subscriber_count: 0,
+  step_count: 0,
   created_at: "2026-09-02T10:00:00Z",
   updated_at: "2026-09-02T10:00:00Z",
 }
@@ -133,19 +136,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe("list cards (contract: statuses + joined step counts)", () => {
-  it("renders names, REAL statuses, step counts and subscriber stats from the list + detail endpoints", async () => {
-    stubFetch({
+describe("list cards (contract: statuses + list-contract step counts)", () => {
+  it("renders names, REAL statuses, step counts and subscriber stats — with ZERO detail fetches", async () => {
+    const api = stubFetch({
       "GET /api/sequences": () => jsonRes({ success: true, data: [ACTIVE_SEQ, DRAFT_SEQ] }),
-      "GET /api/sequences/1": () =>
-        jsonRes({
-          success: true,
-          data: detailOf(ACTIVE_SEQ, [
-            { id: 11, step_order: 0, delay_days: 0, delay_hours: 0, message_template: "أهلاً" },
-            { id: 12, step_order: 1, delay_days: 2, delay_hours: 0, message_template: "كيف تجد المنتج؟" },
-          ]),
-        }),
-      "GET /api/sequences/2": () => jsonRes({ success: true, data: detailOf(DRAFT_SEQ, []) }),
     })
     renderPage()
 
@@ -154,8 +148,13 @@ describe("list cards (contract: statuses + joined step counts)", () => {
     /* real backend statuses — NOT the task-brief's pending/completed guesses */
     expect(screen.getByText("نشطة")).toBeInTheDocument()
     expect(screen.getByText("مسودة")).toBeInTheDocument()
-    /* step count enriched from the detail fetch: "خطوتين" for seq 1 */
+    /* v28 (W-11): step count comes from the LIST row's step_count field —
+       "خطوتين" for seq 1 — and the page must NOT rebuild it via N detail
+       fetches (the old fan-out fired GET /api/sequences/{id} per row) */
     expect(screen.getByText(/خطوتين/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(api.calls.filter((c) => /^\/api\/sequences\/\d+$/.test(c.url))).toHaveLength(0),
+    )
   })
 })
 
@@ -202,8 +201,6 @@ describe("activate/pause toggle", () => {
   it("an active campaign's «إيقاف» PUTs status paused", async () => {
     const api = stubFetch({
       "GET /api/sequences": () => jsonRes({ success: true, data: [ACTIVE_SEQ] }),
-      "GET /api/sequences/1": () =>
-        jsonRes({ success: true, data: detailOf(ACTIVE_SEQ, [{ id: 11, step_order: 0, message_template: "أهلاً" }]) }),
       "PUT /api/sequences/1": () => jsonRes({ success: true, data: { ok: true } }),
     })
     renderPage()
@@ -219,8 +216,6 @@ describe("delete — two-step Arabic confirm", () => {
   it("icon click only arms the confirm; the DELETE fires on «تأكيد الحذف» only", async () => {
     const api = stubFetch({
       "GET /api/sequences": () => jsonRes({ success: true, data: [ACTIVE_SEQ] }),
-      "GET /api/sequences/1": () =>
-        jsonRes({ success: true, data: detailOf(ACTIVE_SEQ, [{ id: 11, step_order: 0, message_template: "أهلاً" }]) }),
       "DELETE /api/sequences/1": () => jsonRes({ success: true, data: { ok: true } }),
     })
     renderPage()

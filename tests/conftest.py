@@ -56,6 +56,60 @@ def _csrf_aware_asyncclient_init(self, *args, **kwargs):
 _httpx.AsyncClient.__init__ = _csrf_aware_asyncclient_init
 
 
+# ── v28 (D-ENV3): hermetic suite — zero real network egress ────────────────
+# The suite is documented as hermetic (scripts/gate_all.sh gate 2), and every
+# FB-touching test patches the FBClient._get/_post seams or swaps
+# fb_client._ensure_client with its own fake (test_v16_ssrf.py et al). But a
+# few engine paths (the v20 token-verdict /me probe, inbox live-sync) reach
+# the REAL shared client with FAKE tokens: on sandboxes WITH egress these
+# become real graph.facebook.com round-trips; on sandboxes where egress is
+# blackholed each call stalls for the full 15s httpx timeout — one full-suite
+# run ballooned 3:21 → >9:00 and stalled mid-file. Deterministic fix: one
+# session-scoped autouse fixture swaps the shared-client factory for an
+# instantly-failing transport. Callers degrade exactly like a dead network,
+# but instantly and identically on every machine; tests that install their
+# own fakes override it per-test (monkeypatch then restores to THIS function).
+class _HermeticTransport(_httpx.AsyncBaseTransport):
+    """Every request fails instantly — the network is "down" by decree."""
+
+    async def handle_async_request(self, request: _httpx.Request) -> _httpx.Response:
+        raise _httpx.ConnectError(
+            "hermetic suite (v28 D-ENV3): real network egress blocked")
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _hermetic_fb_client():
+    import fb_client as _fbc
+
+    _orig_ensure = _fbc._ensure_client
+    _hermetic: list = []
+
+    async def _ensure_hermetic_client():
+        # v28 seam-preservation: tests that inject a client directly via the
+        # fb_client._http module global (test_track_g_engine.make_old_client)
+        # own its lifecycle — honor it; the decree applies only when the
+        # module would otherwise build a REAL network client.
+        if _fbc._http is not None:
+            return _fbc._http
+        if not _hermetic:
+            _hermetic.append(_httpx.AsyncClient(
+                transport=_HermeticTransport(), timeout=15))
+        return _hermetic[0]
+
+    _fbc._ensure_client = _ensure_hermetic_client
+    try:
+        yield
+    finally:
+        _fbc._ensure_client = _orig_ensure
+        if _hermetic:
+            import asyncio as _asyncio
+
+            try:
+                _asyncio.run(_hermetic[0].aclose())
+            except Exception:
+                pass
+
+
 @pytest.fixture
 async def v10_world():
     """تطبيق + قاعدة اختبار معزولة + عميل HTTP غير موثّق بعد.

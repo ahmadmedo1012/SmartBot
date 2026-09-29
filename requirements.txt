@@ -1,6 +1,6 @@
 alembic>=1.18.5
 fastapi>=0.115.6
-sqlalchemy[asyncio]>=2.0.36
+sqlalchemy[asyncio]>=2.0.36,<2.1
 asyncpg>=0.29.0
 aiosqlite>=0.20.0
 pydantic-settings>=2.0.0
@@ -36,9 +36,24 @@ fpdf2>=2.8.2,<3                    # v22 (D9-F1): the PDF FALLBACK engine — wa
 weasyprint>=68.0,<69  # v22: pin — floating floor let CI resolve untested majors (URLFetcherResponse API drift)
 
 # Testing
-pytest>=8.3.0
-pytest-asyncio>=0.24.0
 aiosqlite>=0.20.0  # for SQLite in-memory test DB
+# v28 (D-ENV1, deterministic-gate doctrine): fresh installs on 2026-09-30
+# resolved a NEWER stack than any green run had ever exercised, surfacing two
+# independent latent defects at once (23 red on a PRISTINE tree, verified via
+# git stash):
+#   1. SQLAlchemy 2.1's async pool introduced loop-bound asyncio primitives —
+#      with the suite's module-scoped fixtures sharing the global engine
+#      across per-test loops this deadlocks/errors ("Lock is bound to a
+#      different event loop"). Pinned to the 2.0 line the suite was green on
+#      (v26 evidence); the underlying app-side fragility was ALSO fixed
+#      (fb_client/redis_cache loop-aware singletons, v28 D-ENV2).
+#   2. pytest-asyncio 0.24.x leaves module-scoped async fixtures' sessions
+#      leaked on dead loops → a permanently-held SQLite write lock on the
+#      shared file DB → "database is locked" cascades with ~5s busy-timeout
+#      stalls on every later setup. The 1.x line scopes fixture loops
+#      correctly — pinned >=1.4.
+pytest>=8.3.0,<9
+pytest-asyncio>=1.4.0,<2
 
 # Track G (latest_plan.md) — STANDALONE MCP server ONLY.
 # The live app does NOT import mcp at runtime; needed solely by

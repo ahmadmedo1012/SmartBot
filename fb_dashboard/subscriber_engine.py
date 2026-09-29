@@ -335,25 +335,33 @@ class TagEngine:
     """CRUD for subscriber tags."""
 
     async def list_tags(self, session, tenant_id: int = 0) -> list[dict]:
-        """All tags with subscriber count."""
+        """All tags with subscriber count.
+
+        v28 (D-09, N+1 fix): ONE grouped COUNT over SubscriberTag for the
+        whole tag list instead of a COUNT per tag — list endpoints must not
+        multiply queries (the v5 §4 / routers/rules.py grouped-count
+        pattern). Semantics preserved exactly: grouping on tag_id only,
+        ``or 0`` fallback for tags with no links, ordered by Tag.name.
+        """
         r = await session.execute(select(Tag).where(Tag.tenant_id == tenant_id).order_by(Tag.name))
         tags = r.scalars().all()
-        result = []
-        for t in tags:
-            cnt_r = await session.execute(
-                select(func.count(SubscriberTag.id)).where(
-                    SubscriberTag.tag_id == t.id
-                )
+        counts: dict[int, int] = {}
+        if tags:
+            count_rows = await session.execute(
+                select(SubscriberTag.tag_id, func.count(SubscriberTag.id))
+                .where(SubscriberTag.tag_id.in_([t.id for t in tags]))
+                .group_by(SubscriberTag.tag_id)
             )
-            result.append(
-                {
-                    "id": t.id,
-                    "name": t.name,
-                    "color": t.color,
-                    "subscriber_count": cnt_r.scalar() or 0,
-                }
-            )
-        return result
+            counts = {int(tag_id): int(cnt) for tag_id, cnt in count_rows.all()}
+        return [
+            {
+                "id": t.id,
+                "name": t.name,
+                "color": t.color,
+                "subscriber_count": counts.get(t.id, 0),
+            }
+            for t in tags
+        ]
 
     async def create_tag(self, name: str, color: str, session, tenant_id: int = 0) -> dict:
         """Create a new tag. Returns dict or raises on duplicate.

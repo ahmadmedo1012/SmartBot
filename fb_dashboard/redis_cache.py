@@ -17,13 +17,15 @@ import asyncio
 import json
 import logging
 import os
+import weakref
 from collections.abc import Callable
 from typing import Any
 
 log = logging.getLogger("redis-cache")
 
 _redis = None
-_redis_lock = asyncio.Lock()
+_redis_lock: asyncio.Lock | None = None
+_redis_loop_ref: weakref.ref | None = None
 
 # ponytail: single async Redis client per process, created on first use
 def _build_url() -> str:
@@ -34,7 +36,20 @@ def _build_url() -> str:
 
 
 async def get_client():
-    global _redis
+    """(loop-aware singleton — v28 D-ENV2, same rationale as fb_client.py:
+    the old module-level ``asyncio.Lock`` bound to the first event loop and
+    refused every later loop; a loop change now rebuilds the guard and the
+    client. Production runs one loop per process — behavior unchanged.)"""
+    global _redis, _redis_lock, _redis_loop_ref
+    loop = asyncio.get_running_loop()
+    if _redis_loop_ref is None or _redis_loop_ref() is not loop:
+        # per-loop state: the ``False`` "don't retry" sentinel is also reset —
+        # a new loop (a new test) deserves a fresh probe; prod never rebuilds.
+        _redis = None
+        _redis_lock = None
+        _redis_loop_ref = weakref.ref(loop)
+    if _redis_lock is None:
+        _redis_lock = asyncio.Lock()
     if _redis is None:
         async with _redis_lock:
             if _redis is None:

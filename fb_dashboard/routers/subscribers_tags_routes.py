@@ -67,7 +67,7 @@ async def create_tag(request: Request, db=Depends(get_db), current_user: User = 
     body = await _json_body(request)
     name = _required_key(body, "name")
     try:
-        result = await tag_engine.create_tag(name, body.get("color", "#6366f1"), db, tenant_id=current_user._tenant_id)
+        result = await tag_engine.create_tag(name, body.get("color", "#8A6FE0"), db, tenant_id=current_user._tenant_id)
         return ok(result)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e

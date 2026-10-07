@@ -224,7 +224,7 @@ class ConversationTag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(50), nullable=False)
-    color = Column(String(7), default="#6366f1")  # hex color
+    color = Column(String(7), default="#8A6FE0")  # lavender-ink (Madarek 9-family) — works on dark+light
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -401,7 +401,7 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     tenant_id = Column(Integer, nullable=False, default=0)
     name = Column(String(50), nullable=False)
-    color = Column(String(7), default="#6366f1")
+    color = Column(String(7), default="#8A6FE0")  # lavender-ink (Madarek 9-family) — works on dark+light
     created_at = Column(DateTime, default=utcnow)
 
     subscribers = relationship("Subscriber", secondary="subscriber_tags", lazy="selectin", back_populates="tags", overlaps="subscriber_tags")

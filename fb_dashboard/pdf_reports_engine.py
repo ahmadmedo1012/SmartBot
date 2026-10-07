@@ -101,12 +101,14 @@ class BrandingConfig:
       document. Now re.fullmatch(r"#[0-9a-fA-F]{3,8}") or ValueError.
     """
 
-    def __init__(self, logo_url: str = "", company_name: str = "SmartBot", primary_color: str = "#dc2626"):
+    def __init__(self, logo_url: str = "", company_name: str = "SmartBot", primary_color: str = "#B57438"):
+        # Madarek completion (Task 8-e): the white-label default is the
+        # Madarek light accent — copper #B57438 (was slate-red #dc2626).
         if logo_url:
             # يرفع UnsafeImageUrlError (فرع ValueError) عند رابط غير آمن
             _assert_safe_image_url(logo_url)
         if not re.fullmatch(r"#[0-9a-fA-F]{3,8}", primary_color or ""):
-            raise ValueError("لون العلامة التجارية غير صالح — يجب أن يكون كود لون hex مثل #dc2626")
+            raise ValueError("لون العلامة التجارية غير صالح — يجب أن يكون كود لون hex مثل #B57438")
         self.logo_url = logo_url
         self.company_name = company_name
         self.primary_color = primary_color
@@ -157,14 +159,24 @@ class PdfReportsEngine:
     # ── Helpers ──────────────────────────────────────────────────────────────
 
     def _css(self, c: str) -> str:
-        """Return CSS block with the given primary color injected."""
+        """Return CSS block with the given primary color injected.
+
+        Madarek palette (Task 8-e): the page stays light (paper) so every
+        fixed value is the Madarek LIGHT system — ink #191918, text-muted
+        #6E6C65, hairline #E9E7E2, surface tints #F1EFEC/#F7F6F3, status
+        soft/deep pairs (mint/yellow/rose §2.6). The injected brand color {c}
+        fills the Madarek accent role (default copper #B57438, AA-large on
+        headings, 4.95:1 with the #1A0F06 on-accent ink in table headers).
+        Fonts stay DejaVu/Noto — system Arabic-capable faces (Plex woff2 is
+        not loadable by weasyprint); colors are the Madarek contract.
+        """
         return f"""
         @page {{ margin: 1.8cm 1.5cm; size: A4; }}
         @page :first {{ margin-top: 1.2cm; }}
         body {{
             font-family: 'DejaVu Sans', 'Noto Sans Arabic', 'Arial', sans-serif;
             direction: rtl;
-            color: #1e293b;
+            color: #191918;
             font-size: 10pt;
             line-height: 1.6;
         }}
@@ -175,10 +187,12 @@ class PdfReportsEngine:
             margin-bottom: 18px;
         }}
         .header h1 {{ font-size: 18pt; margin: 8px 0 4px; color: {c}; }}
-        .header .sub {{ color: #64748b; font-size: 8pt; }}
+        .header .sub {{ color: #6E6C65; font-size: 8pt; }}
         .section {{ margin: 22px 0; page-break-inside: avoid; }}
         .section h2 {{
-            font-size: 12pt;
+            /* 14pt bold = WCAG large text: copper default reads 3.8:1 (AA
+               large); darker brand colors only improve it. */
+            font-size: 14pt;
             color: {c};
             border-right: 3px solid {c};
             padding-right: 8px;
@@ -188,24 +202,26 @@ class PdfReportsEngine:
         .kpi-row {{ text-align: center; margin: 10px 0; }}
         .kpi {{
             display: inline-block; width: 130px;
-            background: #f8fafc; border-radius: 6px;
+            background: #F1EFEC; border-radius: 6px;
             padding: 12px 6px; margin: 4px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #E9E7E2;
             vertical-align: top;
         }}
         .kpi .val {{ font-size: 20pt; font-weight: bold; color: {c}; }}
-        .kpi .lbl {{ font-size: 7pt; color: #64748b; margin-top: 2px; }}
+        .kpi .lbl {{ font-size: 7pt; color: #6E6C65; margin-top: 2px; }}
         table {{
             width: 100%; border-collapse: collapse;
             margin: 8px 0; font-size: 9pt;
         }}
         th {{
-            background: {c}; color: #fff;
+            /* Madarek .btn.accent light pairing: accent fill + accent-fg
+               #1A0F06 (4.95:1 on the copper default). */
+            background: {c}; color: #1A0F06;
             padding: 6px 5px; text-align: center;
             font-weight: bold;
         }}
-        td {{ padding: 5px; border-bottom: 1px solid #e2e8f0; text-align: center; }}
-        tr:nth-child(even) td {{ background: #fafafa; }}
+        td {{ padding: 5px; border-bottom: 1px solid #E9E7E2; text-align: center; }}
+        tr:nth-child(even) td {{ background: #F7F6F3; }}
         .bar-cell {{ position: relative; text-align: left; direction: ltr; }}
         .bar {{
             display: inline-block; height: 10px;
@@ -214,19 +230,21 @@ class PdfReportsEngine:
         }}
         .bar-label {{ display: inline-block; min-width: 30px; text-align: right; font-size: 8pt; }}
         .cmp-box {{
-            background: #f0fdf4; border: 1px solid #bbf7d0;
+            /* success soft (mint-bg) + mint-ink border at 45% */
+            background: #DCF1E2; border: 1px solid rgba(79, 166, 109, 0.45);
             padding: 10px 14px; border-radius: 5px;
             margin: 8px 0; font-size: 9pt;
         }}
         .sentiment-row {{ text-align: center; margin: 10px 0; }}
         .sentiment {{ display: inline-block; padding: 6px 12px; margin: 2px; border-radius: 4px; font-size: 9pt; }}
-        .sent-pos {{ background: #dcfce7; color: #166534; }}
-        .sent-neg {{ background: #fce4ec; color: #9b1c1c; }}
-        .sent-neu {{ background: #fef9c3; color: #854d0e; }}
+        /* Madarek light status soft/deep pairs (§2.6): mint, rose, yellow. */
+        .sent-pos {{ background: #DCF1E2; color: #1F4F30; }}
+        .sent-neg {{ background: #FCE0E2; color: #6B2128; }}
+        .sent-neu {{ background: #FCF1CD; color: #6B4C0B; }}
         .footer {{
             text-align: center; padding: 16px;
-            color: #94a3b8; font-size: 6pt;
-            border-top: 1px solid #e2e8f0;
+            color: #74706A; font-size: 6pt;
+            border-top: 1px solid #E9E7E2;
             margin-top: 30px;
         }}
         .footer .pg::after {{ content: counter(page); }}

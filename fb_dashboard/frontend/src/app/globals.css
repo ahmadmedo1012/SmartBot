@@ -247,6 +247,40 @@
   --warning-soft: #2C2410;
   --info-soft: #14213A;
   --destructive-soft: #2C1620;
+
+  /* ── 9 PASTEL SECTION FAMILIES (dark) — Madarek tokens.css §1.4: deep
+     space-tinted bg + luminous ink + pale deep. mint/yellow/sky/rose live
+     above as the status set; the remaining five complete the canonical
+     nine (digest §1.4 — Task 8-e). Consume via --c-{family}-bg/-ink/-deep
+     for section washes, tags and illustrations; never invent a 10th. ── */
+  --c-peach-bg: #2C1A16;
+  --c-peach-ink: #F2A07F;
+  --c-peach-deep: #FCD9C4;
+  --c-lavender-bg: #221B3A;
+  --c-lavender-ink: #B7A0F4;
+  --c-lavender-deep: #DCD2F9;
+  --c-sand-bg: #241F14;
+  --c-sand-ink: #D9C18C;
+  --c-sand-deep: #EFE2C5;
+  --c-grey-bg: #161D33;
+  --c-grey-ink: #A9B0C8;
+  --c-grey-deep: #D5DAE8;
+  --c-copper-bg: #2C2312;
+  --c-copper-ink: #E9B44C;
+  --c-copper-deep: #F5D48A;
+  /* mint/yellow/sky/rose triads (status mirror) for family consumers. */
+  --c-mint-bg: #0F241C;
+  --c-mint-ink: #7FD39A;
+  --c-mint-deep: #C9EAD3;
+  --c-yellow-bg: #2C2410;
+  --c-yellow-ink: #ECC97D;
+  --c-yellow-deep: #F8E5B5;
+  --c-sky-bg: #14213A;
+  --c-sky-ink: #8FBBF2;
+  --c-sky-deep: #C9DCEE;
+  --c-rose-bg: #2C1620;
+  --c-rose-ink: #F0938F;
+  --c-rose-deep: #FACDD2;
   /* Madarek modal scrim (dark 0.62) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.62);
 
@@ -364,6 +398,38 @@
   --warning-soft: #FCF1CD;
   --info-soft: #DDEBF7;
   --destructive-soft: #FCE0E2;
+
+  /* ── 9 PASTEL SECTION FAMILIES (light) — Madarek tokens.css §2.4: pastel
+     ground + saturated ink + deep text shade. Same nine as dark; values
+     per digest §2.4 (Task 8-e). ── */
+  --c-peach-bg: #FFE9DC;
+  --c-peach-ink: #E07856;
+  --c-peach-deep: #6B2D1A;
+  --c-lavender-bg: #ECE6FA;
+  --c-lavender-ink: #8A6FE0;
+  --c-lavender-deep: #3F2D7A;
+  --c-sand-bg: #F1ECDF;
+  --c-sand-ink: #B59868;
+  --c-sand-deep: #5A4623;
+  --c-grey-bg: #EFECE7;
+  --c-grey-ink: #6B665E;
+  --c-grey-deep: #2D2A24;
+  --c-copper-bg: #F4E4D2;
+  --c-copper-ink: #B57438;
+  --c-copper-deep: #5C3416;
+  /* mint/yellow/sky/rose triads (status mirror) for family consumers. */
+  --c-mint-bg: #DCF1E2;
+  --c-mint-ink: #4FA66D;
+  --c-mint-deep: #1F4F30;
+  --c-yellow-bg: #FCF1CD;
+  --c-yellow-ink: #D6A330;
+  --c-yellow-deep: #6B4C0B;
+  --c-sky-bg: #DDEBF7;
+  --c-sky-ink: #5C8FCE;
+  --c-sky-deep: #1F3D63;
+  --c-rose-bg: #FCE0E2;
+  --c-rose-ink: #DD6E78;
+  --c-rose-deep: #6B2128;
   /* Madarek modal scrim (light 0.40) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.40);
 
@@ -800,7 +866,41 @@ html.light::-webkit-scrollbar-thumb:hover,
 }
 html.light .mdrk-night-sky, .light .mdrk-night-sky { background: var(--card); }
 html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: none; }
+
+/* ═══ PREFERS-CONTRAST: MORE — full Madarek pattern (tokens.css L964-1005,
+   ported Task 8-e): OS increased-contrast users get solid elevation rings
+   instead of soft shadows (edges become unambiguous outlines), glass goes
+   solid (no translucent blur legibility loss), and hairline borders
+   strengthen. Theme-specific values mirror Madarek's light/dark blocks;
+   the painted سماء مدارك sky flattens to the plain ground. ═══ */
 @media (prefers-contrast: more) {
+  /* dark (:root default) — white rings per Madarek dark block */
+  :root {
+    --elev-1: 0 0 0 1px rgba(255, 255, 255, 0.36);
+    --elev-2: 0 0 0 1.5px rgba(255, 255, 255, 0.44);
+    --elev-3: 0 0 0 2px rgba(255, 255, 255, 0.52);
+    --elev-4: 0 0 0 2.5px rgba(255, 255, 255, 0.60);
+    --elev-5: 0 0 0 3px rgba(255, 255, 255, 0.68);
+    --glass-bg: var(--card);
+    --glass-bg-strong: var(--card);
+    --glass-border: rgba(255, 255, 255, 0.36);
+    --glass-border-strong: rgba(255, 255, 255, 0.48);
+    --border: rgba(255, 255, 255, 0.48);
+  }
+  /* light (.light) — black rings per Madarek light block. Later in source
+     order than the :root block above, so html.light wins the cascade. */
+  .light {
+    --elev-1: 0 0 0 1px rgba(0, 0, 0, 0.32);
+    --elev-2: 0 0 0 1.5px rgba(0, 0, 0, 0.40);
+    --elev-3: 0 0 0 2px rgba(0, 0, 0, 0.48);
+    --elev-4: 0 0 0 2.5px rgba(0, 0, 0, 0.56);
+    --elev-5: 0 0 0 3px rgba(0, 0, 0, 0.64);
+    --glass-bg: var(--card);
+    --glass-bg-strong: var(--card);
+    --glass-border: rgba(0, 0, 0, 0.32);
+    --glass-border-strong: rgba(0, 0, 0, 0.42);
+    --border: rgba(0, 0, 0, 0.42);
+  }
   .mdrk-night-sky { background: var(--background); }
   .mdrk-night-sky::before { content: none; }
 }

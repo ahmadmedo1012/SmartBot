@@ -237,7 +237,8 @@ def test_branding_primary_color_rejects_css_injection():
     for good in ["#abc", "#abcd", "#dc2626", "#DC2626", "#dc262680"]:
         assert BrandingConfig(primary_color=good).primary_color == good
     # البناء الافتراضي سليم (يعمل مسار التقارير بلا branding)
-    assert BrandingConfig().primary_color == "#dc2626"
+    # Task 8-e: الافتراضي أصبح النحاسي مدارك #B57438 (كان #dc2626)
+    assert BrandingConfig().primary_color == "#B57438"
 
 
 def test_branding_logo_url_rejects_ssrf_targets():

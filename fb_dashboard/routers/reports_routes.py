@@ -95,7 +95,7 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
         branding = BrandingConfig(
             logo_url=str(b.get("logo_url", ""))[:500],
             company_name=str(b.get("company_name", "SmartBot"))[:200],
-            primary_color=str(b.get("primary_color", "#dc2626"))[:32],
+            primary_color=str(b.get("primary_color", "#B57438"))[:32],  # Madarek light accent (was #dc2626)
         )
     except ValueError as e:
         raise HTTPException(400, str(e)) from None

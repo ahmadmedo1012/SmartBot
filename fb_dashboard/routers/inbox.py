@@ -623,7 +623,7 @@ async def inbox_list_tags(db=Depends(get_db), current_user: User = Depends(get_c
 
 
 @router.post("/api/inbox/tags")
-async def inbox_create_tag(name: str = Form(...), color: str = Form("#6366f1"),
+async def inbox_create_tag(name: str = Form(...), color: str = Form("#8A6FE0"),
                            db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     """Create a new tag.
 

@@ -14,6 +14,7 @@ import asyncio
 import logging
 
 from _responses import ok
+from loop_safe import LoopLocalLock
 from _subscription import get_tenant_for_user, is_subscription_active
 from _utils import iso_z
 from database import AsyncSessionLocal, get_db
@@ -43,17 +44,19 @@ router = APIRouter(tags=["payments"])
 # invocation), so a double-click can no longer create two pending rows.
 # Multi-instance deployments should add the partial index at the next
 # schema reset.
-_SUB_PENDING_LOCKS: dict[int, asyncio.Lock] = {}
+# 2026-10-07: LoopLocalLock boxes (see fb_dashboard/loop_safe.py) — plain
+# Locks bound to the first test's event loop under pytest-asyncio's per-test loops.
+_SUB_PENDING_LOCKS: dict[int, LoopLocalLock] = {}
 
 
 def _pending_lock(user_id: int) -> asyncio.Lock:
-    lock = _SUB_PENDING_LOCKS.get(user_id)
-    if lock is None:
+    box = _SUB_PENDING_LOCKS.get(user_id)
+    if box is None:
         if len(_SUB_PENDING_LOCKS) > 1024:  # bound the registry (old users churn)
             _SUB_PENDING_LOCKS.clear()
-        lock = asyncio.Lock()
-        _SUB_PENDING_LOCKS[user_id] = lock
-    return lock
+        box = LoopLocalLock()
+        _SUB_PENDING_LOCKS[user_id] = box
+    return box.get()
 
 
 # NOTE (2026-09-05): POST /api/subscriptions/validate was REMOVED — it had no

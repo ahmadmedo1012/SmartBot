@@ -10,12 +10,15 @@ import logging
 
 import httpx
 from ai_service import _IMAGE_MAX_BYTES, UnsafeImageUrlError, assert_safe_outbound_url
+from loop_safe import LoopLocalLock
 
 log = logging.getLogger("fb-client")
 
 API_BASE = "https://graph.facebook.com/v22.0"
 _http: httpx.AsyncClient | None = None
-_http_lock = asyncio.Lock()
+# 2026-10-07: loop-local lock (see loop_safe.py — per-test event loops under
+# pytest-asyncio bound the old import-time Lock to the first loop).
+_http_lock = LoopLocalLock()
 
 # v15-E7 (D8-B2): concurrency cap for the multi-post comment fan-out. 5 keeps
 # us far from Graph rate limits while turning 10 serial round-trips into ~2
@@ -26,7 +29,7 @@ COMMENT_FETCH_CONCURRENCY = 5
 async def _ensure_client():
     global _http
     if _http is None:
-        async with _http_lock:
+        async with _http_lock.get():
             if _http is None:
                 limits = httpx.Limits(
                     max_keepalive_connections=10, max_connections=20, keepalive_expiry=30)

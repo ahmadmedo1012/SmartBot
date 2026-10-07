@@ -20,10 +20,15 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+from loop_safe import LoopLocalLock
+
 log = logging.getLogger("redis-cache")
 
 _redis = None
-_redis_lock = asyncio.Lock()
+# 2026-10-07: loop-local lock (was a plain import-time asyncio.Lock that bound
+# to the first test's event loop — "bound to a different event loop" under
+# pytest-asyncio's per-test loops; identical behaviour on production's single loop).
+_redis_lock = LoopLocalLock()
 
 # ponytail: single async Redis client per process, created on first use
 def _build_url() -> str:
@@ -36,7 +41,7 @@ def _build_url() -> str:
 async def get_client():
     global _redis
     if _redis is None:
-        async with _redis_lock:
+        async with _redis_lock.get():
             if _redis is None:
                 url = _build_url()
                 if not url:

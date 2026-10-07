@@ -19,9 +19,13 @@ import json
 import time
 from functools import wraps
 
+from loop_safe import LoopLocalLock
+
 # ponytail: process-local fallback — used when Redis is unreachable
 _cache_store: dict[str, tuple[float, str]] = {}
-_cache_locks: dict[str, asyncio.Lock] = {}
+# 2026-10-07: values are LoopLocalLock boxes (see loop_safe.py) — plain Locks
+# created here bound to the first test's event loop under pytest-asyncio.
+_cache_locks: dict[str, LoopLocalLock] = {}
 _cache_ttl: dict[str, int] = {}
 MAX_KEYS = 1000
 
@@ -46,9 +50,10 @@ def _track_redis_key(key: str) -> None:
 
 
 def _lock_for(key: str) -> asyncio.Lock:
-    if key not in _cache_locks:
-        _cache_locks[key] = asyncio.Lock()
-    return _cache_locks[key]
+    box = _cache_locks.get(key)
+    if box is None:
+        box = _cache_locks[key] = LoopLocalLock()
+    return box.get()
 
 
 def _make_key(path: str, query_params: dict | None) -> str:

@@ -80,6 +80,27 @@ os.environ["SMARTBOT_MUTATE_RATE_LIMIT"] = "100000"
 import pytest  # noqa: E402  (env must be forced before app imports)
 
 
+# ── 3a. per-test engine-connection disposal (2026-10-07) ──────────────
+# pytest-asyncio (auto mode) runs EVERY test on a fresh event loop, but the
+# shared StaticPool engine holds ONE aiosqlite connection bound to the loop
+# it was first created on — every later test died with SQLAlchemy's
+# "Lock ... is bound to a different event loop" (26 red tests, CI red since
+# 2026-09-05). Disposing the engine after each test closes that loop-bound
+# connection; the next test creates a fresh one ON ITS OWN LOOP. The temp
+# FILE database keeps all rows across connections, so within-file
+# build-on-each-other semantics are preserved. Production is unaffected
+# (fixture never runs outside pytest). Cheap: one sqlite reconnect per test.
+@pytest.fixture(autouse=True)
+async def _dispose_engine_per_test():
+    yield
+    try:
+        from database import engine
+
+        await engine.dispose()
+    except Exception:
+        pass
+
+
 # ── 3. cross-file global-state isolation (v5 §0) ──────────────────────
 # The suite shares ONE temp-file DB for speed, so files that ran earlier can
 # leave PROCESS-GLOBAL state behind (api_cache store, cached bot engines

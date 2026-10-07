@@ -48,8 +48,8 @@ export function HeroMockup() {
       {/* Floating reply counter — bottom left */}
       <div className="absolute -bottom-4 -left-2 sm:left-2 z-20 glass-strong rounded-2xl p-3 sm:p-4 shadow-xl animate-fade-in-1100">
         <div className="flex items-center gap-2.5">
-          <div className="size-9 rounded-xl bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shadow-md">
-            <Bot className="size-4.5 text-white" />
+          <div className="size-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
+            <Bot className="size-4.5 text-primary-foreground" />
           </div>
           <div>
             <div className="text-3xs text-muted-foreground font-medium">الردود الذكية</div>
@@ -93,7 +93,7 @@ export function HeroMockup() {
                     {msg.avatar}
                   </div>
                 ) : (
-                  <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0 shadow-md shadow-accent-foreground/20">
+                  <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-md shadow-accent-foreground/20">
                     <Bot className="size-4 text-primary-foreground" />
                   </div>
                 )}
@@ -106,7 +106,7 @@ export function HeroMockup() {
                     className={`px-3.5 py-2 rounded-2xl text-[12.5px] leading-relaxed max-w-[85%] ${
                       msg.from === "user"
                         ? "bg-muted/60 text-foreground/90 rounded-tr-sm"
-                        : "bg-gradient-to-br from-accent-foreground to-accent-foreground/85 text-primary-foreground rounded-tl-sm shadow-sm"
+                        : "bg-gradient-to-br from-primary to-primary/85 text-primary-foreground rounded-tl-sm shadow-sm"
                     }`}
                   >
                     {msg.text}
@@ -117,7 +117,7 @@ export function HeroMockup() {
 
             {/* Typing indicator */}
             <div className="flex gap-2.5 flex-row-reverse animate-fade-in-1100" style={{ animationDelay: "2000ms" }}>
-              <div className="size-8 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/70 flex items-center justify-center shrink-0">
+              <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0">
                 <Bot className="size-4 text-primary-foreground" />
               </div>
               <div className="bg-gradient-to-br from-accent-foreground/10 to-accent-foreground/5 border border-accent-foreground/20 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1">

@@ -529,7 +529,8 @@ export default function DemoPage() {
     /* Same architecture as DashboardShell: fixed real sidebar + content
        column + real mobile bottom nav (v4 plan §3.2 — no parallel UI tree). */
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
+      {/* Madarek --sidebar-w: 256px (w-64) — DashboardShell parity. */}
+      <div className="fixed top-0 right-0 z-30 h-full w-64 hidden md:block">
         <AdminSidebar
           onNavigate={handleNavigate}
           onSubscribe={() => router.push("/subscribe")}
@@ -541,7 +542,7 @@ export default function DemoPage() {
       {/* v9-D3: #page-content — skip-link target, DashboardShell parity
           (content column, past the sidebar nav). tabIndex lets the skip
           link actually move focus here. */}
-      <div id="page-content" tabIndex={-1} className="flex-1 md:ps-60 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div id="page-content" tabIndex={-1} className="flex-1 md:ps-64 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <DemoHeader tab={tab} />
         <SectionContainer className="py-6 flex-1">
           {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS

@@ -33,16 +33,24 @@ import { repliesPhrase, type ComparisonPlan } from "@/components/subscribe/plan-
 type Plan = ComparisonPlan
 
 // Map by plan name (not index) — survives plan reordering/adding.
-const PLAN_META: Record<string, { icon: typeof Sparkles; gradient: string; recommended?: boolean }> = {
-  Free: { icon: Sparkles, gradient: "from-muted-foreground/60 to-muted-foreground/80" },
-  Basic: { icon: Star, gradient: "from-accent-foreground to-accent-foreground/80", recommended: true },
-  Premium: { icon: Crown, gradient: "from-saffron to-primary" },
-  Pro: { icon: Building2, gradient: "from-primary to-bloom" },
-  Enterprise: { icon: Building2, gradient: "from-bloom to-primary" },
+// Madarek contrast recalibration: solid BRAND fills (Basic/Premium/Pro/
+// Enterprise) ride on --primary (gold/copper) and carry the accent-fg ink
+// glyph (--primary-foreground — 10.6:1 dark / 4.95:1 light, the .btn.accent
+// recipe); the accent-foreground token is the accent-as-TEXT ink and must
+// never be a fill under a white glyph (white-on-gold measured 1.89:1).
+// Free keeps the neutral wash + white glyph (pre-existing, decorative).
+type PlanMeta = { icon: typeof Sparkles; gradient: string; iconClass?: string; recommended?: boolean }
+const PLAN_META: Record<string, PlanMeta> = {
+  Free: { icon: Sparkles, gradient: "from-muted-foreground/60 to-muted-foreground/80", iconClass: "text-white" },
+  Basic: { icon: Star, gradient: "from-primary to-primary/80", iconClass: "text-primary-foreground", recommended: true },
+  Premium: { icon: Crown, gradient: "from-saffron to-primary", iconClass: "text-primary-foreground" },
+  Pro: { icon: Building2, gradient: "from-primary to-bloom", iconClass: "text-primary-foreground" },
+  Enterprise: { icon: Building2, gradient: "from-bloom to-primary", iconClass: "text-primary-foreground" },
 }
-const DEFAULT_META: { icon: typeof Sparkles; gradient: string; recommended?: boolean } = {
+const DEFAULT_META: PlanMeta = {
   icon: Sparkles,
   gradient: "from-muted-foreground/60 to-muted-foreground/80",
+  iconClass: "text-white",
 }
 
 /** Plans beyond this count render as full-width feature cards at lg+. */
@@ -106,7 +114,7 @@ function PlanCard({
           isSelected ? "bg-primary opacity-100" : "bg-border/60 opacity-0 pointer-events-none",
         )}
       >
-        <MotionCheck className="size-3.5 text-white" />
+        <MotionCheck className="size-3.5 text-primary-foreground" />
       </span>
       {meta.recommended && (
         <span className="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--c-ember)] to-[var(--c-saffron)] px-2.5 py-0.5 text-3xs font-bold text-espresso shadow-sm">
@@ -121,7 +129,7 @@ function PlanCard({
           wide && "lg:mb-0",
         )}
       >
-        <Icon className="size-5 text-white" aria-hidden="true" />
+        <Icon className={cn("size-5", meta.iconClass)} aria-hidden="true" />
       </span>
       <div className={cn("min-w-0", wide && "lg:shrink-0")}>
         <h3 className="font-bold text-lg mb-1">{plan.nameAr}</h3>

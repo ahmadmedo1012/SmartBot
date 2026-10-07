@@ -621,8 +621,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         <div key={step} className="ob-step-enter flex min-h-0 flex-1 flex-col">
           {/* Header */}
           <div className="shrink-0 p-6 pb-4 text-center sm:p-8 sm:pb-6">
-            <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/80 shadow-lg shadow-accent-foreground/25">
-              <Icon className="size-8 text-white" />
+            <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-accent-foreground/25">
+              <Icon className="size-8 text-primary-foreground" />
             </div>
             <h2 id="onboarding-step-title" tabIndex={-1} className="text-xl font-bold mb-1 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-md px-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>

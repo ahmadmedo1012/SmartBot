@@ -214,7 +214,7 @@ export default function NotificationsPage() {
                 <BellRing className="size-4 text-accent-foreground" />
                 الإشعارات الأخيرة
                 {unread > 0 && (
-                  <span className="text-3xs font-bold bg-primary text-white rounded-full px-2 py-0.5 min-w-5 text-center">
+                  <span className="text-3xs font-bold bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-5 text-center">
                     {unread}
                   </span>
                 )}

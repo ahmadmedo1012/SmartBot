@@ -17,27 +17,32 @@
  */
 
 @theme inline {
-  /* ── Font system — Arabic-first, Cairo local-first (Smart-Menu parity).
-     --font-cairo comes from /fonts/fonts.css @font-face "Cairo" (arabic +
-     latin + latin-ext subsets, 400-800). The literal "Cairo" fallback keeps
-     the stack resolvable when the var is absent (exact Smart-Menu stack).
-     --font-heading is THE display face: "Readex Pro" FIRST (Smart-Menu
-     literal stack) — @theme inline inlines this value into the font-heading
-     utility, so headings render Readex Pro exactly like menu.smart-link.ly. ── */
-  --font-sans: var(--font-cairo), "Cairo", system-ui, sans-serif;
-  --font-mono: var(--font-cairo), "Cairo", "Courier New", monospace;
-  --font-arabic: var(--font-cairo), "Cairo", system-ui, sans-serif;
-  --font-heading: "Readex Pro", var(--font-cairo, "Cairo"), system-ui, sans-serif;
+  /* ── Font system — Arabic-first, IBM Plex Sans Arabic local-first
+     (Madarek parity). --font-cairo comes from /fonts/fonts.css @font-face
+     "IBM Plex Sans Arabic" (arabic + latin subsets, 400-700 — the var NAME
+     is kept as the load-bearing shim contract: a var() with no fallback
+     that resolves to an undefined custom property invalidates the whole
+     font-family declaration and the body fell back to Times New Roman in
+     prod once; fonts.css defines it FIRST, before this sheet). The literal
+     "IBM Plex Sans Arabic" fallback keeps every stack resolvable even when
+     the var is absent. --font-heading is the SAME display face as body
+     (Madarek §2.1: --font-display = Plex Sans Arabic — one family, weight
+     700 carries display). --font-mono is Madarek's mixed-script stack:
+     Latin/digits in IBM Plex Mono, Arabic runs continue in Plex Sans
+     Arabic. ── */
+  --font-sans: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, "SFMono-Regular", monospace;
+  --font-arabic: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
+  --font-heading: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
-  /* v14-E5 (D4 H-02 / WCAG 1.4.3): placeholder hint text. The old
-     placeholder:text-muted-foreground/70 measured 3.2:1 (dark) / 3.28:1
-     (light) on the real composite field surfaces (dark:bg-input/30 over
-     card / card-85+blur) — axe returns "incomplete" there, which is why it
-     survived every round. ONE dedicated token per mode, MEASURED ≥ 4.5:1
-     (numbers documented at the :root/.light definitions). */
+  /* v14-E5 (D4 H-02 / WCAG 1.4.3): placeholder hint text. ONE dedicated
+     token per mode, MEASURED ≥ 4.5:1 on the real composite field surfaces
+     (dark: neutral-500 #8E97B8 → 6.1-6.8:1 on input-wash/card/blur
+     composites; light: #6E6C65 → 5.04:1, Madarek's documented text-muted
+     value). */
   --color-placeholder-text: var(--placeholder-text);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -59,7 +64,8 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
 
-  /* Warm kitchen palette + external brand (Smart-Menu parity) */
+  /* Neutral + heat palette names kept (150+ utility consumers); VALUES are
+     now the Madarek night/cream neutral ramp (tokens.css §1.3). */
   --color-flame: var(--c-flame);
   --color-ash: var(--c-ash);
   --color-ash-dim: var(--c-ash-dim);
@@ -67,80 +73,79 @@
   --color-night: var(--c-night);
   --color-basil: var(--c-basil);
 
-  /* Saffron-heat warm palette — unified 2026-09-05 with Smart-Menu
-     (smart-link.ly identity): flame gradient (ember→saffron), espresso
-     foreground on warm surfaces, bloom contrast. */
+  /* Gold/copper heat ramp (was saffron-heat) — Madarek's accent gradient:
+     dark = gold #C9962F → #E9B44C (the accent CTA metal, §5.1 .btn.gold),
+     light = copper #B57438 → gold #D6A330. espresso = text on the gradient
+     (Madarek --accent-fg values, AA-pinned on both ends in both modes). */
   --color-ember: var(--c-ember);
   --color-saffron: var(--c-saffron);
   --color-espresso: var(--c-espresso);
   --color-bloom: var(--c-bloom);
 
+  /* Easings — kept names (ease-smooth/ease-spring are consumed by dozens of
+     utilities); the Madarek canonical curves live in :root (--ease,
+     --ease-out, --ease-in, --ease-soft, --ease-spring-soft) and the base
+     utilities map onto them (ease-out resolves to Madarek's exponential
+     settle cubic-bezier(0.16, 1, 0.3, 1)). */
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
-  /* v17-S3 (D2 motion §3.2 / rec #6): the overshoot "spring" curve — the
-     exact value .motion-icon hard-coded since v6. Tokenized like its ease
-     siblings; this block emits the `ease-spring` utility
-     (transition-timing-function) for JSX consumers. Runtime var copy lives
-     in :root (an inline @theme never emits custom properties). */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* v9-C2 micro text scale — the ~123 raw text-[9-11px] sites migrate onto
-     these utilities in wave 2. Same emission pattern as the default --text-*
-     keys: text-2xs / text-3xs utilities carry their paired line-heights. */
+  /* v9-C2 micro text scale — text-2xs / text-3xs utilities carry their
+     paired line-heights. */
   --text-2xs: 0.6875rem;        /* 11px */
   --text-2xs--line-height: 1.45;
   --text-3xs: 0.625rem;         /* 10px */
   --text-3xs--line-height: 1.4;
 
-  /* v8-D2: status SOFT tints — the missing utilities that made ~105 raw
-     Tailwind-palette classes (bg-green-500/10 …) the path of least
-     resistance. Soft tint + AA-tuned solid text = one semantic pair. */
+  /* Status SOFT tints — Madarek pastel grounds (-bg family): OPAQUE deep
+     tints in dark, pastel grounds in light. bg-*-soft + text-* = the
+     WCAG-pinned -bg/-ink pairs from tokens.css §1.6. */
   --color-success-soft: var(--success-soft);
   --color-warning-soft: var(--warning-soft);
   --color-info-soft: var(--info-soft);
   --color-destructive-soft: var(--destructive-soft);
 }
 
-/* Radius scale — v8-D4 monotonic, updated v9-C1: --radius-4xl (44px)
-   deleted (zero consumers) and the scale moved OUT of @theme inline into
-   a plain @theme block. Static values inline identically inside utilities,
-   but only the non-inline form emits real runtime CSS custom properties
-   (--radius-sm…), which inline-style consumers (react-joyride borderRadius)
-   require — var(--radius-md) resolved to nothing under the old inline-only
-   definition (verified against the production build CSS). Scale:
-   sm 8 · md 12 · lg 16 · xl 20 · 2xl 28 · 3xl 36. The old scale
-   (xl=28, default 2xl=16) was non-monotonic: rounded-2xl < rounded-xl.
-   Large surfaces (cards/dialogs/sheets) unify on rounded-2xl=28px. */
+/* Radius scale — Madarek "Notion-soft" ladder (tokens.css §1.2):
+   sm 8 · md 10 · lg 12 · xl 16 · 2xl 20 · 3xl 28. Plain (non-inline) @theme
+   so runtime CSS custom properties emit for inline-style consumers
+   (react-joyride borderRadius). Buttons/inputs sit on rounded-md (10px =
+   Madarek r-md), cards/dialogs/sheets unify on rounded-2xl (20px = Madarek
+   r-2xl). */
 @theme {
+  /* Madarek r-xs — completes the §1.2 ladder (6/8/10/12/16/20/28). No
+     existing rounded-xs consumer flips: the class was unused (grep-verified
+     before adding), so this only completes the scale for future use. */
+  --radius-xs: 6px;
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
-  --radius-3xl: 36px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 28px;
 }
 
 /* ═══════════════════════════════════════════════════════
-   !! BRAND ORANGE — SINGLE SOURCE OF TRUTH !!
+   !! BRAND ACCENT — SINGLE SOURCE OF TRUTH (Madarek) !!
    --primary is THE authoritative solid brand token (buttons, rings,
-   identity elements). --accent is only a faint 12–15% hint for soft
-   hovers/tints, and --accent-foreground is the AA-tuned orange for
-   TEXT over warm surfaces. The legacy --accent-fg / --accent-soft
-   aliases were deleted in v9-C1 (zero consumers) — one token per role,
+   identity elements): gold #E9B44C on the مدارك night (dark default) /
+   copper #B57438 on cream (light). --accent is only a faint 12–15% hint
+   for soft hovers/tints, and --accent-foreground is the AA-tuned accent
+   for TEXT over warm surfaces (gold #E9B44C dark / copper-deep #5C3416
+   light — Madarek --accent-ink, 10.29:1 on cream). One token per role,
    never a duplicate definition.
    ═══════════════════════════════════════════════════════ */
 :root {
   /* v7 §B — native UA rendering follows the active theme: scrollbars,
    * form controls (checkbox/radio/select), and the canvas backdrop all
    * re-tint instantly, even BEFORE hydration paints our own surfaces.
-   * :root = dark (default); .light below flips it. */
+   * :root = dark (Madarek night — the flagship skin, default mode 'dark'
+   * in theme.store); .light below flips it. */
   color-scheme: dark;
   /* v4 radical plan §1.1 — the duplicated font definitions that used to live
      here are DELETED: the @theme inline block above is the single source.
-     The old hand-written --font-heading (Cairo-first) silently overrode the
-     Readex-first @theme value for every `var(--font-heading)` consumer
-     (h1-h5 rules) — the root cause of the recurring "fonts don't match"
-     complaint that survived three repair rounds. One token, one definition. */
+     One token, one definition. */
 
   --z-dropdown: 10;
   --z-sticky: 20;
@@ -150,217 +155,268 @@
   --z-toast: 60;
   --z-tooltip: 70;
 
+  /* ── MOTION LADDER (Madarek tokens.css §4.1 + §4.3, exact values) ──
+     Raw durations: micro 80 → cinema 720. The three SmartBot steps map
+     onto the Madarek semantic tiers (fast 200→160, base 300→240,
+     slow 500→380) — names kept, values recalibrated. Theme-independent:
+     .light never overrides any of these. */
+  --t-micro: 80ms;
+  --t-fast: 160ms;
+  --t-base: 240ms;
+  --t-slow: 380ms;
+  --t-slower: 520ms;
+  --t-cinema: 720ms;
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 380ms;
+
+  /* Madarek easings (motion.css): standard / exponential-out / accelerate /
+     soft. These override Tailwind's default --ease-in/--ease-out (un-layered
+     :root beats @layer theme) so every `ease-out` utility IS the Madarek
+     settle curve. */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-soft: cubic-bezier(0.34, 1.18, 0.64, 1);
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
-
-  /* v17-S3 (D2 motion §3.2 / rec #6) — motion DURATION scale, the runtime
-     half of the token system. The three steps are the Tailwind durations the
-     audit already measured as dominant (duration-200 ×28 fast interactions,
-     duration-300 ×37 surface transitions, duration-500 ×20 entrances):
-       --duration-fast  200ms  quick feedback (icon swaps, hovers, fields)
-       --duration-base  300ms  surfaces (dialog pop, sheets, nav pills)
-       --duration-slow  500ms  entrances / large choreography
-     Tailwind has no --duration-* theme namespace (duration-<number> only),
-     so these live here as pure runtime vars consumed via
-     duration-[var(--duration-*)] utilities and var() in raw CSS.
-     --ease-spring is the runtime copy of the @theme inline token above.
-     Theme-independent: .light never overrides any of these. */
-  --duration-fast: 200ms;
-  --duration-base: 300ms;
-  --duration-slow: 500ms;
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Neutral surface scale — unified 2026-09-05 with Smart-Menu (warm-dark,
-     hue 55-70) so both products render the identical smart-link.ly dark. */
-  --background: oklch(0.045 0.006 55);
-  --background-radial: radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.68 0.19 45 / 0.08), transparent 70%);
-  --foreground: oklch(0.93 0.008 70);
-  --card: oklch(0.115 0.009 60);
-  --card-foreground: oklch(0.93 0.008 70);
-  --popover: oklch(0.11 0.008 60);
-  --popover-foreground: oklch(0.93 0.008 70);
+  /* RTL motion direction (Madarek §4.3): multiply every X translation by
+     this — flips to -1 under [dir=rtl] at the bottom of this file. */
+  --motion-direction: 1;
 
-  /* ── BRAND SOLID — Smart-Menu parity: --primary is the single solid source
-       (was: --accent solid + indirection; changed 2026-09-05 per parity plan
-       v2 §2.3 — see docs/design-system.md) ── */
-  --primary: oklch(0.55 0.19 45);
-  --primary-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.55 0.19 45);
+  /* ── NEUTRAL SURFACES — Madarek night-indigo ramp (tokens.css §1.3):
+     ground #070B16 (neutral-50), surface #0D1428 (neutral-0),
+     surface-2 #121A36 (neutral-100), ink #F2EFE6 (neutral-900 sand). ── */
+  --background: #070B16;
+  /* De-glow (Madarek ground is FLAT — no body radial, no grain, no grid;
+     the only painted sky is the sidebar's سماء مدارك wash). Token kept for
+     the inline-style contract, value neutralized. */
+  --background-radial: none;
+  --foreground: #F2EFE6;
+  --card: #0D1428;
+  --card-foreground: #F2EFE6;
+  --popover: #0D1428;
+  --popover-foreground: #F2EFE6;
 
-  /* ── ACCENT — Smart-Menu parity: faint 15% hint for soft hovers/tints,
-       NOT a solid brand color. bg-accent/hover:bg-accent produce a whisper. ── */
-  --accent: oklch(0.55 0.19 45 / 0.15);
-  /* v6 §B contrast calibration (MEASURED, see scripts/check_contrast.mjs):
-   * at 0.55 the orange TEXT measured 3.55-3.67:1 on the accent/tint
-   * backgrounds it actually renders over (badges, active nav, step chips) —
-   * AA fail for normal text. 0.63 measures >= 4.76:1 on every real combo
-   * (accent tint 4.93, 15% tint 4.76, plain card 5.41). Solid orange
-   * buttons are --primary and are NOT affected by this token. */
-  --accent-foreground: oklch(0.63 0.19 45);
+  /* ── BRAND SOLID — Madarek dark accent = luminous gold #E9B44C; text on
+       gold = --accent-fg #05070F (10.6:1, measured). ── */
+  --primary: #E9B44C;
+  --primary-foreground: #05070F;
+  --ring: #E9B44C;
 
-  --secondary: oklch(0.14 0.008 60);
-  --secondary-foreground: oklch(0.72 0.01 70);
-  --muted: oklch(0.14 0.008 60);
-  /* a11y(round84 Smart-Menu parity): 0.52 measured 3.7:1 on dark cards (axe
-   * serious — muted description/footer/meta text failed AA). 0.62 measures
-   * 5.54:1 — comfortably AA with the same warm-gray character. */
-  --muted-foreground: oklch(0.62 0.015 70);
-  /* v14-E5 (D4 H-02): even full 0.62 measures only 4.49:1 on the real field
-   * surface (dark:bg-input/30 over card is LIGHTER than card). 0.70 measures
-   * 6.12:1 (input/30 over card) · 6.16:1 (over card/85+blur) · 6.35:1 (over
-   * background) · 7.44:1 (disabled muted) — AA on every surface, same
-   * warm-gray character as the old /70 composite (#6c6660). */
-  --placeholder-text: oklch(0.7 0.015 70);
-  --destructive: oklch(0.6 0.22 25);
-  --border: oklch(0.23 0.01 60);
-  /* v10-I3 (G4 F3 / WCAG 1.4.11) — the old 0.23 measured 1.16–1.24:1 against
-   * the dark surfaces a field border touches (background 0.045 / card 0.115) —
-   * unfocused fields visually "disappeared" (VLM-confirmed on the login
-   * password field). 0.48 is the minimal 2-decimal lightness measuring >= 3:1
-   * on every such surface (background 3.20, card 3.11, muted 3.04 — computed
-   * via oklch→sRGB→WCAG). --border stays 0.23: card dividers are decorative,
-   * not interactive boundaries. */
-  --input: oklch(0.48 0.01 60);
+  /* ── ACCENT — faint 15% gold hint for soft hovers/tints (oklch of
+       #E9B44C so the measured-contrast gate can parse/composite it). ── */
+  --accent: oklch(0.7995 0.134 81.4 / 0.15);
+  /* --accent-foreground = Madarek --accent-ink dark: gold as TEXT
+     (8.1-10.4:1 on every real composite — accent tint, 15% tint, card,
+     background). oklch form so the measured-contrast gate can composite
+     the badge-tint pairs (hex parses fine for plain pairs). */
+  --accent-foreground: oklch(0.7995 0.134 81.4);
 
-  --success: oklch(0.62 0.18 145);
-  --success-foreground: oklch(0.98 0 0);
-  --warning: oklch(0.7 0.16 80);
-  --info: oklch(0.62 0.13 245); /* AA-tuned on dark — matches Smart-Menu */
-  /* v8-D2: status soft tints (dark) — semantic bg-wash pair for
-     bg-success-soft/text-success chips, replacing bg-green-500/10 etc. */
-  --success-soft: oklch(0.62 0.18 145 / 0.14);
-  --warning-soft: oklch(0.7 0.16 80 / 0.14);
-  --info-soft: oklch(0.62 0.13 245 / 0.14);
-  --destructive-soft: oklch(0.6 0.22 25 / 0.14);
-  /* v8-D1 resolution: the old docs listed --orange/--orange-muted as
-     canonical, but the v4 governance decision (enforced by
-     check-css-token-duplication.py) DELETED the orange alias family —
-     --accent-foreground is the single source of truth for brand orange.
-     consumers (premium-toast) now read --accent-foreground directly;
-     docs/design-system.md §2 corrected accordingly. */
-  --overlay: oklch(0 0 0 / 0.55);
+  --secondary: #121A36;
+  --secondary-foreground: #C3C8DC;
+  --muted: #121A36;
+  /* Madarek --text-secondary dark = #C3C8DC (neutral-700): 11.8:1 on the
+   * night ground, 11:1 on card — AA with the same quiet character. */
+  --muted-foreground: #C3C8DC;
+  /* Madarek neutral-500 dark #8E97B8: 6.1:1 on card-wash composites,
+   * 6.8:1 on the ground — placeholder hints stay AA everywhere. */
+  --placeholder-text: #8E97B8;
+  /* Madarek danger dark #F0938F (rose-ink) as text: 8.1:1 on card. */
+  --destructive: #F0938F;
+  --destructive-foreground: #05070F;
+  /* Madarek hairline: dark --border = neutral-200 #1B2444 (decorative
+   * dividers — card furniture, not interactive boundaries). */
+  --border: #1B2444;
+  /* WCAG 1.4.11 (≥3:1 on every surface a field touches): Madarek
+   * neutral-400 #7A83A0 measures 4.86:1 vs card / 5.22:1 vs the night
+   * ground — unfocused fields stay visible (v10-I3 contract held). */
+  --input: #7A83A0;
 
-  /* Saffron-heat warm palette (dark) — Smart-Menu parity.
-     ember/saffron drive the flame gradient (flame buttons, wizard nodes);
-     espresso is the foreground on warm surfaces; bloom is brand pink heat. */
-  /* v24-C6 (WCAG 1.4.3): espresso text on the ember end of the flame
-   * gradient measured 2.24:1 (4.5:1 needed — darkening espresso can't fix
-   * it: even pure black caps at 2.55:1 on 0.44). Lightness floor for 4.5:1
-   * vs espresso is 0.61; 0.62 measures 4.77:1 at the ember end while the
-   * saffron end stays 8.97:1 and every mid-stop sits between (monotonic
-   * luminance) — the ember→saffron fire ramp keeps its hue/identity. */
-  --c-ember: oklch(0.62 0.17 52);            /* v24-C6: 2.24:1 → 4.77:1 (WCAG 1.4.3, espresso text) */
-  --c-flame: oklch(0.55 0.19 45);            /* brand heat (== accent-foreground) — Smart-Menu parity */
-  --c-ash: oklch(0.75 0.012 70);             /* warm neutral — UI text */
-  --c-ash-dim: oklch(0.4 0.008 65);          /* warm muted — secondary text/borders */
-  --c-ash-pale: oklch(0.18 0.01 60);         /* deep warm surface wash (dark) */
-  --c-night: oklch(0.16 0.02 55);            /* deep warm charcoal base */
-  --c-basil: oklch(0.64 0.14 150);           /* fresh contrast (dietary/health) */
-  --c-saffron: oklch(0.78 0.14 70);          /* light amber glow */
-  --c-espresso: #1a130b;                     /* deep coffee — foreground on flame/saffron surfaces */
-  --c-bloom: oklch(0.56 0.2 16);             /* brand pink heat */
-  --image-shimmer: oklch(0.2 0 0 / 0.15);    /* image placeholder shimmer sweep */
+  /* Status (dark) — Madarek dark -ink values double as fill+text (§1.6:
+   * dark --success-ink == --success). */
+  --success: #7FD39A;
+  --success-foreground: #191918;
+  --warning: #ECC97D;
+  --info: #8FBBF2;
+  /* Status soft grounds (dark) — Madarek deep pastel -bg fills (opaque). */
+  --success-soft: #0F241C;
+  --warning-soft: #2C2410;
+  --info-soft: #14213A;
+  --destructive-soft: #2C1620;
+  /* Madarek modal scrim (dark 0.62) — §5.10. */
+  --overlay: rgba(15, 15, 15, 0.62);
 
-  --grid-line: oklch(0.55 0.19 45 / 0.12);
+  /* Gold/copper heat ramp (dark) — Madarek accent CTA metal:
+     ember = --accent-strong #C9962F, saffron = --accent #E9B44C,
+     espresso = --accent-fg #05070F. MEASURED (WCAG 1.4.3): espresso on
+     ember 7.56:1, on saffron 10.63:1 — AA on every gradient stop. */
+  --c-ember: #C9962F;
+  --c-flame: #E9B44C;
+  --c-ash: #C3C8DC;
+  --c-ash-dim: #8E97B8;
+  --c-ash-pale: #121A36;
+  --c-night: #070B16;
+  --c-basil: #7FD39A;
+  --c-saffron: #E9B44C;
+  --c-espresso: #05070F;
+  --c-bloom: #F0938F;
+  --image-shimmer: rgba(0, 0, 0, 0.30);
 
-  --surface-sunken: oklch(0.07 0.007 60);
+  --grid-line: rgba(142, 151, 184, 0.10);
 
-  --glass-bg: oklch(0.11 0.01 60 / 0.52);
-  --glass-bg-strong: oklch(0.14 0.012 60 / 0.68);
-  --glass-border: oklch(0.55 0.19 45 / 0.10);
-  --glass-border-strong: oklch(0.55 0.19 45 / 0.22);
-  --glass-shadow: 0 10px 40px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
-  --glass-shadow-lg: 0 16px 56px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.08);
+  --surface-sunken: #070B16;
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.22);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.25);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3);
-  --shadow-xl: 0 24px 60px rgba(0,0,0,0.45), 0 8px 16px rgba(0,0,0,0.35);
+  /* Glass — Madarek §1.8 dark: rgba(11,16,32,0.78) + 16px blur + neutral
+     hairline; strong = the topbar 94% surface. */
+  --glass-bg: rgba(11, 16, 32, 0.78);
+  --glass-bg-strong: rgba(11, 16, 32, 0.94);
+  --glass-border: rgba(142, 151, 184, 0.12);
+  --glass-border-strong: rgba(142, 151, 184, 0.28);
+  --glass-blur: 16px;
+  --scrim-blur: 4px;
+  --glass-shadow: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
+  --glass-shadow-lg: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
+
+  /* Shadows + elevation ladder — Madarek §1.9 dark recipes: fill-led with
+     the 1px inset top-edge highlight. */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --elev-2: 0 4px 8px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --elev-3: 0 8px 16px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --elev-4: 0 16px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --elev-5: 0 32px 64px rgba(0, 0, 0, 0.50), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-xl: var(--elev-4);
+  --shadow-card: var(--elev-1);
+  --shadow-card-h: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
+  --shadow-pop: 0 2px 4px rgba(2, 4, 12, 0.55), 0 10px 28px rgba(2, 4, 12, 0.62), 0 0 0 1px rgba(142, 151, 184, 0.10);
+  --shadow-modal: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
+
+  /* Focus ring — Madarek v22 focus system: --state-focus-ring-color =
+     --accent-strong (7.87:1 dark / 10.29:1 light). */
+  --state-focus-ring-color: #C9962F;
+
+  /* Sidebar active state (Madarek §5.5): gold wash 10% + breathing halo
+     (dark only — .light swaps to flat neutral-150). */
+  --nav-active-bg: rgb(233 180 76 / 0.10);
+  --nav-active-halo: 0 0 18px -4px rgb(233 180 76 / 0.16), inset 0 0 0 1px rgb(233 180 76 / 0.10);
 }
 
 .light {
   color-scheme: light; /* v7 §B — UA counterpart of the :root dark declaration */
-  --background: oklch(0.985 0.004 70);
-  --background-radial: radial-gradient(circle at 30% 0%, oklch(0.55 0.19 45 / 0.03), transparent 65%);
-  --foreground: oklch(0.12 0.008 70);
-  --card: oklch(1 0.002 70);
-  --card-foreground: oklch(0.12 0.008 70);
-  --popover: oklch(1 0.002 70);
-  --popover-foreground: oklch(0.12 0.008 70);
+  /* Madarek cream world (§1.7): ground #FBFAF9, surface #FFFFFF,
+     surface-2 #F7F6F3, ink #191918. */
+  --background: #FBFAF9;
+  --background-radial: none;
+  --foreground: #191918;
+  --card: #FFFFFF;
+  --card-foreground: #191918;
+  --popover: #FFFFFF;
+  --popover-foreground: #191918;
 
-  /* ── BRAND SOLID — Smart-Menu parity (light: primary darkened 0.40 for AA
-       on white; orange stays 0.55 — dual-lightness, exactly Smart-Menu) ── */
-  --primary: oklch(0.40 0.19 45);
-  --primary-foreground: oklch(0.98 0 0);
-  --ring: oklch(0.55 0.19 45);
+  /* ── BRAND SOLID — Madarek light accent = copper #B57438; text on copper
+       = --accent-fg #1A0F06 (4.95:1, measured — Madarek's own .btn.accent
+       light pairing). ── */
+  --primary: #B57438;
+  --primary-foreground: #1A0F06;
+  --ring: #B57438;
 
-  /* ── ACCENT — Smart-Menu parity (light: 12% hint) ── */
-  --accent: oklch(0.55 0.19 45 / 0.12);
-  /* v6 §B contrast calibration (MEASURED): at 0.55 the orange text measured
-   * 4.20-4.37:1 on its real tint backgrounds — just under AA. 0.50 measures
-   * >= 5.04:1 on every combo (accent tint 5.40, 15% tint 5.04, plain card
-   * 6.45) while staying clearly in the brand-orange family. */
-  --accent-foreground: oklch(0.5 0.19 45);
+  /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
+  --accent: oklch(0.6166 0.1113 60.9 / 0.12);
+  /* Madarek --accent-ink light = copper-deep #5C3416 (oklch form — the
+     contrast gate composites the badge tints from these channels):
+     10.29:1 on cream, ≥8.2:1 on every tint composite — AA with margin. */
+  --accent-foreground: oklch(0.3688 0.0718 55);
 
-  --secondary: oklch(0.92 0.008 70);
-  --secondary-foreground: oklch(0.2 0.01 70);
-  --muted: oklch(0.94 0.006 70);
-  --muted-foreground: oklch(0.48 0.015 70);
-  /* v14-E5 (D4 H-02): the /70 composite measured 3.28:1 on card. 0.52
-   * measures 5.51:1 on card · ~5.45:1 on background — AA with margin, and
-   * stays one step lighter than --muted-foreground (0.48) so the hint
-   * hierarchy (placeholder dimmer than muted hint text) survives. */
-  --placeholder-text: oklch(0.52 0.015 70);
-  --destructive: oklch(0.58 0.2 25);
-  --border: oklch(0.86 0.008 70);
-  /* v24-C6 (WCAG 1.4.11 non-text 3:1) — the light counterpart of the v10-I3
-   * dark raise that stopped at .dark. 0.86 measured 1.53:1 vs card / 1.47:1
-   * vs background (unfocused fields visually disappear on paper, same
-   * complaint that motivated the dark fix). 0.64 measures 3.36:1 vs card and
-   * 3.22:1 vs background (light-mode fields are bg-transparent, so those two
-   * are the real adjacent surfaces; disabled:bg-muted fields are exempt).
-   * --border stays 0.86: dividers are decorative, not field boundaries. */
-  --input: oklch(0.64 0.008 70); /* v24-C6: 1.53:1 → 3.36:1 vs card (WCAG 1.4.11) */
+  --secondary: #F7F6F3;
+  --secondary-foreground: #191918;
+  --muted: #F1EFEC;
+  /* Madarek --text-secondary light = #4F4D48 (neutral-700): 8.4:1 on
+   * card / 8.1:1 on the cream ground. */
+  --muted-foreground: #4F4D48;
+  /* Madarek --text-muted light = #6E6C65 — the documented 5.04:1 value
+   * on cream; placeholder hierarchy stays one step lighter than
+   * --muted-foreground. */
+  --placeholder-text: #6E6C65;
+  /* Madarek danger light = rose-deep #6B2128 as text: 11.2:1 on card. */
+  --destructive: #6B2128;
+  --destructive-foreground: #FFFFFF;
+  /* Madarek light hairline: --border = neutral-200 #E9E7E2. */
+  --border: #E9E7E2;
+  /* WCAG 1.4.11: #6E6C65 measures 5.26:1 vs card / 5.04:1 vs the cream
+   * ground — light-mode fields stay visible (v24-C6 contract held, with
+   * the exact Madarek text-muted value). */
+  --input: #6E6C65;
 
-  /* Light-mode status colors — darker variants for AA on white (matches
-     Smart-Menu's dual-lightness semantic scale) */
-  --success: oklch(0.48 0.15 150);
-  --success-foreground: oklch(0.98 0 0);
-  --warning: oklch(0.52 0.13 60);
-  --info: oklch(0.48 0.13 245);
-  /* v8-D2: light soft tints — lighter alpha for paper surfaces */
-  --success-soft: oklch(0.48 0.15 150 / 0.12);
-  --warning-soft: oklch(0.52 0.13 60 / 0.12);
-  --info-soft: oklch(0.48 0.13 245 / 0.12);
-  --destructive-soft: oklch(0.58 0.2 25 / 0.12);
-  --overlay: oklch(0 0 0 / 0.25);
+  /* Light-mode status — Madarek light -ink (text-safe deep) variants
+     (§1.6): mint-deep / gold-ink / sky-deep / rose-deep. */
+  --success: #1F4F30;
+  --success-foreground: #FFFFFF;
+  --warning: #6B4C0B;
+  --info: #1F3D63;
+  /* Light soft grounds — Madarek pastel -bg fills (opaque). */
+  --success-soft: #DCF1E2;
+  --warning-soft: #FCF1CD;
+  --info-soft: #DDEBF7;
+  --destructive-soft: #FCE0E2;
+  /* Madarek modal scrim (light 0.40) — §5.10. */
+  --overlay: rgba(15, 15, 15, 0.40);
 
-  /* Saffron-heat warm palette (light) — Smart-Menu parity: ember raised to the
-     4.5:1 floor for espresso text (v24-C6: 2.91:1 → 4.79:1 at the gradient's
-     ember end — see the :root --c-ember note), saffron glow unchanged,
-     shimmer sweep near-black on paper. espresso/bloom inherit from :root
-     (theme-independent). */
-  --c-ember: oklch(0.62 0.15 52);             /* v24-C6: 2.91:1 → 4.79:1 (WCAG 1.4.3, espresso text) */
-  --c-flame: oklch(0.42 0.17 48);            /* pressed brand heat (light) */
-  --c-ash: oklch(0.36 0.012 70);             /* warm ink on paper */
-  --c-ash-dim: oklch(0.55 0.01 70);          /* warm muted (light) */
-  --c-ash-pale: oklch(0.94 0.006 70);        /* paper wash (light) */
-  --c-night: oklch(0.24 0.02 50);            /* deepest warm charcoal (light) */
-  --c-basil: oklch(0.5 0.14 150);            /* fresh contrast (light) */
-  --c-saffron: oklch(0.78 0.14 70);          /* same warm amber glow */
-  --image-shimmer: oklch(0 0 0 / 0.08);      /* image placeholder shimmer sweep */
+  /* Gold/copper heat ramp (light) — copper #B57438 → gold #D6A330,
+     espresso #1A0F06 (Madarek light --accent-fg). MEASURED (WCAG 1.4.3):
+     espresso on ember (copper) 4.95:1, on saffron (gold) 8.20:1 — AA on
+     every gradient stop (4.95 > 4.7 regression headroom). */
+  --c-ember: #B57438;
+  --c-flame: #B57438;
+  --c-ash: #4F4D48;
+  --c-ash-dim: #6E6C65;
+  --c-ash-pale: #F7F6F3;
+  --c-night: #191918;
+  --c-basil: #4FA66D;
+  --c-saffron: #D6A330;
+  --c-espresso: #1A0F06;
+  --c-bloom: #DD6E78;
+  --image-shimmer: rgba(25, 25, 24, 0.10);
 
-  --grid-line: oklch(0.55 0.19 45 / 0.08);
-  --glass-bg: oklch(1 0.002 70 / 0.72);
-  --glass-bg-strong: oklch(1 0.002 70 / 0.88);
-  --glass-border: oklch(0.86 0.008 70 / 0.55);
-  --glass-border-strong: oklch(0.86 0.008 70 / 0.18);
-  --glass-shadow: 0 8px 36px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.72);
-  --glass-shadow-lg: 0 16px 56px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.86);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.09), 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
-  --shadow-xl: 0 24px 60px rgba(0,0,0,0.14), 0 8px 16px rgba(0,0,0,0.08);
+  --grid-line: rgba(25, 25, 24, 0.08);
+
+  --surface-sunken: #F7F6F3;
+
+  /* Glass — Madarek §1.8 light: rgba(251,250,249,0.78) + 16px blur +
+     warm hairline rgba(25,25,24,0.06). */
+  --glass-bg: rgba(251, 250, 249, 0.78);
+  --glass-bg-strong: rgba(251, 250, 249, 0.92);
+  --glass-border: rgba(25, 25, 24, 0.06);
+  --glass-border-strong: rgba(25, 25, 24, 0.18);
+  --glass-shadow: 0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06);
+  --glass-shadow-lg: 0 12px 36px rgba(15, 15, 15, 0.10), 0 32px 80px rgba(15, 15, 15, 0.14);
+
+  /* Elevation ladder — Madarek §1.9 light recipes (soft two-layer). */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 4px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --elev-3: 0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.05);
+  --elev-4: 0 16px 32px rgba(0, 0, 0, 0.10), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --elev-5: 0 32px 64px rgba(0, 0, 0, 0.12), 0 16px 32px rgba(0, 0, 0, 0.08);
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-xl: var(--elev-4);
+  --shadow-card: var(--elev-1);
+  --shadow-card-h: 0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06);
+  --shadow-pop: 0 1px 2px rgba(15, 15, 15, 0.04), 0 8px 24px rgba(15, 15, 15, 0.08);
+  --shadow-modal: 0 12px 36px rgba(15, 15, 15, 0.10), 0 32px 80px rgba(15, 15, 15, 0.14);
+
+  /* Madarek light focus ring: accent-strong #5C3416 (10.29:1). */
+  --state-focus-ring-color: #5C3416;
+
+  /* Sidebar active (light) — flat neutral-150 wash, no halo (§5.5). */
+  --nav-active-bg: #F1EFEC;
+  --nav-active-halo: none;
 }
 
 @layer base {
@@ -382,51 +438,59 @@
      5rem clears the h-16 (4rem) bar + breathing room. */
   html { overflow-x: hidden; max-width: 100vw; scroll-behavior: smooth; scroll-padding-top: 5rem; }
   html[dir="rtl"] { letter-spacing: 0; }
-  h1, h2 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 1.35; }
-  h3, h4, h5 { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
+  /* Madarek typography (§2.4/§2.5): display weight is the TRUE 700 cut
+     (Plex Sans Arabic ships no 800 — --fw-black resolves 700), heading
+     line-heights hug the Arabic diacritic floors (h1/h2 1.2, h3+ 1.3),
+     tracking stays Latin-only. */
+  h1, h2 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+  h3, h4, h5 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
   [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5 { font-family: var(--font-heading); letter-spacing: 0; }
-  /* Readex Pro display letter-spacing only for Latin-safe contexts — never
-     Arabic (guard vs broken letter joins). (Smart-Menu parity) */
-  @supports (font-family: "Readex Pro") {
-    [dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] h3 { letter-spacing: -0.03em; }
+  /* Display tracking only for Latin-safe contexts — never Arabic
+     (guard vs broken letter joins; Madarek ls-display ≈ -0.026em). */
+  @supports (font-family: "IBM Plex Sans Arabic") {
+    [dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] h3 { letter-spacing: -0.026em; }
   }
   p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.75; }
   [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
   a { color: var(--foreground); text-decoration: none; transition: color 0.2s ease; }
-  a:hover { color: var(--accent-foreground); } /* v4: orange token removed */
+  a:hover { color: var(--accent-foreground); }
 }
 
-/* Anti-broken-joins: any tracking utility on Arabic must not win over the base guard (Smart-Menu) */
+/* Anti-broken-joins: any tracking utility on Arabic must not win over the base guard */
 @layer utilities {
   html[dir="rtl"] [class*="tracking-"]:not([class*="font-mono"]) {
     letter-spacing: 0 !important;
   }
 }
 
+/* Scrollbars — Madarek §1.16: thin, neutral thumbs, quiet hover. */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.35 0.005 0); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
-* { scrollbar-width: thin; scrollbar-color: oklch(0.35 0.005 0) transparent; }
+::-webkit-scrollbar-thumb { background: rgba(142, 151, 184, 0.20); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(142, 151, 184, 0.34); }
+* { scrollbar-width: thin; scrollbar-color: rgba(142, 151, 184, 0.20) transparent; }
 html.light::-webkit-scrollbar-thumb,
-.light ::-webkit-scrollbar-thumb { background: oklch(0.75 0.005 0); }
+.light ::-webkit-scrollbar-thumb { background: rgba(25, 25, 24, 0.16); }
 html.light::-webkit-scrollbar-thumb:hover,
-.light ::-webkit-scrollbar-thumb:hover { background: var(--accent-foreground); } /* v4 */
+.light ::-webkit-scrollbar-thumb:hover { background: rgba(25, 25, 24, 0.28); }
 
-::selection { background: oklch(0.55 0.19 45 / 0.25); color: inherit; }
-:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+/* Selection — Madarek base.css: accent at 28% over the ground. */
+::selection { background: color-mix(in srgb, var(--primary) 28%, transparent); color: var(--foreground); }
+/* Focus ring — Madarek universal focus-visible (motion.css + v22): 2px
+   --state-focus-ring-color (accent-strong, AA in both themes). */
+:focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; border-radius: var(--radius-sm); }
 :focus:not(:focus-visible) { outline: none; }
 
 .glass-card, .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px) saturate(1.1);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
 }
 .glass-strong {
   background: var(--glass-bg-strong);
-  backdrop-filter: blur(20px) saturate(1.2);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   border: 1px solid var(--glass-border-strong);
   box-shadow: var(--glass-shadow-lg);
 }
@@ -434,21 +498,19 @@ html.light::-webkit-scrollbar-thumb:hover,
 .skeleton {
   background: linear-gradient(90deg, var(--muted) 25%, var(--border) 50%, var(--muted) 75%);
   background-size: 200% 100%; border-radius: var(--radius-sm);
-  animation: shimmer 1.8s ease-in-out infinite;
+  animation: shimmer 1.2s linear infinite;
 }
 .shimmer {
-  background: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.06) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.06) 50%, transparent 100%);
   background-size: 200% 100%; border-radius: var(--radius-sm);
   animation: shimmer 2s ease-in-out infinite;
 }
 
-.grain-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-.grain-overlay::before {
-  content: ''; position: absolute; inset: 0; opacity: 0.022;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 256px 256px;
-}
-.light .grain-overlay::before { opacity: 0.018; }
+/* ── DE-GLOW (Madarek parity): the full-viewport film grain (.grain-overlay)
+   and the orange grid/radial chrome are RETIRED — Madarek's ground is flat
+   cream/night with 1px hairlines and soft elevation only. The classes were
+   removed from the root layout in the same change; kept out of the sheet so
+   a stale className renders nothing rather than the old glow. ── */
 
 @keyframes fade-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slide-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
@@ -465,24 +527,19 @@ html.light::-webkit-scrollbar-thumb:hover,
 .animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
 
-/* Page/layout motion primitives (Smart-Menu parity — used by ported dashboard components) */
+/* Page/layout motion primitives (used by ported dashboard components) */
 .animate-breath { animation: breath 1.5s ease-in-out infinite; }
 .delay-100 { animation-delay: 100ms; }
 
 /* v6 §D — hero progressive enhancement: entrance motion WITHOUT JS.
- * The pre-v6 hero rendered 15 elements with inline opacity:0 in the
- * delivered HTML (framer-motion initial) — the whole hero was blank until
- * hydration + stagger, LCP 6.3s on throttled mobile, and the <h1> carried
- * NO text at all in HTML (KineticText split in an effect). These pure-CSS
- * staggers keep the designed entrance while the h1 paints instantly (LCP
- * at first paint) and no-JS visitors see the full hero. */
+ * Pure-CSS staggers keep the designed entrance while the h1 paints
+ * instantly (LCP at first paint) and no-JS visitors see the full hero. */
 .animate-fade-in-150 { animation: fade-in 0.5s var(--ease-out-quart) both 150ms; }
 .animate-fade-in-250 { animation: fade-in 0.5s var(--ease-out-quart) both 250ms; }
 .animate-fade-in-400 { animation: fade-in 0.6s var(--ease-out-quart) both 400ms; }
 .animate-fade-in-900 { animation: fade-in 0.6s var(--ease-out-quart) both 900ms; }
 .animate-fade-in-1100 { animation: fade-in 0.7s var(--ease-out-quart) both 1100ms; }
-/* clip-path wipe reveal — pure-CSS twin of ClipPathReveal(framer): the hero
- * mockup wiped in only after hydration; this paints at style-apply time. */
+/* clip-path wipe reveal — pure-CSS twin of ClipPathReveal(framer). */
 @keyframes wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
 .animate-wipe-up { animation: wipe-up 0.9s var(--ease-out-quart) both 200ms; }
 @media (prefers-reduced-motion: reduce) {
@@ -490,12 +547,7 @@ html.light::-webkit-scrollbar-thumb:hover,
   .animate-fade-in-900, .animate-fade-in-1100, .animate-wipe-up { animation: none; }
 }
 
-/* ── v9-C3 — pricing price swap (key-remount tween). The price span carries
- * key={annual ? "y" : "m"} in pricing/page.tsx so toggling monthly/yearly
- * re-mounts it and this entrance plays; the period label and the savings
- * chip share the same key group. 0.35s var(--ease-smooth) mirrors the
- * former lib/motion.ts easeSmooth (export purged v10-W4 — same curve
- * value) — the page stays framer-free by design. */
+/* ── pricing price swap (key-remount tween, Madarek --ease-soft curve). ── */
 @keyframes price-swap-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .price-swap { animation: price-swap-in 0.35s var(--ease-smooth) both; }
 @media (prefers-reduced-motion: reduce) {
@@ -504,11 +556,7 @@ html.light::-webkit-scrollbar-thumb:hover,
 
 .delay-300 { animation-delay: 300ms; }
 
-/* ── v6+ — framer-free reveal system (public pages critical path) ──
- * v6 left framer-motion (~190KB) in EVERY public page's first-load JS
- * (ThemeToggle → Header/login, landing sections, pricing, demo). These
- * utilities replace the motion tweens with CSS transitions driven by the
- * same IntersectionObserver triggers the components already used. */
+/* ── framer-free reveal system (public pages critical path) ── */
 .reveal { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0); transition: opacity var(--rv-dur, 0.55s) var(--ease-out-quart), transform var(--rv-dur, 0.55s) var(--ease-out-quart); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
 .reveal-shown { opacity: 1; transform: none; }
 /* parent-driven variant: mark the container .reveal-shown and every .reveal
@@ -523,50 +571,41 @@ html.light::-webkit-scrollbar-thumb:hover,
 /* kinetic unit reveal (KineticText CSS twin) — words/lines rise from a mask */
 .kinetic-unit { display: inline-block; transform: translate3d(0, 110%, 0); opacity: 0; transition: transform var(--kt-dur, 0.8s) var(--ease-out-quart), opacity 0.35s var(--ease-out-quart); transition-delay: var(--kt-delay, 0ms); }
 .kinetic-in .kinetic-unit { transform: none; opacity: 1; }
-/* v10-C3 (G3 rec §8-3) — the LEAD unit (first visible word) paints at first
- * paint: no mask rise, no transition, no IntersectionObserver/hydration gate.
- * Prod /pricing LCP was 2563ms waiting for the entrance; the lead word ships
- * in the SSR HTML and renders immediately while the remaining units keep the
- * staggered reveal. Source order after .kinetic-in wins the equal-specificity
- * race; the .kinetic-in end-state is identical anyway. */
+/* the LEAD unit (first visible word) paints at first paint: no mask rise,
+ * no transition, no IntersectionObserver/hydration gate (LCP fix). */
 .kinetic-unit-lead { transform: none; opacity: 1; transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .kinetic-unit { transform: none; opacity: 1; transition: none; }
 }
-/* sheet presence (MobileBottomNav CSS twin of AnimatePresence) */
-.sheet-backdrop { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+/* sheet presence (MobileBottomNav CSS twin of AnimatePresence) —
+   Madarek sheet spring: 380ms spring-soft settle. */
+.sheet-backdrop { opacity: 0; pointer-events: none; transition: opacity var(--t-fast) ease; }
 .sheet-backdrop.sheet-open { opacity: 1; pointer-events: auto; }
-.sheet-panel { transform: translate3d(0, 100%, 0); transition: transform 0.32s var(--ease-out-quart); }
+.sheet-panel { transform: translate3d(0, 100%, 0); transition: transform var(--t-slow) var(--ease-spring-soft); }
 .sheet-panel.sheet-open { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .sheet-backdrop, .sheet-panel { transition: none; }
 }
 /* theme toggle icon crossfade (CSS twin of framer AnimatePresence swap) */
-.tt-icon { transition: opacity 0.25s ease, transform 0.3s var(--ease-out-quart); }
+.tt-icon { transition: opacity var(--t-fast) ease, transform var(--t-base) var(--ease-out-quart); }
 .tt-icon-hidden { opacity: 0; transform: rotate(-90deg) scale(0.5); }
 .tt-icon-active { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .tt-icon { transition: none; }
 }
-/* v17-S3 (D2 §3.3#7 / rec #8) — .icon-swap: the tt-icon recipe generalized
- * into a shared two-icon crossfade for Eye↔EyeOff-style state toggles.
- * Markup contract: wrapper carries .icon-swap + data-active="a"|"b" and
- * exactly two icon children; both stack in ONE grid cell so equal-size
- * icons overlap pixel-perfect. The icon NOT matching data-active fades +
- * rotates -90° + scales to 0.5 (the ThemeToggle motion, verbatim), driven
- * by the duration/ease tokens. Under prefers-reduced-motion the transition
- * is dropped but the hidden/visible STATE stays — the swap still happens,
- * just instantly. */
+/* .icon-swap: the tt-icon recipe generalized into a shared two-icon
+ * crossfade for Eye↔EyeOff-style state toggles. Markup contract: wrapper
+ * carries .icon-swap + data-active="a"|"b" and exactly two icon children. */
 .icon-swap { display: grid; }
-.icon-swap > * { grid-area: 1 / 1; transition: opacity var(--duration-fast) ease, transform var(--duration-base) var(--ease-out-quart); }
+.icon-swap > * { grid-area: 1 / 1; transition: opacity var(--t-fast) ease, transform var(--t-base) var(--ease-out-quart); }
 .icon-swap[data-active="a"] > :nth-child(2),
 .icon-swap[data-active="b"] > :first-child { opacity: 0; transform: rotate(-90deg) scale(0.5); }
 @media (prefers-reduced-motion: reduce) {
   .icon-swap > * { transition: none; }
 }
-/* motion icons (CSS twin of useAnimate hover choreography) — v17-S3: the
- * overshoot curve is now the --ease-spring token (identical value). */
-.motion-icon { transition: transform 0.25s var(--ease-spring); }
+/* motion icons (CSS twin of useAnimate hover choreography) — Madarek's
+   overshoot curve (press family: 0.34/1.56/0.64/1). */
+.motion-icon { transition: transform var(--t-fast) var(--ease-spring); }
 .motion-icon:hover { transform: scale(1.15) rotate(var(--mi-rot, 0deg)); }
 @media (prefers-reduced-motion: reduce) {
   .motion-icon { transition: none; }
@@ -601,30 +640,41 @@ html.light::-webkit-scrollbar-thumb:hover,
   .ai-icon:hover .front-copy, .ai-icon:hover .arrow-group, .ai-icon:hover .message-path { animation: none; }
 }
 
+/* ── Madarek reduced-motion belt (tokens.css §4.5 layer 1): the raw
+   duration ladder collapses to 0ms; entrances keep an 80ms cross-fade
+   affordance via the keyframe guards above. ── */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-micro: 0ms; --t-fast: 0ms; --t-base: 0ms; --t-slow: 0ms;
+    --t-slower: 0ms; --t-cinema: 0ms;
+    --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 
 .text-balance { text-wrap: balance; }
 
-/* NOTE: no hand-written .font-heading override — Smart-Menu does not have one.
-   The Tailwind @theme inline emission ("Readex Pro" first) is the single
-   source; a var() shim here would defeat it and re-Cairo the headings. */
+/* NOTE: no hand-written .font-heading override — the @theme inline emission
+   (IBM Plex Sans Arabic, Madarek --font-display == --font-sans) is the
+   single source; display weight (700) comes from the h1-h5 rules above. */
 
-/* Noto Naskh Arabic stays available via .font-naskh for editorial/quote text
-   only (Smart-Menu rule, verbatim) — Eyebrow labels use it. */
-[dir="rtl"] .font-naskh { font-family: "Noto Naskh Arabic", "Cairo", system-ui, sans-serif; }
+/* .font-naskh — editorial eyebrow voice, Madarek style: the mixed-script
+   mono stack («// eyebrow» labels) — Latin/digits in IBM Plex Mono, Arabic
+   runs continue in IBM Plex Sans Arabic. */
+[dir="rtl"] .font-naskh { font-family: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, monospace; }
 
 /* RTL utilities */
 [dir="rtl"] { --font-sans: var(--font-arabic); font-family: var(--font-arabic); }
+/* Madarek RTL motion direction — every X translation multiplies this. */
+[dir="rtl"] { --motion-direction: -1; }
 
-/* Section rhythm now lives in SectionContainer.tsx as Tailwind utilities
-   (Smart-Menu literal port) — the under-spec'd .section-container pair was removed. */
-
-/* ─── Custom Scrollbars (sidebar) ─── */
+/* ─── Custom Scrollbars (sidebar) — Madarek thin rail: color-mix text 8% ─── */
 .sidebar-scroll::-webkit-scrollbar { width: 3px; }
 .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-.sidebar-scroll::-webkit-scrollbar-thumb { background: oklch(0.5 0.01 0 / 0.2); border-radius: 9999px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 9999px; }
 
 /* ─── Dashboard card micro-interactions (legacy — superseded by Card/KpiCard) ─── */
 .card-hover {
@@ -632,11 +682,140 @@ html.light::-webkit-scrollbar-thumb:hover,
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(0.55 0.19 45 / 0.15);
+  box-shadow: var(--shadow-card-h), 0 0 0 1px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 .card-hover:active { transform: translateY(0); }
 
 /* iOS safe area for the mobile bottom nav (Track F) */
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MADAREK SIDEBAR ANATOMY (layout.css §5.5 — exact recipes)
+   Consumed by AdminSidebar: .sb-nav-item replaces the per-item utility
+   soup; active rail + gold halo are the مدارك night signature. Touch
+   floors: min-block-size 44px (SmartBot-wide a11y contract).
+   ═══════════════════════════════════════════════════════════════════ */
+.sb-nav-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;            /* Madarek --r-sm */
+  font-size: 13px;               /* Madarek --fs-sm */
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  min-block-size: 44px;          /* SmartBot touch floor (Madarek: 30px desktop / 44px ≤640px) */
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.sb-nav-item:hover { background: var(--secondary); color: var(--foreground); }
+.sb-nav-icon { color: var(--muted-foreground); display: inline-flex; align-items: center; justify-content: center; }
+.sb-nav-item:hover .sb-nav-icon { color: var(--foreground); }
+.sb-nav-item[data-active="true"] {
+  background: var(--nav-active-bg);
+  color: var(--accent-foreground);
+  font-weight: 600;
+  box-shadow: var(--nav-active-halo);
+}
+.sb-nav-item[data-active="true"] .sb-nav-icon { color: var(--primary); }
+/* the active rail — 3px bar, inline-start edge, spring-pop in */
+.sb-nav-item[data-active="true"]::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -3px;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  block-size: 16px;
+  inline-size: 3px;
+  background: var(--primary);
+  border-radius: 0 2px 2px 0;
+  animation: sb-nav-rail-pop var(--t-base) var(--ease-out-quart);
+}
+@keyframes sb-nav-rail-pop {
+  from { transform: translateY(-50%) scaleY(0.4); opacity: 0; }
+  to   { transform: translateY(-50%) scaleY(1);    opacity: 1; }
+}
+/* press register (Madarek §4.5): buttons/pills press at 0.97 with the
+   80ms micro snap-back */
+.sb-nav-item:active { transform: scale(0.985); transition-duration: var(--t-micro); }
+@media (prefers-reduced-motion: reduce) {
+  .sb-nav-item[data-active="true"]::before { animation: none; }
+}
+
+/* section label — 11px/600/muted + hairline gradient underline (polish) */
+.sb-section-label {
+  position: relative;
+  display: block;
+  font-size: 11px;               /* Madarek --fs-xxs */
+  font-weight: 600;
+  color: var(--muted-foreground);
+  padding: 8px 12px 4px;
+  letter-spacing: 0;             /* Arabic ruling: never track Arabic */
+}
+.sb-section-label::before {
+  content: '';
+  position: absolute;
+  inset-block-end: -2px;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  block-size: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+  opacity: 0.5;
+}
+[dir="rtl"] .sb-section-label::before {
+  background: linear-gradient(-90deg, var(--border), transparent);
+}
+
+/* ═══ مدارك night shell — the سماء مدارك sky (layout.css, exact recipe):
+   vertical night gradient + gold aurora behind the brand + constellation
+   dust (8 hand-placed points, alpha ≤ 0.22, paint-only, zero motion).
+   Light mode reverts to the flat cream surface (html.light override). ═══ */
+.mdrk-night-sky {
+  position: relative;
+  background:
+    radial-gradient(340px 200px at 82% -60px, rgb(233 180 76 / 0.06), transparent 72%),
+    radial-gradient(280px 220px at -20% 108%, rgb(111 168 255 / 0.05), transparent 70%),
+    linear-gradient(180deg, #121A36 0%, #070B16 34%, #070B16 100%);
+}
+.mdrk-night-sky::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.8px 1.8px at 21% 12%, rgb(242 239 230 / 0.22), transparent 100%),
+    radial-gradient(1px 1px at 68% 7%,  rgb(142 151 184 / 0.16), transparent 100%),
+    radial-gradient(1.5px 1.5px at 87% 21%, rgb(242 239 230 / 0.15), transparent 100%),
+    radial-gradient(1px 1px at 42% 30%, rgb(142 151 184 / 0.12), transparent 100%),
+    radial-gradient(1.8px 1.8px at 9% 44%,  rgb(233 180 76 / 0.18), transparent 100%),
+    radial-gradient(1px 1px at 76% 58%, rgb(142 151 184 / 0.11), transparent 100%),
+    radial-gradient(1.5px 1.5px at 28% 74%, rgb(242 239 230 / 0.14), transparent 100%),
+    radial-gradient(1.2px 1.2px at 58% 88%,  rgb(233 180 76 / 0.12), transparent 100%);
+  background-repeat: no-repeat;
+}
+html.light .mdrk-night-sky, .light .mdrk-night-sky { background: var(--card); }
+html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: none; }
+@media (prefers-contrast: more) {
+  .mdrk-night-sky { background: var(--background); }
+  .mdrk-night-sky::before { content: none; }
+}
+
+/* ═══ MADAREK MODAL GRAMMAR (§5.10) — the copper top hairline on dialog
+   cards: inset-inline 30%, 3px, transparent→accent→transparent, rounded
+   bottom corners. Consumed by ui/dialog.tsx (.mdrk-modal-card). ═══ */
+.mdrk-modal-card { position: relative; }
+.mdrk-modal-card::before {
+  content: '';
+  position: absolute;
+  inset-inline: 30%;
+  inset-block-start: 0;
+  block-size: 3px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  border-radius: 0 0 3px 3px;
+  pointer-events: none;
 }

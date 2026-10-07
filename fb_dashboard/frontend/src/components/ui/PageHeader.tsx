@@ -43,7 +43,10 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md animate-fade-in",
+        /* Madarek topbar chrome (§5.6): flat surface + 1px hairline block-end
+           rule — the backdrop-blur glass is retired; elevation is reserved
+           for scrolled topbars (AppShell pattern). */
+        "sticky top-0 z-30 border-b border-border bg-background animate-fade-in",
         className
       )}
     >

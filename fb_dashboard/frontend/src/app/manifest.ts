@@ -7,8 +7,11 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
     start_url: "/",
     display: "standalone",
-    background_color: "#0B0A08",
-    theme_color: "#bc4700",
+    /* Madarek ground colors: cream splash on the night browser chrome —
+     * the PWA follows the app's dark default (مدارك night #070B16) with a
+     * warm near-white window (Madarek paper #FBFAF9). Was #0B0A08/#bc4700. */
+    background_color: "#FBFAF9",
+    theme_color: "#070B16",
     lang: "ar",
     dir: "rtl",
     /* v24-C6 (WCAG 1.3.4 Orientation): `orientation: "portrait"` was removed —

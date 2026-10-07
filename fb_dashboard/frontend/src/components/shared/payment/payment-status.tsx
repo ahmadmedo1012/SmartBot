@@ -40,8 +40,8 @@ export function WaitingScreen({ provider, freePlan, headingRef }: WaitingScreenP
         {/* Middle ring */}
         <div className="absolute inset-2 rounded-full border border-accent-foreground/30" />
         {/* Inner icon */}
-        <div className="absolute inset-4 rounded-full bg-gradient-to-br from-accent-foreground to-accent-foreground/80 flex items-center justify-center shadow-lg shadow-accent-foreground/25">
-          <Smartphone className="size-8 text-white" />
+        <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-accent-foreground/25">
+          <Smartphone className="size-8 text-primary-foreground" />
         </div>
       </div>
 

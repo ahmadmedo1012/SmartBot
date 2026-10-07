@@ -1,76 +1,137 @@
-/* v9-E1 — 🔴 THE P1 font fix: globals.css declares
-   --font-sans/--font-arabic/--font-mono as `var(--font-cairo), "Cairo", …`.
+/* ═══════════════════════════════════════════════════════════════════
+   Self-hosted IBM Plex fonts — the Madarek 12-file set, served from
+   /public/fonts (Madarek parity, fonts.css verbatim anatomy).
+
+   🔴 THE P1 SHIM (kept, repointed): globals.css declares
+   --font-sans/--font-arabic as `var(--font-cairo), "IBM Plex Sans Arabic", …`.
    A var() with NO fallback that resolves to an UNDEFINED custom property
-   makes the whole font-family declaration invalid-at-computed-value-time,
-   so the body fell back to Times New Roman in production (measured live by
-   D6 on bot.smart-link.ly). Defining the variable here — in the same
-   stylesheet that @font-face-declares "Cairo" — resolves every stack. */
+   invalidates the whole font-family declaration at computed-value time and
+   the body fell back to Times New Roman in production once (measured live).
+   The var NAME --font-cairo is kept as the load-bearing contract; its VALUE
+   is now the Madarek display/body face: "IBM Plex Sans Arabic". Defined
+   here — in the same stylesheet that @font-face-declares the family —
+   BEFORE any consumer can read it.
+   ─────────────────────────────────────────────────────────────────
+   What the app uses (Madarek §7):
+   · IBM Plex Sans Arabic 400/500/600/700 — body + display headings + chart
+     labels (arabic + latin subsets). NO 800 cut exists; 700 is the heaviest
+     file (CSS font matching selects 700 for font-weight: 800 with NO
+     synthetic bold — --fw-black resolves to 700 in Madarek).
+   · IBM Plex Serif italic 400/500 — SANCTIONED LATIN RUNS ONLY (latin-only
+     unicode-range: no Arabic glyph can reach these cuts; Arabic emphasis is
+     upright weight + accent ink, never synthetic italics).
+   · IBM Plex Mono 400/500 — codes, IDs, numbers, emails, kbd hints,
+     eyebrow labels (Arabic runs in the mono voice continue in Plex Sans
+     Arabic via the composite stack — Madarek §2.1).
+   All weights/subsets = the exact woff2 files the Madarek app ships.
+   font-display: swap on every face. First paint preloads only the two
+   arabic subsets (400 + 700, ~86KB) — see app/layout.tsx.
+   ═══════════════════════════════════════════════════════════════════ */
+
 :root {
-  --font-cairo: "Cairo";
+  --font-cairo: "IBM Plex Sans Arabic";
 }
 
-/* Cairo — primary UI font (variable subsets, local-first) */
+/* ── IBM Plex Sans Arabic — arabic subset ─────────────────────────── */
 @font-face {
-  font-family: "Cairo";
+  font-family: 'IBM Plex Sans Arabic';
   font-style: normal;
-  font-weight: 400 800;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/cairo-arabic.woff2") format("woff2");
+  src: url('/fonts/plex-sans-arabic-400-normal-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-500-normal-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-600-normal-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-700-normal-arabic.woff2') format('woff2');
   unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
 }
 
+/* ── IBM Plex Sans Arabic — latin subset (digits, codes, latin runs) ── */
 @font-face {
-  font-family: "Cairo";
+  font-family: 'IBM Plex Sans Arabic';
   font-style: normal;
-  font-weight: 400 800;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/cairo-latin.woff2") format("woff2");
+  src: url('/fonts/plex-sans-arabic-400-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-500-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-600-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/plex-sans-arabic-700-normal-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* v9-E8 — REMOVED (dead weight, never requested by any page):
-   - "Noto Sans Arabic" (arabic + latin subsets, 197K): no selector or font
-     stack ever asks for it by name as a LOADED family — it only appears as
-     a fallback NAME in globals.css stacks (harmless: an unloaded fallback
-     is simply skipped).
-   - "Cairo" latin-ext subset: the app renders ar + basic latin only.
-   Kept: cairo-arabic, cairo-latin, readex-pro (both subsets),
-   noto-naskh-arabic (+latin, used by .font-naskh / Eyebrow). */
-
-/* Noto Naskh Arabic — variable (400-700) */
+/* ── IBM Plex Serif — italic accent cuts (latin; Arabic falls back) ── */
 @font-face {
-  font-family: "Noto Naskh Arabic";
-  font-style: normal;
-  font-weight: 400 700;
+  font-family: 'IBM Plex Serif';
+  font-style: italic;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/noto-naskh-arabic.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+  src: url('/fonts/plex-serif-400-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-
 @font-face {
-  font-family: "Noto Naskh Arabic";
-  font-style: normal;
-  font-weight: 400 700;
+  font-family: 'IBM Plex Serif';
+  font-style: italic;
+  font-weight: 500;
   font-display: swap;
-  src: url("/fonts/noto-naskh-arabic-latin.woff2") format("woff2");
+  src: url('/fonts/plex-serif-500-italic-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Readex Pro — variable (300-700) */
+/* ── IBM Plex Mono — latin (codes, IDs, numbers, emails) ──────────── */
 @font-face {
-  font-family: "Readex Pro";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 400;
   font-display: swap;
-  src: url("/fonts/readex-pro.woff2") format("woff2");
-  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+  src: url('/fonts/plex-mono-400-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-
 @font-face {
-  font-family: "Readex Pro";
+  font-family: 'IBM Plex Mono';
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 500;
   font-display: swap;
-  src: url("/fonts/readex-pro-latin.woff2") format("woff2");
+  src: url('/fonts/plex-mono-500-normal-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

@@ -8,14 +8,25 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/btn relative inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent font-sans text-sm font-bold whitespace-nowrap cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-h-11 min-w-11 isolate overflow-hidden before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(105deg,transparent_30%,oklch(1_0_0_/_0.22)_50%,transparent_70%)] before:-translate-x-full before:transition-transform before:duration-700 before:ease-out hover:before:translate-x-full before:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-[radial-gradient(circle_at_50%_50%,oklch(1_0_0_/_0.16),transparent_45%)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 [&>*]:relative",
+  /* Madarek .btn anatomy (§5.1): 10px radius (r-md), 600 label weight,
+   * press = scale(0.97) with the 80ms micro snap-back, transitions at the
+   * 160ms fast tier. DE-GLOW: the v6 shine-sweep ::before and radial-hover
+   * ::after pseudo-layers are retired — Madarek buttons are flat fills with
+   * hairline borders and elevation, no sheen. Touch floors min-h-11/min-w-11
+   * stay (WCAG 2.5.5 contract, > Madarek's 40px desktop default). */
+  "group/btn relative inline-flex shrink-0 items-center justify-center rounded-md border border-transparent font-sans text-sm font-semibold whitespace-nowrap cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--duration-fast) ease-smooth outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] active:duration-(--t-micro) disabled:pointer-events-none disabled:opacity-55 disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 min-h-11 min-w-11 isolate",
   {
     variants: {
       variant: {
+        /* neutral-brand solid: gold slab on the مدارك night / copper on
+         * cream, ink-dark label (--accent-fg values) — hover lifts 1px
+         * (Madarek §4.5, hover:hover-gated by Tailwind v4) */
         orange:
-          "bg-primary text-primary-foreground hover:bg-primary/95 active:bg-primary/90 shadow-md shadow-accent-foreground/25 hover:shadow-xl hover:shadow-accent-foreground/40 border-0 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50",
+          "bg-primary text-primary-foreground hover:bg-primary/95 hover:-translate-y-px active:bg-primary/90 shadow-sm hover:shadow-md border-0",
+        /* Madarek accent-CTA metal: gold gradient #C9962F→#E9B44C (dark) /
+         * copper→gold (light) with the AA-pinned espresso label */
         flame:
-          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 shadow-md shadow-accent-foreground/30 hover:shadow-2xl hover:shadow-accent-foreground/45 border-0 dark:hover:brightness-110",
+          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 hover:-translate-y-px shadow-sm hover:shadow-md border-0",
         outline:
           "border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35",
         ghost:

@@ -21,7 +21,7 @@ export default function NotFound() {
             /* v17-S3 (D2 §3.1#1 / P2): hover:bg-primary was a no-op (same
                value as base) — the primary 404 CTA never reacted. /90 gives
                the standard soft-darken hover; transition-colors already on. */
-            className="inline-flex items-center justify-center h-10 px-4 rounded-sm bg-primary hover:bg-primary/90 text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center justify-center h-10 px-4 rounded-sm bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
           >
             الصفحة الرئيسية
           </Link>

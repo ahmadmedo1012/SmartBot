@@ -55,7 +55,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <div className="fixed top-0 right-0 z-30 h-full w-60 hidden md:block">
+      {/* Madarek --sidebar-w: 256px (was w-60 240px) — the content column
+          pads its inline-start to clear the fixed RIGHT rail (RTL). */}
+      <div className="fixed top-0 right-0 z-30 h-full w-64 hidden md:block">
         {/* v19 Step 1: hide the upsell CTA once the tenant is actively
             subscribed (unknown/loading keeps the button — avoids a
             hide-flash on first paint for everyone).
@@ -75,7 +77,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div
         id="page-content"
         tabIndex={-1}
-        className="sb-page-enter flex-1 md:ps-60 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 outline-none"
+        className="sb-page-enter flex-1 md:ps-64 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 outline-none"
       >
         {/* v3 §4.1 — loud setup-status banners (missing telegram token /
             FB secret / page connection) instead of silent zero data */}

@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Providers } from "./providers"
-import { GridPattern } from "@/components/ui/grid-pattern"
 import "./globals.css"
 
-/* ponytail: fonts served local-first via /fonts/fonts.css (Smart-Menu pattern) —
+/* Madarek parity: fonts served local-first via /fonts/fonts.css —
  * no next/font module-class dependency, no external Google Fonts round-trip.
- * Cairo (arabic+latin subsets) + Readex Pro (display) are @font-face-declared
- * in public/fonts/fonts.css — identical file to Smart-Menu. */
+ * IBM Plex Sans Arabic (arabic+latin subsets, 400-700) + IBM Plex Mono +
+ * IBM Plex Serif italic are @font-face-declared in public/fonts/fonts.css
+ * (the 12-file Madarek set). fonts.css also defines the load-bearing
+ * --font-cairo shim ("IBM Plex Sans Arabic") BEFORE this sheet loads. */
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -44,9 +45,12 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  /* Madarek theme-color sync (index.html pattern): the browser bar follows
+   * the GROUND, not the brand — #FBFAF9 cream (light) / #070B16 night
+   * (dark). Was the flame #bc4700 in both modes. */
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#bc4700" },
-    { media: "(prefers-color-scheme: dark)", color: "#bc4700" },
+    { media: "(prefers-color-scheme: light)", color: "#FBFAF9" },
+    { media: "(prefers-color-scheme: dark)", color: "#070B16" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -66,30 +70,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/fonts/fonts.css" />
-        {/* LCP: preload the Arabic subsets of the two active families —
-         * Cairo (body) + Readex Pro (display accents). fonts.css uses
-         * font-display: swap; preloading moves the font fetch ahead of CSS
-         * discovery (Smart-Menu pattern). */}
-        <link rel="preload" as="font" type="font/woff2" href="/fonts/cairo-arabic.woff2" crossOrigin="anonymous" />
-        <link rel="preload" as="font" type="font/woff2" href="/fonts/readex-pro.woff2" crossOrigin="anonymous" />
+        {/* LCP: preload the two FIRST-PAINT arabic subsets (Madarek
+         * index.html pattern — only the 400 + 700 arabic faces, ~86KB):
+         * fonts.css uses font-display: swap; preloading moves the font
+         * fetch ahead of CSS discovery. */}
+        <link rel="preload" as="font" type="font/woff2" href="/fonts/plex-sans-arabic-400-normal-arabic.woff2" crossOrigin="anonymous" />
+        <link rel="preload" as="font" type="font/woff2" href="/fonts/plex-sans-arabic-700-normal-arabic.woff2" crossOrigin="anonymous" />
       </head>
-      <body className="flex min-h-dvh flex-col overflow-x-clip bg-background antialiased"
-        style={{ background: "var(--background-radial), var(--background)" }}>
+      {/* Madarek de-glow: the body ground is FLAT (cream/night) — the
+          orange radial, film grain and grid overlay are retired; hairline
+          borders + the elevation ladder carry the depth instead. */}
+      <body className="flex min-h-dvh flex-col overflow-x-clip bg-background antialiased">
         {/* v12-E5.3: ThemeProvider + the dynamic client-only AppToaster now
             live inside <Providers> (src/app/providers.tsx) — the toaster is
             dynamic(ssr:false) there, which keeps sonner out of the first-load
             JS of every route; layout.tsx stays a pure server component. */}
         <Providers>
-          {/* Grain overlay */}
-          <div className="grain-overlay" aria-hidden="true" />
-          {/* Grid pattern overlay — Smart-Menu component + tokens */}
-          <GridPattern
-            width={60}
-            height={60}
-            className="[color:var(--grid-line)]"
-            style={{ opacity: 0.14 } as React.CSSProperties}
-          />
-
           <main id="main-content" className="flex-1 flex flex-col">
             {/* Skip to content — Smart-Menu style (logical offset, brand chip).
                 v8-B7: target is #page-content — the per-page content anchor
@@ -109,7 +105,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 (RTL reading start) and stays in-viewport at any scrollY. */}
             <a
               href="#page-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-white focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
             >
               تخطي إلى المحتوى الرئيسي
             </a>

@@ -778,7 +778,7 @@ function MessagesView() {
                   className={cn(
                     "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40",
                     filter === f.value
-                      ? "bg-gradient-to-l from-accent-foreground to-accent-foreground/80 text-primary-foreground shadow-sm shadow-accent-foreground/20 font-medium"
+                      ? "bg-gradient-to-l from-primary to-primary/80 text-primary-foreground shadow-sm shadow-accent-foreground/20 font-medium"
                       : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >

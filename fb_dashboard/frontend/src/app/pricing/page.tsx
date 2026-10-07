@@ -233,7 +233,7 @@ export default function PricingPage() {
                 )}>
                   {isPopular && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-accent-foreground to-accent-foreground/80 text-white text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
+                      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
                         <Crown className="size-3 fill-white" />
                         الأكثر شعبية
                       </div>

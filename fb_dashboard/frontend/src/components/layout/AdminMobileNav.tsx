@@ -53,7 +53,7 @@ export function AdminMobileNav() {
   const pathname = usePathname()
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 md:hidden border-t border-border bg-card/95 backdrop-blur-md safe-area-pb"
+      className="fixed inset-x-0 bottom-0 z-30 md:hidden border-t border-border bg-card safe-area-pb"
       aria-label="تنقل الإدارة"
     >
       <div className="grid grid-cols-4">

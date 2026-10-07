@@ -83,7 +83,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     <>
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-background/60 backdrop-blur-sm transition-opacity duration-200",
+          "fixed inset-0 z-40 bg-(--overlay) backdrop-blur-xs transition-opacity duration-200",
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -170,9 +170,13 @@ export function Header({ className }: HeaderProps) {
           no transition-property narrowing (which would kill the scrolled
           bg/border/shadow fades) is needed. */}
       <header className={cn(
-        "fixed top-0 inset-x-0 z-30 h-16 transition-all duration-500 will-change-transform backface-hidden",
+        "fixed top-0 inset-x-0 z-30 h-[60px] transition-all duration-(--t-slow) will-change-transform backface-hidden",
         visible ? "translate-y-0" : "-translate-y-full invisible",
-        scrolled ? "bg-background/80 backdrop-blur-2xl border-b border-border/30 shadow-md" : "bg-background/0",
+        /* Madarek topbar (§5.6): 96% surface (94% dark) + saturate/blur glass,
+           hairline bottom rule; elevation appears ONLY after scroll (elev-2). */
+        scrolled
+          ? "bg-card/95 backdrop-blur-md backdrop-saturate-150 border-b border-border shadow-(--elev-2)"
+          : "bg-background/0 border-b border-transparent",
         className
       )}>
         <nav className="max-w-[1220px] mx-auto px-4 sm:px-6 lg:px-10 h-full flex items-center justify-between" aria-label="الرئيسية">
@@ -187,9 +191,11 @@ export function Header({ className }: HeaderProps) {
             </Link>
           </div>
 
-          {/* Tubelight Nav (Desktop) */}
+          {/* Tubelight Nav (Desktop) — Madarek pill chrome: hairline border,
+              soft surface, active pill = brand fill + the quiet 4px accent
+              halo (§5.8 .pill.on) — the heavy orange glow is retired. */}
           <div className="hidden lg:flex items-center">
-            <div className="relative flex items-center rounded-full bg-card/40 backdrop-blur-sm border border-border/40 p-1 shadow-sm">
+            <div className="relative flex items-center rounded-full bg-secondary/60 border border-border p-1">
               {landingLinks.map((link, i) => {
                 const linkActive = isActive(link.href)
                 return (
@@ -200,33 +206,22 @@ export function Header({ className }: HeaderProps) {
                       aria-current={linkActive ? "page" : undefined}
                       className={cn(
                         "relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-full",
-                        linkActive ? "text-white dark:text-white" : "text-foreground/70 hover:text-foreground"
+                        linkActive ? "text-primary-foreground" : "text-foreground/70 hover:text-foreground"
                       )}
                     >
                       {link.label}
-                      {/* v17-S3 (D2 P1#1 / §3.3#1) — tubelight motion restored,
-                       * CSS-only. v6 §D replaced motion.div layoutId="tubelight"
-                       * with a pill that MOUNTED/UNMOUNTED per active link, so
-                       * it teleported between tabs (the P1 gap). The pill is
-                       * now ALWAYS mounted behind every link and driven by
-                       * state classes: the inactive one rests at scale-60 +
-                       * opacity-0, the active one springs to full size with
-                       * the --ease-spring overshoot over --duration-base —
-                       * navigating crossfades shrink/grow instead of popping.
-                       * Deliberately NOT the measured "sliding pill": offsets
-                       * would need measurement JS (ruled out by the CSS-only
-                       * constraint) and the pill would lose its SSR paint.
-                       * v14-E5 (D2-M2): the glow stays color-mix over
-                       * var(--primary) in both modes. */}
+                      {/* the pill is ALWAYS mounted behind every link (state-class
+                       * driven crossfade shrink/grow — no teleport, keeps SSR
+                       * paint); Madarek .pill.on halo = 4px accent at 14%. */}
                       <span
                         aria-hidden="true"
                         className={cn(
-                          "absolute inset-0 -z-10 rounded-full bg-primary shadow-lg",
+                          "absolute inset-0 -z-10 rounded-full bg-primary",
                           "transition-[opacity,scale] duration-(--duration-base) ease-spring",
                           linkActive ? "scale-100 opacity-100" : "scale-[0.6] opacity-0"
                         )}
                         style={{
-                          boxShadow: "0 0 18px 3px color-mix(in oklch, var(--primary) 35%, transparent), 0 0 6px color-mix(in oklch, var(--primary) 15%, transparent)",
+                          boxShadow: "0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent)",
                         }}
                       />
                     </Link>

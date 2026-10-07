@@ -43,17 +43,17 @@ type ToastIconConfig = {
 }
 
 const iconConfig: Record<ToastIcon, ToastIconConfig> = {
-  success: { icon: CheckCircle2, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
-  error: { icon: AlertCircle, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
-  info: { icon: Info, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
-  warning: { icon: AlertTriangle, bg: "bg-warning/12", color: "var(--warning, oklch(0.7 0.16 80))" },
-  login: { icon: LogIn, flip: true, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
+  success: { icon: CheckCircle2, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
+  error: { icon: AlertCircle, bg: "bg-destructive/12", color: "var(--destructive, #F0938F)" },
+  info: { icon: Info, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
+  warning: { icon: AlertTriangle, bg: "bg-warning/12", color: "var(--warning, #ECC97D)" },
+  login: { icon: LogIn, flip: true, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
   logout: { icon: LogOut, flip: true, bg: "bg-muted", color: "var(--muted-foreground)" },
-  gift: { icon: Gift, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
-  refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
-  save: { icon: Save, bg: "bg-success/12", color: "var(--success, oklch(0.62 0.18 145))" },
-  trash: { icon: Trash2, bg: "bg-destructive/12", color: "var(--destructive, oklch(0.6 0.22 25))" },
-  copy: { icon: Copy, bg: "bg-accent", color: "var(--accent-foreground, oklch(0.55 0.19 45))" },
+  gift: { icon: Gift, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
+  refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
+  save: { icon: Save, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
+  trash: { icon: Trash2, bg: "bg-destructive/12", color: "var(--destructive, #F0938F)" },
+  copy: { icon: Copy, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
 }
 
 function ToastIconChip({ icon }: { icon: ToastIcon }) {

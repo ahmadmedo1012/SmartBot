@@ -304,7 +304,7 @@ export default function ConnectPage() {
         >
           <Card className="border-accent-foreground/20 bg-card/85 shadow-2xl shadow-accent-foreground/10 backdrop-blur-2xl backdrop-saturate-150">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-foreground to-accent-foreground/70 text-white shadow-lg shadow-accent-foreground/30">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-accent-foreground/30">
                 <span className="text-3xl font-bold">f</span>
               </div>
               <CardTitle className="text-2xl">ربط صفحة فيسبوك</CardTitle>

@@ -119,7 +119,7 @@ export function LandingTestimonials() {
                 &ldquo;{t.text}&rdquo;
               </p>
               <div className="flex items-center gap-3 pt-4 border-t border-border/40">
-                <div className="size-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/70 text-white shadow-md">{(t.name || "؟").charAt(0)}</div>
+                <div className="size-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-md">{(t.name || "؟").charAt(0)}</div>
                 <div>
                   <div className="text-sm font-bold">{t.name}</div>
                   <div className="text-xs text-muted-foreground">{t.role}</div>

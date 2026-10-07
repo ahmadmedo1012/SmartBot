@@ -130,10 +130,15 @@ export function AdminSidebar({
   }
 
   return (
-    <aside className={cn("flex flex-col h-full bg-card/80 backdrop-blur-md border-e border-border/50 shadow-sm", className)}>
+    /* Madarek sidebar (§5.5): 256px rail, flat hairline chrome. Dark mode
+     * paints the سماء مدارك night sky (.mdrk-night-sky — vertical gradient
+     * + gold aurora + constellation dust, exact Madarek recipe); light mode
+     * reverts to the flat cream surface via the html.light override. */
+    <aside className={cn("mdrk-night-sky flex flex-col h-full border-e border-border text-sm", className)}>
       {/* Logo — the REAL brand image (v3 §5.1): same /brand-icon.png asset
-          Header.tsx already serves, ending the text-"S" placeholder era. */}
-      <div className="flex items-center gap-3 border-b border-border/20 px-5 py-5 min-h-[72px]">
+          Header.tsx already serves. Madarek brand block: 12px padding,
+          28px mark, hairline block-end rule. */}
+      <div className="flex items-center gap-3 border-b border-border px-4 py-4 min-h-[72px]">
         <div className="relative shrink-0">
           <Image
             src="/brand-icon.png"
@@ -153,25 +158,22 @@ export function AdminSidebar({
         </div>
       </div>
 
-      {/* Nav — v6+ framer-free: section stagger is CSS animation-delay,
-       * item hover/tap are Tailwind translate/scale (individual CSS props,
-       * composable), active indicator renders per-item (no layoutId slide).
+      {/* Nav — v6+ framer-free: section stagger is CSS animation-delay.
        * v24-C3 (A2 #2 + B4): items are native <Link>s — App Router
        * prefetches each section's RSC payload while the link is visible
        * (the whole 23-section list sits in the desktop viewport), Enter/Space
-       * are native anchor semantics (the old onKeyDown shim is gone), and
-       * the div[role=link] ARIA patch (B4) is now a real link. */}
-      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-5 space-y-5">
+       * are native anchor semantics, and the div[role=link] ARIA patch (B4)
+       * is now a real link.
+       * Madarek anatomy (§5.5): 22px-icon grid items, 8px radius, 13px/500
+       * labels, active = gold wash + 3px inline-start rail + breathing halo
+       * (dark) / flat neutral-150 wash (light) — all in the .sb-nav-item
+       * CSS. Touch floor: 44px min item height (a11y contract). */}
+      <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {navSections.map((section, si) => (
           <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 50}ms` }}>
-            {/* v9-D2: text-muted-foreground/70 measured 3.21-3.27:1 (axe
-             * color-contrast serious). Full-opacity --muted-foreground on the
-             * bg-card/80-over-background surface measures 5.62:1 (dark) /
-             * 6.49:1 (light) — both ≥ 4.5:1 AA. Size stays text-3xs;
-             * the site-wide 2xs/3xs migration is wave-2, not this fix. */}
-            <p className="px-3 pb-1.5 text-3xs font-bold text-muted-foreground uppercase tracking-[0.12em]">
-              {section.label}
-            </p>
+            {/* Madarek nav-section-label: 11px/600/muted, zero tracking
+             * (Arabic ruling), hairline gradient underline — .sb-section-label. */}
+            <p className="sb-section-label">{section.label}</p>
             <div className="space-y-0.5">
               {section.items.map((item, ii) => {
                 const active = isActiveItem(item.href, activeHref ?? pathname)
@@ -187,33 +189,14 @@ export function AdminSidebar({
                     prefetch={onNavigate ? false : undefined}
                     aria-current={active ? "page" : undefined}
                     aria-label={item.label}
+                    data-active={active ? "true" : undefined}
                     className={cn(
-                      "group relative flex min-h-11 items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium cursor-pointer transition-[color,background-color,box-shadow,translate,scale] duration-200 outline-none",
-                      /* v14-E5 (D3-A1): sidebar is pinned to the RIGHT edge —
-                       * +3px pushed items outward (toward the clipped edge).
-                       * Nudge INWARD instead: -3px. App is RTL-only. */
-                      "hover:-translate-x-[3px] active:scale-[0.97]",
-                      "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
-                      /* Active/hover treatment (Smart-Menu NavLink legacy — component
-                         removed v10-W4, treatment survives inline):
-                         soft orange tint + end-side spring indicator, not a solid fill */
-                      active
-                        ? "bg-accent-foreground/12 text-foreground shadow-xs"
-                        : "text-muted-foreground hover:bg-accent-foreground/8 hover:text-foreground"
+                      "sb-nav-item outline-none",
+                      "focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
                     )}
                   >
-                    {active && (
-                      <span
-                        className="absolute end-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <item.icon className={cn(
-                      "size-4 shrink-0 transition-[color,transform,translate,scale,rotate,filter] duration-200",
-                      active && "text-accent-foreground",
-                      !active && "group-hover:scale-110 group-hover:text-primary/70 group-hover:drop-shadow-sm"
-                    )} />
-                    <span className="truncate flex-1">{item.label}</span>
+                    <item.icon className="sb-nav-icon size-[18px] shrink-0" />
+                    <span className="truncate flex-1 text-start">{item.label}</span>
                     {item.badge !== undefined && (
                       <Badge
                         variant={active ? "outline" : "info"}
@@ -233,14 +216,16 @@ export function AdminSidebar({
         ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="p-3 border-t border-border/60 space-y-2 bg-card/50">
+      {/* Bottom — Madarek sidebar-footer: hairline block-start rule. */}
+      <div className="p-3 border-t border-border space-y-2">
         {onSubscribe && (
+          /* Madarek .btn.accent: flat brand fill (gold/copper) + accent-fg
+           * label — the orange gradient + glow CTA is retired. */
           <button
             onClick={onSubscribe}
-            className="group flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-gradient-to-l from-accent-foreground to-accent-foreground/85 text-primary-foreground text-sm font-semibold hover:brightness-110 hover:shadow-lg hover:shadow-accent-foreground/20 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+            className="group flex items-center justify-center gap-2 w-full min-h-11 py-2.5 px-3 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 active:scale-[0.97] active:duration-(--t-micro) transition-[background-color,transform,box-shadow] duration-(--duration-fast) ease-smooth shadow-sm hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
-            <Sparkles className="size-4 transition-transform duration-200 group-hover:rotate-12" /> اشتراك
+            <Sparkles className="size-4 transition-transform duration-(--duration-fast) group-hover:rotate-12" /> اشتراك
           </button>
         )}
         {/* v19 Step 3 — theme toggle inside the dashboard: ThemeToggle existed

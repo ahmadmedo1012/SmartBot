@@ -75,10 +75,10 @@ export default function FloatingWhatsApp() {
       className={cn(
         "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-[60]",
         "end-[max(1rem,env(safe-area-inset-left,0px))] sm:end-[max(1.5rem,env(safe-area-inset-left,0px))]",
-        "size-14 rounded-full bg-primary text-white",
+        "size-14 rounded-full bg-primary text-primary-foreground",
         "flex items-center justify-center",
         "shadow-xl shadow-accent-foreground/30",
-        "hover:bg-accent-foreground/90 hover:scale-105 hover:shadow-2xl hover:shadow-accent-foreground/40",
+        "hover:bg-primary/90 hover:scale-105 hover:shadow-2xl hover:shadow-accent-foreground/40",
         "transition-[background-color,transform,translate,scale,rotate,box-shadow] duration-300",
         "animate-fade-in"
       )}

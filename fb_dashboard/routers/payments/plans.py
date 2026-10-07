@@ -14,11 +14,11 @@ import asyncio
 import logging
 
 from _responses import ok
-from loop_safe import LoopLocalLock
 from _subscription import get_tenant_for_user, is_subscription_active
 from _utils import iso_z
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from loop_safe import LoopLocalLock
 from models import SubscriptionPayment, SubscriptionPlan, Tenant, User
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError  # v25 (B-03/D-08): cross-instance pending guard

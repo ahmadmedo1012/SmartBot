@@ -2,6 +2,12 @@
 
 Facebook Messenger chatbot dashboard + bot engine. FastAPI + Next.js 16 + Telegram payment approvals.
 
+> **Design system:** Madarek identity on every surface — web frontend
+> (`frontend/`), static export (`static/`), mobile app, and PDF reports:
+> dark night/gold `#070B16`/`#E9B44C`, light cream/copper `#FBFAF9`/`#B57438`,
+> IBM Plex Sans Arabic (self-hosted). Reference: `design-system/smartbot/MASTER.md`
+> + the Madarek tokens (`madarek/frontend/src/styles/tokens.css`) as upstream SSOT.
+
 ## Quick Start
 
 ```bash

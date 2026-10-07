@@ -4,6 +4,8 @@
 
 **المكدّس التقني:** FastAPI (Python 3.12) + Next.js 16 (App Router) + SQLAlchemy/Alembic + Neon PostgreSQL (إنتاج) / SQLite (تطوير) + Vercel.
 
+> **نظام التصميم:** هوية **مدارك** (Madarek) على كل الأسطح — ويب (`fb_dashboard/frontend`) وبناء ثابت (`fb_dashboard/static`) وتطبيق جوال (`mobile/`) وتقارير PDF (`pdf_reports_engine.py`): ليلي night/gold ‎`#070B16`/`#E9B44C`‎، نهاري cream/copper ‎`#FBFAF9`/`#B57438`‎، خط IBM Plex Sans Arabic. المرجع: `design-system/smartbot/MASTER.md`.
+
 **English one-liner:** Multi-tenant Facebook Messenger bot platform for the Libyan market — auto-replies (comments + DMs), broadcasts, CRM, Libyan payments with Telegram approvals. FastAPI + Next.js 16, 785+ hermetic tests (grows every round — see the latest round report), CI gates on every push (incl. i18n/a11y/contrast static gates + Sentry/GlitchTip-ready observability).
 
 ---

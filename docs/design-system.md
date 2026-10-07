@@ -184,7 +184,8 @@ cd fb_dashboard/frontend && rg -n "bg-white|bg-black|text-black|text-white|fill-
 هذه الملفات منقولة حرفيًا (مع تكييف عقود الـ API فقط) ويجب أن تبقى متطابقة
 الشكل بين المشروعين:
 
-- `components/shared/PaymentDialog.tsx` — نافذة الدفع (ترويسة برتقالية متدرجة،
+- `components/shared/PaymentDialog.tsx` — نافذة الدفع (ترويسة ذهبية متدرجة
+  `saffron→saffron/80` مع نص espresso — مدارك، لم تعد برتقالية،
   تبويبات المزوّد الثلاثة، بطاقة USSD، أقسام البنك، رفع الإيصال، شاشات الانتظار/القبول/الرفض)
 - `app/subscribe/PlanSelector.tsx` + `StepIndicator.tsx` + `PaymentSection.tsx`
   — معمارية معالج الاشتراك (فُقاعة الاختيار، شارة اللهب، عقد مرقّمة)

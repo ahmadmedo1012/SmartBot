@@ -1,9 +1,15 @@
 /**
- * SmartBot Mobile — Design tokens.
+ * SmartBot Mobile — Design tokens (Madarek).
  *
- * القيم محوّلة رياضيًا من نظام تصميم الويب (globals.css — oklch) إلى sRGB hex
- * عبر سكربت التحويل؛ الهوية البصرية (البرتقالي الناري + الأسود الدافئ +
- * Cairo/Readex Pro) منقولة كما هي. dark هو الافتراضي (مطابق للويب).
+ * القيم منقولة حرفيًا من نظام تصميم مدارك (tokens.css) عبر نسخة الويب
+ * المحوّلة (fb_dashboard/frontend/src/app/globals.css — SoT الشقيقة):
+ * ليلي نيلي #070B16 مع ذهبي #E9B44C (dark الافتراضي، مطابق للويب)،
+ * ونهاري كريمي #FBFAF9 مع نحاسي #B57438. الخط: IBM Plex Sans Arabic.
+ *
+ * سلّم الألوان dark (أرض < بطاقة < سطح < تعبئة):
+ *   #070B16 < #0D1428 < #121A36 < #182142 — نفس سلم Madarek neutral.
+ * حالة النصوص اللاتينية داخل الحروف الذهبية: espresso #05070F
+ * (Madarek --accent-fg، 10.63:1 على الذهب) — وليس الأبيض.
  */
 
 export interface ThemeColors {
@@ -23,11 +29,13 @@ export interface ThemeColors {
   warning: string
   info: string
   destructive: string
-  /** tints 14% على الداكن */
+  /** أرضيات الحالة العميقة المعتمة (opaque) — Madarek --c-*-bg */
   successSoft: string
   warningSoft: string
   infoSoft: string
   destructiveSoft: string
+  /** حجاب النوافذ المنبثقة — Madarek --overlay (داكن 0.62 / فاتح 0.40) */
+  scrim: string
   flame: string
   ember: string
   saffron: string
@@ -35,63 +43,75 @@ export interface ThemeColors {
 }
 
 export const dark: ThemeColors = {
-  background: '#010000',
-  surface: '#0c0806',
-  card: '#070503',
-  foreground: '#ebe7e2',
-  muted: '#15110d',
-  mutedFg: '#8c857d',
-  primary: '#c53c00',
-  primaryFg: '#fafafa',
-  accentFg: '#e15700',
-  border: '#211c18',
-  input: '#625c58',
-  placeholder: '#a59d95',
-  success: '#23a136',
-  warning: '#d29000',
-  info: '#348dcf',
-  destructive: '#e62b34',
-  successSoft: 'rgba(35, 161, 54, 0.14)',
-  warningSoft: 'rgba(210, 144, 0, 0.14)',
-  infoSoft: 'rgba(52, 141, 207, 0.14)',
-  destructiveSoft: 'rgba(230, 43, 52, 0.14)',
-  flame: '#c53c00',
-  ember: '#952600',
-  saffron: '#f0a646',
-  ash: '#b3ada6',
+  background: '#070B16',
+  surface: '#121A36',
+  card: '#0D1428',
+  foreground: '#F2EFE6',
+  muted: '#182142',
+  mutedFg: '#C3C8DC',
+  primary: '#E9B44C',
+  primaryFg: '#05070F',
+  accentFg: '#E9B44C',
+  border: '#1B2444',
+  input: '#7A83A0',
+  placeholder: '#8E97B8',
+  success: '#7FD39A',
+  warning: '#ECC97D',
+  info: '#8FBBF2',
+  destructive: '#F0938F',
+  successSoft: '#0F241C',
+  warningSoft: '#2C2410',
+  infoSoft: '#14213A',
+  destructiveSoft: '#2C1620',
+  scrim: 'rgba(15, 15, 15, 0.62)',
+  flame: '#E9B44C',
+  ember: '#C9962F',
+  saffron: '#E9B44C',
+  ash: '#C3C8DC',
 }
 
 export const light: ThemeColors = {
-  background: '#fcfaf7',
-  surface: '#e8e4df',
-  card: '#fffffe',
-  foreground: '#070504',
-  muted: '#eeeae7',
-  mutedFg: '#635c55',
-  primary: '#910000',
-  primaryFg: '#fafafa',
-  accentFg: '#b32a00',
-  border: '#d4d0cb',
-  input: '#d4d0cb',
-  placeholder: '#6f6860',
-  success: '#007329',
-  warning: '#9d5300',
-  info: '#0062a1',
-  destructive: '#d73337',
-  successSoft: 'rgba(0, 115, 41, 0.12)',
-  warningSoft: 'rgba(157, 83, 0, 0.12)',
-  infoSoft: 'rgba(0, 98, 161, 0.12)',
-  destructiveSoft: 'rgba(215, 51, 55, 0.12)',
-  flame: '#901a00',
-  ember: '#a24200',
-  saffron: '#f0a646',
-  ash: '#413c36',
+  background: '#FBFAF9',
+  surface: '#F7F6F3',
+  card: '#FFFFFF',
+  foreground: '#191918',
+  muted: '#F1EFEC',
+  mutedFg: '#4F4D48',
+  primary: '#B57438',
+  primaryFg: '#1A0F06',
+  accentFg: '#5C3416',
+  border: '#E9E7E2',
+  input: '#6E6C65',
+  placeholder: '#6E6C65',
+  success: '#4FA66D',
+  warning: '#D6A330',
+  info: '#5C8FCE',
+  destructive: '#DD6E78',
+  successSoft: '#DCF1E2',
+  warningSoft: '#FCF1CD',
+  infoSoft: '#DDEBF7',
+  destructiveSoft: '#FCE0E2',
+  scrim: 'rgba(15, 15, 15, 0.40)',
+  flame: '#B57438',
+  ember: '#B57438',
+  saffron: '#D6A330',
+  ash: '#4F4D48',
 }
 
-/** Radius scale من الويب: 8/12/16/20/28/36 */
-export const radius = { sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 36 } as const
+/** Radius scale من Madarek: 6/8/10/12/16/20/28 (--r-xs..--r-3xl) */
+export const radius = { xs: 6, sm: 8, md: 10, lg: 12, xl: 16, xxl: 20, xxxl: 28 } as const
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 36 } as const
+
+/** سلّم الحركة من Madarek (motion ladder): micro 80 → cinema 720 */
+export const motion = {
+  micro: 80,
+  fast: 160,
+  base: 240,
+  slow: 380,
+  slower: 520,
+  cinema: 720,
+} as const
 
 /** مسافات اللمس ≥44px (HIG/Material) */
 export const TOUCH_TARGET = 48

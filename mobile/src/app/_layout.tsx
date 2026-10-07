@@ -4,7 +4,8 @@
  * - RTL عربي أولًا: كتابة الإعداد الأصلي قبل أي رسم + بوابة ensureRTL
  *   (نمط المالك) تضمن اتجاه RTL صحيحًا من أول فتح بعد تثبيت نظيف —
  *   ليس من الفتح الثاني كما كان قبل الإصلاح.
- * - الخطوط: Cairo (متن) + Readex Pro (عناوين) — نفس هوية الويب.
+ * - الخطوط: IBM Plex Sans Arabic 400/500/600/700 — نفس هوية الويب
+ *   (Madarek: بلا 800 وبلا أوزان أخف من 400).
  * - المزودات: QueryClient (نفس مكتبة الويب) + AuthProvider.
  */
 import { I18nManager } from 'react-native'
@@ -14,17 +15,11 @@ import { StatusBar } from 'expo-status-bar'
 import { QueryClientProvider } from '@tanstack/react-query'
 import {
   useFonts,
-  Cairo_400Regular,
-  Cairo_600SemiBold,
-  Cairo_700Bold,
-} from '@expo-google-fonts/cairo'
-import {
-  ReadexPro_300Light,
-  ReadexPro_400Regular,
-  ReadexPro_500Medium,
-  ReadexPro_600SemiBold,
-  ReadexPro_700Bold,
-} from '@expo-google-fonts/readex-pro'
+  IBMPlexSansArabic_400Regular,
+  IBMPlexSansArabic_500Medium,
+  IBMPlexSansArabic_600SemiBold,
+  IBMPlexSansArabic_700Bold,
+} from '@expo-google-fonts/ibm-plex-sans-arabic'
 import * as SplashScreen from 'expo-splash-screen'
 import { dark } from '@/constants/theme'
 import { queryClient } from '@/lib/query-client'
@@ -43,14 +38,10 @@ function AppShell() {
   const { status } = useAuth()
   const [rtlReady, setRtlReady] = useState(false)
   const [fontsLoaded] = useFonts({
-    Cairo_400Regular,
-    Cairo_600SemiBold,
-    Cairo_700Bold,
-    ReadexPro_300Light,
-    ReadexPro_400Regular,
-    ReadexPro_500Medium,
-    ReadexPro_600SemiBold,
-    ReadexPro_700Bold,
+    IBMPlexSansArabic_400Regular,
+    IBMPlexSansArabic_500Medium,
+    IBMPlexSansArabic_600SemiBold,
+    IBMPlexSansArabic_700Bold,
   })
 
   // بوابة RTL: لا نرسم أي شاشة قبل حسم الاتجاه. إن قررت البوابة إعادة

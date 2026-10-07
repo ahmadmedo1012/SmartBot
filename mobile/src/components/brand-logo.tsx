@@ -11,7 +11,7 @@
  */
 import { StyleSheet } from 'react-native'
 import { Image, type ImageProps } from 'expo-image'
-import { radius } from '@/constants/theme'
+import { radius, motion } from '@/constants/theme'
 
 // الملف نفسه المعروض على ويب bot.smart-link.ly في شاشات المصادقة —
 // نسخة بايت-ببايت من fb_dashboard/frontend/public/brand-icon.png.
@@ -28,7 +28,7 @@ export function BrandLogo({ size = 64, style, ...rest }: BrandLogoProps) {
       source={BRAND_ICON}
       style={[{ width: size, height: size }, styles.logo, style]}
       contentFit="contain"
-      transition={120}
+      transition={motion.fast}
       accessibilityLabel="شعار SmartBot"
       {...rest}
     />
@@ -39,7 +39,8 @@ const styles = StyleSheet.create({
   logo: {
     borderRadius: radius.md,
     // الظل الناعم نفسه الذي يعطيه الويب: drop-shadow-lg
-    shadowColor: '#000000',
+    // (عائلة ظلال مدارك الليلية: rgb(2,4,12))
+    shadowColor: '#02040C',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 12,

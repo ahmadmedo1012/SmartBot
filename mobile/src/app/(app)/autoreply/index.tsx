@@ -173,7 +173,7 @@ export default function AutoreplyScreen() {
           المفاتيح الحقول على iOS */}
       <Modal visible={sheetVisible} transparent animationType="slide" onRequestClose={() => (setEditing(null), setShowNew(false))}>
         <KeyboardAvoidingView
-          style={styles.backdrop}
+          style={[styles.backdrop, { backgroundColor: colors.scrim }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
@@ -211,7 +211,7 @@ export default function AutoreplyScreen() {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
 })

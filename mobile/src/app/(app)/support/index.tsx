@@ -121,7 +121,7 @@ export default function SupportScreen() {
       {/* Sheet تذكرة جديدة — M-21: KAV لئلا تغطي لوحة المفاتيح الحقول على iOS */}
       <Modal visible={showNew} transparent animationType="slide" onRequestClose={() => setShowNew(false)}>
         <KeyboardAvoidingView
-          style={styles.backdrop}
+          style={[styles.backdrop, { backgroundColor: colors.scrim }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
@@ -152,7 +152,7 @@ export default function SupportScreen() {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
 })

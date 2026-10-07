@@ -7,9 +7,9 @@ import { dark, light, type ThemeColors } from '@/constants/theme'
 export interface AppTheme {
   colors: ThemeColors
   isDark: boolean
-  /** Cairo — نص المتن (نفس --font-sans في الويب) */
+  /** IBM Plex Sans Arabic 400 — نص المتن (نفس --font-sans في الويب) */
   fontBody: string
-  /** Readex Pro — العناوين (نفس --font-heading) */
+  /** IBM Plex Sans Arabic 600 — العناوين (نفس --font-display) */
   fontHeading: string
 }
 
@@ -20,7 +20,7 @@ export function useTheme(): AppTheme {
   return {
     colors: isDark ? dark : light,
     isDark,
-    fontBody: 'Cairo_400Regular',
-    fontHeading: 'ReadexPro_600SemiBold',
+    fontBody: 'IBMPlexSansArabic_400Regular',
+    fontHeading: 'IBMPlexSansArabic_600SemiBold',
   }
 }

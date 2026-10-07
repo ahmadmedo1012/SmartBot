@@ -1,5 +1,6 @@
 /**
- * SmartBot Mobile — نصوص بالهوية (Cairo متن / Readex Pro عناوين).
+ * SmartBot Mobile — نصوص بالهوية (IBM Plex Sans Arabic متنًا وعناوين).
+ * قاعدة مدارك: العربية لا تُعطى letter-spacing أبدًا (0 — لا سالب).
  */
 import { StyleSheet, Text, type TextProps } from 'react-native'
 import { useTheme, type AppTheme } from '@/hooks/use-theme'
@@ -46,8 +47,8 @@ export function stylesFor() {
 }
 
 const styles = StyleSheet.create({
-  display: { fontSize: 30, lineHeight: 42, fontWeight: '700', letterSpacing: -0.5 },
-  title: { fontSize: 24, lineHeight: 34, fontWeight: '700', letterSpacing: -0.4 },
+  display: { fontSize: 30, lineHeight: 42, fontWeight: '700', letterSpacing: 0 },
+  title: { fontSize: 24, lineHeight: 34, fontWeight: '700', letterSpacing: 0 },
   heading: { fontSize: 19, lineHeight: 27, fontWeight: '600' },
   subtitle: { fontSize: 17, lineHeight: 25, fontWeight: '600' },
   body: { fontSize: 15, lineHeight: 24 },

@@ -187,7 +187,7 @@ export default function CommentsScreen() {
           لوحة المفاتيح حقل الإدخال على iOS */}
       <Modal visible={!!replyTo} transparent animationType="slide" onRequestClose={() => setReplyTo(null)}>
         <KeyboardAvoidingView
-          style={styles.sheetBackdrop}
+          style={[styles.sheetBackdrop, { backgroundColor: colors.scrim }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 6 },
   avatar: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   replyPreview: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
-  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  sheetBackdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   sheetHandle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
   replyInput: {

@@ -1,6 +1,6 @@
 # SmartBot Mobile (Expo + React Native)
 
-تطبيق الهاتف الأصلي لمنصة SmartBot — **Native React Native وليس WebView**: تنقل أصلي، خطوط Cairo/Readex Pro، ثيم الويب نفسه (برتقالي ناري على أسود دافئ)، وRTL عربي كامل.
+تطبيق الهاتف الأصلي لمنصة SmartBot — **Native React Native وليس WebView**: تنقل أصلي، خط IBM Plex Sans Arabic، ثيم مدارك نفسه للويب (ليلي نيلي ‎#070B16‎ مع ذهبي ‎#E9B44C‎، ونهاري كريمي ‎#FBFAF9‎ مع نحاسي ‎#B57438‎)، وRTL عربي كامل.
 
 ## البنية
 
@@ -17,7 +17,7 @@ mobile/
 │   │   └── …16 شاشة stack    audience/broadcast/autoreply/scheduled/billing/subscribe/settings/support/activity/notifications/tools/pages/team/sequences/marketing/ads/reports/calendar/leads
 ├── src/services/api.ts       عميل موحد: envelope + Bearer + timeout + retry + form + 401 مركزي
 ├── src/state/auth.tsx        الجلسة: /api/auth/token + expo-secure-store
-├── src/constants/theme.ts    ألوان الويك (oklch → hex) + radius + spacing
+├── src/constants/theme.ts    توكنات مدارك (ليلي/نهاري) + radius + spacing + motion
 ├── src/components/           UI مشترك + حالات loading/empty/error/retry/unauth
 └── src/lib/format.ts         التنسيق العربي (ar-LY) — نفس اصطلاحات الويب
 ```

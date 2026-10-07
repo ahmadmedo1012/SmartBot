@@ -134,7 +134,7 @@ export default function SubscribeScreen() {
       {/* Sheet إتمام الاشتراك (M-11): المبلغ + مزود الدفع + الهاتف */}
       <Modal visible={!!checkoutPlan} transparent animationType="slide" onRequestClose={() => setCheckoutPlan(null)}>
         <KeyboardAvoidingView
-          style={styles.backdrop}
+          style={[styles.backdrop, { backgroundColor: colors.scrim }]}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
@@ -214,7 +214,7 @@ export default function SubscribeScreen() {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 8 },

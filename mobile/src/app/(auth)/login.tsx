@@ -73,9 +73,10 @@ export default function LoginScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* الخلفية المتدرجة — from-background via-accent/20 to-background */}
+      {/* الخلفية المتدرجة — from-background via-accent/20 to-background
+          (Madarek: لمسة ذهب/نحاس خفيفة ≈3% — نفس composite الويب) */}
       <LinearGradient
-        colors={[colors.background, 'rgba(225, 87, 0, 0.20)', colors.background]}
+        colors={[colors.background, `${colors.accentFg}08`, colors.background]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -108,7 +109,7 @@ export default function LoginScreen() {
           {/* رأس البطاقة: الشعار الحقيقي + العنوان — نفس بنية CardHeader */}
           <View style={styles.cardHeader}>
             <BrandLogo size={64} />
-            <AppText variant="title" style={{ marginTop: spacing.lg, letterSpacing: -0.4 }}>
+            <AppText variant="title" style={{ marginTop: spacing.lg }}>
               {APP_NAME}
             </AppText>
             <AppText variant="body" color="mutedFg" style={{ marginTop: spacing.xs }}>
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxxl,
     paddingBottom: spacing.xxl,
-    shadowColor: '#000000',
+    shadowColor: '#02040C',
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.45,
     shadowRadius: 32,

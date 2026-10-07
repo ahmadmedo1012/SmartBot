@@ -93,7 +93,7 @@ export default function OnboardingScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {step === 'welcome' ? (
           <Card>
-            <View style={styles.stepIconWrap}>
+            <View style={[styles.stepIconWrap, { backgroundColor: `${colors.primary}24` }]}>
               <Icon name="bot" size={40} color={colors.accentFg} />
             </View>
             <AppText variant="title" style={{ textAlign: 'center', marginTop: spacing.lg }}>
@@ -148,7 +148,7 @@ export default function OnboardingScreen() {
 
         {step === 'first-rule' ? (
           <Card>
-            <View style={styles.stepIconWrap}>
+            <View style={[styles.stepIconWrap, { backgroundColor: `${colors.primary}24` }]}>
               <Icon name="sparkles" size={36} color={colors.saffron} />
             </View>
             <AppText variant="title" style={{ textAlign: 'center', marginTop: spacing.lg }}>
@@ -217,7 +217,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxxl,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(197, 60, 0, 0.14)',
   },
   form: { marginTop: spacing.xl, gap: spacing.lg },
   errorBox: { borderRadius: radius.md, padding: spacing.md },

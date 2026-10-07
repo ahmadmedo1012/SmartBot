@@ -19,8 +19,10 @@ import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/compon
 import { formatNumber } from '@/lib/format'
 import type { AnalyticsOverview, TrendPoint } from '@/types/api'
 
-/** رسم أعمدة SVG خالص — بديل recharts المكتبي (بلا تبعيات ثقيلة). */
+/** رسم أعمدة SVG خالص — بديل recharts المكتبي (بلا تبعيات ثقيلة).
+ *  خط الشبكة = hairline الثيم (Madarek --chart-grid: نفس دور الحدود). */
 function BarChart({ data, color, height = 160 }: { data: { label: string; value: number }[]; color: string; height?: number }) {
+  const { colors } = useTheme()
   if (data.length === 0) return null
   const w = 320
   const max = Math.max(...data.map((d) => d.value), 1)
@@ -34,7 +36,7 @@ function BarChart({ data, color, height = 160 }: { data: { label: string; value:
           <Rect key={i} x={x} y={height - 20 - barH} width={barW} height={barH} rx={3} fill={color} opacity={0.9} />
         )
       })}
-      <Line x1={0} x2={w} y1={height - 20} y2={height - 20} stroke="rgba(128,128,128,0.3)" strokeWidth={1} />
+      <Line x1={0} x2={w} y1={height - 20} y2={height - 20} stroke={colors.border} strokeWidth={1} />
     </Svg>
   )
 }

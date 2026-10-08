@@ -83,7 +83,9 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     <>
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-(--overlay) backdrop-blur-xs transition-opacity duration-(--t-fast)",
+          /* r127-F5b: mobile nav drawer = the --z-sheet rung (300) — backdrop
+             + panel together, the Smart-Menu/Order mobile-menu recipe. */
+          "fixed inset-0 z-(--z-sheet) bg-(--overlay) backdrop-blur-xs transition-opacity duration-(--t-fast)",
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -96,7 +98,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         aria-label="قائمة التصفح"
         aria-hidden={!open}
         className={cn(
-          "fixed inset-x-0 top-0 z-50 mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
+          "fixed inset-x-0 top-0 z-(--z-sheet) mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
           "transition-all duration-(--t-base) ease-out",
           open ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
         )}
@@ -170,7 +172,9 @@ export function Header({ className }: HeaderProps) {
           no transition-property narrowing (which would kill the scrolled
           bg/border/shadow fades) is needed. */}
       <header className={cn(
-        "fixed top-0 inset-x-0 z-30 h-[60px] transition-all duration-(--t-slow) will-change-transform backface-hidden",
+        /* r127-F5b: sticky topbar = the --z-dropdown rung (100) — the
+           canonical chrome rung (below popovers/sheets/modals/toasts). */
+        "fixed top-0 inset-x-0 z-(--z-dropdown) h-[60px] transition-all duration-(--t-slow) will-change-transform backface-hidden",
         visible ? "translate-y-0" : "-translate-y-full invisible",
         /* Madarek topbar (§5.6): 96% surface (94% dark) + saturate/blur glass,
            hairline bottom rule; elevation appears ONLY after scroll (elev-2). */

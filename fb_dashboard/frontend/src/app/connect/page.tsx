@@ -290,8 +290,10 @@ export default function ConnectPage() {
       {/* Top gradient bar */}
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-accent-foreground via-accent-foreground/80 to-accent-foreground/60" />
 
-      {/* Header */}
-      <div className="fixed left-4 right-4 top-4 z-10 flex items-center justify-between">
+      {/* Header — r127-F5b: interactive corner chrome = the --z-dropdown
+          rung (100), the Smart-Order login/register corner-link recipe
+          (the decorative z-10 progress bar below stays local-level). */}
+      <div className="fixed left-4 right-4 top-4 z-(--z-dropdown) flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <DirectionalIcon semanticDirection="back" className="h-4 w-4" />
           العودة للوحة التحكم

@@ -79,7 +79,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-30">
+      <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-(--z-dropdown)">
         <SectionContainer><div className="flex items-center justify-between h-14">
           <a href="/" className="flex items-center gap-2 min-h-11">
             <Image src="/brand-icon.png" alt="" width={56} height={56} className="size-7 rounded-md" priority />

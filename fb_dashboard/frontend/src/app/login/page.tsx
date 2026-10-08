@@ -181,7 +181,9 @@ function LoginForm() {
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
       <FloatingShapes />
 
-      <div className="fixed start-4 top-4 z-50 flex items-center gap-2">
+      {/* r127-F5b: corner chrome chip = the --z-dropdown rung (100) — the
+          Smart-Order login/register corner-link recipe. */}
+      <div className="fixed start-4 top-4 z-(--z-dropdown) flex items-center gap-2">
         <Link href="/">
           {/* v15-E6 (D5-H1): the /80 on muted-foreground measured 3.89:1 dark /
               4.08:1 light — under the 4.5:1 AA floor; the full token passes

@@ -56,8 +56,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
       {/* Madarek --sidebar-w: 256px (was w-60 240px) — the content column
-          pads its inline-start to clear the fixed RIGHT rail (RTL). */}
-      <div className="fixed top-0 right-0 z-30 h-full w-64 hidden md:block">
+          pads its inline-start to clear the fixed RIGHT rail (RTL).
+          r127-F5b: fixed chrome rail = the --z-dropdown rung (100). */}
+      <div className="fixed top-0 right-0 z-(--z-dropdown) h-full w-64 hidden md:block">
         {/* v19 Step 1: hide the upsell CTA once the tenant is actively
             subscribed (unknown/loading keeps the button — avoids a
             hide-flash on first paint for everyone).

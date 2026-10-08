@@ -3,17 +3,17 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Z-INDEX LAYER REGISTRY (Smart-Menu parity)
- * base       0-10     Default content
- * sticky     10-20    Sticky headers, sidebar
- * dropdown   30-40    Dropdowns, selects
- * drawer     40-50    Mobile side drawers (Sheet)
- * header     40-50    LayoutHeader
- * modal      50-60    Dialogs, modals
- * toast      60-70    Toast notifications (sonner)
- * popover    70-80    Popovers, tooltips
- * overlay    90-100   Full-screen overlays
- * max      99999     Emergency overlays
+ * Z-ORDER LADDER (Madarek tokens.css §3a — the canonical r126 rungs that
+ * Smart-Menu and Smart-Order already ship; r127-F5b converges SmartBot):
+ *   base 0 < dropdown 100 < popover 200 < tooltip 250 < sheet 300
+ *   < modal 400 < toast 500 < lightbox 600.
+ * Sticky app chrome (topbars, fixed sidebars, bottom navs) sits on
+ * --z-dropdown; mobile drawers/sheets (backdrop + panel together) on
+ * --z-sheet; dialogs and full-screen overlays on --z-modal; the sonner
+ * toaster + the WhatsApp FAB on --z-toast. Consumed via z-(--z-*)
+ * utilities. A dropdown therefore always paints below a modal, a toast
+ * always above it — the ordering contract the legacy 10-70 bands encoded
+ * numerically is now token-encoded like the rest of the fleet.
  */
 
 @theme inline {
@@ -92,7 +92,10 @@
      the playful 1.56 tier now lives on --ease-spring-bounce (utility
      ease-spring-bounce) for the press family that wants it (.motion-icon). */
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
-  --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
+  /* r127-F5b: --ease-smooth = the canonical settle curve (0.16, 1, 0.3, 1)
+     — identical to --ease-out; the (0.16, 1, 0.2, 1) fork made the same
+     `ease-smooth` utility animate differently than Link/Order (A6 P2). */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -152,13 +155,14 @@
      here are DELETED: the @theme inline block above is the single source.
      One token, one definition. */
 
-  --z-dropdown: 10;
-  --z-sticky: 20;
-  --z-nav: 30;
-  --z-modal-backdrop: 40;
-  --z-modal: 50;
-  --z-toast: 60;
-  --z-tooltip: 70;
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-popover: 200;
+  --z-tooltip: 250;
+  --z-sheet: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-lightbox: 600;
 
   /* ── MOTION LADDER (Madarek tokens.css §4.1 + §4.3, exact values) ──
      Raw durations: micro 80 → cinema 720. The three SmartBot steps map
@@ -185,7 +189,9 @@
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring-soft: cubic-bezier(0.34, 1.18, 0.64, 1);
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
-  --ease-smooth: cubic-bezier(0.16, 1, 0.2, 1);
+  /* r127-F5b: settled onto the canonical curve — was the (0.16, 1, 0.2, 1)
+     fork, off-fleet for the same utility class (A6 P2). */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   /* v26-F4: spring = canonical pop overshoot 1.36 (NOT 1.56 — that is the
      bounce tier, exposed below); P4-A6 rubric assertion 6 + tokens.css §4. */
   --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
@@ -365,7 +371,11 @@
        light pairing). ── */
   --primary: #B57438;
   --primary-foreground: #1A0F06;
-  --ring: #B57438;
+  /* r127-F5b (A6 P1): light --ring = copper-deep #5C3416 (10.29:1 — the
+     canonical ≥4.5:1 focus-ring contract). Raw copper #B57438 measured
+     3.65:1 on cream and FAILED the contract; every `ring`/`outline`
+     utility painted it. Mirrors --state-focus-ring-color below. */
+  --ring: #5C3416;
 
   /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
   --accent: oklch(0.6166 0.1113 60.9 / 0.12);
@@ -384,9 +394,13 @@
    * on cream; placeholder hierarchy stays one step lighter than
    * --muted-foreground. */
   --placeholder-text: #6E6C65;
-  /* Madarek danger light = rose-deep #6B2128 as text: 11.2:1 on card. */
-  --destructive: #6B2128;
-  --destructive-foreground: #FFFFFF;
+  /* r127-F5b (A6 P1): light danger base = the canonical rose-ink #DD6E78
+     (fleet parity with Menu/Link/Order); the text-safe rose-deep #6B2128
+     keeps its family role on --c-rose-deep. --destructive-foreground =
+     Madarek --danger-fg light #191918 (white on #DD6E78 measured 3.19:1
+     — fails; warm ink on it = 5.5:1, AA). */
+  --destructive: #DD6E78;
+  --destructive-foreground: #191918;
   /* Madarek light hairline: --border = neutral-200 #E9E7E2. */
   --border: #E9E7E2;
   /* WCAG 1.4.11: #6E6C65 measures 5.26:1 vs card / 5.04:1 vs the cream
@@ -394,12 +408,18 @@
    * the exact Madarek text-muted value). */
   --input: #6E6C65;
 
-  /* Light-mode status — Madarek light -ink (text-safe deep) variants
-     (§1.6): mint-deep / gold-ink / sky-deep / rose-deep. */
-  --success: #1F4F30;
-  --success-foreground: #FFFFFF;
-  --warning: #6B4C0B;
-  --info: #1F3D63;
+  /* r127-F5b (A6 P1): light-mode status BASE slots = the canonical vivid
+     family inks (tokens.css §1.6 — mint-ink #4FA66D / yellow-ink #D6A330 /
+     sky-ink #5C8FCE / rose-ink #DD6E78), restoring fleet parity with
+     Menu/Link/Order: light badges/dots render like the rest of the fleet
+     again instead of the collapsed -deeps. The text-safe deeps keep their
+     roles on the family slots (--c-mint-deep #1F4F30 …, pinned below);
+     status fill foregrounds = warm ink #191918 (measured 5.9:1 on mint,
+     7.7:1 on yellow, 5.3:1 on sky — the Madarek --danger-fg pattern). */
+  --success: #4FA66D;
+  --success-foreground: #191918;
+  --warning: #D6A330;
+  --info: #5C8FCE;
   /* Light soft grounds — Madarek pastel -bg fills (opaque). */
   --success-soft: #DCF1E2;
   --warning-soft: #FCF1CD;
@@ -550,7 +570,11 @@ html.light::-webkit-scrollbar-thumb:hover,
 ::selection { background: color-mix(in srgb, var(--primary) 28%, transparent); color: var(--foreground); }
 /* Focus ring — Madarek universal focus-visible (motion.css + v22): 2px
    --state-focus-ring-color (accent-strong, AA in both themes). */
-:focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; border-radius: var(--radius-sm); }
+/* r127-F5b (A6 P3): shape NEVER mutates on focus — the border-radius
+   override is removed (canonical = outline-only ring; Smart-Link dropped
+   the same anti-pattern in r126: "a ring must never reshape its element").
+   Elements keep their designed radius; the ring alone signals focus. */
+:focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
 
 .glass-card, .glass {
@@ -730,6 +754,17 @@ html.light::-webkit-scrollbar-thumb:hover,
 }
 
 .text-balance { text-wrap: balance; }
+
+/* Sonner toaster — pin onto the z-ladder toast rung (Madarek --z-toast:
+   toasts sit above sheets/modals, below a lightbox). r127-F5b: the
+   toaster used to ride sonner's own off-ladder default; the CSS pin is
+   the fleet pattern (Menu/Order) and keeps every overlay on the ladder. */
+[data-sonner-toaster] {
+  z-index: var(--z-toast) !important;
+}
+[data-sonner-toast] {
+  z-index: var(--z-toast) !important;
+}
 
 /* NOTE: no hand-written .font-heading override — the @theme inline emission
    (IBM Plex Sans Arabic, Madarek --font-display == --font-sans) is the

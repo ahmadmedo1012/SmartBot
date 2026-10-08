@@ -105,7 +105,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 (RTL reading start) and stays in-viewport at any scrollY. */}
             <a
               href="#page-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-(--z-toast) focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
             >
               تخطي إلى المحتوى الرئيسي
             </a>

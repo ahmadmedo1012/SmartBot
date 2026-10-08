@@ -21,7 +21,7 @@ import { useMe } from "@/hooks/useMe"
 import { countPhrase, formatDate, formatDateOnly, timeAgo } from "@/lib/format"
 import type { Conversation, ConversationList, Message } from "@/lib/types"
 
-function initials(name: string) {
+function initials(name: string | undefined) {
   if (!name) return "?"
   return name.split(" ").slice(0, 2).map(s => s[0]).join("").toUpperCase()
 }
@@ -113,6 +113,10 @@ function ConvItem({ conv, selectedId, onSelect }: {
             className="size-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-card transition-transform duration-(--t-fast) group-hover:scale-105"
             style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 45%, 32%)` }}
           >
+            {/* r127-F5a: senders?.[0]?.name is string | undefined — the
+                initials() param is widened to match (its !name guard already
+                returns "?"); message_count ?? 0 renders the honest zero
+                phrase «لا رسائل» when the field is absent. */}
             {initials(conv.senders?.[0]?.name)}
           </div>
           {hasUnread && (
@@ -132,7 +136,7 @@ function ConvItem({ conv, selectedId, onSelect }: {
             {conv.senders?.map((s) => s.name).join("، ") || "غير معروف"}
           </p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-2xs text-muted-foreground">{countPhrase(conv.message_count, "رسالة", "رسالتين", "رسائل")}</span>
+            <span className="text-2xs text-muted-foreground">{countPhrase(conv.message_count ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
             {hasUnread && (
               <span className="inline-flex items-center justify-center text-3xs h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
                 {conv.unread_count}

@@ -215,6 +215,17 @@ jobs:
           fi
           echo "static freshness: OK (buildId $BID, no stale generations, repo in sync)"
 
+      - name: Gate 4.6 — bundle budget (common base gz ≤ 190KB)
+        # r127-F5a: ports scripts/gate_all.sh Gate 4.6 (v16-E7 · D5, closes
+        # E-CI-4) into remote CI — until now a budget breach could merge on a
+        # green run because only the LOCAL gate measured the bundle. Runs on
+        # the Gate 4 build output (.next); measure_bundle.py resolves
+        # fb_dashboard/frontend relative to its own path, so the repo-root
+        # working directory is correct. Exit codes: 0 = PASS · 2 = breach
+        # (common base gz > 190KB) · 1 = no prerendered HTML. Hard gate.
+        run: python3 scripts/measure_bundle.py
+        continue-on-error: false
+
   # ── v15-E9 (D11-G3 · D6-H1): secret-scan gate ────────────────────────────
   # Unicode-hardened (NFKC + zero-width + HTML-entity decode) pattern scan
   # of the whole working tree. stdlib-only — no pip install needed. exit != 0

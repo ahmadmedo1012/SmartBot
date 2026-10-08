@@ -472,7 +472,10 @@ export default function AnalyticsPage() {
           <Card>
             <CardContent className="p-4">
               <h2 className="font-bold text-sm mb-3">أفضل القواعد</h2>
-              {data?.top_rules?.length > 0 ? (
+              {/* r127-F5a: `.length > 0` on an optional chain neither type-checks
+                  (number|undefined vs 0) nor narrows; truthiness is identical for
+                  array lengths AND narrows `data`/`data.top_rules` for the map. */}
+              {data?.top_rules?.length ? (
                 <div className="space-y-2">
                   {data.top_rules.map((r, i) => (
                     /* v9-B12 — sorted list: positional keys corrupt React's

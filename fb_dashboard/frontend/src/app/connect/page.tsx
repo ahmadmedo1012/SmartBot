@@ -217,7 +217,7 @@ export default function ConnectPage() {
                     dir="ltr"
                     aria-label="نسخ عنوان الويبهوك"
                     className="flex items-center gap-1.5 font-mono text-2xs text-foreground hover:text-accent-foreground transition-colors"
-                    onClick={() => { navigator.clipboard?.writeText(wh.webhook_url); brandedToast.success("تم نسخ عنوان الويبهوك") }}
+                    onClick={() => { navigator.clipboard?.writeText(wh.webhook_url ?? ""); brandedToast.success("تم نسخ عنوان الويبهوك") }}
                   >
                     {wh.webhook_url} <Copy className="size-3" aria-hidden="true" />
                   </button>

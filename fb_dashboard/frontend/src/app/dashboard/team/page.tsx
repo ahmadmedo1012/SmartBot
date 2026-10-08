@@ -97,7 +97,10 @@ export default function TeamPage() {
   })
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
-  const roleIcon = (role: string) => {
+  /* r127-F5a: the param is widened to `string | undefined` — the else-arm
+     of `m.role === "owner"` keeps the optional role, and the switch's
+     default arm (muted user icon) is the honest render for a missing role. */
+  const roleIcon = (role: string | undefined) => {
     switch (role) {
       case "admin": return <Shield className="size-3 text-accent-foreground" />
       case "editor": return <User className="size-3 text-info" />

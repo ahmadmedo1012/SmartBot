@@ -81,10 +81,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           orange radial, film grain and grid overlay are retired; hairline
           borders + the elevation ladder carry the depth instead. */}
       <body className="flex min-h-dvh flex-col overflow-x-clip bg-background antialiased">
-        {/* v12-E5.3: ThemeProvider + the dynamic client-only AppToaster now
-            live inside <Providers> (src/app/providers.tsx) — the toaster is
-            dynamic(ssr:false) there, which keeps sonner out of the first-load
-            JS of every route; layout.tsx stays a pure server component. */}
+        {/* ThemeProvider lives inside <Providers> (src/app/providers.tsx) —
+            layout.tsx stays a pure server component. v16-E4 truth: AppToaster
+            is NOT mounted here anymore (the v12-E5.3 note was stale); it
+            mounts per-route in the layouts whose pages actually call toast()
+            — dashboard/layout:33, admin/layout:49, login:23, register:31,
+            connect:33, subscribe:31 — so public routes with zero toast call
+            sites (landing/pricing/demo/terms/privacy) ship no sonner bytes. */}
         <Providers>
           <main id="main-content" className="flex-1 flex flex-col">
             {/* Skip to content — Smart-Menu style (logical offset, brand chip).

@@ -119,7 +119,14 @@ export interface Message {
   attachment_type?: string
   attachment_url?: string
   postback_payload?: string
-  created_time?: string
+  /* r127-F5a (API truth, verified read-only): the backend serializes this
+   * as `iso_z(m.created_at)` (routers/inbox.py:448) and `_utils.iso_z` is
+   * typed `datetime | None -> str | None` — the routes have NO FastAPI
+   * response_model, so a None value is emitted as a PRESENT JSON null
+   * (never an omitted key). The live-Graph path (:470) uses
+   * `m.get("created_time", "")` which also passes a Graph-side null
+   * through. Hence `string | null` — matches what the wire can carry. */
+  created_time?: string | null
 }
 
 // ── Auto-reply rules ────────────────────────────────────────────────────────
@@ -169,7 +176,11 @@ export interface CommentRow {
   message?: string
   from_name?: string
   from_id?: string
-  created_time?: string
+  /* r127-F5a (API truth): replies.py:163 serializes this via the same
+   * `iso_z` (`str | None`) as the message rows, and the sibling fields
+   * replied_at/reply_text already carry `| null` in this interface for
+   * exactly that reason — created_time joins them. */
+  created_time?: string | null
   post_id?: string
   post_message?: string
   replied_at?: string | null

@@ -431,8 +431,11 @@ export default function SupportPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-bold truncate">#{t.id} {t.subject}</p>
-                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE.medium}`}>
-                            {PRIORITY_LABEL[t.priority] || t.priority}
+                          {/* r127-F5a: priority is optional on SupportTicket —
+                              `?? ""` mirrors the sibling `t.status ?? ""` idiom
+                              one line below. */}
+                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority ?? ""] || PRIORITY_STYLE.medium}`}>
+                            {PRIORITY_LABEL[t.priority ?? ""] || t.priority}
                           </span>
                           <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${TICKET_STATUS_STYLE[t.status ?? ""] || "bg-muted text-muted-foreground"}`}>
                             {TICKET_STATUS_LABEL[t.status ?? ""] || t.status}

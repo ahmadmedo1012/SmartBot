@@ -132,7 +132,9 @@ export default function AudiencePage() {
               </div>
             ) : topQuery.isError ? (
               <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
-            ) : (topQuery.data?.length || 0) > 0 ? (
+            /* r127-F5a: truthiness guard (same semantics as `(len||0)>0` for
+               arrays) also NARROWS topQuery.data for the .map below. */
+            ) : topQuery.data?.length ? (
               <div className="space-y-2">
                 {topQuery.data.map((c, i) => (
                   /* v9-B12 — ranked list: positional keys corrupt React's

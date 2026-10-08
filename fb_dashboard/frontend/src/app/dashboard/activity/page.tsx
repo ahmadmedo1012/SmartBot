@@ -76,8 +76,11 @@ export default function ActivityPage() {
                         log.level === "warning" ? "bg-warning" : "bg-success"
                       }`} aria-hidden="true" />
                       {/* v24-R2 (B4 floor): text-3xs (10px) → text-xs — حده أدنى 12px */}
-                      <span className={`text-xs font-medium ${LOG_LEVEL_TEXT[log.level] || "text-muted-foreground"}`}>
-                        {LOG_LEVEL_LABEL[log.level] || log.level}
+                      {/* r127-F5a: log.level is optional (LogEntry) — `?? ""`
+                          indexes safely and falls through to the same || 
+                          fallbacks (the support-page `t.status ?? ""` idiom). */}
+                      <span className={`text-xs font-medium ${LOG_LEVEL_TEXT[log.level ?? ""] || "text-muted-foreground"}`}>
+                        {LOG_LEVEL_LABEL[log.level ?? ""] || log.level}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">

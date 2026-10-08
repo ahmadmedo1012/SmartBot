@@ -281,7 +281,10 @@ export default function BillingPage() {
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{formatNumber(p.amount)} د.ل</p>
-                      <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider] || p.provider} · {p.phone}</p>
+                      {/* r127-F5a: provider/status are optional on PaymentRow —
+                          `?? ""` indexes safely and falls through to the same
+                          `|| p.provider` / `|| p.status` fallbacks. */}
+                      <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider ?? ""] || p.provider} · {p.phone}</p>
                       <p className="text-3xs text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -289,7 +292,7 @@ export default function BillingPage() {
                       p.status === "pending" ? "bg-warning/10 text-warning" :
                       p.status === "failed" ? "bg-destructive-soft text-destructive" :
                       "bg-muted text-muted-foreground"
-                    }`}>{STATUS_LABELS[p.status] || p.status}</span>
+                    }`}>{STATUS_LABELS[p.status ?? ""] || p.status}</span>
                   </CardContent>
                 </Card>
               ))}

@@ -486,8 +486,10 @@ export default function AutoReplyPage() {
                       <span className="text-3xs text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
                         أولوية {r.priority ?? 999}
                       </span>
+                      {/* r127-F5a: replies_count is optional — `?? 0` (unreachable
+                          behind the guard, but proves the type for countPhrase). */}
                       {(r.replies_count ?? 0) > 0 && (
-                        <span className="text-3xs text-muted-foreground">{countPhrase(r.replies_count, "رد", "ردين", "ردود")}</span>
+                        <span className="text-3xs text-muted-foreground">{countPhrase(r.replies_count ?? 0, "رد", "ردين", "ردود")}</span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_template}</p>

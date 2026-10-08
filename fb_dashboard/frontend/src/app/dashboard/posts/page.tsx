@@ -306,7 +306,9 @@ export default function PostsPage() {
                         p.status === "published" ? "bg-success/15 text-success" :
                         p.status === "scheduled" ? "bg-info/15 text-info" :
                         "bg-muted text-muted-foreground"
-                      }`}>{POST_STATUS_LABELS[p.status] || p.status}</span>
+                      /* r127-F5a: status is optional on ScheduledPost — `?? ""`
+                          indexes safely; the `|| p.status` fallback is unchanged. */
+                      }`}>{POST_STATUS_LABELS[p.status ?? ""] || p.status}</span>
                       {p.scheduled_at && <span>{formatDate(p.scheduled_at)}</span>}
                     </div>
                     {/* v24-C2 (task 3 / A3-P2): أثناء التأكيد يستبدل العنقود

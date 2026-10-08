@@ -374,10 +374,19 @@ export function PaymentDialog({
       }
       // apiFetch throws ApiError carrying the parsed body — surface the
       // server's Arabic message, never a raw status code.
+      /* r127-F5a (strictNullChecks): the old one-liner kept `e.body &&` as a
+         bare operand, and unknown's truthy branch types as `{}` — the whole
+         `||` ladder collapsed to `msg: {}` (not a string). Extracting the
+         body behind an explicit truthy-object guard lets the ternary narrow
+         it to `object`, and `"error" in body` narrows the property access —
+         the two `as Record<string, unknown>` casts are retired. Same fallback
+         ladder, identical runtime semantics, and msg: string. */
+      const body =
+        e && typeof e === "object" && "body" in e && e.body && typeof e.body === "object"
+          ? e.body
+          : null
       const msg =
-        (e && typeof e === "object" && "body" in e && e.body &&
-          typeof e.body === "object" && "error" in (e.body as Record<string, unknown>) &&
-          String((e.body as Record<string, unknown>).error)) ||
+        (body !== null && "error" in body && String(body.error)) ||
         (e instanceof Error && e.message) ||
         "فشل إرسال طلب الدفع"
       /* v18 (1-b): the 400 «لديك طلب دفع معلق» is a STATE, not an error —

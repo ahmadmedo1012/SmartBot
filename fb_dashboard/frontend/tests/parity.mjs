@@ -276,7 +276,11 @@ pin(light, 'glass-light', '--glass-bg', 'rgba(251, 250, 249, 0.78)');
 // ≥4.5:1 canonical ring contract); canonical = copper-deep #5C3416 (10.29:1)
 // in light and --accent-strong #C9962F (7.87:1) for the dark focus state.
 const FOCUS_DARK = {
-  '--ring': '#E9B44C',
+  // r129 (fleet reconciliation, SL/SM parity): dark --ring = the STRONG
+  // gold #C9962F (was raw #E9B44C — Tailwind ring utilities painted a
+  // different gold than the rest of the fleet). Both tokens now chain to
+  // --accent-strong.
+  '--ring': '#C9962F',
   '--state-focus-ring-color': '#C9962F',
 };
 const FOCUS_LIGHT = {
@@ -443,7 +447,10 @@ pinAll(landingCascade, 'landing', {
   '--ln-violet-deep': '#4E2FB8',
   '--ln-line': 'rgba(245, 243, 231, 0.14)',
   '--ln-line-soft': 'rgba(245, 243, 231, 0.07)',
-  '--ln-grain-op': '0.05',
+  // r129 (P3-22, canonical landing.css:58 local override): 0.075 — the
+  // r128 pin locked the tokens.css base 0.05, missing the landing's own
+  // lift. Repinned + negative-tested below.
+  '--ln-grain-op': '0.075',
   '--ln-radius-pill': '9999px',
   '--ln-h1': 'clamp(2.75rem, 8.2vw, 6.75rem)',
 });
@@ -505,15 +512,22 @@ const spyMissing = SPY_SECTIONS.filter(
 if (spyMissing.length === 0) pass += 1;
 else fails.push(`scroll-spy: missing active rules for ${spyMissing.join(', ')}`);
 
-// (f) .ln-grain veil — fixed, inert, 5% opacity (resolved), Madarek's
-//     z-2000 rung (below native dialogs, above the whole landing)
+// (f) .ln-grain veil — fixed, inert, 7.5% opacity (resolved, P3-22),
+//     Madarek's z-2000 rung (below native dialogs, above the whole landing)
 pinDecl('grain', '.landing .ln-grain', 'z-index', '2000');
 pinDecl('grain', '.landing .ln-grain', 'pointer-events', 'none');
 {
   const grainBlock = landingBlocks.find((x) => x.prelude === '.landing .ln-grain');
   const grainOp = grainBlock ? resolve(landingCascade, declOf(grainBlock.body, 'opacity') ?? '') : '';
-  if (norm(grainOp) === '0.05') pass += 1;
-  else fails.push(`grain opacity: expected var(--ln-grain-op) → 0.05, got ${grainOp || '<missing>'}`);
+  if (norm(grainOp) === '0.075') pass += 1;
+  else fails.push(`grain opacity: expected var(--ln-grain-op) → 0.075 (canonical P3-22 lift), got ${grainOp || '<missing>'}`);
+  // the veil must RIDE the token (not a literal) so the token pin governs
+  const grainRidesToken = grainBlock ? declOf(grainBlock.body, 'opacity') === 'var(--ln-grain-op)' : false;
+  if (grainRidesToken) pass += 1;
+  else fails.push('grain opacity: expected the veil to consume var(--ln-grain-op), got a literal');
+  // negative: the retired 0.05 must be gone from the sheet
+  if (!/--ln-grain-op:\s*0\.05\b/.test(landingCss)) pass += 1;
+  else fails.push('grain negative: the retired --ln-grain-op: 0.05 declaration is still present');
 }
 
 // (g) flat header chrome — .scrolled is solid ink-2 @92%, never glass
@@ -547,6 +561,236 @@ if (poisonedLanding === landingCss) {
   if (probe === '#000000') pass += 1;
   else fails.push(`negative self-test: poisoned --ln-ink read as ${probe || '<missing>'}, expected #000000`);
 }
+
+// ── r129-F3 — the --accent-solid family (audit §4, the r128 open item) ──────
+// SmartBot was the only Smart repo without the fleet six-token standard;
+// --accent-solid is now the authoritative solid brand token and the
+// scattered consumers (--primary/--primary-foreground/--ring/
+// --state-focus-ring-color) chain to it. 12 pins.
+pinAll(dark, 'accent-family-dark', {
+  '--accent-solid': '#E9B44C',
+  '--accent-hover': '#F5D48A',
+  '--accent-soft': '#2C2312',
+  '--accent-strong': '#C9962F',
+  '--accent-ink': '#E9B44C',
+  '--accent-fg': '#05070F',
+});
+pinAll(light, 'accent-family-light', {
+  '--accent-solid': '#B57438',
+  '--accent-hover': '#9A5F25',
+  '--accent-soft': '#F4E4D2',
+  '--accent-strong': '#5C3416',
+  '--accent-ink': '#5C3416',
+  '--accent-fg': '#1A0F06',
+});
+
+// ── r129-F3 — token-matrix SB fixes (canonical names, Madarek values) ───────
+// The canonical --r-* radius ladder under SL/SM names (the Tailwind
+// --radius-* bridge in @theme keeps serving utilities with the same values;
+// --r-full was landing-scoped only before this wave).
+const R_LADDER = {
+  '--r-xs': '6px', '--r-sm': '8px', '--r-md': '10px', '--r-lg': '12px',
+  '--r-xl': '16px', '--r-2xl': '20px', '--r-3xl': '28px', '--r-full': '9999px',
+};
+for (const scope of [dark, light]) pinAll(scope, 'r-ladder', R_LADDER);
+// The Madarek press register + hover-lift micro-interaction values.
+for (const scope of [dark, light]) {
+  pin(scope, 'press-register', '--press-scale', '0.97');
+  pin(scope, 'press-register', '--hover-lift', '-1px');
+}
+// The two canonical easing names the sheet lacked (spring-snappy was absent
+// fleet-wide; bounce is Madarek's own name for the 1.56 tier).
+for (const scope of [dark, light]) {
+  pin(scope, 'easing-r129', '--ease-bounce', 'cubic-bezier(0.34, 1.56, 0.64, 1)');
+  pin(scope, 'easing-r129', '--ease-spring-snappy', 'cubic-bezier(0.5, 1.6, 0.4, 1)');
+}
+// Canonical brand aliases: --gold (dark = the accent-solid gold, light = the
+// yellow-ink gold #D6A330 — Madarek's own light rung), --gold-soft (the
+// yellow family ground), --brand-purple (the lavender-ink chain), and
+// --text-on-accent bridged to --accent-fg (the documented product semantic:
+// the products' light primary is copper, so text on it is the deep fg).
+pin(dark, 'brand-aliases-dark', '--gold', '#E9B44C');
+pin(light, 'brand-aliases-light', '--gold', '#D6A330');
+pin(dark, 'brand-aliases-dark', '--gold-soft', '#2C2410');
+pin(light, 'brand-aliases-light', '--gold-soft', '#FCF1CD');
+pin(dark, 'brand-aliases-dark', '--brand-purple', '#B7A0F4');
+pin(light, 'brand-aliases-light', '--brand-purple', '#8A6FE0');
+pin(dark, 'brand-aliases-dark', '--text-on-accent', '#05070F');
+pin(light, 'brand-aliases-light', '--text-on-accent', '#1A0F06');
+// The canonical neutral ramp under Madarek's own names (the five rungs the
+// token matrix flagged — 150/300/400/500/800 — plus their neighbors).
+const NEUTRALS_DARK = {
+  '--neutral-0': '#0D1428', '--neutral-50': '#070B16', '--neutral-100': '#121A36',
+  '--neutral-150': '#182142', '--neutral-200': '#1B2444', '--neutral-300': '#263052',
+  '--neutral-400': '#7A83A0', '--neutral-500': '#8E97B8', '--neutral-700': '#C3C8DC',
+  '--neutral-800': '#DDE1EE', '--neutral-900': '#F2EFE6',
+};
+const NEUTRALS_LIGHT = {
+  '--neutral-0': '#FFFFFF', '--neutral-50': '#FBFAF9', '--neutral-100': '#F7F6F3',
+  '--neutral-150': '#F1EFEC', '--neutral-200': '#E9E7E2', '--neutral-300': '#D9D6D0',
+  '--neutral-400': '#8E8A82', '--neutral-500': '#6F6C66', '--neutral-700': '#4F4D48',
+  '--neutral-800': '#322F2A', '--neutral-900': '#191918',
+};
+pinAll(dark, 'neutral-ramp-dark', NEUTRALS_DARK);
+pinAll(light, 'neutral-ramp-light', NEUTRALS_LIGHT);
+
+// ── r129-F3 — the P3/P4 premium-polish landing layer (audit §3 fix rows) ────
+
+// declLast — last-declaration-wins reader: the RESOLVED value for
+// same-specificity top-level rules (the P4 tail overrides the bases
+// further up the sheet — canonical ships it the same way).
+function declLast(prelude, prop) {
+  let val;
+  for (const b of landingBlocks) {
+    if (b.prelude !== prelude) continue;
+    const v = declOf(b.body, prop);
+    if (v !== undefined) val = v;
+  }
+  return val;
+}
+function pinDeclLast(label, prelude, prop, expected) {
+  const raw = declLast(prelude, prop);
+  if (raw !== undefined && norm(raw) === norm(expected)) pass += 1;
+  else fails.push(`${label} ${prop}: expected ${expected} (resolved), got ${raw ?? '<missing>'}`);
+}
+
+// P4-18 label halo: the lime mono label carries a faint radial halo on an
+// ::before pseudo + the position:relative anchor.
+{
+  const halo = landingBlocks.find((x) => x.prelude === '.landing .ln-label::before');
+  if (halo) {
+    const bg = declOf(halo.body, 'background');
+    if (bg !== undefined && norm(bg) === norm('radial-gradient(ellipse at center, var(--ln-lime) 0%, transparent 70%)')) pass += 1;
+    else fails.push(`label halo: background expected the lime radial, got ${bg ?? '<missing>'}`);
+    const op = declOf(halo.body, 'opacity');
+    if (op === '0.12') pass += 1;
+    else fails.push(`label halo: opacity expected 0.12, got ${op ?? '<missing>'}`);
+    const blur = declOf(halo.body, 'filter');
+    if (blur === 'blur(6px)') pass += 1;
+    else fails.push(`label halo: filter expected blur(6px), got ${blur ?? '<missing>'}`);
+  } else {
+    fails.push('label halo: .landing .ln-label::before rule not found');
+  }
+  const labelAnchored = landingBlocks
+    .filter((x) => x.prelude === '.landing .ln-label')
+    .some((b) => declOf(b.body, 'position') === 'relative');
+  if (labelAnchored) pass += 1;
+  else fails.push('label halo: .ln-label { position: relative } anchor not found');
+}
+
+// P4-10 type measures — the RESOLVED measure for the hero title/sub,
+// chapter lede and CTA lede (the tail overrides the bases).
+pinDeclLast('measure', '.landing .ln-hero-title', 'max-inline-size', '20ch');
+pinDeclLast('measure', '.landing .ln-hero-sub', 'max-inline-size', '72ch');
+pinDeclLast('measure', '.landing .ln-chapter-lede', 'max-inline-size', '72ch');
+pinDeclLast('measure', '.landing .ln-cta-lede', 'max-inline-size', '72ch');
+
+// P4-01 press register — both pill types press at --press-scale (0.97) with
+// the 80ms micro snap-back; the magnetic gold PRESERVES its translate.
+pinDecl('press', '.landing .ln-btn-gold:active', 'transform', 'translate(var(--mag-x, 0), var(--mag-y, 0)) scale(var(--press-scale, 0.97))');
+pinDecl('press', '.landing .ln-btn-gold:active', 'transition-duration', 'var(--t-micro)');
+pinDecl('press', '.landing .ln-btn-ghost:active', 'transform', 'scale(var(--press-scale, 0.97))');
+pinDecl('press', '.landing .ln-btn-ghost:active', 'transition-duration', 'var(--t-micro)');
+
+// P3-28/29/30/35 card depth recipes — resting station/stat shadows, the
+// role-row hover shadow, the progress-visual inset top-edge highlight.
+pinDeclLast('depth', '.landing .ln-station-card', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
+pinDeclLast('depth', '.landing .ln-stat', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
+pinDeclLast('depth', '.landing .ln-role-row:hover', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
+pinDeclLast('depth', '.landing .ln-progress-visual', 'box-shadow', 'inset 0 1px 0 rgba(245,243,231,0.04)');
+
+// P1-2 universal cream focus ring on the ink stage (canonical
+// landing.css:1783-1794) — the product gold --state-focus-ring-color must
+// never leak into the Orbit-Ink world.
+pinDecl('focus-ring', '.landing :focus-visible', 'outline', '2px solid var(--ln-cream)');
+pinDecl('focus-ring', '.landing :focus-visible', 'outline-offset', '3px');
+{
+  const btnCreamRing = /\.landing \.ln-btn-gold:focus-visible,\s*\.landing \.ln-btn-ghost:focus-visible\s*\{[^}]*outline-color:\s*var\(--ln-cream\)/.test(landingCss);
+  if (btnCreamRing) pass += 1;
+  else fails.push('focus-ring: .ln-btn-gold/:focus-visible + .ln-btn-ghost:focus-visible cream outline-color rule not found');
+}
+
+// P4-13 footer link underline affordance (color alone is not enough).
+pinDecl('footer-underline', '.landing .landing-footer-link:hover', 'text-decoration', 'underline');
+pinDecl('footer-underline', '.landing .landing-footer-link:hover', 'text-decoration-thickness', '2px');
+pinDecl('footer-underline', '.landing .landing-footer-link:hover', 'text-underline-offset', '4px');
+
+// P4-12 scroll-invite micro-interaction.
+pinDecl('scroll-hover', '.landing .ln-hero-scroll:hover .ln-hero-scroll-line', 'transform', 'scaleY(1.3)');
+
+// P2-1 burger breakpoint = the canonical 1080 (+ the min-width:1081 guard).
+{
+  const burger1080 = landingCss.includes('@media (max-width: 1080px)')
+    && landingCss.includes('@media (min-width: 1081px)')
+    && !/@media \(max-width: 1024px\)\s*\{[^}]*landing-nav-links/.test(landingCss);
+  if (burger1080) pass += 1;
+  else fails.push('burger breakpoint: expected the canonical @media (max-width: 1080px) collapse + min-width:1081 guard');
+}
+
+// P2-9 landscape-phone hero fold block + the 390px trust wrap.
+{
+  const landscape = landingCss.includes('@media (max-height: 560px) and (orientation: landscape)');
+  if (landscape) pass += 1;
+  else fails.push('landscape hero block: @media (max-height: 560px) and (orientation: landscape) not found');
+  const tinyTrust = /@media \(max-width: 390px\)\s*\{\s*\.landing \.ln-trust-inner\s*\{[^}]*gap:\s*var\(--sp-3\)[^}]*font-size:\s*12\.5px/.test(landingCss);
+  if (tinyTrust) pass += 1;
+  else fails.push('tiny-phone trust wrap: @media (max-width: 390px) .ln-trust-inner rule not found');
+}
+
+// ── r129-F3 — structural negatives (audit §5/§8) ────────────────────────────
+const rawPage = readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
+const rawLandingStage = readFileSync(new URL('../src/components/landing/LandingStage.tsx', import.meta.url), 'utf8');
+const rawOrbitScene = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
+const rawFeatures = readFileSync(new URL('../src/components/landing/FeaturesSection.tsx', import.meta.url), 'utf8');
+
+// P0: exactly ONE id="main-content" in the rendered page — the layout owns
+// it; the landing wrapper must not re-render it (duplicate id + nested
+// landmark = invalid HTML).
+{
+  const pageClean = !rawPage.includes('id="main-content"');
+  const layoutCount = rawLayout.split('id="main-content"').length - 1;
+  if (pageClean && layoutCount === 1) pass += 1;
+  else fails.push(`main-landmark: page.tsx must not re-render id="main-content" (layout renders it exactly once; layout occurrences = ${layoutCount})`);
+}
+// P2-10: the dead landing classes are deleted (zero consumers — the r128
+// port shipped .ln-btn-text/.ln-btn-text-badge/.ln-stat-unit with no user).
+{
+  const deadGone = !/\.ln-btn-text\b/.test(landingCss) && !/\.ln-stat-unit\b/.test(landingCss);
+  if (deadGone) pass += 1;
+  else fails.push('dead classes: .ln-btn-text / .ln-stat-unit still present in landing.css with zero consumers');
+}
+// P2-5 mitigation: the constellation chips strip is derived from the SAME
+// registry that feeds the aria-hidden sky pins (all 8 names accessibly).
+{
+  const chipsFromRegistry = rawFeatures.includes('const CHIPS = FEATURES.map')
+    && rawFeatures.includes('ln-constellation-strip');
+  if (chipsFromRegistry) pass += 1;
+  else fails.push('constellation a11y: the chips strip must be derived from the FEATURES registry (all 8 names accessible)');
+}
+// P2-4 (documented override): the skip target #page-content exists inside
+// the landing (the app-level chip in layout.tsx remains the single skip
+// link — the fleet a11y recipe pinned by the consumption gates).
+if (rawPage.includes('id="page-content"')) pass += 1;
+else fails.push('skip link: #page-content target not found inside the landing page');
+
+// ── r129-F3 — OrbitScene port pins (the palette triplets are the canvas-side
+// of the --ln-* tokens; a future token change must mirror them in lockstep). ──
+for (const triplet of ['245, 243, 231', '223, 237, 178', '122, 107, 242']) {
+  if (rawOrbitScene.includes(triplet)) pass += 1;
+  else fails.push(`OrbitScene: palette triplet ${triplet} (cream/lime/violet ink) not found — canvas-side of the --ln-* tokens`);
+}
+// omega stays RADIANS PER MILLISECOND (do not "convert" without rescaling dt).
+if (rawOrbitScene.includes('omega: 0.00016')) pass += 1;
+else fails.push('OrbitScene: the inner-ring omega 0.00016 (rad/ms) constant not found');
+// the hero mounts the engine with the canonical RTL-opposite bias.
+if (rawPage.includes('biasX={-0.35}')) pass += 1;
+else fails.push('OrbitScene mount: biasX={-0.35} not found in page.tsx');
+// the intro-seen calm is product-scoped (never share keys across products).
+if (rawLandingStage.includes("'smartbot.intro.seen'") || rawLandingStage.includes('"smartbot.intro.seen"')) pass += 1;
+else fails.push("OrbitScene calm: the product-scoped sessionStorage key 'smartbot.intro.seen' not found in LandingStage");
+// the DPR hard cap 1.5 (retina paints ≤2.25× CSS pixels, never 4×).
+if (rawOrbitScene.includes('Math.min(window.devicePixelRatio || 1, 1.5)')) pass += 1;
+else fails.push('OrbitScene: the DPR 1.5 hard-cap guard not found');
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0

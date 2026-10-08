@@ -7,15 +7,18 @@
    The page stays a SERVER component — the h1 and hero sub render inline
    (instant-paint LCP doctrine, v6 §D); client islands are exactly:
    LandingHeader (chrome/spy/menus), HeroDepthLayer (parallax),
+   OrbitScene (the r129 canvas engine port), LandingStage (intro-seen),
    MagneticGoldLink (CTA pull), TrustBand + ProgressSection (public
    stats + CountUp), JourneySection (light path + --sp), and the
-   RevealCssClass observers. HeroMockup is retired. */
+   RevealCssClass observers. HeroMockup + the flat HeroOrbits chart are
+   retired. */
 import "./landing.css";
 import { Check, MessageCircle, Languages } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
+import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { HeroDepthLayer } from "@/components/landing/HeroDepthLayer";
-import { HeroOrbits } from "@/components/landing/HeroOrbits";
+import { OrbitScene } from "@/components/landing/OrbitScene";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
 import { TrustBand } from "@/components/landing/TrustBand";
@@ -126,24 +129,30 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      {/* r128: `.landing` wrapper — the Orbit-Ink token layer + section
-          chrome (R4: dark stage in BOTH themes). */}
-      <div className="landing">
+      {/* r128: `.landing` wrapper (LandingStage, r129) — the Orbit-Ink token
+          layer + section chrome (R4: dark stage in BOTH themes) + the
+          returning-visitor data-intro-seen calm. */}
+      <LandingStage>
       <LandingHeader />
 
-      <main id="main-content">
+      {/* r129 (P0 fix): ONE main landmark per page — the root layout owns
+          the landmark + its id; this wrapper is a plain <div> (the r128
+          assembly nested a second <main> carrying the SAME id here —
+          duplicate id + nested landmark, invalid HTML). */}
+      <div>
         {/* v8-B7/v9-D3: skip-link target — lands past the header nav.
             tabIndex={-1} moves focus here for keyboard users. */}
         <span id="page-content" className="sr-only" tabIndex={-1} />
 
         {/* ═══ الفصل ٠ — المدار: the hero sky ═══ */}
         <section className="ln-hero" aria-label="SmartBot — إدارة صفحات فيسبوك الذكية">
-          {/* living sky: starfield depth plane + the bot's feature orbit
-              chart (flat SVG grammar — thin 1px cream/lime lines, nodes,
-              violet core, horizon) */}
+          {/* living sky (r129): starfield depth plane + the REAL canvas
+              orbit engine (OrbitScene port — fails safe to the CSS sky
+              below; biasX −0.35 keeps the orbital mass opposite the RTL
+              text column, containment-capped at 45% of the short side) */}
           <div className="ln-hero-sky" aria-hidden="true">
             <HeroDepthLayer />
-            <HeroOrbits className="ln-hero-canvas" />
+            <OrbitScene className="ln-hero-canvas" biasX={-0.35} />
           </div>
 
           <div className="ln-hero-content">
@@ -212,14 +221,14 @@ export default function HomePage() {
 
         {/* ═══ الأسئلة الشائعة — compact, ln-styled ═══ */}
         <LandingFaq />
-      </main>
+      </div>
 
       <LandingFooter />
 
       {/* film-grain texture layer — last child, painted over the whole
           world (R7: ONE veil per page) */}
       <div className="ln-grain" aria-hidden="true" />
-      </div>
+      </LandingStage>
     </>
   );
 }

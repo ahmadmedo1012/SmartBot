@@ -136,13 +136,17 @@
 
 /* ═══════════════════════════════════════════════════════
    !! BRAND ACCENT — SINGLE SOURCE OF TRUTH (Madarek) !!
-   --primary is THE authoritative solid brand token (buttons, rings,
-   identity elements): gold #E9B44C on the مدارك night (dark default) /
-   copper #B57438 on cream (light). --accent is only a faint 12–15% hint
-   for soft hovers/tints, and --accent-foreground is the AA-tuned accent
-   for TEXT over warm surfaces (gold #E9B44C dark / copper-deep #5C3416
-   light — Madarek --accent-ink, 10.29:1 on cream). One token per role,
-   never a duplicate definition.
+   r129: the canonical --accent family (tokens.css §1.5) ships under the
+   fleet port names (SL/SM spelling) — --accent-solid is THE
+   authoritative solid brand token; --primary aliases it for the
+   shadcn/Tailwind bridge; --ring/--state-focus-ring-color point at
+   --accent-strong (the strong gold/copper-deep focus metal). --accent
+   stays the faint 12–15% wash hint for soft hovers/tints (product
+   semantics — 72 accent-foreground consumers untouched), and
+   --accent-foreground keeps its oklch spelling (= --accent-ink, the
+   AA-tuned accent for TEXT: gold #E9B44C dark / copper-deep #5C3416
+   light, 10.29:1 on cream) so the measured-contrast gate can composite
+   the badge tints. One token per role, never a duplicate value.
    ═══════════════════════════════════════════════════════ */
 :root {
   /* v7 §B — native UA rendering follows the active theme: scrollbars,
@@ -196,10 +200,37 @@
      bounce tier, exposed below); P4-A6 rubric assertion 6 + tokens.css §4. */
   --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
   --ease-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* r129 (token-matrix SB fixes): the two canonical easing names the
+     sheet lacked — --ease-bounce is Madarek's own name for the 1.56
+     bounce tier (the spring-bounce alias stays for the utility class),
+     --ease-spring-snappy is the canonical 1.6 overshoot snap
+     (tokens.css §4, absent fleet-wide until now). */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-snappy: cubic-bezier(0.5, 1.6, 0.4, 1);
 
   /* RTL motion direction (Madarek §4.3): multiply every X translation by
      this — flips to -1 under [dir=rtl] at the bottom of this file. */
   --motion-direction: 1;
+
+  /* ── r129 — canonical radius names (SL/SM spelling, tokens.css §1.2).
+     The Tailwind --radius-* ladder in @theme above carries the same
+     values and keeps serving the rounded-* utilities; these names give
+     the product the canonical vocabulary (--r-full was landing-scoped
+     only before this wave). ── */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 20px;
+  --r-3xl: 28px;
+  --r-full: 9999px;
+
+  /* r129 — Madarek press register (shared-design-system.css:122):
+     buttons/pills press at 0.97 with the 80ms micro snap-back; and the
+     canonical hover-lift micro-interaction value. */
+  --press-scale: 0.97;
+  --hover-lift: -1px;
 
   /* ── NEUTRAL SURFACES — Madarek night-indigo ramp (tokens.css §1.3):
      ground #070B16 (neutral-50), surface #0D1428 (neutral-0),
@@ -215,19 +246,49 @@
   --popover: #0D1428;
   --popover-foreground: #F2EFE6;
 
-  /* ── BRAND SOLID — Madarek dark accent = luminous gold #E9B44C; text on
-       gold = --accent-fg #05070F (10.6:1, measured). ── */
-  --primary: #E9B44C;
-  --primary-foreground: #05070F;
-  --ring: #E9B44C;
+  /* ── r129 — the canonical neutral ramp under Madarek's own names
+     (tokens.css §1.3; SL/SM spelling). The shadcn bridge names above
+     carry the same values into utilities; these names complete the
+     canonical vocabulary — the five rungs the token matrix flagged
+     (150/300/400/500/800) plus their neighbors, all Madarek values. ── */
+  --neutral-0: #0D1428;    /* surface */
+  --neutral-50: #070B16;   /* ground */
+  --neutral-100: #121A36;  /* surface-2 */
+  --neutral-150: #182142;  /* surface-3 (was absent) */
+  --neutral-200: #1B2444;  /* hairline */
+  --neutral-300: #263052;  /* strong hairline (was absent) */
+  --neutral-400: #7A83A0;  /* field border (was absent) */
+  --neutral-500: #8E97B8;  /* placeholder (was absent by name) */
+  --neutral-700: #C3C8DC;  /* text-secondary */
+  --neutral-800: #DDE1EE;  /* (was absent) */
+  --neutral-900: #F2EFE6;  /* ink */
+
+  /* ── BRAND SOLID — the canonical Madarek --accent family (tokens.css
+       §1.5) under the fleet port names: solid #E9B44C on the مدارك
+       night; text on gold = --accent-fg #05070F (10.6:1, measured).
+       r129 (audit §4): SmartBot was the only Smart repo without the
+       named family — the values existed only as scattered carriers. ── */
+  --accent-solid: #E9B44C;
+  --accent-hover: #F5D48A;
+  --accent-soft: #2C2312;      /* = the copper family ground (--c-copper-bg) */
+  --accent-strong: #C9962F;    /* the strong gold — focus metal, 7.87:1 */
+  --accent-ink: #E9B44C;       /* accent as TEXT (10.39:1 on night) */
+  --accent-fg: #05070F;        /* text ON an accent fill */
+  --primary: var(--accent-solid);
+  --primary-foreground: var(--accent-fg);
+  /* r129 (fleet reconciliation, SL/SM parity): dark --ring = the STRONG
+     gold #C9962F (was raw #E9B44C — Tailwind ring utilities painted a
+     different gold than the rest of the fleet; SL styles.css:243 already
+     documented this as the converged value). */
+  --ring: var(--accent-strong);
 
   /* ── ACCENT — faint 15% gold hint for soft hovers/tints (oklch of
        #E9B44C so the measured-contrast gate can parse/composite it). ── */
   --accent: oklch(0.7995 0.134 81.4 / 0.15);
-  /* --accent-foreground = Madarek --accent-ink dark: gold as TEXT
-     (8.1-10.4:1 on every real composite — accent tint, 15% tint, card,
-     background). oklch form so the measured-contrast gate can composite
-     the badge-tint pairs (hex parses fine for plain pairs). */
+  /* --accent-foreground = Madarek --accent-ink dark (= --accent-solid
+     #E9B44C), oklch spelling: gold as TEXT (8.1-10.4:1 on every real
+     composite — accent tint, 15% tint, card, background). oklch form so
+     the measured-contrast gate can composite the badge-tint pairs. */
   --accent-foreground: oklch(0.7995 0.134 81.4);
 
   --secondary: #121A36;
@@ -298,10 +359,12 @@
   /* Madarek modal scrim (dark 0.62) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.62);
 
-  /* Gold/copper heat ramp (dark) — Madarek accent CTA metal:
-     ember = --accent-strong #C9962F, saffron = --accent #E9B44C,
-     espresso = --accent-fg #05070F. MEASURED (WCAG 1.4.3): espresso on
-     ember 7.56:1, on saffron 10.63:1 — AA on every gradient stop. */
+  /* Gold/copper heat ramp (dark) — Madarek accent CTA metal. r129: the
+     ramp's roles are the --accent family members: ember = --accent-strong
+     #C9962F, saffron/flame = --accent-solid #E9B44C, espresso =
+     --accent-fg #05070F (kept as literals — the measured-contrast gate
+     parses this block). MEASURED (WCAG 1.4.3): espresso on ember 7.56:1,
+     on saffron 10.63:1 — AA on every gradient stop. */
   --c-ember: #C9962F;
   --c-flame: #E9B44C;
   --c-ash: #C3C8DC;
@@ -313,6 +376,19 @@
   --c-espresso: #05070F;
   --c-bloom: #F0938F;
   --image-shimmer: rgba(0, 0, 0, 0.30);
+
+  /* r129 (token-matrix SB fixes) — canonical brand aliases, Madarek
+     values: --gold = the canonical gold rung (dark: the accent-solid
+     gold; light: the yellow-ink gold #D6A330 — see the .light override);
+     --gold-soft = the yellow family ground; --brand-purple = the
+     lavender-ink chain; --text-on-accent = the fleet product bridge to
+     --accent-fg (canonical #FFFFFF applies only when the light primary
+     is the night ink — the products' light primary is copper, so text
+     on it is the deep accent-fg #1A0F06, documented intentional). */
+  --gold: var(--accent-solid);
+  --gold-soft: var(--c-yellow-bg);
+  --brand-purple: var(--c-lavender-ink);
+  --text-on-accent: var(--accent-fg);
 
   --grid-line: rgba(142, 151, 184, 0.10);
 
@@ -345,8 +421,9 @@
   --shadow-modal: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
 
   /* Focus ring — Madarek v22 focus system: --state-focus-ring-color =
-     --accent-strong (7.87:1 dark / 10.29:1 light). */
-  --state-focus-ring-color: #C9962F;
+     --accent-strong (7.87:1 dark / 10.29:1 light) — r129: points at the
+     named family member (ONE accent vocabulary). */
+  --state-focus-ring-color: var(--accent-strong);
 
   /* Sidebar active state (Madarek §5.5): gold wash 10% + breathing halo
      (dark only — .light swaps to flat neutral-150). */
@@ -366,16 +443,39 @@
   --popover: #FFFFFF;
   --popover-foreground: #191918;
 
-  /* ── BRAND SOLID — Madarek light accent = copper #B57438; text on copper
-       = --accent-fg #1A0F06 (4.95:1, measured — Madarek's own .btn.accent
-       light pairing). ── */
-  --primary: #B57438;
-  --primary-foreground: #1A0F06;
+  /* r129 — the light half of the canonical neutral ramp (tokens.css §2.3;
+     the dark rungs live in :root above). */
+  --neutral-0: #FFFFFF;
+  --neutral-50: #FBFAF9;
+  --neutral-100: #F7F6F3;
+  --neutral-150: #F1EFEC;
+  --neutral-200: #E9E7E2;
+  --neutral-300: #D9D6D0;
+  --neutral-400: #8E8A82;
+  --neutral-500: #6F6C66;
+  --neutral-700: #4F4D48;
+  --neutral-800: #322F2A;
+  --neutral-900: #191918;
+
+  /* ── BRAND SOLID — the light half of the canonical --accent family
+       (Madarek tokens.css §1.5 light): solid = copper #B57438; hover =
+       the deep hover copper #9A5F25 (was absent from the entire sheet —
+       r129); text on copper = --accent-fg #1A0F06 (4.95:1, measured —
+       Madarek's own .btn.accent light pairing). ── */
+  --accent-solid: #B57438;
+  --accent-hover: #9A5F25;
+  --accent-soft: #F4E4D2;      /* = the copper family ground (--c-copper-bg) */
+  --accent-strong: #5C3416;    /* copper-deep — focus metal, 10.29:1 */
+  --accent-ink: #5C3416;       /* accent as TEXT on cream (10.29:1) */
+  --accent-fg: #1A0F06;
+  --primary: var(--accent-solid);
+  --primary-foreground: var(--accent-fg);
   /* r127-F5b (A6 P1): light --ring = copper-deep #5C3416 (10.29:1 — the
      canonical ≥4.5:1 focus-ring contract). Raw copper #B57438 measured
      3.65:1 on cream and FAILED the contract; every `ring`/`outline`
-     utility painted it. Mirrors --state-focus-ring-color below. */
-  --ring: #5C3416;
+     utility painted it. Mirrors --state-focus-ring-color below (r129:
+     both now point at --accent-strong). */
+  --ring: var(--accent-strong);
 
   /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
   --accent: oklch(0.6166 0.1113 60.9 / 0.12);
@@ -476,6 +576,12 @@
   --c-bloom: #DD6E78;
   --image-shimmer: rgba(25, 25, 24, 0.10);
 
+  /* r129 — light brand aliases: canonical --gold light = the yellow-ink
+     gold #D6A330 (NOT the copper accent-solid — Madarek's own light gold
+     rung); ember = the copper accent-solid rung of the light gradient.
+     --gold-soft/--brand-purple resolve through their family chains. */
+  --gold: #D6A330;
+
   --grid-line: rgba(25, 25, 24, 0.08);
 
   --surface-sunken: #F7F6F3;
@@ -503,8 +609,9 @@
   --shadow-pop: 0 1px 2px rgba(15, 15, 15, 0.04), 0 8px 24px rgba(15, 15, 15, 0.08);
   --shadow-modal: 0 12px 36px rgba(15, 15, 15, 0.10), 0 32px 80px rgba(15, 15, 15, 0.14);
 
-  /* Madarek light focus ring: accent-strong #5C3416 (10.29:1). */
-  --state-focus-ring-color: #5C3416;
+  /* Madarek light focus ring: accent-strong #5C3416 (10.29:1) — r129:
+     points at the named family member. */
+  --state-focus-ring-color: var(--accent-strong);
 
   /* Sidebar active (light) — flat neutral-150 wash, no halo (§5.5). */
   --nav-active-bg: #F1EFEC;

@@ -22,13 +22,20 @@ const VIEWBOX = 1200;
 
 function makeStars(count: number, seed: number): Star[] {
   const stars: Star[] = [];
+  // r129 smoke-gate finding: Math.sin/cos can differ between V8 builds in
+  // the last ULP (Node's libm vs Chrome's), so the raw floats leaked
+  // cross-engine noise into the SSR'd attributes and React flagged a
+  // hydration mismatch (opacity …093 vs …104). Quantizing to 2 decimals
+  // keeps the starfield EXACTLY deterministic across engines — the delta
+  // is 0.01 units on a 1200 viewBox (≈1/800 px): imperceptible.
+  const q = (v: number) => Math.round(v * 100) / 100;
   for (let i = 0; i < count; i++) {
     // Deterministic pseudo-random by seed so layout is identical every render.
     const x = ((Math.sin(seed + i * 397.1) * 0.5 + 0.5) * VIEWBOX);
     const y = ((Math.cos(seed + i * 263.3) * 0.5 + 0.5) * VIEWBOX);
     const r = 0.5 + (Math.abs(Math.sin(seed + i * 179.7)) * 1.2);
     const op = 0.15 + (Math.abs(Math.sin(seed + i * 131.9)) * 0.35);
-    stars.push({ cx: x, cy: y, r, op });
+    stars.push({ cx: q(x), cy: q(y), r: q(r), op: q(op) });
   }
   return stars;
 }

@@ -352,8 +352,8 @@ describe("r125 Madarek parity — glass ground (§1.8)", () => {
 // ── r127-F5b pin groups (mirrors tests/parity.mjs 82 → 185) ─────────────────
 
 describe("r127-F5b Madarek parity — focus contract (A6 P1)", () => {
-  it("dark: --ring #E9B44C + --state-focus-ring-color #C9962F (accent-strong, 7.87:1)", () => {
-    pin(dark, "focus-dark", "--ring", "#E9B44C")
+  it("dark: --ring #C9962F + --state-focus-ring-color #C9962F (accent-strong, 7.87:1 — r129 fleet reconciliation: was raw #E9B44C)", () => {
+    pin(dark, "focus-dark", "--ring", "#C9962F")
     pin(dark, "focus-dark", "--state-focus-ring-color", "#C9962F")
   })
   it("light: --ring #5C3416 + --state-focus-ring-color #5C3416 (10.29:1 — NOT raw copper 3.65:1)", () => {
@@ -434,5 +434,79 @@ describe("r127-F5b Madarek parity — reduced-motion token zeroing (A6 f)", () =
     const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
     expect(raw).toContain("animation-duration: 0.01ms !important")
     expect(raw).toContain("transition-duration: 0.01ms !important")
+  })
+})
+
+// ── r129-F3 pin groups (mirrors tests/parity.mjs 224 → 329) ──────────────────
+
+describe("r129 Madarek parity — the --accent-solid family (fleet six-token standard)", () => {
+  it("dark: gold #E9B44C / hover #F5D48A / soft #2C2312 / strong #C9962F / ink #E9B44C / fg #05070F", () => {
+    pinAll(dark, "accent-family-dark", {
+      "--accent-solid": "#E9B44C",
+      "--accent-hover": "#F5D48A",
+      "--accent-soft": "#2C2312",
+      "--accent-strong": "#C9962F",
+      "--accent-ink": "#E9B44C",
+      "--accent-fg": "#05070F",
+    })
+  })
+  it("light: copper #B57438 / hover #9A5F25 / soft #F4E4D2 / strong #5C3416 / ink #5C3416 / fg #1A0F06", () => {
+    pinAll(light, "accent-family-light", {
+      "--accent-solid": "#B57438",
+      "--accent-hover": "#9A5F25",
+      "--accent-soft": "#F4E4D2",
+      "--accent-strong": "#5C3416",
+      "--accent-ink": "#5C3416",
+      "--accent-fg": "#1A0F06",
+    })
+  })
+  it("the repointed consumers resolve to the same values (--primary/--primary-foreground chain to the family)", () => {
+    pin(dark, "accent-consumers", "--primary", "#E9B44C")
+    pin(dark, "accent-consumers", "--primary-foreground", "#05070F")
+    pin(light, "accent-consumers", "--primary", "#B57438")
+    pin(light, "accent-consumers", "--primary-foreground", "#1A0F06")
+  })
+})
+
+describe("r129 Madarek parity — token-matrix SB fixes (canonical names)", () => {
+  it("the canonical --r-* radius ladder exists globally (Tailwind --radius-* stays)", () => {
+    const R_LADDER = {
+      "--r-xs": "6px", "--r-sm": "8px", "--r-md": "10px", "--r-lg": "12px",
+      "--r-xl": "16px", "--r-2xl": "20px", "--r-3xl": "28px", "--r-full": "9999px",
+    }
+    pinAll(dark, "r-ladder", R_LADDER)
+    pinAll(light, "r-ladder", R_LADDER)
+  })
+  it("press register + hover-lift + the two canonical easing names", () => {
+    for (const scope of [dark, light]) {
+      pin(scope, "press-register", "--press-scale", "0.97")
+      pin(scope, "press-register", "--hover-lift", "-1px")
+      pin(scope, "easing-r129", "--ease-bounce", "cubic-bezier(0.34, 1.56, 0.64, 1)")
+      pin(scope, "easing-r129", "--ease-spring-snappy", "cubic-bezier(0.5, 1.6, 0.4, 1)")
+    }
+  })
+  it("brand aliases: --gold / --gold-soft / --brand-purple / --text-on-accent (canonical values)", () => {
+    pin(dark, "brand-aliases", "--gold", "#E9B44C")
+    pin(light, "brand-aliases", "--gold", "#D6A330")
+    pin(dark, "brand-aliases", "--gold-soft", "#2C2410")
+    pin(light, "brand-aliases", "--gold-soft", "#FCF1CD")
+    pin(dark, "brand-aliases", "--brand-purple", "#B7A0F4")
+    pin(light, "brand-aliases", "--brand-purple", "#8A6FE0")
+    pin(dark, "brand-aliases", "--text-on-accent", "#05070F")
+    pin(light, "brand-aliases", "--text-on-accent", "#1A0F06")
+  })
+  it("the canonical neutral ramp under Madarek's own names, both themes", () => {
+    pinAll(dark, "neutral-ramp-dark", {
+      "--neutral-0": "#0D1428", "--neutral-50": "#070B16", "--neutral-100": "#121A36",
+      "--neutral-150": "#182142", "--neutral-200": "#1B2444", "--neutral-300": "#263052",
+      "--neutral-400": "#7A83A0", "--neutral-500": "#8E97B8", "--neutral-700": "#C3C8DC",
+      "--neutral-800": "#DDE1EE", "--neutral-900": "#F2EFE6",
+    })
+    pinAll(light, "neutral-ramp-light", {
+      "--neutral-0": "#FFFFFF", "--neutral-50": "#FBFAF9", "--neutral-100": "#F7F6F3",
+      "--neutral-150": "#F1EFEC", "--neutral-200": "#E9E7E2", "--neutral-300": "#D9D6D0",
+      "--neutral-400": "#8E8A82", "--neutral-500": "#6F6C66", "--neutral-700": "#4F4D48",
+      "--neutral-800": "#322F2A", "--neutral-900": "#191918",
+    })
   })
 })

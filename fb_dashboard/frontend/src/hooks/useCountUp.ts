@@ -11,8 +11,10 @@ import { useEffect, useRef, useState } from "react"
  *     requestAnimationFrame tween, 800ms, easeOutCubic, tweening from the
  *     CURRENT displayed value, reduced-motion → final value instantly
  *     (the v11-A7 framer-free rewrite).
- *   - StatsSection's AnimatedNumber
- *     (src/components/landing/sections/StatsSection.tsx):
+ *   - StatsSection's AnimatedNumber (the retired r128-era
+ *     sections/StatsSection.tsx, deleted r129 with the rest of the dead
+ *     landing sections; the live count-up consumers are the landing
+ *     TrustBand/ProgressSection islands and the shared KpiCard):
  *     setInterval stepping (≈30 × 30ms, linear, always 0 → target),
  *     in-view gated, reduced-motion honored only since v14-E5 (D2-M6).
  *
@@ -21,12 +23,12 @@ import { useEffect, useRef, useState } from "react"
  * no ticking) everywhere a number counts up.
  *
  * Display formatting stays at the call sites (KpiCard → toArabicNumber,
- * StatsSection → formatNumber "ar-LY") — the hook returns a number, not
- * a string; formatting is lib/format.ts's job (v6 §A single seam).
+ * the landing stats cells → formatNumber "ar-LY") — the hook returns a
+ * number, not a string; formatting is lib/format.ts's job (v6 §A single seam).
  *
- * `paused` exists for view-gating (StatsSection waits for IntersectionObserver
- * in-view before counting): the counter holds at its current value until the
- * gate opens.
+ * `paused` exists for view-gating (the in-view gate pattern the retired
+ * StatsSection used — now the landing TrustBand/ProgressSection islands):
+ * the counter holds at its current value until the gate opens.
  *
  * usePrefersReducedMotion is exported alongside the hook because KpiCard's
  * entrance stagger (and any other motion decision) needs the same live

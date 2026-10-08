@@ -17,7 +17,8 @@ import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, BarChart3, Share2 } from "
  *   rules read it there);
  * · megamenu with tone-coded icon wells (Escape + onBlur close, focus
  *   return to the trigger) replacing the flat 3-link pill;
- * · burger + mobile drawer ≤1024px.
+ * · burger + mobile drawer ≤1080px (r129: aligned to the canonical
+ *   breakpoint, was 1024).
  * The product Header keeps serving every non-landing surface. */
 
 const SPY_SECTIONS = "#trust, #features, #journey, #progress, #plate, #roles";

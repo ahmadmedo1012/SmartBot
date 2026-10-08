@@ -15,21 +15,18 @@
  *      over its own 10% tint over card ≥ 4.5:1 — was 4.28:1 at /90 text
  *
  * Plus a manifest pin: no `orientation` lock (WCAG 1.3.4) and a behavioral
- * pin that the landing badge keeps the full-opacity class (a `/90` re-add
- * re-breaks 1.4.3 while every token pair still passes — the trap the math
- * cannot see).
+ * pin that the shared gold Badge keeps the full-opacity text class (a `/90`
+ * re-add re-breaks 1.4.3 while every token pair still passes — the trap the
+ * math cannot see). r129: the behavioral pin moved from the retired
+ * LandingTestimonials (dead LandingIslands code, deleted this round) to the
+ * LIVE shared Badge gold variant — the same composite, a live consumer.
  */
 import { readFileSync } from "node:fs"
 import { render, screen } from "@testing-library/react"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import manifest from "@/app/manifest"
-import { LandingTestimonials } from "@/components/landing/LandingIslands"
-import { apiFetch } from "@/lib/csrf-client"
-
-vi.mock("@/lib/csrf-client", () => ({
-  apiFetch: vi.fn(),
-}))
+import { Badge } from "@/components/ui/badge"
 
 // ── the same oklch→sRGB→WCAG math as scripts/check_contrast.mjs ──
 function oklchToSrgb(L: number, C: number, hDeg: number): number[] {
@@ -127,17 +124,12 @@ describe("v24-C6 — PWA manifest orientation (WCAG 1.3.4)", () => {
   })
 })
 
-describe("v24-C6 — LandingIslands metric badge renders full-opacity text", () => {
-  beforeEach(() => {
-    vi.mocked(apiFetch).mockResolvedValue({
-      json: async () => ({ success: true, data: [{ id: 1, metric: "٣× المبيعات", text: "رأي", name: "عميل", role: "مالك" }] }),
-    } as unknown as Response)
-  })
-
-  it("badge class is text-accent-foreground (not /90 — the composite that measured 4.28:1 dark)", async () => {
-    render(<LandingTestimonials />)
-    const badge = await screen.findByText("٣× المبيعات")
+describe("v24-C6 — shared gold Badge renders full-opacity text (r129: live consumer)", () => {
+  it("badge class is text-accent-foreground (not /NN — the composite that measured 4.28:1 dark)", () => {
+    render(<Badge variant="gold">٣× المبيعات</Badge>)
+    const badge = screen.getByText("٣× المبيعات")
     expect(badge.className).toContain("text-accent-foreground")
     expect(badge.className).not.toMatch(/text-accent-foreground\/\d+/)
+    expect(badge.className).toContain("bg-accent-foreground/15")
   })
 })

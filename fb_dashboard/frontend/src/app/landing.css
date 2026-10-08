@@ -87,7 +87,10 @@
   --ln-violet-deep:#4E2FB8;   /* decorative depth fills only */
   --ln-line:       rgba(245,243,231,0.14);
   --ln-line-soft:  rgba(245,243,231,0.07);
-  --ln-grain-op:   0.05;
+  /* r129 (P3-22, canonical landing.css:58): grain lifted 0.05 → 0.075 —
+     the one permanent texture must be perceivable, not theoretical
+     (Madarek tokens.css keeps 0.05 for any non-landing consumer). */
+  --ln-grain-op:   0.075;
   --ln-radius-pill: var(--r-full);
   --ln-h1:         clamp(2.75rem, 8.2vw, 6.75rem);
   --ln-h1-lh:      1.04;
@@ -110,7 +113,8 @@
 
 /* Film grain — the one permanent texture. Fixed veil above the whole
    landing (below native dialog overlays, which live in the top layer),
-   5% white feTurbulence noise on a 200px stitchable tile (R7). */
+   7.5% white feTurbulence noise on a 200px stitchable tile (R7 + the
+   canonical P3-22 lift). */
 .landing .ln-grain {
   position: fixed;
   inset: 0;
@@ -148,6 +152,23 @@
   direction: inherit;
   margin-block-end: 14px;
 }
+
+/* r129 (P4-18, canonical landing.css:774-788) — chapter label glow: the
+   lime mono label gets a faint halo so it reads as the visual anchor
+   without competing with the title. A soft radial wash on an ::before
+   pseudo-element (avoids layout shift); one accent per chapter, per the
+   lime roster discipline. */
+.landing .ln-label::before {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  background: radial-gradient(ellipse at center, var(--ln-lime) 0%, transparent 70%);
+  opacity: 0.12;
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: -1;
+}
+.landing .ln-label { position: relative; }
 
 .landing .marketing-container {
   max-inline-size: var(--marketing-max-w);
@@ -332,10 +353,10 @@
 
 .landing .landing-header-cta { display: flex; align-items: center; gap: var(--sp-2); }
 
-/* buttons — landing.css:371-481 verbatim; one pill system */
+/* buttons — landing.css:371-481 verbatim; one pill system (r129: the
+   dead .ln-btn-text tertiary is deleted — zero consumers, audit P2-10) */
 .landing .ln-btn-gold,
-.landing .ln-btn-ghost,
-.landing .ln-btn-text {
+.landing .ln-btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -379,8 +400,12 @@
     0 0 0 1px rgba(245,243,231,0.10);
   transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) - 1px));
 }
+/* r129 (P4-01, canonical landing.css:1849): the press register — the
+   magnetic CTA presses at --press-scale (0.97) while PRESERVING its
+   magnetic translate, with the 80ms micro snap-back. */
 .landing .ln-btn-gold:active {
-  transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) + 1px));
+  transform: translate(var(--mag-x, 0), var(--mag-y, 0)) scale(var(--press-scale, 0.97));
+  transition-duration: var(--t-micro);
 }
 /* Premium glow — world-class button depth on hover */
 .landing .ln-btn-gold::after {
@@ -420,29 +445,12 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
 .landing .ln-btn-ghost.xl { padding: 12px 32px; font-size: 16px; min-block-size: 48px; }
-
-/* quiet tertiary — opens the college registry */
-.landing .ln-btn-text {
-  padding: 10px 16px;
-  font-size: 14.5px;
-  min-block-size: 44px;
-  background: transparent;
-  color: var(--ln-cream-dim);
-}
-.landing .ln-btn-text:hover { color: var(--ln-cream); }
-.landing .ln-btn-text-badge {
-  min-inline-size: 26px;
-  block-size: 20px;
-  padding-inline: 7px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: var(--ln-radius-pill);
-  background: rgb(245 243 231 / 0.08);
-  color: var(--ln-cream-dim);
-  font-family: var(--ln-mono);
-  font-size: 11.5px;
-  font-weight: var(--fw-semibold);
-  font-variant-numeric: tabular-nums;
+/* r129 (P4-01, canonical landing.css:1835-1846): ghost pills press at the
+   same 0.97 register with the micro snap-back (the dead .ln-btn-text
+   variant is deleted with its rule — zero consumers). */
+.landing .ln-btn-ghost:active {
+  transform: scale(var(--press-scale, 0.97));
+  transition-duration: var(--t-micro);
 }
 
 /* top progress ribbon — landing.css:1552-1566 (kit §4: imperative --p var,
@@ -683,6 +691,12 @@
 /* literal end-states (no var() inside keyframes — maximum compatibility) */
 @keyframes ln-scene-in { to { opacity: 1; } }
 @keyframes ln-scene-in-dim { to { opacity: 0.35; } }
+
+/* r129 (canonical landing.css:720) — returning visitors get the CALM
+   entrance: LandingStage flips [data-intro-seen] after reading the
+   product-scoped sessionStorage key ('smartbot.intro.seen'), and the
+   canvas fades in fast (160ms, zero delay) instead of the full bloom. */
+.landing[data-intro-seen='true'] .ln-hero-canvas { animation-duration: var(--ln-t-fast); animation-delay: 0s; }
 
 /* starfield depth plane — ~0.2× scroll rate (scroll-craft baseline);
    behind canvas (z=0) and content (z=1) */
@@ -1054,6 +1068,8 @@
   background: rgb(245 243 231 / 0.03); /* card recipe (spec §4.2.6) */
   border: 1px solid var(--ln-line-soft);
   transition: border-color var(--ln-t-base) var(--ln-ease);
+  /* r129 (P3-28, canonical landing.css:1066): subtle depth for station cards */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 .landing .ln-station-card:hover { border-color: var(--ln-line); }
 .landing .ln-station-head {
@@ -1108,6 +1124,8 @@
   display: grid;
   place-items: center;
   min-block-size: 340px;
+  /* r129 (P3-29, canonical landing.css:1124): inset top-edge highlight */
+  box-shadow: inset 0 1px 0 rgba(245,243,231,0.04);
 }
 .landing .ln-progress-orbits {
   position: relative;
@@ -1181,6 +1199,8 @@
   background: rgb(245 243 231 / 0.03);
   border: 1px solid var(--ln-line-soft);
   transition: border-color var(--ln-t-base) var(--ln-ease);
+  /* r129 (P3-30, canonical landing.css:1202): subtle depth for stat cards */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 .landing .ln-stat:hover { border-color: var(--ln-line); }
 .landing .ln-stat-value {
@@ -1192,7 +1212,8 @@
   line-height: 1.1;
   direction: ltr;
 }
-.landing .ln-stat-unit { color: var(--ln-cream-dim); font-size: 24px; margin-inline-start: 2px; }
+/* (r129: the dead .ln-stat-unit rule is deleted — zero consumers, audit
+   P2-10; the live value/label/note rules stay byte-equal) */
 .landing .ln-stat-label { margin-block-start: 8px; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
 .landing .ln-stat-note { margin-block-start: 3px; color: var(--ln-cream-dim); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 
@@ -1272,6 +1293,8 @@
 .landing .ln-role-row:hover {
   background: rgb(245 243 231 / 0.03);
   border-color: var(--ln-line-soft);
+  /* r129 (P3-35, canonical landing.css:1318): subtle depth on hover */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 .landing .ln-role-row:hover .ln-role-index { color: var(--ln-cream); }
 @media (min-width: 921px) {
@@ -1481,7 +1504,15 @@
   width: fit-content;
   transition: color var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .landing-footer-link:hover { color: var(--ln-cream); }
+/* r129 (P4-13, canonical landing.css:2001-2008): footer links get a
+   subtle underline on hover so they feel interactive even without the
+   color shift. */
+.landing .landing-footer-link:hover {
+  color: var(--ln-cream);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
 .landing .landing-footer-bottom {
   margin-block-start: var(--sp-6);
   padding-block-start: var(--sp-4);
@@ -1511,13 +1542,23 @@
 .landing .ln-faq { content-visibility: auto; contain-intrinsic-size: auto 860px; }
 
 /* ── 13 · mobile blocks — canonical landing.css:1595-1760 ──────────── */
-@media (max-width: 1024px) {
-  .landing .ln-hero { padding-block: clamp(104px, 14vh, 150px) 88px; }
+/* r129 (P2-1): the nav-collapse breakpoint moves to the CANONICAL 1080px
+   (was 1024) — the 56px band between 1025-1080 kept the full nav on
+   slightly-narrow laptops where it already wrapped; plus the canonical
+   min-width:1081 menu guard. The hero padding fold stays at 1024 like
+   canonical (a different concern, a different breakpoint). */
+@media (max-width: 1080px) {
   /* burger breakpoint: nav links + header CTA fold into the drawer */
   .landing .landing-nav-links { display: none; }
   .landing .landing-burger { display: grid; margin-inline-start: auto; }
   .landing .landing-header-cta { display: none; }
   .landing .landing-mobile-menu { display: flex; }
+}
+@media (min-width: 1081px) {
+  .landing .landing-mobile-menu { display: none !important; }
+}
+@media (max-width: 1024px) {
+  .landing .ln-hero { padding-block: clamp(104px, 14vh, 150px) 88px; }
 }
 @media (max-width: 920px) {
   /* journey spine — stations stack vertically, nodes ride the gutter.
@@ -1612,7 +1653,6 @@
      interactive elements on small screens. */
   .landing .ln-btn-gold,
   .landing .ln-btn-ghost,
-  .landing .ln-btn-text,
   .landing .landing-nav-link {
     min-block-size: 48px;
     padding-block: var(--sp-3);
@@ -1625,8 +1665,7 @@
 @media (max-width: 560px) {
   .landing .ln-hero-actions { gap: var(--sp-3); }
   .landing .ln-hero-actions .ln-btn-gold,
-  .landing .ln-hero-actions .ln-btn-ghost,
-  .landing .ln-hero-actions .ln-btn-text { inline-size: 100%; }
+  .landing .ln-hero-actions .ln-btn-ghost { inline-size: 100%; }
   .landing .ln-constellation-strip { grid-template-columns: 1fr; }
   /* GAP-5: 2×2 at 390px was a solid text block — give the numbers room */
   .landing .ln-progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5) var(--sp-3); }
@@ -1637,11 +1676,50 @@
   .landing .ln-plate-grid { grid-template-columns: 1fr; }
 }
 
+/* r129 (P2-9, canonical landing.css:1723-1725): tiny-phone trust wrap. */
+@media (max-width: 390px) {
+  .landing .ln-trust-inner { gap: var(--sp-3); font-size: 12.5px; }
+}
+
+/* r129 (P2-9, canonical landing.css:1730-1756) — landscape phones: keep
+   the whole hero value story above the fold (P2-14: at 844×390 the
+   primary CTA landed 224px below the fold). Portrait phones are
+   untouched — this band only matches short viewports. */
+@media (max-height: 560px) and (orientation: landscape) {
+  .landing .ln-hero {
+    /* content-sized, not viewport-sized: every saved pixel is CTA
+       visibility. 844×390 budget: chrome 108 + eyebrow + title + lede +
+       CTA + meta ≈ 275px — the WHOLE value story sits inside the fold. */
+    min-block-size: auto;
+    align-content: center;
+    padding-block: 12px;
+  }
+  .landing .ln-hero-eyebrow { margin-block-end: 10px; }
+  .landing .ln-hero-title {
+    font-size: clamp(2rem, 9vh, 3.25rem);
+    line-height: 1.12;
+    margin-block-end: 14px;
+  }
+  .landing .ln-hero-sub {
+    max-inline-size: 60ch;
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin-block-end: 18px;
+  }
+  .landing .ln-hero-actions { margin-block-end: 8px; }
+  .landing .ln-hero-meta { font-size: 11.5px; gap: 4px 16px; }
+  .landing .ln-hero-meta li { padding-block: 2px; gap: 8px; }
+  .landing .ln-hero-scroll { display: none; }
+}
+
 /* ── 14 · reduced motion — canonical landing.css:1800-1831 ─────────── */
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-hero-canvas { animation: none; opacity: var(--ln-canvas-op, 1); }
   .landing .ln-hero-scroll-line::after { animation: none; }
   .landing .ln-journey-path-light { stroke-dashoffset: 0; }
+  /* r129 (P3-32, canonical landing.css:1826): the scroll progress bar
+     stays visible under reduced motion. */
+  .landing .landing-progress { opacity: 1 !important; }
   /* P3-21/P2-13 bespoke verbs: all off — the chart plots instantly, the
      finale stands still */
   .landing .ln-cta-orbit.o0,
@@ -1650,7 +1728,6 @@
   .landing .ln-constellation-dot { animation: none; }
   .landing .ln-btn-gold,
   .landing .ln-btn-ghost,
-  .landing .ln-btn-text,
   .landing .landing-header,
   .landing .ln-station-card,
   .landing .ln-role-row { transition: none; }
@@ -1661,11 +1738,44 @@
 
 /* ── 15 · P4 tail — card hover elevation (canonical P4-18) ──────────
    Lift + subtle shadow on hover signals interactivity without violating
-   the flat-ground rule (hairlines stay). The press tail (P4-01) and
-   gold prominence (P4-04) already ship in §0g above (R6 cascade). */
+   the flat-ground rule (hairlines stay). The press tail (P4-01) ships
+   with the button rules in §4 above (R6 cascade). */
 .landing .ln-station-card:hover,
 .landing .ln-stat:hover,
 .landing .ln-plate-cell:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
+}
+
+/* ═══ r129 — the canonical UI/UX PRO MAX tail (landing.css:1783-1999,
+   the P4 polish layer the r128 kit missed). Loaded LAST, like canonical. ═══ */
+
+/* ── universal landing focus ring (canonical landing.css:1783-1787) —
+   CREAM on the ink stage. The product gold --state-focus-ring-color
+   (globals) must never leak into the Orbit-Ink world: gold/ghost pills,
+   footer links, the hero scroll invite and megamenu items all take the
+   cream ring from this rule (nav-link/burger/dot/faq-q carry their own
+   cream rules further up). ── */
+.landing :focus-visible {
+  outline: 2px solid var(--ln-cream);
+  outline-offset: 3px;
+}
+.landing .ln-btn-gold:focus-visible,
+.landing .ln-btn-ghost:focus-visible {
+  outline-color: var(--ln-cream);
+}
+
+/* ── P4-10 (canonical landing.css:1979-1986): type measures — constrain
+   to a comfortable measure (≤72ch body, ≤20ch display). These override
+   the base 13ch/52ch/62ch/54ch rules further up (loaded last, like the
+   canonical tail). ── */
+.landing .ln-hero-title { max-inline-size: 20ch; }
+.landing .ln-hero-sub { max-inline-size: 72ch; }
+.landing .ln-chapter-lede { max-inline-size: 72ch; }
+.landing .ln-cta-lede { max-inline-size: 72ch; }
+
+/* ── P4-12 (canonical landing.css:1993-1999): the scroll invitation
+   invites interaction — the line stretches gently on hover. ── */
+.landing .ln-hero-scroll:hover .ln-hero-scroll-line {
+  transform: scaleY(1.3);
 }

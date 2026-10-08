@@ -13,13 +13,15 @@ interface PublicStats {
 }
 
 /* v10-C2 (G3 rec §8-2) — the hook's doc-comment always claimed a "single
- * shared fetch", but each of the three mounting consumers (LandingIslands
- * + StatsSection + FinalCTASection) ran its own useEffect → THREE identical
- * /api/public/stats requests on every home load (G3 measured 380–1339ms
- * each, back-to-back, local and prod). One module-level in-flight promise
- * now serves every consumer on the page; a 60s freshness window lets a
- * re-mount (navigate away and back) reuse the settled result instead of
- * re-firing. A failure is NOT cached — the next page load retries, exactly
+ * shared fetch", but each of the three then-mounting consumers (the
+ * retired LandingIslands/StatsSection/FinalCTASection trio — the live
+ * consumers are the landing TrustBand + ProgressSection) ran its own
+ * useEffect → THREE identical /api/public/stats requests on every home
+ * load (G3 measured 380–1339ms each, back-to-back, local and prod). One
+ * module-level in-flight promise now serves every consumer on the page;
+ * a 60s freshness window lets a re-mount (navigate away and back) reuse
+ * the settled result instead of re-firing. A failure is NOT cached — the
+ * next page load retries, exactly
  * the old per-pageload retry semantics. */
 const STATS_FRESH_MS = 60_000
 let settledStats: { at: number; value: PublicStats | null } | null = null

@@ -98,7 +98,7 @@ export default function PagesPage() {
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل الإعدادات</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل الإعدادات</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
@@ -182,7 +182,7 @@ export default function PagesPage() {
           {/* Connection form */}
           <Card>
             <CardContent className="p-5 space-y-4">
-              <h3 className="font-bold text-sm">ربط صفحة فيسبوك جديدة</h3>
+              <h3 className="sb-section-title">ربط صفحة فيسبوك جديدة</h3>
               <div className="space-y-3">
                 <div>
                   <label htmlFor="fb-page-id" className="text-xs text-muted-foreground mb-1 block">معرف الصفحة (Page ID)</label>

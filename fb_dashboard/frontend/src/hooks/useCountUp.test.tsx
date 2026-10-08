@@ -5,7 +5,8 @@
  *  - reduced motion → the target value is returned immediately, no frames
  *    are ever scheduled (the pre-unification KpiCard + StatsSection rule);
  *  - a value change re-tweens FROM the current display (never resets to 0)
- *    over the single 800ms easeOutCubic curve;
+ *    over the single 1100ms easeOutCubic curve (r130: the canonical
+ *    marketing CountUp duration — 800ms until this wave);
  *  - `paused` holds the counter and schedules no frames (StatsSection's
  *    in-view gate), releasing it resumes the count.
  *
@@ -98,26 +99,28 @@ describe("useCountUp", () => {
     expect(frames.length).toBe(0)
   })
 
-  it("counts up over the single 800ms easeOutCubic curve", () => {
+  it("counts up over the single 1100ms easeOutCubic curve", () => {
     render(<Probe value={100} />)
     expect(read()).toBe("0")
 
-    act(() => pump(400)) // progress 0.5 → eased 0.875 → 87.5 → 88
-    expect(read()).toBe("88")
-    act(() => pump(400)) // progress 1 → final
+    act(() => pump(400)) // progress 0.364 → eased 0.742 → 74.2 → 74
+    expect(read()).toBe("74")
+    act(() => pump(400)) // progress 0.727 → eased 0.980 → 98
+    expect(read()).toBe("98")
+    act(() => pump(300)) // progress 1 → final
     expect(read()).toBe("100")
     expect(frames.length).toBe(0) // tween completed, nothing pending
   })
 
   it("re-tweens from the current value on change, never from zero", () => {
     const { rerender } = render(<Probe value={10} />)
-    act(() => pump(800)) // 0 → 10 complete
+    act(() => pump(1100)) // 0 → 10 complete
     expect(read()).toBe("10")
 
     rerender(<Probe value={20} />)
-    act(() => pump(400)) // 10 + (20-10) × 0.875 = 18.75 → 19
-    expect(read()).toBe("19")
-    act(() => pump(400))
+    act(() => pump(400)) // 10 + (20-10) × 0.742 = 17.4 → 17
+    expect(read()).toBe("17")
+    act(() => pump(700))
     expect(read()).toBe("20")
   })
 
@@ -127,7 +130,7 @@ describe("useCountUp", () => {
     expect(frames.length).toBe(0)
 
     rerender(<Probe value={7} />) // in-view gate opens
-    act(() => pump(800))
+    act(() => pump(1100))
     expect(read()).toBe("7")
   })
 

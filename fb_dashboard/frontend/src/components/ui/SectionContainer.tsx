@@ -24,7 +24,9 @@ const SectionContainer = React.forwardRef<HTMLElement, SectionContainerProps>(
       )}
       {...props}
     >
-      <div className="relative max-w-[1220px] mx-auto px-4 sm:px-6">{children}</div>
+      {/* r130 (W1-E D-12): 1220px (matched neither Madarek column) → the
+          marketing column token (--marketing-max-w: 1200px). */}
+      <div className="relative max-w-(--marketing-max-w) mx-auto px-4 sm:px-6">{children}</div>
     </section>
   )
 )

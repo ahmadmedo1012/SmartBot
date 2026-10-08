@@ -101,7 +101,12 @@ export function PageHeader({
               )}
               <div className="flex items-center gap-2 min-w-0">
                 <h1
-                  className={cn("font-bold tracking-tight truncate animate-fade-in delay-100", compact ? "text-sm" : "text-base")}
+                  /* r130 (W1-E D-1): page-title = the canonical inner-page
+                   * head rung — clamp(20px, 3.4vw, 28px) @ 700, lh 1.22,
+                   * tracking 0 (was text-sm/base = 14/16px, ~half Madarek).
+                   * Sized from the new --fs-page-title token; the compact
+                   * bar's min-h keeps the 28px cap comfortable. */
+                  className="font-bold text-(length:--fs-page-title) leading-(--type-page-title-line-height) truncate animate-fade-in delay-100"
                 >
                   {title}
                 </h1>

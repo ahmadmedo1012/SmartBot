@@ -386,7 +386,7 @@ export default function SupportPage() {
 
         {/* My tickets (plan §4.3) */}
         <section>
-          <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
+          <h2 className="sb-section-title mb-3 flex items-center gap-2">
             <Ticket className="size-4 text-accent-foreground" />
             تذاكري
             {tickets.length > 0 && (
@@ -556,7 +556,7 @@ export default function SupportPage() {
 
         {/* FAQ */}
         <section>
-          <h2 className="font-bold text-sm mb-3">الأسئلة الشائعة</h2>
+          <h2 className="sb-section-title mb-3">الأسئلة الشائعة</h2>
           <div className="space-y-2">
             {FAQ_ITEMS.map((faq) => (
               <details key={faq.id} className="group">

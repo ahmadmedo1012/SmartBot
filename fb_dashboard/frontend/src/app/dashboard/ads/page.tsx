@@ -62,7 +62,7 @@ export default function AdsPage() {
         ) : isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل الحسابات</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل الحسابات</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
@@ -72,7 +72,7 @@ export default function AdsPage() {
            * of broken). Say the truth + offer retry. */
           <div className="text-center py-16">
             <WifiOff className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل الاتصال بفيسبوك</h2>
+            <h2 className="sb-section-title mb-1">فشل الاتصال بفيسبوك</h2>
             <p className="text-xs text-muted-foreground mb-4">
               تعذر تحديث حساباتك الإعلانية من فيسبوك — تحقق من صلاحية رمز الوصول ثم أعد المحاولة.
             </p>

@@ -408,7 +408,7 @@ function SequenceEditor({
     >
       <CardContent className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="font-bold text-sm">{isCreate ? "إنشاء حملة تسلسلية" : `تحرير: ${name}`}</h2>
+          <h2 className="sb-section-title">{isCreate ? "إنشاء حملة تسلسلية" : `تحرير: ${name}`}</h2>
           <Button size="sm" variant="ghost" onClick={onClosed} aria-label="إغلاق المحرر">
             إلغاء
           </Button>
@@ -706,7 +706,7 @@ export default function SequencesPage() {
           {isError ? (
             <div className="text-center py-16">
               <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-              <h2 className="text-sm font-bold mb-1">فشل تحميل الحملات التسلسلية</h2>
+              <h2 className="sb-section-title mb-1">فشل تحميل الحملات التسلسلية</h2>
               <p className="text-xs text-muted-foreground mb-4">
                 {(error as Error)?.message || "تعذر الاتصال"}
               </p>

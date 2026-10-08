@@ -202,7 +202,7 @@ export default function MarketingPage() {
           ) : (
             <Card>
               <CardContent className="p-5 space-y-4">
-                <h2 className="font-bold text-sm">إنشاء حملة</h2>
+                <h2 className="sb-section-title">إنشاء حملة</h2>
                 <Input dir="auto"
                   label="اسم الحملة"
                   id="campaign-name"
@@ -289,7 +289,7 @@ export default function MarketingPage() {
           ) : isError ? (
             <div className="text-center py-16">
               <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-              <h2 className="text-sm font-bold mb-1">فشل تحميل الحملات</h2>
+              <h2 className="sb-section-title mb-1">فشل تحميل الحملات</h2>
               <p className="text-xs text-muted-foreground mb-4">
                 {(error as Error)?.message || "تعذر الاتصال"}
               </p>

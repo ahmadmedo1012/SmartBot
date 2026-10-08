@@ -119,8 +119,9 @@
    sm 8 · md 10 · lg 12 · xl 16 · 2xl 20 · 3xl 28. Plain (non-inline) @theme
    so runtime CSS custom properties emit for inline-style consumers
    (react-joyride borderRadius). Buttons/inputs sit on rounded-md (10px =
-   Madarek r-md), cards/dialogs/sheets unify on rounded-2xl (20px = Madarek
-   r-2xl). */
+   Madarek r-md); r130: inner cards/dialogs ride rounded-xl (16px = Madarek
+   --r-xl inner-page grammar); 20px (r-2xl) stays the landing/Orbit-Ink
+   surface rung. */
 @theme {
   /* Madarek r-xs — completes the §1.2 ladder (6/8/10/12/16/20/28). No
      existing rounded-xs consumer flips: the class was unused (grep-verified
@@ -232,6 +233,101 @@
   --press-scale: 0.97;
   --hover-lift: -1px;
 
+  /* ── TYPE SCALE (r130 — Madarek tokens.css §2.2 raw scale + §6a roles,
+     canonical names ported to the product layer). Sizes are px so they
+     survive body-level rem changes; roles compose the raw rungs. The
+     welcome-card page-title clamp (polish.css:1480) is the canonical
+     inner-page head rung: clamp(20px, 3.4vw, 28px) @ 700. ── */
+  --fs-h1: 30px;
+  --fs-h2: 22px;
+  --fs-h3: 18px;
+  --fs-body-lg: 17px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --fs-xxs: 11px;
+  --fs-metric-md: 22px;
+  --fs-metric-lg: 30px;
+  --fs-metric-xl: 44px;
+  --fs-page-title: clamp(20px, 3.4vw, 28px);
+  --fs-section-title: 17px;
+
+  --lh-tight: 1.05;
+  --lh-snug: 1.20;
+  --lh-base: 1.65;
+  --lh-loose: 1.85;
+
+  --ls-tight: -0.022em;
+  --ls-snug: -0.012em;
+  --ls-normal: 0;
+  --ls-wide: 0.06em;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  /* Madarek wave 2-a: Plex Sans Arabic ships no 800 — --fw-black resolves
+     to the real 700 cut (the ONE deliberate redefinition, tokens.css:1069). */
+  --fw-black: var(--fw-bold);
+
+  /* Type roles (§6a): page-title = the inner-page head (weight 700, lh
+     1.22 — the Arabic display floor); section-title = the in-card section
+     heading rung (17px/600 — r130 ladder between body 15 and h3 18);
+     body = 15/400/1.65; label = 13/500; tables ride the label size. */
+  --type-page-title-size: var(--fs-page-title);
+  --type-page-title-weight: var(--fw-bold);
+  --type-page-title-line-height: 1.22;
+  --type-section-title-size: var(--fs-section-title);
+  --type-section-title-weight: var(--fw-semibold);
+  --type-section-title-line-height: 1.35;
+  --type-body-size: var(--fs-body);
+  --type-body-size-lg: var(--fs-body-lg);
+  --type-body-weight: var(--fw-regular);
+  --type-body-line-height: var(--lh-base);
+  --type-label-size: var(--fs-sm);
+  --type-label-size-sm: var(--fs-xs);
+  --type-label-weight: var(--fw-medium);
+  --type-label-line-height: 1.50;
+  --type-table-size: var(--fs-sm);
+
+  /* ── SEMANTIC MOTION LAYER (r130 — Madarek tokens.css §6d, the layer
+     the dashboard was missing per W1-G F-2): page/reveal/stat/skeleton
+     semantic durations + the stagger grammar + the polish enter distances
+     (page-enter 4px / polish-rise 6px). Raw ladder stays above. ── */
+  --motion-duration-micro: var(--t-micro);      /* 80ms */
+  --motion-duration-short: var(--t-fast);       /* 160ms */
+  --motion-duration-medium: var(--t-base);      /* 240ms */
+  --motion-duration-long: var(--t-slow);        /* 380ms */
+  --motion-duration-page: 320ms;
+  --motion-duration-reveal: 360ms;
+  --motion-duration-stat: 700ms;
+  --motion-duration-skeleton: 1200ms;
+  --motion-ease-standard: var(--ease);
+  --motion-ease-decelerate: var(--ease-out);
+  --motion-ease-accelerate: var(--ease-in);
+  --motion-ease-emphasized: var(--ease-soft);
+  --motion-stagger-step: 60ms;
+  --motion-stagger-cap: 6;
+  --motion-distance-small: 6px;
+  --motion-distance-medium: 16px;
+  --motion-distance-large: 48px;
+
+  /* ── LAYOUT (r130 — tokens.css §5): content vs marketing columns. The
+     public-route chrome (Header/Footer/SectionContainer) rides the
+     marketing column; the landing keeps its own 1280px ln stage. ── */
+  --content-max-w: 1280px;
+  --marketing-max-w: 1200px;
+
+  /* ── STATE (r130 — tokens.css §5.4): the single sanctioned input-focus
+     halo — 3px @ 22% of the SOLID accent (SmartBot's --accent is the
+     product wash, so the halo mixes --accent-solid: gold dark / copper
+     light, exactly the canonical composite). */
+  --state-input-focus-halo: 0 0 0 3px color-mix(in srgb, var(--accent-solid) 22%, transparent);
+
+  /* ── TOPBAR (r130 — tokens.css dark block): 86% surface glass, the
+     canonical translucency (was an off-ladder 95%). */
+  --topbar-bg: rgba(7, 11, 22, 0.86);
+
   /* ── NEUTRAL SURFACES — Madarek night-indigo ramp (tokens.css §1.3):
      ground #070B16 (neutral-50), surface #0D1428 (neutral-0),
      surface-2 #121A36 (neutral-100), ink #F2EFE6 (neutral-900 sand). ── */
@@ -276,11 +372,16 @@
   --accent-fg: #05070F;        /* text ON an accent fill */
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
-  /* r129 (fleet reconciliation, SL/SM parity): dark --ring = the STRONG
-     gold #C9962F (was raw #E9B44C — Tailwind ring utilities painted a
-     different gold than the rest of the fleet; SL styles.css:243 already
-     documented this as the converged value). */
-  --ring: var(--accent-strong);
+  /* r130 (W1-H FLEET-1 decision — true-parity option): dark --ring = the
+     CANONICAL cascade #E9B44C. Madarek's dark focus contract resolves
+     --state-focus-ring-color through var(--accent) — the SOLID gold —
+     (tokens.css:543, unified-smart-parity.css:226); only the LIGHT ring
+     is accent-strong #5C3416. The r129 "strong gold #C9962F" fleet fork
+     rendered every night-mode focus outline one shade darker than
+     madarek's own UI. #E9B44C measures 10.39:1 on the night ground —
+     the AA contract holds with margin. SmartBot spells the solid as
+     --accent-solid (product-semantics bridge). */
+  --ring: var(--accent-solid);
 
   /* ── ACCENT — faint 15% gold hint for soft hovers/tints (oklch of
        #E9B44C so the measured-contrast gate can parse/composite it). ── */
@@ -422,8 +523,11 @@
 
   /* Focus ring — Madarek v22 focus system: --state-focus-ring-color =
      --accent-strong (7.87:1 dark / 10.29:1 light) — r129: points at the
-     named family member (ONE accent vocabulary). */
-  --state-focus-ring-color: var(--accent-strong);
+     named family member (ONE accent vocabulary). r130 (FLEET-1): the
+     DARK contract flips to the canonical cascade — var(--accent-solid)
+     #E9B44C, exactly what madarek's dark --state-focus-ring-color
+     resolves to (tokens.css:543). Light keeps accent-strong #5C3416. */
+  --state-focus-ring-color: var(--accent-solid);
 
   /* Sidebar active state (Madarek §5.5): gold wash 10% + breathing halo
      (dark only — .light swaps to flat neutral-150). */
@@ -470,11 +574,9 @@
   --accent-fg: #1A0F06;
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
-  /* r127-F5b (A6 P1): light --ring = copper-deep #5C3416 (10.29:1 — the
-     canonical ≥4.5:1 focus-ring contract). Raw copper #B57438 measured
-     3.65:1 on cream and FAILED the contract; every `ring`/`outline`
-     utility painted it. Mirrors --state-focus-ring-color below (r129:
-     both now point at --accent-strong). */
+  /* Madarek light focus ring: accent-strong #5C3416 (10.29:1) — r129:
+     points at the named family member. (r130 FLEET-1: only the DARK ring
+     moved to the solid accent; the light cascade was already canonical.) */
   --ring: var(--accent-strong);
 
   /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
@@ -613,6 +715,9 @@
      points at the named family member. */
   --state-focus-ring-color: var(--accent-strong);
 
+  /* ── TOPBAR (r130 — tokens.css light block): 86% cream glass. */
+  --topbar-bg: rgba(251, 250, 249, 0.86);
+
   /* Sidebar active (light) — flat neutral-150 wash, no halo (§5.5). */
   --nav-active-bg: #F1EFEC;
   --nav-active-halo: none;
@@ -625,6 +730,11 @@
     color: var(--foreground);
     overflow-x: hidden; max-width: 100vw;
     transition: background-color var(--t-base) var(--ease), color var(--t-base) var(--ease);
+    /* r130 (W1-E D-2): body base = the canonical 15px / 1.65 rung. MASTER
+       §3 always claimed 15px but no rule ever set it — the app rendered the
+       UA 16px default. Explicit now, tokenized. */
+    font-size: var(--fs-body);
+    line-height: var(--lh-base);
     font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "tnum" 1;
     font-variant-numeric: lining-nums tabular-nums;
     scrollbar-gutter: stable;
@@ -639,17 +749,19 @@
   html[dir="rtl"] { letter-spacing: 0; }
   /* Madarek typography (§2.4/§2.5): display weight is the TRUE 700 cut
      (Plex Sans Arabic ships no 800 — --fw-black resolves 700), heading
-     line-heights hug the Arabic diacritic floors (h1/h2 1.2, h3+ 1.3),
-     tracking stays Latin-only. */
-  h1, h2 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
-  h3, h4, h5 { font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+     line-heights hug the Arabic diacritic floors (h1/h2 1.2, h3+ 1.3).
+     r130 (W1-E D-8 / 21-c ruling): heading tracking is ZERO in BOTH
+     directions — the old −0.02/−0.01/−0.026em Latin-only values are
+     retired; letter-spacing 0 is the law for headline/display roles. */
+  h1, h2 { font-family: var(--font-heading); font-weight: 700; letter-spacing: var(--ls-normal); line-height: 1.2; }
+  h3, h4, h5 { font-family: var(--font-heading); font-weight: 700; letter-spacing: var(--ls-normal); line-height: 1.3; }
   [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5 { font-family: var(--font-heading); letter-spacing: 0; }
-  /* Display tracking only for Latin-safe contexts — never Arabic
-     (guard vs broken letter joins; Madarek ls-display ≈ -0.026em). */
-  @supports (font-family: "IBM Plex Sans Arabic") {
-    [dir="ltr"] h1, [dir="ltr"] h2, [dir="ltr"] h3 { letter-spacing: -0.026em; }
-  }
-  p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: 1.75; }
+  /* r130: the @supports Latin-display tracking override (-0.026em) is
+     deleted — tracking 0 applies to LTR headings too (21-c law). */
+  /* r130 (W1-E D-2 / W1-H SB-1): body leading 1.75 → the canonical 1.65
+     (--lh-base) — Madarek's body rung, the bottom of MASTER's 1.65-1.75
+     range instead of its top. */
+  p, li, .body-text { font-family: var(--font-sans); font-weight: 400; line-height: var(--lh-base); }
   [dir="rtl"] p, [dir="rtl"] li, [dir="rtl"] .body-text { font-family: var(--font-arabic); }
   a { color: var(--foreground); text-decoration: none; transition: color var(--t-fast) var(--ease); }
   a:hover { color: var(--accent-foreground); }
@@ -760,13 +872,17 @@ html.light::-webkit-scrollbar-thumb:hover,
 .delay-300 { animation-delay: 300ms; }
 
 /* ── framer-free reveal system (public pages critical path) ── */
-.reveal { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0); transition: opacity var(--rv-dur, 520ms) var(--ease-out-quart), transform var(--rv-dur, 520ms) var(--ease-out-quart); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
+/* r130 (W1-G SB-P2-3): default duration/easing = the canonical scroll-reveal
+   profile — 360ms (--motion-duration-reveal) on the DECELERATE settle
+   (0.16,1,0.3,1). Was 520ms ease-out-quart (the polish-rise profile at
+   best, an off-ladder curve at worst). */
+.reveal { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0); transition: opacity var(--rv-dur, var(--motion-duration-reveal)) var(--motion-ease-decelerate), transform var(--rv-dur, var(--motion-duration-reveal)) var(--motion-ease-decelerate); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
 .reveal-shown { opacity: 1; transform: none; }
 /* parent-driven variant: mark the container .reveal-shown and every .reveal
  * child (each with its own delay var) animates in with its stagger */
 .reveal-shown .reveal { opacity: 1; transform: none; }
 .reveal-shown .reveal-scale, .reveal-scale.reveal-shown { opacity: 1; transform: none; }
-.reveal-scale { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0) scale(0.95); transition: opacity var(--rv-dur, 520ms) var(--ease-out-quart), transform var(--rv-dur, 520ms) var(--ease-out-quart); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
+.reveal-scale { opacity: 0; transform: translate3d(var(--rv-x, 0px), var(--rv-y, 24px), 0) scale(0.95); transition: opacity var(--rv-dur, var(--motion-duration-reveal)) var(--motion-ease-decelerate), transform var(--rv-dur, var(--motion-duration-reveal)) var(--motion-ease-decelerate); transition-delay: var(--rv-delay, 0ms); will-change: opacity, transform; }
 .reveal-scale.reveal-shown { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-scale { opacity: 1; transform: none; transition: none; }
@@ -857,7 +973,19 @@ html.light::-webkit-scrollbar-thumb:hover,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    /* r130 (W1-G SB-P1-1 / F-5): the canonical belt ALSO resets delays —
+       without these, `both`-filled staggers (.animate-fade-in-150/250/400)
+       keep content at opacity:0 until each raw delay elapses even though
+       the duration itself is 0.01ms (content invisible up to 400ms under
+       reduced motion). Madarek base.css:317-320 resets both. */
+    animation-delay: 0s !important;
+    transition-delay: 0s !important;
+  }
 }
 
 .text-balance { text-wrap: balance; }
@@ -877,10 +1005,24 @@ html.light::-webkit-scrollbar-thumb:hover,
    (IBM Plex Sans Arabic, Madarek --font-display == --font-sans) is the
    single source; display weight (700) comes from the h1-h5 rules above. */
 
-/* .font-naskh — editorial eyebrow voice, Madarek style: the mixed-script
-   mono stack («// eyebrow» labels) — Latin/digits in IBM Plex Mono, Arabic
-   runs continue in IBM Plex Sans Arabic. */
-[dir="rtl"] .font-naskh { font-family: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, monospace; }
+/* .font-eyebrow-mono — editorial eyebrow voice, Madarek style: the
+   mixed-script mono stack («// eyebrow» labels) — Latin/digits in IBM
+   Plex Mono, Arabic runs continue in IBM Plex Sans Arabic.
+   r130 (W1-H SB-2): renamed from the dishonest .font-naskh — the repo
+   ships NO Naskh woff2 (12-file Plex set only) and the class always
+   rendered the mono eyebrow voice; the name now says what renders. */
+[dir="rtl"] .font-eyebrow-mono { font-family: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, monospace; }
+
+/* r130 — in-card section heading rung (the dashboard h2/h3 grammar):
+   17px / 600 / lh 1.35 from --type-section-title-*, tracking 0 (Arabic
+   law). Replaces the ad-hoc `font-bold text-sm` (14/700) headings. */
+.sb-section-title {
+  font-size: var(--type-section-title-size);
+  font-weight: var(--type-section-title-weight);
+  line-height: var(--type-section-title-line-height);
+  letter-spacing: var(--ls-normal);
+  color: var(--foreground);
+}
 
 /* RTL utilities */
 [dir="rtl"] { --font-sans: var(--font-arabic); font-family: var(--font-arabic); }
@@ -924,7 +1066,10 @@ html.light::-webkit-scrollbar-thumb:hover,
 .sb-nav-item:hover .sb-nav-icon { color: var(--foreground); }
 .sb-nav-item[data-active="true"] {
   background: var(--nav-active-bg);
-  color: var(--accent-foreground);
+  /* r130 (W1-E D-4): the active LABEL is ink (neutral-900), not gold —
+     Madarek .nav-item.active = --sidebar-item-active-text = ink
+     (layout.css:145-148); only the rail/icon/halo carry the accent. */
+  color: var(--neutral-900);
   font-weight: 600;
   box-shadow: var(--nav-active-halo);
 }
@@ -947,8 +1092,9 @@ html.light::-webkit-scrollbar-thumb:hover,
   to   { transform: translateY(-50%) scaleY(1);    opacity: 1; }
 }
 /* press register (Madarek §4.5): buttons/pills press at 0.97 with the
-   80ms micro snap-back */
-.sb-nav-item:active { transform: scale(0.985); transition-duration: var(--t-micro); }
+   80ms micro snap-back — r130 (W1-G SB-P2-5): the drifted 0.985 is now
+   the token the comment always claimed. */
+.sb-nav-item:active { transform: scale(var(--press-scale)); transition-duration: var(--t-micro); }
 @media (prefers-reduced-motion: reduce) {
   .sb-nav-item[data-active="true"]::before { animation: none; }
 }

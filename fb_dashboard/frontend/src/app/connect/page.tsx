@@ -280,12 +280,10 @@ export default function ConnectPage() {
       {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
           this page; same sr-only anchor pattern as the landing). */}
       <span id="page-content" className="sr-only" tabIndex={-1} />
-      {/* Floating shapes */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -right-48 -top-48 h-72 w-72 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-accent-foreground/5 blur-3xl" />
-        <div className="absolute -bottom-48 -left-48 h-96 w-96 animate-float-delayed rounded-full bg-gradient-to-br from-accent-foreground/10 to-accent-foreground/5 blur-3xl" style={{ animationDelay: "-2s" }} />
-        <div className="absolute left-1/3 top-1/2 h-48 w-48 animate-float rounded-full bg-gradient-to-br from-accent-foreground/15 to-transparent blur-2xl" style={{ animationDelay: "-4s" }} />
-      </div>
+      {/* Floating shapes — r130 (W1-E D-6, de-glow): the three blurred
+          floating accent circles are REMOVED — Madarek ground is flat; no
+          colored outer glows anywhere. The gradient page wash below stays
+          (a surface tint, not a glow). */}
 
       {/* Top gradient bar */}
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-accent-foreground via-accent-foreground/80 to-accent-foreground/60" />

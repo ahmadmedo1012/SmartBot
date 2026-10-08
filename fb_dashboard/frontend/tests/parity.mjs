@@ -47,7 +47,7 @@
  *   normalization-tolerant (whitespace, `a,b` vs `a, b`, hex case) so the
  *   pins are about VALUES, not formatting.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const css = readFileSync(new URL('../src/app/globals.css', import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, ' ');
@@ -274,14 +274,15 @@ pin(light, 'glass-light', '--glass-bg', 'rgba(251, 250, 249, 0.78)');
 // ── r127-F5b (c): focus contract, both themes ───────────────────────────────
 // The light --ring was raw copper #B57438 = 3.65:1 on cream (FAIL vs the
 // ≥4.5:1 canonical ring contract); canonical = copper-deep #5C3416 (10.29:1)
-// in light and --accent-strong #C9962F (7.87:1) for the dark focus state.
+// in light.
 const FOCUS_DARK = {
-  // r129 (fleet reconciliation, SL/SM parity): dark --ring = the STRONG
-  // gold #C9962F (was raw #E9B44C — Tailwind ring utilities painted a
-  // different gold than the rest of the fleet). Both tokens now chain to
-  // --accent-strong.
-  '--ring': '#C9962F',
-  '--state-focus-ring-color': '#C9962F',
+  // r130 (W1-H FLEET-1, true-parity option): dark --ring = the canonical
+  // cascade #E9B44C — madarek's dark --state-focus-ring-color resolves
+  // through var(--accent) = the SOLID gold (tokens.css:543). The r129
+  // "#C9962F strong gold" fork painted night focus outlines one shade
+  // darker than madarek's own UI; both tokens now chain to --accent-solid.
+  '--ring': '#E9B44C',
+  '--state-focus-ring-color': '#E9B44C',
 };
 const FOCUS_LIGHT = {
   '--ring': '#5C3416',
@@ -752,20 +753,33 @@ const rawFeatures = readFileSync(new URL('../src/components/landing/FeaturesSect
   if (pageClean && layoutCount === 1) pass += 1;
   else fails.push(`main-landmark: page.tsx must not re-render id="main-content" (layout renders it exactly once; layout occurrences = ${layoutCount})`);
 }
-// P2-10: the dead landing classes are deleted (zero consumers — the r128
-// port shipped .ln-btn-text/.ln-btn-text-badge/.ln-stat-unit with no user).
+// P2-10: the dead .ln-btn-text classes stay deleted (zero consumers).
+// r130 (W1-E L-6): .ln-stat-unit is BACK and CONSUMED — the ProgressSection
+// uptime cell renders a dimmed unit span; the pin asserts both the rule and
+// the consumer now (was a dead-class delete in r129).
 {
-  const deadGone = !/\.ln-btn-text\b/.test(landingCss) && !/\.ln-stat-unit\b/.test(landingCss);
+  const deadGone = !/\.ln-btn-text\b/.test(landingCss);
   if (deadGone) pass += 1;
-  else fails.push('dead classes: .ln-btn-text / .ln-stat-unit still present in landing.css with zero consumers');
+  else fails.push('dead classes: .ln-btn-text still present in landing.css with zero consumers');
+  const rawProgress = readFileSync(new URL('../src/components/landing/ProgressSection.tsx', import.meta.url), 'utf8');
+  const unitBack = /\.landing \.ln-stat-unit\s*\{[^}]*color:\s*var\(--ln-cream-dim\)[^}]*font-size:\s*24px/.test(landingCss)
+    && rawProgress.includes('ln-stat-unit');
+  if (unitBack) pass += 1;
+  else fails.push('stat-unit: the canonical .ln-stat-unit rule + its ProgressSection consumer not found (dimmed 24px unit span)');
 }
 // P2-5 mitigation: the constellation chips strip is derived from the SAME
-// registry that feeds the aria-hidden sky pins (all 8 names accessibly).
+// registry that feeds the sky pins (all 8 names accessibly) — r130 (L-7):
+// the pins are now FOCUSABLE <button aria-label> elements (canonical
+// CollegeConstellation grammar), not aria-hidden spans.
 {
   const chipsFromRegistry = rawFeatures.includes('const CHIPS = FEATURES.map')
     && rawFeatures.includes('ln-constellation-strip');
   if (chipsFromRegistry) pass += 1;
   else fails.push('constellation a11y: the chips strip must be derived from the FEATURES registry (all 8 names accessible)');
+  const pinsFocusable = rawFeatures.includes('<button') && rawFeatures.includes('ln-constellation-dot')
+    && !/ln-constellation-dot[^>]*aria-hidden/.test(rawFeatures);
+  if (pinsFocusable) pass += 1;
+  else fails.push('constellation a11y: pins must be focusable <button> elements with aria-labels (no aria-hidden)');
 }
 // P2-4 (documented override): the skip target #page-content exists inside
 // the landing (the app-level chip in layout.tsx remains the single skip
@@ -791,6 +805,132 @@ else fails.push("OrbitScene calm: the product-scoped sessionStorage key 'smartbo
 // the DPR hard cap 1.5 (retina paints ≤2.25× CSS pixels, never 4×).
 if (rawOrbitScene.includes('Math.min(window.devicePixelRatio || 1, 1.5)')) pass += 1;
 else fails.push('OrbitScene: the DPR 1.5 hard-cap guard not found');
+
+// ── r130 — W2-5 typography/motion/de-glow pins (the round-130 fix wave) ────
+
+// (a) TYPE SCALE — the canonical --fs-*/--lh-*/--fw-* rungs + roles now live
+// in the product layer (they were landing-scoped only; the dashboard rode
+// raw Tailwind text-* — W1-E D-1/D-2 root cause).
+pinAll(dark, 'type-scale', {
+  '--fs-h1': '30px', '--fs-h2': '22px', '--fs-h3': '18px',
+  '--fs-body-lg': '17px', '--fs-body': '15px', '--fs-sm': '13px',
+  '--fs-xs': '12px', '--fs-xxs': '11px',
+  '--fs-page-title': 'clamp(20px, 3.4vw, 28px)',
+  '--fs-section-title': '17px',
+  '--lh-base': '1.65', '--lh-snug': '1.20',
+  '--fw-bold': '700',
+});
+pinAll(light, 'type-scale', {
+  '--fs-body': '15px', '--fs-page-title': 'clamp(20px, 3.4vw, 28px)',
+});
+// (roles pin their RESOLVED values — pin() resolves var() chains)
+pin(dark, 'type-roles', '--type-page-title-size', 'clamp(20px, 3.4vw, 28px)');
+pin(dark, 'type-roles', '--type-page-title-weight', '700');
+pin(dark, 'type-roles', '--type-section-title-weight', '600');
+pin(dark, 'type-roles', '--type-body-line-height', '1.65');
+pin(dark, 'type-roles', '--type-table-size', '13px');
+
+// (b) BODY 15/1.65 — the actual body rule (was: no font-size at all, the UA
+// 16px default — MASTER §3 claimed 15). Checked on the raw sheet (the rule
+// lives inside @layer base).
+{
+  const rawSheet = readFileSync(new URL('../src/app/globals.css', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+  const body15 = /body\s*\{[^}]*font-size:\s*var\(--fs-body\)[^}]*line-height:\s*var\(--lh-base\)/.test(rawSheet);
+  if (body15) pass += 1;
+  else fails.push('body-15: the body rule must set font-size: var(--fs-body) + line-height: var(--lh-base) (15px/1.65)');
+  const pLh = /p, li, \.body-text\s*\{[^}]*line-height:\s*var\(--lh-base\)/.test(rawSheet);
+  if (pLh) pass += 1;
+  else fails.push('body-15: p/li/.body-text line-height must be var(--lh-base) (1.65, was 1.75)');
+  const headingsZero = !/h1, h2\s*\{[^}]*letter-spacing:\s*-(?:0\.0\d)em/.test(rawSheet)
+    && !/\[dir="ltr"\] h1[^}]*letter-spacing:\s*-0\.026em/.test(rawSheet);
+  if (headingsZero) pass += 1;
+  else fails.push('tracking-law: heading letter-spacing must be 0 in both directions (21-c law; the -0.02/-0.01/-0.026em LTR values are retired)');
+  const beltDelays = /animation-delay:\s*0s !important/.test(rawSheet) && /transition-delay:\s*0s !important/.test(rawSheet);
+  if (beltDelays) pass += 1;
+  else fails.push('rm-belt: the reduced-motion belt must reset animation-delay + transition-delay to 0s (SB-P1-1: content invisible up to 400ms otherwise)');
+  const reveal360 = /\.reveal\s*\{[^}]*var\(--rv-dur, var\(--motion-duration-reveal\)\)\s*var\(--motion-ease-decelerate\)/.test(rawSheet);
+  if (reveal360) pass += 1;
+  else fails.push('reveal-360: .reveal default must be var(--motion-duration-reveal) (360ms) on the decelerate curve (was 520ms ease-out-quart)');
+}
+
+// (c) SEMANTIC MOTION LAYER + layout/state/topbar tokens (W1-G F-2 gap).
+pinAll(dark, 'motion-semantic', {
+  '--motion-duration-page': '320ms',
+  '--motion-duration-reveal': '360ms',
+  '--motion-duration-stat': '700ms',
+  '--motion-duration-skeleton': '1200ms',
+  '--motion-stagger-step': '60ms',
+  '--motion-stagger-cap': '6',
+});
+pinAll(light, 'motion-semantic', {
+  '--motion-duration-stat': '700ms',
+  '--motion-duration-reveal': '360ms',
+});
+pin(dark, 'layout-tokens', '--content-max-w', '1280px');
+pin(dark, 'layout-tokens', '--marketing-max-w', '1200px');
+pin(dark, 'state-tokens', '--state-input-focus-halo', '0 0 0 3px color-mix(in srgb, #E9B44C 22%, transparent)');
+pin(dark, 'topbar', '--topbar-bg', 'rgba(7, 11, 22, 0.86)');
+pin(light, 'topbar', '--topbar-bg', 'rgba(251, 250, 249, 0.86)');
+
+// (d) COMPONENT SOURCE PINS — the recipe fixes of the wave (grep-level).
+{
+  const rawCard = readFileSync(new URL('../src/components/ui/card.tsx', import.meta.url), 'utf8');
+  const rawDialog = readFileSync(new URL('../src/components/ui/dialog.tsx', import.meta.url), 'utf8');
+  const rawPageHeader = readFileSync(new URL('../src/components/ui/PageHeader.tsx', import.meta.url), 'utf8');
+  const rawSectionHeader = readFileSync(new URL('../src/components/ui/SectionHeader.tsx', import.meta.url), 'utf8');
+  const rawEnterMotion = readFileSync(new URL('../src/components/shared/enter-motion.css', import.meta.url), 'utf8');
+
+  // inner cards + dialogs: 16px (rounded-xl), NOT 20px — landing keeps 20.
+  const card16 = rawCard.includes('overflow-hidden rounded-xl bg-card') && !rawCard.includes('rounded-2xl');
+  if (card16) pass += 1;
+  else fails.push('radius-16: card.tsx must ride rounded-xl (16px) with zero rounded-2xl (inner-page card grammar)');
+  const dialog16 = rawDialog.includes('gap-4 rounded-xl bg-popover') && !rawDialog.includes('rounded-2xl');
+  if (dialog16) pass += 1;
+  else fails.push('radius-16: dialog.tsx must ride rounded-xl (16px) with zero rounded-2xl');
+
+  // page-title resize: both heads consume the clamp token at weight 700.
+  const phTitle = rawPageHeader.includes('text-(length:--fs-page-title)') && !rawPageHeader.includes('tracking-tight');
+  if (phTitle) pass += 1;
+  else fails.push('page-title: PageHeader h1 must be text-(length:--fs-page-title) @ font-bold, tracking 0 (was text-sm/base + tracking-tight)');
+  const shTitle = rawSectionHeader.includes('text-(length:--fs-page-title)') && !rawSectionHeader.includes('font-semibold') && !rawSectionHeader.includes('tracking-tight');
+  if (shTitle) pass += 1;
+  else fails.push('page-title: SectionHeader h2 must be text-(length:--fs-page-title) @ font-bold (canonical page-head rung)');
+
+  // enter-motion distances: 4px page/KPI + 6px rise; sparkline on the stat
+  // duration (700ms) + ladder fade (520ms).
+  const dist4 = /sb-page-enter\s*\{[^}]*\}/.test(rawEnterMotion) && rawEnterMotion.includes('translateY(4px)') && !rawEnterMotion.includes('translateY(12px)');
+  if (dist4) pass += 1;
+  else fails.push('enter-distances: page/KPI enter lift must be 4px (was 12px)');
+  const dist6 = rawEnterMotion.includes('translateY(6px)') && !rawEnterMotion.includes('translateY(24px)');
+  if (dist6) pass += 1;
+  else fails.push('enter-distances: fade-up lift must be 6px (was 24px)');
+  const spark = rawEnterMotion.includes('sb-spark-draw var(--motion-duration-stat)') && rawEnterMotion.includes('sb-spark-fade var(--t-slower)');
+  if (spark) pass += 1;
+  else fails.push('sparkline: draw must ride var(--motion-duration-stat) (700ms) + fade var(--t-slower) (520ms) — was raw 0.8s/0.5s');
+
+  // de-glow: zero font-extrabold and zero blur-3xl in the product source.
+  const walk = (dir) => {
+    let out = [];
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = `${dir}/${e.name}`;
+      // src/test is skipped: the pin suites legitimately SPELL the banned
+      // tokens inside their own assertions.
+      if (e.isDirectory()) { if (!/\/test$|\/__test__$/.test(p)) out = out.concat(walk(p)); }
+      else if (/\.(tsx|ts|css)$/.test(e.name)) out.push(p);
+    }
+    return out;
+  };
+  const srcFiles = walk(new URL('../src', import.meta.url).pathname);
+  const offenders = [];
+  for (const f of srcFiles) {
+    const s = readFileSync(f, 'utf8');
+    if (/font-extrabold/.test(s)) offenders.push(`font-extrabold: ${f}`);
+    if (/blur-3xl/.test(s)) offenders.push(`blur-3xl: ${f}`);
+    if (/GlowPool/.test(s)) offenders.push(`GlowPool: ${f}`);
+  }
+  if (offenders.length === 0) pass += 3;
+  else fails.push(...offenders.map((o) => `de-glow: ${o} (font-extrabold/blur-3xl/GlowPool must be zero-occurrence)`));
+}
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0

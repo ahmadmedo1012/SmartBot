@@ -47,14 +47,19 @@ export function stylesFor() {
 }
 
 const styles = StyleSheet.create({
-  display: { fontSize: 30, lineHeight: 42, fontWeight: '700', letterSpacing: 0 },
-  title: { fontSize: 24, lineHeight: 34, fontWeight: '700', letterSpacing: 0 },
-  heading: { fontSize: 19, lineHeight: 27, fontWeight: '600' },
-  subtitle: { fontSize: 17, lineHeight: 25, fontWeight: '600' },
-  body: { fontSize: 15, lineHeight: 24 },
-  bodyBold: { fontSize: 15, lineHeight: 24, fontWeight: '700' },
-  small: { fontSize: 13.5, lineHeight: 20 },
-  smallBold: { fontSize: 13.5, lineHeight: 20, fontWeight: '700' },
+  /* r130 (W1-H MB-2): on-rung scale — نفس درجات الويب/Madarek حرفيًا:
+   * display = h1 30/lh1.12 · title = h2 22/lh1.2 · heading = h3 18/lh1.3
+   * (ووزن العناوين 700 — كان 600) · subtitle = body-lg 17 · body = 15/1.65
+   * · small = 13 (كان 13.5) · caption = 12. كان display 30/42 (lh1.4)
+   * وtitle 24/34 وheading 19/27 — درجات خارج السلم. */
+  display: { fontSize: 30, lineHeight: 34, fontWeight: '700', letterSpacing: 0 },
+  title: { fontSize: 22, lineHeight: 26, fontWeight: '700', letterSpacing: 0 },
+  heading: { fontSize: 18, lineHeight: 23, fontWeight: '700' },
+  subtitle: { fontSize: 17, lineHeight: 26, fontWeight: '700' },
+  body: { fontSize: 15, lineHeight: 25 },
+  bodyBold: { fontSize: 15, lineHeight: 25, fontWeight: '700' },
+  small: { fontSize: 13, lineHeight: 20 },
+  smallBold: { fontSize: 13, lineHeight: 20, fontWeight: '700' },
   caption: { fontSize: 12, lineHeight: 17 },
   mono: { fontSize: 13, lineHeight: 19, fontFamily: 'monospace' },
 })

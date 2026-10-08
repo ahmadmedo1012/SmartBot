@@ -60,7 +60,7 @@ export default function CalendarPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               {month ? (
-                <h2 className="font-bold text-sm">{formatMonth(month)}</h2>
+                <h2 className="sb-section-title">{formatMonth(month)}</h2>
               ) : (
                 <div className="h-5 w-28 bg-muted rounded animate-pulse" aria-hidden="true" />
               )}

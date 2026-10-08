@@ -109,7 +109,7 @@ export default function LeadsPage() {
         ) : isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل العملاء</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل العملاء</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>

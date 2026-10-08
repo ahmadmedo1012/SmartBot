@@ -210,7 +210,7 @@ export default function NotificationsPage() {
           {/* Feed */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-sm flex items-center gap-2">
+              <h2 className="sb-section-title flex items-center gap-2">
                 <BellRing className="size-4 text-accent-foreground" />
                 الإشعارات الأخيرة
                 {unread > 0 && (
@@ -348,7 +348,7 @@ export default function NotificationsPage() {
 
           {/* Settings */}
           <section>
-            <h2 className="font-bold text-sm mb-3">إعدادات الإشعارات</h2>
+            <h2 className="sb-section-title mb-3">إعدادات الإشعارات</h2>
             <div className="space-y-3">
               {isLoading ? (
                 <div className="space-y-2">

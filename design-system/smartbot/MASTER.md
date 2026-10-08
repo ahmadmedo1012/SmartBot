@@ -52,7 +52,8 @@ bug.
 | Muted text / placeholder | `--placeholder-text` | `#8E97B8` |
 | **Brand solid — gold** | `--primary` | `#E9B44C` |
 | Text on gold | `--primary-foreground` | `#05070F` |
-| Strong gold (gradient partner, focus ring) | `--state-focus-ring-color`, `--c-ember` | `#C9962F` |
+| Focus ring (r130: canonical cascade — solid gold, 10.39:1) | `--ring`, `--state-focus-ring-color` | `#E9B44C` |
+| Strong gold (gradient partner only) | `--accent-strong`, `--c-ember` | `#C9962F` |
 | Accent hint (soft hover tint only) | `--accent` | gold @ 15% (oklch) |
 | Accent-as-text (AA) | `--accent-foreground` | gold `#E9B44C` (oklch form) |
 | Hairline border | `--border` | `#1B2444` |
@@ -128,14 +129,20 @@ defaults must come from a family triad (tag default = lavender-ink
   Arabic text; the global guard
   `html[dir="rtl"] [class*="tracking-"]:not([class*="font-mono"])` zeroes
   every tracking utility. Mono + LTR is the only sanctioned tracking pair.
-- Body 15px / lh 1.65-1.75; h1 30px, h2 22px, h3 18px at lh 1.2-1.3;
-  headings weight 700.
+- Body 15px / lh 1.65 (`--fs-body` / `--lh-base` — set on `body`, p/li ride
+  the same leading); h1 30px, h2 22px, h3 18px at lh 1.2-1.3; headings
+  weight 700; the full `--fs-*` / `--lh-*` / `--ls-*` / `--fw-*` scale +
+  `--type-*` roles (page-title `clamp(20px, 3.4vw, 28px)` @ 700,
+  section-title 17px/600, label 13px/500, table 13px) live in
+  `globals.css` since r130; heading tracking is 0 in BOTH directions.
 
 ## 4. Shape & Elevation
 
 - **Radius ladder (§3):** 6 / 8 / 10 / 12 / 16 / 20 / 28 / 9999 px
   (`--radius-xs…3xl`, `rounded-full`). Buttons/inputs on `rounded-md` (10);
-  cards/dialogs/sheets on `rounded-2xl` (20). No other radii.
+  **inner cards/dialogs on `rounded-xl` (16 — Madarek `--r-xl` inner-page
+  grammar, r130)**; 20 (`r-2xl`) is the landing-only (Orbit Ink) rung —
+  landing cards + mobile bottom-sheet panels. No other radii.
 - **Elevation `--elev-1..5` (§5):** dark = fill-led
   `0 Npx… rgba(0,0,0,.30→.50), inset 0 1px 0 rgba(255,255,255,.04→.08)`;
   light = soft two-layer `rgba(0,0,0,.04→.12)`. Shadows are token recipes
@@ -171,8 +178,9 @@ flame pixels** (the pre-Madarek orange palette) in every output. Manifest:
 
 - Text contrast ≥ 4.5:1; non-text (borders/fields) ≥ 3:1 (WCAG 1.4.11) —
   the token values above are pre-measured; do not "fix" them by eye.
-- Focus: 2px `--state-focus-ring-color` (strong gold dark / copper-deep
-  light) + 2px offset, visible on every interactive element.
+- Focus: 2px `--state-focus-ring-color` (solid gold `#E9B44C` dark — the
+  canonical cascade, r130; copper-deep `#5C3416` light) + 2px offset,
+  visible on every interactive element.
 - Touch targets ≥ 44px (`min-h-11 min-w-11`).
 - Full RTL: `dir="rtl"` root, logical properties everywhere.
 

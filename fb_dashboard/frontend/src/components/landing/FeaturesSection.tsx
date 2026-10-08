@@ -57,20 +57,25 @@ export function FeaturesSection() {
               <circle className="ln-constellation-ring" style={{ ["--ln-ri" as string]: 2 }} cx={500} cy={320} r={270} />
             </svg>
 
-            {/* the capabilities — decorative pins; the accessible copy
-                lives in the chips strip below (span = not focusable) */}
+            {/* the capabilities — r130 (W1-E L-7): FOCUSABLE pins (canonical
+                CollegeConstellation.tsx:270-291 grammar): real buttons with
+                aria-labels; the 45px hit target + focus-visible tooltip live
+                in landing.css (.ln-constellation-dot::before inset -16px,
+                :focus-visible tip). The chips strip below stays the mobile
+                fallback (mobile blocks hide the stage). */}
             {FEATURES.map((f, i) => (
-              <span
+              <button
                 key={f.name}
+                type="button"
                 className="ln-constellation-dot"
-                aria-hidden="true"
+                aria-label={`${f.name} — ${f.sub}`}
                 style={{ left: f.left, top: f.top, ["--dot" as string]: LIME_DOT, ["--ln-ci" as string]: i }}
               >
                 <span className="ln-constellation-tip">
                   <b>{f.name}</b>
                   <i>{f.sub} — متاح الآن</i>
                 </span>
-              </span>
+              </button>
             ))}
           </div>
 

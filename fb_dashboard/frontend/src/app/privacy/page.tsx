@@ -49,7 +49,7 @@ export default function PrivacyPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={80}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">المعلومات التي نجمعها</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">المعلومات التي نجمعها</h2>
           <ul className="list-disc ps-5 space-y-2">
             <li>بيانات الحساب: الاسم، البريد الإلكتروني، رقم الهاتف</li>
             <li>بيانات صفحة فيسبوك: الصفحات المرتبطة، ومؤشرات التفاعل الخاصة بها</li>
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={160}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">كيف نستخدم معلوماتك</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">كيف نستخدم معلوماتك</h2>
           <ul className="list-disc ps-5 space-y-2">
             <li>تقديم خدمات أتمتة التفاعل مع فيسبوك وتحسينها باستمرار</li>
             <li>تنفيذ قواعد الأتمتة وتوصيل المحتوى المجدول في مواعيده</li>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={240}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">حماية البيانات</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">حماية البيانات</h2>
           <p>
             نطبق إجراءات أمنية متقدمة لحماية بياناتك من الوصول غير المصرح به أو التعديل أو
             الإفصاح، تشمل تشفير رموز الوصول لصفحاتك عند تخزينها، وتشفير الاتصالات بين متصفحك
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={320}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">الأطراف الثالثة</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">الأطراف الثالثة</h2>
           <p>
             لا نشارك معلوماتك مع أي طرف ثالث إلا بالقدر اللازم لتقديم الخدمة نفسها (مثل واجهة
             فيسبوك البرمجية الضرورية لتشغيل البوت)، وتحت معايير أمنية صارمة، أو عندما يفرض
@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={400}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">تواصل معنا</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">تواصل معنا</h2>
           <p>
             لأي استفسارات متعلقة بالخصوصية أو لطلب نسخة من بياناتك أو حذفها، تواصل معنا عبر
             قنوات الدعم المتاحة في لوحة التحكم أو صفحة الدعم داخل حسابك، وسنستجيب في أقرب وقت

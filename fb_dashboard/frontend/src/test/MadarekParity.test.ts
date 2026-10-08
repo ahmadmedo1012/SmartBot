@@ -46,7 +46,7 @@
  * --ease-smooth at both definition sites, prefers-contrast port, and the
  * reduced-motion token zeroing are pinned here too.
  */
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 
 // ── token file → theme scopes ────────────────────────────────────────────────
@@ -352,9 +352,9 @@ describe("r125 Madarek parity — glass ground (§1.8)", () => {
 // ── r127-F5b pin groups (mirrors tests/parity.mjs 82 → 185) ─────────────────
 
 describe("r127-F5b Madarek parity — focus contract (A6 P1)", () => {
-  it("dark: --ring #C9962F + --state-focus-ring-color #C9962F (accent-strong, 7.87:1 — r129 fleet reconciliation: was raw #E9B44C)", () => {
-    pin(dark, "focus-dark", "--ring", "#C9962F")
-    pin(dark, "focus-dark", "--state-focus-ring-color", "#C9962F")
+  it("dark: --ring #E9B44C + --state-focus-ring-color #E9B44C (r130 FLEET-1 true parity: the canonical cascade resolves dark ring through the SOLID gold — tokens.css:543; #C9962F painted night focus one shade darker than madarek's own UI)", () => {
+    pin(dark, "focus-dark", "--ring", "#E9B44C")
+    pin(dark, "focus-dark", "--state-focus-ring-color", "#E9B44C")
   })
   it("light: --ring #5C3416 + --state-focus-ring-color #5C3416 (10.29:1 — NOT raw copper 3.65:1)", () => {
     pin(light, "focus-light", "--ring", "#5C3416")
@@ -508,5 +508,128 @@ describe("r129 Madarek parity — token-matrix SB fixes (canonical names)", () =
       "--neutral-400": "#8E8A82", "--neutral-500": "#6F6C66", "--neutral-700": "#4F4D48",
       "--neutral-800": "#322F2A", "--neutral-900": "#191918",
     })
+  })
+})
+
+// ── r130 pin groups (W2-5: type-scale port, semantic motion, de-glow) ───────
+
+describe("r130 Madarek parity — type scale (tokens.css §2.2 + §6a roles)", () => {
+  it("the --fs-* rungs live in the product layer (page-title clamp 20-28 @ 700)", () => {
+    pinAll(dark, "type-scale", {
+      "--fs-h1": "30px", "--fs-h2": "22px", "--fs-h3": "18px",
+      "--fs-body-lg": "17px", "--fs-body": "15px", "--fs-sm": "13px",
+      "--fs-xs": "12px", "--fs-xxs": "11px",
+      "--fs-page-title": "clamp(20px, 3.4vw, 28px)",
+      "--fs-section-title": "17px",
+      "--lh-tight": "1.05", "--lh-snug": "1.20", "--lh-base": "1.65", "--lh-loose": "1.85",
+      "--ls-normal": "0", "--fw-bold": "700",
+    })
+    pinAll(light, "type-scale", {
+      "--fs-body": "15px", "--fs-page-title": "clamp(20px, 3.4vw, 28px)", "--lh-base": "1.65",
+    })
+  })
+  it("the --type-* roles compose the rungs (page-title 700 · section 600 · body 1.65 · table 13 — RESOLVED values)", () => {
+    pinAll(dark, "type-roles", {
+      "--type-page-title-size": "clamp(20px, 3.4vw, 28px)",
+      "--type-page-title-weight": "700",
+      "--type-section-title-size": "17px",
+      "--type-section-title-weight": "600",
+      "--type-body-size": "15px",
+      "--type-body-line-height": "1.65",
+      "--type-table-size": "13px",
+    })
+  })
+  it("--fw-black resolves to 700 (Plex ships no 800 — the wave 2-a honesty fix)", () => {
+    pin(dark, "fw-black", "--fw-black", "700")
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).toMatch(/--fw-black:\s*var\(--fw-bold\)/)
+  })
+  it("body base = 15px / 1.65 and p/li ride the same leading (the MASTER §3 claim is finally real)", () => {
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).toMatch(/body\s*\{[^}]*font-size:\s*var\(--fs-body\)[^}]*line-height:\s*var\(--lh-base\)/)
+    expect(raw).toMatch(/p, li, \.body-text\s*\{[^}]*line-height:\s*var\(--lh-base\)/)
+    expect(raw).not.toMatch(/p, li, \.body-text\s*\{[^}]*line-height:\s*1\.75/)
+  })
+  it("heading tracking is ZERO in both directions (21-c law — the -0.02/-0.01/-0.026em values are gone)", () => {
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).not.toMatch(/h1, h2\s*\{[^}]*letter-spacing:\s*-0\.0/)
+    expect(raw).not.toContain("[dir=\"ltr\"] h1, [dir=\"ltr\"] h2, [dir=\"ltr\"] h3 { letter-spacing: -0.026em; }")
+  })
+})
+
+describe("r130 Madarek parity — semantic motion layer + layout/state/topbar tokens", () => {
+  it("page 320 / reveal 360 / stat 700 / skeleton 1200 + the 60ms stagger grammar", () => {
+    pinAll(dark, "motion-semantic", {
+      "--motion-duration-page": "320ms",
+      "--motion-duration-reveal": "360ms",
+      "--motion-duration-stat": "700ms",
+      "--motion-duration-skeleton": "1200ms",
+      "--motion-stagger-step": "60ms",
+      "--motion-stagger-cap": "6",
+      "--motion-ease-decelerate": "cubic-bezier(0.16, 1, 0.3, 1)",
+    })
+    pinAll(light, "motion-semantic", {
+      "--motion-duration-stat": "700ms",
+      "--motion-duration-reveal": "360ms",
+    })
+  })
+  it("content/marketing columns + the input-focus halo + the 86% topbar", () => {
+    pin(dark, "layout", "--content-max-w", "1280px")
+    pin(dark, "layout", "--marketing-max-w", "1200px")
+    pin(dark, "state", "--state-input-focus-halo", "0 0 0 3px color-mix(in srgb, #E9B44C 22%, transparent)")
+    pin(dark, "topbar", "--topbar-bg", "rgba(7, 11, 22, 0.86)")
+    pin(light, "topbar", "--topbar-bg", "rgba(251, 250, 249, 0.86)")
+  })
+  it("the RM belt resets animation/transition DELAYS (SB-P1-1: `both`-filled staggers stayed invisible up to 400ms)", () => {
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).toContain("animation-delay: 0s !important")
+    expect(raw).toContain("transition-delay: 0s !important")
+  })
+  it(".reveal defaults to the 360ms reveal duration on the decelerate curve (was 520ms ease-out-quart)", () => {
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).toMatch(/\.reveal\s*\{[^}]*var\(--rv-dur, var\(--motion-duration-reveal\)\)\s*var\(--motion-ease-decelerate\)/)
+  })
+})
+
+describe("r130 Madarek parity — recipe pins (inner radius 16 · page-title resize · de-glow)", () => {
+  it("inner cards + dialogs ride rounded-xl (16px = --r-xl); landing cards keep 20", () => {
+    const rawCard = readFileSync("src/components/ui/card.tsx", "utf8")
+    expect(rawCard).toContain("overflow-hidden rounded-xl bg-card")
+    expect(rawCard).not.toContain("rounded-2xl")
+    const rawDialog = readFileSync("src/components/ui/dialog.tsx", "utf8")
+    expect(rawDialog).toContain("gap-4 rounded-xl bg-popover")
+    expect(rawDialog).not.toContain("rounded-2xl")
+  })
+  it("PageHeader h1 + SectionHeader h2 consume the page-title clamp token at 700, tracking 0", () => {
+    const rawPageHeader = readFileSync("src/components/ui/PageHeader.tsx", "utf8")
+    expect(rawPageHeader).toContain("text-(length:--fs-page-title)")
+    expect(rawPageHeader).not.toContain("tracking-tight")
+    const rawSectionHeader = readFileSync("src/components/ui/SectionHeader.tsx", "utf8")
+    expect(rawSectionHeader).toContain("text-(length:--fs-page-title)")
+    expect(rawSectionHeader).not.toContain("font-semibold")
+    expect(rawSectionHeader).not.toContain("tracking-tight")
+  })
+  it("zero font-extrabold / blur-3xl / glow-pool in the product source (Plex has no 800; ground is flat)", () => {
+    const walk = (dir: string): string[] => {
+      const entries = readdirSync(dir, { withFileTypes: true })
+      const out: string[] = []
+      for (const e of entries) {
+        const p = `${dir}/${e.name}`
+        // src/test is skipped: the pin suites legitimately SPELL the banned
+        // tokens inside their own assertions.
+        if (e.isDirectory()) {
+          if (!/\/test$|\/__test__$/.test(p)) out.push(...walk(p))
+        } else if (/\.(tsx|ts|css)$/.test(e.name)) out.push(p)
+      }
+      return out
+    }
+    const offenders: string[] = []
+    for (const f of walk("src")) {
+      const s = readFileSync(f, "utf8")
+      if (/font-extrabold/.test(s)) offenders.push(`font-extrabold → ${f}`)
+      if (/blur-3xl/.test(s)) offenders.push(`blur-3xl → ${f}`)
+      if (/GlowPool/.test(s)) offenders.push(`glow-pool component → ${f}`)
+    }
+    expect(offenders, `de-glow offenders found:\n  ${offenders.join("\n  ")}`).toEqual([])
   })
 })

@@ -7,7 +7,11 @@ import { cn } from "@/lib/utils";
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <span className={cn(
-      "font-naskh inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-5",
+      /* r130 (W1-H SB-2): .font-naskh renamed .font-eyebrow-mono (the class
+         renders the mono eyebrow voice — the repo ships no Naskh face), and
+         tracking-[0.18em] dropped: this eyebrow is Arabic-fed and the RTL
+         guard zeroed it anyway (drift-bait for LTR per the 21-c law). */
+      "font-eyebrow-mono inline-flex items-center gap-2 text-2xs font-medium uppercase text-accent-foreground/90 mb-5",
       className,
     )}>
       {/* Animated pulsing dot — subtle premium indicator */}

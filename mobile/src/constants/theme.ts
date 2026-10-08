@@ -7,7 +7,9 @@
  * ونهاري كريمي #FBFAF9 مع نحاسي #B57438. الخط: IBM Plex Sans Arabic.
  *
  * سلّم الألوان dark (أرض < بطاقة < سطح < تعبئة):
- *   #070B16 < #0D1428 < #121A36 < #182142 — نفس سلم Madarek neutral.
+ *   #070B16 < #0D1428 < #121A36 — نفس سلم Madarek neutral.
+ *   (r130/W1-E M-1: التعديل muted كان #182142 — سطح-3 — درجة أدكن من
+ *   الويب؛ صار #121A36 = سطح-2 مطابق للويب.)
  * حالة النصوص اللاتينية داخل الحروف الذهبية: espresso #05070F
  * (Madarek --accent-fg، 10.63:1 على الذهب) — وليس الأبيض.
  */
@@ -47,7 +49,9 @@ export const dark: ThemeColors = {
   surface: '#121A36',
   card: '#0D1428',
   foreground: '#F2EFE6',
-  muted: '#182142',
+  /* r130 (W1-E M-1): #182142 (surface-3) → #121A36 (surface-2) — نفس
+     درجة الويب/Madarek --muted dark. */
+  muted: '#121A36',
   mutedFg: '#C3C8DC',
   primary: '#E9B44C',
   primaryFg: '#05070F',
@@ -101,7 +105,58 @@ export const light: ThemeColors = {
 /** Radius scale من Madarek: 6/8/10/12/16/20/28 (--r-xs..--r-3xl) */
 export const radius = { xs: 6, sm: 8, md: 10, lg: 12, xl: 16, xxl: 20, xxxl: 28 } as const
 
-export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 36 } as const
+/** سلّم المسافات من Madarek --sp (4px ladder: …20/24/32/40).
+ *  r130 (W1-E M-2): كانت xxl: 28 و xxxl: 36 — درجتان مخترعتان لا
+ *  وجود لهما في السلم المرجعي؛ صارتا 24/32 الكنسيتين. */
+export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const
+
+/** r130 (W1-E M-3) — العائلات التسع (Madarek tokens.css §1.4 dark /
+ *  §2.4 light): أرضية/حبر/غامق لكل عائلة، نفس قيم الويب حرفيًا.
+ *  القاعدة: الخلفية من -bg والنص من -deep (AA)؛ -ink للحشو والرسوم
+ *  فقط — لا تُخترع عائلة عاشرة أبدًا (MASTER §2.4). */
+export interface PastelFamily {
+  /** الأرضية العميقة (dark) / الباستيل (light) */
+  bg: string
+  /** الحبر المشبع — للتعبئة والرسوم */
+  ink: string
+  /** النص الآمن على الأرضية */
+  deep: string
+}
+
+export type FamilyName =
+  | 'peach' | 'mint' | 'lavender' | 'sky' | 'yellow'
+  | 'rose' | 'sand' | 'grey' | 'copper'
+
+const DARK_FAMILIES: Record<FamilyName, PastelFamily> = {
+  peach:    { bg: '#2C1A16', ink: '#F2A07F', deep: '#FCD9C4' },
+  mint:     { bg: '#0F241C', ink: '#7FD39A', deep: '#C9EAD3' },
+  lavender: { bg: '#221B3A', ink: '#B7A0F4', deep: '#DCD2F9' },
+  sky:      { bg: '#14213A', ink: '#8FBBF2', deep: '#C9DCEE' },
+  yellow:   { bg: '#2C2410', ink: '#ECC97D', deep: '#F8E5B5' },
+  rose:     { bg: '#2C1620', ink: '#F0938F', deep: '#FACDD2' },
+  sand:     { bg: '#241F14', ink: '#D9C18C', deep: '#EFE2C5' },
+  grey:     { bg: '#161D33', ink: '#A9B0C8', deep: '#D5DAE8' },
+  copper:   { bg: '#2C2312', ink: '#E9B44C', deep: '#F5D48A' },
+}
+
+const LIGHT_FAMILIES: Record<FamilyName, PastelFamily> = {
+  peach:    { bg: '#FFE9DC', ink: '#E07856', deep: '#6B2D1A' },
+  mint:     { bg: '#DCF1E2', ink: '#4FA66D', deep: '#1F4F30' },
+  lavender: { bg: '#ECE6FA', ink: '#8A6FE0', deep: '#3F2D7A' },
+  sky:      { bg: '#DDEBF7', ink: '#5C8FCE', deep: '#1F3D63' },
+  yellow:   { bg: '#FCF1CD', ink: '#D6A330', deep: '#6B4C0B' },
+  rose:     { bg: '#FCE0E2', ink: '#DD6E78', deep: '#6B2128' },
+  sand:     { bg: '#F1ECDF', ink: '#B59868', deep: '#5A4623' },
+  grey:     { bg: '#EFECE7', ink: '#6B665E', deep: '#2D2A24' },
+  copper:   { bg: '#F4E4D2', ink: '#B57438', deep: '#5C3416' },
+}
+
+/** عائلات الأقسام حسب الوضع — استهلاك:
+ *  `const f = families[isDark ? 'dark' : 'light'].mint` */
+export const families: Record<'dark' | 'light', Record<FamilyName, PastelFamily>> = {
+  dark: DARK_FAMILIES,
+  light: LIGHT_FAMILIES,
+}
 
 /** سلّم الحركة من Madarek (motion ladder): micro 80 → cinema 720 */
 export const motion = {

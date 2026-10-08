@@ -40,26 +40,30 @@ import { useEffect, useRef, useState } from "react"
 
 /** Live prefers-reduced-motion subscription (no framer-motion bundle cost). */
 export function usePrefersReducedMotion(): boolean {
-	const [reduced, setReduced] = useState(false)
-	useEffect(() => {
-		const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-		setReduced(mq.matches)
-		const onChange = (e: MediaQueryListEvent) => setReduced(e.matches)
-		mq.addEventListener("change", onChange)
-		return () => mq.removeEventListener("change", onChange)
-	}, [])
-	return reduced
+        const [reduced, setReduced] = useState(false)
+        useEffect(() => {
+                const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+                setReduced(mq.matches)
+                const onChange = (e: MediaQueryListEvent) => setReduced(e.matches)
+                mq.addEventListener("change", onChange)
+                return () => mq.removeEventListener("change", onChange)
+        }, [])
+        return reduced
 }
 
 /* ---------- Unified count-up ---------- */
 
 export interface UseCountUpOptions {
-	/** Hold the counter at its current value (e.g. StatsSection's in-view gate). Default false. */
-	paused?: boolean
+        /** Hold the counter at its current value (e.g. StatsSection's in-view gate). Default false. */
+        paused?: boolean
 }
 
-/** One duration for every count-up in the app. */
-const DURATION_MS = 800
+/** One duration for every count-up in the app.
+ * r130 (W1-G SB-P2-4 / F-12): 800 → 1100ms — the canonical marketing
+ * CountUp duration (the verbatim port in components/ui/CountUp.tsx and
+ * SM/SL/SO all ride 1100ms easeOutCubic @ threshold 0.25). KPI re-tweens
+ * (target changes mid-display) now ride the same single duration too. */
+const DURATION_MS = 1100
 
 /** One curve for every count-up in the app (matches the pre-unification KpiCard behavior). */
 const easeOutCubic = (progress: number): number => 1 - Math.pow(1 - progress, 3)
@@ -70,34 +74,34 @@ const easeOutCubic = (progress: number): number => 1 - Math.pow(1 - progress, 3)
  * when `target` changes — never snaps back to zero (KpiCard contract).
  */
 export function useCountUp(target: number, { paused = false }: UseCountUpOptions = {}): number {
-	const [display, setDisplay] = useState(0)
-	const reduced = usePrefersReducedMotion()
-	const raf = useRef<number | null>(null)
-	// Last value painted — a re-tween starts here, not from 0.
-	const current = useRef(0)
+        const [display, setDisplay] = useState(0)
+        const reduced = usePrefersReducedMotion()
+        const raf = useRef<number | null>(null)
+        // Last value painted — a re-tween starts here, not from 0.
+        const current = useRef(0)
 
-	useEffect(() => {
-		if (paused) return
-		// Reduced motion: skip the count-up entirely and show the final value.
-		if (reduced || current.current === target) {
-			current.current = target
-			setDisplay(target)
-			return
-		}
-		const from = current.current
-		const start = performance.now()
-		function step(now: number) {
-			const progress = Math.min((now - start) / DURATION_MS, 1)
-			const next = Math.round(from + (target - from) * easeOutCubic(progress))
-			current.current = next
-			setDisplay(next)
-			if (progress < 1) raf.current = requestAnimationFrame(step)
-		}
-		raf.current = requestAnimationFrame(step)
-		return () => {
-			if (raf.current !== null) cancelAnimationFrame(raf.current)
-		}
-	}, [target, paused, reduced])
+        useEffect(() => {
+                if (paused) return
+                // Reduced motion: skip the count-up entirely and show the final value.
+                if (reduced || current.current === target) {
+                        current.current = target
+                        setDisplay(target)
+                        return
+                }
+                const from = current.current
+                const start = performance.now()
+                function step(now: number) {
+                        const progress = Math.min((now - start) / DURATION_MS, 1)
+                        const next = Math.round(from + (target - from) * easeOutCubic(progress))
+                        current.current = next
+                        setDisplay(next)
+                        if (progress < 1) raf.current = requestAnimationFrame(step)
+                }
+                raf.current = requestAnimationFrame(step)
+                return () => {
+                        if (raf.current !== null) cancelAnimationFrame(raf.current)
+                }
+        }, [target, paused, reduced])
 
-	return display
+        return display
 }

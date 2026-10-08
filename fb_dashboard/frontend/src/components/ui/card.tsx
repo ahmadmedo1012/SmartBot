@@ -2,11 +2,13 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-/* Ported verbatim from Smart-Menu (world-class launch plan v3 §6.1):
- * rounded-2xl radius (28px — v8-D4: unified large-surface corner),
+/* Ported from Smart-Menu (world-class launch plan v3 §6.1):
  * --card-spacing system (16px default / 12px sm),
  * elevation tiers (elevated/flat/outlined), interactive mode, spotlight
  * conic border, grid CardHeader (CardAction/CardFooter removed v10-W4).
+ * r130 (W1-E D-3): radius 20px → 16px (rounded-xl = Madarek --r-xl) —
+ * the inner-page card grammar (Madarek .card / unified-smart-parity.css:756
+ * ride --r-xl); 20px stays a landing-only (Orbit Ink) rung.
  * Replaces the old shadcn-style card (rounded-sm + fixed p-6). */
 
 function Card({
@@ -35,7 +37,7 @@ function Card({
       role={interactive ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
       className={cn(
-        "group/card relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-card py-(--card-spacing) text-sm text-card-foreground border border-border shadow-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
+        "group/card relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground border border-border shadow-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         "transition-[transform,box-shadow,border-color,background-color] duration-(--t-base) ease-smooth",
         // Elevated is opt-in for cards that represent a clear interactive surface.
         "data-[elevation=elevated]:shadow-md data-[elevation=elevated]:hover:shadow-xl data-[elevation=elevated]:hover:shadow-accent-foreground/10 data-[elevation=elevated]:hover:-translate-y-1 data-[elevation=elevated]:hover:border-accent-foreground/35 data-[elevation=elevated]:focus-visible:ring-2 data-[elevation=elevated]:focus-visible:ring-accent-foreground/50 data-[elevation=elevated]:focus-visible:ring-offset-2",
@@ -83,7 +85,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-2xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
+        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
         className
       )}
       {...props}

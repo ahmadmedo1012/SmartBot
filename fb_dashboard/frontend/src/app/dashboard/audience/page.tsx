@@ -69,7 +69,7 @@ export default function AudiencePage() {
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">تعذر تحميل بيانات الجمهور</h2>
+            <h2 className="sb-section-title mb-1">تعذر تحميل بيانات الجمهور</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (<>
@@ -122,7 +122,7 @@ export default function AudiencePage() {
 
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-bold text-sm mb-2">المعلقون الأكثر نشاطاً</h3>
+            <h3 className="sb-section-title mb-2">المعلقون الأكثر نشاطاً</h3>
             {/* v4 §2.5 — honest error state + gate on topQuery's own flags
                 (the old gate used the overview query's isLoading → premature
                 empty state while top commenters were still loading) */}
@@ -158,7 +158,7 @@ export default function AudiencePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-sm">
+              <h3 className="sb-section-title">
                 المشتركون ({subsQuery.data?.total ?? 0})
               </h3>
               <span className="text-3xs text-muted-foreground">

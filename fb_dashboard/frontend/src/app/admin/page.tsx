@@ -249,7 +249,7 @@ export default function AdminPage() {
              * NOT the old false "no requests" EmptyState. */
             <div role="alert" className="py-12 px-4 text-center sb-fade-up">
               <AlertTriangle className="size-12 mx-auto mb-3 text-destructive/60" aria-hidden="true" />
-              <h2 className="text-sm font-bold mb-1">فشل تحميل طلبات الاشتراك</h2>
+              <h2 className="sb-section-title mb-1">فشل تحميل طلبات الاشتراك</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 تعذّر جلب الطلبات من الخادم — قد تكون هناك طلبات قيد الانتظار. تحقّق من الاتصال ثم أعد المحاولة.
               </p>

@@ -68,7 +68,9 @@ export function StepIndicator({
                   "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-(--t-base)",
                   clickable && "active:scale-[0.94]",
                   isActive
-                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-extrabold"
+                    /* r130 (W1-E D-7): the 800 weight class is retired — Plex
+                       Sans Arabic ships no 800; the 700 cut is the ceiling. */
+                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-bold"
                     : isDone
                       ? "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/40"
                       : "bg-muted/50 text-muted-foreground border-border/40",

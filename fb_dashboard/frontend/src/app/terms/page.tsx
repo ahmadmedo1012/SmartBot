@@ -49,7 +49,7 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={80}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">الحساب</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">الحساب</h2>
           <p>
             عند إنشاء حساب في المنصة تصبح مسؤولاً عن الحفاظ على سرية بيانات تسجيل الدخول الخاصة بك،
             وعن جميع الأنشطة التي تتم من خلال حسابك. ننصح باستخدام كلمة مرور قوية وتغييرها بشكل
@@ -59,7 +59,7 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={160}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">الخدمة</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">الخدمة</h2>
           <p>
             تقدم المنصة أدوات لأتمتة التفاعل مع صفحات فيسبوك، تشمل الردود التلقائية الذكية،
             وإدارة الرسائل، والبث الجماعي، وجدولة المنشورات، والتحليلات. نحرص على توفير الخدمة
@@ -70,7 +70,7 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={240}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">الالتزام بالسياسات</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">الالتزام بالسياسات</h2>
           <p>
             أنت وحدك مسؤول عن التأكد من أن استخدامك للمنصة يتوافق مع شروط استخدام فيسبوك
             وسياسات المنصة المعلنة، بما في ذلك السياسات المتعلقة بالرسائل غير المرغوبة والنشر
@@ -80,7 +80,7 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={320}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">الاشتراك والدفع</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">الاشتراك والدفع</h2>
           <p>
             تُدفع رسوم الاشتراك عبر وسائل الدفع المتاحة في المنصة (المحافظ الإلكترونية أو التحويل
             البنكي). لا نطلب بيانات بطاقاتك المصرفية ولا نخزنها. تُفعّل الاشتراكات بعد تأكيد
@@ -90,7 +90,7 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal as="section" y={16} duration={0.52} delay={400}>
-          <h2 className="text-foreground text-xl font-semibold mt-8">تعديل الشروط</h2>
+          <h2 className="text-foreground text-(length:--fs-h2) font-bold mt-8">تعديل الشروط</h2>
           <p>
             نحتفظ بحق تعديل هذه الشروط في أي وقت. سيتم إخطارك بأي تغييرات جوهرية عبر البريد
             الإلكتروني المسجل في حسابك أو عبر إشعار داخل المنصة. استمرارك في استخدام الخدمة بعد

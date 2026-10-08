@@ -40,15 +40,19 @@ export function EmptyState({
   action,
   secondaryAction,
   className,
-  iconClassName = "text-accent-foreground",
-  iconBgClassName = "bg-accent-foreground/10",
+  /* r130 (W1-E D-10): the icon tile = the Madarek .state-icon recipe — grey
+     family (--c-grey-bg ground / --c-grey-deep glyph), 16px radius (--r-xl).
+     Was a gold accent tint at 20px. ErrorState keeps its destructive-soft
+     override below. */
+  iconClassName = "text-(color:--c-grey-deep)",
+  iconBgClassName = "bg-(--c-grey-bg)",
   size = "md",
 }: EmptyStateProps) {
   const s = SIZE_MAP[size]
   return (
     <div className={cn("flex flex-col items-center justify-center text-center px-6", s.wrapper, className)}>
       {Icon || iconNode ? (
-        <div className={cn("rounded-2xl border border-accent-foreground/20 bg-accent-foreground/8 flex items-center justify-center mb-4 shadow-sm", s.iconBg, iconBgClassName)}>
+        <div className={cn("rounded-xl border border-transparent bg-(--c-grey-bg) flex items-center justify-center mb-4", s.iconBg, iconBgClassName)}>
           {Icon ? (
             <Icon className={cn(s.icon, iconClassName)} />
           ) : (

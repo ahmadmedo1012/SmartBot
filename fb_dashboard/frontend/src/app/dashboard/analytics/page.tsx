@@ -414,7 +414,7 @@ export default function AnalyticsPage() {
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل التحليلات</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل التحليلات</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : (<><div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-busy={isLoading || undefined}>
@@ -453,7 +453,7 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardContent className="p-4">
-            <h2 className="font-bold text-sm mb-4">الردود اليومية (آخر 30 يوم)</h2>
+            <h2 className="sb-section-title mb-4">الردود اليومية (آخر 30 يوم)</h2>
             {isLoading ? (
               <div className="h-32 bg-muted rounded animate-pulse" />
             ) : daily.length === 0 ? (
@@ -471,7 +471,7 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardContent className="p-4">
-              <h2 className="font-bold text-sm mb-3">أفضل القواعد</h2>
+              <h2 className="sb-section-title mb-3">أفضل القواعد</h2>
               {/* r127-F5a: `.length > 0` on an optional chain neither type-checks
                   (number|undefined vs 0) nor narrows; truthiness is identical for
                   array lengths AND narrows `data`/`data.top_rules` for the map. */}
@@ -495,7 +495,7 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardContent className="p-4">
-              <h2 className="font-bold text-sm mb-3">توزيع المشاعر</h2>
+              <h2 className="sb-section-title mb-3">توزيع المشاعر</h2>
               {data?.sentiment_distribution && Object.keys(data.sentiment_distribution).length > 0 ? (
                 <ComparisonBars
                   summary="أشرطة أفقية تقارن عدد رسائل كل فئة شعور: إيجابي، سلبي، محايد، مختلط"

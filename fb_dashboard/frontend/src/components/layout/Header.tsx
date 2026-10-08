@@ -176,14 +176,15 @@ export function Header({ className }: HeaderProps) {
            canonical chrome rung (below popovers/sheets/modals/toasts). */
         "fixed top-0 inset-x-0 z-(--z-dropdown) h-[60px] transition-all duration-(--t-slow) will-change-transform backface-hidden",
         visible ? "translate-y-0" : "-translate-y-full invisible",
-        /* Madarek topbar (§5.6): 96% surface (94% dark) + saturate/blur glass,
+        /* Madarek topbar (§5.6): r130 (W1-E D-11) — 86% surface glass
+           (--topbar-bg, the canonical translucency; was an off-ladder 95%),
            hairline bottom rule; elevation appears ONLY after scroll (elev-2). */
         scrolled
-          ? "bg-card/95 backdrop-blur-md backdrop-saturate-150 border-b border-border shadow-(--elev-2)"
+          ? "bg-(--topbar-bg) backdrop-blur-md backdrop-saturate-150 border-b border-border shadow-(--elev-2)"
           : "bg-background/0 border-b border-transparent",
         className
       )}>
-        <nav className="max-w-[1220px] mx-auto px-4 sm:px-6 lg:px-10 h-full flex items-center justify-between" aria-label="الرئيسية">
+        <nav className="max-w-(--marketing-max-w) mx-auto px-4 sm:px-6 lg:px-10 h-full flex items-center justify-between" aria-label="الرئيسية">
           {/* Logo & Hamburger */}
           <div className="flex items-center gap-3 flex-1">
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />

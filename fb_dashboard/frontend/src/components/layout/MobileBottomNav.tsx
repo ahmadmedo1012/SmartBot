@@ -152,7 +152,7 @@ export function MobileBottomNav({
             tabIndex={sheetOpen ? 0 : -1}
             /* v24-R3/B4 P4: 40px → 44px WCAG 2.5.5 touch target (the sheet's
                most-used dismiss control, in the thumb zone) */
-            className="size-11 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-transform"
+            className="size-11 rounded-lg flex items-center justify-center hover:bg-muted shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.93] transition-transform"
           >
             <X className="size-4" />
           </button>
@@ -174,7 +174,7 @@ export function MobileBottomNav({
                        * actually navigated, so prefetching it is pure waste. */
                       prefetch={onNavigate ? false : undefined}
                       tabIndex={sheetOpen ? 0 : -1}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-95 transition-[color,background-color,border-color,transform] ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.93] transition-[color,background-color,border-color,transform] ${
                         active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
                       }`}
                     >
@@ -196,7 +196,7 @@ export function MobileBottomNav({
               type="button"
               onClick={() => { setSheetOpen(false); onLogout() }}
               tabIndex={sheetOpen ? 0 : -1}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.98] transition-[color,background-color,border-color,transform]"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm text-muted-foreground hover:bg-muted outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.93] transition-[color,background-color,border-color,transform]"
             >
               <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
             </button>
@@ -226,7 +226,7 @@ export function MobileBottomNav({
                  * actually navigated, so prefetching it is pure waste. */
                 prefetch={onNavigate ? false : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-90 transition-[color,background-color,border-color,transform] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.93] transition-[color,background-color,border-color,transform] ${
                   /* r128-F7 (r127-A6 residual): rounded-lg moved OUT of the
                      focus-visible scope onto the base element — focus paints
                      the ring only, never mutates the shape (parity ban). */
@@ -244,7 +244,7 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-2xs text-muted-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-90 transition-[color,background-color,border-color,transform]"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-2xs text-muted-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-[0.93] transition-[color,background-color,border-color,transform]"
             /* r128-F7 (r127-A6 residual): static rounded-lg — focus-visible no
                longer mutates border-radius (shape-mutation ban). */
           >

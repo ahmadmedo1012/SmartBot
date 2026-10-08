@@ -126,7 +126,7 @@ export const KpiCard = memo(function KpiCard({
                         <div
                                 className={cn(
                                         'sb-kpi-enter',
-                                        'group relative rounded-2xl border border-border/50 bg-card shadow-sm backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-(--t-base)',
+                                        'group relative rounded-xl border border-border/50 bg-card shadow-sm backdrop-blur-sm transition-[border-color,box-shadow,transform] duration-(--t-base)',
                                         'hover:border-accent-foreground/40 hover:shadow-lg hover:shadow-accent-foreground/10 hover:-translate-y-1',
                                 )}
                                 style={reduceMotion ? undefined : { animationDelay: `${index * 0.06}s` }}
@@ -147,7 +147,7 @@ export const KpiCard = memo(function KpiCard({
                 <div
                         className={cn(
                                 'sb-kpi-enter',
-                                'rounded-2xl border border-border/50 bg-card p-5 shadow-sm backdrop-blur-sm',
+                                'rounded-xl border border-border/50 bg-card p-5 shadow-sm backdrop-blur-sm',
                         )}
                         style={reduceMotion ? undefined : { animationDelay: `${index * 0.06}s` }}
                 >

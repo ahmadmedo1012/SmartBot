@@ -70,7 +70,9 @@ export function AdminMobileNav() {
                 /* r128-F7 (r127-A6 residual): static rounded-lg — focus-visible
                    never mutates border-radius (shape-mutation ban). */
                 "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
-                "active:scale-90 transition-[color,background-color,border-color,transform]",
+                /* r130 (W1-E D-9): the ONE deliberate bottom-nav thumb press
+                   0.93 (Madarek), not the drifted 0.90. */
+                "active:scale-[0.93] transition-[color,background-color,border-color,transform]",
                 active ? "text-accent-foreground" : "text-muted-foreground",
               )}
             >

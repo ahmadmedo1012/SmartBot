@@ -274,7 +274,7 @@ function LoginForm() {
                 يمكنك إعادة المحاولة بعد {lockoutSeconds} ثانية
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
+            <Button type="submit" className="mt-2 h-11 w-full font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
                 /* v17-E-F4 (D3 #5): LogIn is directional (arrow into a door
                     bracket) — mirrored in RTL via the §2.2 allowlist class,

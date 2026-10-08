@@ -139,7 +139,7 @@ export default function ToolsPage() {
         {/* قوالب الرد */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-sm">قوالب الرد</h2>
+            <h2 className="sb-section-title">قوالب الرد</h2>
             <Button size="sm" onClick={() => { setShowTmplForm(!showTmplForm); setEditingTmplId(null) }}><Plus className="size-3" /> قالب جديد</Button>
           </div>
 
@@ -248,7 +248,7 @@ export default function ToolsPage() {
         {/* العروض */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-sm">العروض</h2>
+            <h2 className="sb-section-title">العروض</h2>
             {/* v17-E-F8 (D6-1): وعد Premium «محرك العروض» كان بلا أي سبيل
                 إنشاء — زر مرآة لزر «قالب جديد» في نفس الصفحة. */}
             <Button size="sm" onClick={() => setShowOfferForm(v => !v)}><Plus className="size-3" /> عرض جديد</Button>

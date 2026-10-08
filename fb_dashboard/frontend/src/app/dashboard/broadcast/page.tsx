@@ -233,7 +233,7 @@ export default function BroadcastPage() {
         {isError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل رسائل البث</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل رسائل البث</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (

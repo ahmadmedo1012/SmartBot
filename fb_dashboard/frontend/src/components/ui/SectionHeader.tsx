@@ -23,31 +23,32 @@ export function SectionHeader({ eyebrow, title, subtitle, description, icon, cla
   const desc = subtitle || description
   const centered = align === "center"
   return (
-    <SectionHeaderReveal className={cn("mb-14 sm:mb-20", centered ? "text-center" : "mx-auto text-center", className)}>
+    <SectionHeaderReveal className={cn("mb-10 sm:mb-14", centered ? "text-center" : "mx-auto text-center", className)}>
       {eyebrow && (
-        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "520ms", "--rv-delay": "0ms" } as React.CSSProperties}>
+        <div className="reveal" style={{ "--rv-y": "8px", "--rv-delay": "0ms" } as React.CSSProperties}>
           <Eyebrow className={centered ? "justify-center" : "justify-start"}>
             {icon}{icon && " "}{eyebrow}
           </Eyebrow>
         </div>
       )}
       {title && (
-        <div className="reveal" style={{ "--rv-y": "16px", "--rv-dur": "520ms", "--rv-delay": "80ms" } as React.CSSProperties}>
-          <h2
-            className={cn(
-              "text-3xl sm:text-4xl lg:text-[3.25rem] font-semibold leading-[1.25] tracking-tight text-balance",
-              centered ? "mx-auto" : "max-w-2xl",
-            )}
-          >
+        <div className="reveal" style={{ "--rv-y": "8px", "--rv-delay": "80ms" } as React.CSSProperties}>
+          {/* r130 (W1-E D-1): the section head rides the canonical page-title
+           * rung — clamp(20px, 3.4vw, 28px) @ 700, lh 1.22, tracking 0
+           * (was a 30/36/52px marketing ladder at 600 — every live consumer
+   * is a dashboard page head: admin/settings, admin, admin/support).
+   * Desc drops to the body rung 15px; reveal delays now inherit the
+   * 360ms token default (globals.css .reveal). */}
+          <h2 className="font-bold text-(length:--fs-page-title) leading-(--type-page-title-line-height) text-balance mx-auto">
             {title}
           </h2>
         </div>
       )}
       {desc && (
-        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "520ms", "--rv-delay": "160ms" } as React.CSSProperties}>
+        <div className="reveal" style={{ "--rv-y": "8px", "--rv-delay": "160ms" } as React.CSSProperties}>
           <p
             className={cn(
-              "text-base text-muted-foreground/90 mt-4 max-w-[48ch] leading-relaxed",
+              "text-(length:--fs-body) text-muted-foreground/90 mt-3 max-w-[48ch] leading-(--lh-base)",
               centered ? "mx-auto" : "",
             )}
           >

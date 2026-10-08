@@ -7,11 +7,9 @@ import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
-import { SectionHeader } from "@/components/ui/SectionHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GlowPool } from "@/components/ui/GlowPool"
 import { cn } from "@/lib/utils"
 import { KineticText } from "@/components/ui/kinetic-text"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
@@ -93,10 +91,13 @@ export default function PricingPage() {
 
 
       <SectionContainer className="py-20 text-center relative">
-        <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[50vmin]" color="orange/8" />
+        {/* r130 (W1-E D-5, de-glow): the legacy orange/8 blurred radial
+            pool is REMOVED (its component is deleted — zero consumers
+            left) — Madarek ground is flat; no colored outer glows. The
+            pricing hero speaks the flat ln-card language now. */}
 
         <div
-          className="animate-fade-in-150 inline-flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.18em] text-accent-foreground/90 mb-6"
+          className="animate-fade-in-150 inline-flex items-center gap-2 text-2xs font-medium uppercase text-accent-foreground/90 mb-6"
         >
           <Sparkles className="size-3 text-accent-foreground" />
           خطط الأسعار
@@ -108,9 +109,9 @@ export default function PricingPage() {
             kinetic-unit-lead first-paint fix. The kinetic words themselves
             still animate; only the redundant outer fade is gone. */}
         <h1
-          className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tighter mb-5 text-balance"
+          className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold mb-5 text-balance"
         >
-          <KineticText mode="words" duration={800} delay={100}>خطط تناسب كل الأحجام</KineticText>
+          <KineticText mode="words" duration={720} delay={100}>خطط تناسب كل الأحجام</KineticText>
         </h1>
 
         <ScrollReveal y={18} delay={200}
@@ -235,10 +236,10 @@ export default function PricingPage() {
                     </div>
                   )}
 
-                  {/* Decorative corner gradient for popular */}
-                  {isPopular && (
-                    <div className="absolute -top-20 -end-20 size-48 rounded-full bg-accent-foreground/10 blur-3xl pointer-events-none" aria-hidden="true" />
-                  )}
+                  {/* Decorative corner gradient for popular — r130 (W1-E D-5,
+                      de-glow): the blurred accent blob is REMOVED (flat
+                      ln-card language); the gold border + badge already
+                      carry the popular state. */}
 
                   <CardHeader className="text-center relative pt-8">
                     <div className={cn(
@@ -258,10 +259,10 @@ export default function PricingPage() {
                     <div className="text-center mb-6 py-4 border-y border-border/40">
                       <div className="flex items-baseline justify-center gap-1.5">
                         {plan.price === 0 ? (
-                          <span className="text-4xl font-extrabold">مجاني</span>
+                          <span className="text-4xl font-bold">مجاني</span>
                         ) : (
                           <>
-                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-extrabold tracking-tighter text-accent-foreground">
+                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-bold text-accent-foreground">
                             {/* Smart-Menu parity: yearly billing = 10× monthly (two months free).
                                 v12-E4.13: formatNumber — prices flow through the
                                 single i18n formatting seam like every other number. */}
@@ -300,7 +301,7 @@ export default function PricingPage() {
                       size="lg"
                       variant={isPopular ? "gold" : "outline"}
                       className={cn(
-                        "w-full h-12 font-bold",
+                        "w-full h-10 font-semibold",
                         isPopular && "shadow-lg shadow-accent-foreground/30"
                       )}
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}

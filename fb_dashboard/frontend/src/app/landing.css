@@ -634,7 +634,11 @@
 .landing .landing-mobile-menu {
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-4) 16px var(--sp-6);
+  /* r130 (W1-E L-2): canonical iOS safe-area pad (madarek landing.css:1939)
+     — the drawer's block-end now clears the home indicator on notched
+     phones; zero env() elsewhere was the audit's exact gap. */
+  padding: var(--sp-4) 16px;
+  padding-block-end: env(safe-area-inset-bottom, var(--sp-4));
   background: var(--ln-ink-2);
   border-block-end: 1px solid var(--ln-line-soft);
   display: none;
@@ -796,16 +800,16 @@
 
 /* scroll invitation — physical centering is direction-neutral. The fold
    anchor (canonical P1-6): 100% tracks the hero's REAL height, 100svh
-   is the fold, +134px = fixed chrome + breathing room. The +134 offset
-   assumes a 39px strip + 69px header above the hero; SmartBot has no
-   ministry strip, so +95px keeps the invite 26px above the fold at
-   first paint on 800/900/937/1080-height laptops. */
+   is the fold, +134px = fixed chrome + breathing room.
+   r130 (W1-E L-1): +95px (a documented shorter-hero adaptation) → the
+   canonical +134px offset — the round-130 ruling standardizes the fold
+   geometry fleet-wide. */
 .landing .ln-hero-scroll {
   position: absolute;
   left: 50%;
   translate: -50% 0;
   bottom: 26px; /* svh-less fallback */
-  bottom: calc(100% - 100svh + 95px);
+  bottom: calc(100% - 100svh + 134px);
   display: grid;
   justify-items: center;
   gap: 10px;
@@ -1212,10 +1216,15 @@
   line-height: 1.1;
   direction: ltr;
 }
-/* (r129: the dead .ln-stat-unit rule is deleted — zero consumers, audit
-   P2-10; the live value/label/note rules stay byte-equal) */
+/* r130 (W1-E L-6): .ln-stat-unit is BACK (canonical landing.css:1215) — the
+   ProgressSection uptime cell now splits its "%" into a dimmed unit span
+   instead of baking it into the CountUp value; the live value/label/note
+   rules stay byte-equal. */
 .landing .ln-stat-label { margin-block-start: 8px; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
 .landing .ln-stat-note { margin-block-start: 3px; color: var(--ln-cream-dim); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+/* r130 (W1-E L-6): the canonical stat-unit rung (madarek landing.css:1215) —
+   units (%, +) are dimmed cream at 24px, never baked into the value. */
+.landing .ln-stat-unit { color: var(--ln-cream-dim); font-size: 24px; margin-inline-start: 2px; }
 
 .landing .ln-progress-source {
   margin: var(--sp-6) 0 0;

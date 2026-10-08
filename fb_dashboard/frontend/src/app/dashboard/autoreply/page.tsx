@@ -284,7 +284,7 @@ export default function AutoReplyPage() {
             <div className="size-12 rounded-2xl bg-destructive-soft flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="size-6 text-destructive" />
             </div>
-            <h2 className="text-sm font-bold mb-1">فشل تحميل سلوك البوت</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل سلوك البوت</h2>
             <p className="text-xs text-muted-foreground mb-4">{(behaviorErrorObj as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetchBehavior()}>
               <RefreshCw className="size-3" /> إعادة المحاولة
@@ -454,7 +454,7 @@ export default function AutoReplyPage() {
             <div className="size-16 rounded-2xl bg-destructive-soft flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="size-8 text-destructive" />
             </div>
-            <h2 className="text-sm font-bold mb-1">فشل تحميل القواعد</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل القواعد</h2>
             <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>

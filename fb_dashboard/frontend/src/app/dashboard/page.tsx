@@ -344,8 +344,9 @@ export default function DashboardPage() {
                 iconBg="bg-success/10" iconColor="text-success" index={6} />
             </div>
 
-            {/* Activity chart */}
-            <div className="sb-fade-up mb-6" style={{ animationDelay: "0.43s" }}>
+            {/* Activity chart — r130 (W1-G SB-P2-6): fadeUp stagger 50 → 60ms
+                steps, aligned to the 0.42s KPI tail (7 cards × 60ms). */}
+            <div className="sb-fade-up mb-6" style={{ animationDelay: "0.42s" }}>
               <ChartCard
                 title="النشاط اليومي"
                 description="ردود البوت خلال آخر 7 أيام"
@@ -392,8 +393,10 @@ export default function DashboardPage() {
                 </Card>
               </div>
 
-              {/* Rules — overflow-safe, token colors, no dead "keywords" column */}
-              <div className="sb-fade-up" style={{ animationDelay: "0.53s" }}>
+              {/* Rules — overflow-safe, token colors, no dead "keywords" column.
+                  r130: table cells ride the canonical 13px label rung
+                  (--fs-sm — Madarek .table), was text-sm 14px. */}
+              <div className="sb-fade-up" style={{ animationDelay: "0.54s" }}>
                 <Card>
                   <CardHeader>
                     <CardTitle id="dashboard-rules-title" className="flex items-center gap-2">
@@ -403,7 +406,7 @@ export default function DashboardPage() {
                   <CardContent className="p-0">
                     {rulesList.length > 0 ? (
                       <div className="overflow-x-auto">
-                        <table aria-labelledby="dashboard-rules-title" className="w-full text-sm">
+                        <table aria-labelledby="dashboard-rules-title" className="w-full text-(length:--fs-sm)">
                           <thead>
                             <tr className="border-b border-border text-muted-foreground text-xs">
                               <SortableTh label="القاعدة" column="name" sort={rulesSort} onToggle={toggleSort} />

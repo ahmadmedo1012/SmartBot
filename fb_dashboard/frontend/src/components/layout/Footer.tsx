@@ -30,7 +30,9 @@ export function Footer({ className }: FooterProps) {
 
   return (
     <footer className={cn("border-t border-border/50 pt-12 sm:pt-16 pb-8 sm:pb-10", className)}>
-      <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
+      {/* r130 (W1-E D-12): 1220px (matched neither Madarek column) → the
+          marketing column token (--marketing-max-w: 1200px). */}
+      <div className="max-w-(--marketing-max-w) mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-10 sm:mb-12">
           <div className="col-span-2 sm:col-span-1">
             {/* v6 §D — next/image (was raw <img>) */}

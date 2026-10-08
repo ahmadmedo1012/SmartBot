@@ -602,7 +602,7 @@ export function PaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm sm:max-w-md rounded-2xl p-0 gap-0 max-h-[90dvh] overflow-y-auto border-border/50 shadow-2xl">
+      <DialogContent className="max-w-sm sm:max-w-md rounded-xl p-0 gap-0 max-h-[90dvh] overflow-y-auto border-border/50 shadow-2xl">
         {/* Header — v15-E5 (D5-H2): the old white/70 description over the
             accent-foreground gradient measured 2.56:1 (dark) / 3.02–3.86:1
             (light) — below AA for small text, and even full white only

@@ -20,7 +20,7 @@ export function ProgressSection() {
   const ref = useSectionProgress<HTMLElement>();
   const { stats, ready } = usePublicStats();
 
-  const cells: Array<{ value: string; label: string; note: string }> = [
+  const cells: Array<{ value: string; unit?: string; label: string; note: string }> = [
     { value: "5", label: "خطط اشتراك", note: "من المجانية إلى المؤسسية" },
   ];
   if (ready && stats) {
@@ -34,7 +34,9 @@ export function ProgressSection() {
       cells.push({ value: String(replies), label: "رد آلي", note: "أرسلها البوت نيابةً عنهم" });
     }
     if (uptime > 0) {
-      cells.push({ value: `${Math.round(uptime)}%`, label: "جهوزية المنصّة", note: "التزام تشغيلي معلن" });
+      /* r130 (W1-E L-6): the % is a dimmed .ln-stat-unit span (canonical
+         stat grammar), never baked into the mono CountUp value. */
+      cells.push({ value: String(Math.round(uptime)), unit: "%", label: "جهوزية المنصّة", note: "التزام تشغيلي معلن" });
     }
   }
 
@@ -71,7 +73,10 @@ export function ProgressSection() {
           <div className="ln-progress-stats">
             {cells.map((s, i) => (
               <RevealCssClass as="div" className="ln-stat" key={s.label} delay={(i + 1) as 1 | 2 | 3 | 4}>
-                <div className="ln-stat-value"><CountUp value={s.value} /></div>
+                <div className="ln-stat-value">
+                  <CountUp value={s.value} />
+                  {s.unit && <span className="ln-stat-unit">{s.unit}</span>}
+                </div>
                 <div className="ln-stat-label">{s.label}</div>
                 <div className="ln-stat-note">{s.note}</div>
               </RevealCssClass>

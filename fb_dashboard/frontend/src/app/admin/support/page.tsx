@@ -259,7 +259,7 @@ export default function AdminSupportPage() {
           ) : ticketsQuery.isError ? (
             <div role="alert" className="py-12 px-4 text-center sb-fade-up">
               <AlertTriangle className="size-12 mx-auto mb-3 text-destructive/60" aria-hidden="true" />
-              <h2 className="text-sm font-bold mb-1">فشل تحميل التذاكر</h2>
+              <h2 className="sb-section-title mb-1">فشل تحميل التذاكر</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 {(ticketsQuery.error as Error)?.message || "تعذّر جلب التذاكر من الخادم — أعد المحاولة."}
               </p>

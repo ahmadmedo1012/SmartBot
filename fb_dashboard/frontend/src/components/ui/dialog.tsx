@@ -59,8 +59,10 @@ function DialogContent({
           /* Madarek modal-card: solid surface + 1px hairline ring + elev-4
              (the --shadow-modal recipe) + the copper top hairline
              (.mdrk-modal-card::before in globals.css — inset-inline 30%,
-             3px, transparent→accent→transparent). */
-          "mdrk-modal-card fixed left-1/2 top-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-sm",
+             3px, transparent→accent→transparent). r130 (W1-E D-3): radius
+             20px → 16px (rounded-xl = --r-xl) — the inner-page modal
+             grammar (Madarek .modal-card rides --r-xl). */
+          "mdrk-modal-card fixed left-1/2 top-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-sm",
           "transition-[opacity,scale,translate,filter] duration-(--duration-base) ease-smooth data-starting-style:opacity-0 data-starting-style:scale-95 data-starting-style:translate-y-4",
           "data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:translate-y-4",
           className,

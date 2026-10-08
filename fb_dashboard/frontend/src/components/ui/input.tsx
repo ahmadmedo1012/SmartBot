@@ -10,9 +10,10 @@ import { AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react"
  * optional state icons (success/warning/error) — legacy label/hint/error API
  * preserved for existing call sites.
  * v14-E5: placeholder moved to the dedicated --placeholder-text token
- * (AA 4.5:1 measured in both modes — see globals.css) and the focus-glow
- * shadow now derives from var(--ring) via color-mix instead of the literal
- * oklch(0.55 0.19 45 / 0.12) (identical rendering, single source). */
+ * (AA 4.5:1 measured in both modes — see globals.css).
+ * r130 (W1-E D-13): the focus halo = the single sanctioned
+ * --state-input-focus-halo token (3px @ 22% of the solid accent) — was a
+ * hand-spelled 4px @ 12% ring-mix off the canonical recipe. */
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -48,7 +49,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             dir="auto"
             className={cn(
-              "flex h-12 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-placeholder-text focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklch,var(--ring)_12%,transparent)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
+              "flex h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-placeholder-text focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-(--state-input-focus-halo) disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
               startIcon && "ps-11",
               StateIcon && "pe-11",
               effectiveState === "error" && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",

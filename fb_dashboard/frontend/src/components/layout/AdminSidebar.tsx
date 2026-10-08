@@ -170,7 +170,9 @@ export function AdminSidebar({
        * CSS. Touch floor: 44px min item height (a11y contract). */}
       <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {navSections.map((section, si) => (
-          <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 50}ms` }}>
+          // r130 (W1-G SB-P2-6): section stagger 50 → 60ms steps
+          // (--motion-stagger-step grammar).
+          <div key={si} className="animate-fade-in" style={{ animationDelay: `${80 + si * 60}ms` }}>
             {/* Madarek nav-section-label: 11px/600/muted, zero tracking
              * (Arabic ruling), hairline gradient underline — .sb-section-label. */}
             <p className="sb-section-label">{section.label}</p>

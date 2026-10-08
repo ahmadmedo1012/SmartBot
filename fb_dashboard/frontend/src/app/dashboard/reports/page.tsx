@@ -119,7 +119,7 @@ export default function ReportsPage() {
         ) : anyError ? (
           <div className="text-center py-16">
             <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="text-sm font-bold mb-1">فشل تحميل التقارير</h2>
+            <h2 className="sb-section-title mb-1">فشل تحميل التقارير</h2>
             <p className="text-xs text-muted-foreground mb-4">{(dbError as Error)?.message || "تعذر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
@@ -248,7 +248,7 @@ export default function ReportsPage() {
             </Card>
 
             <section>
-              <h2 className="font-bold text-sm mb-3">أكثر المعلقين تفاعلاً</h2>
+              <h2 className="sb-section-title mb-3">أكثر المعلقين تفاعلاً</h2>
               {tcLoad ? (
                 <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-3 animate-pulse h-10" /></Card>)}</div>
               ) : tcErr ? (

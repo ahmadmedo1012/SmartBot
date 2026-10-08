@@ -258,7 +258,7 @@ export default function BillingPage() {
         </Card>
 
         <div>
-          <h2 className="font-bold text-sm mb-3 flex items-center gap-2">
+          <h2 className="sb-section-title mb-3 flex items-center gap-2">
             <Receipt className="size-4 text-muted-foreground" /> سجل الدفع
           </h2>
           {histLoad ? (

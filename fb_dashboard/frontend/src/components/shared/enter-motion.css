@@ -11,10 +11,16 @@
 /* Values map onto the Madarek motion ladder (globals.css :root tokens):
  *   - page enter:  160ms --ease-out (polish v9 re-tune of madarek-page-enter
  *                  — the final cascade value, exponential settle)
- *   - KPI cards:   240ms --ease-out (was 0.28s ease-out), delay index × 0.06s
- *   - fadeUp:      380ms --ease-out (polish-rise, was 0.5s ease-out-quart),
- *                  delay n × 0.05s (+ the old 0.08s delayChildren)
- *   - sparkline:   line draw 0.8s ease-in-out; area fade 0.5s (unchanged)
+ *   - KPI cards:   240ms --ease-out, delay index × 60ms (--motion-stagger-step)
+ *   - fadeUp:      380ms --ease-out (polish-rise), delay n × 60ms
+ *   - sparkline:   r130 — line draw 700ms (--motion-duration-stat, the stat
+ *                  moment), area fade 520ms (--t-slower ladder rung), both on
+ *                  the decelerate settle (was raw 0.8s/0.5s ease-in-out —
+ *                  off-ladder literals, W1-G SB-P2-6/D-14)
+ *
+ * r130 (W1-G SB-P2-6): entrance distances = the canonical polish values —
+ * page-enter/KPI lift 4px (was 12px), polish-rise/fadeUp lift 6px (was
+ * 24px); stagger steps 60ms everywhere (was 50ms in the fadeUp family).
  *
  * Reduced motion: every animation is disabled via the media query below —
  * exact parity with the old useReducedMotion / MotionConfig guards.
@@ -30,15 +36,15 @@
  */
 
 @keyframes sb-page-enter {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes sb-kpi-enter {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes sb-fade-up {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes sb-spark-draw {
@@ -51,34 +57,37 @@
 }
 
 /* shell page entrance (DashboardShell) — Madarek page-enter: 160ms
- * exponential settle (was springGentle 0.4s) */
+ * exponential settle on the canonical 4px lift (polish page-enter). */
 .sb-page-enter {
   animation: sb-page-enter var(--t-fast) var(--ease-out) backwards;
 }
 
-/* KPI-card entrance (KpiCard) — was motion.div 0.28s easeOut, delay set
- * inline per card via style={{ animationDelay }} (index × 0.06s) */
+/* KPI-card entrance (KpiCard) — delay set inline per card via
+ * style={{ animationDelay }} (index × 0.06s = --motion-stagger-step) */
 .sb-kpi-enter {
   animation: sb-kpi-enter var(--t-base) var(--ease-out) backwards;
 }
 
 /* section entrance (dashboard page fadeUp) — Madarek polish-rise: 380ms
- * exponential settle. Delay set inline per section. */
+ * exponential settle on the canonical 6px lift. Delay set inline per
+ * section (60ms steps). */
 .sb-fade-up {
   animation: sb-fade-up var(--t-slow) var(--ease-out) backwards;
 }
 
 /* MiniSparkline line draw — pathLength={1} on the path normalizes the dash
  * units, so dasharray:1/dashoffset:1→0 is the classic CSS line-draw (the
- * same technique framer uses internally for pathLength). */
+ * same technique framer uses internally for pathLength).
+ * r130: 0.8s raw → the 700ms stat moment on the decelerate settle. */
 .sb-spark-line {
   stroke-dasharray: 1;
-  animation: sb-spark-draw 0.8s ease-in-out backwards;
+  animation: sb-spark-draw var(--motion-duration-stat) var(--ease-out) backwards;
 }
 
-/* MiniSparkline area fade — was motion.path opacity 0→1, 0.5s */
+/* MiniSparkline area fade — was motion.path opacity 0→1, 0.5s raw →
+ * the 520ms --t-slower ladder rung. */
 .sb-spark-area {
-  animation: sb-spark-fade 0.5s ease backwards;
+  animation: sb-spark-fade var(--t-slower) var(--ease-out) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

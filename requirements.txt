@@ -10,12 +10,12 @@ httpx>=0.28.0
 bcrypt>=5.0.0
 PyJWT>=2.15.0
 python-dotenv>=1.0.0
-openai>=1.0.0
+openai>=1.60.0                        # v26-F4 (P4-A4 §2): floor raised from >=1.0.0 — ~30 majors of drift; 1.60 is the oldest line still on the modern SDK surface used here
 # google-generativeai>=0.8.0  # optional — set GEMINI_API_KEY to use
 tenacity>=9.1.4              # retry around LLM calls with backoff
 jsonschema>=4.26.0           # validate agent JSON tool output before execution
 Pillow>=12.3.0               # image resize/compress before base64 encode for vision
-cryptography>=42.0.0
+cryptography>=42.0.4                 # v26-F4 (P4-A4 §2): 42.0.0–42.0.3 admit CVE-2024-26130 (NULL-deref DoS) — one-character floor fix
 argon2-cffi>=23.1.0
 redis[asyncio]>=5.4.0
 sentry-sdk[fastapi]>=2.19.0        # v6 §C — error tracking (Sentry OR GlitchTip: same DSN wire protocol, no-op without SENTRY_DSN)

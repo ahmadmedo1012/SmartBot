@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing } from '@/constants/theme'
+import { radius, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, KpiCard, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
@@ -217,7 +217,7 @@ function QuickAction({ label, icon, href }: { label: string; icon: React.Compone
       <Row
         style={{
           backgroundColor: colors.muted,
-          borderRadius: 12,
+          borderRadius: radius.lg,  // v26-F4: token (12) — كان مكتوبًا يدويًا
           padding: spacing.md,
           gap: spacing.sm,
         }}

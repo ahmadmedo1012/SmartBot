@@ -81,7 +81,10 @@ export function premiumToast(icon: ToastIcon, title: string, description?: strin
         role={ALERT_ICONS.includes(icon) ? "alert" : "status"}
         onClick={() => toast.dismiss(t)}
         className="pointer-events-auto flex w-full cursor-pointer items-start gap-3 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-xl rtl:flex-row-reverse animate-slide-up"
-        style={{ animationDuration: "0.35s" }}
+        /* r128-F7 (A5 R2): 0.35s fork → the ladder's --t-slow (380ms) —
+           inline style so the reduced-motion token zeroing (globals.css)
+           flows through as 0ms automatically. */
+        style={{ animationDuration: "var(--t-slow)" }}
       >
         <ToastIconChip icon={icon} />
         <div className="min-w-0 flex-1 pt-0.5">

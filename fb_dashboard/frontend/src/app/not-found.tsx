@@ -7,7 +7,11 @@ export default function NotFound() {
       <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="text-center max-w-md">
         <div className="mb-6">
-          <h1 className="text-7xl font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 bg-clip-text text-transparent">
+          {/* r128-F7 (A5 B15): flat ink numeral — the gradient-text 404 retired
+              (PORT-KIT §7 discipline: no gradient-text; the optional
+              error-scene illustration stays unbuilt — B15 is optional and the
+              flat treatment is the honest minimum). */}
+          <h1 className="text-7xl font-bold text-accent-foreground">
             404
           </h1>
         </div>

@@ -226,7 +226,10 @@ export function MobileBottomNav({
                  * actually navigated, so prefetching it is pure waste. */
                 prefetch={onNavigate ? false : undefined}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-2xs rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-90 transition-[color,background-color,border-color,transform] ${
+                  /* r128-F7 (r127-A6 residual): rounded-lg moved OUT of the
+                     focus-visible scope onto the base element — focus paints
+                     the ring only, never mutates the shape (parity ban). */
                   active ? "text-accent-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -241,7 +244,9 @@ export function MobileBottomNav({
             onClick={() => setSheetOpen(true)}
             aria-expanded={sheetOpen}
             aria-label="المزيد من الأقسام"
-            className="flex flex-col items-center justify-center gap-0.5 py-2 text-2xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg active:scale-90 transition-[color,background-color,border-color,transform]"
+            className="flex flex-col items-center justify-center gap-0.5 py-2 text-2xs text-muted-foreground rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60 active:scale-90 transition-[color,background-color,border-color,transform]"
+            /* r128-F7 (r127-A6 residual): static rounded-lg — focus-visible no
+               longer mutates border-radius (shape-mutation ban). */
           >
             <Menu className="size-5" />
             <span>المزيد</span>

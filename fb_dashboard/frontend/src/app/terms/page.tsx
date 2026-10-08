@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { Eyebrow } from "@/components/ui/Eyebrow"
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -28,15 +30,25 @@ export default function TermsPage() {
           this page; same sr-only anchor pattern as the landing). */}
       <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="max-w-3xl mx-auto px-4 py-20">
-        <h1 className="text-3xl font-bold mb-8">شروط الاستخدام</h1>
+        {/* r128-F7 (A5 B14): the legal pages were the only zero-motion public
+            routes — the SectionHeader eyebrow anatomy + ScrollReveal staggered
+            prose blocks (520ms settle ladder, 80ms stagger) put them on the
+            same reveal craft as the rest of the funnel. Legal copy verbatim. */}
+        <ScrollReveal y={12} duration={0.52}>
+          <Eyebrow>الإطار القانوني</Eyebrow>
+          <h1 className="text-3xl font-bold">شروط الاستخدام</h1>
+        </ScrollReveal>
         <div className="space-y-6 text-foreground/80 leading-relaxed">
+          <ScrollReveal y={16} duration={0.52}>
           <p>
             باستخدامك منصة الربط الذكي (SmartBot) فإنك توافق على هذه الشروط والأحكام. إذا كنت لا
             توافق على أي بند منها، فيرجى التوقف عن استخدام الخدمة. تستهدف هذه الشروط تنظيم العلاقة
             بينك وبين المنصة، وتوضيح حقوق كل طرف والتزاماته بما يتوافق مع القواعد المعمول بها في
             دولة ليبيا.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={80}>
           <h2 className="text-foreground text-xl font-semibold mt-8">الحساب</h2>
           <p>
             عند إنشاء حساب في المنصة تصبح مسؤولاً عن الحفاظ على سرية بيانات تسجيل الدخول الخاصة بك،
@@ -44,7 +56,9 @@ export default function TermsPage() {
             دوري، وإخطارنا فوراً بأي استخدام غير مصرح به لحسابك. لا يجوز مشاركة بيانات حسابك مع
             أي طرف آخر، ويتحمل مالك الحساب كامل المسؤولية عن أي إهمال في حفظ هذه البيانات.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={160}>
           <h2 className="text-foreground text-xl font-semibold mt-8">الخدمة</h2>
           <p>
             تقدم المنصة أدوات لأتمتة التفاعل مع صفحات فيسبوك، تشمل الردود التلقائية الذكية،
@@ -53,7 +67,9 @@ export default function TermsPage() {
             إجراء صيانة دورية أو تحديثات تستلزم توقفاً مؤقتاً. كما نحتفظ بحق تطوير الخدمة أو
             تعديل ميزاتها بما يخدم تحسين جودة الاستخدام.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={240}>
           <h2 className="text-foreground text-xl font-semibold mt-8">الالتزام بالسياسات</h2>
           <p>
             أنت وحدك مسؤول عن التأكد من أن استخدامك للمنصة يتوافق مع شروط استخدام فيسبوك
@@ -61,7 +77,9 @@ export default function TermsPage() {
             التلقائي. أي استخدام مخالف لسياسات فيسبوك قد يعرض صفحتك أو حسابك للتعليق أو الإلغاء
             من قبل فيسبوك، ولا تتحمل المنصة أي مسؤولية عن ذلك.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={320}>
           <h2 className="text-foreground text-xl font-semibold mt-8">الاشتراك والدفع</h2>
           <p>
             تُدفع رسوم الاشتراك عبر وسائل الدفع المتاحة في المنصة (المحافظ الإلكترونية أو التحويل
@@ -69,15 +87,20 @@ export default function TermsPage() {
             الدفع من قبل إدارة المنصة. الرسوم غير قابلة للاسترداد بعد تفعيل الاشتراك، باستثناء
             حالات محدودة يقرها فريق الدعم مثل التعطل الفني الممتد أو الخطأ في الدفع المزدوج.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={400}>
           <h2 className="text-foreground text-xl font-semibold mt-8">تعديل الشروط</h2>
           <p>
             نحتفظ بحق تعديل هذه الشروط في أي وقت. سيتم إخطارك بأي تغييرات جوهرية عبر البريد
             الإلكتروني المسجل في حسابك أو عبر إشعار داخل المنصة. استمرارك في استخدام الخدمة بعد
             نفاذ التعديلات يعتبر موافقة عليها.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal y={12} duration={0.52} delay={480}>
           <p className="text-sm mt-12 text-muted-foreground">آخر تحديث: سبتمبر 2026</p>
+          </ScrollReveal>
         </div>
       </div>
       <Footer />

@@ -393,8 +393,163 @@ for (const [name, okFlag] of GATES) {
   else fails.push(`consumption gate FAILED: ${name}`);
 }
 
+// ── r128-F7: landing-layer pins (src/app/landing.css, `.landing`-scoped) ────
+// The Madarek-journey landing (r128-F3a foundation + F3b assembly) carries
+// its own Orbit-Ink sheet scoped under `.landing` (PORT-KIT §0 R4): the
+// product pins above stay untouched, this block pins the landing world —
+// the §1 palette, the --ln-t-*/--ln-ease-* alias chain onto the product
+// ladder (R1/R8), the marquee anatomy, the --sp scrub consumers, the
+// chrome spy/grain, and scope isolation both ways. All values are the
+// canonical Madarek landing.css values (madarek@cf7ffca) as ported.
+const landingCss = readFileSync(new URL('../src/app/landing.css', import.meta.url), 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ');
+const landingBlocks = topLevelBlocks(landingCss);
+// document-order merge of every top-level `.landing` token block
+// (F3a §0 bridge + §1 sheet + F3b bridge extension)
+const landingScope = {};
+for (const b of landingBlocks) {
+  if (b.prelude === '.landing') Object.assign(landingScope, parseDecls(b.body));
+}
+if (Object.keys(landingScope).length === 0) throw new Error('.landing token blocks not found in landing.css');
+// the real cascade for the alias pins: product :root tokens + landing overlay
+const landingCascade = { ...dark, ...landingScope };
+// raw-declaration reader (parseDecls only sees --* props; consumers like
+// stroke-dashoffset/gap are ordinary declarations and are pinned verbatim —
+// var() fallbacks must NOT be resolved here, the expression IS the contract)
+function declOf(body, prop) {
+  const m = body.match(new RegExp(`(?:^|[;{\\s])${prop}(?![\\w-])\\s*:\\s*([^;]+);`));
+  return m ? m[1].trim() : undefined;
+}
+function pinDecl(label, prelude, prop, expected) {
+  const b = landingBlocks.find((x) => x.prelude === prelude);
+  if (!b) { fails.push(`${label}: rule ${prelude} not found`); return; }
+  const raw = declOf(b.body, prop);
+  if (raw === undefined) { fails.push(`${label} ${prop}: expected ${expected}, got <missing>`); return; }
+  if (norm(raw) === norm(expected)) pass += 1;
+  else fails.push(`${label} ${prop}: expected ${expected}, got ${raw}`);
+}
+
+// (a) §1 Orbit-Ink palette — flat grounds, cream/lime/violet pairings,
+//     hairlines, grain opacity, pill radius (resolves via --r-full bridge)
+//     and the h1 clamp. All canonical tokens.css:377-427 values.
+pinAll(landingCascade, 'landing', {
+  '--ln-ink': '#252A3E',
+  '--ln-ink-2': '#1C2032',
+  '--ln-cream': '#F5F3E7',
+  '--ln-cream-dim': '#C9C6B4',
+  '--ln-lime': '#DFEDB2',
+  '--ln-lime-deep': '#B9D778',
+  '--ln-violet': '#7A6BF2',
+  '--ln-violet-deep': '#4E2FB8',
+  '--ln-line': 'rgba(245, 243, 231, 0.14)',
+  '--ln-line-soft': 'rgba(245, 243, 231, 0.07)',
+  '--ln-grain-op': '0.05',
+  '--ln-radius-pill': '9999px',
+  '--ln-h1': 'clamp(2.75rem, 8.2vw, 6.75rem)',
+});
+
+// (b) alias chain — the landing NEVER forks the ladder: --ln-t-*/--ln-ease-*
+//     resolve onto the product tokens (160/240/380/720ms + canonical curves
+//     + 360ms reveal bridge) and the marquee duration stays 42s.
+pinAll(landingCascade, 'landing-alias', {
+  '--ln-t-fast': '160ms',
+  '--ln-t-base': '240ms',
+  '--ln-t-slow': '380ms',
+  '--ln-t-cinema': '720ms',
+  '--ln-t-reveal': '360ms',
+  '--ln-ease': 'cubic-bezier(0.4, 0, 0.2, 1)',
+  '--ln-ease-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
+  '--ln-ease-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
+  '--ln-ease-spring': 'cubic-bezier(0.34, 1.36, 0.64, 1)',
+  '--ln-ease-linear': 'linear',
+  '--ln-dur-marquee': '42s',
+});
+
+// (c) marquee anatomy — the seamless RTL loop: unprefixed keyframes, the
+//     +24px seam correction (HALF the 48px track gap), and the RM off-switch
+//     (token zeroing cannot stop a raw-duration loop — animation: none).
+const marqueeKf = landingBlocks.find((x) => x.prelude === '@keyframes ln-marquee');
+if (!marqueeKf) throw new Error('@keyframes ln-marquee not found');
+// keyframe steps are nested rules — extract from/to bodies, then read transform
+const kfFromT = declOf(nestedBlock(marqueeKf.body, 'from') ?? '', 'transform');
+const kfToT = declOf(nestedBlock(marqueeKf.body, 'to') ?? '', 'transform');
+if (kfFromT !== undefined && norm(kfFromT) === 'translateX(0)') pass += 1;
+else fails.push(`marquee keyframe from: expected transform translateX(0), got ${kfFromT ?? '<missing>'}`);
+if (kfToT !== undefined && norm(kfToT) === 'translateX(calc(50% + 24px))') pass += 1;
+else fails.push(`marquee keyframe to: expected translateX(calc(50% + 24px)) (the +24px seam = half the 48px gap), got ${kfToT ?? '<missing>'}`);
+pinDecl('marquee', '.landing .ln-marquee-track', 'gap', '48px');
+const marqueeRmOff = landingBlocks
+  .filter((x) => x.prelude === '@media (prefers-reduced-motion: reduce)')
+  .some((m) => {
+    const rule = nestedBlock(m.body, '.landing .ln-marquee-track');
+    return rule !== null && /animation\s*:\s*none/.test(rule);
+  });
+if (marqueeRmOff) pass += 1;
+else fails.push('marquee RM off-switch: @media (prefers-reduced-motion) .landing .ln-marquee-track { animation: none } not found');
+
+// (d) --sp scrub consumers — the imperative section-progress variable
+//     drives the journey light path, the progress ring system and the
+//     chapter veil (raw expressions: the fallbacks are part of the contract)
+pinDecl('sp-consumer', '.landing .ln-journey-path-light', 'stroke-dashoffset', 'calc(1 - var(--sp, 0))');
+pinDecl('sp-consumer', '.landing .ln-progress-orbits', 'transform', 'scale(calc(0.86 + var(--sp, 0.65) * 0.3))');
+pinDecl('sp-consumer', '.landing .ln-chapter::before', 'opacity', 'calc(var(--sp, 0) * 0.5)');
+
+// (e) scroll-spy selectors — all six section ids keep their R2-form active
+//     rules (header[data-active-section=X] .landing-nav-link[href="#X"] —
+//     the attribute-selector form; naive text dumps render it deceptively
+//     as ".landing-nav-link ref=")
+const SPY_SECTIONS = ['trust', 'features', 'journey', 'progress', 'plate', 'roles'];
+const spyMissing = SPY_SECTIONS.filter(
+  (s) => !landingCss.includes(`header[data-active-section="${s}"] .landing-nav-link[href="#${s}"]`),
+);
+if (spyMissing.length === 0) pass += 1;
+else fails.push(`scroll-spy: missing active rules for ${spyMissing.join(', ')}`);
+
+// (f) .ln-grain veil — fixed, inert, 5% opacity (resolved), Madarek's
+//     z-2000 rung (below native dialogs, above the whole landing)
+pinDecl('grain', '.landing .ln-grain', 'z-index', '2000');
+pinDecl('grain', '.landing .ln-grain', 'pointer-events', 'none');
+{
+  const grainBlock = landingBlocks.find((x) => x.prelude === '.landing .ln-grain');
+  const grainOp = grainBlock ? resolve(landingCascade, declOf(grainBlock.body, 'opacity') ?? '') : '';
+  if (norm(grainOp) === '0.05') pass += 1;
+  else fails.push(`grain opacity: expected var(--ln-grain-op) → 0.05, got ${grainOp || '<missing>'}`);
+}
+
+// (g) flat header chrome — .scrolled is solid ink-2 @92%, never glass
+pinDecl('landing-header', '.landing .landing-header.scrolled', 'background', 'rgb(28 32 50 / 0.92)');
+
+// (h) NEGATIVE — .landing scope isolation, both directions:
+//     1. the landing sheet never leaks into the product scopes
+//     2. every top-level selector in landing.css is .landing-scoped
+//        (or an at-rule wrapping .landing rules) — no bare element/global
+//        selectors that would style product surfaces
+const lnLeak = Object.keys(dark).filter((k) => k.startsWith('--ln-'));
+if (lnLeak.length === 0) pass += 1;
+else fails.push(`scope isolation: --ln-* tokens leaked into globals.css :root: ${lnLeak.join(', ')}`);
+const unscoped = landingBlocks.filter((x) => !x.prelude.startsWith('.') && !x.prelude.startsWith('@'));
+if (unscoped.length === 0) pass += 1;
+else fails.push(`scope isolation: unscoped top-level selectors in landing.css: ${unscoped.map((x) => x.prelude).join(' | ')}`);
+
+// (i) NEGATIVE SELF-TEST — inject drift into a copy and prove this block's
+//     machinery SEES it (guards against silent-pass parser rot: if the
+//     poison substitution stops matching, or the re-parse stops resolving,
+//     the harness itself must fail loudly, not stay green)
+const poisonedLanding = landingCss.replace(/(--ln-ink:\s*)#252A3E/, '$1#000000');
+if (poisonedLanding === landingCss) {
+  fails.push('negative self-test: drift injection found no --ln-ink target (selector rot)');
+} else {
+  const pScope = {};
+  for (const b of topLevelBlocks(poisonedLanding)) {
+    if (b.prelude === '.landing') Object.assign(pScope, parseDecls(b.body));
+  }
+  const probe = norm(resolve({ ...dark, ...pScope }, pScope['--ln-ink'] ?? ''));
+  if (probe === '#000000') pass += 1;
+  else fails.push(`negative self-test: poisoned --ln-ink read as ${probe || '<missing>'}, expected #000000`);
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
-  ? `✓ Madarek parity snapshot: ${pass} assertions passed (src/app/globals.css == canonical tokens.css values)`
+  ? `✓ Madarek parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css Orbit-Ink layer == canonical values)`
   : `✗ Madarek parity DRIFT: ${fails.length} failure(s) of ${pass + fails.length}:\n  - ` + fails.join('\n  - '));
 process.exit(fails.length === 0 ? 0 : 1);

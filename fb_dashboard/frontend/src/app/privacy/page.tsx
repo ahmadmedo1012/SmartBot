@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
+import { ScrollReveal } from "@/components/ui/scroll-reveal"
+import { Eyebrow } from "@/components/ui/Eyebrow"
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 
@@ -28,15 +30,25 @@ export default function PrivacyPage() {
           this page; same sr-only anchor pattern as the landing). */}
       <span id="page-content" className="sr-only" tabIndex={-1} />
       <div className="max-w-3xl mx-auto px-4 py-20">
-        <h1 className="text-3xl font-bold mb-8">سياسة الخصوصية</h1>
+        {/* r128-F7 (A5 B14): the legal pages were the only zero-motion public
+            routes — the SectionHeader eyebrow anatomy + ScrollReveal staggered
+            prose blocks (520ms settle ladder, 80ms stagger) put them on the
+            same reveal craft as the rest of the funnel. Legal copy verbatim. */}
+        <ScrollReveal y={12} duration={0.52}>
+          <Eyebrow>حماية البيانات</Eyebrow>
+          <h1 className="text-3xl font-bold">سياسة الخصوصية</h1>
+        </ScrollReveal>
         <div className="space-y-6 text-foreground/80 leading-relaxed">
+          <ScrollReveal y={16} duration={0.52}>
           <p>
             تلتزم منصة الربط الذكي (SmartBot) بحماية خصوصيتك. توضح هذه السياسة كيفية جمعنا
             للمعلومات الشخصية واستخدامها وحمايتها، وتنطبق على جميع مستخدمي المنصة. نلتزم بجمع
             الحد الأدنى من البيانات اللازمة لتشغيل الخدمة فقط، وبعدم بيع أي بيانات لأي طرف
             ثالث.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={80}>
           <h2 className="text-foreground text-xl font-semibold mt-8">المعلومات التي نجمعها</h2>
           <ul className="list-disc ps-5 space-y-2">
             <li>بيانات الحساب: الاسم، البريد الإلكتروني، رقم الهاتف</li>
@@ -44,7 +56,9 @@ export default function PrivacyPage() {
             <li>إعدادات الأتمتة: قواعد الردود، الجداول، والحملات التي تهيئها بنفسك</li>
             <li>بيانات الاستخدام: سجلات التفاعل، التحليلات، وإحصاءات الأداء</li>
           </ul>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={160}>
           <h2 className="text-foreground text-xl font-semibold mt-8">كيف نستخدم معلوماتك</h2>
           <ul className="list-disc ps-5 space-y-2">
             <li>تقديم خدمات أتمتة التفاعل مع فيسبوك وتحسينها باستمرار</li>
@@ -52,7 +66,9 @@ export default function PrivacyPage() {
             <li>تحليل الأداء وإرسال تقارير الاستخدام إلى لوحة التحكم الخاصة بك</li>
             <li>التواصل معك بشأن حسابك وتحديثات الخدمة والدعم الفني</li>
           </ul>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={240}>
           <h2 className="text-foreground text-xl font-semibold mt-8">حماية البيانات</h2>
           <p>
             نطبق إجراءات أمنية متقدمة لحماية بياناتك من الوصول غير المصرح به أو التعديل أو
@@ -60,22 +76,29 @@ export default function PrivacyPage() {
             وخوادمنا، وفصل بيانات كل عميل في مساحة عمل مستقلة لا يمكن لعملاء آخرين الوصول
             إليها. وتُحذف بيانات مساحة العمل بالكامل عند طلب حذف الحساب.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={320}>
           <h2 className="text-foreground text-xl font-semibold mt-8">الأطراف الثالثة</h2>
           <p>
             لا نشارك معلوماتك مع أي طرف ثالث إلا بالقدر اللازم لتقديم الخدمة نفسها (مثل واجهة
             فيسبوك البرمجية الضرورية لتشغيل البوت)، وتحت معايير أمنية صارمة، أو عندما يفرض
             القانون ذلك. لا نستخدم بياناتك لأغراض إعلانية ولن نبيعها لأي جهة.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal as="section" y={16} duration={0.52} delay={400}>
           <h2 className="text-foreground text-xl font-semibold mt-8">تواصل معنا</h2>
           <p>
             لأي استفسارات متعلقة بالخصوصية أو لطلب نسخة من بياناتك أو حذفها، تواصل معنا عبر
             قنوات الدعم المتاحة في لوحة التحكم أو صفحة الدعم داخل حسابك، وسنستجيب في أقرب وقت
             ممكن.
           </p>
+          </ScrollReveal>
 
+          <ScrollReveal y={12} duration={0.52} delay={480}>
           <p className="text-sm mt-12 text-muted-foreground">آخر تحديث: سبتمبر 2026</p>
+          </ScrollReveal>
         </div>
       </div>
       <Footer />

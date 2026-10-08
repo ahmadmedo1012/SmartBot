@@ -88,7 +88,9 @@ export function ActivityBarChart({
           }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]} fill={ACCENT} maxBarSize={28}
-             isAnimationActive={animate} animationDuration={600} />
+             /* r128-F7 (A5 R5): 600ms off-ladder recharts default → 520
+                (--t-slower tier); bars grow in place, TrendLineChart gets 720. */
+             isAnimationActive={animate} animationDuration={520} />
       </BarChart>
     </ResponsiveContainer>
     </div>

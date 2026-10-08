@@ -54,14 +54,19 @@ const WIZARD_MOTION_CSS = `
 @keyframes ob-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ob-panel-in { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: none; } }
 @keyframes ob-sheet-in { from { transform: translate3d(0, 100%, 0); } to { transform: none; } }
-.ob-step-enter { animation: ob-step-in 0.25s ease-out backwards; }
-.ob-icon-pop { animation: ob-icon-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) 0.1s backwards; }
-.ob-fade-in { animation: ob-fade-in 0.3s cubic-bezier(0.25, 0.1, 0.35, 1) backwards; }
+/* r128-F7 (A5 R3): every ob-* duration/curve now rides the canonical ladder —
+   0.25s→--t-base (240ms), 0.3s→--t-slow (380ms), the fork
+   cubic-bezier(0.25,0.1,0.35,1)→--ease-out/--ease-spring-soft, and the
+   mobile sheet matches the fleet sheet recipe (380ms spring-soft,
+   globals.css sheet block). The RM off-switch below rides along. */
+.ob-step-enter { animation: ob-step-in var(--t-base) var(--ease-out) backwards; }
+.ob-icon-pop { animation: ob-icon-in var(--t-slow) var(--ease-spring-soft) 0.1s backwards; }
+.ob-fade-in { animation: ob-fade-in var(--t-slow) var(--ease-out) backwards; }
 /* v18-1a (ج): one-shot shell entrance — mobile bottom-sheet slides up from
    the bottom edge; sm+ keeps the centered-card rise twin. */
-.ob-panel-enter { animation: ob-sheet-in 0.32s var(--ease-out-quart) backwards; }
+.ob-panel-enter { animation: ob-sheet-in var(--t-slow) var(--ease-spring-soft) backwards; }
 @media (min-width: 640px) {
-  .ob-panel-enter { animation: ob-panel-in 0.25s ease-out backwards; }
+  .ob-panel-enter { animation: ob-panel-in var(--t-base) var(--ease-out) backwards; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ob-step-enter, .ob-icon-pop, .ob-fade-in, .ob-panel-enter { animation: none; }

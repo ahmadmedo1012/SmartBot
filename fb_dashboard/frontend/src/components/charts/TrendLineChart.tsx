@@ -107,7 +107,9 @@ export function TrendLineChart({
             dot={false}
             activeDot={{ r: 4, strokeWidth: 0 }}
             isAnimationActive={animate}
-            animationDuration={600}
+            /* r128-F7 (A5 R5): 600ms off-ladder → 720 (--t-cinema tier) —
+               the line draws the full plot width, the longest travel. */
+            animationDuration={720}
           />
         </LineChart>
       </ResponsiveContainer>

@@ -66,8 +66,10 @@ export function AdminMobileNav() {
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-11 flex-col items-center justify-center gap-0.5 py-2 text-2xs outline-none",
-                "focus-visible:ring-2 focus-visible:ring-accent-foreground/60 focus-visible:rounded-lg",
+                "flex min-h-11 flex-col items-center justify-center gap-0.5 py-2 text-2xs rounded-lg outline-none",
+                /* r128-F7 (r127-A6 residual): static rounded-lg — focus-visible
+                   never mutates border-radius (shape-mutation ban). */
+                "focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
                 "active:scale-90 transition-[color,background-color,border-color,transform]",
                 active ? "text-accent-foreground" : "text-muted-foreground",
               )}

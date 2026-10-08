@@ -310,9 +310,11 @@ test.describe('SmartBot Dashboard E2E', () => {
       await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(1000);
 
-      // Dismiss the first-run onboarding tour (react-joyride z-50 overlay
+      // Dismiss the first-run onboarding tour (the react-joyride overlay
       // intercepts pointer events over the whole shell until skipped —
-      // discovered via the nav-click timeout, not a missing element).
+      // discovered via the nav-click timeout, not a missing element.
+      // r128-F7: stale legacy z-50 band reference removed — the ladder is
+      // the canonical 0-600 rung set; the point here is pointer interception.)
       const skipBtn = page.locator('button:has-text("تخطي")').first();
       if (await skipBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
         await skipBtn.click().catch(() => {});

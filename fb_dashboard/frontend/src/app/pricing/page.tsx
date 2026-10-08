@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
+
+import { Header } from "@/components/layout/Header"
+import { Footer } from "@/components/layout/Footer"
 
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { SectionHeader } from "@/components/ui/SectionHeader"
@@ -79,23 +81,16 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <header className="border-b border-border/40 backdrop-blur-md bg-background/60 sticky top-0 z-(--z-dropdown)">
-        <SectionContainer><div className="flex items-center justify-between h-14">
-          <a href="/" className="flex items-center gap-2 min-h-11">
-            <Image src="/brand-icon.png" alt="" width={56} height={56} className="size-7 rounded-md" priority />
-            <span className="font-bold text-sm">SmartBot</span>
-          </a>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => router.push("/")}>الرئيسية</Button>
-            <Button variant="ghost" size="sm" onClick={() => router.push("/demo")}>تجربة حية</Button>
-            <Button size="sm" onClick={() => router.push("/subscribe")}>اشتراك</Button>
-          </div>
-        </div></SectionContainer>
-      </header>
+      {/* r128-F7 (A5 B13): shared product chrome — the page-local mini-header
+          (and the missing footer) retired; /pricing now carries the same
+          Header/Footer as every other public route (chrome consistency).
+          The fixed 60px Header rides --z-dropdown; hero py-20 clears it. */}
+      <Header />
 
       {/* v9-D3: skip-link target (was missing — the skip link was a no-op on
           this page; same sr-only anchor pattern as the landing). */}
       <span id="page-content" className="sr-only" tabIndex={-1} />
+
 
       <SectionContainer className="py-20 text-center relative">
         <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[50vmin]" color="orange/8" />
@@ -330,6 +325,9 @@ export default function PricingPage() {
           <p>جميع الخطط تشمل: تشفير SSL، دعم بريد إلكتروني، تحديثات مجانية مدى الحياة.</p>
         </ScrollReveal>
       </SectionContainer>
+
+      {/* r128-F7 (A5 B13): shared Footer closes the page (was absent). */}
+      <Footer />
 
       {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): the money path now carries
           the same one-tap WhatsApp help affordance the landing has — same

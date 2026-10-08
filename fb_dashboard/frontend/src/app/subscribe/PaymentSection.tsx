@@ -59,7 +59,10 @@ export function ReviewSummary({
       <p className="text-sm text-muted-foreground mb-6 text-center">
         بيانات بوتك الحالية ستبقى كما هي — سيتم تفعيل الخطة بعد موافقة الإدارة.
       </p>
-      <Button className="w-full h-14 text-base font-semibold rounded-sm" size="lg" onClick={onPay}>
+      {/* r131-F7b (A4 P2-5, "subscribe radii → r10"): the pay CTA drops the
+          h-14/text-base/rounded-sm overrides — the canonical lg rung
+          (h-11 44px / 14px / 600 / r-md 10px). */}
+      <Button size="lg" className="w-full" onClick={onPay}>
         <CreditCard className="size-5 ms-2" />
         <span className="tabular-nums">ادفع الآن ({toArabicNumber(currentPlan.price)} د.ل)</span>
       </Button>

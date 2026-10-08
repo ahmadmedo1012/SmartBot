@@ -40,7 +40,9 @@ export function WaitingScreen({ provider, freePlan, headingRef }: WaitingScreenP
         {/* Middle ring */}
         <div className="absolute inset-2 rounded-full border border-accent-foreground/30" />
         {/* Inner icon */}
-        <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-accent-foreground/25">
+        {/* r131-F7b (A4 P2-4): the waiting orb drops the gold-tinted /25
+            glow — neutral shadow-lg carries the elevation. */}
+        <div className="absolute inset-4 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
           <Smartphone className="size-8 text-primary-foreground" />
         </div>
       </div>
@@ -96,7 +98,9 @@ export function ApprovedScreen({ resolutionMsg, onContinue, headingRef }: Approv
           className="absolute inset-0 rounded-full bg-success/20 animate-ping opacity-75"
           style={{ animationDuration: "1.5s" }}
         />
-        <div className="relative size-full rounded-full bg-gradient-to-br from-success to-success/80 flex items-center justify-center shadow-lg shadow-success/30">
+        {/* r131-F7b (A4 P2-4): same treatment on the success orb (the /30
+            success-tinted glow is the same defect class). */}
+        <div className="relative size-full rounded-full bg-gradient-to-br from-success to-success/80 flex items-center justify-center shadow-lg">
           <CheckCircle2 className="size-10 text-success-foreground" />
         </div>
       </div>

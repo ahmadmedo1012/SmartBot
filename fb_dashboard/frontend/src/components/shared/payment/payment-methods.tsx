@@ -59,7 +59,11 @@ export function PaymentMethodTabs({
               aria-pressed={selected}
               data-state={selected ? "active" : "inactive"}
               className={cn(
-                "h-14 rounded-xl border-2 text-[13px] font-medium transition-[border-color,box-shadow,color,background-color] flex flex-col items-center justify-center gap-1",
+                /* r131-F7b (A4 P3-5 + "subscribe radii → r10"): the method
+                   tiles ride the hairline grammar — border-2 → border, and
+                   rounded-xl 16 → rounded-md 10 (the control radius rung);
+                   56px tile height kept (two-line icon+label anatomy). */
+                "h-14 rounded-md border text-[13px] font-medium transition-[border-color,box-shadow,color,background-color] flex flex-col items-center justify-center gap-1",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50",
                 opt.disabled && "opacity-40 cursor-not-allowed",
                 selected

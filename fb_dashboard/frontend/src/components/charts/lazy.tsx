@@ -16,8 +16,13 @@ import dynamic from "next/dynamic"
  * exported component types.
  */
 
+/* r131-F7b (A4 P1-2 completion — the F8 pulse sweep missed this one): the
+ * lazy-chart fallback rides the canonical .skeleton shimmer surface (was
+ * bg-muted/30 + animate-pulse opacity blink); shape kept (128px chart
+ * band, r-xl) — ChartCard.tsx's in-card twin landed in F8, this is the
+ * dynamic-import boundary. RM: the token-bound shimmer zeroes (static). */
 const ChartSkeleton = () => (
-  <div className="h-32 rounded-xl bg-muted/30 animate-pulse" aria-hidden="true" />
+  <div className="skeleton h-32 rounded-xl" aria-hidden="true" />
 )
 
 export const ActivityBarChart = dynamic(

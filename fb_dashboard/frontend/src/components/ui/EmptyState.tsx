@@ -66,7 +66,9 @@ export function EmptyState({
       )}
       {action && (
         <div className="flex gap-2 flex-wrap justify-center">
-          <Button size="sm" onClick={action.onClick} className="shadow-sm shadow-accent-foreground/15">
+          {/* r131-F7b (A4 P2-4): the gold-tinted shadow-sm /15 override is
+             retired — the Button's own shadow-sm (neutral) carries it. */}
+          <Button size="sm" onClick={action.onClick}>
             {action.icon && <action.icon className="size-3.5" />}
             {action.label}
           </Button>
@@ -99,13 +101,13 @@ export function ErrorState({
   return (
     <EmptyState
       icon={undefined}
-      iconNode={<svg className="size-6 text-destructive" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+      iconNode={<svg className="size-6 text-destructive-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
       title={title}
       description={message}
       action={onRetry ? { label: "إعادة المحاولة", onClick: onRetry } : undefined}
       className={className}
       iconBgClassName="bg-destructive-soft"
-      iconClassName="text-destructive"
+      iconClassName="text-destructive-ink"
       size={size}
     />
   )
@@ -117,14 +119,18 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({ count = 3, className }: LoadingStateProps) {
+  /* r131-F7b (A4 P1-2 completion): the pulse-blink rows ride the canonical
+   * .skeleton shimmer surface (same swap F8 landed on the 19 in-page
+   * loading blocks — this shared component was the 20th, still pulsing).
+   * Shape kept: icon-well + title/desc bars per row. */
   return (
     <div className={cn("space-y-3 p-4", className)}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="flex gap-3 animate-pulse">
-          <div className="size-10 rounded-xl bg-muted shrink-0" />
+        <div key={i} className="flex gap-3">
+          <div className="skeleton size-10 rounded-xl shrink-0" />
           <div className="flex-1 space-y-2 py-1">
-            <div className="h-3 bg-muted rounded w-3/4" />
-            <div className="h-2.5 bg-muted rounded w-1/2" />
+            <div className="skeleton h-3 w-3/4" />
+            <div className="skeleton h-2.5 w-1/2" />
           </div>
         </div>
       ))}

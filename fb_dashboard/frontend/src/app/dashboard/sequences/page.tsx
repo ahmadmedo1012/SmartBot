@@ -375,9 +375,10 @@ function SequenceEditor({
     return (
       <Card>
         <CardContent className="p-5 space-y-3">
-          <div className="h-4 w-32 rounded bg-muted animate-pulse" />
-          <div className="h-12 rounded-lg bg-muted animate-pulse" />
-          <div className="h-24 rounded-xl bg-muted animate-pulse" />
+          {/* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */}
+          <div className="skeleton h-4 w-32 rounded" />
+          <div className="skeleton h-12 rounded-lg" />
+          <div className="skeleton h-24 rounded-xl" />
         </CardContent>
       </Card>
     )
@@ -546,9 +547,10 @@ function SequenceEditor({
               </Button>
             </form>
             {subscribers.isLoading ? (
+              /* r131-F8 (A4 P1-2): pulse → .skeleton rows. */
               <div className="space-y-1.5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-11 rounded-lg bg-muted animate-pulse" />
+                  <div key={i} className="skeleton h-11 rounded-lg" />
                 ))}
               </div>
             ) : subscribers.isError ? (
@@ -704,21 +706,26 @@ export default function SequencesPage() {
           )}
 
           {isError ? (
-            <div className="text-center py-16">
-              <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-              <h2 className="sb-section-title mb-1">فشل تحميل الحملات التسلسلية</h2>
-              <p className="text-xs text-muted-foreground mb-4">
-                {(error as Error)?.message || "تعذر الاتصال"}
+            /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical
+                .state family. */
+            <div className="state state-danger py-16" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <h2 className="state-title">فشل تحميل الحملات التسلسلية</h2>
+              <p className="state-desc">
+                {(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
               </p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
-                <RefreshCw className="size-3" /> إعادة المحاولة
+                <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
               </Button>
             </div>
           ) : isLoading ? (
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
-                  <CardContent className="p-4 animate-pulse h-16" />
+                  <CardContent className="p-4"><div className="skeleton h-16 rounded" /></CardContent>
                 </Card>
               ))}
             </div>

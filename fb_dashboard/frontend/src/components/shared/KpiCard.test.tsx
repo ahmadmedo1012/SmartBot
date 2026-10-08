@@ -100,7 +100,9 @@ describe("KpiCard trend badge", () => {
 
     const badge = screen.getByText(/↑/)
     expect(badge).toHaveTextContent("↑ 12%")
-    expect(badge).toHaveClass("text-success")
+    /* r131-F8: the trend badge rides the AA -ink text tier (was the raw
+     * base — same semantic family, fleet A7 Cluster B upgrade). */
+    expect(badge).toHaveClass("text-success-ink")
   })
 
   it("marks a negative trend with ↓ and destructive colors (absolute value)", () => {
@@ -108,7 +110,7 @@ describe("KpiCard trend badge", () => {
 
     const badge = screen.getByText(/↓/)
     expect(badge).toHaveTextContent("↓ 7%")
-    expect(badge).toHaveClass("text-destructive")
+    expect(badge).toHaveClass("text-destructive-ink")
   })
 })
 

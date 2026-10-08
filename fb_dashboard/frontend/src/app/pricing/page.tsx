@@ -224,7 +224,11 @@ export default function PricingPage() {
                 <Card className={cn(
                   "relative h-full flex flex-col overflow-hidden transition-all duration-(--t-slower)",
                   isPopular
-                    ? "border-accent-foreground/50 shadow-2xl shadow-accent-foreground/20 bg-gradient-to-b from-accent-foreground/[0.04] via-card to-card"
+                    /* r131-F7b (A4 P2-4 de-glow tail): the popular card's
+                        gold-tinted /20 glow → the neutral elev-4 rung
+                        (shadow-xl = var(--elev-4)); border emphasis + the
+                        4% wash stay (chrome, not glow). */
+                    ? "border-accent-foreground/50 shadow-xl bg-gradient-to-b from-accent-foreground/[0.04] via-card to-card"
                     : "border-border/50 hover:border-accent-foreground/30"
                 )}>
                   {isPopular && (
@@ -300,10 +304,12 @@ export default function PricingPage() {
                     <Button
                       size="lg"
                       variant={isPopular ? "gold" : "outline"}
-                      className={cn(
-                        "w-full h-10 font-semibold",
-                        isPopular && "shadow-lg shadow-accent-foreground/30"
-                      )}
+                      /* r131-F7b (A4 P2-4): the popular CTA's gold glow
+                         (shadow-lg shadow-accent-foreground/30) is retired —
+                         the canonical Button carries its own premium hover
+                         shadow (the gold-glow-on-CTA was the flagged
+                         pricing:307 site). */
+                      className="w-full h-10"
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}
                     >
                       {plan.price === 0 ? "ابدأ مجاناً" : "اشترك الآن"}

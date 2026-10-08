@@ -7,6 +7,8 @@ import { brandedToast } from "@/lib/premium-toast"
 import { Users2, Shield, User, Plus, Trash2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
@@ -120,52 +122,50 @@ export default function TeamPage() {
         actions={
           /* v17-E-F8 (D6-5): وعد «فريق حتى N» بلا سطح إنشاء — زر مرآة
               لبقية صفحات القوائم (بث/قواعد). */
-          <Button size="sm" className="shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
+          <Button size="sm" onClick={() => setShowForm(v => !v)}>
             <Plus className="size-3.5" /> {showForm ? "إلغاء" : "عضو جديد"}
           </Button>
         }
       />
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-3 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-3 max-w-(--marketing-max-w) mx-auto w-full">
         {showForm && (
           <Card
             onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false) } }}
           >
             <CardContent className="p-4 space-y-3">
               {/* v17-E-F8 (D6-5): عقد POST /api/users — Form-encoded:
-                  username 3-32 حرفًا، password ≥ 8، دور من القائمة. */}
+                  username 3-32 حرفًا، password ≥ 8، دور من القائمة.
+                  r131-F8 (A4 P1-1b/d): the raw-input idiom rides the shared
+                  Input/Select primitives (16px floor / r-md / halo). */}
               <p className="text-xs font-bold text-muted-foreground">إضافة عضو جديد</p>
-              <input
+              <Input
                 value={newUsername}
                 onChange={e => setNewUsername(e.target.value)}
                 placeholder="اسم المستخدم (3-32 حرفًا)"
                 aria-label="اسم المستخدم للعضو الجديد"
-                dir="auto"
                 autoFocus
-                className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
               />
-              <input
+              <Input
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 type="password"
                 placeholder="كلمة المرور (8 أحرف على الأقل)"
                 aria-label="كلمة المرور للعضو الجديد"
                 autoComplete="new-password"
-                dir="auto"
-                className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
               />
               <div className="flex items-center gap-2">
                 <label htmlFor="new-member-role" className="text-xs font-medium text-muted-foreground">الدور</label>
-                <select
+                <Select
                   id="new-member-role"
                   value={newRole}
                   onChange={e => setNewRole(e.target.value)}
-                  className="h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 >
                   {ASSIGNABLE_ROLES.map(r => (
                     <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <p className="text-2xs text-muted-foreground">
                 {newRole === "admin"
@@ -188,12 +188,25 @@ export default function TeamPage() {
         )}
 
         {isLoading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-12" /></Card>)}</div>
+          /* r131-F8 (A4 P1-2): pulse → .skeleton slabs shape-matched to the
+             member row (avatar circle + name/email lines). */
+          <div className="space-y-2">{[1,2,3].map(i => (
+            <Card key={i}><CardContent className="p-4 flex items-center gap-3">
+              <div className="skeleton size-10 shrink-0 rounded-full" />
+              <div className="flex-1 space-y-1.5">
+                <div className="skeleton h-3.5 w-32 rounded" />
+                <div className="skeleton h-2.5 w-48 rounded" />
+              </div>
+            </CardContent></Card>
+          ))}</div>
         ) : isError ? (
-          <div className="text-center py-8">
-            <Users2 className="size-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-xs text-muted-foreground mb-3">{(error as Error)?.message || "تعذر تحميل الفريق"}</p>
-            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare error row → the canonical .state family. */
+          <div className="state state-danger py-8" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <Users2 />
+            </div>
+            <p className="state-desc">{(error as Error)?.message || "تعذر تحميل الفريق"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : members.length === 0 ? (
           <Card><CardContent className="p-0">
@@ -243,19 +256,19 @@ export default function TeamPage() {
                       {/* تغيير الدور — select صريح؛ PUT فوري على التغيير
                           (القيمة المعروضة = دور العضو الحالي، والإلغاء
                           بإغلاق الselect دون تغيير).
-                          v24-C1: 44px target + 16px font — iOS no-zoom
-                          contract (matches the form select at page.tsx:152). */}
-                      <select
+                          r131-F8 (A4 P1-1d): the hand-rolled native select →
+                          the shared Select primitive (44px / 16px / r-md /
+                          halo — was a third focus grammar + md:text-sm). */}
+                      <Select
                         value={m.role || "viewer"}
                         onChange={e => changeRole.mutate({ id: m.id, role: e.target.value })}
                         disabled={changeRole.isPending && changeRole.variables?.id === m.id}
                         aria-label={`دور العضو ${m.username}`}
-                        className="h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                       >
                         {ASSIGNABLE_ROLES.map(r => (
                           <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                         ))}
-                      </select>
+                      </Select>
                       {confirmDeleteId === m.id ? (
                         <>
                           <Button

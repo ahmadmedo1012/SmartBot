@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function NotFound() {
   return (
@@ -19,21 +20,16 @@ export default function NotFound() {
         <p className="text-muted-foreground mb-6 leading-relaxed">
           ربما تم نقل الصفحة أو حذفها، أو أن الرابط غير صحيح.
         </p>
+        {/* r131-F7b (A4 P3-8): the hand-rolled rounded-sm link-buttons retire
+            onto the canonical Button (single element via render-prop child —
+            the global-error CTA twin; v17-S3's hand-rolled /90 hover fix is
+            superseded by the Button's own hover contract). */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/"
-            /* v17-S3 (D2 §3.1#1 / P2): hover:bg-primary was a no-op (same
-               value as base) — the primary 404 CTA never reacted. /90 gives
-               the standard soft-darken hover; transition-colors already on. */
-            className="inline-flex items-center justify-center h-10 px-4 rounded-sm bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
-          >
-            الصفحة الرئيسية
+          <Link href="/" className="inline-flex">
+            <Button className="px-8">الصفحة الرئيسية</Button>
           </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center h-10 px-4 rounded-sm border border-border bg-transparent hover:bg-muted text-sm font-medium transition-colors"
-          >
-            لوحة التحكم
+          <Link href="/dashboard" className="inline-flex">
+            <Button variant="outline" className="px-8">لوحة التحكم</Button>
           </Link>
         </div>
       </div>

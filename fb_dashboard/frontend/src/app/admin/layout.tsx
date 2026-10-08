@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 import AuthGuard from "../dashboard/AuthGuard"
 import { QueryProvider } from "@/components/shared/QueryProvider"
 import { AppToaster } from "@/components/ui/app-toaster"
-import { AdminMobileNav } from "@/components/layout/AdminMobileNav"
+import AdminShell from "@/components/layout/AdminShell"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   // v12-E5.2: QueryProvider here for the admin react-query consumers
@@ -31,20 +31,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <AuthGuard requiredRole="admin" requirePlatformAdmin>
         {/* v13-D9-K4: admin routes render their own page shells without the
             public pages' #page-content span — the root layout's skip link
-            resolved to nothing here. */}
-        <span id="page-content" className="sr-only" tabIndex={-1} />
-        {/* v17-E-F2 (D7-P0-2 + D7-P0-3 pair): /admin/* had NO navigation
-            below md (no sidebar, no bottom bar) — a platform admin on mobile
-            was stranded on the first page they opened. AdminMobileNav is the
-            4-section bottom bar; the pb calc below md is its content
-            clearance, paired with root layout's viewportFit: "cover" so
-            env(safe-area-inset-bottom) is real (bar itself pads via
-            .safe-area-pb). Desktop keeps relying on each page's own header
-            links (cross-links decision = S1). */}
-        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+            resolved to nothing here. (r131-F7: the span now lives inside
+            AdminShell's content column — one target per shell.) */}
+        {/* r131-F7 (A4 P2-6): AdminShell mounts the night-sky desktop sidebar
+            (the /dashboard chrome twin) + keeps AdminMobileNav below md —
+            /admin had NO desktop navigation before (per-page text link rows
+            only). pb calc pairs with root viewportFit cover (safe-area env
+            is real); the mobile bar pads via .safe-area-pb. */}
+        <AdminShell>
           {children}
-        </div>
-        <AdminMobileNav />
+        </AdminShell>
       </AuthGuard>
       <AppToaster />
     </QueryProvider>

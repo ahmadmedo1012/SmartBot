@@ -10,12 +10,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import Svg, { Path, Circle } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, KpiCard, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { DirectionalIcon } from '@/components/directional-icon'
+import { PressableScale } from '@/components/pressable-scale'
+import { DashboardSkeleton } from '@/components/skeleton'
 import { apiGet } from '@/services/api'
-import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
+import { describeError, ErrorState, PullToRefresh } from '@/components/state-views'
 import { formatNumber, formatTrend, timeAgo } from '@/lib/format'
 import { useAuth } from '@/state/auth'
 
@@ -75,7 +78,7 @@ export default function DashboardScreen() {
     setRefreshing(false)
   }, [refetch])
 
-  if (isLoading) return <LoadingState label="جارٍ تحميل لوحة التحكم…" />
+  if (isLoading) return <DashboardSkeleton label="جارٍ تحميل لوحة التحكم…" />
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -156,7 +159,13 @@ export default function DashboardScreen() {
           <Card style={{ marginTop: spacing.lg }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <AppText variant="subtitle">آخر الردود</AppText>
-              <Icon name="chevron-left" size={18} color={colors.mutedFg} />
+              {/* r131: شفرون الكشف من الدلالة (زخرفي — البطاقة غير قابلة للضغط) */}
+              <DirectionalIcon
+                semanticDirection="forward"
+                variant="chevron"
+                size={18}
+                color={colors.mutedFg}
+              />
             </Row>
             {(data?.recent_replies ?? []).length === 0 ? (
               <AppText variant="small" color="mutedFg" style={{ marginTop: spacing.md, textAlign: 'center' }}>
@@ -213,25 +222,29 @@ export default function DashboardScreen() {
 function QuickAction({ label, icon, href }: { label: string; icon: React.ComponentProps<typeof Icon>['name']; href: string }) {
   const { colors } = useTheme()
   return (
+    /* r131: البلاطة كلها زر واحد 48px+ (كان الضغط على النص فقط عبر
+        AppText onPress) — مع سجل 0.97 وتسمية وصولية */
     <View style={{ flex: 1 }}>
-      <Row
+      <PressableScale
+        accessibilityLabel={label}
+        onPress={() => router.push({ pathname: href })}
         style={{
           backgroundColor: colors.muted,
           borderRadius: radius.lg,  // v26-F4: token (12) — كان مكتوبًا يدويًا
           padding: spacing.md,
+          minHeight: TOUCH_TARGET,
+          justifyContent: 'center',
+          flexDirection: 'row',
+          alignItems: 'center',
           gap: spacing.sm,
         }}
+        scaleTo={press.button}
       >
         <Icon name={icon} size={20} color={colors.accentFg} />
-        <AppText
-          variant="smallBold"
-          numberOfLines={1}
-          onPress={() => router.push({ pathname: href })}
-          style={{ flex: 1 }}
-        >
+        <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
           {label}
         </AppText>
-      </Row>
+      </PressableScale>
     </View>
   )
 }

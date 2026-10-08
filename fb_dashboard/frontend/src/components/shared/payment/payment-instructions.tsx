@@ -66,7 +66,9 @@ export function WalletInstructions({
 
       {/* Quick transfer code */}
       <div className="rounded-xl bg-success/10 border border-success/25 p-3">
-        <p className="text-xs font-medium text-success mb-1.5">رمز التحويل السريع</p>
+        {/* r131-F7b (A7 Cluster B): the label rides the AA -ink tier (was the
+            raw base token — sub-AA in light on the /10 wash). */}
+        <p className="text-xs font-medium text-success-ink mb-1.5">رمز التحويل السريع</p>
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-sm font-bold text-accent-foreground truncate" dir="ltr">
             {quickTransferCode}

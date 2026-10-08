@@ -171,14 +171,14 @@ export function DiagnosticsSection({
                    an explicit “not tested” row (never a silent success). */}
               {diagnose.dryRunResult === "ok" ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20">
-                  <CheckCircle2 className="size-4 shrink-0 text-success" />
-                  <p className="text-sm text-success">تم إرسال رسالة تجريبية بنجاح — البوت يعمل بشكل صحيح</p>
+                  <CheckCircle2 className="size-4 shrink-0 text-success-ink" />
+                  <p className="text-sm text-success-ink">تم إرسال رسالة تجريبية بنجاح — البوت يعمل بشكل صحيح</p>
                 </div>
               ) : diagnose.dryRunResult ? (
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20" role="alert">
-                  <XCircle className="size-4 shrink-0 text-destructive mt-0.5" />
+                  <XCircle className="size-4 shrink-0 text-destructive-ink mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-sm text-destructive font-semibold">فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح</p>
+                    <p className="text-sm text-destructive-ink font-semibold">فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح</p>
                     <p className="text-xs text-muted-foreground break-all" dir="ltr">{diagnose.dryRunResult}</p>
                   </div>
                 </div>

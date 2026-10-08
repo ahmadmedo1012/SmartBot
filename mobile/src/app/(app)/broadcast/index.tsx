@@ -10,9 +10,10 @@ import { useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
+import { PressableScale } from '@/components/pressable-scale'
 import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
@@ -241,19 +242,21 @@ export default function BroadcastScreen() {
               />
               <Row style={{ gap: spacing.sm }}>
                 {(['all', 'subscribed'] as const).map((a) => (
-                  <Pressable
+                  <PressableScale
                     key={a}
-                    accessibilityRole="button"
+                    accessibilityLabel={a === 'all' ? 'كل المحادثات' : 'المشتركون فقط'}
+                    accessibilityState={{ selected: audience === a }}
                     onPress={() => setAudience(a)}
                     style={[
                       styles.chip,
                       { borderColor: audience === a ? colors.primary : colors.border, backgroundColor: audience === a ? `${colors.primary}24` : 'transparent' },
                     ]}
+                    scaleTo={press.button}
                   >
                     <AppText variant="smallBold" style={{ color: audience === a ? colors.accentFg : colors.mutedFg }}>
                       {a === 'all' ? 'كل المحادثات' : 'المشتركون فقط'}
                     </AppText>
-                  </Pressable>
+                  </PressableScale>
                 ))}
               </Row>
               {actionError ? (
@@ -280,5 +283,6 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  /* r131: أرضية اللمس 44px (كانت ~36 بـpaddingVertical 8) */
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, minHeight: TOUCH_TARGET - 4, justifyContent: 'center', alignItems: 'center' },
 })

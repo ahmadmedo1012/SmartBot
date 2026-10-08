@@ -8,7 +8,6 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -17,10 +16,12 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Button, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { DirectionalIcon } from '@/components/directional-icon'
+import { PressableScale } from '@/components/pressable-scale'
 import { apiGet, apiPost, apiPostForm } from '@/services/api'
 import { LoadingState, ErrorState, describeError } from '@/components/state-views'
 import { formatTime } from '@/lib/format'
@@ -115,9 +116,20 @@ export default function ConversationScreen() {
     >
       {/* الترويسة */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => router.back()} style={styles.backBtn}>
-          <Icon name="chevron-right" size={24} color={colors.foreground} />
-        </Pressable>
+        <PressableScale
+          accessibilityLabel="رجوع"
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          scaleTo={press.button}
+        >
+          {/* r131: أيقونة الاتجاه من الدلالة — مرآة RTL كالويب */}
+          <DirectionalIcon
+            semanticDirection="back"
+            variant="chevron"
+            size={24}
+            color={colors.foreground}
+          />
+        </PressableScale>
         <View style={{ flex: 1 }}>
           <AppText variant="subtitle" numberOfLines={1}>
             {name || 'محادثة'}
@@ -126,9 +138,14 @@ export default function ConversationScreen() {
             ماسنجر فيسبوك
           </AppText>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="تحديث" onPress={() => refetch()} style={styles.backBtn}>
+        <PressableScale
+          accessibilityLabel="تحديث"
+          onPress={() => refetch()}
+          style={styles.backBtn}
+          scaleTo={press.button}
+        >
           <Icon name="refresh" size={20} color={colors.mutedFg} />
-        </Pressable>
+        </PressableScale>
       </View>
 
       {isError ? (

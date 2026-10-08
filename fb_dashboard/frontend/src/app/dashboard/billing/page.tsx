@@ -8,6 +8,8 @@ import { brandedToast } from "@/lib/premium-toast"
 import { CreditCard, AlertCircle, RefreshCw, Zap, Receipt, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -197,18 +199,19 @@ export default function BillingPage() {
         compact
         actions={
           /* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before)
-              v16-E3 (D1 C2): un-nested Link>Button — orange sm visuals moved to
-              a span, the anchor is the single tab stop. */
-          <Link href="/subscribe">
-            <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm shadow-accent-foreground/15 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-base) ease-smooth h-10 min-h-11 min-w-11 gap-1.5 px-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
+              r131-F8 (A4 P2-4): the glowy hand-rolled span-button → a real
+              Button inside the Link (single tab stop, neutral premium shadow). */
+          <Link href="/subscribe" className="inline-flex">
+            <Button size="sm">
               <Zap className="size-3.5" /> اشترك أو اشحن الرصيد
-            </span>
+            </Button>
           </Link>
         }
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         {/* v17-E-F8 (D6-2): بطاقة الخطة + زر الترقية — مسار المال الجاهز
             (POST /api/subscriptions/upgrade) كان بلا أي مدخل واجهة؛ الترقية
             كانت تمر بالدعم يدويًا (D6 §7 بند 2). */}
@@ -224,13 +227,12 @@ export default function BillingPage() {
               </div>
             </div>
             {plansLoad ? (
-              <div className="h-9 w-28 bg-muted rounded-lg animate-pulse" aria-label="جارٍ تحميل الخطط" />
+              <div className="skeleton h-9 w-28 rounded-lg" aria-label="جارٍ تحميل الخطط" />
             ) : upgradeablePlans.length === 0 ? (
-              <span className="text-xs text-success font-bold bg-success-soft px-3 py-1.5 rounded-full">
-                أنت على أعلى خطة متاحة
-              </span>
+              /* r131-F8 (A4 P2-3): hand-rolled chip → Badge. */
+              <Badge variant="success" className="px-3 py-1.5">أنت على أعلى خطة متاحة</Badge>
             ) : (
-              <Button size="sm" className="shadow-sm shadow-accent-foreground/15" onClick={() => { setUpgradeOpen(true); setSelectedPlanId(null) }}>
+              <Button size="sm" onClick={() => { setUpgradeOpen(true); setSelectedPlanId(null) }}>
                 <Zap className="size-3.5" /> ترقية خطتك
               </Button>
             )}
@@ -241,12 +243,13 @@ export default function BillingPage() {
           <CardContent className="p-6">
             <p className="text-xs text-muted-foreground mb-1">الرصيد الحالي</p>
             {balLoad ? (
-              <div className="h-8 w-24 bg-muted rounded animate-pulse" />
+              <div className="skeleton h-8 w-24 rounded" aria-hidden="true" />
             ) : balErr ? (
               /* v9-B11 — a balance load failure used to render "غير متاح"
-                  as if the balance were genuinely absent */
+                  as if the balance were genuinely absent.
+                  r131-F8 (A7 Cluster B): status-as-text rides the -ink tier. */
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-destructive">فشل تحميل الرصيد</p>
+                <p className="text-sm text-destructive-ink">فشل تحميل الرصيد</p>
                 <Button size="sm" variant="outline" onClick={() => balRefetch()}>إعادة المحاولة</Button>
               </div>
             ) : balance ? (
@@ -262,13 +265,18 @@ export default function BillingPage() {
             <Receipt className="size-4 text-muted-foreground" /> سجل الدفع
           </h2>
           {histLoad ? (
-            <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-10" /></Card>)}</div>
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
+            <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-10 rounded" /></CardContent></Card>)}</div>
           ) : anyError ? (
-            <div className="text-center py-8">
-              <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(error as Error)?.message || "تعذر الاتصال"}</p>
+            /* r131-F8 (A4 P2-8): the bare-AlertCircle error row → the canonical
+                .state family. */
+            <div className="state state-danger py-8" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال"}</p>
               {/* v9-B11 — retry BOTH queries: either one may be the failed one */}
-              <Button size="sm" variant="outline" onClick={() => { balRefetch(); refetch() }}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+              <Button size="sm" variant="outline" onClick={() => { balRefetch(); refetch() }}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : history.length === 0 ? (
             <Card><CardContent className="p-0">
@@ -287,12 +295,14 @@ export default function BillingPage() {
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider ?? ""] || p.provider} · {p.phone}</p>
                       <p className="text-3xs text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      p.status === "completed" ? "bg-success-soft text-success" :
-                      p.status === "pending" ? "bg-warning/10 text-warning" :
-                      p.status === "failed" ? "bg-destructive-soft text-destructive" :
-                      "bg-muted text-muted-foreground"
-                    }`}>{STATUS_LABELS[p.status ?? ""] || p.status}</span>
+                    {/* r131-F8 (A4 P2-3): hand-rolled status chips → Badge
+                        (solid pastel after the F7 re-base; -ink text tier). */}
+                    <Badge variant={
+                      p.status === "completed" ? "success" :
+                      p.status === "pending" ? "warning" :
+                      p.status === "failed" ? "danger" :
+                      "secondary"
+                    }>{STATUS_LABELS[p.status ?? ""] || p.status}</Badge>
                   </CardContent>
                 </Card>
               ))}
@@ -305,7 +315,9 @@ export default function BillingPage() {
           اختيار خطة أعلى ← تبويبات المزود (محافظ/بنكي) ← إرسال عقد
           /api/subscriptions/upgrade. الحركات والبنية من dialog.tsx المشترك. */}
       <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
-        <DialogContent className="sm:max-w-md">
+        {/* r131-F8 (A4 P2-7): the sm:max-w-md override drops — the dialog rides
+            F7's canonical 560px default (title/description unchanged). */}
+        <DialogContent>
           <DialogTitle>ترقية خطتك</DialogTitle>
           <DialogDescription>
             اختر خطة أعلى من خطتك الحالية ({currentPlanLabel}) وطريقة الدفع — سيتم التفعيل بعد موافقة الإدارة
@@ -361,14 +373,16 @@ export default function BillingPage() {
               {effectiveProvider !== "bank" ? (
                 <div className="space-y-1">
                   <label htmlFor="upgrade-phone" className="text-xs font-medium text-muted-foreground">رقم هاتف المحفظة</label>
-                  <input
+                  {/* r131-F8 (A4 P1-1b): raw input → the shared Input primitive
+                      (16px floor / r-md / halo; the explicit dir="ltr" wins
+                      over the built-in dir=auto for phone runs). */}
+                  <Input
                     id="upgrade-phone"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     placeholder="0912345678"
                     inputMode="tel"
                     dir="ltr"
-                    className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                   />
                   <p className="text-2xs text-muted-foreground">
                     حوّل {formatNumber(selectedPlan.price)} د.ل عبر {PROVIDER_LABELS[effectiveProvider]} — انتظر تأكيد الإدارة
@@ -378,36 +392,32 @@ export default function BillingPage() {
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <label htmlFor="upgrade-bank-amount" className="text-xs font-medium text-muted-foreground">المبلغ المحوّل (د.ل)</label>
-                    <input
-                      id="upgrade-bank-amount"
-                      value={bankAmount}
-                      onChange={e => setBankAmount(e.target.value)}
-                      placeholder={String(selectedPlan.price)}
-                      inputMode="decimal"
-                      dir="ltr"
-                      /* v24-C1: 44px target + 16px font — iOS no-zoom contract
-                          (h-10 text-sm zoomed the viewport on focus). */
-                      className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
-                    />
+                    <div className="w-32">
+                      <Input
+                        id="upgrade-bank-amount"
+                        value={bankAmount}
+                        onChange={e => setBankAmount(e.target.value)}
+                        placeholder={String(selectedPlan.price)}
+                        inputMode="decimal"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label htmlFor="upgrade-sender-name" className="text-xs font-medium text-muted-foreground">اسم صاحب الحساب</label>
-                    <input
+                    <Input
                       id="upgrade-sender-name"
                       value={senderAccountName}
                       onChange={e => setSenderAccountName(e.target.value)}
-                      dir="auto"
-                      className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                     />
                   </div>
                   <div className="space-y-1">
                     <label htmlFor="upgrade-sender-number" className="text-xs font-medium text-muted-foreground">رقم الحساب</label>
-                    <input
+                    <Input
                       id="upgrade-sender-number"
                       value={senderAccountNumber}
                       onChange={e => setSenderAccountNumber(e.target.value)}
                       dir="ltr"
-                      className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                     />
                   </div>
                 </div>

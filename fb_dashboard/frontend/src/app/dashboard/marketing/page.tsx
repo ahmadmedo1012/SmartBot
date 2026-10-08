@@ -17,9 +17,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Input } from "@/components/ui/input"
+/* r131-F7b (A4 P1-1 family): the campaign-message raw <textarea> joins
+ * the shared Textarea seam (F8 swap family completion — was rounded-sm +
+ * hand-rolled ring-offset ring + md:text-sm 14px desktop). */
+import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiFetch } from "@/lib/csrf-client"
@@ -46,12 +51,14 @@ const AUDIENCES: { value: string; label: string; desc: string }[] = [
   { value: "new", label: "الجدد", desc: "انضموا خلال 14 يوماً" },
 ]
 
-const STATUS_STYLE: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  scheduled: "bg-info-soft text-info",
-  sent: "bg-success-soft text-success",
-  sending: "bg-accent-foreground/10 text-accent-foreground",
-  failed: "bg-destructive-soft text-destructive",
+/* r131-F8 (A4 P2-3): the hand-rolled chip style map → a Badge variant map
+ * (solid pastel grounds + -ink text after the F7 re-base). */
+const STATUS_BADGE: Record<string, "secondary" | "info" | "success" | "gold" | "danger"> = {
+  draft: "secondary",
+  scheduled: "info",
+  sent: "success",
+  sending: "gold",
+  failed: "danger",
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -214,19 +221,15 @@ export default function MarketingPage() {
                   <label htmlFor="campaign-message" className="text-sm font-semibold">
                     نص الرسالة
                   </label>
-                  <textarea
+                  {/* r131-F7b (A4 P1-1): raw textarea → the shared Textarea
+                      seam (dir="auto" + canonical recipe built in). */}
+                  <Textarea
                     id="campaign-message"
                     value={form.message}
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="اكتب رسالتك التسويقية هنا…"
                     rows={4}
-                    /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                        seam — dir="auto" isolates mixed Arabic/Latin copy.
-                        v24-C2 (task 4 / A3 §2 raw-input drift): text-sm كانت
-                        14px — iOS يكبّر إطار العرض عند التركيز؛ الآن
-                        text-base md:text-sm + min-h-11 (عقد 44px). */
-                    dir="auto"
-                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 min-h-11 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                    className="resize-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -279,22 +282,26 @@ export default function MarketingPage() {
 
           {/* List */}
           {isLoading ? (
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
-                  <CardContent className="p-4 animate-pulse h-16" />
+                  <CardContent className="p-4"><div className="skeleton h-16 rounded" /></CardContent>
                 </Card>
               ))}
             </div>
           ) : isError ? (
-            <div className="text-center py-16">
-              <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-              <h2 className="sb-section-title mb-1">فشل تحميل الحملات</h2>
-              <p className="text-xs text-muted-foreground mb-4">
-                {(error as Error)?.message || "تعذر الاتصال"}
+            /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+            <div className="state state-danger py-16" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <h2 className="state-title">فشل تحميل الحملات</h2>
+              <p className="state-desc">
+                {(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
               </p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
-                <RefreshCw className="size-3" /> إعادة المحاولة
+                <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
               </Button>
             </div>
           ) : campaigns.length === 0 ? (
@@ -317,11 +324,9 @@ export default function MarketingPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold truncate">{c.name}</p>
-                          <span
-                            className={`text-3xs font-bold rounded-full px-2 py-0.5 shrink-0 ${STATUS_STYLE[c.status] || STATUS_STYLE.draft}`}
-                          >
+                          <Badge variant={STATUS_BADGE[c.status] ?? "secondary"} className="shrink-0">
                             {STATUS_LABEL[c.status] || c.status}
-                          </span>
+                          </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                           {c.message}
@@ -409,7 +414,9 @@ export default function MarketingPage() {
           التوزيع الفعلي)، معاينة نص الرسالة من صف الحملة، تحذير صريح بعدم
           قابلية التراجع، وزر تدميري + إلغاء. لا إرسال جماعي بدونه. */}
       <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
-        <DialogContent className="sm:max-w-md">
+        {/* r131-F8 (A4 P2-7): the sm:max-w-md override drops — the dialog rides
+            F7's canonical 560px default. */}
+        <DialogContent>
           <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
           <DialogDescription>
             سيُرسل «{confirmCampaign?.name || (confirmSendId !== null ? `حملة #${confirmSendId}` : "")}» إلى {AUDIENCE_LABELS[confirmAudience] || "المشتركين"} عبر الماسنجر.

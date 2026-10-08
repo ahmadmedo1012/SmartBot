@@ -1,13 +1,15 @@
 /**
- * ترويسة شاشة موحدة لشاشات الـ stack — زر رجوع (RTL: سهم يمين) + عنوان + فعل اختياري.
+ * ترويسة شاشة موحدة لشاشات الـ stack — زر رجوع (DirectionalIcon: في RTL
+ * يشير يمينًا) + عنوان + فعل اختياري.
  */
-import { Pressable, StyleSheet, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing, TOUCH_TARGET } from '@/constants/theme'
+import { press, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
-import { Icon } from '@/components/icon'
+import { DirectionalIcon } from '@/components/directional-icon'
+import { PressableScale } from '@/components/pressable-scale'
 import { LoadingState } from '@/components/state-views'
 
 export function ScreenHeader({
@@ -30,9 +32,21 @@ export function ScreenHeader({
         { paddingTop: insets.top + spacing.sm, borderBottomColor: colors.border },
       ]}
     >
-      <Pressable accessibilityRole="button" accessibilityLabel="رجوع" onPress={() => router.back()} style={styles.backBtn}>
-        <Icon name="chevron-right" size={26} color={colors.foreground} />
-      </Pressable>
+      <PressableScale
+        accessibilityLabel="رجوع"
+        onPress={() => router.back()}
+        style={styles.backBtn}
+        scaleTo={press.button}
+      >
+        {/* r131: أيقونة الاتجاه من الدلالة (لا chevron-right يدويًا) —
+            مرآة RTL آلية كالويب، وحجم اللمس 48px كما هو */}
+        <DirectionalIcon
+          semanticDirection="back"
+          variant="chevron"
+          size={26}
+          color={colors.foreground}
+        />
+      </PressableScale>
       <View style={{ flex: 1 }}>
         <AppText variant="subtitle" numberOfLines={1}>
           {title}

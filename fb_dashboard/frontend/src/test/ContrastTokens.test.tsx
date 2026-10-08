@@ -125,11 +125,18 @@ describe("v24-C6 — PWA manifest orientation (WCAG 1.3.4)", () => {
 })
 
 describe("v24-C6 — shared gold Badge renders full-opacity text (r129: live consumer)", () => {
-  it("badge class is text-accent-foreground (not /NN — the composite that measured 4.28:1 dark)", () => {
+  /* r131-F7b: the gold variant moved from the 15% alpha wash
+   * (bg-accent-foreground/15 + text-accent-foreground) to the canonical
+   * SOLID PASTEL pair (R131-W1 ruling "status = solid pastel"): opaque
+   * copper-family ground + --accent-ink text (theme-flipped AA pair:
+   * gold #E9B44C on #2C2312 dark ≈ 6.8:1 / copper-deep #5C3416 on
+   * #F4E4D2 light ≈ 8.6:1). The pin keeps its original intent — the
+   * text color must be a FULL-OPACITY family token, never /NN alpha. */
+  it("badge class is the solid copper pair with full-opacity --accent-ink text (no /NN alpha)", () => {
     render(<Badge variant="gold">٣× المبيعات</Badge>)
     const badge = screen.getByText("٣× المبيعات")
-    expect(badge.className).toContain("text-accent-foreground")
+    expect(badge.className).toContain("text-(--accent-ink)")
     expect(badge.className).not.toMatch(/text-accent-foreground\/\d+/)
-    expect(badge.className).toContain("bg-accent-foreground/15")
+    expect(badge.className).toContain("bg-(--c-copper-bg)")
   })
 })

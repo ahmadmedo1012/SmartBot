@@ -12,9 +12,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { ChartCard } from "@/components/shared/ChartCard"
+import { KpiCard, KpiCardSkeleton } from "@/components/shared/KpiCard"
 import { unwrapApi } from "@/lib/api"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import type { AnalyticsOverview } from "@/lib/types"
@@ -32,7 +32,8 @@ import type { HeatmapCell } from "@/components/charts/ActivityHeatmap"
  * (خارج ملكية هذه الموجة). */
 const TrendLineChart = dynamic(
   () => import("@/components/charts/TrendLineChart").then((m) => m.TrendLineChart),
-  { ssr: false, loading: () => <div className="h-44 rounded-xl bg-muted/30 animate-pulse" aria-hidden="true" /> },
+  /* r131-F8 (A4 P1-2): pulse blink → the canonical .skeleton shimmer slab. */
+  { ssr: false, loading: () => <div className="skeleton h-44 rounded-xl" aria-hidden="true" /> },
 )
 
 const SENTIMENT_LABELS: Record<string, string> = {
@@ -102,9 +103,12 @@ function PremiumLockBody({ feature }: { feature: string }) {
    * عليهما. */
   const router = useRouter()
   return (
+    /* r131-F8 (A4 P2-4 de-glow): the Premium tile rides the flat pastel
+       family well — 56px r-xl yellow-family ground + family-ink glyph
+       (was a 44px rounded-2xl warning/10 wash with warning/20 rim). */
     <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-      <div className="size-11 rounded-2xl border border-warning/20 bg-warning/10 flex items-center justify-center">
-        <Crown className="size-5 text-warning" aria-hidden="true" />
+      <div className="flex size-14 items-center justify-center rounded-xl bg-(--c-yellow-bg) text-(--c-yellow-ink)">
+        <Crown className="size-5" aria-hidden="true" />
       </div>
       <div>
         <p className="text-sm font-bold">{feature} — متاحة في Premium</p>
@@ -237,7 +241,8 @@ function PeakHourSection() {
         <PremiumLockBody feature="ساعة الذروة" />
       ) : peak != null ? (
         <div className="flex flex-col items-center justify-center gap-2 py-6">
-          <p className="text-5xl font-bold tabular-nums" dir="ltr">{String(peak).padStart(2, "0")}:00</p>
+          {/* r131-F8 (A4 P3-12): 48px → the 44px metric cap (tnum kept) */}
+          <p className="font-heading text-[44px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]" dir="ltr">{String(peak).padStart(2, "0")}:00</p>
           <p className="text-xs text-muted-foreground">أكثر ساعة يسجّل فيها جمهورك تفاعلًا مع صفحتك</p>
         </div>
       ) : null}
@@ -390,11 +395,15 @@ export default function AnalyticsPage() {
     refetchInterval,
   })
 
+  /* r131-F8 (A4 P2-2): the hand-rolled 24px-value/32px-well strip → the
+   * canonical KpiCard (30px tnum value, 44px pastel-family well + rim).
+   * Peak-hour rides the "HH:00" string form (dir handled by KpiCard's
+   * consumers — the value slot is tnum either way). */
   const stats = [
-    { label: "إجمالي الردود", value: data?.total_replies ?? "—", icon: MessageSquare, color: "bg-accent-foreground/10 text-accent-foreground" },
-    { label: "ردود اليوم", value: data?.today_replies ?? "—", icon: Activity, color: "bg-info-soft text-info" },
-    { label: "متابعو الصفحة", value: data?.fan_count ?? "—", icon: Users, color: "bg-success-soft text-success" },
-    { label: "ذروة النشاط", value: data?.peak_hour != null ? `${data.peak_hour}:00` : "—", icon: Clock, color: "bg-accent text-accent-foreground" },
+    { label: "إجمالي الردود", value: data?.total_replies ?? null, icon: MessageSquare, tone: "copper" as const },
+    { label: "ردود اليوم", value: data?.today_replies ?? null, icon: Activity, tone: "sky" as const },
+    { label: "متابعو الصفحة", value: data?.fan_count ?? null, icon: Users, tone: "mint" as const },
+    { label: "ذروة النشاط", value: data?.peak_hour != null ? `${String(data.peak_hour).padStart(2, "0")}:00` : null, icon: Clock, tone: "yellow" as const },
   ]
 
   const daily = data?.daily_breakdown ? Object.entries(data.daily_breakdown) : []
@@ -410,43 +419,31 @@ export default function AnalyticsPage() {
         compact
       />
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      {/* r131-F8 (task #12): the full-bleed column → the canonical 1200
+          content column (one content-width regime with the rest of the
+          dashboard routes). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         {isError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل تحميل التحليلات</h2>
-            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">فشل تحميل التحليلات</h2>
+            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (<><div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-busy={isLoading || undefined}>
           {isLoading ? (
-            /* v17-E-F10 (D1-P3): كانت بطاقات KPI تعرض «—» أثناء التحميل —
-               سكلتون بنفس بنية البطاقة الحقيقية (نمط dashboard/page.tsx:45-63):
-               مربع الأيقونة size-8 + سطر القيمة + سطر التسمية، فيحفظ الارتفاع
-               (CLS=0) ويُقرأ كتحميل جارٍ لا كقيمة مفقودة. */
+            /* v17-E-F10 (D1-P3) → r131-F8: the per-card skeleton is now the
+               KpiCardSkeleton twin (same min-h-132 chrome as the real card,
+               .skeleton slabs in the label/value/well slots — CLS=0). */
             Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Skeleton className="size-8 rounded-lg" />
-                  </div>
-                  <Skeleton className="h-7 w-12 mb-1" />
-                  <Skeleton className="h-3 w-16" />
-                </CardContent>
-              </Card>
+              <KpiCardSkeleton key={i} />
             ))
           ) : (
           stats.map((s, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`size-8 rounded-lg flex items-center justify-center ${s.color}`}>
-                    <s.icon className="size-4" />
-                  </div>
-                </div>
-                <p className="text-2xl font-bold">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </CardContent>
-            </Card>
+            <KpiCard key={i} icon={s.icon} label={s.label} value={s.value} tone={s.tone} index={i} />
           ))
           )}
         </div>
@@ -455,7 +452,7 @@ export default function AnalyticsPage() {
           <CardContent className="p-4">
             <h2 className="sb-section-title mb-4">الردود اليومية (آخر 30 يوم)</h2>
             {isLoading ? (
-              <div className="h-32 bg-muted rounded animate-pulse" />
+              <div className="skeleton h-32 rounded" aria-hidden="true" />
             ) : daily.length === 0 ? (
               <EmptyState icon={BarChart3} size="sm" title="لا توجد بيانات بعد" description="ستظهر حركة الردود اليومية هنا بعد أول تفاعل على صفحتك." />
             ) : (

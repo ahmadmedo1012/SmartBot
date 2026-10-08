@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { pillClasses } from "@/components/shared/pills"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -138,9 +140,10 @@ function ConvItem({ conv, selectedId, onSelect }: {
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-2xs text-muted-foreground">{countPhrase(conv.message_count ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
             {hasUnread && (
-              <span className="inline-flex items-center justify-center text-3xs h-4 min-w-[18px] px-1.5 rounded-full bg-primary text-primary-foreground font-bold">
-                {conv.unread_count}
-              </span>
+              /* r131-F8 (A4 P2-3): the unread counter rides the Badge
+                 primitive (compact overrides preserve the 16px bubble
+                 shape) — was a hand-rolled rounded-full span. */
+              <Badge className="h-4 min-w-4 px-1.5 text-3xs tabular-nums">{conv.unread_count}</Badge>
             )}
           </div>
         </div>
@@ -729,9 +732,12 @@ function MessagesView() {
           ads stale-sync banners (the in-repo connectivity visual language);
           role="status" announces the change without stealing focus. */}
       {isOffline && (
+        /* r131-F7c (fleet ruling "status = solid pastel"): the offline
+           banner's /15 wash → the opaque warning-soft ground + the AA
+           warning-ink text tier (last /15 surface in the app). */
         <div
           role="status"
-          className="sticky top-12 z-20 flex items-center justify-center gap-2 h-9 px-3 bg-warning/15 border-b border-warning/30 text-warning text-xs font-medium"
+          className="sticky top-12 z-20 flex items-center justify-center gap-2 h-9 px-3 bg-warning-soft border-b border-warning/30 text-warning-ink text-xs font-medium"
         >
           <WifiOff className="size-3.5 shrink-0" aria-hidden="true" />
           <span>انقطع الاتصال بالإنترنت — سيتم إعادة المحاولة تلقائياً</span>
@@ -764,27 +770,28 @@ function MessagesView() {
               </span>
               <div className="relative flex-1">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                {/* r131-F8 (A4 P1-1a): the h-9 text-sm + hand-rolled ring
+                    overrides are dropped — the search rides the canonical
+                    Input recipe (h-11 / 16px floor / halo token); only the
+                    start-icon slot padding remains. */}
                 <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="بحث في المحادثات…"
                   aria-label="البحث في المحادثات"
-                  className="ps-9 h-9 text-sm border-border/60 focus:border-accent-foreground/40 focus:ring-accent-foreground/20"
+                  className="ps-9 border-border/60"
                 />
               </div>
             </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {/* r131-F8 (A4 P2-5): the gold-gradient + glow active pill →
+                  the canonical ink-slab .pill family (pillClasses). */}
               {FILTERS.map(f => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   aria-pressed={filter === f.value}
-                  className={cn(
-                    "text-xs px-3 py-1.5 rounded-full whitespace-nowrap transition-all duration-(--t-fast) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40",
-                    filter === f.value
-                      ? "bg-gradient-to-l from-primary to-primary/80 text-primary-foreground shadow-sm shadow-accent-foreground/20 font-medium"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
+                  className={pillClasses(filter === f.value, "h-8 px-3.5")}
                 >
                   {f.label}
                 </button>
@@ -808,25 +815,29 @@ function MessagesView() {
                 ))}
               </div>
             ) : needsSetup ? (
-              <div className="p-8 text-center space-y-4">
-                <div className="size-16 rounded-2xl bg-accent-foreground/10 flex items-center justify-center mx-auto">
-                  <Link2 className="size-8 text-accent-foreground" />
+              /* r131-F8 (A4 P2-4/P2-8): the needs-setup state rides the
+                 canonical .state family — 56px r-xl copper-family well (the
+                 accent family, was a 64px rounded-2xl accent wash tile) +
+                 18px/600 title + 42ch desc; the glowy span-button → a real
+                 Button inside the Link (single element, neutral shadow). */
+              <div className="state p-8">
+                <div className="flex size-14 items-center justify-center rounded-xl bg-(--c-copper-bg) text-(--c-copper-ink)">
+                  <Link2 className="size-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold mb-1">اربط صفحتك بفيسبوك</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="state-title">اربط صفحتك بفيسبوك</p>
+                  <p className="state-desc">
                     لعرض الرسائل والتعليقات، اربط صفحتك أولاً برمز وصول صالح
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 items-center">
-                  {/* v16-E3 (D1 C2): un-nested Link>Button — orange sm visuals
-                      (h-9 px-5 override) moved to a span, single tab stop. */}
-                  <Link href="/connect">
-                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-accent-foreground/25 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-base) ease-smooth h-9 min-h-11 min-w-11 gap-1.5 px-5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
+                  {/* v16-E3 (D1 C2): single tab stop — Button inside Link. */}
+                  <Link href="/connect" className="inline-flex">
+                    <Button size="sm">
                       <Link2 className="size-3.5" /> ربط الصفحة الآن
-                    </span>
+                    </Button>
                   </Link>
-                  <Button size="sm" variant="ghost" onClick={() => refetch()} className="h-8 text-xs">
+                  <Button size="sm" variant="ghost" onClick={() => refetch()}>
                     <RefreshCw className="size-3" /> تحديث
                   </Button>
                 </div>
@@ -1116,10 +1127,15 @@ function MessagesView() {
 
               <div className="border-t border-border/60 p-3 bg-card/80 backdrop-blur-sm">
                 <div className="flex gap-2 items-end">
+                  {/* r131-F8 (A4 P1-3/P2-4): pending state rides the Button
+                      loading prop (spinner + aria-busy, 700ms register) and
+                      the accent glow shadow is dropped — the gold variant
+                      carries its own neutral premium shadow. */}
                   <Button
                     onClick={handleSend}
-                    disabled={!replyText.trim() || sendMut.isPending}
-                    className="shrink-0 shadow-sm shadow-accent-foreground/15"
+                    disabled={!replyText.trim()}
+                    loading={sendMut.isPending}
+                    className="shrink-0"
                     aria-label="إرسال الرد"
                   >
                     <Send className="size-4 rtl:-scale-x-100" aria-hidden="true" />
@@ -1127,9 +1143,12 @@ function MessagesView() {
                   <div className="flex-1">
                     {/* v17-E-F1 (D7-P0): the raw <textarea> was text-sm (14px) —
                         iOS auto-zooms the viewport on every focus. The shared
-                        Textarea brings text-base md:text-sm (16px on mobile),
-                        field-sizing-content auto-grow (D10-M4) and dir="auto"
-                        built in; the reply-bar look is kept via overrides. */}
+                        Textarea brings the canonical field recipe (16px floor,
+                        r-md, halo focus) + field-sizing-content auto-grow
+                        (D10-M4) and dir="auto" built in; only the compact
+                        composer geometry and the translucent bar ground stay
+                        as overrides (r131-F8: the hand-rolled
+                        ring/border/radius overrides are dropped). */}
                     <Textarea
                       value={replyText}
                       onChange={e => updateDraft(e.target.value)}
@@ -1141,7 +1160,7 @@ function MessagesView() {
                       placeholder="اكتب رداً…"
                       aria-label="نص الرد"
                       rows={1}
-                      className="min-h-[44px] max-h-32 resize-none rounded-xl border-input/60 bg-background/80 dark:bg-background/80 px-4 shadow-none focus-visible:border-accent-foreground/40 focus-visible:ring-accent-foreground/15"
+                      className="min-h-[44px] max-h-32 resize-none bg-background/80 dark:bg-background/80"
                     />
                   </div>
                 </div>

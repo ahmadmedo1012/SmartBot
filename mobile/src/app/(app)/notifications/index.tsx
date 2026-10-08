@@ -2,12 +2,13 @@
  * شاشة الإشعارات (نفس الويب /dashboard/notifications):
  * GET /api/notifications/ · POST .../{id}/read · POST .../read-all.
  */
-import { FlatList, Pressable, StyleSheet, View } from 'react-native'
+import { FlatList, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing } from '@/constants/theme'
+import { press, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Button, Card, Row } from '@/components/ui'
+import { PressableScale } from '@/components/pressable-scale'
 import { StackScreen } from '@/components/screen-header'
 import { apiGet, apiPost } from '@/services/api'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
@@ -64,7 +65,12 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => {
             const read = item.read ?? item.is_read ?? false
             return (
-              <Pressable accessibilityRole="button" accessibilityLabel={item.title ?? 'إشعار'} onPress={() => !read && readMutation.mutate(item.id)}>
+              /* r131: سجل ضغط البطاقات 0.99 (لم يكن لهما تغذية ضغط أصلًا) */
+              <PressableScale
+                accessibilityLabel={item.title ?? 'إشعار'}
+                onPress={() => !read && readMutation.mutate(item.id)}
+                scaleTo={press.card}
+              >
                 <Card style={{ opacity: read ? 0.65 : 1 }}>
                   <Row style={{ justifyContent: 'space-between' }}>
                     <Row style={{ gap: spacing.sm, flex: 1 }}>
@@ -83,7 +89,7 @@ export default function NotificationsScreen() {
                     </AppText>
                   ) : null}
                 </Card>
-              </Pressable>
+              </PressableScale>
             )
           }}
         />

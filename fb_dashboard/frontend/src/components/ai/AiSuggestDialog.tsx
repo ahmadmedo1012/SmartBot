@@ -106,7 +106,9 @@ export function AiSuggestDialog({
           </div>
         ) : error ? (
           <div className="space-y-3">
-            <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+            {/* r131-F7b (A7 Cluster B): the error copy rides the AA -ink tier
+                (was the raw base token on the /10 wash — sub-AA in light). */}
+            <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive-ink">
               <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span dir="auto">{error}</span>
             </div>

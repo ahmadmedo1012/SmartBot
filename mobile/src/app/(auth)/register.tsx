@@ -5,17 +5,19 @@
  * برسائل عربية.
  */
 import { useEffect, useState } from 'react'
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Link, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { press, radius, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Button } from '@/components/ui'
 import { AppInput } from '@/components/input'
 import { BrandLogo } from '@/components/brand-logo'
+import { PressableScale } from '@/components/pressable-scale'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useAuth } from '@/state/auth'
 import { describeError } from '@/components/state-views'
 import { APP_NAME } from '@/constants/config'
@@ -31,13 +33,9 @@ export default function RegisterScreen() {
   const [busy, setBusy] = useState(false)
 
   // حركة الدخول scale-in (مع حارس تقليل الحركة) — مطابقة للويب.
+  // r131: الحارس مشترك الآن (hooks/use-reduced-motion) مع اشتراك حي.
   const intro = useSharedValue(0)
-  const [reducedMotion, setReducedMotion] = useState(false)
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled?.()
-      ?.then(setReducedMotion)
-      .catch(() => undefined)
-  }, [])
+  const reducedMotion = useReducedMotion()
   useEffect(() => {
     intro.value = withTiming(1, {
       duration: reducedMotion ? 0 : 380,
@@ -163,14 +161,19 @@ export default function RegisterScreen() {
             <Button title="إنشاء الحساب" onPress={onSubmit} disabled={!canSubmit} loading={busy} />
           </View>
 
-          {/* رابط العودة لتسجيل الدخول — نفس نص الويب بلون العلامة */}
+          {/* رابط العودة لتسجيل الدخول — نفس نص الويب بلون العلامة (سجل 0.97) */}
           <View style={styles.footerLink}>
             <Link href="/(auth)/login" asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel="تسجيل الدخول" hitSlop={12}>
+              <PressableScale
+                accessibilityRole="link"
+                accessibilityLabel="تسجيل الدخول"
+                hitSlop={12}
+                scaleTo={press.button}
+              >
                 <AppText variant="small" style={{ color: colors.accentFg }}>
                   لديك حساب بالفعل؟ تسجيل الدخول
                 </AppText>
-              </Pressable>
+              </PressableScale>
             </Link>
           </View>
         </Animated.View>

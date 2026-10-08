@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { brandedToast } from "@/lib/premium-toast"
-import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles, RefreshCw } from "lucide-react"
+import { Save, Landmark, Headset, RotateCcw, Info, Loader2, Send, Bot, Webhook, Sparkles, RefreshCw, Settings } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import Link from "next/link"
 
-import { SectionContainer } from "@/components/ui/SectionContainer"
-import { SectionHeader } from "@/components/ui/SectionHeader"
+/* r131-F7 (A4 P2-6): PageHeader bar + AdminShell sidebar replace the
+ * centered SectionHeader marketing rhythm on the admin surface. */
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -284,66 +285,73 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+      <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center" role="status" aria-live="polite">
         <span className="sr-only">جارٍ التحميل…</span>
-        <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
-      </SectionContainer>
+        <div className="size-8 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
+      </div>
     )
   }
 
   /* v17-E-F3 (D1 §5.2): retryable in-page error card — same class of fix as
    * admin/telegram:248-255 (v9-B10). The retry re-runs load() (spinner shows
    * via the loading branch above); the settings form is never rendered from
-   * a failed load, so no false-empty fields can be "fixed" by mistake. */
+   * a failed load, so no false-empty fields can be "fixed" by mistake.
+   * r131-F7: rides the .state family (was an ad-hoc destructive banner).
+   * r131-F7c: role="alert" restored (telegram:241 canon) — the swap dropped
+   * the live region (AdminSettingsLoadError pins it). */
   if (loadError) {
     return (
-      <SectionContainer className="min-h-screen py-8">
-        <h1 className="sr-only">إعدادات المنصة</h1>
-        <SectionHeader
+      <div className="state state-danger flex-1 py-16" role="alert">
+        <PageHeader
+          icon={<Settings className="size-4" />}
           title="إعدادات المنصة"
-          description="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
+          subtitle="بيانات الدفع ومعلومات الدعم"
+          compact
         />
-        <div
-          role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex flex-wrap items-center justify-between gap-3"
-        >
-          <p className="text-sm text-destructive">{loadError}</p>
-          <Button size="sm" variant="outline" onClick={load}>
-            <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
-          </Button>
-        </div>
-      </SectionContainer>
+        <div className="state-icon" aria-hidden="true"><RefreshCw /></div>
+        <h1 className="state-title">تعذر تحميل الإعدادات</h1>
+        <p className="state-desc">{loadError}</p>
+        <Button size="sm" variant="outline" onClick={load}>
+          <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
+        </Button>
+      </div>
     )
   }
 
   return (
-    <SectionContainer className="min-h-screen py-8">
-      {/* Visually-hidden page heading — SectionHeader renders the visible title
-          as h2, so heading navigation had no h1 target (v8-B5) */}
-      <h1 className="sr-only">إعدادات المنصة</h1>
-      <SectionHeader
+    <div className="flex-1">
+      {/* r131-F7: PageHeader renders the page h1 (the sr-only h1 + centered
+          SectionHeader pair is retired); the back-link lives in the header
+          actions (AdminShell's sidebar owns the sibling navigation). */}
+      <PageHeader
+        icon={<Settings className="size-4" />}
         title="إعدادات المنصة"
-        description="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
+        subtitle="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
+        compact
+        actions={
+          <>
+            <Link
+              href="/admin"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
+            >
+              <DirectionalIcon semanticDirection="back" className="size-4" /> إدارة الاشتراكات
+            </Link>
+            {/* r131-F7: the save/reset toolbar joins the sticky header actions
+                (was a loose row under the retired SectionHeader). */}
+            <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty || saving}>
+              <RotateCcw className="size-4" /> تراجع
+            </Button>
+            <Button variant="gold" onClick={save} disabled={!dirty || saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+              حفظ التغييرات
+            </Button>
+          </>
+        }
       />
 
-      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <DirectionalIcon semanticDirection="back" className="size-4" /> إدارة الاشتراكات
-        </Link>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty || saving}>
-            <RotateCcw className="size-4" /> تراجع
-          </Button>
-          <Button variant="gold" onClick={save} disabled={!dirty || saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            حفظ التغييرات
-          </Button>
-        </div>
-      </div>
-
+      {/* r131-F7: page body — the dashboard content rhythm (p-6 under the
+          sticky bar) replaces SectionContainer's marketing padding. */}
+      <div className="p-6">
       <div className="grid gap-6 lg:grid-cols-2 items-start">
         {/* Payment section */}
         <div className="sb-fade-up">
@@ -455,6 +463,7 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </div>
-    </SectionContainer>
+      </div>
+    </div>
   )
 }

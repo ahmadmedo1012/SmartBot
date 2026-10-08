@@ -5,14 +5,16 @@ import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { Users, Activity, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { KpiCard, KpiCardSkeleton } from "@/components/shared/KpiCard"
+import { TablePagination } from "@/components/shared/TablePagination"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
-import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { AnalyticsOverview, Paginated, Subscriber, TopCommenter } from "@/lib/types"
-import { countPhrase, formatDateOnly, formatNumber } from "@/lib/format"
+import { countPhrase, formatDateOnly } from "@/lib/format"
 
 /* v25 (W-05): عقد /api/subscribers (routers/subscribers_tags_routes.py:20 +
  * subscriber_engine.search) — page ge=1 وper_page ge=1 le=200 بغلاف
@@ -52,7 +54,6 @@ export default function AudiencePage() {
   const subsTotal = subsQuery.data?.total ?? 0
   const shownPage = subsQuery.data?.page ?? subsPage
   const totalPages = Math.max(1, Math.ceil(subsTotal / (subsQuery.data?.per_page ?? SUBS_PER_PAGE)))
-  const hasNextPage = shownPage < totalPages
 
   return (
     <div className="flex-1 flex flex-col">
@@ -64,60 +65,34 @@ export default function AudiencePage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* r131-F8 (A12 SB#3 + task #12): max-w-5xl (1024) → the canonical
+          1200 marketing/content column token (dashboard home rides the same
+          column via SectionContainer — one content-width regime). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         {isError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">تعذر تحميل بيانات الجمهور</h2>
-            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">تعذر تحميل بيانات الجمهور</h2>
+            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (<>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-accent-foreground/10 flex items-center justify-center mb-2">
-                <Users className="size-4 text-muted-foreground" />
-              </div>
-              {/* v17-E-F3 (D1 §5.5): KPI value is a skeleton while the overview
-                  loads (mirror: dashboard/page.tsx:52-58) — h-8 matches
-                  text-2xl's line box so the card height never shifts (the
-                  static label stays visible; background refetches keep the
-                  previous value — no flicker). */}
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-2xl font-bold">{data?.fan_count ?? "—"}</p>
-              )}
-              <p className="text-xs text-muted-foreground">متابعو الصفحة</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-info-soft flex items-center justify-center mb-2">
-                <Activity className="size-4 text-info" />
-              </div>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-2xl font-bold">{data?.total_replies ?? "—"}</p>
-              )}
-              <p className="text-xs text-muted-foreground">إجمالي التفاعل</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="size-8 rounded-lg bg-success-soft flex items-center justify-center mb-2">
-                <Activity className="size-4 text-success" />
-              </div>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-2xl font-bold">{data?.today_replies ?? "—"}</p>
-              )}
-              <p className="text-xs text-muted-foreground">نشاط اليوم</p>
-            </CardContent>
-          </Card>
+        {/* r131-F8 (A4 P2-2): the hand-rolled 24px-value/32px-well strip →
+            the canonical KpiCard (30px tnum value, 44px pastel well + rim).
+            Height-stable KpiCardSkeleton while the overview loads. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {isLoading ? <KpiCardSkeleton /> : (
+            <KpiCard icon={Users} label="متابعو الصفحة" value={data?.fan_count ?? null} tone="copper" index={0} />
+          )}
+          {isLoading ? <KpiCardSkeleton /> : (
+            <KpiCard icon={Activity} label="إجمالي التفاعل" value={data?.total_replies ?? null} tone="sky" index={1} />
+          )}
+          {isLoading ? <KpiCardSkeleton /> : (
+            <KpiCard icon={Activity} label="نشاط اليوم" value={data?.today_replies ?? null} tone="mint" index={2} />
+          )}
         </div>
 
         <Card>
@@ -205,44 +180,28 @@ export default function AudiencePage() {
                         </p>
                       </div>
                     </div>
-                    <span className={`text-3xs px-2 py-0.5 rounded-full shrink-0 ${
-                      s.status === "active" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-                    }`}>
+                    <Badge variant={s.status === "active" ? "success" : "secondary"} className="shrink-0">
                       {s.status === "active" ? "نشط" : "غير نشط"}
-                    </span>
+                    </Badge>
                   </div>
                 ))}
               </div>
             )}
 
             {/* v25 (W-05): مِرقاة الصفحات — القائمة كانت محصورة في أول 10
-                مشتركين؛ السابق/التالي + «صفحة X من Y» من الظرف الفعلي
-                (نمط admin/support v24-C3: DirectionalIcon chevrons). تُخفى
-                عند التحميل/الخطأ/الفراغ. */}
+                مشتركين. r131-F8 (A4 P2-1): the السابق/التالي row → the
+                canonical numbered windowed pagination footer (count on the
+                start side + page-number buttons + ellipsis gaps). تُخفى عند
+                التحميل/الخطأ/الفراغ. */}
             {!subsQuery.isLoading && !subsQuery.isError && subsTotal > 0 && (
-              <div className="flex items-center justify-center gap-3 pt-3 mt-1 border-t border-border/60">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSubsPage((p) => Math.max(1, p - 1))}
-                  disabled={subsPage <= 1}
-                  aria-label="الصفحة السابقة"
-                >
-                  <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
-                </Button>
-                <span className="text-xs text-muted-foreground" role="status">
-                  صفحة {formatNumber(shownPage)} من {formatNumber(totalPages)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSubsPage((p) => p + 1)}
-                  disabled={!hasNextPage}
-                  aria-label="الصفحة التالية"
-                >
-                  التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
-                </Button>
-              </div>
+              <TablePagination
+                page={shownPage}
+                totalPages={totalPages}
+                total={subsTotal}
+                onPageChange={(p) => setSubsPage(p)}
+                unitLabel="مشترك"
+                className="mt-1"
+              />
             )}
           </CardContent>
         </Card>

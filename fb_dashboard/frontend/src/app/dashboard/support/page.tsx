@@ -14,19 +14,23 @@ import {
   Ticket,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import type { SupportTicket } from "@/lib/types"
 
-const PRIORITY_STYLE: Record<string, string> = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-info-soft text-info",
-  high: "bg-accent-foreground/10 text-accent-foreground",
-  urgent: "bg-destructive-soft text-destructive",
+/* r131-F8 (A4 P2-3): the hand-rolled chip style maps → Badge variant maps
+ * (solid pastel grounds + -ink text after the F7 re-base). */
+const PRIORITY_BADGE: Record<string, "secondary" | "info" | "gold" | "danger"> = {
+  low: "secondary",
+  medium: "info",
+  high: "gold",
+  urgent: "danger",
 }
 const PRIORITY_LABEL: Record<string, string> = {
   low: "منخفضة",
@@ -40,13 +44,12 @@ const TICKET_STATUS_LABEL: Record<string, string> = {
   closed: "مغلقة",
 }
 
-/* v17-E-F8 (D6 #5): تمييز الحالة لونيًا — «مغلقة» كان يظهر بنفس رمادي
- * الحياد فلا يُميّز عن مفتوحة؛ نفس دلالات ألوان admin/support
- * (open=تحذير · pending=معلّم · closed=نجاح). */
-const TICKET_STATUS_STYLE: Record<string, string> = {
-  open: "bg-warning/10 text-warning",
-  pending: "bg-info-soft text-info",
-  closed: "bg-success-soft text-success",
+/* v17-E-F8 (D6 #5) → r131-F8: the same status semantics on the Badge
+ * primitive (open=تحذير · pending=معلّم · closed=نجاح). */
+const TICKET_STATUS_BADGE: Record<string, "warning" | "info" | "success"> = {
+  open: "warning",
+  pending: "info",
+  closed: "success",
 }
 
 /* v12-E4.5: the four priority options in visual order (RTL grid runs
@@ -201,8 +204,9 @@ export default function SupportPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         {/* Contact */}
         <Card>
           <CardHeader>
@@ -210,9 +214,10 @@ export default function SupportPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {infoLoading ? (
+              /* r131-F8 (A4 P1-2): pulse → .skeleton lines. */
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-6 w-48 bg-muted rounded animate-pulse" />
+                  <div key={i} className="skeleton h-6 w-48 rounded" />
                 ))}
               </div>
             ) : (
@@ -307,9 +312,9 @@ export default function SupportPage() {
                         data-priority={p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
                         /* v24-C1: h-11 (44px) touch target — raw radios at h-8
-                            (32px) bypassed the Button min-h-11 guarantee
-                            (A1 S3 family). */
-                        className={`h-11 rounded-sm border text-xs font-medium transition-all ${
+                            (32px) bypassed the touch floor (A1 S3 family).
+                            r131-F8: rounded-sm → r-md (the control rung). */
+                        className={`h-11 rounded-md border text-xs font-medium transition-all ${
                           form.priority === p
                             ? "border-accent-foreground bg-accent-foreground/10 text-accent-foreground"
                             : "border-border/50 text-muted-foreground hover:border-accent-foreground/30"
@@ -327,7 +332,10 @@ export default function SupportPage() {
                   >
                     الرسالة *
                   </label>
-                  <textarea
+                  {/* r131-F8 (A4 P1-1c): the raw textarea (rounded-sm + hand-
+                      rolled ring + md:text-sm) rides the shared Textarea
+                      recipe — 16px floor, r-md, halo, aria-invalid wiring. */}
+                  <Textarea
                     id="message"
                     required
                     aria-describedby={form.message && form.message.trim().length < 10 ? "message-error" : undefined}
@@ -336,18 +344,13 @@ export default function SupportPage() {
                     onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="صف مشكلتك بالتفصيل…"
                     rows={5}
-                    /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                        seam — dir="auto" isolates mixed Arabic/Latin text.
-                        v24-C1: text-base (16px) on mobile — iOS no-zoom
-                        contract (text-sm zoomed the viewport on focus). */
-                    dir="auto"
-                    className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-base md:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   />
                   {form.message && form.message.trim().length < 10 && (
                     /* v12-E4.4: role="alert" alone carries implicit
                      * aria-live="assertive" — the explicit polite live
-                     * region was downgrading it and is dropped. */
-                    <p id="message-error" role="alert" className="text-xs text-destructive">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
+                     * region was downgrading it and is dropped.
+                     * r131-F8 (A7): -ink text tier. */
+                    <p id="message-error" role="alert" className="text-xs text-destructive-ink">الرسالة يجب أن تكون 10 أحرف على الأقل</p>
                   )}
                 </div>
                 <Button
@@ -365,10 +368,13 @@ export default function SupportPage() {
         ) : (
           <Card>
             <CardContent className="py-12 text-center space-y-3">
-              <div className="mx-auto size-12 rounded-full bg-success-soft flex items-center justify-center">
-                <Send className="size-5 text-success rtl:-scale-x-100" />
+              {/* r131-F8 (A4 P2-8 de-glow): the success state rides the flat
+                  pastel family well (mint, 56px r-xl — was a rounded-full
+                  success-soft circle) + the -ink text tier. */}
+              <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-(--c-mint-bg) text-(--c-mint-ink)">
+                <Send className="size-5 rtl:-scale-x-100" />
               </div>
-              <p role="status" className="text-sm font-bold text-success">تم إرسال طلبك</p>
+              <p role="status" className="text-sm font-bold text-success-ink">تم إرسال طلبك</p>
               <p className="text-xs text-muted-foreground">
                 سيتواصل معك فريق الدعم خلال 24 ساعة
               </p>
@@ -390,9 +396,7 @@ export default function SupportPage() {
             <Ticket className="size-4 text-accent-foreground" />
             تذاكري
             {tickets.length > 0 && (
-              <span className="text-3xs font-bold bg-accent-foreground/10 text-accent-foreground rounded-full px-2 py-0.5">
-                {tickets.length}
-              </span>
+              <Badge className="tabular-nums">{tickets.length}</Badge>
             )}
           </h2>
 
@@ -434,12 +438,12 @@ export default function SupportPage() {
                           {/* r127-F5a: priority is optional on SupportTicket —
                               `?? ""` mirrors the sibling `t.status ?? ""` idiom
                               one line below. */}
-                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${PRIORITY_STYLE[t.priority ?? ""] || PRIORITY_STYLE.medium}`}>
+                          <Badge variant={PRIORITY_BADGE[t.priority ?? ""] ?? "secondary"}>
                             {PRIORITY_LABEL[t.priority ?? ""] || t.priority}
-                          </span>
-                          <span className={`text-3xs font-bold rounded-full px-2 py-0.5 ${TICKET_STATUS_STYLE[t.status ?? ""] || "bg-muted text-muted-foreground"}`}>
+                          </Badge>
+                          <Badge variant={TICKET_STATUS_BADGE[t.status ?? ""] ?? "secondary"}>
                             {TICKET_STATUS_LABEL[t.status ?? ""] || t.status}
-                          </span>
+                          </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{t.body}</p>
                       </div>
@@ -507,23 +511,19 @@ export default function SupportPage() {
                                 </div>
                                 {t.status !== "closed" && (
                                   <div className="flex gap-2">
-                                    <input
-                                      value={replyText}
-                                      onChange={(e) => setReplyText(e.target.value)}
-                                      placeholder="اكتب رداً…"
-                                      aria-label="نص الرسالة"
-                                      /* v16-E3 (D1 C3): dir="auto" isolates the mixed
-                                          Arabic/Latin reply being typed.
-                                          v24-C1: 44px target + 16px font — iOS
-                                          no-zoom contract (h-9 text-xs was a 36px
-                                          target with a 12px font — the worst
-                                          zoom offender in the app). */
-                                      dir="auto"
-                                      className="flex-1 h-11 text-base md:text-sm rounded-sm border border-input bg-transparent px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                    />
+                                    {/* r131-F8 (A4 P1-1a): the raw reply input → the
+                                        shared Input recipe (was h-11 rounded-sm +
+                                        hand-rolled ring + md:text-sm). */}
+                                    <div className="flex-1">
+                                      <Input
+                                        value={replyText}
+                                        onChange={(e) => setReplyText(e.target.value)}
+                                        placeholder="اكتب رداً…"
+                                        aria-label="نص الرسالة"
+                                      />
+                                    </div>
                                     <Button
-                                      size="sm"
-                                      className="h-9 gap-1.5"
+                                      className="shrink-0"
                                       disabled={replyMutation.isPending || replyText.trim().length < 2}
                                       onClick={() => {
                                         replyMutation.mutate({ id: t.id, message: replyText.trim() })

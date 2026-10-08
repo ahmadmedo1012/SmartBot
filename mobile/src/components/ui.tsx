@@ -2,10 +2,12 @@
  * SmartBot Mobile — عناصر UI أساسية مشتركة (Card/Button/Badge/Row...).
  * كل الألوان من الثيم — لا ألوان ثابتة في الشاشات (قاعدة الويب Track D).
  */
-import { ActivityIndicator, Pressable, StyleSheet, View, type ViewProps } from 'react-native'
+import { StyleSheet, View, type ViewProps } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
+import { PressableScale } from '@/components/pressable-scale'
+import { Spinner } from '@/components/spinner'
 
 // ── Card ────────────────────────────────────────────────────────────────
 export function Card({ style, ...rest }: ViewProps) {
@@ -15,7 +17,10 @@ export function Card({ style, ...rest }: ViewProps) {
       style={[
         {
           backgroundColor: colors.card,
-          borderRadius: radius.lg,
+          /* r131 (A4 P2-9 straggler): r-xl 16 — نفس درجة بطاقة الويب
+             (rounded-xl بعد حكم r130 D-3)؛ كانت lg 12 درجة أدنى من قواعد
+             الويب */
+          borderRadius: radius.xl,
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: colors.border,
           padding: spacing.lg,
@@ -35,9 +40,11 @@ export interface ButtonProps {
   disabled?: boolean
   loading?: boolean
   size?: 'md' | 'sm'
+  /** r131: حالة إضافية للمستدعي (selected للمحولات — تُدمج مع disabled/busy) */
+  accessibilityState?: { selected?: boolean; expanded?: boolean; checked?: boolean }
 }
 
-export function Button({ title, onPress, variant = 'primary', disabled, loading, size = 'md' }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', disabled, loading, size = 'md', accessibilityState }: ButtonProps) {
   const { colors } = useTheme()
   const bg =
     variant === 'primary' ? colors.primary : variant === 'danger' ? colors.destructive : 'transparent'
@@ -48,35 +55,47 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading,
         ? colors.foreground
         : colors.accentFg
   const border = variant === 'secondary' ? { borderWidth: 1, borderColor: colors.border } : undefined
+  /* r131 (F11 / A4 P2-9): سجل الضغط القانوني — تحجيم 0.97 @ 80ms على
+     منحنى (0.16,1,0.3,1) عبر PressableScale (كان opacity 0.85 فقط —
+     سجل r130 لم يهبط قط). شفافية 0.5 تبقى للتعطيل فقط (ليست ضغطًا). */
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled || loading}
-      accessibilityRole="button"
       accessibilityLabel={title}
-      accessibilityState={{ disabled: !!disabled || !!loading, busy: !!loading }}
-      style={({ pressed }) => [
+      accessibilityState={{
+        disabled: !!disabled || !!loading,
+        busy: !!loading,
+        selected: accessibilityState?.selected,
+        expanded: accessibilityState?.expanded,
+        checked: accessibilityState?.checked,
+      }}
+      scaleTo={press.button}
+      style={[
         {
           backgroundColor: bg,
           borderRadius: radius.md,
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: size === 'md' ? TOUCH_TARGET : 40,
+          /* r131: أرضية اللمس 44px حتى للـsm (WCAG — كان 40) */
+          minHeight: size === 'md' ? TOUCH_TARGET : 44,
           paddingHorizontal: spacing.xl,
           paddingVertical: size === 'md' ? spacing.md : spacing.sm,
-          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: disabled ? 0.5 : 1,
         },
         border,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={fg} size="small" />
+        /* r131: الدوار القانوني (22px/حد 8%/قوس accent/700ms) — كان
+           ActivityIndicator بحجم النظام */
+        <Spinner size={18} color={fg} />
       ) : (
         <AppText variant="smallBold" style={{ color: fg }}>
           {title}
         </AppText>
       )}
-    </Pressable>
+    </PressableScale>
   )
 }
 

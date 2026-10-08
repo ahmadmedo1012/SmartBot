@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
 import { formatDate } from "@/lib/format"
@@ -107,21 +108,19 @@ export default function ScheduledPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         <Card>
           <CardContent className="p-4 space-y-3">
-            <textarea
+            {/* r131-F8 (A4 P1-1c): the raw composer textarea rides the shared
+                Textarea recipe — 16px floor, r-md, halo; dir=auto built in. */}
+            <Textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder="محتوى المنشور…"
               aria-label="نص المنشور"
-              /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                  seam — dir="auto" isolates mixed Arabic/Latin post text.
-                  v24-C1: text-base (16px) on mobile — iOS no-zoom contract
-                  (text-sm forced the ~1.14× viewport zoom on every focus). */
-              dir="auto"
-              className="w-full min-h-[80px] rounded-xl border border-input bg-background p-3 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
+              rows={3}
             />
             {/* v24-C1 (A1 P1): stack on mobile — the datetime input was
                 squeezed to ~160px beside the button (the Arabic loading
@@ -150,20 +149,24 @@ export default function ScheduledPage() {
         </Card>
 
         {isLoading ? (
+          /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
           <div className="space-y-3">
             {[1,2,3].map(i => (
-              <Card key={i}><CardContent className="p-4 animate-pulse space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4" />
-                <div className="h-3 bg-muted rounded w-1/3" />
+              <Card key={i}><CardContent className="p-4 space-y-2">
+                <div className="skeleton h-4 w-3/4 rounded" />
+                <div className="skeleton h-3 w-1/3 rounded" />
               </CardContent></Card>
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center py-12">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <p className="text-sm font-bold mb-1">فشل تحميل المنشورات المجدولة</p>
-            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
-            <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+          <div className="state state-danger py-12" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <p className="state-title">فشل تحميل المنشورات المجدولة</p>
+            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (
           <EmptyState

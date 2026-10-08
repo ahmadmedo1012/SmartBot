@@ -9,6 +9,8 @@ import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { KpiCard } from "@/components/shared/KpiCard"
 
 import { cn } from "@/lib/utils"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -188,26 +190,13 @@ function DemoActivityBars({
 function StatsTab() {
   return (
     <div className="space-y-6">
+      {/* r131-F8 (A4 P2-2): the hand-rolled 24px-value/32px-well strip → the
+          canonical KpiCard (30px tnum value, 44px pastel-family well + rim). */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-        {[
-          { icon: MessageCircle, value: mockStats.replies_today, label: "ردود اليوم", color: "text-accent-foreground", bg: "bg-accent-foreground/10" },
-          { icon: Activity, value: mockStats.replies_week, label: "آخر 7 أيام", color: "text-info", bg: "bg-info-soft" },
-          { icon: Users, value: formatNumber(mockStats.followers), label: "متابعو الصفحة", color: "text-success", bg: "bg-success-soft" },
-          { icon: Bot, value: mockStats.rules, label: "قواعد نشطة", color: "text-warning", bg: "bg-warning/10" },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                {/* v4 plan §4.3 — explicit bg map instead of fragile text→bg string replace */}
-                <div className={cn("size-8 rounded-lg flex items-center justify-center", s.bg)}>
-                  <s.icon className={cn("size-4", s.color)} />
-                </div>
-              </div>
-              <p className="text-2xl font-bold">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <KpiCard icon={MessageCircle} label="ردود اليوم" value={mockStats.replies_today} tone="copper" index={0} />
+        <KpiCard icon={Activity} label="آخر 7 أيام" value={mockStats.replies_week} tone="sky" index={1} />
+        <KpiCard icon={Users} label="متابعو الصفحة" value={formatNumber(mockStats.followers)} tone="mint" index={2} />
+        <KpiCard icon={Bot} label="قواعد نشطة" value={mockStats.rules} tone="yellow" index={3} />
       </div>
 
       <Card>
@@ -261,30 +250,38 @@ function StatsTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <table aria-labelledby="demo-rules-title" className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground text-xs">
-                  <th scope="col" className="text-start p-3 font-medium">القاعدة</th>
-                  <th scope="col" className="text-start p-3 font-medium">الكلمة المفتاحية</th>
-                  <th scope="col" className="text-center p-3 font-medium">الردود</th>
-                  <th scope="col" className="text-center p-3 font-medium">الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockStats.rules_data.map((r, i) => (
-                  <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                    <td className="p-3 font-medium">{r.name}</td>
-                    <td className="p-3 text-muted-foreground">{r.keyword}</td>
-                    <td className="p-3 text-center">{r.count}</td>
-                    <td className="p-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-xs text-success">
-                        <CheckCircle2 className="size-3" aria-hidden="true" /> نشط
-                      </span>
-                    </td>
+            {/* r131-F8 (A4 P2-1 + A12 SB#1): the fleet table canon — 13px
+                cells (--fs-sm), 11px/600 surface-2 header band, quiet
+                zebra-on-hover wash, 2px first-cell accent dot, tbl-stack
+                mobile collapse via data-label — AND the overflow-x-auto
+                wrapper this table never had (the only unwrapped table in
+                the app: it squashed/overflowed the card at ≤480px). */}
+            <div className="overflow-x-auto">
+              <table aria-labelledby="demo-rules-title" className="tbl-stack w-full text-(length:--fs-sm)">
+                <thead>
+                  <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
+                    <th scope="col" className="text-start px-4 py-3 font-semibold">القاعدة</th>
+                    <th scope="col" className="text-start px-4 py-3 font-semibold">الكلمة المفتاحية</th>
+                    <th scope="col" className="text-center px-4 py-3 font-semibold">الردود</th>
+                    <th scope="col" className="text-center px-4 py-3 font-semibold">الحالة</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {mockStats.rules_data.map((r, i) => (
+                    <tr key={i} className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40">
+                      <td data-label="القاعدة" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{r.name}</td>
+                      <td data-label="الكلمة المفتاحية" className="p-3 px-4 text-muted-foreground">{r.keyword}</td>
+                      <td data-label="الردود" className="p-3 px-4 text-center tabular-nums">{r.count}</td>
+                      <td data-label="الحالة" className="p-3 px-4 text-center">
+                        <span className="inline-flex items-center gap-1 text-xs text-success-ink">
+                          <CheckCircle2 className="size-3" aria-hidden="true" /> نشط
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -340,15 +337,19 @@ function RepliesTab() {
             </div>
           ))}
           <div className="flex gap-2 pt-2">
-            <input
-              disabled
-              placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
-              aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
-              /* v16-E3 (D1 C3): dir="auto" — same raw-field bidi isolation
-                  as the live message composer. */
-              dir="auto"
-              className="flex-1 h-11 rounded-xl border border-input/60 bg-muted/50 px-4 text-sm"
-            />
+            {/* r131-F8 (A4 P1-1b): the demo composer rides the shared Input
+                primitive (44px / 16px floor / r-md / halo token) — was a raw
+                h-11 rounded-xl text-sm field. Wrapped in flex-1 because
+                ui/Input renders its own label/hint wrapper div. */}
+            <div className="flex-1">
+              <Input
+                disabled
+                placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
+                aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
+                /* v16-E3 (D1 C3): dir="auto" — same raw-field bidi isolation
+                    as the live message composer (ui/Input keeps dir=auto). */
+              />
+            </div>
             <Button variant="gold" size="icon" aria-label="إرسال" disabled>
               <Send className="size-4 rtl:-scale-x-100" />
             </Button>
@@ -378,12 +379,9 @@ function AudienceTab() {
                 <p className="text-3xs text-muted-foreground">{s.platform} · آخر تفاعل: {s.last}</p>
               </div>
             </div>
-            <span className={cn(
-              "text-3xs px-2 py-0.5 rounded-full",
-              s.active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-            )}>
+            <Badge variant={s.active ? "success" : "secondary"} className="shrink-0">
               {s.active ? "نشط" : "غير نشط"}
-            </span>
+            </Badge>
           </div>
         ))}
       </CardContent>
@@ -403,10 +401,9 @@ function ActivityTab() {
         {mockStats.logs.map((l) => (
           <div key={l.id} className="flex items-center gap-3 px-6 py-3 border-b border-border last:border-0 text-sm">
             <span className="text-3xs text-muted-foreground w-10 shrink-0" dir="ltr">{l.time}</span>
-            <span className={cn(
-              "text-3xs font-bold px-1.5 py-0.5 rounded shrink-0",
-              l.level === "WARN" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"
-            )}>{l.level}</span>
+            <Badge variant={l.level === "WARN" ? "warning" : "secondary"} className="shrink-0 tabular-nums">
+              {l.level}
+            </Badge>
             <p className="truncate">{l.text}</p>
           </div>
         ))}

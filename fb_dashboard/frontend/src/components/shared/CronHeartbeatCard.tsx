@@ -58,14 +58,15 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
         <div className="flex items-center gap-3 min-w-0">
           {stale ? (
             <div className="size-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <AlertTriangle className="size-4 text-destructive" aria-hidden="true" />
+              {/* r131-F7b (A7 Cluster B): status glyphs ride the AA -ink tier. */}
+              <AlertTriangle className="size-4 text-destructive-ink" aria-hidden="true" />
             </div>
           ) : (
             <div className="size-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               {status?.never_beaten ? (
                 <Activity className="size-4 text-muted-foreground" aria-hidden="true" />
               ) : (
-                <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
+                <CheckCircle2 className="size-4 text-success-ink" aria-hidden="true" />
               )}
             </div>
           )}

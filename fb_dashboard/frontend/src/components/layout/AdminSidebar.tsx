@@ -26,12 +26,18 @@ export interface NavItem {
   badge?: number | string
   /** CSS id for the onboarding tour (react-joyride targets) */
   tourId?: string
+  /** r131-F7: directional glyphs (e.g. Send) mirror in RTL — the admin
+   * shell's تليجرام slot matches AdminMobileNav's flip for the same icon. */
+  rtlFlip?: boolean
 }
 
 interface AdminSidebarProps {
   navSections?: NavSection[]
   logo?: string
   title?: string
+  /** r131-F7: brand-block subtitle — the tenant shell says «لوحة التحكم»,
+   * the /admin platform shell says «الإدارة» (was hardcoded). */
+  subtitle?: string
   /* v24-C3 (A2 #2 + B4 — native <Link> nav items): items are real <Link>s
    * now (viewport prefetch of the RSC payload, native Enter/Space/middle-
    * click semantics, no div[role=link] ARIA patching). onNavigate is
@@ -50,7 +56,11 @@ interface AdminSidebarProps {
 }
 function isActiveItem(href: string | undefined, pathname: string): boolean {
   if (!href) return false
-  if (href === "/dashboard") return pathname === "/dashboard"
+  /* Section ROOTS are exact-match only so the root slot doesn't light up
+   * on its own children (v17-E-F2 contract). r131-F7: /admin joins
+   * /dashboard — the platform-admin shell now routes the same way and
+   * «الاشتراكات» must stay cold on /admin/support|telegram|settings. */
+  if (href === "/dashboard" || href === "/admin") return pathname === href
   return pathname.startsWith(href)
 }
 
@@ -111,6 +121,7 @@ export function AdminSidebar({
   navSections = defaultNavSections,
   logo,
   title = "SmartBot",
+  subtitle = "لوحة التحكم",
   onNavigate,
   onLogout,
   onSubscribe,
@@ -154,7 +165,7 @@ export function AdminSidebar({
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-tight truncate">{title}</p>
-          <p className="text-2xs text-muted-foreground leading-tight">لوحة التحكم</p>
+          <p className="text-2xs text-muted-foreground leading-tight">{subtitle}</p>
         </div>
       </div>
 
@@ -197,13 +208,14 @@ export function AdminSidebar({
                       "focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
                     )}
                   >
-                    <item.icon className="sb-nav-icon size-[18px] shrink-0" />
+                    <item.icon className={cn("sb-nav-icon size-[18px] shrink-0", item.rtlFlip && "rtl:-scale-x-100")} />
                     <span className="truncate flex-1 text-start">{item.label}</span>
                     {item.badge !== undefined && (
                       <Badge
                         variant={active ? "outline" : "info"}
                         className={cn(
-                          "ms-auto text-3xs px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-bold",
+                          /* r131-F7 (A4 P3-9): nav badge rides the canonical 11px/600 register — font-bold (700) was one rung over. */
+                          "ms-auto text-3xs px-1.5 py-0 h-4 min-w-4 flex items-center justify-center font-semibold",
                           active && "border-accent-foreground/40 text-accent-foreground"
                         )}
                       >

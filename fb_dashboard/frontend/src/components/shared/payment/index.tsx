@@ -660,7 +660,8 @@ export function PaymentDialog({
                   phone stays (backend contract: every non-bank subscription
                   request requires it; the admin review queue shows it). */}
               <div className="rounded-xl bg-success/10 border border-success/25 p-4 space-y-1.5">
-                <p className="text-sm font-semibold text-success">الخطة المجانية بلا دفع</p>
+                {/* r131-F7b (A7 Cluster B): -ink tier for status-as-text. */}
+                <p className="text-sm font-semibold text-success-ink">الخطة المجانية بلا دفع</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   لا محافظ ولا تحويل بنكي ولا إيصال — يُرسل طلب التفعيل فوراً وتُفعّل الخطة
                   بعد موافقة الإدارة مباشرة.
@@ -687,7 +688,11 @@ export function PaymentDialog({
               </div>
 
               <Button
-                className="w-full h-12 text-base font-semibold rounded-xl"
+                /* r131-F7b (A4 P2-5, "subscribe radii → r10"): the money-path
+                   submit drops the h-12/rounded-xl overrides — the canonical
+                   lg rung (h-11 44px / 14px / 600 / r-md) carries it. */
+                size="lg"
+                className="w-full"
                 onClick={handleSent}
                 disabled={submitting || !phone.trim()}
               >
@@ -750,7 +755,10 @@ export function PaymentDialog({
               )}
 
               <Button
-                className="w-full h-12 text-base font-semibold rounded-xl"
+                /* r131-F7b (A4 P2-5): twin of the free-plan submit — the
+                   canonical lg rung replaces h-12/rounded-xl. */
+                size="lg"
+                className="w-full"
                 onClick={handleSent}
                 disabled={submitting || (provider !== "bank" && !phone.trim())}
               >

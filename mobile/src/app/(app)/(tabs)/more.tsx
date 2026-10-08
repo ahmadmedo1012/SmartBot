@@ -2,15 +2,17 @@
  * تاب المزيد — كل أقسام لوحة الويب (defaultNavSections في AdminSidebar):
  * النمو · الإدارة · الحساب — وصول سريع لكل شاشات stack.
  */
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, Row } from '@/components/ui'
 import { Icon, type IconName } from '@/components/icon'
+import { DirectionalIcon, RTL_MIRROR_STYLE } from '@/components/directional-icon'
+import { PressableScale } from '@/components/pressable-scale'
 import { apiGet } from '@/services/api'
 import { useAuth } from '@/state/auth'
 
@@ -80,7 +82,12 @@ export default function MoreScreen() {
             </View>
           </Row>
           {!user?.onboardingCompleted ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/(app)/onboarding' })} style={{ marginTop: spacing.md }}>
+            <PressableScale
+              accessibilityLabel="إكمال ربط صفحة فيسبوك"
+              onPress={() => router.push({ pathname: '/(app)/onboarding' })}
+              style={{ marginTop: spacing.md }}
+              scaleTo={press.card}
+            >
               <Card style={{ backgroundColor: colors.warningSoft, borderWidth: 0 }}>
                 <Row style={{ gap: spacing.sm }}>
                   <Icon name="alert-circle" size={18} color={colors.warning} />
@@ -89,7 +96,7 @@ export default function MoreScreen() {
                   </AppText>
                 </Row>
               </Card>
-            </Pressable>
+            </PressableScale>
           ) : null}
         </Card>
 
@@ -98,19 +105,22 @@ export default function MoreScreen() {
         <Section title="الحساب" items={ACCOUNT} unread={unread} />
 
         {/* تسجيل الخروج */}
-        <Pressable
-          accessibilityRole="button"
+        <PressableScale
           accessibilityLabel="تسجيل الخروج"
           onPress={() => logout()}
-          style={({ pressed }) => [styles.logoutBtn, { borderColor: colors.destructive, opacity: pressed ? 0.7 : 1 }]}
+          style={[styles.logoutBtn, { borderColor: colors.destructive }]}
+          scaleTo={press.button}
         >
           <Row style={{ justifyContent: 'center', gap: spacing.sm }}>
-            <Icon name="log-out" size={20} color={colors.destructive} />
+            {/* r131: LogOut أيقونة اتجاهية غير سهمية — مرآة RTL (كالويب §2.2) */}
+            <View style={RTL_MIRROR_STYLE}>
+              <Icon name="log-out" size={20} color={colors.destructive} />
+            </View>
             <AppText variant="smallBold" style={{ color: colors.destructive }}>
               تسجيل الخروج
             </AppText>
           </Row>
-        </Pressable>
+        </PressableScale>
 
         <AppText variant="caption" color="mutedFg" style={{ textAlign: 'center' }}>
           SmartBot v1.0.0 · api.smart-link.ly
@@ -143,15 +153,12 @@ function Section({ title, items, unread }: { title: string; items: MoreItem[]; u
       </AppText>
       <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
         {items.map((item) => (
-          <Pressable
+          <PressableScale
             key={item.href}
-            accessibilityRole="button"
             accessibilityLabel={item.title}
             onPress={() => router.push({ pathname: item.href })}
-            style={({ pressed }) => [
-              styles.item,
-              { opacity: pressed ? 0.6 : 1, backgroundColor: pressed ? colors.muted : 'transparent' },
-            ]}
+            style={styles.item}
+            scaleTo={press.card}
           >
             <Row style={{ gap: spacing.md, flex: 1 }}>
               <Icon name={item.icon} size={20} color={colors.accentFg} />
@@ -163,9 +170,15 @@ function Section({ title, items, unread }: { title: string; items: MoreItem[]; u
               {item.href.includes('notifications') && typeof unread === 'number' && unread > 0 ? (
                 <Badge tone="brand" text={String(unread)} />
               ) : null}
-              <Icon name="chevron-left" size={18} color={colors.mutedFg} />
+              {/* r131: شفرون الكشف من الدلالة — forward يشير يسارًا تحت RTL */}
+              <DirectionalIcon
+                semanticDirection="forward"
+                variant="chevron"
+                size={18}
+                color={colors.mutedFg}
+              />
             </Row>
-          </Pressable>
+          </PressableScale>
         ))}
       </View>
     </Card>

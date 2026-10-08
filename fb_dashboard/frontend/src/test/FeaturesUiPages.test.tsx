@@ -412,7 +412,9 @@ describe("admin/support page — platform close (E-F8 D6-5/#9)", () => {
   it("the close button POSTs /api/admin/support/tickets/{id}/close", async () => {
     installMatchMedia()
     const fetchState = stubFetch({
-      "GET /api/admin/support/tickets?status=all&page=1": () => jsonRes({ success: true, data: PAGE }),
+      /* r131-F7b: the tickets fetch now sends the explicit limit (exact page
+         math for the numbered pagination) — the stub key follows it. */
+      "GET /api/admin/support/tickets?status=all&page=1&limit=20": () => jsonRes({ success: true, data: PAGE }),
       "POST /api/admin/support/tickets/7/close": () => jsonRes({ success: true, data: { id: 7, status: "closed" } }),
     })
     renderPage(AdminSupportPage)
@@ -424,15 +426,23 @@ describe("admin/support page — platform close (E-F8 D6-5/#9)", () => {
     expect(fetchState.callsFor("/api/admin/support/tickets/7/close").filter((c) => c.method === "POST")).toHaveLength(1)
   })
 
-  it("pagination renders prev/next buttons (DirectionalIcon chevrons — no raw imports)", async () => {
+  it("pagination renders the canonical numbered window (r131 fleet ruling — retired the «السابق/التالي» link row)", async () => {
     installMatchMedia()
     stubFetch({
-      "GET /api/admin/support/tickets?status=all&page=1": () => jsonRes({ success: true, data: PAGE }),
+      /* 45 tickets / 20 per page = 3 pages — TablePagination returns null
+         at totalPages ≤ 1, so the window needs a multi-page queue. */
+      "GET /api/admin/support/tickets?status=all&page=1&limit=20": () =>
+        jsonRes({ success: true, data: { ...PAGE, total: 45, page: 1 } }),
     })
     renderPage(AdminSupportPage)
 
     await screen.findByRole("button", { name: "إغلاق التذكرة رقم 7" })
-    expect(screen.getByRole("button", { name: "الصفحة السابقة" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "الصفحة التالية" })).toBeEnabled()
+    /* r131-F7b: the footer is the shared TablePagination — a labeled nav
+       with numbered page buttons (aria-current on the active rung) + the
+       السابق/التالي step buttons (44px touch, boundary-disabled). */
+    const nav = screen.getByRole("navigation", { name: "تصفح الصفحات" })
+    expect(within(nav).getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page")
+    expect(within(nav).getByRole("button", { name: "3" })).toBeEnabled()
+    expect(within(nav).getByRole("button", { name: "السابق" })).toBeDisabled()
   })
 })

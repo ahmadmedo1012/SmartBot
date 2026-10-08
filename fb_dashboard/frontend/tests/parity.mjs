@@ -392,6 +392,17 @@ const GATES = [
     contrastMedia.body.includes('content: none')],
   ['ease-smooth utility has real consumers (button + dialog)',
     rawButton.includes('ease-smooth') && rawDialog.includes('ease-smooth')],
+  /* ── r131-F7 gates — skeleton RM kill + spinner register + toast canon ── */
+  ['r131 skeleton: .skeleton binds the semantic token (was raw 1.2s)',
+    /\.skeleton\s*\{[^}]*animation:\s*shimmer var\(--motion-duration-skeleton, 1200ms\) linear infinite/.test(rawCss)],
+  ['r131 skeleton: the RM token block zeroes --motion-duration-skeleton',
+    /--motion-duration-skeleton:\s*0ms/.test(rawCss)],
+  ['r131 spinner: .animate-spin rides var(--motion-duration-stat) (700ms register)',
+    /\.animate-spin\s*\{[^}]*animation-duration:\s*var\(--motion-duration-stat, 700ms\)\s*;/.test(rawCss)],
+  ['r131 toast: slide-up entrance = the canonical 12px slide+fade',
+    /@keyframes slide-up\s*\{[^}]*translateY\(12px\)/.test(rawCss)],
+  ['r131 hygiene: html/body overflow-x clip (no 100vw scrollbar-overflow math)',
+    rawCss.includes('overflow-x: clip') && !rawCss.includes('max-width: 100vw')],
 ];
 for (const [name, okFlag] of GATES) {
   if (okFlag) pass += 1;
@@ -872,6 +883,23 @@ pin(dark, 'state-tokens', '--state-input-focus-halo', '0 0 0 3px color-mix(in sr
 pin(dark, 'topbar', '--topbar-bg', 'rgba(7, 11, 22, 0.86)');
 pin(light, 'topbar', '--topbar-bg', 'rgba(251, 250, 249, 0.86)');
 
+/* ── r131-F7 pins — the round-131 primitive canon ──────────────────────────
+   (a) --shadow-card-h: the button-ladder premium hover shadow (A9 #37 gap;
+       SM/SO family values verbatim, both themes).
+   (b) status -ink TEXT tier (A7 Cluster B): dark = the luminous bases
+       (aliases resolve through var() chains); light = the pastel -deep
+       values via --c-*-deep — the 9-site light 1.4.3 failure's fix. */
+pin(dark, 'r131-shadow-card-h', '--shadow-card-h', '0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08)');
+pin(light, 'r131-shadow-card-h', '--shadow-card-h', '0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06)');
+pin(dark, 'r131-status-ink', '--success-ink', '#7FD39A');
+pin(dark, 'r131-status-ink', '--warning-ink', '#ECC97D');
+pin(dark, 'r131-status-ink', '--info-ink', '#8FBBF2');
+pin(dark, 'r131-status-ink', '--destructive-ink', '#F0938F');
+pin(light, 'r131-status-ink', '--success-ink', '#1F4F30');
+pin(light, 'r131-status-ink', '--warning-ink', '#6B4C0B');
+pin(light, 'r131-status-ink', '--info-ink', '#1F3D63');
+pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
+
 // (d) COMPONENT SOURCE PINS — the recipe fixes of the wave (grep-level).
 {
   const rawCard = readFileSync(new URL('../src/components/ui/card.tsx', import.meta.url), 'utf8');
@@ -930,6 +958,152 @@ pin(light, 'topbar', '--topbar-bg', 'rgba(251, 250, 249, 0.86)');
   }
   if (offenders.length === 0) pass += 3;
   else fails.push(...offenders.map((o) => `de-glow: ${o} (font-extrabold/blur-3xl/GlowPool must be zero-occurrence)`));
+}
+
+// ── (e) r131-F7 COMPONENT SOURCE PINS — the primitive-canon wave ──────────────
+{
+  /* comment-stripped reads — the r131 primitives document their OWN retired
+     idioms in block comments ("was min-h-11", "enableSystem REMOVED"…), so
+     the negative pins must test code, not commentary. */
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawButton131 = nc(readFileSync(new URL('../src/components/ui/button.tsx', import.meta.url), 'utf8'));
+  const rawTextarea131 = nc(readFileSync(new URL('../src/components/ui/textarea.tsx', import.meta.url), 'utf8'));
+  const rawSelect131 = nc(readFileSync(new URL('../src/components/ui/select.tsx', import.meta.url), 'utf8'));
+  const rawToaster131 = nc(readFileSync(new URL('../src/components/ui/app-toaster.tsx', import.meta.url), 'utf8'));
+  const rawToast131 = nc(readFileSync(new URL('../src/lib/premium-toast.tsx', import.meta.url), 'utf8'));
+  const rawProviders131 = nc(readFileSync(new URL('../src/app/providers.tsx', import.meta.url), 'utf8'));
+
+  // button ladder (fleet ruling 40/13/600, sm 32/12, lg 44/14, no base floor)
+  const btnLadder = rawButton131.includes('text-[13px] font-semibold')
+    && rawButton131.includes('sm: "h-8 gap-1.5 px-3 text-xs"')
+    && rawButton131.includes('default: "h-10 gap-2 px-5"')
+    && rawButton131.includes('lg: "h-11 gap-2.5 px-6 text-sm"')
+    && rawButton131.includes('icon: "size-10"')
+    && !rawButton131.includes('min-h-11');
+  if (btnLadder) pass += 1;
+  else fails.push('r131 button: ladder must be 40/13/600 (sm h-8/12, lg h-11/14, icon size-10) with NO base min-h-11 floor');
+  const btnHover = rawButton131.includes('hover:-translate-y-[2px]') && rawButton131.includes('hover:shadow-(--shadow-card-h)');
+  if (btnHover) pass += 1;
+  else fails.push('r131 button: filled-CTA hover must be -2px lift + the premium --shadow-card-h (was -1px + shadow-md)');
+  const btnBusy = rawButton131.includes('aria-busy={loading || undefined}');
+  if (btnBusy) pass += 1;
+  else fails.push('r131 button: loading must set aria-busy (A11 SB-6)');
+
+  // textarea on the input recipe (the missed r130 wave)
+  const taOk = rawTextarea131.includes('min-h-24')
+    && rawTextarea131.includes('rounded-md')
+    && rawTextarea131.includes('focus-visible:shadow-(--state-input-focus-halo)')
+    && !rawTextarea131.includes('md:text-sm')
+    && !rawTextarea131.includes('rounded-lg');
+  if (taOk) pass += 1;
+  else fails.push('r131 textarea: must ride the input recipe (min-h-24/rounded-md/halo token, no md:text-sm)');
+
+  // the shared select primitive exists on the recipe
+  const selOk = rawSelect131.includes('h-11') && rawSelect131.includes('appearance-none')
+    && rawSelect131.includes('focus-visible:shadow-(--state-input-focus-halo)');
+  if (selOk) pass += 1;
+  else fails.push('r131 select: the shared native select must exist (h-11/16px floor/halo token)');
+
+  // dialog canon: 560px cap + 18/600 title + canonical pop entrance
+  const dlgOk = rawDialog.includes('sm:max-w-[560px]')
+    && rawDialog.includes('text-lg leading-none font-semibold')
+    && rawDialog.includes('data-starting-style:scale-[0.98]')
+    && rawDialog.includes('data-starting-style:translate-y-2')
+    && !rawDialog.includes('sm:max-w-sm');
+  if (dlgOk) pass += 1;
+  else fails.push('r131 dialog: 560px cap + title 18/600 + madarek-pop entrance (scale .98 / y 8px)');
+
+  // toaster canon: bottom-end + canonical entrance + manual-dismiss errors
+  const tOk = rawToaster131.includes('position="bottom-left"')
+    && rawToaster131.includes('var(--motion-duration-medium, 240ms)')
+    && rawToast131.includes('borderInlineStartColor')
+    && rawToast131.includes('size-7 rounded-md')
+    && rawToast131.includes('Infinity');
+  if (tOk) pass += 1;
+  else fails.push('r131 toaster: bottom-end stack + 1px status hairline + 28px well + error manual-dismiss');
+
+  // providers canon: one resolution path (enableSystem OFF)
+  const pOk = !rawProviders131.includes('enableSystem');
+  if (pOk) pass += 1;
+  else fails.push('r131 providers: enableSystem must be OFF (SO r130 ruling — one resolution path)');
+
+  /* ── (f) r131-F7b COMPLETION PINS — the carry-over wave ────────────────────
+   * (badge re-base, tbl-stack CSS, de-glow tail, admin table canon, -ink
+   * sweep completion). Same comment-stripped reads as (e). */
+  const rawBadge = nc(readFileSync(new URL('../src/components/ui/badge.tsx', import.meta.url), 'utf8'));
+  // badge canon: SOLID pastel status pairs + 11/600/tnum rung (fleet ruling
+  // "status = solid pastel 11/600 tnum") — the Smart-Menu washed idiom
+  // (bg-success/15 + border-success/25 + base text) is retired.
+  const badgeOk = rawBadge.includes('text-[11px] font-semibold tabular-nums')
+    && rawBadge.includes('success: "bg-success-soft text-success-ink"')
+    && rawBadge.includes('warning: "bg-warning-soft text-warning-ink"')
+    && rawBadge.includes('info: "bg-info-soft text-info-ink"')
+    && rawBadge.includes('gold: "bg-(--c-copper-bg) text-(--accent-ink)"')
+    && !rawBadge.includes('bg-success/15')
+    && !rawBadge.includes('border-success/25');
+  if (badgeOk) pass += 1;
+  else fails.push('r131-F7b badge: SOLID pastel status pairs (bg = --*-soft, text = -ink) on the 11/600/tnum rung — no washed /15 grounds');
+
+  // tbl-stack canon: F8 tagged dashboard/demo tables with the class but the
+  // mobile-collapse CSS never landed (dead code — "data-label set, no CSS
+  // consumes it"). The F7b port ships the madarek polish.css:2103 recipe.
+  const css = readFileSync(new URL('../src/app/globals.css', import.meta.url), 'utf8');
+  const tblOk = css.includes('.tbl-stack td::before')
+    && css.includes('content: attr(data-label)')
+    && css.includes('.tbl-stack thead { display: none; }')
+    && /@media \(max-width: 640px\)[\s\S]*?\.tbl-stack \{ display: block; \}/.test(css);
+  if (tblOk) pass += 1;
+  else fails.push('r131-F7b tbl-stack: the mobile table→cards CSS must exist (data-label ::before labels, <640px)');
+
+  // de-glow tail: the gold-tinted shadow-accent-foreground modifier is
+  // retired from the product surfaces (the FAB keeps its documented
+  // lowest-severity exception — A4 P3-7; comments never counted, nc() strips).
+  const glowFiles = [
+    '../src/app/pricing/page.tsx',
+    '../src/app/connect/page.tsx',
+    '../src/app/login/page.tsx',
+    '../src/app/register/RegisterForm.tsx',
+    '../src/app/onboarding/OnboardingWizard.tsx',
+    '../src/app/subscribe/PlanSelector.tsx',
+    '../src/app/subscribe/StepIndicator.tsx',
+    '../src/components/ui/card.tsx',
+    '../src/components/ui/EmptyState.tsx',
+    '../src/components/shared/payment/payment-status.tsx',
+    '../src/components/shared/payment/index.tsx',
+  ];
+  const glowFree = glowFiles.every((f) =>
+    !nc(readFileSync(new URL(f, import.meta.url), 'utf8')).includes('shadow-accent-foreground'));
+  if (glowFree) pass += 1;
+  else fails.push('r131-F7b de-glow: shadow-accent-foreground modifiers must be gone from the swept surfaces (neutral elev only)');
+
+  // admin table canon: the payments + tickets tables ride the fleet recipe
+  // (13px cells, 11/600 surface-2 band, zebra-on-hover, first-cell dot) and
+  // the tickets queue ships the numbered pagination footer on an exact
+  // page-window contract.
+  const rawAdmin = nc(readFileSync(new URL('../src/app/admin/page.tsx', import.meta.url), 'utf8'));
+  const rawAdminSupport = nc(readFileSync(new URL('../src/app/admin/support/page.tsx', import.meta.url), 'utf8'));
+  const adminTblOk = rawAdmin.includes('tbl-stack w-full text-(length:--fs-sm)')
+    && rawAdmin.includes('text-[11px] font-semibold uppercase')
+    && rawAdmin.includes('hover:bg-muted/40')
+    && rawAdminSupport.includes('text-(length:--fs-sm)')
+    && rawAdminSupport.includes('text-[11px] font-semibold uppercase')
+    && rawAdminSupport.includes('<TablePagination')
+    && rawAdminSupport.includes('limit=${TICKETS_PER_PAGE}')
+    && !rawAdminSupport.includes('hasNextPage');
+  if (adminTblOk) pass += 1;
+  else fails.push('r131-F7b admin tables: fleet canon (13px/11up band/zebra/dot) + numbered TablePagination on the explicit limit contract');
+
+  // -ink sweep completion: the shared status-as-text seams ride the AA -ink
+  // tier in both themes (A7 Cluster B — raw bases measured 2.2-3.0:1 on the
+  // soft grounds in light).
+  const rawPageHeader = nc(readFileSync(new URL('../src/components/ui/PageHeader.tsx', import.meta.url), 'utf8'));
+  const rawInput = nc(readFileSync(new URL('../src/components/ui/input.tsx', import.meta.url), 'utf8'));
+  const inkOk = rawPageHeader.includes('bg-success-soft text-success-ink')
+    && rawPageHeader.includes('bg-destructive-soft text-destructive-ink')
+    && rawInput.includes('text-destructive-ink')
+    && !rawInput.includes('text-destructive"');
+  if (inkOk) pass += 1;
+  else fails.push('r131-F7b -ink: PageHeader status chips + Input state icons/error text ride the AA -ink tier');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

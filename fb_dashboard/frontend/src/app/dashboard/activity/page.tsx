@@ -52,18 +52,27 @@ export default function ActivityPage() {
         subtitle="سجل أحداث النظام"
         compact
       />
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-(--marketing-max-w) mx-auto w-full">
         <Card>
           <CardContent className="p-0">
             {isError ? (
-              <div className="p-8 text-center">
-                <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-                <p className="text-sm text-muted-foreground mb-3">فشل تحميل النشاطات</p>
+              /* r131-F7b (A4 P2-8 completion): the bare-AlertCircle block
+                 joins the ONE .state family (F8 swept 8 of the ~14;
+                 deadline hit — this is the carry-over). */
+              <div className="state state-danger py-8" role="alert">
+                <div className="state-icon" aria-hidden="true">
+                  <AlertCircle />
+                </div>
+                <p className="state-title">فشل تحميل النشاطات</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
               </div>
             ) : isLoading ? (
-              <div className="p-4 space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-8 bg-muted rounded animate-pulse" />)}</div>
+              /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. (plain JS comment —
+                 JSX-comment braces are invalid in a ternary expression slot;
+                 r131-F7b syntax repair) */
+              <div className="p-4 space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="skeleton h-8 rounded" />)}</div>
             ) : logItems.length === 0 ? (
               <EmptyState icon={Activity} size="sm" title="لا توجد نشاطات بعد" description="ستظهر أحداث النظام هنا — الردود والتعليقات والإشعارات — فور حدوثها." />
             ) : (

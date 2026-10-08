@@ -2,31 +2,38 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
-/* Smart-Menu parity (world-class launch plan v3 §6.1): soft tinted chips
- * (15% washes + 25% borders) instead of solid fills, h-5 rounded-full (v8-D4 pill),
- * font-medium. Legacy variant names (success/warning/danger/info/gold — v26-F4 renamed from the pre-Madarek "orange")
- * kept working — mapped onto the Smart-Menu tinted idiom. */
+/* r131-F7b (A4 P2-3 + R131-W1 fleet ruling "status = solid pastel 11/600
+ * tnum", finishing the F7/F8 badge item): the Smart-Menu washed idiom
+ * (15% alpha ground + 25% border + base-token text) is RETIRED. Semantic
+ * variants now ride the canonical solid pastel pair — OPAQUE --*-soft
+ * family ground + the AA -ink text tier (dark: luminous ink on deep pastel;
+ * light: -deep ink on pastel ground — the SO r130 / madarek .badge recipe,
+ * W1-I §3.6). gold joins the copper pastel family. Base rung re-based on
+ * the canonical badge type: 11px / 600 / tabular-nums (was 12px/500). */
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-[11px] font-semibold tabular-nums whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary: "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:
-          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
+          "bg-destructive-soft text-destructive-ink focus-visible:ring-destructive/20 [a]:hover:bg-destructive-soft/80",
         outline:
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
-        /* legacy semantic names → Smart-Menu tinted style */
-        success: "bg-success/15 text-success border-success/25",
-        warning: "bg-warning/15 text-warning border-warning/25",
-        danger: "bg-destructive/15 text-destructive border-destructive/25",
-        info: "bg-info/15 text-info border-info/25",
-        gold: "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/25",
+        /* r131-F7b: SOLID PASTEL status pairs — opaque --*-soft family ground
+         * + the AA -ink text tier, borderless (madarek .badge recipe).
+         * gold = the copper family ground + --accent-ink (theme-flipped:
+         * gold #E9B44C dark / copper-deep #5C3416 light — AA text in both). */
+        success: "bg-success-soft text-success-ink",
+        warning: "bg-warning-soft text-warning-ink",
+        danger: "bg-destructive-soft text-destructive-ink",
+        info: "bg-info-soft text-info-ink",
+        gold: "bg-(--c-copper-bg) text-(--accent-ink)",
       },
     },
     defaultVariants: { variant: "default" },

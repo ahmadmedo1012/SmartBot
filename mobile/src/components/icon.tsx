@@ -47,6 +47,7 @@ export type IconName =
   | 'zap'
   | 'log-out'
   | 'arrow-left'
+  | 'arrow-right'
   | 'mail'
   | 'phone'
   | 'shield'
@@ -282,6 +283,13 @@ const renderers: Record<IconName, (p: StrokeProps) => React.ReactNode> = {
     <>
       <Path d="m12 19-7-7 7-7" {...p} />
       <Path d="M19 12H5" {...p} />
+    </>
+  ),
+  /* r131: نظير lucide ArrowRight — نصف DirectionalIcon للأمام (LTR) */
+  'arrow-right': (p) => (
+    <>
+      <Path d="M5 12h14" {...p} />
+      <Path d="m12 5 7 7-7 7" {...p} />
     </>
   ),
   mail: (p) => (

@@ -22,10 +22,14 @@ interface PageHeaderProps {
   compact?: boolean
 }
 
+/* r131-F7b (A7 Cluster B): status-chip TEXT rides the AA -ink tier in
+ * both themes (light: pastel -deep — the raw base tokens measured
+ * 2.2-3.0:1 on the -soft grounds in light). Grounds/borders unchanged
+ * (they're fills, not text). */
 const TONE_MAP = {
-  success: "bg-success-soft text-success border-success/20",
-  warning: "bg-warning-soft text-warning border-warning/20",
-  danger: "bg-destructive-soft text-destructive border-destructive/20",
+  success: "bg-success-soft text-success-ink border-success/20",
+  warning: "bg-warning-soft text-warning-ink border-warning/20",
+  danger: "bg-destructive-soft text-destructive-ink border-destructive/20",
   neutral: "bg-muted text-muted-foreground border-border/60",
 } as const
 

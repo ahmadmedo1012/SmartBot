@@ -93,13 +93,18 @@ export default function PagesPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full" dir="rtl">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full" dir="rtl">
         {isError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل تحميل الإعدادات</h2>
-            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">فشل تحميل الإعدادات</h2>
+            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
           <Card><CardContent className="p-6 flex items-center gap-4">
@@ -186,11 +191,13 @@ export default function PagesPage() {
               <div className="space-y-3">
                 <div>
                   <label htmlFor="fb-page-id" className="text-xs text-muted-foreground mb-1 block">معرف الصفحة (Page ID)</label>
-                  <Input id="fb-page-id" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل معرف الصفحة من فيسبوك" className="h-9 text-sm" />
+                  {/* r131-F8 (A4 P1-1a): the h-9 text-sm sub-44/sub-16 override
+                      drops — the field rides the canonical Input recipe. */}
+                  <Input id="fb-page-id" value={pageId} onChange={e => setPageId(e.target.value)} placeholder="أدخل معرف الصفحة من فيسبوك" />
                 </div>
                 <div>
                   <label htmlFor="fb-access-token" className="text-xs text-muted-foreground mb-1 block">رمز الوصول (Access Token)</label>
-                  <Input id="fb-access-token" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="أدخل رمز الوصول" className="h-9 text-sm font-mono" />
+                  <Input id="fb-access-token" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="أدخل رمز الوصول" className="font-mono" />
                 </div>
                 <Button onClick={handleSave} disabled={!pageId.trim() || !accessToken.trim() || saving} className="w-full">
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Link2 className="size-4" />}

@@ -2,19 +2,27 @@
  * SmartBot Mobile — حالات الشاشة الموحدة (قاعدة المرحلة P4):
  * loading / error (+retry) / empty / unauthorized — لا شاشة بيضاء أبدًا.
  */
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Button } from '@/components/ui'
+import { Spinner } from '@/components/spinner'
 import { useAuth } from '@/state/auth'
 import type { ApiError } from '@/services/api'
 
 export function LoadingState({ label = 'جارٍ التحميل…' }: { label?: string }) {
-  const { colors } = useTheme()
   return (
-    <View style={styles.center} accessibilityLabel={label} accessibilityRole="progressbar">
-      <ActivityIndicator size="large" color={colors.primary} />
+    <View
+      style={styles.center}
+      accessibilityLabel={label}
+      accessibilityRole="progressbar"
+      /* r131 (A11): الحاويات العاملة تعلن busy — مثل aria-busy في الويب */
+      accessibilityState={{ busy: true }}
+    >
+      {/* r131 (F11): الدوار القانوني 22px/حد 8%/قوس accent/700ms —
+          مطابق DefaultLoading (كان ActivityIndicator size="large") */}
+      <Spinner />
       <AppText variant="small" color="mutedFg" style={{ marginTop: spacing.md }}>
         {label}
       </AppText>

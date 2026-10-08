@@ -105,7 +105,12 @@ export function SortableTh({
       scope="col"
       aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
       className={cn(
-        "p-3 font-medium",
+        /* r131-F7b (A4 P2-1): the th cell rides the canonical header
+         * anatomy — px-4 py-3 padding rung + 600 weight (W1-I §3.5:
+         * 11px/600 uppercase muted on the surface-2 band; the size/case
+         * ride the parent <tr> band, this supplies the pad + weight the
+         * admin tables were missing — was p-3 font-medium 500). */
+        "px-4 py-3 font-semibold",
         align === "center" ? "text-center" : "text-start",
         className,
       )}

@@ -54,15 +54,16 @@ export default function CalendarPage() {
         subtitle="جدول المحتوى الشهري"
         compact
       />
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-(--marketing-max-w) mx-auto w-full">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-2 mb-3">
               {month ? (
                 <h2 className="sb-section-title">{formatMonth(month)}</h2>
               ) : (
-                <div className="h-5 w-28 bg-muted rounded animate-pulse" aria-hidden="true" />
+                <div className="skeleton h-5 w-28 rounded" aria-hidden="true" />
               )}
               {/* RTL calendar navigation: "previous" points right (start side),
                   "next" points left (forward direction).
@@ -87,13 +88,19 @@ export default function CalendarPage() {
               </div>
             </div>
             {isError ? (
-              <div className="text-center py-8">
-                <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-                <p className="text-sm text-muted-foreground mb-3">فشل تحميل التقويم</p>
+              /* r131-F7b (A4 P2-8 completion): bare-AlertCircle → the .state family. */
+              <div className="state state-danger py-8" role="alert">
+                <div className="state-icon" aria-hidden="true">
+                  <AlertCircle />
+                </div>
+                <p className="state-title">فشل تحميل التقويم</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
               </div>
             ) : isLoading || !month ? (
-              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-muted rounded animate-pulse" />)}</div>
+              /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. (plain JS comment —
+                 JSX-comment braces are invalid in a ternary expression slot;
+                 r131-F7b syntax repair) */
+              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="skeleton h-10 rounded" />)}</div>
             ) : posts.length === 0 ? (
               <EmptyState icon={CalendarDays} size="sm" title="لا توجد منشورات في هذا الشهر" description="جدّول منشورات هذا الشهر من صفحة المنشورات وستظهر هنا فور جدولتها." />
             ) : (

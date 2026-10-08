@@ -166,7 +166,35 @@ export const motion = {
   slow: 380,
   slower: 520,
   cinema: 720,
+  /** r131 (A4 P2-9): حلقة الدوران القانونية — 700ms خطي
+   *  (Madarek --motion-duration-stat، نفس قيمة الويب). */
+  stat: 700,
+  /** r131: مسح الهيكل العظمي (skeleton shimmer) — 1200ms خطي
+   *  (Madarek/الويب --motion-duration-skeleton). */
+  skeleton: 1200,
 } as const
+
+/** r131 (F11) — سجل الضغط القانوني (r130 web ruling + SM-mobile r130):
+ *  الضغط = تحجيم لا شفافية: زر 0.97 · بطاقة/صف 0.99 · شريط سفلي 0.93،
+ *  دخول 80ms (micro) وخروج 160ms (fast) على منحنى التباطؤ
+ *  cubic-bezier(0.16,1,0.3,1) — نفس --press-scale/--ease-out في Madarek
+ *  tokens.css:163/129. قبل r131 كان الزر opacity 0.85 فقط (سجل لم يهبط
+ *  قط رغم ادعاء commit r130). */
+export const press = {
+  /** أدوات التحكم (أزرار/حبوب/روابط) — --press-scale 0.97 */
+  button: 0.97,
+  /** البطاقات والصفوف القابلة للضغط — --state-card-pressed-scale 0.99 */
+  card: 0.99,
+  /** الشريط السفلي (bottom-nav) — أعمق درجة، حكم الويب r130 */
+  nav: 0.93,
+  /** دخول الضغط بالمللي (micro 80) والخروج (fast 160) */
+  inMs: motion.micro,
+  outMs: motion.fast,
+} as const
+
+/** نقاط منحنى التباطؤ --ease-out (Madarek tokens.css:129) —
+ *  يُستهلك Easing.bezier(...EASE_OUT_POINTS). */
+export const EASE_OUT_POINTS = [0.16, 1, 0.3, 1] as const
 
 /** مسافات اللمس ≥44px (HIG/Material) */
 export const TOUCH_TARGET = 48

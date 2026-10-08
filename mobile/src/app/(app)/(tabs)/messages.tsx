@@ -7,15 +7,17 @@ import { useCallback, useMemo, useState } from 'react'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
-import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { PressableScale } from '@/components/pressable-scale'
+import { ListSkeleton } from '@/components/skeleton'
 import { apiGet } from '@/services/api'
-import { describeError, EmptyState, ErrorState, LoadingState } from '@/components/state-views'
+import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { timeAgo } from '@/lib/format'
 
 interface InboxItem {
@@ -57,11 +59,12 @@ export default function MessagesScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: InboxItem }) => (
-      <Pressable
-        accessibilityRole="button"
+      /* r131: سجل الضغط للصفوف = بطاقة 0.99 (كان opacity 0.7 فقط) */
+      <PressableScale
         accessibilityLabel={`محادثة ${item.senders[0]?.name ?? ''} — ${item.subject}`}
         onPress={() => router.push({ pathname: '/(app)/messages/[id]', params: { id: item.id, name: item.senders[0]?.name ?? '' } })}
-        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+        style={styles.row}
+        scaleTo={press.card}
       >
         {/* صورة رمزية بالحرف الأول */}
         <View style={[styles.avatar, { backgroundColor: colors.muted }]}>
@@ -85,7 +88,7 @@ export default function MessagesScreen() {
             {item.unread_count > 0 ? <Badge tone="brand" text={`${item.unread_count} جديدة`} /> : null}
           </Row>
         </View>
-      </Pressable>
+      </PressableScale>
     ),
     [colors],
   )
@@ -113,23 +116,25 @@ export default function MessagesScreen() {
             accessibilityLabel="بحث في المحادثات"
           />
         </View>
-        <Pressable
-          accessibilityRole="button"
+        <PressableScale
           accessibilityLabel="فلتر غير المقروء"
+          accessibilityState={{ selected: unreadOnly }}
           onPress={() => setUnreadOnly((v) => !v)}
           style={[
             styles.filterBtn,
             { backgroundColor: unreadOnly ? colors.primary : colors.surface, borderColor: unreadOnly ? colors.primary : colors.border },
           ]}
+          scaleTo={press.button}
         >
           <AppText variant="smallBold" style={{ color: unreadOnly ? colors.primaryFg : colors.mutedFg }}>
             غير المقروء
           </AppText>
-        </Pressable>
+        </PressableScale>
       </View>
 
       {isLoading ? (
-        <LoadingState label="جارٍ تحميل المحادثات…" />
+        /* r131 (عقيدة الحالات): هيكل عظمي مطابق لشكل الصفوف — لا دوار مجرد */
+        <ListSkeleton label="جارٍ تحميل المحادثات…" />
       ) : isError ? (
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : items.length === 0 ? (

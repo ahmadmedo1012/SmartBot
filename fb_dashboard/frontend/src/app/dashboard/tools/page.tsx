@@ -7,6 +7,9 @@ import { brandedToast } from "@/lib/premium-toast"
 import { Wrench, Plus, Trash2, Pencil, AlertCircle, RefreshCw, FileText, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Select } from "@/components/ui/select"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Switch } from "@/components/ui/switch"
@@ -134,8 +137,9 @@ export default function ToolsPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 max-w-(--marketing-max-w) mx-auto w-full">
         {/* قوالب الرد */}
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -146,11 +150,12 @@ export default function ToolsPage() {
           {(showTmplForm || editingTmplId !== null) && (
             <Card className="mb-3">
               <CardContent className="p-4 space-y-3">
-                {/* v16-E3 (D1 C3): raw inputs bypass the shared Input seam —
-                    dir="auto" isolates mixed Arabic/Latin template values. */}
-                <input value={tmplName} onChange={e => setTmplName(e.target.value)} placeholder="اسم القالب" aria-label="اسم القالب" dir="auto" className="w-full h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30" />
-                <input value={tmplCategory} onChange={e => setTmplCategory(e.target.value)} placeholder="تصنيف (اختياري)" aria-label="تصنيف القالب (اختياري)" dir="auto" className="w-full h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30" />
-                <textarea value={tmplText} onChange={e => setTmplText(e.target.value)} placeholder="نص القالب…" aria-label="نص القالب" dir="auto" className="w-full min-h-[60px] rounded-lg border border-input bg-background p-3 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none" />
+                {/* v16-E3 (D1 C3) → r131-F8 (A4 P1-1b/c): the raw-input idiom
+                    rides the shared Input/Textarea primitives (16px floor /
+                    r-md / halo; dir=auto built in). */}
+                <Input value={tmplName} onChange={e => setTmplName(e.target.value)} placeholder="اسم القالب" aria-label="اسم القالب" />
+                <Input value={tmplCategory} onChange={e => setTmplCategory(e.target.value)} placeholder="تصنيف (اختياري)" aria-label="تصنيف القالب (اختياري)" />
+                <Textarea value={tmplText} onChange={e => setTmplText(e.target.value)} placeholder="نص القالب…" aria-label="نص القالب" rows={2} />
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => { setShowTmplForm(false); setEditingTmplId(null); setTmplName(""); setTmplText(""); setTmplCategory("") }}>إلغاء</Button>
                   {/* v17-E-F8 (D6 #10): زر الحفظ loading prop «جارٍ الحفظ…» —
@@ -169,12 +174,16 @@ export default function ToolsPage() {
           )}
 
           {tmplLoad ? (
-            <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-12" /></Card>)}</div>
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
+            <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-12 rounded" /></CardContent></Card>)}</div>
           ) : tmplErr ? (
-            <div className="text-center py-8">
-              <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(tmplError as Error)?.message || "تعذر الاتصال"}</p>
-              <Button size="sm" variant="outline" onClick={() => tmplRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+            /* r131-F8 (A4 P2-8): bare error row → the canonical .state family. */
+            <div className="state state-danger py-8" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <p className="state-desc">{(tmplError as Error)?.message || "تعذر الاتصال"}</p>
+              <Button size="sm" variant="outline" onClick={() => tmplRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : templates.length === 0 ? (
             <Card><CardContent className="p-0">
@@ -260,50 +269,47 @@ export default function ToolsPage() {
               onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowOfferForm(false) } }}
             >
               <CardContent className="p-4 space-y-3">
-                <input
+                {/* r131-F8 (A4 P1-1b/c/d): raw fields → the shared
+                    Input/Textarea/Select primitives. */}
+                <Input
                   value={offerTitle}
                   onChange={e => setOfferTitle(e.target.value)}
                   placeholder="عنوان العرض (مثال: خصم نهاية الموسم)"
                   aria-label="عنوان العرض"
-                  dir="auto"
                   autoFocus
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                 />
-                <input
+                <Input
                   value={offerCode}
                   onChange={e => setOfferCode(e.target.value)}
                   placeholder="كود الخصم (اختياري)"
                   aria-label="كود الخصم (اختياري)"
-                  dir="auto"
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                 />
-                <textarea
+                <Textarea
                   value={offerDesc}
                   onChange={e => setOfferDesc(e.target.value)}
                   placeholder="وصف العرض — سيستخدمه البوت عند تقديم العرض للعملاء…"
                   aria-label="وصف العرض"
-                  dir="auto"
-                  className="w-full min-h-[60px] rounded-lg border border-input bg-background p-3 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
+                  rows={2}
                 />
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={offerDiscountType}
                     onChange={e => setOfferDiscountType(e.target.value)}
                     aria-label="نوع الخصم"
-                    className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
                   >
                     <option value="percentage">نسبة مئوية %</option>
                     <option value="fixed">مبلغ ثابت د.ل</option>
-                  </select>
-                  <input
-                    value={offerDiscountValue}
-                    onChange={e => setOfferDiscountValue(e.target.value)}
-                    placeholder="قيمة الخصم"
-                    aria-label="قيمة الخصم"
-                    inputMode="numeric"
-                    dir="ltr"
-                    className="w-28 h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
-                  />
+                  </Select>
+                  <div className="w-28">
+                    <Input
+                      value={offerDiscountValue}
+                      onChange={e => setOfferDiscountValue(e.target.value)}
+                      placeholder="قيمة الخصم"
+                      aria-label="قيمة الخصم"
+                      inputMode="numeric"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowOfferForm(false)}>إلغاء</Button>
@@ -321,12 +327,16 @@ export default function ToolsPage() {
           )}
 
           {offLoad ? (
-            <div className="space-y-2">{[1,2].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-12" /></Card>)}</div>
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
+            <div className="space-y-2">{[1,2].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-12 rounded" /></CardContent></Card>)}</div>
           ) : offErr ? (
-            <div className="text-center py-8">
-              <AlertCircle className="size-8 mx-auto mb-2 text-destructive/50" />
-              <p className="text-xs text-muted-foreground mb-3">{(offError as Error)?.message || "تعذر الاتصال"}</p>
-              <Button size="sm" variant="outline" onClick={() => offRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+            /* r131-F8 (A4 P2-8): bare error row → the canonical .state family. */
+            <div className="state state-danger py-8" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <p className="state-desc">{(offError as Error)?.message || "تعذر الاتصال"}</p>
+              <Button size="sm" variant="outline" onClick={() => offRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : offers.length === 0 ? (
             <Card><CardContent className="p-0">

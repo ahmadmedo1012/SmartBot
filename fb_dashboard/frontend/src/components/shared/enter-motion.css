@@ -68,6 +68,20 @@
   animation: sb-kpi-enter var(--t-base) var(--ease-out) backwards;
 }
 
+/* r131-F8 (A4 P2-2): the KPI VALUE pop-in — the canonical metric entrance
+ * (SO r130 MetricCard twin: scale 0.92 → 1 on the 700ms stat rung with the
+ * backout settle [0.34, 1.36, 0.64, 1]). Runs on the value <p> inside
+ * .sb-kpi-enter cards; `backwards` so the delay phase (none — the parent
+ * staggers) doesn't flash, and the property hands back after finish so the
+ * card's own hover transform is never blocked. */
+@keyframes sb-kpi-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.sb-kpi-pop {
+  animation: sb-kpi-pop var(--motion-duration-stat) cubic-bezier(0.34, 1.36, 0.64, 1) backwards;
+}
+
 /* section entrance (dashboard page fadeUp) — Madarek polish-rise: 380ms
  * exponential settle on the canonical 6px lift. Delay set inline per
  * section (60ms steps). */
@@ -93,6 +107,7 @@
 @media (prefers-reduced-motion: reduce) {
   .sb-page-enter,
   .sb-kpi-enter,
+  .sb-kpi-pop,
   .sb-fade-up,
   .sb-spark-line,
   .sb-spark-area {

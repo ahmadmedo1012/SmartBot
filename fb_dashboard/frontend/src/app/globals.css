@@ -63,6 +63,14 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-info: var(--info);
+  /* r131-F7 (A7): the -ink TEXT tier joins the @theme bridge so Tailwind
+   * text-*-ink / border-*-ink utilities emit (fleet parity with SO/SM
+   * --color-success-ink…). Theme-flipped: luminous bases dark, pastel
+   * -deeps light — AA in BOTH themes on every status-as-text site. */
+  --color-success-ink: var(--success-ink);
+  --color-warning-ink: var(--warning-ink);
+  --color-info-ink: var(--info-ink);
+  --color-destructive-ink: var(--destructive-ink);
 
   /* Neutral + heat palette names kept (150+ utility consumers); VALUES are
      now the Madarek night/cream neutral ramp (tokens.css §1.3). */
@@ -418,6 +426,17 @@
   --success-foreground: #191918;
   --warning: #ECC97D;
   --info: #8FBBF2;
+  /* r131-F7 (A7 Cluster B): the fleet -ink TEXT tier. Dark: the luminous
+   * base inks already measure 7.6-10.9:1 on every surface, so -ink simply
+   * aliases the base (SO/SM dark pattern: --success-ink: var(--c-mint-ink)
+   * resolves to the same value). Light defines the AA-safe pastel -deep
+   * companions below. Consumers: text-*-ink on any status-as-text site
+   * (login lockout, telegram diagnostics, connect chip…) — borders/washes
+   * stay on the base tokens. */
+  --success-ink: var(--success);
+  --warning-ink: var(--warning);
+  --info-ink: var(--info);
+  --destructive-ink: var(--destructive);
   /* Status soft grounds (dark) — Madarek deep pastel -bg fills (opaque). */
   --success-soft: #0F241C;
   --warning-soft: #2C2410;
@@ -518,6 +537,12 @@
   --shadow-lg: var(--elev-3);
   --shadow-xl: var(--elev-4);
   --shadow-card: var(--elev-1);
+  /* r131-F7 (A9 #37 gap — the button-ladder premium hover shadow): the
+     family's --shadow-card-h recipe (SM/SO dark verbatim — rgba(2,4,12)
+     fill-led + the 1px neutral inset ring). Filled CTAs ride it on
+     hover:-translate-y-[2px] (ui/button.tsx); NO colored glow on any
+     variant (de-glow ruling). */
+  --shadow-card-h: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
   --shadow-pop: 0 2px 4px rgba(2, 4, 12, 0.55), 0 10px 28px rgba(2, 4, 12, 0.62), 0 0 0 1px rgba(142, 151, 184, 0.10);
   --shadow-modal: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
 
@@ -622,6 +647,17 @@
   --success-foreground: #191918;
   --warning: #D6A330;
   --info: #5C8FCE;
+  /* r131-F7 (A7 Cluster B — the 9-site light 1.4.3 failure): light status
+   * BASES are 2.20-3.00:1 as text on cream, so the fleet ships a dedicated
+   * -ink TEXT tier on the pastel -deep values (SL/SO/SM pattern — SO
+   * globals.css:595-604). Measured on cream/card: mint-deep #1F4F30 ≥ 9.2:1,
+   * yellow-deep #6B4C0B ≥ 7.4:1, sky-deep #1F3D63 ≥ 9.5:1, rose-deep
+   * #6B2128 ≥ 8.8:1 — AA with margin on every composite. Text consumers
+   * swap to text-*-ink (F8 sweep); fills/borders/dots stay on the base. */
+  --success-ink: var(--c-mint-deep);
+  --warning-ink: var(--c-yellow-deep);
+  --info-ink: var(--c-sky-deep);
+  --destructive-ink: var(--c-rose-deep);
   /* Light soft grounds — Madarek pastel -bg fills (opaque). */
   --success-soft: #DCF1E2;
   --warning-soft: #FCF1CD;
@@ -708,6 +744,8 @@
   --shadow-lg: var(--elev-3);
   --shadow-xl: var(--elev-4);
   --shadow-card: var(--elev-1);
+  /* r131-F7: --shadow-card-h light half (SM/SO soft two-layer verbatim). */
+  --shadow-card-h: 0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06);
   --shadow-pop: 0 1px 2px rgba(15, 15, 15, 0.04), 0 8px 24px rgba(15, 15, 15, 0.08);
   --shadow-modal: 0 12px 36px rgba(15, 15, 15, 0.10), 0 32px 80px rgba(15, 15, 15, 0.14);
 
@@ -728,7 +766,13 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    overflow-x: hidden; max-width: 100vw;
+    /* r131-F7 (A12 P2): 100vw includes the classic scrollbar width →
+       html/body max-width:100vw overflow-x:hidden overflowed by exactly
+       the scrollbar on Windows/Linux and turned the page into a scroll
+       container (hidden also traps sticky/anchor edge cases). overflow-x:
+       clip is the canonical modern guard — no scroll container, no 100vw
+       math. (layout.tsx body already carries the overflow-x-clip twin.) */
+    overflow-x: clip;
     transition: background-color var(--t-base) var(--ease), color var(--t-base) var(--ease);
     /* r130 (W1-E D-2): body base = the canonical 15px / 1.65 rung. MASTER
        §3 always claimed 15px but no rule ever set it — the app rendered the
@@ -745,7 +789,7 @@
      (h-16 Header, sticky PageHeader h-14) sit above focus targets; without
      scroll-padding the browser scrolls a focused element fully under them.
      5rem clears the h-16 (4rem) bar + breathing room. */
-  html { overflow-x: hidden; max-width: 100vw; scroll-behavior: smooth; scroll-padding-top: 5rem; }
+  html { overflow-x: clip; scroll-behavior: smooth; scroll-padding-top: 5rem; }
   html[dir="rtl"] { letter-spacing: 0; }
   /* Madarek typography (§2.4/§2.5): display weight is the TRUE 700 cut
      (Plex Sans Arabic ships no 800 — --fw-black resolves 700), heading
@@ -813,12 +857,92 @@ html.light::-webkit-scrollbar-thumb:hover,
 .skeleton {
   background: linear-gradient(90deg, var(--muted) 25%, var(--border) 50%, var(--muted) 75%);
   background-size: 200% 100%; border-radius: var(--radius-sm);
-  animation: shimmer 1.2s linear infinite;
+  /* r131-F7 (A11 SB-1, P1): bound to the semantic skeleton token (SO/SM/SL
+     pattern — SO globals.css:1122-1129). The token is zeroed in the RM
+     media block below (0ms) so reduced-motion users get a STATIC surface
+     instead of an infinite sweeping shimmer; the raw 1.2s literal kept the
+     loop alive regardless of the ladder. */
+  animation: shimmer var(--motion-duration-skeleton, 1200ms) linear infinite;
 }
 .shimmer {
   background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.06) 50%, transparent 100%);
   background-size: 200% 100%; border-radius: var(--radius-sm);
-  animation: shimmer 2s ease-in-out infinite;
+  /* r131-F7 (A11 doctrine, tokens.css §4.2): infinite loops ride LINEAR —
+     the old 2s ease-in-out pulsed its sweep velocity every iteration
+     (same defect class A11 flagged as SM-3). Bound to the skeleton token
+     so the RM zeroing below flows through. */
+  animation: shimmer var(--motion-duration-skeleton, 1200ms) linear infinite;
+}
+
+/* ── .state — the ONE canonical empty/error state family (r131-F7, A4
+   P2-8 + W1-I §3.13): 56px r-xl icon tile on the grey pastel family
+   (danger variant = rose-soft ground + rose-ink glyph — WCAG-pinned),
+   18px/600 title, 13px muted desc capped at 42ch, retry rides ui/Button
+   sm outline. Consumers: DefaultError (every route error boundary),
+   global-error, and — via the F8 sweep — the ~10 per-page hand-rolled
+   error blocks this family retires (bare AlertCircle / destructive-soft
+   tile / circle-well skins). ── */
+.state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; text-align: center; padding: 1.5rem 1rem;
+}
+.state-icon {
+  inline-size: 56px; block-size: 56px; border-radius: var(--r-xl);
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: var(--c-grey-bg); color: var(--c-grey-deep);
+}
+.state-icon > svg { inline-size: 24px; block-size: 24px; }
+/* danger skin — error boundaries. rose-soft ground + the -ink text tier
+   (dark #F0938F / light rose-deep #6B2128 — the r131 -ink token). */
+.state-danger .state-icon { background: var(--destructive-soft); color: var(--destructive-ink); }
+.state-title {
+  font-size: 18px; font-weight: var(--fw-semibold); line-height: 1.35;
+  letter-spacing: 0; color: var(--foreground);
+}
+.state-desc {
+  font-size: var(--fs-sm); line-height: var(--lh-base);
+  color: var(--muted-foreground); max-inline-size: 42ch;
+}
+@media (prefers-reduced-motion: reduce) {
+  .state { transition: none; }
+}
+
+/* ── .tbl-stack — MOBILE table→cards transformation (r131-F7b, A4 P2-1:
+   F8 tagged dashboard/demo tables with the class but the CSS never landed
+   — the mobile collapse was dead code, exactly the "data-label set but no
+   CSS consumes it" gap the audit flagged). Verbatim port of madarek
+   polish.css:2103-2130 (the §3.5 mobile contract, W1-I):
+     <640px: every <tr> becomes a card (hairline, r-md 10px, 12px pad,
+     12px gap); each <td> = flex space-between with
+     ::before{content:attr(data-label)} muted labels + dashed separators;
+     thead hidden. Non-opted tables keep the overflow-x-auto wrapper. ── */
+@media (max-width: 640px) {
+  .tbl-stack { display: block; }
+  .tbl-stack thead { display: none; }
+  .tbl-stack tbody, .tbl-stack tr { display: block; }
+  .tbl-stack tr {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-block-end: 0.75rem;
+    background: var(--card);
+  }
+  .tbl-stack td {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-block-end: 1px dashed var(--border);
+  }
+  .tbl-stack td:last-child { border-block-end: 0; }
+  .tbl-stack td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+  }
 }
 
 /* ── DE-GLOW (Madarek parity): the full-viewport film grain (.grain-overlay)
@@ -828,7 +952,11 @@ html.light::-webkit-scrollbar-thumb:hover,
    a stale className renders nothing rather than the old glow. ── */
 
 @keyframes fade-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slide-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+/* r131-F7 (A4 P2-7): toast/card entrance = the canonical 12px slide+fade
+   (madarek-toast-in / notifications.css) — was a 24px jump. Duration/ease
+   live on the consumers (240ms decelerate for toasts; .animate-fade-in
+   keeps its own 18px keyframe). */
+@keyframes slide-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scale-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -837,10 +965,21 @@ html.light::-webkit-scrollbar-thumb:hover,
 
 .animate-scale-in { animation: scale-in var(--t-slower) var(--ease-out-quart) both; }
 .animate-fade-in { animation: fade-in var(--t-slower) var(--ease-out-quart) both; }
-.animate-slide-up { animation: slide-up var(--t-slower) var(--ease-out-quart) both; }
+/* r131-F7: toast entrance rides the canonical medium rung (240ms) on the
+   decelerate curve — was --t-slower (520ms) ease-out-quart. Only consumer
+   is the premium toast card (rg-verified). */
+.animate-slide-up { animation: slide-up var(--motion-duration-medium) var(--motion-ease-decelerate) both; }
 .animate-float { animation: float 3s var(--ease-smooth) infinite; }
 .animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+/* r131-F7 (A4 P1-3 — one-line fleet fix): the SPINNER REGISTER. Tailwind's
+   animate-spin defaults to 1s; the canonical register is 700ms linear
+   (W1-I §3.13 = --motion-duration-stat, the stat/duration rung the
+   sparkline draw already rides). Unlayered on purpose so it beats the
+   @layer utilities emission; all 31 animate-spin consumers (Button
+   loading, Loader2 rows, DefaultLoading…) inherit the snappier turn.
+   Reduced motion: the universal belt below freezes the frame (unchanged). */
+.animate-spin { animation-duration: var(--motion-duration-stat, 700ms); }
 
 /* Page/layout motion primitives (used by ported dashboard components) */
 .animate-breath { animation: breath 1.5s ease-in-out infinite; }
@@ -969,6 +1108,11 @@ html.light::-webkit-scrollbar-thumb:hover,
     --t-micro: 0ms; --t-fast: 0ms; --t-base: 0ms; --t-slow: 0ms;
     --t-slower: 0ms; --t-cinema: 0ms;
     --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms;
+    /* r131-F7 (A11 SB-1): the semantic loop tokens zero too — .skeleton/
+       .shimmer bind to these, so the shimmer dies at the token level
+       (SO:882 / SM:1624 / SL:1112 pattern; the universal belt below is
+       the second, belt-and-braces kill). */
+    --motion-duration-skeleton: 0ms;
   }
 }
 

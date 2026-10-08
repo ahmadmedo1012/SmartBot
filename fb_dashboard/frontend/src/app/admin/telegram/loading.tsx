@@ -1,10 +1,7 @@
-import { Loader2 } from "lucide-react"
+/* r131-F7 (A11 SB-2): shape-matched route fallback (was a bare Loader2
+ * spinner) — the settings form's own anatomy. */
+import { PageSkeleton } from "@/components/ui/PageSkeleton"
 
 export default function AdminTelegramLoading() {
-  return (
-    <div className="flex items-center justify-center py-20" role="status">
-      <span className="sr-only">جارٍ التحميل…</span>
-      <Loader2 className="size-6 animate-spin text-muted-foreground" />
-    </div>
-  )
+  return <PageSkeleton variant="form" />
 }

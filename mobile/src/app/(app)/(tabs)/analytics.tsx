@@ -11,9 +11,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import Svg, { Line, Rect } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing } from '@/constants/theme'
+import { press, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Card, KpiCard, Row } from '@/components/ui'
+import { PressableScale } from '@/components/pressable-scale'
 import { apiGet } from '@/services/api'
 import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
 import { formatNumber } from '@/lib/format'
@@ -78,22 +79,28 @@ export default function AnalyticsScreen() {
         <AppText variant="title">التحليلات</AppText>
         <Row style={{ gap: spacing.sm }}>
           {[7, 30, 90].map((d) => (
-            <View key={d}>
+            /* r131: حبوب المدة أزرار حقيقية 44px مع حالة selected —
+                كانت نصًا مضغوطًا (AppText onPress) بارتفاع ~32px بلا دور */
+            <PressableScale
+              key={d}
+              accessibilityLabel={`آخر ${d} يومًا`}
+              accessibilityState={{ selected: days === d }}
+              onPress={() => setDays(d)}
+              style={[
+                styles.rangePill,
+                {
+                  backgroundColor: days === d ? `${colors.primary}24` : 'transparent',
+                },
+              ]}
+              scaleTo={press.button}
+            >
               <AppText
                 variant="smallBold"
-                onPress={() => (setDays(d), refetch())}
-                style={{
-                  color: days === d ? colors.accentFg : colors.mutedFg,
-                  backgroundColor: days === d ? `${colors.primary}24` : 'transparent',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 999,
-                  overflow: 'hidden',
-                }}
+                style={{ color: days === d ? colors.accentFg : colors.mutedFg }}
               >
                 {d} يوم
               </AppText>
-            </View>
+            </PressableScale>
           ))}
         </Row>
       </View>
@@ -199,4 +206,11 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md },
   rank: { width: 24, height: 24, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  rangePill: {
+    minHeight: TOUCH_TARGET - 4, /* 44px — أرضية اللمس (كانت ~32) */
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

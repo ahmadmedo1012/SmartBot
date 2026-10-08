@@ -11,9 +11,10 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { router } from 'expo-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
+import { PressableScale } from '@/components/pressable-scale'
 import { StackScreen } from '@/components/screen-header'
 import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
@@ -198,10 +199,10 @@ export default function BillingScreen() {
                 </AppText>
                 <Row style={{ gap: spacing.sm }}>
                   {(['liyana', 'madar'] as const).map((p) => (
-                    <Pressable
+                    <PressableScale
                       key={p}
-                      accessibilityRole="button"
                       accessibilityLabel={PROVIDER_LABEL[p]}
+                      accessibilityState={{ selected: provider === p }}
                       onPress={() => setProvider(p)}
                       style={[
                         styles.chip,
@@ -210,11 +211,12 @@ export default function BillingScreen() {
                           backgroundColor: provider === p ? `${colors.primary}24` : 'transparent',
                         },
                       ]}
+                      scaleTo={press.button}
                     >
                       <AppText variant="smallBold" style={{ color: provider === p ? colors.accentFg : colors.mutedFg }}>
                         {PROVIDER_LABEL[p]}
                       </AppText>
-                    </Pressable>
+                    </PressableScale>
                   ))}
                 </Row>
               </View>
@@ -248,5 +250,6 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 8 },
+  /* r131: أرضية اللمس 44px (كانت ~36 بـpaddingVertical 8) */
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, minHeight: TOUCH_TARGET - 4, justifyContent: 'center', alignItems: 'center' },
 })

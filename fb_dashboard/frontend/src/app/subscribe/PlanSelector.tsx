@@ -91,8 +91,10 @@ function PlanCard({
       className={cn(
         "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-(--t-base) border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
         isSelected
-          ? "border-accent-foreground ring-2 ring-accent-foreground/40 bg-accent/50 dark:bg-accent shadow-lg shadow-accent-foreground/15"
-          : "border-border/30 hover:border-accent-foreground/30 hover:shadow-accent-foreground/5 bg-card/50",
+          /* r131-F7b (A4 P2-4): the selected plan's gold-tinted /15 glow →
+             neutral shadow-lg (ring-2 + border carry the selection). */
+          ? "border-accent-foreground ring-2 ring-accent-foreground/40 bg-accent/50 dark:bg-accent shadow-lg"
+          : "border-border/30 hover:border-accent-foreground/30 hover:shadow-md bg-card/50",
         wide && "lg:flex-row lg:items-center lg:gap-6",
         gridClass,
       )}
@@ -238,7 +240,10 @@ export function PlanSelector({
         <Button
           size="lg"
           variant={selected ? "flame" : "outline"}
-          className={cn("px-10 h-14 text-lg rounded-sm")}
+          /* r131-F7b (A4 P2-5, "subscribe radii → r10"): the continue CTA
+             drops the h-14/text-lg/rounded-sm overrides — the canonical lg
+             rung (h-11 44px / 14px / 600 / r-md) keeps the wide px-10. */
+          className={cn("px-10 w-full sm:w-auto")}
           disabled={!selectedPlan}
           onClick={onContinue}
         >

@@ -40,7 +40,9 @@ function Card({
         "group/card relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground border border-border shadow-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         "transition-[transform,box-shadow,border-color,background-color] duration-(--t-base) ease-smooth",
         // Elevated is opt-in for cards that represent a clear interactive surface.
-        "data-[elevation=elevated]:shadow-md data-[elevation=elevated]:hover:shadow-xl data-[elevation=elevated]:hover:shadow-accent-foreground/10 data-[elevation=elevated]:hover:-translate-y-1 data-[elevation=elevated]:hover:border-accent-foreground/35 data-[elevation=elevated]:focus-visible:ring-2 data-[elevation=elevated]:focus-visible:ring-accent-foreground/50 data-[elevation=elevated]:focus-visible:ring-offset-2",
+        // r131-F7b (A4 P2-4): the elevated hover's gold-tinted /10 glow is
+        // retired — hover rides the NEUTRAL elev rung (shadow-xl = elev-4).
+        "data-[elevation=elevated]:shadow-md data-[elevation=elevated]:hover:shadow-xl data-[elevation=elevated]:hover:-translate-y-1 data-[elevation=elevated]:hover:border-accent-foreground/35 data-[elevation=elevated]:focus-visible:ring-2 data-[elevation=elevated]:focus-visible:ring-accent-foreground/50 data-[elevation=elevated]:focus-visible:ring-offset-2",
         // Flat: no hover transform or shadow
         "data-[elevation=flat]:hover:shadow-none data-[elevation=flat]:hover:translate-y-0 data-[elevation=flat]:focus-visible:ring-2 data-[elevation=flat]:focus-visible:ring-accent-foreground/50",
         // Outlined: prominent border, no hover effects

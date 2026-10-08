@@ -8,6 +8,8 @@ import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { Newspaper, Send, Trash2, AlertCircle, RefreshCw, WifiOff, ThumbsUp, MessageSquare, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -132,22 +134,20 @@ export default function PostsPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         <Card>
           <CardContent className="p-4">
-            <textarea
+            {/* r131-F8 (A4 P1-1c): the raw composer textarea (rounded-xl +
+                hand-rolled ring + md:text-sm) rides the shared Textarea
+                recipe — 16px floor, r-md, halo; dir=auto built in. */}
+            <Textarea
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
               placeholder="اكتب منشوراً جديداً…"
               aria-label="نص المنشور"
-              /* v16-E3 (D1 C3): raw textarea bypasses the shared Textarea
-                  seam — dir="auto" isolates mixed Arabic/Latin post text.
-                  v24-C2 (task 4 / A3-P1): text-sm كانت 14px — iOS يكبّر
-                  الإطار عند التركيز؛ الآن text-base md:text-sm (16px على
-                  الجوال) بعقد الـ44px نفسه (min-h-[100px] ≥ 44px). */
-              dir="auto"
-              className="w-full min-h-[100px] rounded-xl border border-input bg-background p-4 text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 resize-none"
+              rows={3}
             />
             <div className="flex justify-end mt-3">
               {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ النشر…» (mirror:
@@ -170,20 +170,24 @@ export default function PostsPage() {
         <section className="space-y-3" aria-labelledby="fb-posts-heading">
           <h2 id="fb-posts-heading" className="text-sm font-bold">منشورات فيسبوك</h2>
           {fbLoading ? (
+            /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
             <div className="space-y-3">
               {[1,2,3].map(i => (
-                <Card key={i}><CardContent className="p-4 animate-pulse space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-3 bg-muted rounded w-1/3" />
+                <Card key={i}><CardContent className="p-4 space-y-2">
+                  <div className="skeleton h-4 w-3/4 rounded" />
+                  <div className="skeleton h-3 w-1/3 rounded" />
                 </CardContent></Card>
               ))}
             </div>
           ) : fbIsError ? (
-            <div className="text-center py-8">
-              <AlertCircle className="size-10 mx-auto mb-3 text-destructive/50" />
-              <p className="text-sm font-bold mb-1">فشل تحميل منشورات فيسبوك</p>
-              <p className="text-xs text-muted-foreground mb-4">{(fbError as Error)?.message || "تعذر الاتصال"}</p>
-              <Button size="sm" variant="outline" onClick={() => refetchFb()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+            /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+            <div className="state state-danger py-8" role="alert">
+              <div className="state-icon" aria-hidden="true">
+                <AlertCircle />
+              </div>
+              <p className="state-title">فشل تحميل منشورات فيسبوك</p>
+              <p className="state-desc">{(fbError as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+              <Button size="sm" variant="outline" onClick={() => refetchFb()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : (
             <div className="space-y-3">
@@ -272,20 +276,24 @@ export default function PostsPage() {
         <section className="space-y-3" aria-labelledby="drafts-heading">
           <h2 id="drafts-heading" className="text-sm font-bold">المسودات والمجدولة</h2>
           {isLoading ? (
+          /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
           <div className="space-y-3">
             {[1,2,3].map(i => (
-              <Card key={i}><CardContent className="p-4 animate-pulse space-y-2">
-                <div className="h-4 bg-muted rounded w-3/4" />
-                <div className="h-3 bg-muted rounded w-1/2" />
+              <Card key={i}><CardContent className="p-4 space-y-2">
+                <div className="skeleton h-4 w-3/4 rounded" />
+                <div className="skeleton h-3 w-1/2 rounded" />
               </CardContent></Card>
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center py-12">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <p className="text-sm font-bold mb-1">فشل تحميل المنشورات</p>
-            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
-            <Button size="sm" variant="outline" onClick={() => refetch()}>إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+          <div className="state state-danger py-12" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <p className="state-title">فشل تحميل المنشورات</p>
+            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (
           <EmptyState
@@ -302,13 +310,14 @@ export default function PostsPage() {
                   <p className="text-sm mb-2">{p.message}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className={`px-2 py-0.5 rounded-full ${
-                        p.status === "published" ? "bg-success/15 text-success" :
-                        p.status === "scheduled" ? "bg-info/15 text-info" :
-                        "bg-muted text-muted-foreground"
-                      /* r127-F5a: status is optional on ScheduledPost — `?? ""`
-                          indexes safely; the `|| p.status` fallback is unchanged. */
-                      }`}>{POST_STATUS_LABELS[p.status ?? ""] || p.status}</span>
+                      {/* r131-F8 (A4 P2-3): hand-rolled status chip → Badge.
+                          r127-F5a: status is optional on ScheduledPost — `?? ""`
+                          indexes safely; the `|| p.status` fallback is unchanged. */}
+                      <Badge variant={
+                        p.status === "published" ? "success" :
+                        p.status === "scheduled" ? "info" :
+                        "secondary"
+                      }>{POST_STATUS_LABELS[p.status ?? ""] || p.status}</Badge>
                       {p.scheduled_at && <span>{formatDate(p.scheduled_at)}</span>}
                     </div>
                     {/* v24-C2 (task 3 / A3-P2): أثناء التأكيد يستبدل العنقود

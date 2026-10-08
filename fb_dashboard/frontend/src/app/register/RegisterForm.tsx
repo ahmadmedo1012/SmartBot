@@ -11,7 +11,7 @@ import type { ApiErrorBody } from "@/lib/types"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
-import { UserPlus, Eye, EyeOff, CheckCircle2, XCircle } from "lucide-react"
+import { UserPlus, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -145,7 +145,10 @@ function RegisterForm() {
 
       <div className="fixed top-0 inset-x-0 z-10 h-1 bg-gradient-to-r from-[var(--accent-foreground)] via-[var(--accent-foreground)]/80 to-[var(--accent-foreground)]/60" />
 
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+      {/* r131-F7b (A4 P2-4 de-glow tail): glassy gold-tinted auth card → the
+          canonical quiet card (SOLID bg-card + hairline + neutral shadow-xl
+          elev-4 — login twin). */}
+      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card shadow-xl sm:max-w-md">
         {/* Visually-hidden page heading — CardTitle is a div, so heading
             navigation had no target on this route (v8-B5) */}
         <h1 className="sr-only">إنشاء حساب جديد</h1>
@@ -173,7 +176,9 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {username.length > 0 && (
                   <span id="username-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {usernameOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {/* r131-F7b (A7 Cluster B): validation glyphs ride the AA
+                        -ink tier (was raw base tokens — sub-AA in light). */}
+                    {usernameOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success-ink" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive-ink" />}
                   </span>
                 )}
               </div>
@@ -189,7 +194,7 @@ function RegisterForm() {
                   className="border-0 bg-transparent pe-9 focus-visible:ring-0 focus-visible:ring-offset-0" />
                 {email.length > 0 && (
                   <span id="email-validity" className="absolute end-2 top-1/2 -translate-y-1/2">
-                    {emailOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {emailOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success-ink" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive-ink" />}
                   </span>
                 )}
               </div>
@@ -208,7 +213,7 @@ function RegisterForm() {
                     this glyph; input pe-[4.5rem] clears both. */}
                 {password.length > 0 && (
                   <span id="password-validity" className="absolute end-14 top-1/2 -translate-y-1/2">
-                    {passwordOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {passwordOk ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success-ink" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive-ink" />}
                   </span>
                 )}
                 {/* v24-C1: size-11 (44px) touch target — size-7 (28px) was a
@@ -243,7 +248,7 @@ function RegisterForm() {
                     this glyph; input pe-[4.5rem] clears both. */}
                 {confirm.length > 0 && (
                   <span id="confirm-validity" className="absolute end-14 top-1/2 -translate-y-1/2">
-                    {password === confirm ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive" />}
+                    {password === confirm ? <CheckCircle2 aria-label="صالح" role="img" className="size-4 text-success-ink" /> : <XCircle aria-label="غير صالح" role="img" className="size-4 text-destructive-ink" />}
                   </span>
                 )}
                 {/* v24-C1: size-11 (44px) touch target — size-7 (28px) was a
@@ -264,18 +269,25 @@ function RegisterForm() {
             </div>
 
             {formError && (
-              <p id="register-form-error" role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
+              /* r131-F7b (A7 Cluster B): status text rides the AA -ink tier +
+                 the solid pastel ground (was /10 wash + raw base in light). */
+              <p id="register-form-error" role="alert" className="text-xs text-destructive-ink text-center bg-destructive-soft border border-destructive/20 rounded-md py-2 px-3">
                 {formError}
               </p>
             )}
             {lockoutSeconds > 0 && (
-              <p id="register-lockout" role="status" aria-live="polite" className="text-xs text-warning text-center">
+              <p id="register-lockout" role="status" aria-live="polite" className="text-xs text-warning-ink text-center">
                 يمكنك إعادة المحاولة بعد {lockoutSeconds} ثانية
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
+            {/* r131-F7b (A4 P2-4/P2-5): hand-rolled h-11/rounded-xl/text-base +
+                glow shadows → the canonical lg rung (44px/14px/600/r-md,
+                own premium hover shadow) — login twin. */}
+            <Button type="submit" size="lg" className="mt-2 w-full" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
-                <span className="flex items-center gap-2"><UserPlus className="size-4 animate-pulse" aria-hidden="true" /> جارٍ إنشاء الحساب…</span>
+                /* r131-F7c (A4 P1-2 tail): pulse icon → the canonical busy
+                    idiom (Loader2 animate-spin — login/Telegram twins). */
+                <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> جارٍ إنشاء الحساب…</span>
               ) : (
                 <span className="flex items-center gap-2"><UserPlus className="size-4" aria-hidden="true" /> إنشاء حساب</span>
               )}

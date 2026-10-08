@@ -66,9 +66,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <span
               className={cn(
                 "pointer-events-none absolute inset-y-0 end-3 flex items-center",
-                effectiveState === "error" && "text-destructive",
-                effectiveState === "success" && "text-success",
-                effectiveState === "warning" && "text-warning",
+                /* r131-F7b (A7 Cluster B): status-as-glyph rides the AA -ink
+                 * tier in both themes (light pastel -deep — was the raw base
+                 * token, 2.2-3.0:1 on the field surface in light). */
+                effectiveState === "error" && "text-destructive-ink",
+                effectiveState === "success" && "text-success-ink",
+                effectiveState === "warning" && "text-warning-ink",
               )}
               aria-hidden="true"
             >
@@ -81,7 +84,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {hint}
           </p>
         )}
-        {error && <p id={errorId} className="text-xs text-destructive">{error}</p>}
+        {/* r131-F7b (A7 Cluster B): error text rides the AA -ink tier (light
+         * rose-deep #6B2128 — 8.8:1; was the raw base 2.9:1 in light). */}
+        {error && <p id={errorId} className="text-xs text-destructive-ink">{error}</p>}
       </div>
     )
   }

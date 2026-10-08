@@ -9,6 +9,7 @@ import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
 import { MessageSquare, Reply, AlertCircle, RefreshCw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -159,8 +160,9 @@ export default function CommentsPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 max-w-(--marketing-max-w) mx-auto w-full">
         {isLoading ? (
           <div className="space-y-3">
             {[1,2,3,4].map(i => (
@@ -176,10 +178,13 @@ export default function CommentsPage() {
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل تحميل التعليقات</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال بالخادم"}</p>
+          /* r131-F7b (A4 P2-8 completion): bare-AlertCircle → the .state family. */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">فشل تحميل التعليقات</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال بالخادم"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : comments.length === 0 ? (
@@ -221,22 +226,18 @@ export default function CommentsPage() {
 
                       {!c.reply_text && (
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <input
-                            id={`reply-input-${c.id}`}
-                            value={replyText[c.id] || ""}
-                            onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
-                            placeholder="رد سريع…"
-                            aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
-                            /* v14-E5: raw input bypasses the shared Input component —
-                               apply the AA placeholder token directly.
-                               v16-E3 (D1 C3): dir="auto" isolates the mixed
-                               Arabic/Latin reply being typed.
-                               v24-C1: 44px target + 16px font — iOS no-zoom
-                               contract (h-8 text-sm was a 32px target that
-                               zoomed the viewport on every focus). */
-                            dir="auto"
-                            className="flex-1 min-w-[10rem] h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 placeholder:text-placeholder-text focus:outline-none focus:ring-2 focus:ring-accent-foreground/30"
-                          />
+                          {/* r131-F8 (A4 P1-1b): the raw quick-reply input → the
+                              shared Input primitive (16px floor / r-md / halo /
+                              AA placeholder token — all built in; dir=auto too). */}
+                          <div className="flex-1 min-w-[10rem]">
+                            <Input
+                              id={`reply-input-${c.id}`}
+                              value={replyText[c.id] || ""}
+                              onChange={e => setReplyText(p => ({ ...p, [c.id]: e.target.value }))}
+                              placeholder="رد سريع…"
+                              aria-label={c.from_name ? `الرد السريع على تعليق ${c.from_name}` : "الرد السريع"}
+                            />
+                          </div>
                           <Button
                             size="sm"
                             onClick={() => {

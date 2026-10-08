@@ -9,6 +9,8 @@ import { AtSign, Bot, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Sparkles,
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { EmptyState } from "@/components/ui/EmptyState"
 /* v23: مفتاح تبديل منزلي (button[role=switch] + aria-checked، بلا radix) —
@@ -267,31 +269,48 @@ export default function AutoReplyPage() {
         compact
       />
 
-      {/* D4-بند2 (v17-S1) — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 (v17-S1) → r131-F8 (task #12): the content column rides the
+          canonical 1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-(--marketing-max-w) mx-auto w-full">
         {/* v23 (المهمة 2-ب): بطاقة «سلوك البوت» فوق قسم القواعد مباشرة —
             مستقلة عن حالة القواعد (تحميلها/فشلها/فراغها لا يخفي البطاقة ولا العكس). */}
         {behaviorLoading ? (
+          /* r131-F8 (A4 P1-2): pulse blink → shape-matched .skeleton slabs
+             (icon well + title/desc lines + switch circle per row). */
           <Card>
-            <CardContent className="p-4">
-              <div className="h-16 rounded-lg bg-muted animate-pulse" />
+            <CardContent className="p-4 space-y-2">
+              <div className="skeleton h-3 w-20 mb-2" />
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between gap-4 py-2.5">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="skeleton size-9 shrink-0 rounded-xl" />
+                    <div className="space-y-1.5 py-1 flex-1">
+                      <div className="skeleton h-3.5 w-28" />
+                      <div className="skeleton h-2.5 w-44" />
+                    </div>
+                  </div>
+                  <div className="skeleton size-5 shrink-0 rounded-full" />
+                </div>
+              ))}
             </CardContent>
           </Card>
         ) : behaviorError ? (
-          /* v23: نفس نمط كتلة خطأ القواعد أسفل الصفحة (أيقونة + عنوان عربي +
-              رسالة الخادم + زر إعادة) — رسالة ApiError عربية من الخادم أصلاً. */
-          <div className="text-center py-10">
-            <div className="size-12 rounded-2xl bg-destructive-soft flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="size-6 text-destructive" />
+          /* v23 → r131-F8 (A4 P2-8): the destructive-soft tile idiom rides the
+              canonical .state family (rose-soft 56px r-xl + -ink glyph + 42ch). */
+          <div className="state state-danger py-10" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
             </div>
-            <h2 className="sb-section-title mb-1">فشل تحميل سلوك البوت</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(behaviorErrorObj as Error)?.message || "تعذر الاتصال"}</p>
+            <h2 className="state-title">فشل تحميل سلوك البوت</h2>
+            <p className="state-desc">{(behaviorErrorObj as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => refetchBehavior()}>
-              <RefreshCw className="size-3" /> إعادة المحاولة
+              <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
             </Button>
           </div>
         ) : behavior ? (
-          <Card className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5">
+          /* r131-F8 (A4 P2-4): de-glow — the accent border + accent wash
+             shadow drop to the flat hairline card language. */
+          <Card>
             <CardContent className="p-4">
               <p className="text-xs font-bold text-muted-foreground mb-1">سلوك البوت</p>
               {BEHAVIOR_SWITCHES.map((row) => {
@@ -338,12 +357,11 @@ export default function AutoReplyPage() {
                     <label htmlFor="ai-tone" className="text-xs font-medium text-muted-foreground">نبرة الردود (اختياري)</label>
                     {toneSaving && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                   </div>
-                  {/* v16-E3 (D1 C3) — نفس نهج الصفحة: raw input بـ dir="auto"
-                      يعزل القيم العربية/اللاتينية المختلطة.
-                      v24-C2 (task 4 / A3 §2 raw-input drift): h-9 text-sm
-                      كانت تكبّر إطار العرض على iOS عند التركيز — الآن h-11
-                      + text-base md:text-sm (16px على الجوال). */}
-                  <input
+                  {/* v16-E3 (D1 C3) → r131-F8 (A4 P1-1b): the raw-input idiom
+                      (h-11 rounded-lg + hand-rolled ring + md:text-sm 14px)
+                      rides the shared Input primitive — 16px floor, r-md,
+                      halo token; dir=auto is built in. */}
+                  <Input
                     id="ai-tone"
                     value={toneInput}
                     onChange={(e) => {
@@ -353,8 +371,6 @@ export default function AutoReplyPage() {
                     onBlur={flushToneSave}
                     maxLength={TONE_MAX_LEN}
                     placeholder="مثال: ودية ومهنية"
-                    dir="auto"
-                    className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                   />
                 </div>
               )}
@@ -364,15 +380,16 @@ export default function AutoReplyPage() {
 
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">{countPhrase(rules.length, "قاعدة", "قاعدتين", "قواعد")}</p>
-          <Button size="sm" onClick={() => { setShowForm(!showForm); setEditingRuleId(null) }} className="shadow-sm shadow-accent-foreground/15">
+          <Button size="sm" onClick={() => { setShowForm(!showForm); setEditingRuleId(null) }}>
             <Plus className="size-3.5" /> قاعدة جديدة
           </Button>
         </div>
 
         {(showForm || editingRuleId !== null) && (
           <Card
-            className="border-accent-foreground/30 shadow-md shadow-accent-foreground/5"
-            /* v10-B7 (G2-05): Escape closes the inline form (same as «إلغاء») —
+            /* r131-F8 (A4 P2-4): de-glow — the accent border + wash shadow drop
+               to the flat hairline card language.
+               v10-B7 (G2-05): Escape closes the inline form (same as «إلغاء») —
                the first field is focused on open so the key lands inside */
             onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setShowForm(false); setEditingRuleId(null) } }}
           >
@@ -383,54 +400,50 @@ export default function AutoReplyPage() {
               </p>
               <div>
                 <label htmlFor="rule-name" className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم القاعدة</label>
-                <input
+                {/* r131-F8 (A4 P1-1b): raw input → the shared Input
+                    primitive (16px floor / r-md / halo; dir=auto built in). */}
+                <Input
                   id="rule-name"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="مثال: الرد على الاستفسارات"
                   autoFocus
-                  /* v16-E3 (D1 C3): raw input bypasses the shared Input seam —
-                     dir="auto" isolates mixed Arabic/Latin values. */
-                  dir="auto"
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
                 <label htmlFor="rule-keywords" className="text-xs font-medium text-muted-foreground mb-1.5 block">الكلمات المفتاحية (افصل بفاصلة)</label>
-                <input
+                <Input
                   id="rule-keywords"
                   value={keyword}
                   onChange={e => setKeyword(e.target.value)}
                   placeholder="مثال: سعر، توصيل، عنوان"
-                  dir="auto"
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
                 <label htmlFor="rule-reply" className="text-xs font-medium text-muted-foreground mb-1.5 block">نص الرد</label>
-                <textarea
+                {/* r131-F8 (A4 P1-1c): raw textarea → the shared Textarea
+                    primitive (min-h-24 / 16px floor / r-md / halo). */}
+                <Textarea
                   id="rule-reply"
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة…"
                   rows={3}
-                  dir="auto"
-                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-base md:text-sm transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
               </div>
               <div>
                 <label htmlFor="rule-priority" className="text-xs font-medium text-muted-foreground mb-1.5 block">الأولوية (الرقم الأقل يُفحص أولاً: 1-999)</label>
-                <input
-                  id="rule-priority"
-                  value={priority}
-                  onChange={e => setPriority(e.target.value)}
-                  /* v25 (W-13): تثبيت عند مغادرة الحقل — أي قيمة خارج 1-999
-                     أو غير رقمية تُصحّح فوراً (نفس ما سيُرسل للخادم). */
-                  onBlur={() => setPriority(p => clampPriority(p))}
-                  inputMode="numeric"
-                  dir="auto"
-                  className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
-                />
+                <div className="w-32">
+                  <Input
+                    id="rule-priority"
+                    value={priority}
+                    onChange={e => setPriority(e.target.value)}
+                    /* v25 (W-13): تثبيت عند مغادرة الحقل — أي قيمة خارج 1-999
+                       أو غير رقمية تُصحّح فوراً (نفس ما سيُرسل للخادم). */
+                    onBlur={() => setPriority(p => clampPriority(p))}
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <Button size="sm" variant="outline" onClick={() => { setShowForm(false); setEditingRuleId(null); setName(""); setKeyword(""); setReplyText(""); setPriority("50") }}>إلغاء</Button>
@@ -448,15 +461,19 @@ export default function AutoReplyPage() {
         )}
 
         {isLoading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="h-4 bg-muted rounded animate-pulse w-1/3 mb-2" /><div className="h-3 bg-muted rounded animate-pulse w-2/3" /></CardContent></Card>)}</div>
+          /* r131-F8 (A4 P1-2): pulse blink → .skeleton slabs shape-matched to
+             the rule row (keyword chips + two-line reply preview). */
+          <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-4 w-1/3 mb-2 rounded" /><div className="skeleton h-3 w-2/3 rounded" /></CardContent></Card>)}</div>
         ) : isError ? (
-          <div className="text-center py-16">
-            <div className="size-16 rounded-2xl bg-destructive-soft flex items-center justify-center mx-auto mb-3">
-              <AlertCircle className="size-8 text-destructive" />
+          /* r131-F8 (A4 P2-8): the 64px destructive-soft rounded-2xl tile →
+             the canonical .state family. */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
             </div>
-            <h2 className="sb-section-title mb-1">فشل تحميل القواعد</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(error as Error)?.message || "تعذر الاتصال"}</p>
-            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+            <h2 className="state-title">فشل تحميل القواعد</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : rules.length === 0 ? (
           <EmptyState
@@ -479,7 +496,7 @@ export default function AutoReplyPage() {
                           {k}
                         </code>
                       ))}
-                      <span className={`inline-flex items-center gap-1 text-2xs font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success"}`}>
+                      <span className={`inline-flex items-center gap-1 text-2xs font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success-ink"}`}>
                         <span className={`size-1.5 rounded-full ${r.enabled === false ? "bg-muted-foreground" : "bg-success"}`} />
                         {r.enabled === false ? "متوقف" : "نشط"}
                       </span>

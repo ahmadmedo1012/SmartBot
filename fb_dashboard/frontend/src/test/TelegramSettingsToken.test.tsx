@@ -135,7 +135,7 @@ describe("D4-H2 — the masked token is never seeded, never sent", () => {
   it("seeds the token field EMPTY (with the saved-token placeholder) when botTokenMasked=true", async () => {
     renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     const tokenInput = screen.getByLabelText("رمز البوت (Bot Token)") as HTMLInputElement
     await waitFor(() => expect(tokenInput.value).toBe(""))
     expect(screen.queryByDisplayValue("••••••••")).toBeNull()
@@ -154,7 +154,7 @@ describe("D4-H2 — the masked token is never seeded, never sent", () => {
   it("saving with an UNTOUCHED token OMITS botToken from the POST body (chatId-only save works)", async () => {
     const calls = renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     const chatId = await screen.findByLabelText("معرف المحادثة (Chat ID)")
     await waitFor(() => expect((chatId as HTMLInputElement).value).toBe("-1001234567890"))
 
@@ -177,7 +177,7 @@ describe("D4-H2 — the masked token is never seeded, never sent", () => {
   it("a genuinely-typed NEW token rides the payload (replace flow)", async () => {
     const calls = renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     const tokenInput = await screen.findByLabelText("رمز البوت (Bot Token)")
     await waitFor(() => expect((tokenInput as HTMLInputElement).value).toBe(""))
     fireEvent.change(tokenInput, {
@@ -202,7 +202,7 @@ describe("D4-H2 — the masked token is never seeded, never sent", () => {
       }),
     )
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     const tokenInput = await screen.findByLabelText("رمز البوت (Bot Token)")
     await waitFor(() => expect((tokenInput as HTMLInputElement).value).toBe(""))
     fireEvent.change(tokenInput, { target: { value: "not-a-token" } })
@@ -220,7 +220,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
   it("renders adminCount (the backend's real key — linkedAdmins read 0 forever)", async () => {
     renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     expect(await screen.findByTestId("diagnose-admin-count")).toHaveTextContent("3")
     // the broadcast-targets card shows the same count via the page's mapping
     expect(screen.getByText("عدد المشرفين المرتبطين: 3")).toBeInTheDocument()
@@ -229,7 +229,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
   it("dryRunResult 'ok' → the success card (a REAL test send happened)", async () => {
     renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     expect(
       await screen.findByText("تم إرسال رسالة تجريبية بنجاح — البوت يعمل بشكل صحيح"),
     ).toBeInTheDocument()
@@ -243,7 +243,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
       }),
     )
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     expect(
       await screen.findByText("فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح"),
     ).toBeInTheDocument()
@@ -262,7 +262,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
       }),
     )
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     expect(
       await screen.findByText(/لم يُجرَ اختبار إرسال بعد — اضغط «تشخيص»/),
     ).toBeInTheDocument()
@@ -272,7 +272,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
   it("the manual «تشخيص» button requests dryRun=true (the only path that produces a verdict)", async () => {
     const calls = renderTelegram(baseRoutes())
 
-    await screen.findByRole("heading", { level: 2, name: "إعدادات تليجرام" })
+    await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     fireEvent.click(screen.getByRole("button", { name: /تشخيص/ }))
 
     await waitFor(() => {

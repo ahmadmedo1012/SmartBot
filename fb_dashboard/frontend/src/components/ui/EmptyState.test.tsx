@@ -124,18 +124,21 @@ describe("ErrorState", () => {
 })
 
 describe("LoadingState", () => {
-  it("renders 3 pulsing skeleton rows by default", () => {
+  it("renders 3 skeleton shimmer rows by default", () => {
     const { container } = render(<LoadingState />)
 
-    const rows = container.querySelectorAll("div.animate-pulse")
+    /* r131-F7c: the rows ride .skeleton (F7b swap) — count the size-10
+       avatar wells (one per row); the old div.animate-pulse queries went
+       stale when the pulse-blink idiom retired. */
+    const rows = container.querySelectorAll("div.skeleton.size-10")
     expect(rows.length).toBe(3)
     // each row has the size-10 avatar tile + two text bars
-    expect(container.querySelectorAll("div.size-10").length).toBe(3)
+    expect(container.querySelectorAll("div.skeleton").length).toBe(9)
   })
 
   it("honors a custom row count", () => {
     const { container } = render(<LoadingState count={5} />)
 
-    expect(container.querySelectorAll("div.animate-pulse").length).toBe(5)
+    expect(container.querySelectorAll("div.skeleton.size-10").length).toBe(5)
   })
 })

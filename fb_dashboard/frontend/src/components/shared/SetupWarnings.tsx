@@ -145,8 +145,11 @@ export function SetupWarnings() {
       {warnings.map((w) => (
         <div key={w.key} className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-lg bg-card/60 border border-border/40 px-3 py-2.5">
           <div className={`flex items-center gap-2.5 min-w-0 flex-1`}>
+            {/* r131-F7c (fleet ruling "status = solid pastel"): the last two
+                /15 icon-well washes → the opaque -soft ground + the AA -ink
+                text tier (badge/well recipe; was translucent sub-AA in light). */}
             <div className={`size-8 shrink-0 rounded-lg flex items-center justify-center ${
-              w.critical ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
+              w.critical ? "bg-destructive-soft text-destructive-ink" : "bg-warning-soft text-warning-ink"
             }`}>
               <w.icon className={cn("size-4", w.iconClassName)} />
             </div>

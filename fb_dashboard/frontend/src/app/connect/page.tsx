@@ -174,18 +174,22 @@ export default function ConnectPage() {
         {/* v14-E4 (D4 M-03): skip-link target in the connected branch too
             (was form-only — the skip link jumped nowhere here). */}
         <span id="page-content" className="sr-only" tabIndex={-1} />
-        <Card className="w-full max-w-md border-accent-foreground/20 bg-card/80 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl">
+        <Card className="w-full max-w-md border-border/60 bg-card shadow-xl">
           <h1 className="sr-only">حالة اتصال صفحة فيسبوك</h1>
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
-              <Check className="h-8 w-8 text-success" />
+            {/* r131-F7b (A4 P2-4 de-glow tail): the alpha-wash success circle →
+                the canonical pastel-family well (mint -bg ground + -ink glyph). */}
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-(--c-mint-bg)">
+              <Check className="h-8 w-8 text-(--c-mint-ink)" />
             </div>
             <CardTitle className="text-2xl">{existing.page_name || "الصفحة متصلة"}</CardTitle>
             <CardDescription>{allOk ? "الحساب مرتبط والويبهوك يعمل بكامل قدرته" : "الحساب مرتبط — أكمل خطوات الويبهوك لاستقبال الأحداث لحظياً"}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <span className="flex justify-center">
-              <span className="inline-flex items-center rounded-full border border-success/30 bg-success/10 px-4 py-1.5 text-sm text-success">
+              {/* r131-F7b (A7 Cluster B): chip text on the /10 wash → the AA
+                  -ink tier (was the raw base token — sub-AA in light). */}
+              <span className="inline-flex items-center rounded-full border border-success/30 bg-success/10 px-4 py-1.5 text-sm text-success-ink">
                 {existing?.page_id ? `معرف الصفحة: ${existing.page_id}` : "متصل"}
               </span>
             </span>
@@ -194,11 +198,11 @@ export default function ConnectPage() {
                 a silently-empty dashboard: the verdict from the backend
                 self-heal gets a loud banner with a re-connect path. */}
             {existing?.token_ok === false && existing.token_check && (
-              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <div role="alert" className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive-ink">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <div className="leading-relaxed">
                   <p className="font-medium">تعذّر الاتصال بصفحة فيسبوك — أعد الربط</p>
-                  <p className="mt-1 text-2xs text-destructive/85">
+                  <p className="mt-1 text-2xs text-destructive-ink/85">
                     {existing.token_check.detail || "الرمز المخزّن لا يعمل مع بيانات الصفحة."}
                   </p>
                   <Button size="sm" variant="outline" className="mt-2" onClick={() => setExisting({ ...existing, connected: false })}>
@@ -225,22 +229,22 @@ export default function ConnectPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-muted-foreground"><Shield className="size-3.5" /> سر التطبيق (توقيع الأحداث)</span>
                   {secretOk ? (
-                    <span className="flex items-center gap-1 text-success text-xs"><Check className="size-3.5" /> مُفعّل {wh.secret_source === "db" ? "(من الإعدادات)" : ""}</span>
+                    <span className="flex items-center gap-1 text-success-ink text-xs"><Check className="size-3.5" /> مُفعّل {wh.secret_source === "db" ? "(من الإعدادات)" : ""}</span>
                   ) : (
-                    <Link href="/admin/settings" className="flex items-center gap-1 text-warning text-xs underline underline-offset-2 hover:text-foreground">
+                    <Link href="/admin/settings" className="flex items-center gap-1 text-warning-ink text-xs underline underline-offset-2 hover:text-foreground">
                       <AlertTriangle className="size-3.5" /> غير مضبوط — أضفه من إعدادات المنصة
                     </Link>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-muted-foreground"><MessageCircle className="size-3.5" /> استقبال الرسائل</span>
-                  <span className={`flex items-center gap-1 text-xs ${messagesOk ? "text-success" : "text-warning"}`}>
+                  <span className={`flex items-center gap-1 text-xs ${messagesOk ? "text-success-ink" : "text-warning-ink"}`}>
                     {messagesOk ? <><Check className="size-3.5" /> مشترك</> : <><AlertTriangle className="size-3.5" /> غير مشترك</>}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-muted-foreground"><Zap className="size-3.5" /> استقبال التعليقات</span>
-                  <span className={`flex items-center gap-1 text-xs ${feedOk ? "text-success" : "text-warning"}`}>
+                  <span className={`flex items-center gap-1 text-xs ${feedOk ? "text-success-ink" : "text-warning-ink"}`}>
                     {feedOk ? <><Check className="size-3.5" /> مشترك</> : <><AlertTriangle className="size-3.5" /> غير مشترك</>}
                   </span>
                 </div>
@@ -302,9 +306,15 @@ export default function ConnectPage() {
         <div
           className="w-full max-w-lg animate-fade-in"
         >
-          <Card className="border-accent-foreground/20 bg-card/85 shadow-2xl shadow-accent-foreground/10 backdrop-blur-2xl backdrop-saturate-150">
+          {/* r131-F7b (A4 P2-4 de-glow tail — the flagged connect cards
+              :177/:305 combo): glassy gold-tinted chrome → the canonical
+              quiet card (SOLID bg-card + hairline border-border/60 + the
+              neutral shadow-xl elev-4 — same treatment the r131 toaster
+              ruling applied; the copper pastel well replaces the gold
+              gradient + glow tile). */}
+          <Card className="border-border/60 bg-card shadow-xl">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-accent-foreground/30">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-xl bg-(--c-copper-bg) text-(--c-copper-ink)">
                 <span className="text-3xl font-bold">f</span>
               </div>
               <CardTitle className="text-2xl">ربط صفحة فيسبوك</CardTitle>
@@ -368,12 +378,13 @@ export default function ConnectPage() {
               {/* Scope warnings */}
               {scopeWarnings.length > 0 && (
                 <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
-                  <p className="text-xs text-warning">
+                  {/* r131-F7b (A7 Cluster B): -ink tier for status-as-text. */}
+                  <p className="text-xs text-warning-ink">
                     تحذير: رمز الوصول ينقصه الصلاحيات التالية:
                   </p>
                   <ul className="mt-1 space-y-0.5">
                     {scopeWarnings.map((s) => (
-                      <li key={s} className="flex items-center gap-1.5 text-xs text-warning">
+                      <li key={s} className="flex items-center gap-1.5 text-xs text-warning-ink">
                         <X className="h-3 w-3" />
                         {s}
                       </li>
@@ -385,7 +396,7 @@ export default function ConnectPage() {
               {/* Error */}
               {errorMsg && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-                  <p className="text-xs text-destructive">{errorMsg}</p>
+                  <p className="text-xs text-destructive-ink">{errorMsg}</p>
                 </div>
               )}
 
@@ -393,7 +404,9 @@ export default function ConnectPage() {
               <div className="flex gap-3 pt-1">
                 <Button
                   variant="outline"
-                  className="flex-1 h-12 rounded-xl"
+                  /* r131-F7b (A4 P2-5): h-12/rounded-xl overrides → the
+                     canonical ladder (default h-10/13/r-md — was 48px/16px). */
+                  className="flex-1"
                   disabled={status === "testing" || status === "saving"}
                   onClick={handleTest}
                 >
@@ -404,7 +417,10 @@ export default function ConnectPage() {
                   )}
                 </Button>
                 <Button
-                  className="flex-1 h-12 rounded-xl shadow-lg shadow-accent-foreground/25 hover:shadow-accent-foreground/40"
+                  /* r131-F7b (A4 P2-4/P2-5): h-12/rounded-xl + the gold glow
+                     shadows → the canonical Button (h-10/r-md, own premium
+                     hover shadow — the tinted glow is retired). */
+                  className="flex-1"
                   disabled={status !== "saving" && fanCount === 0}
                   onClick={handleSave}
                 >
@@ -422,7 +438,7 @@ export default function ConnectPage() {
                   {/* v17-E-F4 (D3 #7): ✅ emoji → the app's state verdict icon
                       (CheckCircle2, aria-hidden — the live region announces
                       clean text only). */}
-                  <p className="flex items-center justify-center gap-1.5 text-sm text-success font-medium">
+                  <p className="flex items-center justify-center gap-1.5 text-sm text-success-ink font-medium">
                     <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
                     تم الاتصال — متابعو الصفحة: {formatNumber(fanCount)}
                   </p>
@@ -432,7 +448,7 @@ export default function ConnectPage() {
               {status === "connected" && (
                 <div role="status" className="rounded-lg border border-success/30 bg-success/5 p-3 text-center space-y-3">
                   {/* v17-E-F4 (D3 #7): ✅ emoji → CheckCircle2 (aria-hidden). */}
-                  <p className="flex items-center justify-center gap-1.5 text-sm text-success font-medium">
+                  <p className="flex items-center justify-center gap-1.5 text-sm text-success-ink font-medium">
                     <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
                     تم التفعيل — البوت جاهز للعمل
                   </p>

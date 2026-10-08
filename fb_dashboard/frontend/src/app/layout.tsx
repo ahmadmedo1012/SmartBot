@@ -69,6 +69,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        {/* r131-F7 (A10 F4 — SO layout.tsx:72 pattern): pre-paint theme boot.
+         * Dark is the CSS default (:root = night, .light overlays), but the
+         * .dark class is added explicitly so Tailwind's dark: variants (the
+         * @custom-variant) are active before hydration too; stored-light
+         * visitors get .light pre-paint instead of a night flash. The key
+         * matches next-themes' default storage key ("theme"); the SO twin
+         * pins the same pairing with its custom key. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.add('light')}else{document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})();`,
+          }}
+        />
         <link rel="stylesheet" href="/fonts/fonts.css" />
         {/* LCP: preload the two FIRST-PAINT arabic subsets (Madarek
          * index.html pattern — only the 400 + 700 arabic faces, ~86KB):

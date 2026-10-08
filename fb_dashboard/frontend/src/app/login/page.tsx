@@ -11,7 +11,7 @@ import { clearQueryPersistedCache } from "@/lib/query-persist"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import Link from "next/link"
-import { LogIn, Eye, EyeOff } from "lucide-react"
+import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { ApiErrorBody } from "@/lib/types"
@@ -124,9 +124,13 @@ function LoginForm() {
 
   if (checkingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background">
+      /* r131-F7c (A4 P1-2 tail): flat ground (the via-accent/20 gradient
+         wash retires with the de-glow ruling) + the pulse circle → the
+         canonical .skeleton shimmer tile (inline radius wins over
+         .skeleton's radius-sm — unlayered CSS beats utilities). */
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-10 animate-pulse rounded-full bg-accent-foreground/40" />
+          <div className="skeleton size-10" style={{ borderRadius: 9999 }} />
           <span className="animate-breath text-sm text-muted-foreground">جارٍ التحميل…</span>
         </div>
       </div>
@@ -204,7 +208,10 @@ function LoginForm() {
           this page; same sr-only anchor pattern as the landing). */}
       <span id="page-content" className="sr-only" tabIndex={-1} />
 
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card/85 shadow-2xl shadow-accent-foreground/5 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-md">
+      {/* r131-F7b (A4 P2-4 de-glow tail): glassy gold-tinted auth card → the
+          canonical quiet card (SOLID bg-card + hairline + the neutral
+          shadow-xl elev-4 — was bg-card/85 + blur-2xl + the /5 gold tint). */}
+      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card shadow-xl sm:max-w-md">
         {/* Visually-hidden page heading — CardTitle is a div, so heading
             navigation had no target on this route (v8-B5) */}
         <h1 className="sr-only">تسجيل الدخول</h1>
@@ -265,21 +272,28 @@ function LoginForm() {
             </div>
 
             {formError && (
-              <p id="login-form-error" role="alert" className="text-xs text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-md py-2 px-3">
+              <p id="login-form-error" role="alert" className="text-xs text-destructive-ink text-center bg-destructive-soft border border-destructive/20 rounded-md py-2 px-3">
                 {formError}
               </p>
             )}
             {lockoutSeconds > 0 && (
-              <p id="login-lockout" role="status" aria-live="polite" className="text-xs text-warning text-center">
+              <p id="login-lockout" role="status" aria-live="polite" className="text-xs text-warning-ink text-center">
                 يمكنك إعادة المحاولة بعد {lockoutSeconds} ثانية
               </p>
             )}
-            <Button type="submit" className="mt-2 h-11 w-full font-semibold shadow-md shadow-accent-foreground/20 hover:shadow-lg hover:shadow-accent-foreground/30" disabled={loading || lockoutSeconds > 0}>
+            {/* r131-F7b (A4 P2-4/P2-5): the submit CTA drops the hand-rolled
+                h-11 + glow shadow overrides — the canonical lg rung (h-11
+                44px/14px/600/r-md) carries its own premium hover shadow;
+                label color swapped to the AA -ink tier (lockout note above). */}
+            <Button type="submit" size="lg" className="mt-2 w-full" disabled={loading || lockoutSeconds > 0}>
               {loading ? (
                 /* v17-E-F4 (D3 #5): LogIn is directional (arrow into a door
                     bracket) — mirrored in RTL via the §2.2 allowlist class,
                     same mechanism as the sidebar's LogOut. */
-                <span className="flex items-center gap-2"><LogIn className="size-4 animate-pulse rtl:-scale-x-100" aria-hidden="true" /> جارٍ تسجيل الدخول…</span>
+                /* r131-F7c (A4 P1-2 tail): pulse icon → the canonical busy
+                    idiom (Loader2 animate-spin — TelegramConfigSection twin);
+                    the spinner rides the 700ms stat rung via globals. */
+                <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" aria-hidden="true" /> جارٍ تسجيل الدخول…</span>
               ) : (
                 <span className="flex items-center gap-2"><LogIn className="size-4 rtl:-scale-x-100" aria-hidden="true" /> تسجيل الدخول</span>
               )}

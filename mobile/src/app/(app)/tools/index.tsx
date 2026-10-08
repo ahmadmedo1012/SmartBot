@@ -48,8 +48,21 @@ export default function ToolsScreen() {
       subtitle="العروض الترويجية وقوالب الردود"
       action={
         <Row style={{ gap: spacing.sm }}>
-          <Button title="العروض" size="sm" variant={tab === 'offers' ? 'primary' : 'secondary'} onPress={() => setTab('offers')} />
-          <Button title="القوالب" size="sm" variant={tab === 'templates' ? 'primary' : 'secondary'} onPress={() => setTab('templates')} />
+          {/* r131: حالة selected للقارئ (تبديل العروض/القوالب) */}
+          <Button
+            title="العروض"
+            size="sm"
+            variant={tab === 'offers' ? 'primary' : 'secondary'}
+            onPress={() => setTab('offers')}
+            accessibilityState={{ selected: tab === 'offers' }}
+          />
+          <Button
+            title="القوالب"
+            size="sm"
+            variant={tab === 'templates' ? 'primary' : 'secondary'}
+            onPress={() => setTab('templates')}
+            accessibilityState={{ selected: tab === 'templates' }}
+          />
         </Row>
       }
       isLoading={tab === 'offers' ? offersLoading : tplLoading}

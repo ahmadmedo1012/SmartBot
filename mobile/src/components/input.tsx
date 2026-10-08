@@ -1,11 +1,14 @@
 /**
  * حقل إدخال موحد — ملصق + حقل + خطأ اختياري. دعم RTL كامل
  * (placeholder محاذاة يمين، تباعد 16px+ لأرضية اللمس).
+ * r131: الملصق/التلميح/الخطأ عبر AppText على درجات السلم
+ * (13 small / 12 caption — كان الملصق 13.5 درجة ميتة خارج السلم).
  */
 import { useState } from 'react'
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native'
+import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
 import { radius, spacing, TOUCH_TARGET } from '@/constants/theme'
+import { AppText } from '@/components/themed-text'
 
 export interface AppInputProps extends TextInputProps {
   label?: string
@@ -19,9 +22,9 @@ export function AppInput({ label, error, hint, style, ...rest }: AppInputProps) 
   return (
     <View style={styles.wrap}>
       {label ? (
-        <Text style={{ color: colors.mutedFg, fontFamily: fontBody, fontSize: 13.5, marginBottom: spacing.xs }}>
+        <AppText variant="small" color="mutedFg" style={{ marginBottom: spacing.xs }}>
           {label}
-        </Text>
+        </AppText>
       ) : null}
       <TextInput
         placeholderTextColor={colors.placeholder}
@@ -47,14 +50,14 @@ export function AppInput({ label, error, hint, style, ...rest }: AppInputProps) 
         {...rest}
       />
       {hint && !error ? (
-        <Text style={{ color: colors.placeholder, fontFamily: fontBody, fontSize: 12, marginTop: 4 }}>
+        <AppText variant="caption" color="placeholder" style={{ marginTop: 4 }}>
           {hint}
-        </Text>
+        </AppText>
       ) : null}
       {error ? (
-        <Text style={{ color: colors.destructive, fontFamily: fontBody, fontSize: 12, marginTop: 4 }}>
+        <AppText variant="caption" style={{ marginTop: 4, color: colors.destructive }}>
           {error}
-        </Text>
+        </AppText>
       ) : null}
     </View>
   )

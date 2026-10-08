@@ -32,6 +32,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Input } from "@/components/ui/input"
+/* r131-F7b (A4 P1-1 family): the AI-reply raw <textarea> (rounded-sm +
+ * hand-rolled ring + 14px) rides the shared Textarea recipe (min-h-24 /
+ * r-md / 16px floor / halo token) — the F8 swap family completion. */
+import { Textarea } from "@/components/ui/textarea"
 import { ApiError, apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { countPhrase, formatNumber } from "@/lib/format"
@@ -185,13 +189,13 @@ function SaveErrorAlert({
       className="rounded-lg border border-destructive/25 bg-destructive-soft p-3 outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
     >
       <div className="flex items-start gap-2 text-start">
-        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive-ink" aria-hidden="true" />
         <div className="min-w-0 space-y-1">
-          <p className="text-xs font-bold text-destructive">
+          <p className="text-xs font-bold text-destructive-ink">
             {isPage ? "فشل ربط الصفحة" : "فشل حفظ قاعدة الرد"}
           </p>
           {/* the server's own Arabic message — 409 conflicts, envelopes, all */}
-          <p className="text-xs leading-relaxed text-destructive">{failure.message}</p>
+          <p className="text-xs leading-relaxed text-destructive-ink">{failure.message}</p>
           <p className="text-xs leading-relaxed text-foreground">
             {isPage
               ? "تنبيه: لم يتم ربط صفحتك بعد — لن يستطيع البوت الرد على تعليقاتها حتى تربطها لاحقاً من الإعدادات."
@@ -587,7 +591,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
           2rem breathing room. max-h + the inner flex column keep the
           header/footer as fixed chrome while ONLY the step content
           scrolls — the header/footer can never be clipped again. */}
-      <div className="ob-panel-enter relative mt-auto flex w-full flex-col overflow-hidden rounded-t-2xl border-t border-border/60 bg-card shadow-2xl shadow-accent-foreground/5 backdrop-blur-xl max-h-[calc(100dvh-2rem)] sm:mx-4 sm:mt-0 sm:max-w-lg sm:rounded-2xl sm:border sm:border-border/60 sm:max-h-[calc(100dvh-4rem)]">
+      {/* r131-F7b (A4 P2-4): the sheet panel drops the gold-tinted /5 glow —
+          the neutral shadow-2xl (elev) carries the elevation. */}
+      <div className="ob-panel-enter relative mt-auto flex w-full flex-col overflow-hidden rounded-t-2xl border-t border-border/60 bg-card shadow-2xl backdrop-blur-xl max-h-[calc(100dvh-2rem)] sm:mx-4 sm:mt-0 sm:max-w-lg sm:rounded-2xl sm:border sm:border-border/60 sm:max-h-[calc(100dvh-4rem)]">
         {/* bottom-sheet grab affordance (decorative) */}
         <div aria-hidden="true" className="mx-auto mb-1 mt-2.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/25 sm:hidden" />
 
@@ -627,8 +633,12 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         <div key={step} className="ob-step-enter flex min-h-0 flex-1 flex-col">
           {/* Header */}
           <div className="shrink-0 p-6 pb-4 text-center sm:p-8 sm:pb-6">
-            <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-accent-foreground/25">
-              <Icon className="size-8 text-primary-foreground" />
+            {/* r131-F7b (A4 P2-4 de-glow tail): the gold-gradient + glow hero
+                tile → the canonical pastel-family well (copper -bg ground +
+                family-ink glyph — the messages/autoreply/analytics .state
+                twin; messages:820 pattern). */}
+            <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-xl bg-(--c-copper-bg)">
+              <Icon className="size-8 text-(--c-copper-ink)" />
             </div>
             <h2 id="onboarding-step-title" tabIndex={-1} className="text-xl font-bold mb-1 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-md px-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>
@@ -688,8 +698,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                       aria-live="polite"
                       className={`flex items-start gap-1.5 rounded-lg p-2.5 text-xs leading-relaxed ${
                         testResult.connected
-                          ? "bg-success-soft text-success border border-success/20"
-                          : "bg-destructive-soft text-destructive border border-destructive/20"
+                          ? "bg-success-soft text-success-ink border border-success/20"
+                          : "bg-destructive-soft text-destructive-ink border border-destructive/20"
                       }`}
                     >
                       {/* v17-E-F4 (D3 #7): the literal ✓/✗ text glyphs are
@@ -781,18 +791,17 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                         اقترح رداً
                       </button>
                     </div>
-                    <textarea
+                    {/* r131-F7b (A4 P1-1): raw textarea → the shared Textarea
+                        seam (dir="auto" + the canonical input recipe are
+                        built in — was rounded-sm + a hand-rolled ring + 14px
+                        text, the iOS-zoom + third-focus-grammar drift). */}
+                    <Textarea
                       id="reply"
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
                       placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل…"
                       rows={3}
-                      /* v16-E3 (D1 C3): raw textarea bypasses the shared
-                         Textarea seam — dir="auto" isolates mixed Arabic/Latin
-                         reply text (bidi garbling risk, same fix as the
-                         dashboard raw fields). */
-                      dir="auto"
-                      className="flex w-full rounded-sm border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-placeholder-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                      className="resize-none"
                     />
                     <p className="text-3xs text-muted-foreground">
                       اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
@@ -848,7 +857,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
 
               {step === 4 && (
                 <div key="done-content" className="ob-fade-in flex flex-col items-center gap-4 py-2">
-                  <CheckCircle2 className="size-16 text-success" />
+                  <CheckCircle2 className="size-16 text-success-ink" />
                   <div className="text-center space-y-1">
                     <p className="text-sm font-medium">مرحباً بك!</p>
                     <p className="text-xs text-muted-foreground">
@@ -917,7 +926,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
             <Button
               onClick={handleNext}
               loading={loading}
-              className="gap-1.5 shadow-md shadow-accent-foreground/20"
+              /* r131-F7b (A4 P2-4): the gold glow shadow override is retired —
+                 the Button's own premium hover shadow carries it. */
+              className="gap-1.5"
             >
               {loading ? (
                 <Loader2 className="size-3 animate-spin" />

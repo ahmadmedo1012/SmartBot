@@ -69,8 +69,10 @@ export function StepIndicator({
                   clickable && "active:scale-[0.94]",
                   isActive
                     /* r130 (W1-E D-7): the 800 weight class is retired — Plex
-                       Sans Arabic ships no 800; the 700 cut is the ceiling. */
-                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-bold"
+                       Sans Arabic ships no 800; the 700 cut is the ceiling.
+                       r131-F7b (A4 P2-4): the /30 gold glow is retired — the
+                       ember/saffron metal + neutral shadow-lg carry it. */
+                    ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg font-bold"
                     : isDone
                       ? "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/40"
                       : "bg-muted/50 text-muted-foreground border-border/40",

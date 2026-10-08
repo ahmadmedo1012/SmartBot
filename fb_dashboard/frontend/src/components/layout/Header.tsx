@@ -20,7 +20,7 @@ function HamburgerButton({ open, onClick }: { open: boolean; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-(--t-fast) active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
+      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-(--t-fast) active:scale-[0.97] active:duration-(--t-micro) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
       aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
     >
       <span className="relative size-3.5">
@@ -108,8 +108,11 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
           {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
               text; a duplicated alt tripped axe image-redundant-alt. */}
           <Image src="/brand-icon.png" alt="" width={160} height={160} className="h-9 w-auto" priority />
-          <span className="text-sm font-medium tracking-tight text-foreground/80">SmartBot</span>
-          <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50" aria-label="إغلاق" tabIndex={open ? 0 : -1}><X className="size-4" /></button>
+          {/* r131-F7 (globals hygiene): tracking-tight dropped — the RTL
+              tracking guard (globals.css) zeroes every tracking-* on
+              non-mono text, so the class was inert dead weight. */}
+          <span className="text-sm font-medium text-foreground/80">SmartBot</span>
+          <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-[0.97] active:duration-(--t-micro) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50" aria-label="إغلاق" tabIndex={open ? 0 : -1}><X className="size-4" /></button>
         </div>
         <nav className="px-4 py-4 space-y-1">
           {landingLinks.map((link, i) => {
@@ -192,7 +195,9 @@ export function Header({ className }: HeaderProps) {
               {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
                   text; a duplicated alt tripped axe image-redundant-alt. */}
               <Image src="/brand-icon.png" alt="" width={160} height={160} className="h-9 w-auto" priority />
-              <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-accent-foreground transition-colors duration-(--t-fast)" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
+              {/* r131-F7: tracking-normal dropped — inert under the RTL
+                  tracking guard (letter-spacing 0 is the law anyway). */}
+              <span className="text-base font-bold text-foreground/90 group-hover:text-accent-foreground transition-colors duration-(--t-fast)" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
             </Link>
           </div>
 

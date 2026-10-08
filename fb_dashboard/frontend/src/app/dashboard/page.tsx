@@ -67,13 +67,23 @@ function LoadingSkeleton() {
 }
 
 // ── Error State ──
-function ErrorState({ message, onRetry }: { message?: string; onRetry: () => void }) {
+/* r131-F8 (A4 P2-8/P3-10): the page-level error block rides the canonical
+ * .state family (globals.css r131-F7) — 56px rose-soft tile + -ink glyph +
+ * 18px/600 title + 42ch desc + sm outline retry. Retires the bare
+ * AlertCircle idiom (one of the three competing error skins A4 flagged). */
+function PageErrorState({ message, onRetry }: { message?: string; onRetry: () => void }) {
   return (
-    <SectionContainer className="py-16 text-center">
-      <AlertCircle className="size-12 text-muted-foreground mx-auto mb-4" />
-      <h2 className="text-lg font-bold mb-1">حدث خطأ في التحميل</h2>
-      <p className="text-sm text-muted-foreground mb-4">{message || "تعذر تحميل بيانات لوحة التحكم"}</p>
-      <Button onClick={onRetry}><RefreshCw className="size-4" /> إعادة المحاولة</Button>
+    <SectionContainer className="py-16">
+      <div className="state state-danger" role="alert">
+        <div className="state-icon" aria-hidden="true">
+          <AlertCircle />
+        </div>
+        <h2 className="state-title">حدث خطأ في التحميل</h2>
+        <p className="state-desc">{message || "تعذر تحميل بيانات لوحة التحكم"}</p>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw className="size-4" aria-hidden="true" /> إعادة المحاولة
+        </Button>
+      </div>
     </SectionContainer>
   )
 }
@@ -279,7 +289,7 @@ export default function DashboardPage() {
   const connected = connection.connected !== false // absent flag = legacy assume true
 
   if (error && !isLoading) {
-    return <ErrorState message={(error as Error)?.message} onRetry={() => refetch()} />
+    return <PageErrorState message={(error as Error)?.message} onRetry={() => refetch()} />
   }
 
   if (isLoading && !bundle) return <LoadingSkeleton />
@@ -314,34 +324,36 @@ export default function DashboardPage() {
               <BotHealthCard />
             </div>
 
-            {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links) */}
+            {/* Stats grid — Smart-Menu KpiCard (animated counter + stagger + stretched links).
+                r131-F8: icon wells ride the canonical 44px pastel families
+                (tone=…) — the old bg-accent/bg-success/10 washes retired. */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
               <KpiCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0}
-                trend={stats?.trend?.week} iconBg="bg-accent" index={0}
+                trend={stats?.trend?.week} tone="copper" index={0}
                 href="/dashboard/activity" />
               <KpiCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0}
-                trend={stats?.trend?.today} iconBg="bg-success/10" iconColor="text-success" index={1} />
+                trend={stats?.trend?.today} tone="mint" index={1} />
               <KpiCard icon={Inbox} label="محادثات الماسنجر" value={messages.total_conversations || 0}
                 /* v17-E-F11 (D9): unread count through countPhrase (dual/plural)
                    instead of the raw "N غير مقروءة" interpolation. */
                 subtitle={countPhrase(messages.unread_conversations || 0, "محادثة غير مقروءة", "محادثتان غير مقروءتان", "محادثات غير مقروءة")}
-                iconBg="bg-info/10" iconColor="text-info" index={2}
+                tone="sky" index={2}
                 href="/dashboard/messages" />
               <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r) => r.enabled !== false).length}
                 subtitle={`من ${countPhrase(rulesList.length, "قاعدة", "قاعدتين", "قواعد")}`}
-                iconBg="bg-accent" index={3}
+                tone="sand" index={3}
                 href="/dashboard/autoreply" />
             </div>
 
             {/* Secondary row — audience + persisted messages */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
               <KpiCard icon={Users} label="متابعو الصفحة" value={stats?.fan_count || 0}
-                iconBg="bg-accent" index={4} />
+                tone="copper" index={4} />
               <KpiCard icon={MessageCircle} label="الرسائل المخزنة" value={messages.total_messages || 0}
-                subtitle="تصل لحظياً عبر الويبهوك" iconBg="bg-info/10" iconColor="text-info" index={5}
+                subtitle="تصل لحظياً عبر الويبهوك" tone="sky" index={5}
                 href="/dashboard/messages" />
               <KpiCard icon={Zap} label="ردود البوت على الرسائل" value={messages.bot_replies || 0}
-                iconBg="bg-success/10" iconColor="text-success" index={6} />
+                tone="mint" index={6} />
             </div>
 
             {/* Activity chart — r130 (W1-G SB-P2-6): fadeUp stagger 50 → 60ms
@@ -395,7 +407,12 @@ export default function DashboardPage() {
 
               {/* Rules — overflow-safe, token colors, no dead "keywords" column.
                   r130: table cells ride the canonical 13px label rung
-                  (--fs-sm — Madarek .table), was text-sm 14px. */}
+                  (--fs-sm — Madarek .table), was text-sm 14px.
+                  r131-F8 (A4 P2-1, fleet table canon): 11px/600 surface-2
+                  header band (bg-muted — was text-xs 12px with no band),
+                  quiet zebra-on-hover wash + the 2px first-cell accent dot
+                  (scaleY spring-in, RTL-flipped radius), tbl-stack mobile
+                  collapse via data-label. */}
               <div className="sb-fade-up" style={{ animationDelay: "0.54s" }}>
                 <Card>
                   <CardHeader>
@@ -406,19 +423,19 @@ export default function DashboardPage() {
                   <CardContent className="p-0">
                     {rulesList.length > 0 ? (
                       <div className="overflow-x-auto">
-                        <table aria-labelledby="dashboard-rules-title" className="w-full text-(length:--fs-sm)">
+                        <table aria-labelledby="dashboard-rules-title" className="tbl-stack w-full text-(length:--fs-sm)">
                           <thead>
-                            <tr className="border-b border-border text-muted-foreground text-xs">
-                              <SortableTh label="القاعدة" column="name" sort={rulesSort} onToggle={toggleSort} />
-                              <SortableTh label="الحالة" column="status" sort={rulesSort} onToggle={toggleSort} align="center" />
+                            <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
+                              <SortableTh label="القاعدة" column="name" sort={rulesSort} onToggle={toggleSort} className="px-4 py-3 font-semibold" />
+                              <SortableTh label="الحالة" column="status" sort={rulesSort} onToggle={toggleSort} align="center" className="px-4 py-3 font-semibold" />
                             </tr>
                           </thead>
                           <tbody>
                             {sortedRules.slice(0, 5).map((r) => (
-                              <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                                <td className="p-3 font-medium">{r.name}</td>
-                                <td className="p-3 text-center">
-                                  <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-success" : "text-muted-foreground")}>
+                              <tr key={r.id} className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40">
+                                <td data-label="القاعدة" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{r.name}</td>
+                                <td data-label="الحالة" className="p-3 px-4 text-center">
+                                  <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-success-ink" : "text-muted-foreground")}>
                                     <span className={cn("size-1.5 rounded-full", r.enabled !== false ? "bg-success" : "bg-muted-foreground")} />
                                     {r.enabled !== false ? "نشط" : "متوقف"}
                                   </span>

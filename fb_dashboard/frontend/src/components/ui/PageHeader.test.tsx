@@ -53,10 +53,13 @@ describe("PageHeader", () => {
   })
 
   it("maps the four status tones to their color classes, defaulting to neutral", () => {
+    /* r131-F7b: status-chip text moved to the AA -ink tier (A7 Cluster B —
+     * the raw base tokens measured 2.2-3.0:1 on the -soft grounds in
+     * light); grounds/borders unchanged. */
     const cases = [
-      { tone: "success", label: "نشط", cls: "bg-success-soft text-success border-success/20" },
-      { tone: "warning", label: "تنبيه", cls: "bg-warning-soft text-warning border-warning/20" },
-      { tone: "danger", label: "متوقف", cls: "bg-destructive-soft text-destructive border-destructive/20" },
+      { tone: "success", label: "نشط", cls: "bg-success-soft text-success-ink border-success/20" },
+      { tone: "warning", label: "تنبيه", cls: "bg-warning-soft text-warning-ink border-warning/20" },
+      { tone: "danger", label: "متوقف", cls: "bg-destructive-soft text-destructive-ink border-destructive/20" },
     ] as const
     for (const c of cases) {
       const { unmount } = render(

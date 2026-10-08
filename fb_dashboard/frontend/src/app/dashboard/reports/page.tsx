@@ -7,6 +7,9 @@ import { brandedToast } from "@/lib/premium-toast"
 import { FileBarChart, AlertCircle, RefreshCw, MessageSquare, Bot, Users, MessagesSquare, TrendingUp, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Select } from "@/components/ui/select"
+import { KpiCard } from "@/components/shared/KpiCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
@@ -112,60 +115,31 @@ export default function ReportsPage() {
         compact
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-(--marketing-max-w) mx-auto w-full">
         {loading ? (
-          <div className="space-y-3">{[1,2,3,4].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-16" /></Card>)}</div>
+          /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
+          <div className="space-y-3">{[1,2,3,4].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-16 rounded" /></CardContent></Card>)}</div>
         ) : anyError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل تحميل التقارير</h2>
-            <p className="text-xs text-muted-foreground mb-4">{(dbError as Error)?.message || "تعذر الاتصال"}</p>
-            <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
+          /* r131-F8 (A4 P2-8): bare-AlertCircle error → the canonical .state family. */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">فشل تحميل التقارير</h2>
+            <p className="state-desc">{(dbError as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* v4 §2.3 (G3) — these KPIs now read fields the backend actually
-                  returns (analytics_engine.get_dashboard_overview). The old cards
-                  read total_comments/likes/views/shares — fields that never
-                  existed in any response, so every card was permanently 0. */}
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-info-soft flex items-center justify-center"><MessageSquare className="size-4 text-info" /></div>
-                  <div>
-                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_messages ?? 0)}</p>
-                    <p className="text-3xs text-muted-foreground">إجمالي الرسائل</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-accent-foreground/10 flex items-center justify-center"><Bot className="size-4 text-accent-foreground" /></div>
-                  <div>
-                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_replies ?? 0)}</p>
-                    <p className="text-3xs text-muted-foreground">ردود البوت التلقائية</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-success-soft flex items-center justify-center"><MessagesSquare className="size-4 text-success" /></div>
-                  <div>
-                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_conversations ?? 0)}</p>
-                    <p className="text-3xs text-muted-foreground">المحادثات</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="size-9 rounded-lg bg-accent flex items-center justify-center"><Users className="size-4 text-accent-foreground" /></div>
-                  <div>
-                    <p className="text-xl font-bold">{formatNumber(dashboard?.total_customers ?? 0)}</p>
-                    <p className="text-3xs text-muted-foreground">عملاء محفوظون (CRM)</p>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* r131-F8 (A4 P2-2): the hand-rolled 20px-value/36px-well strip →
+                the canonical KpiCard (30px tnum value, 44px pastel well + rim). */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard icon={MessageSquare} label="إجمالي الرسائل" value={formatNumber(dashboard?.total_messages ?? 0)} tone="sky" index={0} />
+              <KpiCard icon={Bot} label="ردود البوت التلقائية" value={formatNumber(dashboard?.total_replies ?? 0)} tone="copper" index={1} />
+              <KpiCard icon={MessagesSquare} label="المحادثات" value={formatNumber(dashboard?.total_conversations ?? 0)} tone="mint" index={2} />
+              <KpiCard icon={Users} label="عملاء محفوظون (CRM)" value={formatNumber(dashboard?.total_customers ?? 0)} tone="sand" index={3} />
             </div>
 
             <Card>
@@ -193,26 +167,31 @@ export default function ReportsPage() {
                       group needed ~380px vs ~295px of card content, clipping
                       the primary PDF download at 375px. */}
                   <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <select
-                      value={reportType}
-                      onChange={e => setReportType(e.target.value)}
-                      aria-label="نوع التقرير"
-                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 flex-1 min-w-0 sm:flex-none"
-                    >
-                      {REPORT_TYPES.map(t => (
-                        <option key={t.key} value={t.key}>{t.label}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={reportDays}
-                      onChange={e => setReportDays(Number(e.target.value))}
-                      aria-label="مدة التقرير"
-                      className="h-11 text-base md:text-sm rounded-lg border border-input bg-background px-3 focus:outline-none focus:ring-2 focus:ring-accent-foreground/30 flex-1 min-w-0 sm:flex-none"
-                    >
-                      {REPORT_PERIODS.map(p => (
-                        <option key={p.days} value={p.days}>{p.label}</option>
-                      ))}
-                    </select>
+                    {/* r131-F8 (A4 P1-1d): the two hand-rolled native selects →
+                        the shared Select primitive (44px / 16px / r-md / halo —
+                        was a third focus grammar + md:text-sm). */}
+                    <div className="flex-1 min-w-0 sm:w-44">
+                      <Select
+                        value={reportType}
+                        onChange={e => setReportType(e.target.value)}
+                        aria-label="نوع التقرير"
+                      >
+                        {REPORT_TYPES.map(t => (
+                          <option key={t.key} value={t.key}>{t.label}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="flex-1 min-w-0 sm:w-36">
+                      <Select
+                        value={reportDays}
+                        onChange={e => setReportDays(Number(e.target.value))}
+                        aria-label="مدة التقرير"
+                      >
+                        {REPORT_PERIODS.map(p => (
+                          <option key={p.days} value={p.days}>{p.label}</option>
+                        ))}
+                      </Select>
+                    </div>
                     <Button
                       size="sm"
                       loading={downloadMut.isPending}
@@ -241,16 +220,18 @@ export default function ReportsPage() {
                     </p>
                   </div>
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full ${(dashboard?.change_pct ?? 0) >= 0 ? "bg-success-soft text-success" : "bg-destructive-soft text-destructive"}`}>
+                {/* r131-F8 (A4 P2-3): hand-rolled trend chip → Badge. */}
+                <Badge variant={(dashboard?.change_pct ?? 0) >= 0 ? "success" : "danger"} className="px-2.5 py-1 tabular-nums">
                   {(dashboard?.change_pct ?? 0) >= 0 ? "↑" : "↓"} {Math.abs(dashboard?.change_pct ?? 0)}%
-                </span>
+                </Badge>
               </CardContent>
             </Card>
 
             <section>
               <h2 className="sb-section-title mb-3">أكثر المعلقين تفاعلاً</h2>
               {tcLoad ? (
-                <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-3 animate-pulse h-10" /></Card>)}</div>
+                /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
+                <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-3"><div className="skeleton h-6 w-48 rounded" /></CardContent></Card>)}</div>
               ) : tcErr ? (
                 <Card><CardContent className="p-4 text-center text-xs text-muted-foreground">تعذر تحميل المعلقين</CardContent></Card>
               ) : topCommenters.length === 0 ? (

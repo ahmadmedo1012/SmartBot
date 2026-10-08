@@ -20,7 +20,7 @@ export class ApiError extends Error {
   constructor(status: number, body: unknown) {
     const b = body as Record<string, unknown> | null
     const detail = b?.detail ?? b?.error
-    super(typeof detail === 'string' && detail ? detail : `فشل الطلب (${status})`)
+    super(typeof detail === 'string' && detail ? detail : `تعذر إتمام الطلب (${status})`)
     this.status = status
     this.body = body
     this.isAuthError = status === 401

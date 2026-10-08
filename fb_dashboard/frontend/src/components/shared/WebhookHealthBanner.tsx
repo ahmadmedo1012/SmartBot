@@ -73,7 +73,9 @@ export function WebhookHealthBanner() {
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="size-8 shrink-0 rounded-lg flex items-center justify-center bg-warning/15 text-warning">
+          {/* r131-F7c (fleet ruling "status = solid pastel"): /15 well wash →
+              opaque warning-soft ground + AA warning-ink glyph. */}
+          <div className="size-8 shrink-0 rounded-lg flex items-center justify-center bg-warning-soft text-warning-ink">
             <RadioTower className="size-4" />
           </div>
           <div className="min-w-0">

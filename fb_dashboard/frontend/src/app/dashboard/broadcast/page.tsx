@@ -180,14 +180,16 @@ export default function BroadcastPage() {
         subtitle="إرسال رسائل جماعية"
         compact
         actions={
-          <Button size="sm" className="shadow-sm shadow-accent-foreground/15" onClick={() => setShowForm(v => !v)}>
+          /* r131-F7b (A4 P2-4): the gold-tinted shadow override is retired. */
+          <Button size="sm" onClick={() => setShowForm(v => !v)}>
             <Plus className="size-3.5" /> {showForm ? "إلغاء" : "بث جديد"}
           </Button>
         }
       />
 
-      {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
+      {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
+          1200 token (was max-w-5xl 1024). */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-(--marketing-max-w) mx-auto w-full">
         {showForm && (
           <Card
             /* v10-B7 (G2-05): Escape closes the inline form (same as the
@@ -231,13 +233,19 @@ export default function BroadcastPage() {
         )}
 
         {isError ? (
-          <div className="text-center py-16">
-            <AlertCircle className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل تحميل رسائل البث</h2>
+          /* r131-F7b (A4 P2-8 completion): bare-AlertCircle → the .state family. */
+          <div className="state state-danger py-16" role="alert">
+            <div className="state-icon" aria-hidden="true">
+              <AlertCircle />
+            </div>
+            <h2 className="state-title">فشل تحميل رسائل البث</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4 animate-pulse h-14" /></Card>)}</div>
+          /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. (plain JS comment —
+             JSX-comment braces are invalid in a ternary expression slot;
+             r131-F7b syntax repair) */
+          <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-14 rounded" /></CardContent></Card>)}</div>
         ) : broadcasts.length === 0 ? (
           <EmptyState
             icon={Radio}
@@ -296,7 +304,9 @@ export default function BroadcastPage() {
           نص الرسالة من GET /api/broadcasts/{id}، تحذير صريح، وزر تأكيد
           تدميري + إلغاء. لا إرسال جماعي بدون هذه الخطوة. */}
       <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
-        <DialogContent className="sm:max-w-md">
+        {/* r131-F8 (A4 P2-7): the sm:max-w-md override drops — the dialog rides
+            F7's canonical 560px default. */}
+        <DialogContent>
           <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
           <DialogDescription>
             سيُرسل «{confirmData?.detail.name || (confirmSendId !== null ? `بث #${confirmSendId}` : "")}» إلى المشتركين المطابقين عبر الماسنجر.

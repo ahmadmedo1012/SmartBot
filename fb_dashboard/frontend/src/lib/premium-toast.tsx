@@ -18,8 +18,28 @@ import type { LucideIcon } from "lucide-react"
 import AnimatedX from "@/components/ui/x-icon"
 import { cn } from "@/lib/utils"
 
-/* Ported from Smart-Menu (smart-link.ly shared identity) — identical
-   toast card: icon chip + title/description + dismiss, RTL, slide-up.
+/* Ported from Smart-Menu (smart-link.ly shared identity) — icon chip +
+   title/description + dismiss, RTL, slide-up.
+
+   r131-F7 — TOASTER CANON (fleet ruling R131-W1 "toasts bottom-end +
+   hairline + 28px well"; madarek notifications.css as the reference):
+     · quiet surface: SOLID bg-card + 1px border hairline — the glassy
+       bg-card/95 + backdrop-blur-xl + shadow-xl combo is retired
+       (Madarek's toast contract forbids glass on toasts).
+     · 1px STATUS HAIRLINE on the reading-start edge (border-inline-start)
+       coded per kind — the old single neutral border carried no signal.
+     · 28px pastel well (was 40px alpha wash): --*-soft ground + the
+       r131 --*-ink glyph tier (WCAG-pinned both themes). Status channels
+       map to their status pastels (mint/yellow/rose/sky — info leaves the
+       gold slab for the canonical sky family); gift keeps the brand gold
+       on the copper pastel pair; logout stays grey.
+     · error/trash (ALERT_ICONS) = MANUAL DISMISS (duration Infinity) —
+       madarek doctrine: failures must not vanish unread (A11 SB-4).
+     · entrance = the canonical 12px slide+fade @ 240ms decelerate
+       (.animate-slide-up retuned in globals.css — was 24px/520ms).
+     · the card is PASSIVE: click-anywhere dismiss removed (madarek
+       contract — accidental taps during scroll killed error toasts);
+       the X affordance and sonner swipe stay the dismiss paths.
    The Lottie "cart" animation variant is a Smart-Menu-only menu-page
    feature (dotlottie dep) and is intentionally not ported. */
 
@@ -36,32 +56,40 @@ type ToastIcon = "success" | "error" | "info" | "warning" | "login" | "logout" |
 
 type ToastIconConfig = {
   icon: LucideIcon
-  bg: string
-  color: string
+  /** 28px pastel well ground (soft/family token) */
+  well: string
+  /** glyph ink — the r131 -ink text tier (AA in both themes) */
+  ink: string
+  /** 1px reading-start hairline color (status signal) */
+  hairline: string
   /** directional glyphs (LogIn/LogOut) mirror in RTL — v17-E-F4 */
   flip?: boolean
 }
 
 const iconConfig: Record<ToastIcon, ToastIconConfig> = {
-  success: { icon: CheckCircle2, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
-  error: { icon: AlertCircle, bg: "bg-destructive/12", color: "var(--destructive, #F0938F)" },
-  info: { icon: Info, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
-  warning: { icon: AlertTriangle, bg: "bg-warning/12", color: "var(--warning, #ECC97D)" },
-  login: { icon: LogIn, flip: true, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
-  logout: { icon: LogOut, flip: true, bg: "bg-muted", color: "var(--muted-foreground)" },
-  gift: { icon: Gift, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
-  refresh: { icon: RefreshCw, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
-  save: { icon: Save, bg: "bg-success/12", color: "var(--success, #7FD39A)" },
-  trash: { icon: Trash2, bg: "bg-destructive/12", color: "var(--destructive, #F0938F)" },
-  copy: { icon: Copy, bg: "bg-accent", color: "var(--accent-foreground, #E9B44C)" },
+  success: { icon: CheckCircle2, well: "bg-success-soft", ink: "var(--success-ink)", hairline: "var(--success)" },
+  error: { icon: AlertCircle, well: "bg-destructive-soft", ink: "var(--destructive-ink)", hairline: "var(--destructive)" },
+  info: { icon: Info, well: "bg-info-soft", ink: "var(--info-ink)", hairline: "var(--info)" },
+  warning: { icon: AlertTriangle, well: "bg-warning-soft", ink: "var(--warning-ink)", hairline: "var(--warning)" },
+  login: { icon: LogIn, flip: true, well: "bg-success-soft", ink: "var(--success-ink)", hairline: "var(--success)" },
+  logout: { icon: LogOut, flip: true, well: "bg-muted", ink: "var(--muted-foreground)", hairline: "var(--border)" },
+  /* gift keeps the brand gold — on the copper pastel pair (soft ground +
+     copper ink) instead of the old alpha slab. */
+  gift: { icon: Gift, well: "bg-(--c-copper-bg)", ink: "var(--c-copper-ink)", hairline: "var(--accent-foreground)" },
+  refresh: { icon: RefreshCw, well: "bg-info-soft", ink: "var(--info-ink)", hairline: "var(--info)" },
+  save: { icon: Save, well: "bg-success-soft", ink: "var(--success-ink)", hairline: "var(--success)" },
+  trash: { icon: Trash2, well: "bg-destructive-soft", ink: "var(--destructive-ink)", hairline: "var(--destructive)" },
+  copy: { icon: Copy, well: "bg-info-soft", ink: "var(--info-ink)", hairline: "var(--info)" },
 }
 
 function ToastIconChip({ icon }: { icon: ToastIcon }) {
   const cfg = iconConfig[icon]
   const Icon = cfg.icon
   return (
-    <div className={cn("size-10 min-h-[40px] min-w-[40px] rounded-lg flex items-center justify-center shrink-0", cfg.bg)}>
-      <Icon className={cn("size-[18px]", cfg.flip && "rtl:-scale-x-100")} style={{ color: cfg.color }} aria-hidden="true" />
+    /* r131: 40px wash chip → the canonical 28px pastel well (madarek
+       .toast-icon — inline-size 28px, r-md 10px). */
+    <div className={cn("size-7 rounded-md flex items-center justify-center shrink-0", cfg.well)}>
+      <Icon className={cn("size-4", cfg.flip && "rtl:-scale-x-100")} style={{ color: cfg.ink }} aria-hidden="true" />
     </div>
   )
 }
@@ -79,12 +107,10 @@ export function premiumToast(icon: ToastIcon, title: string, description?: strin
     (t) => (
       <div
         role={ALERT_ICONS.includes(icon) ? "alert" : "status"}
-        onClick={() => toast.dismiss(t)}
-        className="pointer-events-auto flex w-full cursor-pointer items-start gap-3 rounded-lg border border-border/40 bg-card/95 p-4 shadow-xl backdrop-blur-xl rtl:flex-row-reverse animate-slide-up"
-        /* r128-F7 (A5 R2): 0.35s fork → the ladder's --t-slow (380ms) —
-           inline style so the reduced-motion token zeroing (globals.css)
-           flows through as 0ms automatically. */
-        style={{ animationDuration: "var(--t-slow)" }}
+        className="pointer-events-auto flex w-full items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-(--shadow-card-h) rtl:flex-row-reverse animate-slide-up"
+        /* r131-F7: 1px status hairline on the reading-start edge (the
+           inline-start side of the RTL card) — per-kind signal color. */
+        style={{ borderInlineStartColor: iconConfig[icon].hairline }}
       >
         <ToastIconChip icon={icon} />
         <div className="min-w-0 flex-1 pt-0.5">
@@ -103,7 +129,12 @@ export function premiumToast(icon: ToastIcon, title: string, description?: strin
         </button>
       </div>
     ),
-    { duration: opts?.duration ?? 4000 },
+    {
+      /* r131-F7 (A11 SB-4): error/trash = MANUAL DISMISS (Infinity) —
+       * failures must not auto-vanish while the user is mid-read; every
+       * other kind keeps the 4s polite default. */
+      duration: opts?.duration ?? (ALERT_ICONS.includes(icon) ? Infinity : 4000),
+    },
   )
 }
 

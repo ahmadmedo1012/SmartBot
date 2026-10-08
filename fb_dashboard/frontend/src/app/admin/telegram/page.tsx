@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import { AlertTriangle, Loader2, RefreshCw, Info } from "lucide-react"
+import { AlertTriangle, Loader2, RefreshCw, Info, Send } from "lucide-react"
 import { apiFetch } from "@/lib/csrf-client"
 import { Button } from "@/components/ui/button"
+/* r131-F7 (A4 P2-6): PageHeader bar + AdminShell sidebar replace the
+ * hand-rolled h2 head (24px + inert tracking-tight — dead weight on
+ * Arabic) on the admin surface. */
+import { PageHeader } from "@/components/ui/PageHeader"
 import { TelegramConfigSection } from "./TelegramConfigSection"
 import { BroadcastTargetsSection } from "./BroadcastTargetsSection"
 import { DiagnosticsSection } from "./DiagnosticsSection"
@@ -234,15 +238,14 @@ export default function AdminTelegramPage() {
   }
 
   if (accessDenied) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center" role="alert">
+    <div className="state state-danger flex-1 py-16" role="alert">
       {/* v14-E5 (D4 M-02b): the unauth branch had no h1 while the authorized
-          branch has one (v8-B5 sr-only pattern) — page-heading parity. */}
+          branch has one (v8-B5 sr-only pattern) — page-heading parity.
+          r131-F7: the .state family replaces the bare circle well. */}
       <h1 className="sr-only">إعدادات تليجرام</h1>
-      <div className="size-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
-        <AlertTriangle className="size-8 text-destructive" />
-      </div>
-      <h2 className="text-xl font-bold mb-2">غير مصرح</h2>
-      <p className="text-sm text-muted-foreground max-w-xs">لا تملك الصلاحية للوصول إلى إعدادات تليجرام. يرجى التواصل مع المدير العام.</p>
+      <div className="state-icon" aria-hidden="true"><AlertTriangle /></div>
+      <p className="state-title">غير مصرح</p>
+      <p className="state-desc">لا تملك الصلاحية للوصول إلى إعدادات تليجرام. يرجى التواصل مع المدير العام.</p>
     </div>
   )
 
@@ -254,16 +257,22 @@ export default function AdminTelegramPage() {
   )
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-3xl">
-      {/* Visually-hidden page heading — the visible title below is h2 (v8-B5) */}
-      <h1 className="sr-only">إعدادات تليجرام</h1>
-      <h2 className="text-2xl font-bold tracking-tight">إعدادات تليجرام</h2>
+    <div className="flex-1 animate-fade-in">
+      {/* r131-F7: PageHeader renders the page h1 — the hand-rolled h2
+          (24px + tracking-tight, inert under the RTL guard) is retired. */}
+      <PageHeader
+        icon={<Send className="size-4 rtl:-scale-x-100" />}
+        title="إعدادات تليجرام"
+        subtitle="توكن البوت، جهات الإرسال، وتشخيص الاتصال"
+        compact
+      />
+      <div className="max-w-3xl space-y-8 p-6">
 
       {/* v9-B10 — config load failure is now a visible, retryable error state
           (was a one-off toast + silently empty form) */}
       {configQuery.isError && (
         <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-destructive">{(configQuery.error as Error)?.message || "فشل تحميل الإعدادات"}</p>
+          <p className="text-sm text-destructive-ink">{(configQuery.error as Error)?.message || "فشل تحميل الإعدادات"}</p>
           <Button size="sm" variant="outline" onClick={() => configQuery.refetch()}>
             <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
           </Button>
@@ -292,7 +301,7 @@ export default function AdminTelegramPage() {
           </p>
           {!tokenConfigured && (
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline text-warning">@BotFather</a> في تليجرام وأرسل /newbot ثم انسخ التوكن.</li>
+              <li>افتح <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" aria-label="@BotFather — يفتح في تبويب جديد" className="underline text-warning-ink">@BotFather</a> في تليجرام وأرسل /newbot ثم انسخ التوكن.</li>
               <li>الصق التوكن (بصيغة 123456789:AA…) في حقل «رمز البوت» بالأسفل واحفظ الإعدادات.</li>
               <li>أضف معرف تليجرام في «الموافقون على الاشتراكات» ثم اضغط «اختبار الإرسال» للتحقق.</li>
             </ol>
@@ -348,6 +357,7 @@ export default function AdminTelegramPage() {
           </ol>
         </div>
       </section>
+    </div>
     </div>
   )
 }

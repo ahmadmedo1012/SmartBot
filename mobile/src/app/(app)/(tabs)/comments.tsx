@@ -9,13 +9,15 @@ import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet,
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
-import { radius, spacing } from '@/constants/theme'
+import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Badge, Button, Card, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { PressableScale } from '@/components/pressable-scale'
+import { CardListSkeleton } from '@/components/skeleton'
 import { apiGet, apiPost, apiPostForm } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
-import { describeError, EmptyState, ErrorState, LoadingState } from '@/components/state-views'
+import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { timeAgo } from '@/lib/format'
 import type { CommentItem } from '@/types/api'
 
@@ -81,19 +83,21 @@ export default function CommentsScreen() {
         <AppText variant="title">التعليقات</AppText>
         <Row style={{ gap: spacing.sm }}>
           {(['all', 'pending'] as const).map((f) => (
-            <Pressable
+            <PressableScale
               key={f}
-              accessibilityRole="button"
+              accessibilityLabel={f === 'all' ? 'الكل' : 'بانتظار الرد'}
+              accessibilityState={{ selected: filter === f }}
               onPress={() => setFilter(f)}
               style={[
                 styles.filterChip,
                 { backgroundColor: filter === f ? colors.primary : colors.surface, borderColor: filter === f ? colors.primary : colors.border },
               ]}
+              scaleTo={press.button}
             >
               <AppText variant="smallBold" style={{ color: filter === f ? colors.primaryFg : colors.mutedFg }}>
                 {f === 'all' ? 'الكل' : 'بانتظار الرد'}
               </AppText>
-            </Pressable>
+            </PressableScale>
           ))}
         </Row>
       </View>
@@ -105,16 +109,22 @@ export default function CommentsScreen() {
               <AppText variant="small" style={{ color: colors.destructive, flex: 1 }}>
                 {actionError}
               </AppText>
-              <Pressable accessibilityRole="button" accessibilityLabel="إغلاق الخطأ" onPress={() => setActionError(null)}>
+              <PressableScale
+                accessibilityLabel="إغلاق الخطأ"
+                hitSlop={14}
+                onPress={() => setActionError(null)}
+                scaleTo={press.button}
+              >
                 <Icon name="x" size={18} color={colors.destructive} />
-              </Pressable>
+              </PressableScale>
             </Row>
           </Card>
         </View>
       ) : null}
 
       {isLoading ? (
-        <LoadingState label="جارٍ تحميل التعليقات…" />
+        /* r131 (عقيدة الحالات): هيكل عظمي مطابق لشكل البطاقات — لا دوار مجرد */
+        <CardListSkeleton label="جارٍ تحميل التعليقات…" />
       ) : isError ? (
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : comments.length === 0 ? (
@@ -230,7 +240,8 @@ export default function CommentsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.md, gap: spacing.sm },
-  filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, paddingVertical: 6 },
+  /* r131: أرضية اللمس 44px (كانت ~32 بـpaddingVertical 6) */
+  filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, minHeight: TOUCH_TARGET - 4, justifyContent: 'center', alignItems: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   replyPreview: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
   sheetBackdrop: { flex: 1, justifyContent: 'flex-end' },

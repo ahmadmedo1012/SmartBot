@@ -2,17 +2,26 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, RefreshCw, Inbox, CheckCircle2, ChevronLeft, Send } from "lucide-react"
+import { AlertTriangle, RefreshCw, Inbox, CheckCircle2, ChevronLeft, Send, LifeBuoy } from "lucide-react"
 import Link from "next/link"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
-import { SectionContainer } from "@/components/ui/SectionContainer"
-import { SectionHeader } from "@/components/ui/SectionHeader"
+/* r131-F7 (A4 P2-6): PageHeader bar + AdminShell sidebar replace the
+ * centered SectionHeader marketing rhythm on the admin surface. */
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
+/* r131-F7b (A4 P2-5 + P2-1): canonical ink-slab filter pills + the
+ * numbered windowed pagination footer (fleet rulings). */
+import { pillClasses } from "@/components/shared/pills"
+import { TablePagination } from "@/components/shared/TablePagination"
+/* r131-F7b (A4 P1-1a): the reply box raw <input> (h-9 / rounded-sm /
+ * md:text-sm 14px desktop — the last h-9 sub-44/sub-16 site) rides the
+ * shared Input recipe (h-11 / r-md / 16px floor / halo token). */
+import { Input } from "@/components/ui/input"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { brandedToast } from "@/lib/premium-toast"
@@ -87,6 +96,12 @@ const STATUS_FILTERS = [
   { key: "closed", label: "مغلقة" },
 ]
 
+/* r131-F7b (A4 P2-1): the queue API's page window rides an explicit
+ * `limit` (backend default 20, ge=1 le=100 — routers/support.py:326) so
+ * totalPages is EXACT for the numbered pagination footer; the old
+ * «التالي»-until-empty-page probing is retired with it. */
+const TICKETS_PER_PAGE = 20
+
 const STATUS_CONFIG: Record<string, { label: string; variant: "warning" | "info" | "success" }> = {
   open: { label: "مفتوحة", variant: "warning" },
   pending: { label: "بانتظار العميل", variant: "info" },
@@ -126,7 +141,7 @@ export default function AdminSupportPage() {
   const ticketsQuery = useQuery({
     queryKey: ["admin-support-tickets", status, page],
     queryFn: () =>
-      apiFetch(`/api/admin/support/tickets?status=${status}&page=${page}`).then(
+      apiFetch(`/api/admin/support/tickets?status=${status}&page=${page}&limit=${TICKETS_PER_PAGE}`).then(
         unwrapApi<TicketsPage>,
       ),
     /* v24-C3 (A2 #5/Q5 — keepPreviousData): page/filter switches keep the
@@ -154,10 +169,9 @@ export default function AdminSupportPage() {
   )
   const { sorted: sortedTickets, sort, toggleSort } = useTableSort(tickets, sortAccessors)
   const shownPage = ticketsQuery.data?.page ?? page
-  /* The contract exposes total + page but not per_page — an empty page is
-   * the honest "no more rows" signal, so «التالي» stops there instead of
-   * guessing a page size that may drift from the backend's. */
-  const hasNextPage = tickets.length > 0
+  /* r131-F7b (A4 P2-1): explicit limit → exact page math for the numbered
+   * footer (was the «التالي»-until-empty heuristic). */
+  const totalPages = Math.max(1, Math.ceil(total / TICKETS_PER_PAGE))
 
   /* v17-E-F8 (D6 #5): إغلاق التذكرة من طابور المنصة — POST
    * /api/admin/support/tickets/{id}/close (مسار منصة عابر للمستأجرين؛
@@ -195,36 +209,43 @@ export default function AdminSupportPage() {
   })
 
   return (
-    <SectionContainer className="min-h-screen py-8">
-      {/* Visually-hidden page heading — SectionHeader renders the visible title
-          as h2, so heading navigation has an h1 target (v8-B5 pattern). */}
-      <h1 className="sr-only">طابور تذاكر الدعم</h1>
-      <SectionHeader
+    <div className="flex-1">
+      {/* r131-F7: PageHeader renders the page h1 (the sr-only h1 + centered
+          SectionHeader pair is retired); the back-link rides the header
+          actions (the sidebar owns the sibling navigation on desktop). */}
+      <PageHeader
+        icon={<LifeBuoy className="size-4" />}
         title="تذاكر الدعم"
-        description="كل تذاكر المستأجرين عبر المنصة في مكان واحد — اقرأ التذكرة كاملة، ردّ عليها، ثم أغلقها عند الحل"
+        subtitle="كل تذاكر المستأجرين عبر المنصة في مكان واحد"
+        compact
+        actions={
+          <Link
+            href="/dashboard"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
+          >
+            <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
+          </Link>
+        }
       />
 
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
-        </Link>
-      </div>
+      {/* r131-F7: dashboard content rhythm (p-6 under the sticky bar). */}
+      <div className="p-6">
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
-          <Button
+          /* r131-F7b (A4 P2-5, fleet ruling "filter pills = ink-slab"): the
+             gold/outline Button filters → the canonical .pill family
+             (pillClasses — surface + hairline, .on = ink slab + 4px accent
+             halo; messages:785 + admin/page twins). */
+          <button
             key={f.key}
-            variant={status === f.key ? "gold" : "outline"}
-            size="sm"
             onClick={() => setStatus(f.key)}
             aria-pressed={status === f.key}
+            className={pillClasses(status === f.key, "h-8 px-3.5")}
           >
             {f.label}
-          </Button>
+          </button>
         ))}
         <span className="text-xs text-muted-foreground" role="status">
           {formatNumber(total)} تذكرة
@@ -257,13 +278,17 @@ export default function AdminSupportPage() {
               ))}
             </div>
           ) : ticketsQuery.isError ? (
-            <div role="alert" className="py-12 px-4 text-center sb-fade-up">
-              <AlertTriangle className="size-12 mx-auto mb-3 text-destructive/60" aria-hidden="true" />
-              <h2 className="sb-section-title mb-1">فشل تحميل التذاكر</h2>
-              <p className="text-sm text-muted-foreground mb-4">
+            /* r131-F7b (A4 P2-8 completion): the bare-AlertCircle block joins
+             * the ONE .state family (admin/page twin). */
+            <div role="alert" className="state state-danger py-12 sb-fade-up">
+              <div className="state-icon" aria-hidden="true">
+                <AlertTriangle />
+              </div>
+              <h2 className="state-title">فشل تحميل التذاكر</h2>
+              <p className="state-desc">
                 {(ticketsQuery.error as Error)?.message || "تعذّر جلب التذاكر من الخادم — أعد المحاولة."}
               </p>
-              <Button variant="outline" onClick={() => ticketsQuery.refetch()}>
+              <Button variant="outline" size="sm" onClick={() => ticketsQuery.refetch()}>
                 <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
               </Button>
             </div>
@@ -284,17 +309,27 @@ export default function AdminSupportPage() {
               <h2 id="admin-support-heading" className="sr-only">
                 جدول تذاكر الدعم
               </h2>
-              <table aria-labelledby="admin-support-heading" className="w-full text-sm">
+              {/* r131-F7b (A4 P2-1, fleet table canon — completing the F8
+                  sweep): 13px cells (--fs-sm, was text-sm 14), 11px/600
+                  surface-2 header band, quiet zebra-on-hover wash + 2px
+                  first-cell accent dot. NOTE: this table deliberately does
+                  NOT take .tbl-stack — its rows are Fragment-paired with a
+                  colSpan disclosure <tr> (the thread + reply box), which
+                  cannot nest inside a parent row-card under display:block;
+                  the canonical overflow-x-auto fallback keeps it usable
+                  (W1-I §3.5: "non-opted tables fall back to horizontal
+                  scroll"). */}
+              <table aria-labelledby="admin-support-heading" className="w-full text-(length:--fs-sm)">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
+                  <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
                     <SortableTh label="الرقم" column="id" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="الموضوع" column="subject" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="المستأجر" column="tenant" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="الأولوية" column="priority" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="الحالة" column="status" sort={sort} onToggle={toggleSort} />
-                    <th scope="col" className="text-start p-3 font-medium">البريد</th>
+                    <th scope="col" className="text-start px-4 py-3 font-semibold">البريد</th>
                     <SortableTh label="التاريخ" column="created" sort={sort} onToggle={toggleSort} />
-                    <th scope="col" className="text-start p-3 font-medium">إجراء</th>
+                    <th scope="col" className="text-start px-4 py-3 font-semibold">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -303,11 +338,13 @@ export default function AdminSupportPage() {
                      * (colSpan) يحمل نص التذكرة والخيط ومربع الرد — نمط
                      * grid-rows الخاصية نفسه المستخدم في dashboard/support. */
                     <Fragment key={t.id}>
-                      <tr className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
-                        <td className="p-3 font-medium" data-label="الرقم">
+                      <tr className="group/row border-b border-border transition-colors hover:bg-muted/40 sb-fade-up">
+                        {/* r131-F7b: 2px accent leading-edge dot (scaleY
+                            spring, RTL-flipped radius) on the first cell. */}
+                        <td data-label="الرقم" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">
                           #{formatNumber(t.id)}
                         </td>
-                        <td className="p-3 font-medium" data-label="الموضوع">
+                        <td className="p-3 px-4 font-medium" data-label="الموضوع">
                           <button
                             type="button"
                             className="w-full flex items-center justify-between gap-3 text-start"
@@ -329,26 +366,26 @@ export default function AdminSupportPage() {
                             />
                           </button>
                         </td>
-                        <td className="p-3 text-muted-foreground" data-label="المستأجر" dir="auto">
+                        <td className="p-3 px-4 text-muted-foreground" data-label="المستأجر" dir="auto">
                           {t.tenant_name}
                         </td>
-                        <td className="p-3" data-label="الأولوية">
+                        <td className="p-3 px-4" data-label="الأولوية">
                           <Badge variant={PRIORITY_CONFIG[t.priority]?.variant}>
                             {PRIORITY_CONFIG[t.priority]?.label ?? t.priority}
                           </Badge>
                         </td>
-                        <td className="p-3" data-label="الحالة">
+                        <td className="p-3 px-4" data-label="الحالة">
                           <Badge variant={STATUS_CONFIG[t.status]?.variant}>
                             {STATUS_CONFIG[t.status]?.label ?? t.status}
                           </Badge>
                         </td>
-                        <td className="p-3 text-muted-foreground text-xs" data-label="البريد" dir="auto">
+                        <td className="p-3 px-4 text-muted-foreground text-xs" data-label="البريد" dir="auto">
                           {t.email}
                         </td>
-                        <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
+                        <td className="p-3 px-4 text-muted-foreground text-xs" data-label="التاريخ">
                           {t.created_at ? formatDateOnly(t.created_at) : "-"}
                         </td>
-                        <td className="p-3" data-label="إجراء">
+                        <td className="p-3 px-4" data-label="إجراء">
                           {/* v17-E-F8 (D6 #5): إغلاق التذكرة — يظهر للمفتوحة/
                               بانتظار العميل فقط (المغلقة لا تُغلق مرتين). */}
                           {t.status !== "closed" ? (
@@ -420,21 +457,22 @@ export default function AdminSupportPage() {
 
                                   {t.status !== "closed" ? (
                                     /* v22-D10 (BUG-1): مربع الرد — المسار
-                                       المفقود كله. raw input + text-base
-                                       md:text-sm (أرضية iOS 16px — v17 #4)
-                                       و dir="auto" لعزل النص المختلط. */
+                                       المفقود كله. r131-F7b (A4 P1-1a): the
+                                       raw <input> (h-9/rounded-sm/md:text-sm)
+                                       → the shared Input recipe (h-11 / r-md
+                                       / 16px floor / halo token — the last
+                                       h-9 sub-44/sub-16 site in the app). */
                                     <div className="flex gap-2 pt-1">
-                                      <input
+                                      <Input
                                         value={replyText}
                                         onChange={(e) => setReplyText(e.target.value)}
                                         placeholder="اكتب رد فريق الدعم…"
                                         aria-label={`نص رد الدعم على التذكرة رقم ${t.id}`}
-                                        dir="auto"
-                                        className="flex-1 h-9 rounded-sm border border-input bg-transparent px-3 text-base md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        className="flex-1"
                                       />
                                       <Button
                                         size="sm"
-                                        className="h-9 gap-1.5"
+                                        className="self-start mt-2"
                                         disabled={replyMut.isPending || replyText.trim().length < 2}
                                         loading={replyMut.isPending && replyMut.variables?.id === t.id}
                                         onClick={() => {
@@ -447,7 +485,7 @@ export default function AdminSupportPage() {
                                       </Button>
                                     </div>
                                   ) : (
-                                    <p className="text-2xs text-success text-center py-1" role="status">
+                                    <p className="text-2xs text-success-ink text-center py-1" role="status">
                                       هذه التذكرة مغلقة — لا يمكن الرد عليها
                                     </p>
                                   )}
@@ -464,37 +502,30 @@ export default function AdminSupportPage() {
             </div>
           )}
 
-          {/* Pagination — prev/next over the backend's page window.
-              v17-E-F8 (D6 #9): chevrons through DirectionalIcon (variant="chevron")
-              — الشيفرون الخام كان استيرادًا مباشرًا يتحايل على مصدر الحقيقة
-              الواحد لاتجاه القراءة (v7 §2.1). */}
-          {!ticketsQuery.isLoading && !ticketsQuery.isError && (
-            <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                aria-label="الصفحة السابقة"
-              >
-                <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
-              </Button>
-              <span className="text-xs text-muted-foreground" role="status">
-                صفحة {formatNumber(shownPage)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!hasNextPage}
-                aria-label="الصفحة التالية"
-              >
-                التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
-              </Button>
-            </div>
+          {/* Pagination — r131-F7b (A4 P2-1, fleet ruling "numbered
+              pagination"): the «السابق/التالي» link row → the canonical
+              TablePagination footer (hairline-topped, count on the start
+              side, windowed page-number buttons + ellipsis gaps, 44px touch
+              below sm; audience:197 twin). The explicit `limit` above makes
+              totalPages exact; the page status line stays as the polite
+              live region for the current window. */}
+          {!ticketsQuery.isLoading && !ticketsQuery.isError && total > 0 && (
+            <>
+              <p className="sr-only" role="status">
+                صفحة {formatNumber(shownPage)} من {formatNumber(totalPages)}
+              </p>
+              <TablePagination
+                page={shownPage}
+                totalPages={totalPages}
+                total={total}
+                onPageChange={setPage}
+                unitLabel="تذكرة"
+              />
+            </>
           )}
         </CardContent>
       </Card>
-    </SectionContainer>
+      </div>
+    </div>
   )
 }

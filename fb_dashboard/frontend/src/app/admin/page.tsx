@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 /* v17-E-F4 (D3 #1): success unified on CheckCircle2 app-wide (the payment
    journey — toast → admin approval — renders ONE success glyph). */
-import { CheckCircle2, XCircle, RefreshCw, AlertTriangle, Settings, CreditCard, Send, LifeBuoy } from "lucide-react"
+import { CheckCircle2, XCircle, RefreshCw, AlertTriangle, CreditCard } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
-import { SectionContainer } from "@/components/ui/SectionContainer"
-import { SectionHeader } from "@/components/ui/SectionHeader"
+/* r131-F7 (A4 P2-6): the admin chrome joins the dashboard grammar —
+ * PageHeader sticky bar (h1 + subtitle + the mobile back affordance) +
+ * AdminShell's sidebar (layout). SectionContainer/SectionHeader (the
+ * centered marketing rhythm) leave the admin surface; the sibling links
+ * the old header row carried are now the sidebar/bottom-nav slots. */
+import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -17,6 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
+/* r131-F7b (A4 P2-5): canonical ink-slab filter pills (fleet ruling). */
+import { pillClasses } from "@/components/shared/pills"
 /* v12-E5.1: framer-motion left this route — the entrance is now the CSS
  * twin .sb-fade-up (components/shared/enter-motion.css), the 1:1 copy of
  * lib/motion.ts fadeUp (0.5s cubic-bezier(0.165,0.84,0.44,1), y24→0),
@@ -140,69 +146,60 @@ export default function AdminPage() {
     setActionId(null)
   }, [fetchPayments])
 
-  // Unauthorized state
+  // Unauthorized state — r131-F7: the .state family (was a bare
+  // AlertTriangle + ad-hoc heading — one of the three retired error skins).
+  // r131-F7c: role="alert" restored — every other state-danger block in the
+  // app carries it (telegram:241, calendar:92 …); the swap dropped the live
+  // region here and in admin/settings.
   if (!roleLoading && role !== "admin") {
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md sb-fade-up">
-          <AlertTriangle className="size-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">غير مصرح</h1>
-          <p className="text-muted-foreground mb-6">هذه الصفحة مخصصة للمشرفين فقط. ليس لديك صلاحيات كافية للوصول.</p>
-          {/* v24-C3 (A2 #8): العودة للوحة التحكم كانت window.location.href —
-              إعادة تحميل كاملة؛ router.push يبقيها انتقال SPA. */}
-          <Button onClick={() => router.push("/dashboard")}>العودة للوحة التحكم</Button>
-        </div>
-      </SectionContainer>
+      <div className="state state-danger flex-1 py-16" role="alert">
+        <div className="state-icon" aria-hidden="true"><AlertTriangle /></div>
+        <h1 className="state-title">غير مصرح</h1>
+        <p className="state-desc">هذه الصفحة مخصصة للمشرفين فقط. ليس لديك صلاحيات كافية للوصول.</p>
+        {/* v24-C3 (A2 #8): العودة للوحة التحكم كانت window.location.href —
+            إعادة تحميل كاملة؛ router.push يبقيها انتقال SPA. */}
+        <Button onClick={() => router.push("/dashboard")}>العودة للوحة التحكم</Button>
+      </div>
     )
   }
 
   if (roleLoading) {
     return (
-      <SectionContainer className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
+      <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center" role="status" aria-live="polite">
         <span className="sr-only">جارٍ التحميل…</span>
-        <div className="size-8 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin" />
-      </SectionContainer>
+        <div className="size-8 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
+      </div>
     )
   }
 
   return (
-    <SectionContainer className="min-h-screen py-8">
-      {/* Visually-hidden page heading — SectionHeader renders the visible title
-          as h2, so heading navigation had no h1 target (v8-B5) */}
-      <h1 className="sr-only">إدارة المنصة</h1>
-      <SectionHeader title="إدارة الاشتراكات" description="مراجعة وإدارة طلبات الاشتراك" />
-
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
-        </Link>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link href="/admin/settings" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
-            <Settings className="size-4" /> إعدادات المنصة
+    <div className="flex-1">
+      {/* r131-F7: PageHeader renders the page h1 (the sr-only h1 + centered
+          SectionHeader pair is retired); the back-to-dashboard link lives in
+          the header actions — the ONE cross-shell affordance AdminMobileNav
+          doesn't carry (sidebar owns it on desktop). */}
+      <PageHeader
+        icon={<CreditCard className="size-4" />}
+        title="إدارة الاشتراكات"
+        subtitle="مراجعة وإدارة طلبات الاشتراك"
+        compact
+        actions={
+          <Link
+            href="/dashboard"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground hover:text-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
+          >
+            <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
           </Link>
-          {/* v14-E4 (D1 ع-1): /admin/telegram was navigation-orphaned — no
-              link anywhere in the UI reached it (manual URL typing only).
-              Exposed here beside the platform settings so broadcast targets,
-              approvers and diagnostics are discoverable for platform admins. */}
-          <Link href="/admin/telegram" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
-            <Send className="size-4" /> إعدادات تليجرام
-          </Link>
-          {/* v16-E3 (D4-HIGH merge note): /admin/support was navigation-orphaned
-              on landing — same defect class as /admin/telegram (v14-E4 D1 ع-1).
-              The platform-admin ticket queue is the owner's only in-app channel
-              to SEE support tickets (previously: zero channels — Telegram
-              notify was spawn'd dead on Vercel and no queue route existed). */}
-          <Link href="/admin/support" className="inline-flex items-center gap-2 text-sm rounded-md border border-border/70 px-3 py-1.5 hover:bg-accent-foreground/8 hover:border-accent-foreground/40 transition-colors">
-            <LifeBuoy className="size-4" /> تذاكر الدعم
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* v6 §E — cron heartbeat truth at a glance (Telegram alerts fire on
           stalls; this card answers "are scheduled posts running?" instantly).
           v10-B4 (G2-02): /api/cron/status is platform-admin-only — tenant
           admins (tenant_id ≠ 0) got 403 + console/network noise; the card is
           now platform-admin exclusive. */}
+      <div className="p-6">
       <div className="mb-6">
         <CronHeartbeatCard enabled={role === "admin" && tenantId === 0} />
       </div>
@@ -210,9 +207,18 @@ export default function AdminPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
-          <Button key={f.key} variant={filter === f.key ? "gold" : "outline"} size="sm" onClick={() => setFilter(f.key)} aria-pressed={filter === f.key}>
+          /* r131-F7b (A4 P2-5, fleet ruling "filter pills = ink-slab"): the
+             gold/outline Button filters → the canonical .pill family
+             (pillClasses — surface + hairline, .on = ink slab + 4px accent
+             halo; messages:785 twin). */
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            aria-pressed={filter === f.key}
+            className={pillClasses(filter === f.key, "h-8 px-3.5")}
+          >
             {f.label}
-          </Button>
+          </button>
         ))}
         <Button
           variant="ghost"
@@ -246,14 +252,19 @@ export default function AdminPage() {
             </div>
           ) : loadError ? (
             /* v14-E4 (D1 ع-2): real fetch failure — honest error with retry,
-             * NOT the old false "no requests" EmptyState. */
-            <div role="alert" className="py-12 px-4 text-center sb-fade-up">
-              <AlertTriangle className="size-12 mx-auto mb-3 text-destructive/60" aria-hidden="true" />
-              <h2 className="sb-section-title mb-1">فشل تحميل طلبات الاشتراك</h2>
-              <p className="text-sm text-muted-foreground mb-4">
+             * NOT the old false "no requests" EmptyState.
+             * r131-F7b (A4 P2-8 completion): the bare-AlertCircle block joins
+             * the ONE .state family (audience:73 twin — was the third skin:
+             * bare 48px /60 icon, no well). */
+            <div role="alert" className="state state-danger py-12 sb-fade-up">
+              <div className="state-icon" aria-hidden="true">
+                <AlertTriangle />
+              </div>
+              <h2 className="state-title">فشل تحميل طلبات الاشتراك</h2>
+              <p className="state-desc">
                 تعذّر جلب الطلبات من الخادم — قد تكون هناك طلبات قيد الانتظار. تحقّق من الاتصال ثم أعد المحاولة.
               </p>
-              <Button variant="outline" onClick={fetchPayments}>
+              <Button variant="outline" size="sm" onClick={fetchPayments}>
                 <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
               </Button>
             </div>
@@ -270,34 +281,42 @@ export default function AdminPage() {
                   aria-labelledby — sr-only h2 because SectionHeader's visible
                   h2 has no id we can reference. */}
               <h2 id="admin-payments-heading" className="sr-only">جدول طلبات الاشتراك</h2>
-              <table aria-labelledby="admin-payments-heading" className="w-full text-sm">
+              {/* r131-F7b (A4 P2-1, fleet table canon — completing the F8
+                  sweep that landed dashboard + demo): 13px cells (--fs-sm,
+                  was text-sm 14), 11px/600 surface-2 header band (was
+                  bg-muted/50 inheriting 14px/500), quiet zebra-on-hover wash
+                  + 2px first-cell accent dot, tbl-stack mobile collapse via
+                  data-label. SortableTh now carries px-4/py-3/600 itself. */}
+              <table aria-labelledby="admin-payments-heading" className="tbl-stack w-full text-(length:--fs-sm)">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
+                  <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
                     <SortableTh label="المستخدم" column="user" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="الخطة" column="plan" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="المبلغ" column="amount" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="رقم الهاتف" column="phone" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="الحالة" column="status" sort={sort} onToggle={toggleSort} />
                     <SortableTh label="التاريخ" column="created" sort={sort} onToggle={toggleSort} />
-                    <th scope="col" className="text-center p-3 font-medium">إجراءات</th>
+                    <th scope="col" className="text-center px-4 py-3 font-semibold">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedPayments.map((p) => (
-                    <tr key={p.id} className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
+                    <tr key={p.id} className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40 sb-fade-up">
                       {/* v15-E6 (D5-M7): usernames are live values (Latin/mixed) —
-                          dir="auto" isolates bidi like the phone cell above. */}
-                      <td className="p-3 font-medium" data-label="المستخدم" dir="auto">{p.username}</td>
-                      <td className="p-3" data-label="الخطة">{p.plan}</td>
-                      <td className="p-3" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
-                      <td className="p-3 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
-                      <td className="p-3" data-label="الحالة">
+                          dir="auto" isolates bidi like the phone cell above.
+                          r131-F7b: 2px accent leading-edge dot (scaleY spring,
+                          RTL-flipped radius) on the first cell. */}
+                      <td data-label="المستخدم" dir="auto" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{p.username}</td>
+                      <td className="p-3 px-4" data-label="الخطة">{p.plan}</td>
+                      <td className="p-3 px-4 tabular-nums" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
+                      <td className="p-3 px-4 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
+                      <td className="p-3 px-4" data-label="الحالة">
                         <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
                       </td>
-                      <td className="p-3 text-muted-foreground text-xs" data-label="التاريخ">
+                      <td className="p-3 px-4 text-muted-foreground text-xs" data-label="التاريخ">
                         {p.created_at ? formatDateOnly(p.created_at) : "-"}
                       </td>
-                      <td className="p-3 text-center" data-label="إجراءات">
+                      <td className="p-3 px-4 text-center" data-label="إجراءات">
                         <div className="flex items-center justify-center gap-2">
                           {p.status === "pending" && (
                             <>
@@ -324,6 +343,7 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
-    </SectionContainer>
+      </div>
+    </div>
   )
 }

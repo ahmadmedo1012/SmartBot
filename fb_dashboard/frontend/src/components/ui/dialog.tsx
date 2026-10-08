@@ -59,12 +59,16 @@ function DialogContent({
           /* Madarek modal-card: solid surface + 1px hairline ring + elev-4
              (the --shadow-modal recipe) + the copper top hairline
              (.mdrk-modal-card::before in globals.css — inset-inline 30%,
-             3px, transparent→accent→transparent). r130 (W1-E D-3): radius
-             20px → 16px (rounded-xl = --r-xl) — the inner-page modal
-             grammar (Madarek .modal-card rides --r-xl). */
-          "mdrk-modal-card fixed left-1/2 top-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-sm",
-          "transition-[opacity,scale,translate,filter] duration-(--duration-base) ease-smooth data-starting-style:opacity-0 data-starting-style:scale-95 data-starting-style:translate-y-4",
-          "data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:translate-y-4",
+             3px, transparent→accent→transparent — the SO recipe verbatim).
+             r130 (W1-E D-3): radius 20px → 16px (rounded-xl = --r-xl).
+             r131-F7 (A4 P2-7, fleet ruling "dialog solid r16 + top hairline
+             + 560"): width cap 384px → min(560px,100%) — the canonical
+             modal-card inline-size (madarek components.css:1491; SO twin);
+             entrance re-based on the canonical madarek-pop (240ms,
+             translateY(8px) scale(.98)) — was translate-y-4/scale-95. */
+          "mdrk-modal-card fixed left-1/2 top-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-[560px]",
+          "transition-[opacity,scale,translate,filter] duration-(--duration-base) ease-smooth data-starting-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:translate-y-2",
+          "data-ending-style:opacity-0 data-ending-style:scale-[0.98] data-ending-style:translate-y-2",
           className,
         )}
         {...props}
@@ -95,7 +99,10 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-heading text-base leading-none font-medium", className)}
+      /* r131-F7 (A4 P2-7): 16/500 → the canonical modal-title rung
+       * text-lg/600 (SO dialog twin; madarek .modal-title rides the
+       * headline display rung). */
+      className={cn("font-heading text-lg leading-none font-semibold", className)}
       {...props}
     />
   )

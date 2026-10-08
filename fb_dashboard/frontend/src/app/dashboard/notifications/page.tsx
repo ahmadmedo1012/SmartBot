@@ -18,6 +18,8 @@ import {
   BellRing,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -214,9 +216,9 @@ export default function NotificationsPage() {
                 <BellRing className="size-4 text-accent-foreground" />
                 الإشعارات الأخيرة
                 {unread > 0 && (
-                  <span className="text-3xs font-bold bg-primary text-primary-foreground rounded-full px-2 py-0.5 min-w-5 text-center">
-                    {unread}
-                  </span>
+                  /* r131-F8 (A4 P2-3): hand-rolled unread counter → Badge
+                     (compact overrides preserve the min-width bubble). */
+                  <Badge className="min-w-5 justify-center px-2 py-0.5 text-3xs tabular-nums">{unread}</Badge>
                 )}
               </h2>
               {unread > 0 && (
@@ -394,15 +396,11 @@ export default function NotificationsPage() {
                     .filter(Boolean)
                     .join(" ")}
                 >
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={on}
-                    aria-label={`${t.label} — ${on ? "مفعّل" : "معطّل"}`}
-                    disabled={isPending}
-                    onClick={() => !isPending && toggle(t.key)}
-                    className="p-4 flex w-full items-center justify-between gap-4 cursor-pointer select-none text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
-                  >
+                  {/* r131-F8 (A4 P2-7): the hand-rolled aria-hidden span switch →
+                      the shared ui/Switch primitive (real role=switch + 44px hit
+                      box + RTL thumb math). The row stays a plain container —
+                      the Switch itself is the keyboard-accessible control. */}
+                  <div className="p-4 flex w-full items-center justify-between gap-4 text-start">
                     <div className="flex items-center gap-3.5">
                       <div
                         className={`size-11 rounded-xl flex items-center justify-center ${on ? "bg-accent-foreground/10" : "bg-muted"}`}
@@ -414,15 +412,13 @@ export default function NotificationsPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">{t.desc}</p>
                       </div>
                     </div>
-                    <span
-                      aria-hidden="true"
-                      className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${on ? "bg-primary" : "bg-muted-foreground/30"}`}
-                    >
-                      <span
-                        className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "start-[calc(100%-1.375rem)]" : "start-0.5"}`}
-                      />
-                    </span>
-                  </button>
+                    <Switch
+                      checked={on}
+                      onCheckedChange={() => toggle(t.key)}
+                      disabled={isPending}
+                      aria-label={`${t.label} — ${on ? "مفعّل" : "معطّل"}`}
+                    />
+                  </div>
                 </Card>
               )
             })

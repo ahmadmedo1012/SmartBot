@@ -245,9 +245,13 @@ async def _seed_engine_broadcast(n_messenger: int = 2, n_other: int = 0, templat
         return bc.id, t.id
 
 
-async def test_send_broadcast_sends_to_matching_subscribers(app_db, monkeypatch):
+async def test_send_broadcast_sends_to_matching_subscribers(broadcast_race_db, monkeypatch):
     """الإرسال: سجلات مستلمين pending → sent، القالب مُصيَّر بالاسم الأول،
-    العدادات، والحالة النهائية sent (v4 §3.8: عميل المستأجر لا العام)."""
+    العدادات، والحالة النهائية sent (v4 §3.8: عميل المستأجر لا العام).
+
+    v26-F4: يعمل على broadcast_race_db (اتصالات مستقلة) — مهام send_one
+    المتزامنة لا تُعشّق معاملاتها على اتصال StaticPool واحد مشترك
+    (السباق الموثّق في P4-A4 §4؛ نفس نمط race_db لدينا في v15)."""
     import _services
     from database import AsyncSessionLocal
     from models import Broadcast, BroadcastRecipient
@@ -272,8 +276,11 @@ async def test_send_broadcast_sends_to_matching_subscribers(app_db, monkeypatch)
     assert all(msg.startswith("أهلاً اسم") and msg.endswith("!") for _uid, msg in fake.dm_calls)
 
 
-async def test_send_broadcast_partial_on_unsupported_platform(app_db, monkeypatch):
-    """مشترك بمنصة غير مدعومة → مستلم failed برسالة خطأ، والحالة partial."""
+async def test_send_broadcast_partial_on_unsupported_platform(broadcast_race_db, monkeypatch):
+    """مشترك بمنصة غير مدعومة → مستلم failed برسالة خطأ، والحالة partial.
+
+    v26-F4: نفس سباق fan-out المتزامن — broadcast_race_db (انظر الاختبار
+    أعلاه)."""
     import _services
     from database import AsyncSessionLocal
     from models import Broadcast, BroadcastRecipient

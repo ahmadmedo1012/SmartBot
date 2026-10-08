@@ -32,7 +32,7 @@ from models import (
     Tag,
     Tenant,
 )
-from sqlalchemy import desc, exists, func, select, update
+from sqlalchemy import case, desc, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger("fb-broadcast")
@@ -66,6 +66,70 @@ async def tenant_broadcast_allowed(session, tenant_id: int) -> tuple[bool, str]:
     if plan is not None and not plan.has_broadcast:
         return False, BROADCAST_PLAN_REQUIRED_MSG
     return True, ""
+
+
+async def _aggregate_fanout_counters(
+    session: AsyncSession, broadcast_id: int, *, final: bool
+) -> tuple[int, int, str | None]:
+    """v26-F4 (P4-A4 §4): SQL-aggregated fan-out counters — ONE atomic UPDATE.
+
+    The pre-fix code committed Python-side ``sent``/``failed`` counters
+    through the long-lived parent session (``b.sent_count = sent``) while the
+    per-recipient tasks committed their own rows from *fresh* sessions — a
+    cross-session read-modify-write window. Whatever session's COMMIT landed
+    last defined the persisted counters (classic lost-update). Aggregating
+    from ``broadcast_recipients`` inside a single statement removes the window
+    entirely and makes the counters idempotent + recomputable: any process can
+    re-derive them from the persisted recipient rows (crash-safe restart
+    semantics for the v15 outbox consumer).
+
+    ``final=True`` also derives the terminal ``status`` and ``sent_at`` from
+    the SAME aggregates, so no stale Python-side state can flip a broadcast to
+    sent/partial/failed anymore.
+
+    Returns ``(sent_count, failed_count, status)`` read back via RETURNING so
+    callers log the persisted truth, not the local estimate.
+    """
+    sent_sub = (
+        select(func.count())
+        .select_from(BroadcastRecipient)
+        .where(
+            BroadcastRecipient.broadcast_id == broadcast_id,
+            BroadcastRecipient.status == "sent",
+        )
+        .scalar_subquery()
+    )
+    failed_sub = (
+        select(func.count())
+        .select_from(BroadcastRecipient)
+        .where(
+            BroadcastRecipient.broadcast_id == broadcast_id,
+            BroadcastRecipient.status == "failed",
+        )
+        .scalar_subquery()
+    )
+    values: dict = {"sent_count": sent_sub, "failed_count": failed_sub}
+    if final:
+        # Same semantics as the old Python ternary ("failed" if sent == 0,
+        # "sent" if failed == 0, else "partial") — now derived from the
+        # persisted recipient rows inside the SAME atomic statement.
+        values["status"] = case(
+            (sent_sub == 0, "failed"),
+            (failed_sub == 0, "sent"),
+            else_="partial",
+        )
+        values["sent_at"] = utcnow()
+    row = (await session.execute(
+        update(Broadcast)
+        .where(Broadcast.id == broadcast_id)
+        .values(**values)
+        .returning(Broadcast.sent_count, Broadcast.failed_count, Broadcast.status)
+        .execution_options(synchronize_session=False)
+    )).one_or_none()
+    await session.commit()
+    if row is None:
+        return 0, 0, None
+    return int(row[0] or 0), int(row[1] or 0), row[2]
 
 
 class BroadcastEngine:
@@ -419,12 +483,11 @@ async def _send_claimed_broadcast(broadcast_id: int, session) -> bool:
         # v4 §3.8 (G5) — each task opens its OWN session: a single
         # AsyncSession shared across asyncio.gather coroutines is not
         # concurrency-safe (InvalidRequestError / lost updates).
+        # v26-F4: counters are NO LONGER accumulated Python-side — see
+        # _aggregate_fanout_counters (one atomic SQL aggregate per commit).
         sem = asyncio.Semaphore(10)
-        sent = 0
-        failed = 0
 
         async def send_one(subscriber_id: int, recipient_id: int):
-            nonlocal sent, failed
             async with sem:
                 from database import AsyncSessionLocal
                 async with AsyncSessionLocal() as s:
@@ -463,11 +526,6 @@ async def _send_claimed_broadcast(broadcast_id: int, session) -> bool:
                         rcpt.sent_at = utcnow()
                     await s.commit()
 
-                if send_ok:
-                    sent += 1
-                else:
-                    failed += 1
-
         # Build task list
         tasks = []
         rcpt_q = await session.execute(
@@ -484,22 +542,22 @@ async def _send_claimed_broadcast(broadcast_id: int, session) -> bool:
         for i in range(0, len(tasks), batch_size):
             batch = tasks[i:i + batch_size]
             await asyncio.gather(*batch)
-            b.sent_count = sent
-            b.failed_count = failed
-            await session.commit()
+            # v26-F4 — progress heartbeat: SQL-aggregated counters (atomic,
+            # recomputable) instead of the old Python read-modify-write.
+            sent, failed, _status = await _aggregate_fanout_counters(
+                session, broadcast_id, final=False)
             if (i + batch_size) % 50 <= batch_size:
                 log.info(
                     f"Broadcast #{broadcast_id}: {sent} sent, {failed} failed "
-                    f"({i + batch_size}/{len(tasks)})"
+                    f"({min(i + batch_size, len(tasks))}/{len(tasks)})"
                 )
 
-        # Mark complete
-        b.status = "failed" if sent == 0 else "sent" if failed == 0 else "partial"
-        b.sent_count = sent
-        b.failed_count = failed
-        b.sent_at = utcnow()
-        await session.commit()
-        log.info(f"Broadcast #{broadcast_id} done: {sent} sent, {failed} failed")
+        # Mark complete — terminal status + counters derive from the SAME
+        # persisted recipient rows in one atomic statement (v26-F4).
+        sent, failed, status = await _aggregate_fanout_counters(
+            session, broadcast_id, final=True)
+        log.info(f"Broadcast #{broadcast_id} done: {sent} sent, {failed} failed "
+                 f"(status={status})")
         return True
 
     except Exception as e:

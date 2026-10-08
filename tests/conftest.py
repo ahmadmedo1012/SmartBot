@@ -57,6 +57,50 @@ _httpx.AsyncClient.__init__ = _csrf_aware_asyncclient_init
 
 
 @pytest.fixture
+async def broadcast_race_db(monkeypatch):
+    """قاعدة ملفات باتصالات مستقلة حقيقية لمهام fan-out المتزامنة (نمط
+    race_db المجرب في test_v15_concurrency.py:52) — P4-A4 §4 / v26-F4.
+
+    لماذا: مهام send_one في broadcast_engine تفتح جلسات AsyncSessionLocal
+    متزامنة (عقد v4 §3.8 الصحيح في الإنتاج)، لكن حزام conftest الجذري
+    يعمل بمحرك StaticPool (اتصال aiosqlite واحد مشترك) — فتتعشق معاملات
+    الجلسات داخل معاملة فيزيائية واحدة وأي ROLLBACK (إغلاق جلسة بمعاملة
+    مفتوحة) يُسقط تحديثات جلسة أخرى (السباق الموثّق: مستلم يبقى pending
+    رغم إرساله). هذا الحزام يوجّه AsyncSessionLocal إلى قاعدة ملفات
+    باتصالات مستقلة + file-locking + busy-timeout — نفس دلالات الإنتاج،
+    فيصبح اختبار التوزيع المتزامن حقيقيًا وحتميًا.
+
+    monkeypatch يعيد AsyncSessionLocal كما كان بعد كل اختبار (لا تسريب
+    بين الملفات)؛ الجلسة التي يفتحها الاختبار نفسه للقراءة/التأكيد تفتح
+    من نفس المصنع المُبدَّل فيرى نفس القاعدة.
+    """
+    import tempfile
+
+    import database
+    from models import Base
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    fd, path = tempfile.mkstemp(prefix="broadcast_race_", suffix=".db")
+    os.close(fd)
+    os.unlink(path)
+    eng = create_async_engine(
+        f"sqlite+aiosqlite:///{path}", connect_args={"timeout": 30}
+    )
+    async with eng.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    sf = async_sessionmaker(eng, expire_on_commit=False)
+    monkeypatch.setattr(database, "AsyncSessionLocal", sf)
+    try:
+        yield sf
+    finally:
+        await eng.dispose()
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+@pytest.fixture
 async def v10_world():
     """تطبيق + قاعدة اختبار معزولة + عميل HTTP غير موثّق بعد.
 

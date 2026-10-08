@@ -142,11 +142,15 @@ async def test_broadcast_process_pending_claims_and_fails_without_page(v10_seed,
         assert await process_pending(session) == 0
 
 
-async def test_process_pending_sends_exactly_once(app_db, monkeypatch):
+async def test_process_pending_sends_exactly_once(broadcast_race_db, monkeypatch):
     """C-BCAST1 جوهراً: المستهلك يرسل مرة واحدة بالضبط — طابور pending حقيقي
     على قاعدة المحرك، عميل FB مزيّف، استدعاءان متتاليان للمستهلك: الأول
     يستلم ويرسل لكل مشترك مرة، الثاني لا يجد شيئاً (لا إرسال مزدوج ولا
-    صفوف مستلمين مضاعفة)."""
+    صفوف مستلمين مضاعفة).
+
+    v26-F4: يعمل على broadcast_race_db — مهام send_one المتزامنة تفتح
+    جلسات AsyncSessionLocal مستقلة (عقد الإنتاج)، وحزام StaticPool المشترك
+    يفقد تحديثات المستلمين بالتعشيق (السباق الموثّق P4-A4 §4)."""
     import _services
     from database import AsyncSessionLocal
     from models import Broadcast, BroadcastRecipient, Subscriber, Tenant

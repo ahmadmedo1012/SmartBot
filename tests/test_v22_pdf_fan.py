@@ -157,6 +157,57 @@ async def test_reports_generate_weasyprint_local_still_renders(v10_seed):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# v26-F4 (P4-A4 §2 P2) — bundled Plex fonts + honest font-failure degrade
+# ════════════════════════════════════════════════════════════════════════════
+
+
+async def test_fpdf_fallback_missing_fonts_is_honest_503(v10_seed, monkeypatch):
+    """v26-F4: حزمة الخطوط المرفقة غائبة (نشر مكسور) والمحرك fpdf فقط →
+    503 نظيف بنفس العقد العربي، أبداً 500 (كان: مسار الخط الصلب
+    /usr/share/fonts/truetype/dejavu ينفجر بـ 500 على أي صورة سيرفرلس
+    بلا الخط — فحص «المسار معدوم» الذي طلبه التدقيق حرفياً)."""
+    import pdf_reports_engine as pre
+
+    # بدون إعادة تحميل (reload) — نفس كائن الفئة الذي يمسكه المسار،
+    # فالالتقاط في reports_routes يظل صحيحاً.
+    monkeypatch.setattr(pre, "_WEASYPRINT", False)
+    monkeypatch.setattr(pre, "_fonts_available", lambda: False)
+
+    uname, _tid, _uid = await v10_seed.tenant_user(tenant_name="V22-PDF-NoFonts")
+    await v10_seed.login(uname)
+    await v10_seed.world.client.get("/api/analytics/overview")  # كوكي CSRF
+    r = await v10_seed.world.client.post("/api/reports/generate",
+                                         json={"type": "monthly", "days": 7})
+    assert r.status_code == 503, r.text
+    assert "محرك التقارير غير متاح" in r.json()["detail"]
+
+
+async def test_fpdf_fallback_digest_renders_with_bundled_font(v10_seed, monkeypatch):
+    """v26-F4: احتياط fpdf يرسم ملخصاً نصياً بالخط المرفق (Plex) — لا HTML
+    خام (كان: multi_cell على مصدر HTML كاملاً بعلاماته)."""
+    import pdf_reports_engine as pre
+
+    monkeypatch.setattr(pre, "_WEASYPRINT", False)
+    assert pre._fonts_available() is True  # الحزمة موجودة في المستودع
+    eng = pre.PdfReportsEngine()
+    src = ('<html><head><style>body{color:red}</style></head><body>'
+           '<h1>تقرير تجريبي</h1><p>سطر أول</p><p>سطر ثانٍ</p></body></html>')
+    out = await eng._render_async(src)
+    assert out[:5] == b"%PDF-"
+
+
+def test_html_to_text_strips_tags_and_style():
+    """v26-F4: مستخرج الملخص النصي — الوسوم وstyle لا يتسربان أبداً."""
+    from pdf_reports_engine import _html_to_text
+    src = ('<html><head><style>body{color:red}</style><title>تجاهل</title></head>'
+           '<body><h1>عنوان</h1><p>سطر</p></body></html>')
+    txt = _html_to_text(src)
+    assert "<" not in txt and "{" not in txt
+    assert "عنوان" in txt and "سطر" in txt
+    assert "color" not in txt and "تجاهل" not in txt
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # F2 — cross-tenant fan_count / connected bleed
 # ════════════════════════════════════════════════════════════════════════════
 

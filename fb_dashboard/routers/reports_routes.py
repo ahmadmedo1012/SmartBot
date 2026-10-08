@@ -9,6 +9,7 @@ from _utils import iso_z, utcnow
 from database import get_db
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from models import ReportSchedule, User
+from pdf_reports_engine import PdfRenderUnavailable
 from sqlalchemy import select
 
 from routers.auth import get_current_user, require_role
@@ -54,7 +55,10 @@ async def pdf_reports_status(_=Depends(get_current_user)):
     """
     return ok({"available": pdf_engine.is_available(),
                "engine": pdf_engine.engine_name,
-               "probe_error": pdf_engine.probe_error()})
+               "probe_error": pdf_engine.probe_error(),
+               # v26-F4: bundle health — informational (the hard 503 gate is
+               # the render itself); lets an operator spot a broken deploy.
+               "fonts": pdf_engine.fonts_state()})
 
 
 @router.post("/api/reports/generate")
@@ -120,20 +124,27 @@ async def generate_pdf_report(request: Request, current_user: User = Depends(req
         if not logo_bytes:
             raise HTTPException(400, "شعار التقرير مرفوض")
         branding.logo_url = _image_data_uri(logo_bytes)
-    if rtype == "monthly":
-        pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding, tenant_id=tenant_id)
-    elif rtype == "subscriber":
-        pdf_bytes = await pdf_engine.subscriber_report(days=days, branding=branding, tenant_id=tenant_id)
-    elif rtype == "campaign":
-        campaign_type = body.get("campaign_type", "broadcast")
-        campaign_id = str(body.get("campaign_id", "0"))
-        if campaign_type not in ("broadcast", "flow"):
-            raise HTTPException(400, "نوع الحملة غير صالح")
-        if not campaign_id.isdigit():
-            raise HTTPException(400, "معرف الحملة غير صالح")
-        pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding, tenant_id=tenant_id)
-    else:
-        raise HTTPException(400, f"نوع التقرير غير معروف: {rtype}")
+    try:
+        if rtype == "monthly":
+            pdf_bytes = await pdf_engine.monthly_report(days=days, branding=branding, tenant_id=tenant_id)
+        elif rtype == "subscriber":
+            pdf_bytes = await pdf_engine.subscriber_report(days=days, branding=branding, tenant_id=tenant_id)
+        elif rtype == "campaign":
+            campaign_type = body.get("campaign_type", "broadcast")
+            campaign_id = str(body.get("campaign_id", "0"))
+            if campaign_type not in ("broadcast", "flow"):
+                raise HTTPException(400, "نوع الحملة غير صالح")
+            if not campaign_id.isdigit():
+                raise HTTPException(400, "معرف الحملة غير صالح")
+            pdf_bytes = await pdf_engine.campaign_report(campaign_type, campaign_id, branding=branding, tenant_id=tenant_id)
+        else:
+            raise HTTPException(400, f"نوع التقرير غير معروف: {rtype}")
+    except PdfRenderUnavailable as exc:
+        # v26-F4: a render prerequisite died (bundled fonts missing,
+        # fpdf output failure …) — honest 503 with the same Arabic contract
+        # the frontend already handles, never an unhandled 500.
+        log.warning("PDF render unavailable: %s", exc)
+        raise HTTPException(503, "محرك التقارير غير متاح حالياً على الخادم — يرجى المحاولة لاحقاً") from exc
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f"attachment; filename=report-{rtype}-{utcnow().strftime('%Y%m%d')}.pdf"})
 

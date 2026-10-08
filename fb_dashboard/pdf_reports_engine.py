@@ -3,8 +3,16 @@ from __future__ import annotations
 """PDF Reports Engine -- White-label client-ready PDF reports (weasyprint).
 Arabic RTL, inline CSS, CSS bar charts, branded header/footer.
 
-[DEPRECATED — plan §6.1: activated but not invoked in the production flow.
-Kept for future use; do not build new features on top of it.]
+Contract (v26-F4 — the stale DEPRECATED banner is gone; this engine serves
+the five live /api/reports/* routes in routers/reports_routes.py):
+- PRIMARY engine: weasyprint (full CSS + Pango Arabic shaping), embedding
+  the bundled IBM Plex Sans Arabic TTFs (fb_dashboard/fonts/) via @font-face
+  — true cross-surface font parity with web/mobile.
+- FALLBACK engine: fpdf2 — plain-text digest (tags stripped, bundled Plex
+  face, best-effort shaping when uharfbuzz is present). No raw-HTML dump.
+- Both font files are resolved __file__-RELATIVELY (never system paths);
+  a missing/unreadable font raises PdfRenderUnavailable which the router
+  maps to an honest 503 — never a 500 and never a garbage render.
 """
 import asyncio
 import base64
@@ -12,13 +20,43 @@ import html
 import logging
 import re
 from datetime import timedelta
-from urllib.parse import unquote_to_bytes
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import unquote, unquote_to_bytes, urlsplit
 
 from _utils import utcnow
 from ai_service import _assert_safe_image_url
 from sqlalchemy import Date, cast, desc, func, select
 
 log = logging.getLogger("fb-pdf-reports")
+
+# ── v26-F4 (P4-A4 §2 P2): bundled IBM Plex Sans Arabic ────────────────────
+# The README always claimed Plex on every surface; the engine rendered
+# DejaVu/Noto system faces (hardcoded /usr/share path in the fpdf branch —
+# crash-prone on serverless images). Both weights now ship IN the repo and
+# are resolved relative to this module — no host-filesystem assumptions.
+_FONTS_DIR = Path(__file__).resolve().parent / "fonts"
+_PLEX_REGULAR = _FONTS_DIR / "IBMPlexSansArabic-Regular.ttf"
+_PLEX_BOLD = _FONTS_DIR / "IBMPlexSansArabic-Bold.ttf"
+
+
+class PdfRenderUnavailable(RuntimeError):
+    """v26-F4: a render prerequisite (engine libs, bundled font files) is
+    missing on this runtime — the router maps this to an honest 503, never
+    a 500 and never a raw-HTML/garbage render."""
+
+
+def _fonts_available() -> bool:
+    """Both bundled TTFs present and non-trivial (a 0-byte or truncated
+    checkout artifact must not pass as a usable font)."""
+    for p in (_PLEX_REGULAR, _PLEX_BOLD):
+        try:
+            if not p.is_file() or p.stat().st_size < 100_000:
+                return False
+        except OSError:
+            return False
+    return True
+
 
 _WEASYPRINT = False
 _WEASYPRINT_ERR = ""
@@ -63,8 +101,25 @@ def _data_only_url_fetcher(url: str):
     (RFC 2397: ``unquote_to_bytes`` for both forms, ``;base64`` suffix,
     default ``text/plain``, no control chars in the mediatype). The lazy
     weasyprint import keeps the fpdf fallback importable without it.
+
+    v26-F4: the ONE non-data exception is the bundled Plex @font-face srcs
+    (``file://…/fb_dashboard/fonts/*.ttf``) — allowed only when the resolved
+    path's parent IS ``_FONTS_DIR`` (structural whitelist, same spirit as
+    the data:-only rule: the renderer can reach exactly two font files on
+    disk and nothing else — no traversal, no arbitrary host paths).
     """
-    if not url.lower().startswith("data:"):
+    low = url.lower()
+    if low.startswith("file:"):
+        from weasyprint.urls import URLFetcherResponse
+        try:
+            resolved = Path(unquote(urlsplit(url).path)).resolve()
+            if resolved.parent == _FONTS_DIR.resolve() and resolved.is_file():
+                with open(resolved, "rb") as fh:
+                    return URLFetcherResponse(url, fh.read(), {"Content-Type": "font/ttf"})
+        except (OSError, ValueError):
+            pass
+        raise ValueError(f"PDF renderer refuses non-bundled file URL: {url[:80]!r}")
+    if not low.startswith("data:"):
         raise ValueError(f"PDF renderer refuses non-data URL: {url[:80]!r}")
     from weasyprint.urls import URLFetcherResponse
     header, sep, payload = url.partition(",")
@@ -114,6 +169,48 @@ class BrandingConfig:
         self.primary_color = primary_color
 
 
+class _TextExtractor(HTMLParser):
+    """v26-F4: stdlib-only tag-stripper for the fpdf digest path — the old
+    fallback dumped the raw HTML SOURCE (tags and all) into the PDF."""
+
+    _BLOCK_TAGS = {"p", "div", "tr", "h1", "h2", "h3", "table", "br", "section"}
+    _SKIP_TAGS = {"style", "script", "head", "title"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._chunks: list[str] = []
+        self._skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._SKIP_TAGS:
+            self._skip += 1
+        elif tag in self._BLOCK_TAGS:
+            self._chunks.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in self._SKIP_TAGS and self._skip:
+            self._skip -= 1
+        elif tag in self._BLOCK_TAGS:
+            self._chunks.append("\n")
+
+    def handle_data(self, data):
+        if not self._skip:
+            self._chunks.append(data)
+
+
+def _html_to_text(html_str: str) -> str:
+    """HTML → readable plain-text digest (block tags → line breaks)."""
+    parser = _TextExtractor()
+    parser.feed(html_str)
+    parser.close()
+    lines = [ln.strip() for ln in "".join(parser._chunks).splitlines()]
+    out: list[str] = []
+    for ln in lines:  # collapse the blank-line runs the tag boundaries produce
+        if ln or (out and out[-1]):
+            out.append(ln)
+    return "\n".join(out).strip()
+
+
 class PdfReportsEngine:
     """Generate white-label PDF reports.  Accepts db_session_factory or raw session."""
 
@@ -152,6 +249,11 @@ class PdfReportsEngine:
         can see the pango/cairo OSError without reading Vercel logs."""
         return "" if _WEASYPRINT else _WEASYPRINT_ERR
 
+    def fonts_state(self) -> str:
+        """v26-F4: "bundled" | "missing" — surface the Plex bundle health on
+        /api/reports/status (informational; the hard 503 gate is _render)."""
+        return "bundled" if _fonts_available() else "missing"
+
     def _engine_check(self):
         if not self.is_available():
             raise RuntimeError("No PDF library available (install weasyprint or fpdf2)")
@@ -167,14 +269,31 @@ class PdfReportsEngine:
         soft/deep pairs (mint/yellow/rose §2.6). The injected brand color {c}
         fills the Madarek accent role (default copper #B57438, AA-large on
         headings, 4.95:1 with the #1A0F06 on-accent ink in table headers).
-        Fonts stay DejaVu/Noto — system Arabic-capable faces (Plex woff2 is
-        not loadable by weasyprint); colors are the Madarek contract.
+
+        v26-F4: fonts are the bundled IBM Plex Sans Arabic TTFs (fb_dashboard/
+        fonts/, registered via @font-face with module-relative file:// URLs —
+        the fetcher whitelists exactly these two paths). True cross-surface
+        parity with web/mobile; DejaVu/Noto stay ONLY as Pango fontconfig
+        fallbacks if the bundle ever goes missing (degraded typography, not
+        a failed render — the fpdf digest path is the one that hard-503s).
         """
+        plex_reg = _PLEX_REGULAR.as_uri()
+        plex_bold = _PLEX_BOLD.as_uri()
         return f"""
+        @font-face {{
+            font-family: 'IBM Plex Sans Arabic';
+            font-weight: 400;
+            src: url("{plex_reg}") format("truetype");
+        }}
+        @font-face {{
+            font-family: 'IBM Plex Sans Arabic';
+            font-weight: 700;
+            src: url("{plex_bold}") format("truetype");
+        }}
         @page {{ margin: 1.8cm 1.5cm; size: A4; }}
         @page :first {{ margin-top: 1.2cm; }}
         body {{
-            font-family: 'DejaVu Sans', 'Noto Sans Arabic', 'Arial', sans-serif;
+            font-family: 'IBM Plex Sans Arabic', 'DejaVu Sans', 'Noto Sans Arabic', sans-serif;
             direction: rtl;
             color: #191918;
             font-size: 10pt;
@@ -309,19 +428,42 @@ class PdfReportsEngine:
         if _WEASYPRINT:
             import weasyprint
             return weasyprint.HTML(string=html, url_fetcher=_data_only_url_fetcher).write_pdf()
-        # Fallback via fpdf (basic, no CSS support)
-        from fpdf import FPDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.add_font("DejaVu", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", uni=True)
-        pdf.set_font("DejaVu", "", 10)
-        pdf.multi_cell(0, 8, html)
-        # v22-F1: fpdf2 (>=2.2) returns a bytearray from output() — the old
-        # ``.encode("latin-1")`` was fpdf1's str contract and raises
-        # AttributeError on bytearray (the fallback path was dead even where
-        # fpdf2 was installed). Accept both shapes.
-        data = pdf.output(dest="S")
-        return data.encode("latin-1") if isinstance(data, str) else bytes(data)  # ponytail: fpdf fallback is degraded; upgrade to weasyprint
+        # Fallback via fpdf (v26-F4 rewrite): PLAIN-TEXT digest (tags
+        # stripped) in the bundled Plex face — never the raw HTML source, and
+        # never a hardcoded /usr/share font path. Any failure in this branch
+        # (missing bundle, unreadable font, output error) raises
+        # PdfRenderUnavailable → the router answers an honest 503.
+        try:
+            from fpdf import FPDF
+            from fpdf.enums import XPos, YPos
+            if not _fonts_available():
+                raise PdfRenderUnavailable(
+                    f"bundled IBM Plex Sans Arabic fonts missing under {_FONTS_DIR} "
+                    "— the deployment is incomplete; redeploy the full tree")
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.add_font("PlexArabic", "", str(_PLEX_REGULAR))
+            pdf.set_font("PlexArabic", "", 10)
+            try:
+                pdf.set_text_shaping(True)  # connected Arabic when uharfbuzz is present
+            except Exception:
+                pass  # best-effort — digits/Latin stay fully legible in the digest
+            for line in _html_to_text(html).splitlines():
+                # new_x=LMARGIN: fpdf2's multi_cell default (RIGHT) leaves x
+                # at the right margin — the SECOND digest line then computes
+                # a zero width and raises "not enough horizontal space".
+                if line.strip():
+                    pdf.multi_cell(0, 8, line, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            # v22-F1: fpdf2 (>=2.2) returns a bytearray from output() — the old
+            # ``.encode("latin-1")`` was fpdf1's str contract and raises
+            # AttributeError on bytearray. Accept both shapes.
+            data = pdf.output(dest="S")
+            return data.encode("latin-1") if isinstance(data, str) else bytes(data)
+        except PdfRenderUnavailable:
+            raise
+        except Exception as exc:  # v26-F4: font/output failure class → 503, never 500
+            raise PdfRenderUnavailable(
+                f"fpdf fallback render failed: {type(exc).__name__}: {exc}") from exc
 
     async def _render_async(self, html: str) -> bytes:
         """v14-E2 (D6 #7): ``_render`` off the event loop (asyncio.to_thread).

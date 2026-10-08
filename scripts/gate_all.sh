@@ -313,8 +313,9 @@ fi
 # استيفاء الأقسام الثلاثة — لا يُقبل التقرير الذاتي (gstack readiness-gate).
 echo "── [6/6] readiness (REVIEWS / TESTS / DOCS) ──"
 # v16-E7 (G6): خطة الجولة من ${ROUND} (glob — بلا تصلب تاريخ v15)
+# v26-F4 (P4-A4 §7): الخطط انتقلت من جذر المستودع إلى docs/plans/ (والتقارير إلى docs/audit/)
 ROUND_PLAN=""
-for _plan in smartbot-world-class-${ROUND}-plan-*.md; do
+for _plan in docs/plans/smartbot-world-class-${ROUND}-plan-*.md; do
   if [[ -f "$_plan" ]]; then
     ROUND_PLAN="$_plan"
   fi
@@ -322,13 +323,13 @@ done
 READINESS_BLOCKERS=0
 
 # ─ 6a. REVIEWS ──────────────────────────────────────────────────────
-D_REPORTS=$(ls audit-reports/${ROUND}-D*.md 2>/dev/null | wc -l | tr -d ' ' || true)
-E_REPORTS=$(ls audit-reports/${ROUND}-E*.md 2>/dev/null | wc -l | tr -d ' ' || true)
+D_REPORTS=$(ls docs/audit/${ROUND}-D*.md 2>/dev/null | wc -l | tr -d ' ' || true)
+E_REPORTS=$(ls docs/audit/${ROUND}-E*.md 2>/dev/null | wc -l | tr -d ' ' || true)
 echo "  [REVIEWS]"
 if [[ -f "$ROUND_PLAN" ]]; then
   echo "    round plan: $ROUND_PLAN — present"
 else
-  echo "    ❌ round plan MISSING: smartbot-world-class-${ROUND}-plan-*.md"
+  echo "    ❌ round plan MISSING: docs/plans/smartbot-world-class-${ROUND}-plan-*.md"
   READINESS_BLOCKERS=$((READINESS_BLOCKERS+1))
 fi
 echo "    diagnostic reports: ${D_REPORTS} (${ROUND}-D*) · execution reports: ${E_REPORTS} (${ROUND}-E*)"

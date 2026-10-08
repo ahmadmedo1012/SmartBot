@@ -3,7 +3,8 @@
 Facebook Messenger chatbot dashboard + bot engine. FastAPI + Next.js 16 + Telegram payment approvals.
 
 > **Design system:** Madarek identity on every surface — web frontend
-> (`frontend/`), static export (`static/`), mobile app, and PDF reports:
+> (`frontend/`), static export (`static/`), mobile app, and PDF reports
+> (bundled IBM Plex Sans Arabic TTFs in `fonts/` since v26):
 > dark night/gold `#070B16`/`#E9B44C`, light cream/copper `#FBFAF9`/`#B57438`,
 > IBM Plex Sans Arabic (self-hosted). Reference: `design-system/smartbot/MASTER.md`
 > + the Madarek tokens (`madarek/frontend/src/styles/tokens.css`) as upstream SSOT.
@@ -11,10 +12,10 @@ Facebook Messenger chatbot dashboard + bot engine. FastAPI + Next.js 16 + Telegr
 ## Quick Start
 
 ```bash
-# Backend
+# Backend (run from the repo root — the module layout is flat)
 pip install -r requirements.txt
 cp .env.example .env
-DEBUG=true python3 -m fb_dashboard.runner  # or uvicorn fb_dashboard.runner:app
+DEBUG=true uvicorn runner:app --app-dir fb_dashboard --port 8000  # or: python3 -m uvicorn runner:app --app-dir fb_dashboard
 
 # Frontend (separate terminal)
 cd fb_dashboard/frontend
@@ -41,11 +42,12 @@ fb_dashboard/
   monitor.py                 → Structured JSON logger
   _services.py               → Shared state (lazy engine proxies, FB client, helpers)
   routers/                   → APIRouter per domain (auth, payments, bot, webhooks, ...)
+  fonts/                     → Bundled IBM Plex Sans Arabic TTFs (Regular+Bold) — PDF engine @font-face
   frontend/                  → Next.js 16 app (App Router, /api/* proxied to backend)
-  static/                    → Built frontend + icons (legacy Vite remnants — keep until full cutover)
+  static/                    → Synced Next.js static export — single-server mode (scripts/sync_next_static.py, Gate 4.5 freshness in CI)
 
 vercel.json                  → Vercel config for smart-bot-api project
-vercel-frontend.json         → Vercel config for smart-bot-frontend project
+frontend/vercel.json         → Vercel config for smart-bot-frontend project (the real file — there is no root vercel-frontend.json)
 alembic/                     → Database migrations (run: alembic upgrade head)
 ```
 
@@ -81,7 +83,7 @@ See `.env.example` at the repo root for the full list. Required in production:
 
 Two Vercel projects linked to the same repo:
 - **smart-bot-api** — root of repo, uses `vercel.json` → `api.smart-link.ly`
-- **smart-bot-frontend** — root of repo with `Root Directory: fb_dashboard/frontend`, uses `vercel-frontend.json` → `bot.smart-link.ly`
+- **smart-bot-frontend** — root of repo with `Root Directory: fb_dashboard/frontend`, uses `fb_dashboard/frontend/vercel.json` → `bot.smart-link.ly`
 
 See `CLAUDE.md` for the deployment contract.
 
@@ -105,10 +107,7 @@ See `CLAUDE.md` for the deployment contract.
 
 ## Tests
 
-```bash
-cd fb_dashboard
-python3 test_bot_logic.py        # Core logic
-python3 test_payment_system.py   # Payment model + telegram
-python3 test_payment_api.py      # API integration (httpx)
-python3 test_*.py                # Other module tests
-```
+The hermetic suite lives in the repo's `tests/` directory (pytest, ~1118 tests;
+run `.venv/bin/python -m pytest -q` from the repo root — see the root README's
+gates table). The old in-directory `test_*.py` scripts were consolidated into
+that suite in the v5 hermeticity wave.

@@ -177,6 +177,14 @@ jobs:
         # v11-A5: unit-test wall for the pure-logic seam (format/i18n,
         # API envelope unwrapping, Arabic pluralization, subscribe logic)
         run: cd fb_dashboard/frontend && npx vitest run
+      - name: Gate 3.6 — Madarek parity snapshot (v26-F4)
+        # npm run test:parity (tests/parity.mjs): the token snapshot vs the
+        # Madarek SSOT (75 pins at r125 → 82 with the easing pins). The
+        # script was package.json-advertised but never wired into CI — the
+        # --ease-spring bounce-fork (1.56 vs canonical 1.36) survived a
+        # fully green round precisely because neither harness pinned
+        # easings and this snapshot never ran in CI.
+        run: cd fb_dashboard/frontend && npm run test:parity
 
       - name: Gate 4 — production build
         run: cd fb_dashboard/frontend && npx next build

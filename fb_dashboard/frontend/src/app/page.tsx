@@ -1,31 +1,34 @@
-/* v6 §D — REACT SERVER COMPONENT (no "use client").
- * Before v6 this file was "use client": the ENTIRE landing hydrated as a
- * client tree (966KB initial JS, TBT ~1.5-1.7s on throttled mobile). The
- * hero is static markup with pure-CSS entrance animations; interactivity
- * lives in small client islands (Header, ScrollParallax, HeroMockup,
- * HeroTrustBadge, LazySections, LandingTestimonials, Footer,
- * FloatingWhatsApp). Result: the server-rendered hero paints at first
- * paint and the hydration bill drops to the islands only.
- */
-import Link from "next/link"
-import { Star, Sparkles } from "lucide-react"
-import { DirectionalIcon } from "@/components/ui/directional-icon"
+/* r128 Stage B (F3b) — the SmartBot landing assembled as the Madarek
+   journey (PORT-KIT §5 skeleton, §6 Bot column):
+   المدار (hero sky) → شريط القدرات (marquee) → الثقة → مدار الميزات
+   → رحلة التشغيل (5 stations + light path) → قصة التقدّم (--sp rings)
+   → القنوات (ground plate) → الأدوار → نقطة البداية (+ compact FAQ).
 
-/* r128-F3a: the landing css layer — Orbit-Ink token block, marquee,
-   header/nav/megamenu chrome, buttons, grain, reveal family; everything
-   scoped under the `.landing` wrapper class below (PORT-KIT §0 R4). */
-import "./landing.css"
+   The page stays a SERVER component — the h1 and hero sub render inline
+   (instant-paint LCP doctrine, v6 §D); client islands are exactly:
+   LandingHeader (chrome/spy/menus), HeroDepthLayer (parallax),
+   MagneticGoldLink (CTA pull), TrustBand + ProgressSection (public
+   stats + CountUp), JourneySection (light path + --sp), and the
+   RevealCssClass observers. HeroMockup is retired. */
+import "./landing.css";
+import { Check, MessageCircle, Languages } from "lucide-react";
+import { RevealCssClass } from "@/hooks/useReveal";
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { HeroDepthLayer } from "@/components/landing/HeroDepthLayer";
+import { HeroOrbits } from "@/components/landing/HeroOrbits";
+import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
+import { LandingMarquee } from "@/components/landing/LandingMarquee";
+import { TrustBand } from "@/components/landing/TrustBand";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { JourneySection } from "@/components/landing/JourneySection";
+import { ProgressSection } from "@/components/landing/ProgressSection";
+import { PlateSection } from "@/components/landing/PlateSection";
+import { RolesSection } from "@/components/landing/RolesSection";
+import { FinaleCta } from "@/components/landing/FinaleCta";
+import { LandingFaq } from "@/components/landing/LandingFaq";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
-import { Header } from "@/components/layout/Header"
-import { Footer } from "@/components/layout/Footer"
-import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
-import { GlowPool } from "@/components/ui/GlowPool"
-import { ScrollParallax } from "@/components/ui/scroll-parallax"
-import { HeroMockup } from "@/components/landing/HeroMockup"
-import { HeroTrustBadge, LazySections, LandingTestimonials } from "@/components/landing/LandingIslands"
-import { FaqSectionLazy, FinalCTASectionLazy } from "@/components/landing/LandingIslands"
-
-const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
+const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly";
 
 // ── Schema.org: Organization + WebSite (plan §8.1) ──
 const organizationSchema = {
@@ -43,7 +46,7 @@ const organizationSchema = {
     availableLanguage: ["Arabic", "English"],
     hoursAvailable: "Mo-Su 00:00-24:00",
   },
-}
+};
 
 const websiteSchema = {
   "@context": "https://schema.org",
@@ -52,7 +55,7 @@ const websiteSchema = {
   url: SITE_URL,
   inLanguage: "ar-LY",
   publisher: { "@type": "Organization", name: "SmartBot" },
-}
+};
 
 // ── Schema.org: SoftwareApplication + AggregateOffer (plan §8.1 Product) ──
 // Prices mirror the DB seed (runner.py _seed_subscription_plans): 0/19/29/129/299 LYD/month
@@ -87,7 +90,7 @@ const productSchema = {
       { "@type": "Offer", name: "مؤسسي", price: "299", priceCurrency: "LYD", description: "غير محدود + دعم 24/7" },
     ],
   },
-}
+};
 
 const faqSchema = {
   "@context": "https://schema.org",
@@ -100,7 +103,21 @@ const faqSchema = {
     { "@type": "Question", name: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", acceptedAnswer: { "@type": "Answer", text: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود غير المحدودة، اختر الخطة المؤسسية." } },
     { "@type": "Question", name: "هل يمكنني تجربة البوت قبل الشراء؟", acceptedAnswer: { "@type": "Answer", text: "نعم! يمكنك تجربة لوحة التحكم التجريبية ببيانات وهمية لترى كل الميزات قبل الاشتراك." } },
   ],
-}
+};
+
+/* Marquee vocabulary — the real feature names from the landing registry
+   (landing-data.ts BENEFITS titles), ×2 by the marquee kit for the
+   seamless 42s RTL loop. */
+const MARQUEE_ITEMS = [
+  "ردود تلقائية ذكية",
+  "صندوق وارد موحد",
+  "تحليلات وأداء",
+  "جدولة المنشورات",
+  "استهداف الجمهور",
+  "أمان وتشفير",
+  "دعم متعدد اللغات",
+  "إدارة فريق كامل",
+];
 
 export default function HomePage() {
   return (
@@ -109,117 +126,100 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      {/* r128-F3a: `.landing` wrapper — the Orbit-Ink token layer goes
-          live (dark stage in BOTH themes, R4); sections are NOT restructured
-          yet (Stage B rebuilds them on this foundation). */}
-      <div className="landing flex flex-col min-h-screen overflow-x-hidden">
-      <Header />
-      {/* v8-B7/v9-D3: skip-link target — lands past the Header nav.
-          tabIndex={-1} makes the browser actually MOVE focus here when the
-          skip link is activated (keyboard users land in the hero, not the
-          nav); no aria-hidden so the target counts for axe's skip-link rule. */}
-      <span id="page-content" className="sr-only" tabIndex={-1} />
+      {/* r128: `.landing` wrapper — the Orbit-Ink token layer + section
+          chrome (R4: dark stage in BOTH themes). */}
+      <div className="landing">
+      <LandingHeader />
 
-      {/* Hero — scroll-craft treatment (latest_plan §G.4): static server
-          markup + pure-CSS entrances (v6 §D). */}
-      <section className="relative min-h-[100svh] flex items-center overflow-hidden">
-        {/* Background layers — parallax depth */}
-        <ScrollParallax rate={-0.3} maxTravel={50} className="absolute inset-0 pointer-events-none">
-          <GlowPool position="top-0 left-1/2 -translate-x-1/2" size="size-[70vmin]" color="orange/10" />
-          <GlowPool position="bottom-0 right-0" size="size-[40vmin]" color="orange/5" />
-        </ScrollParallax>
-        {/* DE-GLOW (Task 8-e): the 60px accent grid overlay is RETIRED —
-            Madarek ground is flat night/cream with hairlines only
-            (globals.css de-glow note). Parallax depth stays paint-only. */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-background/30 to-background pointer-events-none" />
+      <main id="main-content">
+        {/* v8-B7/v9-D3: skip-link target — lands past the header nav.
+            tabIndex={-1} moves focus here for keyboard users. */}
+        <span id="page-content" className="sr-only" tabIndex={-1} />
 
-        <div className="relative z-10 w-full pt-32 pb-20">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-16 items-center">
-              {/* ── Left: copy ── */}
-              <div className="space-y-7">
-                <HeroTrustBadge />
-
-                {/* LCP element: NO entrance animation, NO kinetic split —
-                    the text must be in the HTML and paint at first paint.
-                    (Pre-v6 KineticText split its text inside useEffect → the
-                    h1 shipped EMPTY: an SEO + LCP + no-JS triple defect.) */}
-                <h1
-                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-extrabold leading-[1.15] tracking-tighter font-heading text-balance"
-                >
-                  إدارة تفاعل فيسبوك{" "}
-                  <span className="relative inline-block text-accent-foreground">
-                    بذكاء واحترافية
-                    <span className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-accent-foreground/0 via-accent-foreground/60 to-accent-foreground/0 rounded-full animate-fade-in-250" aria-hidden="true" />
-                  </span>
-                </h1>
-
-                <p
-                  className="text-lg md:text-xl leading-relaxed max-w-xl text-muted-foreground text-balance animate-fade-in-150">
-                  أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك. المنصة الأولى في ليبيا بذكاء اصطناعي يفهم لهجتك.
-                </p>
-
-                {/* v16-E3 (D1 C2): the two hero CTAs were <Link><Button> — a
-                    nested interactive pair = TWO tab stops per CTA + axe
-                    nested-interactive advisory. The Button's visual classes
-                    moved onto a styled <span> (identical variant/size/effect
-                    classes, interactive-only tokens dropped: cursor, focus
-                    rings, active scale — the anchor is now the single
-                    focusable control; its keyboard focus uses the global
-                    :focus-visible outline fallback). */}
-                <div className="flex flex-wrap gap-3 animate-fade-in-250">
-                  <Link href="/subscribe">
-                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border-0 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg shadow-accent-foreground/20 hover:shadow-xl hover:shadow-accent-foreground/40 dark:shadow-accent-foreground/35 dark:hover:shadow-accent-foreground/50 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-base) ease-smooth h-12 min-h-11 min-w-11 gap-2.5 px-7 text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
-                      ابدأ الآن مجاناً <DirectionalIcon semanticDirection="forward" className="size-4" />
-                    </span>
-                  </Link>
-                  <Link href="/demo">
-                    <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35 font-sans font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-base) ease-smooth h-12 min-h-11 min-w-11 gap-2.5 px-7 text-base [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
-                      <Sparkles className="size-4 ms-1" /> جرب البوت الآن
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Quick proof bar */}
-                <div
-                  className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2 animate-fade-in-400">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex -space-x-2">
-                      {["أ", "س", "م", "ن"].map((l, i) => (
-                        <div key={i} className="size-8 rounded-full border-2 border-background flex items-center justify-center text-3xs font-bold bg-gradient-to-br from-accent-foreground to-accent-foreground/80 text-primary-foreground">{l}</div>
-                      ))}
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className="size-3 fill-accent-foreground/80 text-accent-foreground" />)}</div>
-                      <span className="text-3xs text-muted-foreground font-medium">موثوق من مدراء الصفحات</span>
-                    </div>
-                  </div>
-                  <div className="h-8 w-px bg-border/60" aria-hidden="true" />
-                  <div className="flex items-center gap-1.5">
-                    <div className="size-2 rounded-full bg-success animate-pulse" />
-                    <span className="text-xs text-muted-foreground font-medium">النظام يعمل الآن</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Right: live product mockup — pure-CSS wipe reveal ──
-                  (was ClipPathReveal/framer: wiped in only after hydration) */}
-              <div className="relative animate-wipe-up">
-                <HeroMockup />
-              </div>
-            </div>
+        {/* ═══ الفصل ٠ — المدار: the hero sky ═══ */}
+        <section className="ln-hero" aria-label="SmartBot — إدارة صفحات فيسبوك الذكية">
+          {/* living sky: starfield depth plane + the bot's feature orbit
+              chart (flat SVG grammar — thin 1px cream/lime lines, nodes,
+              violet core, horizon) */}
+          <div className="ln-hero-sky" aria-hidden="true">
+            <HeroDepthLayer />
+            <HeroOrbits className="ln-hero-canvas" />
           </div>
-        </div>
-      </section>
 
-      <LazySections />
-      <LandingTestimonials />
-      <FaqSectionLazy />
-      <FinalCTASectionLazy />
+          <div className="ln-hero-content">
+            <RevealCssClass as="p" className="ln-hero-eyebrow">
+              <span className="ln-mono">SmartBot · إدارة صفحات فيسبوك · ليبيا</span>
+            </RevealCssClass>
 
-      <Footer />
-      <FloatingWhatsApp />
-    </div>
+            {/* h1 + sub paint INSTANTLY — server-rendered inline, no reveal,
+                no client gate (LCP doctrine). One lime word: واحترافية. */}
+            <h1 className="ln-hero-title">
+              <span className="ln-hero-line">إدارة <em>تفاعل</em> فيسبوك</span>
+              <span className="ln-hero-line">بذكاءٍ <em className="ln-hero-gold">واحترافية</em></span>
+            </h1>
+
+            <p className="ln-hero-sub">
+              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك.{" "}
+              <strong>المنصة الأولى في ليبيا بذكاء اصطناعي يفهم لهجتك.</strong>
+            </p>
+
+            <RevealCssClass as="div" className="ln-hero-actions" delay={3}>
+              <MagneticGoldLink href="/subscribe" withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
+                ابدأ الآن مجاناً
+              </MagneticGoldLink>
+              <a href="/demo" className="ln-btn-ghost">جرب البوت الآن</a>
+            </RevealCssClass>
+
+            <RevealCssClass as="ul" className="ln-hero-meta" delay={4}>
+              <li><Check size={13} aria-hidden="true" /> خطة مجانية — 100 رد شهرياً</li>
+              <li aria-hidden="true" className="ln-hero-meta-dot" />
+              <li><MessageCircle size={13} aria-hidden="true" /> دعم على مدار الساعة</li>
+              <li aria-hidden="true" className="ln-hero-meta-dot" />
+              <li><Languages size={13} aria-hidden="true" /> واجهة عربية بالكامل</li>
+            </RevealCssClass>
+          </div>
+
+          {/* scroll invitation */}
+          <a href="#trust" className="ln-hero-scroll" aria-label="تابع الرحلة">
+            <span className="ln-mono">تابع الرحلة</span>
+            <span className="ln-hero-scroll-line" aria-hidden="true" />
+          </a>
+        </section>
+
+        {/* ═══ شريط القدرات — مدار واحد تنتظم فيه الأسماء (marquee) ═══ */}
+        <LandingMarquee items={MARQUEE_ITEMS} />
+
+        {/* ═══ الفصل ١ — الثقة (quiet mono DATA band, real figures) ═══ */}
+        <TrustBand />
+
+        {/* ═══ الفصل ٢ — مدار الميزات ═══ */}
+        <FeaturesSection />
+
+        {/* ═══ الفصل ٣ — كيف يعمل لوحة التحكم ═══ */}
+        <JourneySection />
+
+        {/* ═══ الفصل ٤ — قصّة التقدّم ═══ */}
+        <ProgressSection />
+
+        {/* ═══ الفصل ٥ — الأرض: عالم القنوات ═══ */}
+        <PlateSection />
+
+        {/* ═══ الفصل ٦ — الأدوار ═══ */}
+        <RolesSection />
+
+        {/* ═══ الفصل ٧ — نقطة البداية ═══ */}
+        <FinaleCta />
+
+        {/* ═══ الأسئلة الشائعة — compact, ln-styled ═══ */}
+        <LandingFaq />
+      </main>
+
+      <LandingFooter />
+
+      {/* film-grain texture layer — last child, painted over the whole
+          world (R7: ONE veil per page) */}
+      <div className="ln-grain" aria-hidden="true" />
+      </div>
     </>
-  )
+  );
 }

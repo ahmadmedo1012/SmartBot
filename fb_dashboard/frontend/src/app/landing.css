@@ -40,6 +40,32 @@
   --sp-2: 8px;
 }
 
+/* r128 Stage B (F3b) — bridge extension: the remaining canonical Madarek
+   values the section layers reference (tokens.css:19-21/35/95-97/209/358).
+   Same §0 discipline — scoped to .landing, nothing invented. */
+.landing {
+  --fw-bold: 700;                       /* tokens.css:97 */
+  --sp-3: 12px;                         /* tokens.css:19 — spacing ladder */
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 32px;
+  --sp-8: 40px;
+  --sp-9: 48px;
+  --page-gutter-mobile: 20px;           /* tokens.css:358 (= --sp-5) */
+  --motion-duration-ambient-scene: 22s; /* tokens.css:209 — finale breathe */
+  --r-2xl: 20px;                        /* tokens.css:35 — constellation tips */
+}
+
+/* canonical scope base (landing.css:42-60): the landing owns its stage —
+   it stands a full viewport tall and never leaks horizontal scroll (RTL
+   overflow guard); selection rides the violet depth pair (7.78:1). */
+.landing {
+  min-block-size: 100vh;
+  overflow-x: clip;
+}
+.landing ::selection { background: var(--ln-violet-deep); color: var(--ln-cream); }
+
 /* Madarek semantic RM (shared-design-system.css:199): under reduced motion
    the reveal tier snaps to an 80ms affordance — mirrors the fleet rule.
    The global --t-* zeroing (globals.css) flows through the --ln-t-* alias
@@ -458,4 +484,1188 @@
 .landing .reveal-d-5.in-view { transition-delay: 400ms; }
 @media (prefers-reduced-motion: reduce) {
   .landing .reveal-up { opacity: 1; transform: none; }
+}
+
+/* ═══ r128 Stage B (F3b) — SECTION LAYERS ═════════════════════════════
+   Ported from the Smart-Link Stage-B commit (7a1fac7) landing.css
+   §0h-§15 — chapter scaffolding, header internals, hero sky, trust band,
+   features constellation, journey light path, progress rings, ground
+   plate, roles ledger, finale CTA, FAQ, footer, perf + mobile blocks.
+   Domain renames only (R6 cascade order kept): ln-features→ln-features,
+   ln-plate→ln-plate (PORT-KIT §5/§6 Bot column: features constellation,
+   channels plate). Rule bodies byte-equal. */
+/* ── 0h · chapter scaffolding — canonical landing.css:767-818 ──────── */
+.landing .ln-chapter {
+  position: relative;
+  padding: clamp(96px, 12vh, 140px) var(--page-gutter); /* 96–140 rhythm (spec §4.2.10) */
+  /* P3-27: subtle bottom hairline to separate chapters visually */
+  border-block-end: 1px solid var(--ln-line-soft);
+}
+.landing .ln-chapter-head {
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  margin-block-end: clamp(32px, 4.5vh, 56px);
+  display: grid;
+  gap: var(--sp-5);
+}
+.landing .ln-chapter-title {
+  margin: 0;
+  /* one step up (VLM R3-W5 aggressive hierarchy): titles grow while the
+     lede below shrinks — the delta does the work, not the color */
+  font-size: clamp(2rem, 3.9vw, 3.875rem);
+  line-height: 1.22;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0;
+  /* P3-22: base dim + em full cream — the keyword inside each title
+     reads as the anchor (non-color device). cream-dim on ink = 8.26:1,
+     large-text AAA. */
+  color: var(--ln-cream-dim);
+  max-inline-size: 22ch;
+  text-wrap: balance;
+}
+.landing .ln-chapter-title em { font-style: normal; color: var(--ln-cream); }
+.landing .ln-chapter-lede {
+  margin: 0;
+  max-inline-size: 62ch;
+  font-size: clamp(15px, 1.4vw, 16.5px);
+  line-height: 1.6; /* was 1.9 — tighter agency leading, still ≥1.4 for Arabic */
+  color: var(--ln-cream-dim);
+}
+
+/* ── 0i · mobile rhythm — canonical landing.css:1612/1618/1639-1640 ── */
+@media (max-width: 920px) {
+  .landing .ln-chapter { padding-inline: var(--page-gutter-mobile); }
+  .landing .marketing-container { padding-inline: var(--page-gutter-mobile); }
+}
+@media (max-width: 768px) {
+  /* GAP-5 · mobile density pass — the desktop 96–140px chapter rhythm
+     stretched a 390px phone into a 9900px scroll. Mobile is its own
+     experience: tighter chapters, tighter heads — same narrative,
+     phone-native pacing. */
+  .landing .ln-chapter { padding-block: clamp(60px, 9vh, 84px); }
+  .landing .ln-chapter-head { margin-block-end: clamp(24px, 3.5vh, 36px); gap: var(--sp-4); }
+}
+
+/* ── P4-tail, ported in cascade order (R6) — canonical
+   landing.css:2051-2082, .ln-chapter portions only. The ::before wash
+   stays opacity 0 until useSectionProgress writes --sp (Stage B). ── */
+.landing .ln-chapter {
+  /* P4-17: subtle transition on section enter/exit — pure CSS via --sp */
+  transition: opacity var(--t-slow) var(--ease-soft);
+}
+.landing .ln-chapter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(28,32,50,0.04) 50%, transparent 100%);
+  pointer-events: none;
+  opacity: calc(var(--sp, 0) * 0.5); /* fades in as section enters viewport */
+}
+.landing .ln-chapter-title {
+  /* P4-19: scroll-driven reveal enhancement tied to --sp */
+  transition: opacity var(--t-slow) var(--ease-out);
+}
+
+/* ── 1 · header internals — canonical landing.css:224-369 ──────────── */
+.landing .landing-nav {
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  padding: 12px clamp(20px, 4vw, 48px);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+}
+
+.landing .landing-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.landing .landing-brand-mark {
+  inline-size: 34px;
+  block-size: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--ln-cream);
+  color: var(--ln-ink);
+  font-weight: var(--fw-bold);
+  font-size: 17px;
+}
+.landing .landing-brand-name {
+  display: block;
+  color: var(--ln-cream);
+  font-size: 16px;
+  font-weight: var(--fw-bold);
+  line-height: 1.15;
+}
+.landing .landing-brand-sub {
+  display: block;
+  color: var(--ln-cream-dim);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.landing .landing-burger {
+  display: none;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  background: transparent;
+  color: var(--ln-cream);
+  place-items: center;
+  cursor: pointer;
+  /* P3-33: generous touch target for mobile */
+  min-width: 48px;
+  min-height: 48px;
+  transition:
+    background var(--ln-t-base) var(--ln-ease),
+    color var(--ln-t-base) var(--ln-ease),
+    border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .landing-burger:hover { background: rgb(245 243 231 / 0.04); color: var(--ln-cream); }
+.landing .landing-burger:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
+
+.landing .landing-mobile-menu {
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4) 16px var(--sp-6);
+  background: var(--ln-ink-2);
+  border-block-end: 1px solid var(--ln-line-soft);
+  display: none;
+}
+/* SmartBot adaptation: the canonical mobile menu rides the product's
+   .btn.ghost/.btn.primary re-skins — this repo has no .btn base, so the
+   landing's OWN pill family carries the mobile actions at the same
+   48px floor the canonical block mandates. */
+.landing .landing-mobile-menu .ln-btn-ghost,
+.landing .landing-mobile-menu .ln-btn-gold {
+  justify-content: center;
+  min-block-size: 48px;
+}
+
+/* ── 2 · HERO — «المدار»: flat sky, cream monolith ───────────────────
+   canonical landing.css:520-718. The canonical word-stagger reveal
+   (.ln-w / per-line reveal-up) is intentionally NOT ported: this repo's
+   LCP doctrine (r8/r9, measured twice) requires the h1 AND hero sub to
+   paint instantly, server-rendered inline — the entrance cascade lives
+   on the eyebrow/actions/meta around them. */
+.landing .ln-hero {
+  position: relative;
+  min-block-size: max(680px, 100svh);
+  display: grid;
+  align-content: center;
+  padding: clamp(110px, 15vh, 170px) max(7vw, 16px) clamp(96px, 13vh, 140px);
+  isolation: isolate;
+}
+/* the sky: flat ink + the single sanctioned depth radial (α 0.10 ≤ 0.12) */
+.landing .ln-hero-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(46% 54% at 30% 44%, rgb(122 107 242 / 0.10) 0%, transparent 70%);
+}
+.landing .ln-hero-sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 60%, rgba(245,243,231,0.02) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.landing .ln-hero-canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  --ln-canvas-op: 1; /* decorative ceiling — 0.35 on mobile */
+  opacity: 0;
+  animation: ln-scene-in var(--ln-t-slow) var(--ln-ease-out) var(--ln-t-fast) forwards;
+}
+/* literal end-states (no var() inside keyframes — maximum compatibility) */
+@keyframes ln-scene-in { to { opacity: 1; } }
+@keyframes ln-scene-in-dim { to { opacity: 0.35; } }
+
+/* starfield depth plane — ~0.2× scroll rate (scroll-craft baseline);
+   behind canvas (z=0) and content (z=1) */
+.landing .ln-hero-depth {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* text always wins the sky: content z1 over decor z0 */
+.landing .ln-hero-content {
+  position: relative;
+  z-index: 1;
+  inline-size: 100%;
+  max-inline-size: 1280px;
+  margin-inline: auto;
+}
+@media (min-width: 1025px) {
+  /* asymmetric composition — the copy column hugs the reading start
+     (inline-start = right edge in RTL); the sky keeps the far side. */
+  .landing .ln-hero-content {
+    max-inline-size: min(46vw, 720px);
+    margin-inline: 0 auto;
+  }
+}
+
+.landing .ln-hero-eyebrow { margin-block-end: var(--sp-6); }
+.landing .ln-hero-eyebrow .ln-mono { font-size: 12.5px; }
+
+/* the monolith — flat cream, one lime word, zero tracking games */
+.landing .ln-hero-title {
+  margin: 0 0 var(--sp-7);
+  font-size: var(--ln-h1);
+  line-height: var(--ln-h1-lh);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0; /* Arabic joins — never negative tracking */
+  color: var(--ln-cream);
+  max-inline-size: 13ch;
+  text-wrap: balance;
+  /* P3-26 (canonical): subtle text depth on dark ink ground */
+  text-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.15);
+}
+.landing .ln-hero-line { display: block; }
+
+/* accent words — the hero carries exactly ONE lime word (.ln-hero-gold);
+   a plain <em> stays cream so the accent stays single. */
+.landing .ln-hero-title em {
+  font-style: normal;
+  color: var(--ln-cream);
+  position: relative;
+  white-space: nowrap;
+}
+.landing .ln-hero-title .ln-hero-gold {
+  color: var(--ln-lime);
+  /* P3-34 (canonical): subtle depth on the accent word */
+  text-shadow: 0 0 20px rgba(245,243,231,0.25), 0 0 40px rgba(245,243,231,0.08);
+}
+
+.landing .ln-hero-sub {
+  margin: 0 0 var(--sp-9);
+  max-inline-size: 52ch;
+  font-size: clamp(16px, 1.5vw, 17.5px);
+  line-height: 1.6;
+  color: var(--ln-cream-dim);
+}
+.landing .ln-hero-sub strong { color: var(--ln-cream); font-weight: var(--fw-semibold); }
+
+.landing .ln-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-block-end: var(--sp-8);
+}
+
+.landing .ln-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+}
+.landing .ln-hero-meta li { display: inline-flex; align-items: center; gap: 12px; padding-block: 6px; }
+.landing .ln-hero-meta li svg { color: var(--ln-cream-dim); }
+.landing .ln-hero-meta-dot {
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-line);
+}
+
+/* scroll invitation — physical centering is direction-neutral. The fold
+   anchor (canonical P1-6): 100% tracks the hero's REAL height, 100svh
+   is the fold, +134px = fixed chrome + breathing room. The +134 offset
+   assumes a 39px strip + 69px header above the hero; SmartBot has no
+   ministry strip, so +95px keeps the invite 26px above the fold at
+   first paint on 800/900/937/1080-height laptops. */
+.landing .ln-hero-scroll {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  bottom: 26px; /* svh-less fallback */
+  bottom: calc(100% - 100svh + 95px);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ln-cream-dim);
+  transition: color var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .ln-hero-scroll:hover { color: var(--ln-cream); }
+.landing .ln-hero-scroll .ln-mono { font-size: 11.5px; letter-spacing: 0.22em; }
+.landing .ln-hero-scroll-line {
+  inline-size: 1px;
+  block-size: 42px;
+  background: var(--ln-line);
+  position: relative;
+  overflow: hidden;
+}
+/* compositor-only drip: translateY of a 40%-tall bead, never `top` */
+.landing .ln-hero-scroll-line::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  block-size: 40%;
+  background: var(--ln-cream-dim);
+  transform: translateY(-110%);
+  animation: ln-scroll-drip calc(var(--ln-t-cinema) * 3) var(--ln-ease-soft) infinite;
+}
+@keyframes ln-scroll-drip {
+  0% { transform: translateY(-110%); }
+  70%, 100% { transform: translateY(260%); }
+}
+
+/* ── 3 · trust band — canonical landing.css:728-764 ────────────────── */
+.landing .ln-trust {
+  padding: var(--sp-6) max(5vw, 16px);
+  border-block: 1px solid var(--ln-line);
+  background: var(--ln-ink-2);
+  position: relative;
+}
+.landing .ln-trust::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 100%;
+  inline-size: 100%;
+  block-size: 40px;
+  background: linear-gradient(180deg, transparent 0%, rgba(245,243,231,0.03) 100%);
+  pointer-events: none;
+}
+.landing .ln-trust-inner {
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 24px;
+  color: var(--ln-cream-dim);
+  font-size: 14.5px; /* GAP-4: social proof must be READ, not squinted at */
+}
+/* the band is a quiet mono DATA strip — the numbers carry the proof */
+.landing .ln-trust .ln-mono {
+  font-size: 13px;
+  color: var(--ln-cream);
+}
+.landing .ln-trust-sep { inline-size: 26px; block-size: 1px; background: var(--ln-line); }
+
+/* ── 4 · products constellation (colleges→products, §6) —
+   canonical landing.css:828-980, rule bodies verbatim ─────────────── */
+.landing .ln-features { overflow: hidden; }
+.landing .ln-features .ln-chapter-head { gap: var(--sp-6); margin-block-end: clamp(48px, 7vh, 84px); }
+.landing .ln-constellation {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: var(--sp-8); /* air around the visual */
+}
+.landing .ln-constellation-stage {
+  position: relative;
+  aspect-ratio: 1000 / 640;
+  border-radius: var(--r-2xl);
+  /* P2-13 (canonical): the chart floats in the SAME sky as the hero —
+     a faint violet light source at the orrery's heart (α 0.07) */
+  background:
+    radial-gradient(52% 88% at 50% 50%, rgb(122 107 242 / 0.07) 0%, transparent 72%),
+    rgb(245 243 231 / 0.02);
+  border: 1px solid rgb(245 243 231 / 0.05);
+  overflow: hidden;
+}
+.landing .ln-constellation-svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; }
+/* static dashed hairlines — the flat sky chart. `animation: none` guard
+   keeps any CSS layer from ever restarting a dash crawl. */
+.landing .ln-constellation-ring {
+  fill: none;
+  stroke: rgb(245 243 231 / 0.16);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 6;
+  animation: none;
+  transition:
+    stroke-dasharray var(--ln-t-cinema) var(--ln-ease-out) calc(var(--ln-ri, 0) * 90ms),
+    stroke-dashoffset var(--ln-t-cinema) var(--ln-ease-out) calc(var(--ln-ri, 0) * 90ms);
+}
+/* pre-reveal: unplotted chart — zero-length dashes, one period of phase */
+.landing .reveal-up:not(.in-view) .ln-constellation-ring {
+  stroke-dasharray: 0 8;
+  stroke-dashoffset: 8;
+}
+
+/* DOM overlay dots — flat product pins, crisp + focusable */
+.landing .ln-constellation-dot {
+  position: absolute;
+  translate: -50% -50%;
+  inline-size: 13px;
+  block-size: 13px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--dot);
+  padding: 0;
+  cursor: pointer;
+  transition:
+    transform var(--ln-t-base) var(--ln-ease-out),
+    box-shadow var(--ln-t-base) var(--ln-ease-out),
+    opacity var(--ln-t-slow) var(--ln-ease-out) calc(var(--ln-ci, 0) * 45ms);
+}
+.landing .ln-constellation-dot:hover,
+.landing .ln-constellation-dot:focus-visible { transform: scale(1.3); }
+.landing .ln-constellation-dot:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
+/* pre-reveal: dots unborn (opacity lane only) */
+.landing .reveal-up:not(.in-view) .ln-constellation-dot { opacity: 0; }
+/* generous invisible hit target (45px) around each 13px pin */
+.landing .ln-constellation-dot::before {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: var(--ln-radius-pill);
+}
+
+.landing .ln-constellation-tip {
+  position: absolute;
+  inset-inline-start: 50%;
+  translate: -50% calc(-100% - 14px);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  background: var(--ln-ink-2);
+  border: 1px solid var(--ln-line);
+  white-space: nowrap;
+  display: grid;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--ln-t-fast) var(--ln-ease-out),
+    visibility 0s var(--ln-ease-linear) var(--ln-t-fast);
+}
+/* SmartBot adaptation: the canonical tip is driven by React hover
+   state; this stage is a server component, so the tip rides CSS only. */
+.landing .ln-constellation-dot:hover .ln-constellation-tip,
+.landing .ln-constellation-dot:focus-visible .ln-constellation-tip {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.landing .ln-constellation-tip b { color: var(--ln-cream); font-size: 13px; font-weight: var(--fw-semibold); }
+.landing .ln-constellation-tip i { color: var(--ln-cream-dim); font-style: normal; font-size: 11px; }
+
+.landing .ln-constellation-strip { display: none; }
+
+.landing .ln-features-note {
+  max-inline-size: 1180px;
+  margin: var(--sp-8) auto 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.landing .ln-features-note svg { color: var(--ln-violet); flex-shrink: 0; }
+
+/* ── 5 · journey — the light path, canonical landing.css:821/982-1098 ── */
+.landing .ln-journey { background: var(--ln-ink-2); }
+.landing .ln-journey-stage {
+  position: relative;
+  max-inline-size: 1080px;
+  margin-inline: auto;
+  padding-block-start: var(--sp-6);
+}
+.landing .ln-journey-path {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  z-index: 0;
+}
+.landing .ln-journey-path-base {
+  fill: none;
+  stroke: var(--ln-line-soft);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.landing .ln-journey-path-light {
+  fill: none;
+  stroke: var(--ln-cream);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--sp, 0));
+}
+
+.landing .ln-journey-stations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(32px, 5vh, 52px);
+  position: relative;
+  z-index: 1;
+}
+.landing .ln-station { position: relative; display: block; }
+.landing .ln-station-card { max-inline-size: 440px; }
+.landing .ln-station.from-start .ln-station-card { margin-inline-end: auto; }
+.landing .ln-station.from-end .ln-station-card { margin-inline-start: auto; }
+
+/* nodes anchor to the CARD so they hug the center-facing edge; geometry
+   is load-bearing (JourneyLightPath measures these boxes) */
+.landing .ln-station-node {
+  position: absolute;
+  top: 30px;
+  inline-size: 13px;
+  block-size: 13px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-cream); /* stations are content, not accent */
+  box-shadow: 0 0 0 4px rgb(245 243 231 / 0.16); /* crisp flat ring, no glow */
+  z-index: 2;
+}
+.landing .ln-station-node-core {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--ln-radius-pill);
+  background: inherit;
+}
+.landing .ln-station.from-start .ln-station-card .ln-station-node { inset-inline-end: -40px; }
+.landing .ln-station.from-end .ln-station-card .ln-station-node { inset-inline-start: -40px; }
+.landing .ln-station:last-child .ln-station-node {
+  inline-size: 17px;
+  block-size: 17px;
+  box-shadow: 0 0 0 5px rgb(245 243 231 / 0.2);
+}
+
+.landing .ln-station-card {
+  position: relative;
+  inline-size: 100%;
+  min-height: 0; /* flex/grid overflow guard */
+  padding: var(--sp-6) var(--sp-7);
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03); /* card recipe (spec §4.2.6) */
+  border: 1px solid var(--ln-line-soft);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-station-card:hover { border-color: var(--ln-line); }
+.landing .ln-station-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-block-end: var(--sp-4);
+}
+.landing .ln-station-n { color: var(--ln-cream-dim); font-size: 13px; }
+.landing .ln-station-ico {
+  inline-size: 40px;
+  block-size: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgb(245 243 231 / 0.08);
+  color: var(--ln-cream-dim);
+  flex-shrink: 0;
+}
+.landing .ln-station-tag {
+  margin-inline-start: auto;
+  padding: 4px 12px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.landing .ln-station-title { margin: 0 0 var(--sp-3); font-size: 22px; font-weight: var(--fw-bold); color: var(--ln-cream); }
+.landing .ln-station-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14.5px; line-height: 1.7; overflow-wrap: anywhere; }
+
+/* ── 6 · progress story — canonical landing.css:1100-1228 ──────────── */
+.landing .ln-progress-grid {
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+@media (min-width: 1025px) {
+  .landing .ln-progress-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+}
+
+/* the orbit diagram — hairline circles, violet core (accent 2). The
+   system expands, the rings materialize, the core grows and the four
+   milestones ignite staggered as the chapter passes — scrubbed by the
+   section's --sp (useSectionProgress), pure CSS. Reduced motion: the
+   hook pins --sp: 1; no-JS fallback 0.65 reads as a half-expanded,
+   fully-legible system. */
+.landing .ln-progress-visual {
+  display: grid;
+  place-items: center;
+  min-block-size: 340px;
+}
+.landing .ln-progress-orbits {
+  position: relative;
+  inline-size: min(380px, 78vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  transform: scale(calc(0.86 + var(--sp, 0.65) * 0.3));
+}
+.landing .ln-progress-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line-soft);
+  opacity: clamp(0.3, calc(0.25 + var(--sp, 0.65) * 0.75), 1);
+}
+.landing .ln-progress-ring.r1 { inset: 14%; border-color: var(--ln-line); }
+.landing .ln-progress-ring.r2 { inset: 28%; border-color: rgb(245 243 231 / 0.1); }
+.landing .ln-progress-ring.r3 { inset: 42%; border-color: rgb(245 243 231 / 0.12); border-style: dashed; }
+.landing .ln-progress-core {
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-violet);
+  transform: scale(calc(0.75 + var(--sp, 0.65) * 0.45));
+}
+.landing .ln-progress-milestone {
+  position: absolute;
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-ink-2);
+  border: 1px solid var(--ln-line);
+  --m: 0.3; /* ignition threshold along --sp */
+}
+.landing .ln-progress-milestone::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-cream);
+  opacity: clamp(0, calc((var(--sp, 0.65) - var(--m, 0.3)) * 5), 1);
+}
+.landing .ln-progress-milestone.m0 { inset-inline-start: 18%; inset-block-start: 30%; --m: 0.22; }
+.landing .ln-progress-milestone.m1 { inset-inline-start: 62%; inset-block-start: 12%; --m: 0.42; }
+.landing .ln-progress-milestone.m2 { inset-inline-start: 78%; inset-block-start: 64%; --m: 0.6; }
+.landing .ln-progress-milestone.m3 { inset-inline-start: 34%; inset-block-start: 80%; --m: 0.78; }
+.landing .ln-progress-label {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  text-align: center;
+  color: var(--ln-cream-dim);
+}
+.landing .ln-progress-label .ln-mono { font-size: 11.5px; letter-spacing: 0.2em; }
+
+.landing .ln-progress-copy { display: grid; gap: var(--sp-4); }
+.landing .ln-progress-copy .ln-chapter-title { max-inline-size: 18ch; }
+.landing .ln-progress-copy .ln-chapter-lede { margin: 0; }
+
+.landing .ln-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--sp-4);
+  margin-block-start: var(--sp-6);
+}
+.landing .ln-stat {
+  min-height: 0;
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03);
+  border: 1px solid var(--ln-line-soft);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-stat:hover { border-color: var(--ln-line); }
+.landing .ln-stat-value {
+  font-family: var(--ln-mono);
+  font-size: 40px;
+  font-weight: var(--fw-medium);
+  color: var(--ln-cream);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  direction: ltr;
+}
+.landing .ln-stat-unit { color: var(--ln-cream-dim); font-size: 24px; margin-inline-start: 2px; }
+.landing .ln-stat-label { margin-block-start: 8px; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
+.landing .ln-stat-note { margin-block-start: 3px; color: var(--ln-cream-dim); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.landing .ln-progress-source {
+  margin: var(--sp-6) 0 0;
+  color: var(--ln-cream-dim);
+  font-size: 12.5px;
+  line-height: 1.65;
+  border-inline-start: 1px solid var(--ln-line);
+  padding-inline-start: var(--sp-4);
+  max-inline-size: 56ch;
+}
+
+/* ── 7 · platforms — the ground plate (campus→platforms, §6) ─────────
+   SmartBot's ground is not a campus photo (no new image binaries) —
+   it is the channel world: the platforms the products live on. Flat
+   ink-2 band, hairline cells, no cards, no shadows, no glass. */
+.landing .ln-plate {
+  background: var(--ln-ink-2);
+  overflow: hidden;
+}
+.landing .ln-plate-grid {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.landing .ln-plate-cell {
+  min-height: 0;
+  padding: var(--sp-6) var(--sp-5);
+  border: 1px solid var(--ln-line-soft);
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03);
+  display: grid;
+  gap: var(--sp-3);
+  align-content: start;
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-plate-cell:hover { border-color: var(--ln-line); }
+.landing .ln-plate-ico {
+  inline-size: 52px;
+  block-size: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.landing .ln-plate-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-plate-ico.azure { background: rgb(122 107 242 / 0.14); color: var(--ln-violet); }
+.landing .ln-plate-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-plate-name { font-size: 17px; font-weight: var(--fw-bold); color: var(--ln-cream); }
+.landing .ln-plate-desc { margin: 0; color: var(--ln-cream-dim); font-size: 13.5px; line-height: 1.65; overflow-wrap: anywhere; }
+.landing .ln-plate-tag { color: var(--ln-cream-dim); }
+
+/* ── 8 · roles ledger — canonical landing.css:1294-1352 ────────────── */
+.landing .ln-roles-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  display: grid;
+  gap: var(--sp-3);
+}
+.landing .ln-role-row {
+  display: grid;
+  gap: var(--sp-3) var(--sp-6);
+  padding: var(--sp-6) var(--sp-4);
+  border-radius: var(--r-2xl);
+  border: 1px solid transparent;
+  border-block-end-color: var(--ln-line-soft);
+  transition:
+    background var(--ln-t-base) var(--ln-ease),
+    border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-role-row:hover {
+  background: rgb(245 243 231 / 0.03);
+  border-color: var(--ln-line-soft);
+}
+.landing .ln-role-row:hover .ln-role-index { color: var(--ln-cream); }
+@media (min-width: 921px) {
+  .landing .ln-role-row { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); align-items: start; }
+}
+.landing .ln-role-key { display: flex; align-items: center; gap: var(--sp-4); }
+.landing .ln-role-ico {
+  inline-size: 52px;
+  block-size: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.landing .ln-role-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-role-ico.azure { background: rgb(122 107 242 / 0.14); color: var(--ln-violet); }
+.landing .ln-role-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-role-name { font-size: 21px; font-weight: var(--fw-bold); color: var(--ln-cream); }
+.landing .ln-role-index {
+  margin-inline-start: auto;
+  color: var(--ln-cream-dim);
+  transition: color var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .ln-role-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14.5px; line-height: 1.7; max-inline-size: 68ch; overflow-wrap: anywhere; }
+.landing .ln-role-quote {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-3) var(--sp-5);
+  border-inline-start: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+  font-size: 13.5px;
+  line-height: 1.7;
+  max-inline-size: 64ch;
+}
+.landing .ln-role-quote-mark { color: var(--ln-cream-dim); font-size: 20px; margin-inline-end: 6px; }
+
+/* ── 9 · final CTA — convergence, canonical landing.css:1395-1476 ──── */
+.landing .ln-cta {
+  position: relative;
+  padding: clamp(110px, 16vh, 170px) var(--page-gutter);
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--ln-ink-2);
+  border-block-start: 1px solid var(--ln-line);
+}
+/* quiet concentric circles — the outer ring carries a violet traveller
+   dot on a slow 42s rotation, the innermost ring breathes a 4.5%
+   converge over 22s. Two verbs, three rings, no spin. */
+.landing .ln-cta-orbits {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+}
+.landing .ln-cta-orbit {
+  position: absolute;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line-soft);
+  aspect-ratio: 1;
+}
+.landing .ln-cta-orbit.o0 {
+  inline-size: min(620px, 92vw);
+  animation: ln-cta-orbit var(--ln-dur-marquee) var(--ln-ease-linear) infinite;
+}
+.landing .ln-cta-orbit.o0::after {
+  content: '';
+  position: absolute;
+  top: -3.5px;
+  left: 50%;
+  translate: -50%;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-violet);
+}
+.landing .ln-cta-orbit.o1 { inline-size: min(460px, 70vw); border-color: var(--ln-line); }
+.landing .ln-cta-orbit.o2 {
+  inline-size: min(300px, 46vw);
+  animation: ln-cta-converge var(--motion-duration-ambient-scene) var(--ln-ease-soft) infinite;
+}
+@keyframes ln-cta-orbit { to { transform: rotate(1turn); } }
+@keyframes ln-cta-converge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.955); }
+}
+
+.landing .ln-cta-inner {
+  position: relative;
+  z-index: 1;
+  max-inline-size: 760px;
+  margin-inline: auto;
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-5);
+}
+.landing .ln-cta-title {
+  margin: 0;
+  font-size: clamp(2.25rem, 4.8vw, 4.25rem);
+  line-height: 1.2;
+  font-weight: var(--fw-bold);
+  /* same dim-base / cream-em anchor device as the chapter titles */
+  color: var(--ln-cream-dim);
+  text-wrap: balance;
+}
+.landing .ln-cta-title em { font-style: normal; color: var(--ln-cream); }
+.landing .ln-cta-lede { margin: 0; color: var(--ln-cream-dim); font-size: clamp(15px, 1.5vw, 16.5px); line-height: 1.6; max-inline-size: 54ch; }
+.landing .ln-cta-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-4); margin-block-start: var(--sp-2); }
+/* P3-36 (canonical): CTA buttons get a subtle lift on hover */
+.landing .ln-cta-actions .ln-btn-gold:hover { transform: translateY(-1px) translate(var(--mag-x, 0), calc(var(--mag-y, 0) - 1px)); }
+.landing .ln-cta-meta {
+  margin: var(--sp-4) 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ln-cream-dim);
+  font-size: 12.5px;
+}
+.landing .ln-cta-meta svg { color: var(--ln-cream-dim); }
+
+/* ── 10 · FAQ — compact, ln-styled, native <details> (zero JS) ───────
+   The home's six real Q&As (FAQPage JSON-LD preserved) follow the
+   finale in the same flat grammar: hairline rows, cream questions,
+   dim answers, rotating chevron. */
+.landing .ln-faq {
+  padding: clamp(60px, 9vh, 100px) var(--page-gutter);
+  border-block-end: 1px solid var(--ln-line-soft);
+}
+.landing .ln-faq-head {
+  max-inline-size: 1280px;
+  margin-inline: auto;
+  margin-block-end: var(--sp-6);
+  display: grid;
+  gap: var(--sp-4);
+}
+.landing .ln-faq-list {
+  max-inline-size: 860px;
+  margin-inline: auto;
+  display: grid;
+  gap: var(--sp-2);
+}
+.landing .ln-faq-item {
+  border: 1px solid var(--ln-line-soft);
+  border-radius: var(--r-md);
+  background: rgb(245 243 231 / 0.02);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-faq-item:hover,
+.landing .ln-faq-item[open] { border-color: var(--ln-line); }
+.landing .ln-faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: 16px 20px;
+  cursor: pointer;
+  color: var(--ln-cream);
+  font-size: 15.5px;
+  font-weight: var(--fw-semibold);
+  list-style: none;
+  min-block-size: 48px;
+  border-radius: var(--r-md);
+}
+.landing .ln-faq-q::-webkit-details-marker { display: none; }
+.landing .ln-faq-q:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
+.landing .ln-faq-q svg { color: var(--ln-cream-dim); transition: transform var(--ln-t-base) var(--ln-ease); flex-shrink: 0; }
+.landing .ln-faq-item[open] .ln-faq-q svg { transform: rotate(180deg); }
+.landing .ln-faq-a { padding: 0 20px 18px; color: var(--ln-cream-dim); font-size: 14.5px; line-height: 1.7; overflow-wrap: anywhere; }
+
+/* ── 11 · footer — the ground plate, canonical landing.css:1486-1552 ── */
+.landing .landing-footer {
+  border-block-start: 1px solid var(--ln-line);
+  background: var(--ln-ink-2);
+  padding-block: clamp(44px, 6vh, 64px) var(--sp-6);
+  position: relative;
+}
+.landing .landing-footer::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 100%;
+  inline-size: 100%;
+  block-size: 60px;
+  background: linear-gradient(180deg, transparent 0%, rgba(245,243,231,0.03) 100%);
+  pointer-events: none;
+}
+.landing .landing-footer-grid {
+  display: grid;
+  gap: var(--sp-6);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.landing .landing-footer-col { display: grid; gap: var(--sp-3); align-content: start; }
+.landing .landing-footer-about { margin: var(--sp-2) 0 0; color: var(--ln-cream-dim); font-size: 13px; line-height: 1.7; max-inline-size: 34ch; }
+.landing .landing-footer-heading {
+  color: var(--ln-cream-dim);
+  font-size: 12px;
+  font-weight: var(--fw-semibold);
+  margin-block-end: var(--sp-3);
+}
+/* generous leading = comfortable ≈44px rows (spec §4.3) */
+.landing .landing-footer-link {
+  color: var(--ln-cream-dim);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 2.2;
+  padding-block: 7px;
+  width: fit-content;
+  transition: color var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .landing-footer-link:hover { color: var(--ln-cream); }
+.landing .landing-footer-bottom {
+  margin-block-start: var(--sp-6);
+  padding-block-start: var(--sp-4);
+  border-block-start: 1px solid var(--ln-line-soft);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  color: var(--ln-cream-dim);
+  font-size: 12.5px;
+}
+.landing .ln-footer-cluster { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── 12 · perf — skip rendering what is off-screen ───────────────────
+   Below-fold chapters render lazily (canonical landing.css:1575-1583
+   technique). `auto` keeps the scrollbar stable after first paint;
+   estimates sized to this anatomy (products stage ≈ 1240, journey
+   5 stations ≈ 1700, progress grid ≈ 860, platforms 4 cells ≈ 700,
+   roles 2 rows ≈ 800, cta ≈ 740, faq 6 rows ≈ 860). */
+.landing .ln-features { content-visibility: auto; contain-intrinsic-size: auto 1240px; }
+.landing .ln-journey { content-visibility: auto; contain-intrinsic-size: auto 1700px; }
+.landing .ln-progress { content-visibility: auto; contain-intrinsic-size: auto 860px; }
+.landing .ln-plate { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+.landing .ln-roles { content-visibility: auto; contain-intrinsic-size: auto 800px; }
+.landing .ln-cta { content-visibility: auto; contain-intrinsic-size: auto 740px; }
+.landing .ln-faq { content-visibility: auto; contain-intrinsic-size: auto 860px; }
+
+/* ── 13 · mobile blocks — canonical landing.css:1595-1760 ──────────── */
+@media (max-width: 1024px) {
+  .landing .ln-hero { padding-block: clamp(104px, 14vh, 150px) 88px; }
+  /* burger breakpoint: nav links + header CTA fold into the drawer */
+  .landing .landing-nav-links { display: none; }
+  .landing .landing-burger { display: grid; margin-inline-start: auto; }
+  .landing .landing-header-cta { display: none; }
+  .landing .landing-mobile-menu { display: flex; }
+}
+@media (max-width: 920px) {
+  /* journey spine — stations stack vertically, nodes ride the gutter.
+     Spine stroke up 1.5→2px: hairlines vanish on low-contrast OLED in
+     sunlight — the path must stay findable. */
+  .landing .ln-journey-path-base { stroke-width: 2; }
+  .landing .ln-journey-path-light { stroke-width: 2.5; }
+  .landing .ln-journey-stage { padding-inline-start: 30px; }
+  .landing .ln-station .ln-station-node {
+    top: 34px;
+    inset-inline-start: -23px;
+    inset-inline-end: auto;
+    inline-size: 11px;
+    block-size: 11px;
+  }
+  .landing .ln-station.from-start .ln-station-card .ln-station-node,
+  .landing .ln-station.from-end .ln-station-card .ln-station-node { inset-inline-start: -23px; inset-inline-end: auto; }
+  .landing .ln-station-card { max-inline-size: none; }
+  .landing .ln-station.from-start .ln-station-card,
+  .landing .ln-station.from-end .ln-station-card { margin-inline: 0; }
+
+  .landing .landing-nav { padding-inline: 16px; }
+  .landing .landing-mobile-menu { padding-inline: 16px; }
+  .landing .ln-progress-grid { grid-template-columns: 1fr; }
+  .landing .ln-progress-visual { min-block-size: 280px; }
+  .landing .ln-chapter { padding-inline: var(--page-gutter-mobile); }
+  .landing .ln-hero { padding-inline: max(5vw, 16px); }
+  .landing .ln-trust { padding-inline: max(5vw, 16px); }
+  .landing .ln-plate { padding-inline: var(--page-gutter-mobile); }
+  .landing .ln-faq { padding-inline: var(--page-gutter-mobile); }
+  .landing .ln-cta { padding-inline: var(--page-gutter-mobile); }
+  .landing .ln-hero-scroll { display: none; }
+}
+@media (max-width: 768px) {
+  /* GAP-5 · mobile density pass — tighter chapters, tighter heads,
+     same narrative, phone-native pacing. */
+  .landing .ln-journey-stations { gap: 28px; }
+  .landing .ln-trust { padding-block: var(--sp-5); }
+  .landing .ln-cta { padding-block: clamp(72px, 11vh, 104px); }
+
+  /* constellation: the full sky is too dense — domain strip instead */
+  .landing .ln-constellation-stage { display: none; }
+  .landing .ln-constellation-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .landing .ln-constellation-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px; /* spec §4.3 — never below 16px */
+    min-height: 0;
+    border-radius: var(--r-2xl);
+    border: 1px solid rgb(245 243 231 / 0.05);
+    background: rgb(245 243 231 / 0.03);
+  }
+  .landing .ln-constellation-chip-dot {
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: var(--ln-radius-pill);
+    background: var(--dot);
+    flex-shrink: 0;
+  }
+  .landing .ln-constellation-chip-label { color: var(--ln-cream); font-size: 13px; font-weight: var(--fw-medium); overflow-wrap: anywhere; }
+  .landing .ln-constellation-chip-count {
+    margin-inline-start: auto;
+    font-family: var(--ln-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ln-cream-dim);
+  }
+
+  /* decorative canvas recedes; text stays on top */
+  .landing .ln-hero-canvas { --ln-canvas-op: 0.35; animation-name: ln-scene-in-dim; }
+  /* Arabic leading: ≥1.15 on mobile */
+  .landing .ln-hero-title { line-height: 1.18; max-inline-size: none; }
+
+  /* footer: single column + 1px dividers */
+  .landing .landing-footer-grid { grid-template-columns: 1fr; gap: 0; }
+  .landing .landing-footer-col { padding-block: var(--sp-5); border-block-end: 1px solid var(--ln-line-soft); gap: var(--sp-4); }
+  .landing .landing-footer-grid .landing-footer-col:last-child { border-block-end: 0; }
+
+  .landing .ln-station-card { padding: var(--sp-5); }
+  .landing .ln-role-row { padding: var(--sp-5) var(--sp-4); }
+}
+@media (max-width: 640px) {
+  /* WCAG 2.5.5 Target Size (Minimum): 48px floor for landing-page
+     interactive elements on small screens. */
+  .landing .ln-btn-gold,
+  .landing .ln-btn-ghost,
+  .landing .ln-btn-text,
+  .landing .landing-nav-link {
+    min-block-size: 48px;
+    padding-block: var(--sp-3);
+  }
+  .landing .landing-burger {
+    inline-size: 48px;
+    block-size: 48px;
+  }
+}
+@media (max-width: 560px) {
+  .landing .ln-hero-actions { gap: var(--sp-3); }
+  .landing .ln-hero-actions .ln-btn-gold,
+  .landing .ln-hero-actions .ln-btn-ghost,
+  .landing .ln-hero-actions .ln-btn-text { inline-size: 100%; }
+  .landing .ln-constellation-strip { grid-template-columns: 1fr; }
+  /* GAP-5: 2×2 at 390px was a solid text block — give the numbers room */
+  .landing .ln-progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5) var(--sp-3); }
+  .landing .ln-stat-value { font-size: 28px; }
+  .landing .ln-stat-label { font-size: 12.5px; }
+  .landing .ln-cta-actions .ln-btn-gold.xl,
+  .landing .ln-cta-actions .ln-btn-ghost.xl { inline-size: 100%; }
+  .landing .ln-plate-grid { grid-template-columns: 1fr; }
+}
+
+/* ── 14 · reduced motion — canonical landing.css:1800-1831 ─────────── */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-hero-canvas { animation: none; opacity: var(--ln-canvas-op, 1); }
+  .landing .ln-hero-scroll-line::after { animation: none; }
+  .landing .ln-journey-path-light { stroke-dashoffset: 0; }
+  /* P3-21/P2-13 bespoke verbs: all off — the chart plots instantly, the
+     finale stands still */
+  .landing .ln-cta-orbit.o0,
+  .landing .ln-cta-orbit.o2,
+  .landing .ln-constellation-ring,
+  .landing .ln-constellation-dot { animation: none; }
+  .landing .ln-btn-gold,
+  .landing .ln-btn-ghost,
+  .landing .ln-btn-text,
+  .landing .landing-header,
+  .landing .ln-station-card,
+  .landing .ln-role-row { transition: none; }
+  /* P4-20: the starfield position is static; only the parallax drift
+     is killed */
+  .landing .ln-hero-depth { opacity: 0.4; }
+}
+
+/* ── 15 · P4 tail — card hover elevation (canonical P4-18) ──────────
+   Lift + subtle shadow on hover signals interactivity without violating
+   the flat-ground rule (hairlines stay). The press tail (P4-01) and
+   gold prominence (P4-04) already ship in §0g above (R6 cascade). */
+.landing .ln-station-card:hover,
+.landing .ln-stat:hover,
+.landing .ln-plate-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
 }

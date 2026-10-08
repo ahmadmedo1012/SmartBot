@@ -1,8 +1,7 @@
 /**
- * test(r125) — Madarek parity snapshot: pin the canonical design tokens.
+ * test(r127) — Madarek parity snapshot: pin the canonical design tokens.
  * (Task 11-a, Wave B; source of truth: madarek/frontend/src/styles/tokens.css
- * + download/madarek-reference-digest.md — §1 dark · §2 light · §3 radius ·
- * §4 motion · §5 elevation.)
+ * — §1 dark · §2 light · §3 radius · §4 motion · §5 elevation.)
  *
  * WHAT THIS FILE IS
  * ─────────────────
@@ -24,14 +23,14 @@
  * - var() chains are resolved inside the final scope; comparisons are
  *   normalization-tolerant (whitespace, `a,b` vs `a, b`, hex case).
  *
- * DOCUMENTED smart-bot split (NOT drift — pinned deliberately): smart-bot's
- * shadcn status bases in LIGHT mode carry the text-safe family DEEPS
- * (--success #1F4F30 = mint-deep, --warning #6B4C0B = yellow-deep,
- * --info #1F3D63 = sky-deep, --destructive #6B2128 = rose-deep; in-file
- * banner: "Light-mode status — Madarek light -ink (text-safe deep) variants
- * (§1.6)"), because its tokens serve text duty directly. The canonical base
- * hues live on the family tokens (--c-mint-ink #4FA66D etc.), pinned in the
- * families block below — every pinned value below IS a canonical Madarek hex.
+ * DOCUMENTED smart-bot split (r127-F5b): the light status bases now carry the
+ * canonical vivid family inks — same vocabulary as the fleet (Menu/Link/
+ * Order) — and --destructive-foreground is Madarek --danger-fg #191918. The
+ * r125-r126 "light bases = the text-safe family deeps" split was dissolved:
+ * it was the A6 P1 deep-collapse drift (light badges/dots rendered visibly
+ * darker than the fleet) and is now pinned to the canonical values. The
+ * text-safe deeps keep their roles on the family slots (--c-mint-deep
+ * #1F4F30 …), pinned in the families block below.
  *
  * Token-name bridge (smart-bot keeps its own shadcn/utility vocabulary):
  *   ground --bg → --background · surface --surface → --card
@@ -41,6 +40,11 @@
  *   accent-ink → --accent-foreground (oklch spelling of the canonical hex)
  *   accent-soft → --c-copper-bg · danger --danger → --destructive
  *   radius --r-* → --radius-* (Tailwind @theme, same 6/8/10/12/16/20/28)
+ *
+ * r127-F5b — mirrors the parity.mjs expansion (82 → 185): focus contract
+ * (--ring + --state-focus-ring-color, both themes), z-ladder 0-600,
+ * --ease-smooth at both definition sites, prefers-contrast port, and the
+ * reduced-motion token zeroing are pinned here too.
  */
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
@@ -73,6 +77,27 @@ function block(prelude: string): string {
   const b = blocks.find((x) => x.prelude === prelude)
   if (!b) throw new Error(`top-level block not found: ${prelude}`)
   return b.body
+}
+// r127-F5b helpers: nested rule inside a media block (first match) + every
+// block carrying a given prelude — the prefers-contrast / reduced-motion
+// ports live inside @media blocks, so their nested :root/.light rules are
+// parsed separately from the resting theme scopes.
+function nestedBlock(outer: string, prelude: string): string | null {
+  const re = new RegExp(`${prelude.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{`)
+  const m = outer.match(re)
+  if (!m) return null
+  const start = m.index! + m[0].length - 1
+  let depth = 1
+  let j = start + 1
+  while (j < outer.length && depth > 0) {
+    if (outer[j] === "{") depth += 1
+    else if (outer[j] === "}") depth -= 1
+    j += 1
+  }
+  return outer.slice(start + 1, j - 1)
+}
+function blocksNamed(prelude: string): string[] {
+  return blocks.filter((x) => x.prelude === prelude).map((x) => x.body)
 }
 // the radius ladder lives in the Tailwind theme blocks — smart-bot carries
 // TWO of them (@theme inline for fonts/colors + a plain @theme for radius);
@@ -162,19 +187,20 @@ const ACCENT_LIGHT = {
   "--accent-foreground": "oklch(0.3688 0.0718 55)",
   "--c-copper-bg": "#F4E4D2",
 }
-// documented smart-bot split: dark bases = luminous family inks (canonical);
-// light bases = the text-safe family deeps (see file banner for rationale)
+// r127-F5b: status bases = the canonical family inks in BOTH themes (dark
+// luminous / light vivid — the fleet standard); fill foregrounds = the
+// Madarek fg values (--danger-fg pattern: #191918 light / #05070F dark).
 const STATUS_DARK = {
-  "--success": "#7FD39A", "--success-soft": "#0F241C",
+  "--success": "#7FD39A", "--success-soft": "#0F241C", "--success-foreground": "#191918",
   "--warning": "#ECC97D", "--warning-soft": "#2C2410",
   "--info": "#8FBBF2", "--info-soft": "#14213A",
-  "--destructive": "#F0938F", "--destructive-soft": "#2C1620",
+  "--destructive": "#F0938F", "--destructive-soft": "#2C1620", "--destructive-foreground": "#05070F",
 }
 const STATUS_LIGHT = {
-  "--success": "#1F4F30", "--success-soft": "#DCF1E2", // mint-deep / mint-bg
-  "--warning": "#6B4C0B", "--warning-soft": "#FCF1CD", // yellow-deep / yellow-bg
-  "--info": "#1F3D63", "--info-soft": "#DDEBF7", // sky-deep / sky-bg
-  "--destructive": "#6B2128", "--destructive-soft": "#FCE0E2", // rose-deep / rose-bg
+  "--success": "#4FA66D", "--success-soft": "#DCF1E2", "--success-foreground": "#191918", // mint-ink / mint-bg / danger-fg
+  "--warning": "#D6A330", "--warning-soft": "#FCF1CD", // yellow-ink / yellow-bg
+  "--info": "#5C8FCE", "--info-soft": "#DDEBF7", // sky-ink / sky-bg
+  "--destructive": "#DD6E78", "--destructive-soft": "#FCE0E2", "--destructive-foreground": "#191918", // rose-ink / rose-bg / danger-fg
 }
 const FAMILIES_DARK: Record<string, [string, string, string]> = {
   peach: ["#2C1A16", "#F2A07F", "#FCD9C4"],
@@ -208,9 +234,10 @@ const MOTION = {
   "--t-micro": "80ms", "--t-fast": "160ms", "--t-base": "240ms",
   "--t-slow": "380ms", "--t-slower": "520ms", "--t-cinema": "720ms",
 }
-// v26-F4: easing curves pinned — the r125 wave pinned durations only, which
-// let --ease-spring carry the bounce value 1.56 for a whole round. Canonical
-// pop overshoot is 1.36 (P4-A6 assertion 6); 1.56 is the bounce tier.
+// v26-F4 easing curves + r127-F5b --ease-smooth: the canonical settle curve
+// (0.16, 1, 0.3, 1) — the (0.16, 1, 0.2, 1) fork is dead; both definition
+// sites are pinned (the :root table below + the @theme bridge in its own
+// describe).
 const EASINGS = {
   "--ease": "cubic-bezier(0.4, 0, 0.2, 1)",
   "--ease-out": "cubic-bezier(0.16, 1, 0.3, 1)",
@@ -219,6 +246,7 @@ const EASINGS = {
   "--ease-spring-soft": "cubic-bezier(0.34, 1.18, 0.64, 1)",
   "--ease-spring": "cubic-bezier(0.34, 1.36, 0.64, 1)",
   "--ease-spring-bounce": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+  "--ease-smooth": "cubic-bezier(0.16, 1, 0.3, 1)",
 }
 const ELEV_DARK = {
   "--elev-1": "0 1px 2px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)",
@@ -255,11 +283,11 @@ describe("r125 Madarek parity — accent family", () => {
   })
 })
 
-describe("r125 Madarek parity — status tokens (documented smart-bot split)", () => {
-  it("dark: luminous family-ink bases + deep-space softs", () => {
+describe("r127-F5b Madarek parity — status tokens (canonical family inks)", () => {
+  it("dark: luminous family-ink bases + deep-space softs + void foregrounds", () => {
     pinAll(dark, "dark", STATUS_DARK)
   })
-  it("light: text-safe family-deep bases + pastel softs (see file banner — NOT drift)", () => {
+  it("light: vivid family-ink bases + pastel softs + danger-fg foregrounds (fleet parity)", () => {
     pinAll(light, "light", STATUS_LIGHT)
   })
 })
@@ -293,9 +321,15 @@ describe("r125 Madarek parity — motion ladder (theme-independent :root)", () =
 })
 
 describe("r126 Madarek parity — easing curves (§4; v26-F4 bounce-fork fix)", () => {
-  it("spring = 1.36 pop tier, bounce = 1.56 (both modes)", () => {
+  it("spring = 1.36 pop tier, bounce = 1.56, smooth = the canonical settle (both modes)", () => {
     pinAll(dark, "easing", EASINGS)
     pinAll(light, "easing", EASINGS)
+  })
+})
+
+describe("r127-F5b Madarek parity — --ease-smooth @theme bridge (A6 P2 fork fix)", () => {
+  it("@theme --ease-smooth = cubic-bezier(0.16, 1, 0.3, 1) (the utility class)", () => {
+    pin(theme, "ease-smooth(@theme)", "--ease-smooth", "cubic-bezier(0.16, 1, 0.3, 1)")
   })
 })
 
@@ -312,5 +346,93 @@ describe("r125 Madarek parity — glass ground (§1.8)", () => {
   it("dark rgba(11,16,32,0.78) · light rgba(251,250,249,0.78)", () => {
     pin(dark, "glass-dark", "--glass-bg", "rgba(11, 16, 32, 0.78)")
     pin(light, "glass-light", "--glass-bg", "rgba(251, 250, 249, 0.78)")
+  })
+})
+
+// ── r127-F5b pin groups (mirrors tests/parity.mjs 82 → 185) ─────────────────
+
+describe("r127-F5b Madarek parity — focus contract (A6 P1)", () => {
+  it("dark: --ring #E9B44C + --state-focus-ring-color #C9962F (accent-strong, 7.87:1)", () => {
+    pin(dark, "focus-dark", "--ring", "#E9B44C")
+    pin(dark, "focus-dark", "--state-focus-ring-color", "#C9962F")
+  })
+  it("light: --ring #5C3416 + --state-focus-ring-color #5C3416 (10.29:1 — NOT raw copper 3.65:1)", () => {
+    pin(light, "focus-light", "--ring", "#5C3416")
+    pin(light, "focus-light", "--state-focus-ring-color", "#5C3416")
+  })
+  it("shape-mutation ban: :focus-visible paints an outline only (never border-radius)", () => {
+    const focusRule = block(":focus-visible")
+    expect(focusRule, "the :focus-visible rule exists").toBeTruthy()
+    expect(focusRule).not.toContain("border-radius")
+    expect(focusRule).toContain("outline: 2px solid var(--state-focus-ring-color)")
+    expect(focusRule).toContain("outline-offset: 2px")
+  })
+})
+
+describe("r127-F5b Madarek parity — z-order ladder (tokens.css §3a)", () => {
+  it("canonical rungs 0/100/200/250/300/400/500/600 in both cascade scopes", () => {
+    const Z_LADDER = {
+      "--z-base": "0",
+      "--z-dropdown": "100",
+      "--z-popover": "200",
+      "--z-tooltip": "250",
+      "--z-sheet": "300",
+      "--z-modal": "400",
+      "--z-toast": "500",
+      "--z-lightbox": "600",
+    }
+    pinAll(dark, "z-ladder", Z_LADDER)
+    pinAll(light, "z-ladder", Z_LADDER)
+  })
+})
+
+describe("r127-F5b Madarek parity — prefers-contrast: more port (A6 e)", () => {
+  it("dark: elevation collapses to solid white rings; glass goes solid; hairline strengthens", () => {
+    const media = blocks.find((x) => x.prelude === "@media (prefers-contrast: more)")
+    expect(media, "the prefers-contrast block exists").toBeTruthy()
+    const contrastDark: Record<string, string> = {
+      ...dark,
+      ...parseDecls(nestedBlock(media!.body, ":root") ?? ""),
+    }
+    pinAll(contrastDark, "contrast-dark", {
+      "--elev-1": "0 0 0 1px rgba(255, 255, 255, 0.36)",
+      "--elev-5": "0 0 0 3px rgba(255, 255, 255, 0.68)",
+      "--glass-bg": "#0D1428", // var(--card) → the dark surface
+      "--border": "rgba(255, 255, 255, 0.48)",
+    })
+  })
+  it("light: solid black rings + solid glass (the .light block wins the cascade)", () => {
+    const media = blocks.find((x) => x.prelude === "@media (prefers-contrast: more)")
+    expect(media, "the prefers-contrast block exists").toBeTruthy()
+    const contrastLight: Record<string, string> = {
+      ...light,
+      ...parseDecls(nestedBlock(media!.body, ".light") ?? ""),
+    }
+    pinAll(contrastLight, "contrast-light", {
+      "--elev-1": "0 0 0 1px rgba(0, 0, 0, 0.32)",
+      "--elev-5": "0 0 0 3px rgba(0, 0, 0, 0.64)",
+      "--glass-bg": "#FFFFFF", // var(--card) → the light surface
+      "--border": "rgba(0, 0, 0, 0.42)",
+    })
+  })
+})
+
+describe("r127-F5b Madarek parity — reduced-motion token zeroing (A6 f)", () => {
+  it("the --t-* and --duration-* ladders collapse to 0ms under prefers-reduced-motion", () => {
+    const rmBody = blocksNamed("@media (prefers-reduced-motion: reduce)").find((b) =>
+      b.includes("--t-micro: 0ms")
+    )
+    expect(rmBody, "the RM :root zeroing block exists").toBeTruthy()
+    const rmScope = parseDecls(nestedBlock(rmBody!, ":root") ?? "")
+    pinAll(rmScope, "rm-zeroing", {
+      "--t-micro": "0ms", "--t-fast": "0ms", "--t-base": "0ms",
+      "--t-slow": "0ms", "--t-slower": "0ms", "--t-cinema": "0ms",
+      "--duration-fast": "0ms", "--duration-base": "0ms", "--duration-slow": "0ms",
+    })
+  })
+  it("the universal 0.01ms belt is present (every animation/transition)", () => {
+    const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
+    expect(raw).toContain("animation-duration: 0.01ms !important")
+    expect(raw).toContain("transition-duration: 0.01ms !important")
   })
 })

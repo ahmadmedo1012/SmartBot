@@ -566,8 +566,9 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
        * keyboards. The card anchors itself to the bottom via mt-auto (the
        * auto-margin twin of justify-end that stays fully scrollable when
        * taller than the viewport) and caps its own height, so the footer
-       * nav is ALWAYS reachable; sm+ re-centers it. */
-      className="fixed inset-0 z-50 flex flex-col items-center overflow-y-auto overscroll-contain bg-background sm:justify-center"
+       * nav is ALWAYS reachable; sm+ re-centers it.
+       * r127-F5b: full-screen overlay = the --z-modal rung (400). */
+      className="fixed inset-0 z-(--z-modal) flex flex-col items-center overflow-y-auto overscroll-contain bg-background sm:justify-center"
     >
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-accent-foreground/5 to-transparent" />

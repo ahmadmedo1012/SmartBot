@@ -26,8 +26,11 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
       className={cn(
         /* Madarek modal grammar (§5.10): scrim fades FAST (160ms) with the
            4px --scrim-blur; the popup surface pops BASE (240ms) — the same
-           fast-backdrop / slower-surface split the bottom-nav sheet uses. */
-        "fixed inset-0 isolate z-40 backdrop-blur-xs transition-opacity duration-(--duration-fast) ease-smooth",
+           fast-backdrop / slower-surface split the bottom-nav sheet uses.
+           r127-F5b: z-40/z-50 → the --z-modal rung (400) on BOTH backdrop
+           and surface (canonical ladder; DOM order keeps the surface on
+           top — the Smart-Menu/Order dialog recipe). */
+        "fixed inset-0 isolate z-(--z-modal) backdrop-blur-xs transition-opacity duration-(--duration-fast) ease-smooth",
         "data-starting-style:opacity-0 data-ending-style:opacity-0",
         className,
       )}
@@ -57,7 +60,7 @@ function DialogContent({
              (the --shadow-modal recipe) + the copper top hairline
              (.mdrk-modal-card::before in globals.css — inset-inline 30%,
              3px, transparent→accent→transparent). */
-          "mdrk-modal-card fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-sm",
+          "mdrk-modal-card fixed left-1/2 top-1/2 z-(--z-modal) grid w-full max-w-[calc(100%-2rem)] max-h-[90dvh] overflow-y-auto overscroll-contain -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-border/50 shadow-(--shadow-modal) outline-none sm:max-w-sm",
           "transition-[opacity,scale,translate,filter] duration-(--duration-base) ease-smooth data-starting-style:opacity-0 data-starting-style:scale-95 data-starting-style:translate-y-4",
           "data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:translate-y-4",
           className,

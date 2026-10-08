@@ -183,6 +183,11 @@ export function OnboardingTour({ autoStart = false, onComplete }: OnboardingTour
               overlayColor: "var(--overlay)",
               primaryColor: "var(--primary)",
               spotlightShadow: "0 0 15px color-mix(in oklch, var(--primary) 50%, transparent)",
+              /* r127-F5b: pin joyride's tooltip+overlay onto the canonical
+                 z-ladder --z-tooltip rung (250) — was the library's off-ladder
+                 default 145; a var() string resolves at computed time like the
+                 other token styles above. Above chrome (100), below sheets. */
+              zIndex: "var(--z-tooltip)",
             },
             tooltip: {
               borderRadius: "var(--radius-md)",
@@ -213,12 +218,14 @@ export function OnboardingTour({ autoStart = false, onComplete }: OnboardingTour
       )}
 
       {/* v24-C2 (task 5): the mobile stand-in — a dismissible hint card
-          above the bottom nav instead of a broken joyride overlay. */}
+          above the bottom nav instead of a broken joyride overlay.
+          r127-F5b: floating anchored guidance = the --z-popover rung
+          (200) — above chrome (100), below sheets/modals (300/400). */}
       {isMobile && hintVisible && (
         <div
           role="status"
           dir="rtl"
-          className="fixed inset-x-3 bottom-24 z-40 rounded-xl border border-border/60 bg-popover/95 p-3 shadow-lg backdrop-blur-md"
+          className="fixed inset-x-3 bottom-24 z-(--z-popover) rounded-xl border border-border/60 bg-popover/95 p-3 shadow-lg backdrop-blur-md"
         >
           <div className="flex items-start gap-2">
             <p className="text-xs leading-relaxed text-muted-foreground flex-1">

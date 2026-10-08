@@ -123,7 +123,7 @@ function DemoHeader({ tab }: { tab: TabKey }) {
   const router = useRouter()
   const meta = TAB_META[tab]
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-(--z-dropdown) border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
@@ -529,8 +529,9 @@ export default function DemoPage() {
     /* Same architecture as DashboardShell: fixed real sidebar + content
        column + real mobile bottom nav (v4 plan §3.2 — no parallel UI tree). */
     <div className="flex min-h-screen bg-background" dir="rtl">
-      {/* Madarek --sidebar-w: 256px (w-64) — DashboardShell parity. */}
-      <div className="fixed top-0 right-0 z-30 h-full w-64 hidden md:block">
+      {/* Madarek --sidebar-w: 256px (w-64) — DashboardShell parity.
+          r127-F5b: fixed chrome rail = the --z-dropdown rung (100). */}
+      <div className="fixed top-0 right-0 z-(--z-dropdown) h-full w-64 hidden md:block">
         <AdminSidebar
           onNavigate={handleNavigate}
           onSubscribe={() => router.push("/subscribe")}
@@ -575,7 +576,8 @@ export default function DemoPage() {
 
       {/* v12-E4.12 (WCAG 3.2.6 Consistent Help): same one-tap WhatsApp help
           affordance as the landing — same component, same fixed slot
-          (sits above the mobile nav: z-[60] vs nav z-30).
+          (sits above the mobile nav: the --z-toast rung 500 vs nav
+          --z-dropdown 100 — r127-F5b canonical ladder).
           v17-E-F2 (D7-P1-1): /demo ALSO renders MobileBottomNav, and the
           FAB's default bottom (env(safe-area)+1rem) parked it INSIDE the
           bar's fifth «المزيد» slot — covering the gateway to all 22

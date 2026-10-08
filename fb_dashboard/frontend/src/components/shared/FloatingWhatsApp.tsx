@@ -12,14 +12,15 @@ import { useConfig } from "@/hooks/useConfig"
  * phone resolves from /api/config (SystemConfig) with env fallback.
  *
  * v18-1e (mobile 390px pass):
- * - Modal dialogs: the FAB sits in the z-[60] toast layer — one layer
- *   ABOVE the modal (z-50) slot by design (z-index-scale.md), so a fixed
- *   FAB would float over the payment dialog and its «ادفع الآن» CTA.
- *   Rather than inventing an off-scale z-index, the FAB now unmounts
- *   while ANY open [role="dialog"] is in the DOM (useModalDialogOpen
- *   below) — it can never cover modal content, and the link leaves the
- *   Tab order while the dialog's focus trap is active. Verified against:
- *   Base UI Dialog.PaymentDialog (portal unmounts when closed) and the
+ * - Modal dialogs: the FAB sits on the --z-toast rung (r127-F5b canonical
+ *   ladder: toast 500 — one rung ABOVE the modal 400 slot, the layer
+ *   z-index-scale.md calls the toast layer), so a fixed FAB would float
+ *   over the payment dialog and its «ادفع الآن» CTA. Rather than letting
+ *   it cover modal content, the FAB now unmounts while ANY open
+ *   [role="dialog"] is in the DOM (useModalDialogOpen below) — it can
+ *   never cover modal content, and the link leaves the Tab order while
+ *   the dialog's focus trap is active. Verified against: Base UI
+ *   Dialog.PaymentDialog (portal unmounts when closed) and the
  *   always-mounted shells (Header mobile menu, MobileBottomNav sheet)
  *   which gate themselves with aria-hidden — filtered out below.
  * - Safe areas: the bottom offset keeps env(safe-area-inset-bottom)+1rem
@@ -73,7 +74,7 @@ export default function FloatingWhatsApp() {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-[60]",
+        "fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] z-(--z-toast)",
         "end-[max(1rem,env(safe-area-inset-left,0px))] sm:end-[max(1.5rem,env(safe-area-inset-left,0px))]",
         "size-14 rounded-full bg-primary text-primary-foreground",
         "flex items-center justify-center",

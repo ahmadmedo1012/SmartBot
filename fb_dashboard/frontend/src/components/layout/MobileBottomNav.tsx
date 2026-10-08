@@ -114,14 +114,14 @@ export function MobileBottomNav({
     <>
       {/* ── More sheet (all 23 sections) ── */}
       <div
-        className={cn("sheet-backdrop fixed inset-0 z-40 bg-(--overlay) md:hidden", sheetOpen && "sheet-open")}
+        className={cn("sheet-backdrop fixed inset-0 z-(--z-sheet) bg-(--overlay) md:hidden", sheetOpen && "sheet-open")}
         onClick={() => setSheetOpen(false)}
         aria-hidden="true"
       />
       <div
         ref={sheetRef}
         className={cn(
-          "sheet-panel fixed inset-x-0 bottom-0 z-50 md:hidden max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-(--shadow-modal)",
+          "sheet-panel fixed inset-x-0 bottom-0 z-(--z-sheet) md:hidden max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card shadow-(--shadow-modal)",
           sheetOpen && "sheet-open"
         )}
         role="dialog"
@@ -210,7 +210,7 @@ export function MobileBottomNav({
           className الهشة). */}
       <nav
         data-nav-root="mobile"
-        className="fixed inset-x-0 bottom-0 z-30 md:hidden border-t border-border bg-card safe-area-pb"
+        className="fixed inset-x-0 bottom-0 z-(--z-dropdown) md:hidden border-t border-border bg-card safe-area-pb"
         aria-label="التنقل الرئيسي"
       >
         <div className="grid grid-cols-5">

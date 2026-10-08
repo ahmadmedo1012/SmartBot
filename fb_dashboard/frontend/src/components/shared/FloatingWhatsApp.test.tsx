@@ -2,14 +2,14 @@
  * v18-1-e — FloatingWhatsApp contract.
  *
  * Pins the mobile-safe positioning (safe-area bottom offset, ≥16px
- * inline-end inset, 56px target, z-[60] toast layer) and the
- * modal-dialog rule: the FAB sits one z-layer ABOVE dialogs (z-50) per
- * z-index-scale.md, so it unmounts while any OPEN [role="dialog"] is in
- * the DOM — it can never cover the payment dialog or its «ادفع الآن»
- * CTA, and the link leaves the Tab order while the dialog's focus trap
- * is active. It returns when the dialog closes. Always-mounted shells
- * that gate themselves with aria-hidden (Header's mobile menu,
- * MobileBottomNav's sheet) must NOT trigger the hide.
+ * inline-end inset, 56px target, the --z-toast rung — r127-F5b canonical
+ * ladder) and the modal-dialog rule: the FAB sits one rung ABOVE dialogs
+ * (--z-modal) per z-index-scale.md, so it unmounts while any OPEN
+ * [role="dialog"] is in the DOM — it can never cover the payment dialog
+ * or its «ادفع الآن» CTA, and the link leaves the Tab order while the
+ * dialog's focus trap is active. It returns when the dialog closes.
+ * Always-mounted shells that gate themselves with aria-hidden (Header's
+ * mobile menu, MobileBottomNav's sheet) must NOT trigger the hide.
  */
 import { render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
@@ -42,7 +42,7 @@ describe("FloatingWhatsApp positioning", () => {
     expect(link.className).toContain("bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)]")
     expect(link.className).toContain("end-[max(1rem,env(safe-area-inset-left,0px))]")
     expect(link.className).toContain("size-14")
-    expect(link.className).toContain("z-[60]")
+    expect(link.className).toContain("z-(--z-toast)")
   })
 })
 

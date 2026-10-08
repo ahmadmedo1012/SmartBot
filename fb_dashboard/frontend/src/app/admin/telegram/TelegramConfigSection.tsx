@@ -82,8 +82,8 @@ export function TelegramConfigSection({
                     covered by the global net (globals.css:549-551 zeroes
                     every transition-duration). */}
                 <span className="grid" aria-hidden="true">
-                  <Eye className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-200 ease-out ${showToken ? "opacity-0 -rotate-90 scale-50" : ""}`} />
-                  <EyeOff className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-200 ease-out ${showToken ? "" : "opacity-0 -rotate-90 scale-50"}`} />
+                  <Eye className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-(--t-fast) ease-out ${showToken ? "opacity-0 -rotate-90 scale-50" : ""}`} />
+                  <EyeOff className={`col-start-1 row-start-1 size-4 transition-[opacity,transform] duration-(--t-fast) ease-out ${showToken ? "" : "opacity-0 -rotate-90 scale-50"}`} />
                 </span>
               </button>
             </div>

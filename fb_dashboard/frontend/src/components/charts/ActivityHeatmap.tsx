@@ -106,7 +106,7 @@ export function ActivityHeatmap({
             {row.map((count, h) => (
               <div
                 key={h}
-                className="aspect-square rounded-[3px] mx-[1px]"
+                className="aspect-square rounded-xs mx-[1px]"
                 title={`${WEEKDAY_LABELS[wd]} ${h}:00 — ${countPhrase(count, "رد", "ردين", "ردود")}`}
                 style={{ backgroundColor: count === 0 ? "var(--muted)" : cellMix(count, max) }}
               />
@@ -120,7 +120,7 @@ export function ActivityHeatmap({
         {[0.25, 0.5, 0.75, 1].map((f) => (
           <span
             key={f}
-            className="size-2.5 rounded-[3px]"
+            className="size-2.5 rounded-xs"
             style={{ backgroundColor: cellMix(Math.max(1, Math.round(max * f)), max) }}
           />
         ))}

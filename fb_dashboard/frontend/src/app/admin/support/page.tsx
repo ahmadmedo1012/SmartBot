@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useState } from "react"
+import { Fragment, useEffect, useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, RefreshCw, Inbox, CheckCircle2, ChevronLeft, Send } from "lucide-react"
 import Link from "next/link"
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import { brandedToast } from "@/lib/premium-toast"
@@ -138,6 +139,20 @@ export default function AdminSupportPage() {
 
   const tickets = ticketsQuery.data?.items ?? []
   const total = ticketsQuery.data?.total ?? 0
+  /* v26-F4 (P4-A4 §2 P2): فرز أعمدة الجدول — محلي على صفحة النافذة
+   * الحالية (عقد الخادم لا يفصح عن ?sort= بعد؛ الفرز لا يغيّر النافذة). */
+  const sortAccessors = useMemo<Record<string, (t: AdminSupportTicket) => number | string | null>>(
+    () => ({
+      id: (t) => t.id,
+      subject: (t) => t.subject,
+      tenant: (t) => t.tenant_name,
+      priority: (t) => t.priority,
+      status: (t) => t.status,
+      created: (t) => t.created_at ?? "",
+    }),
+    [],
+  )
+  const { sorted: sortedTickets, sort, toggleSort } = useTableSort(tickets, sortAccessors)
   const shownPage = ticketsQuery.data?.page ?? page
   /* The contract exposes total + page but not per_page — an empty page is
    * the honest "no more rows" signal, so «التالي» stops there instead of
@@ -203,7 +218,7 @@ export default function AdminSupportPage() {
         {STATUS_FILTERS.map((f) => (
           <Button
             key={f.key}
-            variant={status === f.key ? "orange" : "outline"}
+            variant={status === f.key ? "gold" : "outline"}
             size="sm"
             onClick={() => setStatus(f.key)}
             aria-pressed={status === f.key}
@@ -272,18 +287,18 @@ export default function AdminSupportPage() {
               <table aria-labelledby="admin-support-heading" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th scope="col" className="text-start p-3 font-medium">الرقم</th>
-                    <th scope="col" className="text-start p-3 font-medium">الموضوع</th>
-                    <th scope="col" className="text-start p-3 font-medium">المستأجر</th>
-                    <th scope="col" className="text-start p-3 font-medium">الأولوية</th>
-                    <th scope="col" className="text-start p-3 font-medium">الحالة</th>
+                    <SortableTh label="الرقم" column="id" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="الموضوع" column="subject" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="المستأجر" column="tenant" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="الأولوية" column="priority" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="الحالة" column="status" sort={sort} onToggle={toggleSort} />
                     <th scope="col" className="text-start p-3 font-medium">البريد</th>
-                    <th scope="col" className="text-start p-3 font-medium">التاريخ</th>
+                    <SortableTh label="التاريخ" column="created" sort={sort} onToggle={toggleSort} />
                     <th scope="col" className="text-start p-3 font-medium">إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tickets.map((t) => (
+                  {sortedTickets.map((t) => (
                     /* v22-D10: كل تذكرة = صف الجدول + صف توسيع بعرض كامل
                      * (colSpan) يحمل نص التذكرة والخيط ومربع الرد — نمط
                      * grid-rows الخاصية نفسه المستخدم في dashboard/support. */
@@ -361,7 +376,7 @@ export default function AdminSupportPage() {
                             id={`admin-ticket-thread-${t.id}`}
                             data-open={openTicketId === t.id || undefined}
                             aria-hidden={openTicketId !== t.id}
-                            className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-300"
+                            className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-(--t-base)"
                           >
                             <div className="overflow-hidden">
                               {openTicketId === t.id && (

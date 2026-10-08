@@ -48,13 +48,13 @@ const OptimizedImage = memo(function OptimizedImage({
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading")
 
   return (
-    <div className={cn("relative overflow-hidden rounded-[4px]", aspectMap[aspectRatio], className)}>
+    <div className={cn("relative overflow-hidden rounded-sm", aspectMap[aspectRatio], className)}>
       {/* Shimmer skeleton — CSS crossfade twin of the framer exit */}
       {skeleton && (
         <div
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 z-10 shimmer pointer-events-none transition-opacity duration-300",
+            "absolute inset-0 z-10 shimmer pointer-events-none transition-opacity duration-(--t-base)",
             status === "loading" ? "opacity-100" : "opacity-0"
           )}
           style={{
@@ -72,7 +72,7 @@ const OptimizedImage = memo(function OptimizedImage({
           alt={alt}
           fill
           className={cn(
-            "object-cover transition-opacity duration-500",
+            "object-cover transition-opacity duration-(--t-slower)",
             status === "loaded" ? "opacity-100" : "opacity-0",
             imageClassName,
           )}

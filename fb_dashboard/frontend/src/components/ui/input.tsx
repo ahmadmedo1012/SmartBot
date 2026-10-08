@@ -48,7 +48,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             dir="auto"
             className={cn(
-              "flex h-12 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-placeholder-text focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklch,var(--ring)_12%,transparent)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
+              "flex h-12 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-placeholder-text focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-[0_0_0_4px_color-mix(in_oklch,var(--ring)_12%,transparent)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 md:text-sm dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
               startIcon && "ps-11",
               StateIcon && "pe-11",
               effectiveState === "error" && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",

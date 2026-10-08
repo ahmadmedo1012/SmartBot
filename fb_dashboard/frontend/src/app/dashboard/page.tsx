@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -16,6 +17,7 @@ import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
 /* v11-A7 — framer-free entrances. The fadeUp/stagger choreography below was
  * this page's only eager framer-motion import; the section reveals now run
  * as CSS twins (.sb-fade-up — identical 0.5s cubic-bezier(0.165,0.84,0.44,1)
@@ -261,6 +263,16 @@ export default function DashboardPage() {
 
   const recentReplies: RecentReply[] = bundle?.recent_replies || []
   const rulesList: BundleRule[] = bundle?.rules || []
+  /* v26-F4 (P4-A4 §2 P2): فرز جدول القواعد — يفرز القائمة كاملة ثم يعرض
+   * أول ٥ (الترتيب يغيّر أي قواعد تدخل النافذة، ليس ترتيب الـ٥ فقط). */
+  const ruleAccessors = useMemo<Record<string, (r: BundleRule) => number | string | null>>(
+    () => ({
+      name: (r) => r.name,
+      status: (r) => (r.enabled !== false ? 1 : 0),
+    }),
+    [],
+  )
+  const { sorted: sortedRules, sort: rulesSort, toggleSort } = useTableSort(rulesList, ruleAccessors)
   const stats: Partial<DashboardStats> = bundle?.stats || {}
   const connection: Partial<DashboardConnection> = bundle?.connection || {}
   const messages: Partial<DashboardMessages> = bundle?.messages || {}
@@ -394,12 +406,12 @@ export default function DashboardPage() {
                         <table aria-labelledby="dashboard-rules-title" className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-border text-muted-foreground text-xs">
-                              <th scope="col" className="text-start p-3 font-medium">القاعدة</th>
-                              <th scope="col" className="text-center p-3 font-medium">الحالة</th>
+                              <SortableTh label="القاعدة" column="name" sort={rulesSort} onToggle={toggleSort} />
+                              <SortableTh label="الحالة" column="status" sort={rulesSort} onToggle={toggleSort} align="center" />
                             </tr>
                           </thead>
                           <tbody>
-                            {rulesList.slice(0, 5).map((r) => (
+                            {sortedRules.slice(0, 5).map((r) => (
                               <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
                                 <td className="p-3 font-medium">{r.name}</td>
                                 <td className="p-3 text-center">

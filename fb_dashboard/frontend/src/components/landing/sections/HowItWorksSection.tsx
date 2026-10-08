@@ -36,8 +36,8 @@ export default function HowItWorksSection() {
               >
                 {/* Step circle */}
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 size-16 rounded-full bg-accent-foreground/20 blur-xl group-hover:blur-2xl group-hover:bg-accent-foreground/30 transition-all duration-700" />
-                  <div className="relative size-16 rounded-full bg-gradient-to-b from-accent-foreground/25 to-accent-foreground/10 border border-accent-foreground/30 flex items-center justify-center group-hover:border-accent-foreground/50 group-hover:scale-105 transition-all duration-500 shadow-lg shadow-accent-foreground/10">
+                  <div className="absolute inset-0 size-16 rounded-full bg-accent-foreground/20 blur-xl group-hover:blur-2xl group-hover:bg-accent-foreground/30 transition-all duration-(--t-cinema)" />
+                  <div className="relative size-16 rounded-full bg-gradient-to-b from-accent-foreground/25 to-accent-foreground/10 border border-accent-foreground/30 flex items-center justify-center group-hover:border-accent-foreground/50 group-hover:scale-105 transition-all duration-(--t-slower) shadow-lg shadow-accent-foreground/10">
                     <Icon className="size-6 text-accent-foreground" />
                     <div className="absolute -top-2 -end-2 size-6 rounded-full bg-primary flex items-center justify-center shadow-md">
                       <span className="text-3xs font-bold text-primary-foreground">{step.num}</span>
@@ -45,7 +45,7 @@ export default function HowItWorksSection() {
                   </div>
                 </div>
 
-                <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-accent-foreground transition-colors duration-300">
+                <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:text-accent-foreground transition-colors duration-(--t-base)">
                   {step.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-[32ch]">

@@ -60,7 +60,7 @@ export function HeroMockup() {
 
       {/* Main mockup card — chat conversation */}
       <div className="relative glass-strong rounded-3xl p-1 shadow-2xl shadow-accent-foreground/5">
-        <div className="rounded-[20px] bg-card/80 backdrop-blur-xl border border-border/50 overflow-hidden">
+        <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 overflow-hidden">
           {/* Window header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-muted/20">
             <div className="flex items-center gap-2">

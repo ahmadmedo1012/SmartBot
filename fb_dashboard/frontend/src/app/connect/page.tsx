@@ -315,16 +315,16 @@ export default function ConnectPage() {
             <CardContent className="space-y-6">
               {/* Info badges */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
-                  <MessageCircle className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <MessageCircle className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
                   <span className="text-2xs font-medium text-foreground/80">ردود تلقائية</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
-                  <Zap className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <Zap className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
                   <span className="text-2xs font-medium text-foreground/80">بوت ذكي</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-200 hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
-                  <Shield className="h-5 w-5 text-accent-foreground transition-transform duration-200 group-hover:scale-110" />
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                  <Shield className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
                   <span className="text-2xs font-medium text-foreground/80">بيانات مشفرة</span>
                 </div>
               </div>
@@ -332,7 +332,7 @@ export default function ConnectPage() {
               {/* Page ID */}
               <div className="space-y-2">
                 <Label htmlFor="page-id" className="text-sm font-medium">معرف الصفحة (Page ID)</Label>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
                     id="page-id"
                     dir="ltr"
@@ -349,7 +349,7 @@ export default function ConnectPage() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="access-token" className="text-sm font-medium">رمز الوصول (Access Token)</Label>
                 </div>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                   <Input
                     id="access-token"
                     dir="ltr"

@@ -49,7 +49,7 @@ export function ScrollReveal({
   children,
   className,
   delay = 0,
-  duration = 0.6,
+  duration = 0.52,
   y = 20,
   x = 0,
   threshold = 0.15,

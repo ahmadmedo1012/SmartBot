@@ -349,7 +349,7 @@ function RepliesTab() {
               dir="auto"
               className="flex-1 h-11 rounded-xl border border-input/60 bg-muted/50 px-4 text-sm"
             />
-            <Button variant="orange" size="icon" aria-label="إرسال" disabled>
+            <Button variant="gold" size="icon" aria-label="إرسال" disabled>
               <Send className="size-4 rtl:-scale-x-100" />
             </Button>
           </div>
@@ -561,7 +561,7 @@ export default function DemoPage() {
                   <CardDescription className="text-base">
                     اشترك الآن واحصل على ردود تلقائية ذكية لصفحتك
                   </CardDescription>
-                  <Button variant="orange" size="lg" onClick={() => router.push("/subscribe")}>
+                  <Button variant="gold" size="lg" onClick={() => router.push("/subscribe")}>
                     ابدأ الاشتراك
                   </Button>
                 </CardContent>

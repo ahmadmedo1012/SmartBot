@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils"
 
 /* Smart-Menu parity (world-class launch plan v3 §6.1): soft tinted chips
  * (15% washes + 25% borders) instead of solid fills, h-5 rounded-full (v8-D4 pill),
- * font-medium. Legacy variant names (success/warning/danger/info/orange)
+ * font-medium. Legacy variant names (success/warning/danger/info/gold — v26-F4 renamed from the pre-Madarek "orange")
  * kept working — mapped onto the Smart-Menu tinted idiom. */
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-200 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pe-1.5 has-data-[icon=inline-start]:ps-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
@@ -26,7 +26,7 @@ const badgeVariants = cva(
         warning: "bg-warning/15 text-warning border-warning/25",
         danger: "bg-destructive/15 text-destructive border-destructive/25",
         info: "bg-info/15 text-info border-info/25",
-        orange: "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/25",
+        gold: "bg-accent-foreground/15 text-accent-foreground border-accent-foreground/25",
       },
     },
     defaultVariants: { variant: "default" },
@@ -45,5 +45,5 @@ function Badge({ className, variant, ...props }: BadgeProps) {
  * v15-E6 (D5-L7): dead VARIANTS removed — gold/saffron/gradient had zero
  * consumers in the app (grep-verified across src/e2e; live variants are
  * default/secondary/destructive/outline/ghost/link/success/warning/danger/
- * info/orange only). */
+ * info/gold only). */
 export { Badge }

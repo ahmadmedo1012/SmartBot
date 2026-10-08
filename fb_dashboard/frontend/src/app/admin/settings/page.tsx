@@ -337,7 +337,7 @@ export default function AdminSettingsPage() {
           <Button variant="ghost" size="sm" onClick={reset} disabled={!dirty || saving}>
             <RotateCcw className="size-4" /> تراجع
           </Button>
-          <Button variant="orange" onClick={save} disabled={!dirty || saving}>
+          <Button variant="gold" onClick={save} disabled={!dirty || saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             حفظ التغييرات
           </Button>

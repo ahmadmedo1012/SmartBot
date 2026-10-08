@@ -461,7 +461,7 @@ export default function SupportPage() {
                       id={`ticket-thread-${t.id}`}
                       data-open={openTicketId === t.id || undefined}
                       aria-hidden={openTicketId !== t.id}
-                      className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-300"
+                      className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-(--t-base)"
                     >
                       <div className="overflow-hidden">
                         {openTicketId === t.id && (

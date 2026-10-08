@@ -38,7 +38,7 @@ export function ThemeToggle({ className, tabIndex }: { className?: string; tabIn
         "cursor-pointer",
         "flex items-center justify-center",
         "overflow-hidden",
-        "transition-transform duration-200 ease-out",
+        "transition-transform duration-(--t-fast) ease-out",
         "hover:scale-[1.08] hover:rotate-[15deg] active:scale-[0.92]",
         className
       )}

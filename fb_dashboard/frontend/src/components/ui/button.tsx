@@ -21,7 +21,7 @@ const buttonVariants = cva(
         /* neutral-brand solid: gold slab on the مدارك night / copper on
          * cream, ink-dark label (--accent-fg values) — hover lifts 1px
          * (Madarek §4.5, hover:hover-gated by Tailwind v4) */
-        orange:
+        gold:
           "bg-primary text-primary-foreground hover:bg-primary/95 hover:-translate-y-px active:bg-primary/90 shadow-sm hover:shadow-md border-0",
         /* Madarek accent-CTA metal: gold gradient #C9962F→#E9B44C (dark) /
          * copper→gold (light) with the AA-pinned espresso label */
@@ -41,7 +41,7 @@ const buttonVariants = cva(
         icon: "size-12",
       },
     },
-    defaultVariants: { variant: "orange", size: "default" },
+    defaultVariants: { variant: "gold", size: "default" },
   }
 )
 

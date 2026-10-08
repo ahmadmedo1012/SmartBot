@@ -65,7 +65,7 @@ export function StepIndicator({
             >
               <div
                 className={cn(
-                  "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-300",
+                  "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-(--t-base)",
                   clickable && "active:scale-[0.94]",
                   isActive
                     ? "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso border-transparent shadow-lg shadow-accent-foreground/30 font-extrabold"
@@ -99,7 +99,7 @@ export function StepIndicator({
             {i < STEP_ORDER.length - 1 && (
               <div
                 className={cn(
-                  "w-6 sm:w-14 h-0.5 mt-5 mx-1 sm:mx-2 rounded-full transition-colors duration-500",
+                  "w-6 sm:w-14 h-0.5 mt-5 mx-1 sm:mx-2 rounded-full transition-colors duration-(--t-slower)",
                   i < currentIdx ? "bg-accent-foreground/50" : "bg-muted-foreground/15",
                 )}
               />

@@ -18,7 +18,7 @@ const SectionContainer = React.forwardRef<HTMLElement, SectionContainerProps>(
     <section
       ref={ref}
       className={cn(
-        "relative scroll-mt-20 py-16 sm:py-24 lg:py-28 overflow-hidden transition-[background-color,border-color] duration-300",
+        "relative scroll-mt-20 py-16 sm:py-24 lg:py-28 overflow-hidden transition-[background-color,border-color] duration-(--t-base)",
         tone === "alt" && "bg-[var(--surface-sunken)]/60 border-y border-border/40",
         className,
       )}

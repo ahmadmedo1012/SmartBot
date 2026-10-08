@@ -116,7 +116,7 @@ export function ComparisonBars({
           <span className="w-16 shrink-0 text-muted-foreground">{d.label}</span>
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
+              className="h-full rounded-full transition-all duration-(--t-slower)"
               style={{ width: `${(d.value / max) * 100}%`, background: ACCENT }}
             />
           </div>

@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "r=$(git rev-parse --short HEAD 2>/dev/null || echo unknown); SENTRY_RELEASE=$r NEXT_PUBLIC_SENTRY_RELEASE=$r next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",

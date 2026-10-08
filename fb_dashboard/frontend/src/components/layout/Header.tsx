@@ -20,13 +20,13 @@ function HamburgerButton({ open, onClick }: { open: boolean; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-200 active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
+      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-(--t-fast) active:scale-90 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
       aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
     >
       <span className="relative size-3.5">
-        <span className={cn("absolute inset-x-0 top-[2px] h-[2px] rounded-full bg-foreground transition-all duration-300 origin-center", open && "rotate-45 top-[6px]")} />
-        <span className={cn("absolute inset-x-0 top-[6px] h-[2px] rounded-full bg-foreground transition-all duration-300", open && "opacity-0")} />
-        <span className={cn("absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-foreground transition-all duration-300 origin-center", open && "-rotate-45 bottom-[6px]")} />
+        <span className={cn("absolute inset-x-0 top-[2px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base) origin-center", open && "rotate-45 top-[6px]")} />
+        <span className={cn("absolute inset-x-0 top-[6px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base)", open && "opacity-0")} />
+        <span className={cn("absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base) origin-center", open && "-rotate-45 bottom-[6px]")} />
       </span>
     </button>
   )
@@ -83,7 +83,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     <>
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-(--overlay) backdrop-blur-xs transition-opacity duration-200",
+          "fixed inset-0 z-40 bg-(--overlay) backdrop-blur-xs transition-opacity duration-(--t-fast)",
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -97,7 +97,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         aria-hidden={!open}
         className={cn(
           "fixed inset-x-0 top-0 z-50 mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
-          "transition-all duration-300 ease-out",
+          "transition-all duration-(--t-base) ease-out",
           open ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
         )}
         style={{ transformOrigin: "top center" }}
@@ -115,12 +115,12 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
             return (
               <div
                 key={link.href}
-                className={cn("transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+                className={cn("transition-opacity duration-(--t-base)", open ? "opacity-100" : "opacity-0")}
                 style={{ transitionDelay: open ? `${60 + i * 60}ms` : "0ms" }}
               >
                 <Link href={link.href} onClick={onClose} tabIndex={open ? 0 : -1}
                   aria-current={linkActive ? "page" : undefined}
-                  className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200", linkActive ? "bg-accent-foreground/15 text-accent-foreground" : "text-muted-foreground hover:bg-accent-foreground/10 hover:text-foreground")}
+                  className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-(--t-fast)", linkActive ? "bg-accent-foreground/15 text-accent-foreground" : "text-muted-foreground hover:bg-accent-foreground/10 hover:text-foreground")}
                 >
                   {link.label}
                 </Link>
@@ -187,7 +187,7 @@ export function Header({ className }: HeaderProps) {
               {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
                   text; a duplicated alt tripped axe image-redundant-alt. */}
               <Image src="/brand-icon.png" alt="" width={160} height={160} className="h-9 w-auto" priority />
-              <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-accent-foreground transition-colors duration-200" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
+              <span className="text-base font-bold tracking-normal text-foreground/90 group-hover:text-accent-foreground transition-colors duration-(--t-fast)" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>
             </Link>
           </div>
 
@@ -205,7 +205,7 @@ export function Header({ className }: HeaderProps) {
                       href={link.href}
                       aria-current={linkActive ? "page" : undefined}
                       className={cn(
-                        "relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-200 rounded-full",
+                        "relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-(--t-fast) rounded-full",
                         linkActive ? "text-primary-foreground" : "text-foreground/70 hover:text-foreground"
                       )}
                     >

@@ -237,7 +237,7 @@ export function AdminSidebar({
           <ThemeToggle className="!size-11 shrink-0" />
           <button
             onClick={onLogout}
-            className="flex min-h-11 flex-1 items-center justify-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
+            className="flex min-h-11 flex-1 items-center justify-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors duration-(--t-fast) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60"
           >
             <LogOut className="size-4 rtl:-scale-x-100" /> تسجيل الخروج
           </button>

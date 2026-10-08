@@ -74,6 +74,22 @@ for (const [fam, [bg, ink, deep]] of Object.entries(famDark)) {
 for (const [n, v] of [['t-micro', '80ms'], ['t-fast', '160ms'], ['t-base', '240ms'], ['t-slow', '380ms'], ['t-slower', '520ms'], ['t-cinema', '720ms']]) {
   pin(dark, 'dark', n, v);
 }
+// easing curves (§4) — v26-F4: --ease-spring is the canonical pop overshoot
+// 1.36 (NOT the 1.56 bounce tier — that lives on --ease-spring-bounce);
+// previously unpinned, which let the bounce fork survive r125's parity wave.
+for (const [n, v] of [
+  ['ease', 'cubic-bezier(0.4, 0, 0.2, 1)'],
+  ['ease-out', 'cubic-bezier(0.16, 1, 0.3, 1)'],
+  ['ease-in', 'cubic-bezier(0.7, 0, 0.84, 0)'],
+  ['ease-soft', 'cubic-bezier(0.22, 1, 0.36, 1)'],
+  ['ease-spring-soft', 'cubic-bezier(0.34, 1.18, 0.64, 1)'],
+  ['ease-spring', 'cubic-bezier(0.34, 1.36, 0.64, 1)'],
+  ['ease-spring-bounce', 'cubic-bezier(0.34, 1.56, 0.64, 1)'],
+]) {
+  // easings are theme-independent :root tokens (like the motion ladder —
+  // .light does not redefine them); pin the :root scope only.
+  pin(dark, 'dark', n, v);
+}
 // radius ladder (§1.2) — smart-bot carries it in the Tailwind @theme block
 const themeBlock = topLevelBlock(css, '@theme');
 for (const [n, v] of [['radius-xs', '6px'], ['radius-sm', '8px'], ['radius-md', '10px'], ['radius-lg', '12px'], ['radius-xl', '16px'], ['radius-2xl', '20px'], ['radius-3xl', '28px']]) {

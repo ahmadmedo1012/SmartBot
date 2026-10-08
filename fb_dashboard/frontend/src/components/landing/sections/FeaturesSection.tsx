@@ -37,7 +37,7 @@ export default function FeaturesSection() {
               delay={i * 50}
               duration={0.5}
               rootMargin="-60px 0px -60px 0px"
-              className={`group relative ${bentoLayout[i]} rounded-2xl bg-card border p-5 sm:p-6 transition-[border-color,background-color,box-shadow] duration-500 overflow-hidden hover:shadow-lg hover:shadow-accent-foreground/10 ${
+              className={`group relative ${bentoLayout[i]} rounded-2xl bg-card border p-5 sm:p-6 transition-[border-color,background-color,box-shadow] duration-(--t-slower) overflow-hidden hover:shadow-lg hover:shadow-accent-foreground/10 ${
                 isLarge
                   ? "border-accent-foreground/30 bg-gradient-to-br from-accent-foreground/[0.04] via-card to-card"
                   : "border-border/50 hover:border-accent-foreground/30"
@@ -55,7 +55,7 @@ export default function FeaturesSection() {
               )}
 
               <div className="relative h-full flex flex-col">
-                <div className={`size-10 sm:size-11 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                <div className={`size-10 sm:size-11 rounded-xl flex items-center justify-center mb-4 transition-all duration-(--t-base) ${
                   isLarge ? "bg-accent-foreground/15 scale-110" : "bg-accent-foreground/10 group-hover:bg-accent-foreground/15 group-hover:scale-110"
                 }`}>
                   <feat.icon className="size-5 text-accent-foreground" />
@@ -87,7 +87,7 @@ export default function FeaturesSection() {
 
                 {/* Hover arrow for compact cards */}
                 {!isLarge && (
-                  <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent-foreground transition-all duration-300">
+                  <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent-foreground transition-all duration-(--t-base)">
                     <span>اعرف المزيد</span>
                     {/* v7 §2.2 EXCEPTION (documented, not replaced): external-link
                         diagonal ↗ mirrored to ↖ in RTL — off the back/forward axis,

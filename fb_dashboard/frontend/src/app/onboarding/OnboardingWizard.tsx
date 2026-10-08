@@ -603,7 +603,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
               return (
                 <div key={i} className="flex items-center gap-1.5 flex-1">
                   <div
-                    /* v17-S3 (D2 §3.2): duration-400 was a lone off-scale
+                    /* v17-S3 (D2 §3.2): duration-(--t-slow) was a lone off-scale
                        value — now the --duration-slow token (500ms). */
                     className={`h-1 flex-1 rounded-full transition-all duration-(--duration-slow) ${
                       done ? "bg-primary" : active ? "bg-accent-foreground/60" : "bg-muted"

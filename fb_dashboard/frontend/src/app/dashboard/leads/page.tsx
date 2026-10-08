@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { UserPlus, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -13,16 +14,42 @@ import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly, formatNumber } from "@/lib/format"
 
+/* v26-F4 (P4-A4 §2 P2): مرشّح مرحلة العميل — الخادم يدعم ?stage= منذ v25
+ * (routers/crm_routes.py:27) والصفحة لم تكن تمرّره قط؛ المراحل من
+ * models.py:940 (stage = lead/prospect/trial/active/churned). */
+const STAGE_FILTERS = [
+  { key: "all", label: "الكل" },
+  { key: "lead", label: "محتمل" },
+  { key: "prospect", label: "مهتم" },
+  { key: "trial", label: "تجريبي" },
+  { key: "active", label: "نشط" },
+  { key: "churned", label: "متوقف" },
+] as const
+
+const STAGE_BADGE: Record<string, { label: string; variant: "info" | "gold" | "success" | "warning" | "danger" | "outline" }> = {
+  lead: { label: "محتمل", variant: "info" },
+  prospect: { label: "مهتم", variant: "gold" },
+  trial: { label: "تجريبي", variant: "warning" },
+  active: { label: "نشط", variant: "success" },
+  churned: { label: "متوقف", variant: "danger" },
+}
+
 export default function LeadsPage() {
   /* v25 (W-07): صفحة العملاء الحالية — /api/crm/customers (routers/
    * crm_routes.py:26) يقبل page ge=1 وper_page (افتراضي 25) ويُرجع
    * {items,total,page,per_page}؛ الصفحة كانت تعرض أول نافذة فقط بلا أي
    * سبيل للصفحات التالية. */
   const [page, setPage] = useState(1)
+  const [stage, setStage] = useState<string>("all")
+  /* أي تبديل مرحلة يعيد نافذة الصفحات للبداية (نمط admin/support v24-C3). */
+  useEffect(() => {
+    setPage(1)
+  }, [stage])
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["crm-customers", page],
+    queryKey: ["crm-customers", page, stage],
     queryFn: async () => {
-      const res = await apiFetch(`/api/crm/customers?page=${page}`)
+      const stageQ = stage === "all" ? "" : `&stage=${encodeURIComponent(stage)}`
+      const res = await apiFetch(`/api/crm/customers?page=${page}${stageQ}`)
       if (!res.ok) throw new Error(`فشل تحميل العملاء (${res.status})`)
       // API returns a paginated envelope {total, page, per_page, items} —
       // this page maps the LIST. The old code mapped the envelope object
@@ -53,6 +80,28 @@ export default function LeadsPage() {
         compact
       />
 
+      {/* v26-F4: مرشّح المرحلة — نفس نمط أزرار admin/support (aria-pressed +
+          variant=gold للمفعّل)؛ يمرّر ?stage= للخادم فيُرشّح على كل الصفحات
+          لا الصفحة الحالية فقط، مع عدّاد الصفوف من الظرف. */}
+      <div className="px-6 pt-2 max-w-5xl mx-auto w-full">
+        <div className="flex flex-wrap items-center gap-2">
+          {STAGE_FILTERS.map((f) => (
+            <Button
+              key={f.key}
+              variant={stage === f.key ? "gold" : "outline"}
+              size="sm"
+              onClick={() => setStage(f.key)}
+              aria-pressed={stage === f.key}
+            >
+              {f.label}
+            </Button>
+          ))}
+          <span className="text-xs text-muted-foreground" role="status">
+            {formatNumber(data?.total ?? 0)} عميل
+          </span>
+        </div>
+      </div>
+
       {/* D4-بند2 — قرار سقف العرض الموحد: max-w-5xl (1024px) + mx-auto. */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
         {isLoading ? (
@@ -73,10 +122,15 @@ export default function LeadsPage() {
             {customers.map((c) => (
               <Card key={c.id}>
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-1 gap-2">
                     {/* v14-E5 (D3-ج): name + notes are live CRM values —
                         dir="auto" isolates Latin/mixed names and free text. */}
                     <p className="text-sm font-bold" dir="auto">{c.name || "بدون اسم"}</p>
+                    {/* v26-F4: شارة المرحلة — المرشّح أعلاه بلا عرضها كان
+                        يرشّح حقلًا لا يراه المستخدم. */}
+                    {c.stage && STAGE_BADGE[c.stage] && (
+                      <Badge variant={STAGE_BADGE[c.stage].variant}>{STAGE_BADGE[c.stage].label}</Badge>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {/* v4 §2.3 — backend crm_routes returns notes/first_seen_at/

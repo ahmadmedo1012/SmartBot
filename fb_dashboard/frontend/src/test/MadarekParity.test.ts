@@ -208,6 +208,18 @@ const MOTION = {
   "--t-micro": "80ms", "--t-fast": "160ms", "--t-base": "240ms",
   "--t-slow": "380ms", "--t-slower": "520ms", "--t-cinema": "720ms",
 }
+// v26-F4: easing curves pinned — the r125 wave pinned durations only, which
+// let --ease-spring carry the bounce value 1.56 for a whole round. Canonical
+// pop overshoot is 1.36 (P4-A6 assertion 6); 1.56 is the bounce tier.
+const EASINGS = {
+  "--ease": "cubic-bezier(0.4, 0, 0.2, 1)",
+  "--ease-out": "cubic-bezier(0.16, 1, 0.3, 1)",
+  "--ease-in": "cubic-bezier(0.7, 0, 0.84, 0)",
+  "--ease-soft": "cubic-bezier(0.22, 1, 0.36, 1)",
+  "--ease-spring-soft": "cubic-bezier(0.34, 1.18, 0.64, 1)",
+  "--ease-spring": "cubic-bezier(0.34, 1.36, 0.64, 1)",
+  "--ease-spring-bounce": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+}
 const ELEV_DARK = {
   "--elev-1": "0 1px 2px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04)",
   "--elev-2": "0 4px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05)",
@@ -277,6 +289,13 @@ describe("r125 Madarek parity — motion ladder (theme-independent :root)", () =
   it("raw 80–720ms match tokens.css §4", () => {
     pinAll(dark, "motion", MOTION)
     pinAll(light, "motion", MOTION)
+  })
+})
+
+describe("r126 Madarek parity — easing curves (§4; v26-F4 bounce-fork fix)", () => {
+  it("spring = 1.36 pop tier, bounce = 1.56 (both modes)", () => {
+    pinAll(dark, "easing", EASINGS)
+    pinAll(light, "easing", EASINGS)
   })
 })
 

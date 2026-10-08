@@ -223,10 +223,10 @@ export default function PricingPage() {
                 )}
               >
                 <div
-                  className="h-full transition-transform duration-300 ease-out hover:-translate-y-1.5"
+                  className="h-full transition-transform duration-(--t-base) ease-out hover:-translate-y-1.5"
                 >
                 <Card className={cn(
-                  "relative h-full flex flex-col overflow-hidden transition-all duration-500",
+                  "relative h-full flex flex-col overflow-hidden transition-all duration-(--t-slower)",
                   isPopular
                     ? "border-accent-foreground/50 shadow-2xl shadow-accent-foreground/20 bg-gradient-to-b from-accent-foreground/[0.04] via-card to-card"
                     : "border-border/50 hover:border-accent-foreground/30"
@@ -303,7 +303,7 @@ export default function PricingPage() {
 
                     <Button
                       size="lg"
-                      variant={isPopular ? "orange" : "outline"}
+                      variant={isPopular ? "gold" : "outline"}
                       className={cn(
                         "w-full h-12 font-bold",
                         isPopular && "shadow-lg shadow-accent-foreground/30"

@@ -25,14 +25,14 @@ export function SectionHeader({ eyebrow, title, subtitle, description, icon, cla
   return (
     <SectionHeaderReveal className={cn("mb-14 sm:mb-20", centered ? "text-center" : "mx-auto text-center", className)}>
       {eyebrow && (
-        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "0.45s", "--rv-delay": "0ms" } as React.CSSProperties}>
+        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "520ms", "--rv-delay": "0ms" } as React.CSSProperties}>
           <Eyebrow className={centered ? "justify-center" : "justify-start"}>
             {icon}{icon && " "}{eyebrow}
           </Eyebrow>
         </div>
       )}
       {title && (
-        <div className="reveal" style={{ "--rv-y": "16px", "--rv-dur": "0.5s", "--rv-delay": "80ms" } as React.CSSProperties}>
+        <div className="reveal" style={{ "--rv-y": "16px", "--rv-dur": "520ms", "--rv-delay": "80ms" } as React.CSSProperties}>
           <h2
             className={cn(
               "text-3xl sm:text-4xl lg:text-[3.25rem] font-semibold leading-[1.25] tracking-tight text-balance",
@@ -44,7 +44,7 @@ export function SectionHeader({ eyebrow, title, subtitle, description, icon, cla
         </div>
       )}
       {desc && (
-        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "0.45s", "--rv-delay": "160ms" } as React.CSSProperties}>
+        <div className="reveal" style={{ "--rv-y": "8px", "--rv-dur": "520ms", "--rv-delay": "160ms" } as React.CSSProperties}>
           <p
             className={cn(
               "text-base text-muted-foreground/90 mt-4 max-w-[48ch] leading-relaxed",

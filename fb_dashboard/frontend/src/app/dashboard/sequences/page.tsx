@@ -441,7 +441,7 @@ function SequenceEditor({
             <div key={i} className="rounded-xl border border-border/60 p-3 space-y-2 bg-background/40">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Badge variant="orange" className="shrink-0">الخطوة {i + 1}</Badge>
+                  <Badge variant="gold" className="shrink-0">الخطوة {i + 1}</Badge>
                   <span className="text-2xs text-muted-foreground truncate">
                     {i === 0 ? "بعد إضافة المشترك" : "بعد الخطوة السابقة"} · {delayLabel(st.days, st.hours)}
                   </span>

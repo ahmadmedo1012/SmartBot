@@ -79,7 +79,7 @@ export default function FloatingWhatsApp() {
         "flex items-center justify-center",
         "shadow-xl shadow-accent-foreground/30",
         "hover:bg-primary/90 hover:scale-105 hover:shadow-2xl hover:shadow-accent-foreground/40",
-        "transition-[background-color,transform,translate,scale,rotate,box-shadow] duration-300",
+        "transition-[background-color,transform,translate,scale,rotate,box-shadow] duration-(--t-base)",
         "animate-fade-in"
       )}
       aria-label="تواصل عبر واتساب — يفتح في تبويب جديد"

@@ -100,7 +100,7 @@ export function LandingTestimonials() {
           {testimonials.map((t, i) => (
             <div
               key={t.id ?? i}
-              className="group relative rounded-2xl p-6 bg-card border border-border/50 hover:border-accent-foreground/40 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-foreground/5 animate-fade-in-150"
+              className="group relative rounded-2xl p-6 bg-card border border-border/50 hover:border-accent-foreground/40 transition-all duration-(--t-slower) hover:-translate-y-1 hover:shadow-xl hover:shadow-accent-foreground/5 animate-fade-in-150"
               style={{ animationDelay: `${i * 100}ms` }}
             >
               {t.metric && (

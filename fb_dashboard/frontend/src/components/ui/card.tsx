@@ -36,7 +36,7 @@ function Card({
       tabIndex={interactive ? 0 : undefined}
       className={cn(
         "group/card relative flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-card py-(--card-spacing) text-sm text-card-foreground border border-border shadow-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
-        "transition-[transform,box-shadow,border-color,background-color] duration-300 ease-smooth",
+        "transition-[transform,box-shadow,border-color,background-color] duration-(--t-base) ease-smooth",
         // Elevated is opt-in for cards that represent a clear interactive surface.
         "data-[elevation=elevated]:shadow-md data-[elevation=elevated]:hover:shadow-xl data-[elevation=elevated]:hover:shadow-accent-foreground/10 data-[elevation=elevated]:hover:-translate-y-1 data-[elevation=elevated]:hover:border-accent-foreground/35 data-[elevation=elevated]:focus-visible:ring-2 data-[elevation=elevated]:focus-visible:ring-accent-foreground/50 data-[elevation=elevated]:focus-visible:ring-offset-2",
         // Flat: no hover transform or shadow
@@ -63,7 +63,7 @@ function Card({
       {spotlight && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-500 group-hover/card:opacity-100"
+          className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-(--t-slower) group-hover/card:opacity-100"
           style={{
             background: "conic-gradient(from 0deg at 50% 50%, transparent 0deg, color-mix(in oklch, var(--ring) 60%, transparent) 30deg, transparent 50deg)",
             mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",

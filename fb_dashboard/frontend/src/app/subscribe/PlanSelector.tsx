@@ -89,7 +89,7 @@ function PlanCard({
       onClick={() => onSelect(plan.id)}
       aria-pressed={isSelected}
       className={cn(
-        "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-300 border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
+        "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-(--t-base) border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
         isSelected
           ? "border-accent-foreground ring-2 ring-accent-foreground/40 bg-accent/50 dark:bg-accent shadow-lg shadow-accent-foreground/15"
           : "border-border/30 hover:border-accent-foreground/30 hover:shadow-accent-foreground/5 bg-card/50",
@@ -110,7 +110,7 @@ function PlanCard({
       <span
         aria-hidden={!isSelected}
         className={cn(
-          "absolute -top-2 -end-2 size-6 rounded-full flex items-center justify-center shadow-lg transition-opacity duration-200",
+          "absolute -top-2 -end-2 size-6 rounded-full flex items-center justify-center shadow-lg transition-opacity duration-(--t-fast)",
           isSelected ? "bg-primary opacity-100" : "bg-border/60 opacity-0 pointer-events-none",
         )}
       >

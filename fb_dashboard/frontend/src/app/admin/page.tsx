@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 /* v17-E-F4 (D3 #1): success unified on CheckCircle2 app-wide (the payment
@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
 /* v12-E5.1: framer-motion left this route — the entrance is now the CSS
  * twin .sb-fade-up (components/shared/enter-motion.css), the 1:1 copy of
  * lib/motion.ts fadeUp (0.5s cubic-bezier(0.165,0.84,0.44,1), y24→0),
@@ -103,6 +104,21 @@ export default function AdminPage() {
   }, [filter])
 
   useEffect(() => { if (role === "admin") fetchPayments() }, [role, fetchPayments])
+
+  /* v26-F4 (P4-A4 §2 P2): فرز أعمدة طلبات الاشتراك — محلي على القائمة
+   * المجلوبة (لا صفحات هنا: /api/admin/subscriptions يعيد كل الصفوف). */
+  const sortAccessors = useMemo<Record<string, (p: Payment) => number | string | null>>(
+    () => ({
+      user: (p) => p.username,
+      plan: (p) => p.plan,
+      amount: (p) => p.amount,
+      phone: (p) => p.phone,
+      status: (p) => p.status,
+      created: (p) => p.created_at,
+    }),
+    [],
+  )
+  const { sorted: sortedPayments, sort, toggleSort } = useTableSort(payments, sortAccessors)
 
   const handleAction = useCallback(async (id: number, status: string) => {
     setActionId(id)
@@ -194,7 +210,7 @@ export default function AdminPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-6">
         {STATUS_FILTERS.map((f) => (
-          <Button key={f.key} variant={filter === f.key ? "orange" : "outline"} size="sm" onClick={() => setFilter(f.key)} aria-pressed={filter === f.key}>
+          <Button key={f.key} variant={filter === f.key ? "gold" : "outline"} size="sm" onClick={() => setFilter(f.key)} aria-pressed={filter === f.key}>
             {f.label}
           </Button>
         ))}
@@ -257,17 +273,17 @@ export default function AdminPage() {
               <table aria-labelledby="admin-payments-heading" className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th scope="col" className="text-start p-3 font-medium">المستخدم</th>
-                    <th scope="col" className="text-start p-3 font-medium">الخطة</th>
-                    <th scope="col" className="text-start p-3 font-medium">المبلغ</th>
-                    <th scope="col" className="text-start p-3 font-medium">رقم الهاتف</th>
-                    <th scope="col" className="text-start p-3 font-medium">الحالة</th>
-                    <th scope="col" className="text-start p-3 font-medium">التاريخ</th>
+                    <SortableTh label="المستخدم" column="user" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="الخطة" column="plan" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="المبلغ" column="amount" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="رقم الهاتف" column="phone" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="الحالة" column="status" sort={sort} onToggle={toggleSort} />
+                    <SortableTh label="التاريخ" column="created" sort={sort} onToggle={toggleSort} />
                     <th scope="col" className="text-center p-3 font-medium">إجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((p) => (
+                  {sortedPayments.map((p) => (
                     <tr key={p.id} className="border-b border-border hover:bg-muted/30 transition-colors sb-fade-up">
                       {/* v15-E6 (D5-M7): usernames are live values (Latin/mixed) —
                           dir="auto" isolates bidi like the phone cell above. */}
@@ -285,7 +301,7 @@ export default function AdminPage() {
                         <div className="flex items-center justify-center gap-2">
                           {p.status === "pending" && (
                             <>
-                              <Button variant="orange" size="sm" loading={actionId === p.id}
+                              <Button variant="gold" size="sm" loading={actionId === p.id}
                                 onClick={() => handleAction(p.id, "verified")}>
                                 <CheckCircle2 className="size-4" aria-hidden="true" /> قبول
                               </Button>

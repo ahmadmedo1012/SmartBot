@@ -354,7 +354,7 @@ export default function AutoReplyPage() {
                     maxLength={TONE_MAX_LEN}
                     placeholder="مثال: ودية ومهنية"
                     dir="auto"
-                    className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                    className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                   />
                 </div>
               )}
@@ -392,7 +392,7 @@ export default function AutoReplyPage() {
                   /* v16-E3 (D1 C3): raw input bypasses the shared Input seam —
                      dir="auto" isolates mixed Arabic/Latin values. */
                   dir="auto"
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -403,7 +403,7 @@ export default function AutoReplyPage() {
                   onChange={e => setKeyword(e.target.value)}
                   placeholder="مثال: سعر، توصيل، عنوان"
                   dir="auto"
-                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-full h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div>
@@ -415,7 +415,7 @@ export default function AutoReplyPage() {
                   placeholder="النص الذي سيرد به البوت عند تطابق الكلمة…"
                   rows={3}
                   dir="auto"
-                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-base md:text-sm transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
+                  className="w-full min-h-[80px] rounded-lg border border-input/60 bg-background p-3 text-base md:text-sm transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15 resize-none"
                 />
               </div>
               <div>
@@ -429,7 +429,7 @@ export default function AutoReplyPage() {
                   onBlur={() => setPriority(p => clampPriority(p))}
                   inputMode="numeric"
                   dir="auto"
-                  className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-200 focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
+                  className="w-32 h-11 text-base md:text-sm rounded-lg border border-input/60 bg-background px-3 transition-colors duration-(--t-fast) focus:outline-none focus:border-accent-foreground/40 focus:ring-2 focus:ring-accent-foreground/15"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-1">
@@ -467,7 +467,7 @@ export default function AutoReplyPage() {
         ) : (
           <div className="space-y-2">
             {rules.map((r) => (
-              <Card key={r.id} className="card-hover border-border/50 hover:border-accent-foreground/30 group">
+              <Card key={r.id} elevation="elevated" className="border-border/50 group">
                 <CardContent className="p-4 flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">

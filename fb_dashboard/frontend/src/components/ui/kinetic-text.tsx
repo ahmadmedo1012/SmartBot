@@ -46,7 +46,7 @@ export function KineticText({
   className,
   mode = "lines",
   delay = 0,
-  duration = 800,
+  duration = 720,
   style,
 }: KineticTextProps) {
   const ref = useRef<HTMLDivElement | null>(null)

@@ -133,7 +133,7 @@ function RegisterForm() {
               5.59/6.54:1.
               v16-E3 (D1 C2): un-nested Link>Button — ghost-variant visuals
               moved to a span, the anchor is the single tab stop. */}
-          <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 dark:hover:bg-foreground/15 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-smooth h-10 min-h-11 min-w-11 gap-1 px-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
+          <span className="relative inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/10 dark:hover:bg-foreground/15 font-sans text-xs font-bold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-base) ease-smooth h-10 min-h-11 min-w-11 gap-1 px-3.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
             <DirectionalIcon semanticDirection="back" className="size-3.5" />
             العودة للرئيسية
           </span>
@@ -163,7 +163,7 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" placeholder="مثال: ahmed_ali" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   aria-invalid={formError ? true : undefined}
@@ -179,7 +179,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="email" type="email" autoComplete="email" placeholder="مثال: ahmed@example.com" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
@@ -195,7 +195,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
@@ -230,7 +230,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-sm font-medium">تأكيد كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-300 focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="نفس كلمة المرور أعلاه" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   aria-invalid={formError ? true : undefined}

@@ -29,7 +29,9 @@ export function AppToaster() {
           background: "var(--card)",
           color: "var(--card-foreground)",
           border: "1px solid var(--border)",
-          animation: "slide-up 0.35s cubic-bezier(0.16, 1, 0.2, 1)",
+          /* r128-F3a (P1 carry-over): ladder tokens — was the inline fork
+           * curve "0.35s cubic-bezier(0.16, 1, 0.2, 1)". */
+          animation: "slide-up var(--t-slow) var(--ease-smooth)",
           borderRadius: "var(--radius-lg)",
           padding: "8px",
         },

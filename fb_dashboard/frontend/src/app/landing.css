@@ -1,0 +1,461 @@
+/*
+ * landing.css — r128-F3a (Stage A foundation).
+ * The SmartBot landing layer: everything scoped under the `.landing` wrapper
+ * on the page root (PORT-KIT §0 R4 — the landing paints the Orbit-Ink world
+ * in BOTH themes; the product token pins in globals.css stay untouched).
+ *
+ * Port map (madarek @ cf7ffca, canonical per PORT-KIT r128):
+ *   bridge tokens      — values the smart-bot product sheet does not define
+ *                        (Madarek tokens.css / landing.css:54 canonicals)
+ *   §1 token block     — PORT-KIT §1 verbatim (tokens.css:377-427)
+ *   base utilities     — landing.css:68-114 (.ln-grain/.ln-mono/.ln-label/
+ *                        .marketing-container) + .ln-chapter (767-775)
+ *   §3 marquee         — landing.css:115-160 (PORT-KIT §3 verbatim)
+ *   chrome §4          — .landing-header/.scrolled (183-199), nav link
+ *                        family (233-275) + scroll-spy active rules (R2
+ *                        form, 259-274), megamenu (277-330), buttons
+ *                        (371-481), progress ribbon (1552-1566)
+ *   reveal family      — polish.css:470-488 (.reveal-up), the CSS half of
+ *                        the useReveal/RevealCssClass port (kit §2)
+ *
+ * Discipline (PORT-KIT §7): flat ink grounds, hairlines, lime/violet
+ * accents only — no gradients on grounds, no glow, no glass, no tilt.
+ */
+
+/* ── 0 · bridge — canonical Madarek values the product sheet lacks ────
+   Scoped to `.landing` only (R4): these resolve every var() the ported
+   blocks reference; globals.css keeps its own --radius-* names untouched. */
+.landing {
+  --ln-mono: 'IBM Plex Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
+  --r-full: 9999px;
+  --r-md: 10px;
+  --r-xl: 16px;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --ease-linear: linear;
+  --motion-duration-reveal: 360ms;
+  --marketing-max-w: 1200px;
+  --page-gutter: 48px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+}
+
+/* Madarek semantic RM (shared-design-system.css:199): under reduced motion
+   the reveal tier snaps to an 80ms affordance — mirrors the fleet rule.
+   The global --t-* zeroing (globals.css) flows through the --ln-t-* alias
+   chain automatically (R8); the marquee/scroll-spy carry their own RM
+   off-switches below. */
+@media (prefers-reduced-motion: reduce) {
+  .landing { --motion-duration-reveal: 80ms; }
+}
+
+/* ── 1 · token block — PORT-KIT §1 verbatim ─────────────────────────── */
+.landing {
+  --ln-ink:        #252A3E;   /* primary flat ground */
+  --ln-ink-2:      #1C2032;   /* darker step — scene separation */
+  --ln-cream:      #F5F3E7;   /* primary text on ink — 12.75:1 AAA */
+  --ln-cream-dim:  #C9C6B4;   /* secondary text — 8.26:1 AAA */
+  --ln-lime:       #DFEDB2;   /* accent 1 (pistachio) */
+  --ln-lime-deep:  #B9D778;   /* hover/active lime — 8.82:1 */
+  --ln-violet:     #7A6BF2;   /* accent 2 — large-text/accent only */
+  --ln-violet-deep:#4E2FB8;   /* decorative depth fills only */
+  --ln-line:       rgba(245,243,231,0.14);
+  --ln-line-soft:  rgba(245,243,231,0.07);
+  --ln-grain-op:   0.05;
+  --ln-radius-pill: var(--r-full);
+  --ln-h1:         clamp(2.75rem, 8.2vw, 6.75rem);
+  --ln-h1-lh:      1.04;
+  --ln-t-fast:      var(--t-fast);    /* 160ms */
+  --ln-t-base:      var(--t-base);    /* 240ms */
+  --ln-t-slow:      var(--t-slow);    /* 380ms */
+  --ln-t-cinema:    var(--t-cinema);  /* 720ms */
+  --ln-t-reveal:    var(--motion-duration-reveal);  /* 360ms — map to your
+      repo's reveal duration token if named differently; 360ms canonical */
+  --ln-ease:        var(--ease);      /* standard state ease (R1) */
+  --ln-ease-out:    var(--ease-out);
+  --ln-ease-soft:   var(--ease-soft);
+  --ln-ease-spring: var(--ease-spring);
+  --ln-ease-linear: var(--ease-linear);
+  --ln-dur-marquee: 42s;
+  background: var(--ln-ink); color: var(--ln-cream);
+}
+
+/* ── 2 · base utilities — landing.css:68-114 ────────────────────────── */
+
+/* Film grain — the one permanent texture. Fixed veil above the whole
+   landing (below native dialog overlays, which live in the top layer),
+   5% white feTurbulence noise on a 200px stitchable tile (R7). */
+.landing .ln-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: var(--ln-grain-op);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23m)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* mono machine-voice — Latin runs, numerals, coordinates (Arabic runs
+   continue in the brand sans via the --ln-mono fallback chain) */
+.landing .ln-mono {
+  font-family: var(--ln-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ln-cream-dim);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: plaintext; /* per-paragraph direction: Arabic-first runs stay RTL */
+}
+
+/* technical section label — «01 — …». Direction-neutral (inherits RTL) so
+   the Latin numeral opens the reading; tabular numerals keep the indexes
+   aligned across chapters. */
+.landing .ln-label {
+  display: block;
+  font-family: var(--ln-mono);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.08em;
+  color: var(--ln-lime);
+  font-variant-numeric: tabular-nums;
+  direction: inherit;
+  margin-block-end: 14px;
+}
+
+.landing .marketing-container {
+  max-inline-size: var(--marketing-max-w);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}
+
+/* chapter scaffolding — landing.css:767-775; the shared 96–140 rhythm
+   with a soft bottom hairline separating chapters. */
+.landing .ln-chapter {
+  position: relative;
+  padding: clamp(96px, 12vh, 140px) var(--page-gutter);
+  border-block-end: 1px solid var(--ln-line-soft);
+}
+
+/* ── 3 · marquee — landing.css:115-160 (PORT-KIT §3 verbatim) ───────── */
+.landing .ln-marquee {
+  overflow: hidden;
+  border-block: 1px solid var(--ln-line);
+  padding-block: 18px;
+  background: var(--ln-ink);
+  user-select: none;
+}
+.landing .ln-marquee-track {
+  display: flex;
+  align-items: center;
+  gap: 48px; /* keep in lockstep with the +24px seam correction below */
+  inline-size: max-content;
+  animation: ln-marquee var(--ln-dur-marquee) var(--ln-ease-linear) infinite;
+}
+/* Seamless RTL loop: the track is right-anchored (block child in RTL
+   overflows inline-end = left), copy 1 fills the viewport and copy 2
+   waits off-screen left. Animating translateX 0 → 50%+24px slides the
+   whole track rightward until copy 2 sits exactly where copy 1 began.
+   24px is HALF the 48px track gap — the only correction a duplicated
+   flex list needs (one seam gap vs N-1 in-copy gaps). Rightward =
+   reading direction for RTL, per spec §4.2.8. */
+@keyframes ln-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(50% + 24px)); }
+}
+.landing .ln-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: var(--fw-medium);
+  color: var(--ln-cream-dim);
+}
+/* lime dot separator — the "·" glyph is hidden, a true dot is drawn */
+.landing .ln-marquee-sep {
+  font-size: 0;
+  inline-size: 5px;
+  block-size: 5px;
+  margin-inline-start: 48px; /* evens text↔dot↔next-text rhythm */
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-lime);
+  flex-shrink: 0;
+}
+/* R3: explicit RM off-switch — token zeroing alone cannot stop a raw
+   duration loop; the animation is removed entirely. */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-marquee-track { animation: none; }
+}
+
+/* ── 4 · chrome — header rail, nav, megamenu, buttons, ribbon ───────── */
+
+/* header — flat rail, no glass (landing.css:183-199; kit §4) */
+.landing .landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: transparent;
+  border-block-end: 1px solid transparent;
+  transition:
+    background var(--ln-t-base) var(--ln-ease-soft),
+    border-color var(--ln-t-base) var(--ln-ease-soft);
+}
+/* solid ink-2 @ 92% + hairline — no glass blur anywhere */
+.landing .landing-header.scrolled {
+  background: rgb(28 32 50 / 0.92);
+  border-block-end-color: var(--ln-line);
+}
+
+/* nav link family — landing.css:233-258 + 275 */
+.landing .landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-inline-start: auto;
+}
+.landing .landing-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--ln-radius-pill);
+  color: var(--ln-cream-dim);
+  font-size: 14px;
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    color var(--ln-t-fast) var(--ln-ease-soft),
+    background var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .landing-nav-link:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.04); }
+.landing .landing-nav-link:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; border-radius: var(--ln-radius-pill); }
+
+/* Scroll-spy active state (R2) — the observer writes
+   data-active-section on the HEADER element; these rules read it there.
+   Section ids follow the SmartBot skeleton (PORT-KIT §5 content-slot
+   mapping: colleges→features, campus→plate); Stage B extends the list
+   if final section ids diverge. */
+.landing header[data-active-section="trust"] .landing-nav-link[href="#trust"],
+.landing header[data-active-section="features"] .landing-nav-link[href="#features"],
+.landing header[data-active-section="journey"] .landing-nav-link[href="#journey"],
+.landing header[data-active-section="progress"] .landing-nav-link[href="#progress"],
+.landing header[data-active-section="plate"] .landing-nav-link[href="#plate"],
+.landing header[data-active-section="roles"] .landing-nav-link[href="#roles"] {
+  color: var(--ln-cream);
+  background: rgb(245 243 231 / 0.08);
+}
+.landing .landing-nav-link svg { transition: transform var(--ln-t-fast) var(--ln-ease-out); }
+
+/* megamenu — landing.css:277-330 verbatim; opaque panel, hairline edge,
+   no blur, no ghost shadow */
+.landing .landing-nav-group { position: relative; }
+.landing .landing-nav-group.open .landing-nav-link { color: var(--ln-cream); background: rgb(245 243 231 / 0.04); }
+.landing .landing-nav-group.open .landing-nav-link svg { transform: rotate(180deg); }
+.landing .landing-megamenu {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 10px);
+  min-inline-size: 340px;
+  padding: 10px;
+  border-radius: var(--r-xl);
+  background: var(--ln-ink-2);
+  border: 1px solid var(--ln-line);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity var(--ln-t-base) var(--ln-ease-out),
+    transform var(--ln-t-base) var(--ln-ease-out),
+    visibility 0s var(--ln-ease-linear) var(--ln-t-base);
+}
+.landing .landing-nav-group.open .landing-megamenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition-delay: 0s;
+}
+.landing .landing-megamenu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  transition: background var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .landing-megamenu-item:hover,
+.landing .landing-megamenu-item:focus-visible { background: rgb(245 243 231 / 0.05); }
+.landing .ln-menu-ico {
+  inline-size: 38px;
+  block-size: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.landing .ln-menu-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-menu-ico.azure { background: rgb(122 107 242 / 0.16); color: var(--ln-violet); }
+.landing .ln-menu-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .landing-megamenu-item-title { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); }
+.landing .landing-megamenu-item-desc { display: block; color: var(--ln-cream-dim); font-size: 12px; margin-block-start: 2px; }
+
+.landing .landing-header-cta { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* buttons — landing.css:371-481 verbatim; one pill system */
+.landing .ln-btn-gold,
+.landing .ln-btn-ghost,
+.landing .ln-btn-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: var(--ln-radius-pill);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  font-family: inherit;
+  transition:
+    background var(--ln-t-base) var(--ln-ease),
+    color var(--ln-t-base) var(--ln-ease),
+    border-color var(--ln-t-base) var(--ln-ease),
+    transform var(--ln-t-fast) var(--ln-ease-out);
+}
+
+/* the conversion pill — flat lime, ink text, slim agency height
+   (~46px desktop). The ONE lime-filled surface on the page. */
+.landing .ln-btn-gold {
+  padding: 10px 26px;
+  font-size: 15px;
+  min-block-size: 46px;
+  background: var(--ln-lime);
+  color: var(--ln-ink);
+  border-radius: var(--ln-radius-pill);
+  transform: translate(var(--mag-x, 0), var(--mag-y, 0));
+  position: relative;
+  /* Premium depth — world-class button shadow (P3-25) */
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.12),
+    0 4px 12px rgba(0,0,0,0.16),
+    0 0 0 1px rgba(245,243,231,0.08);
+}
+.landing .ln-btn-gold:hover {
+  background: var(--ln-lime-deep);
+  /* Elevated hover state */
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.16),
+    0 8px 20px rgba(0,0,0,0.20),
+    0 0 0 1px rgba(245,243,231,0.10);
+  transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) - 1px));
+}
+.landing .ln-btn-gold:active {
+  transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) + 1px));
+}
+/* Premium glow — world-class button depth on hover */
+.landing .ln-btn-gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.2) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+  pointer-events: none;
+}
+.landing .ln-btn-gold:hover::after { opacity: 1; }
+.landing .ln-btn-gold.xl { padding: 12px 34px; font-size: 16px; min-block-size: 48px; }
+
+/* the outline pill — transparent, 1px hairline, faint tracking; hover is
+   a quiet tint, never a lime fill (VLM R3-W5 lime roster) */
+.landing .ln-btn-ghost {
+  padding: 10px 24px;
+  font-size: 15px;
+  min-block-size: 46px;
+  letter-spacing: 0.01em;
+  background: transparent;
+  color: var(--ln-cream);
+  /* GAP-3: the old 0.14 hairline read as a disabled field — the pill
+     SHAPE must be visible before the text inside it can feel clickable. */
+  border: 1px solid rgb(245 243 231 / 0.34);
+  border-radius: var(--ln-radius-pill);
+  /* Subtle depth on ghost buttons for premium feel */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.landing .ln-btn-ghost:hover {
+  background: rgb(245 243 231 / 0.07);
+  color: var(--ln-cream);
+  border-color: rgb(245 243 231 / 0.52);
+  /* Elevated ghost on hover */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+.landing .ln-btn-ghost.xl { padding: 12px 32px; font-size: 16px; min-block-size: 48px; }
+
+/* quiet tertiary — opens the college registry */
+.landing .ln-btn-text {
+  padding: 10px 16px;
+  font-size: 14.5px;
+  min-block-size: 44px;
+  background: transparent;
+  color: var(--ln-cream-dim);
+}
+.landing .ln-btn-text:hover { color: var(--ln-cream); }
+.landing .ln-btn-text-badge {
+  min-inline-size: 26px;
+  block-size: 20px;
+  padding-inline: 7px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--ln-radius-pill);
+  background: rgb(245 243 231 / 0.08);
+  color: var(--ln-cream-dim);
+  font-family: var(--ln-mono);
+  font-size: 11.5px;
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* top progress ribbon — landing.css:1552-1566 (kit §4: imperative --p var,
+   flat cream fill, no gradient/glow/lime) */
+.landing .landing-progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  block-size: 2px;
+  z-index: 90;
+  background: rgb(245 243 231 / 0.08);
+  pointer-events: none;
+}
+.landing .landing-progress-bar {
+  block-size: 100%;
+  inline-size: calc(var(--p, 0) * 100%);
+  background: var(--ln-cream);
+}
+
+/* ── 5 · reveal family — polish.css:470-488 ────────────────────────────
+   The CSS half of the useReveal/RevealCssClass port (kit §2): .in-view is
+   written by the shared observer belt; scoped here so the classes only
+   live inside the landing world. Durations ride the --t-* ladder. */
+.landing .reveal-up {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity var(--t-slower) var(--ease-out),
+    transform var(--t-slower) var(--ease-out);
+}
+.landing .reveal-up.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+.landing .reveal-d-1.in-view { transition-delay: 80ms; }
+.landing .reveal-d-2.in-view { transition-delay: 160ms; }
+.landing .reveal-d-3.in-view { transition-delay: 240ms; }
+.landing .reveal-d-4.in-view { transition-delay: 320ms; }
+.landing .reveal-d-5.in-view { transition-delay: 400ms; }
+@media (prefers-reduced-motion: reduce) {
+  .landing .reveal-up { opacity: 1; transform: none; }
+}

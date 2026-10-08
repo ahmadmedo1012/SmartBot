@@ -11,6 +11,11 @@ import Link from "next/link"
 import { Star, Sparkles } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 
+/* r128-F3a: the landing css layer — Orbit-Ink token block, marquee,
+   header/nav/megamenu chrome, buttons, grain, reveal family; everything
+   scoped under the `.landing` wrapper class below (PORT-KIT §0 R4). */
+import "./landing.css"
+
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/shared/FloatingWhatsApp"
@@ -104,7 +109,10 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <div className="flex flex-col min-h-screen overflow-x-hidden">
+      {/* r128-F3a: `.landing` wrapper — the Orbit-Ink token layer goes
+          live (dark stage in BOTH themes, R4); sections are NOT restructured
+          yet (Stage B rebuilds them on this foundation). */}
+      <div className="landing flex flex-col min-h-screen overflow-x-hidden">
       <Header />
       {/* v8-B7/v9-D3: skip-link target — lands past the Header nav.
           tabIndex={-1} makes the browser actually MOVE focus here when the

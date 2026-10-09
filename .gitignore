@@ -38,8 +38,13 @@ tsconfig.tsbuildinfo
 fb_dashboard/frontend/.next/
 __pycache__/
 
-# Receipt uploads (runtime data)
-fb_dashboard/static/uploads/
+# r132-F3a: fb_dashboard/static/ is a REGENERABLE Next.js build export for
+# single-server uvicorn mode (4.8MB of hashed chunks was tracked — stale by
+# 3 design rounds, rewritten with MB churn on every re-sync). Untracked now;
+# regen locally: cd fb_dashboard/frontend && npm run build, then
+# python scripts/sync_next_static.py (deterministic — wipes + recopies).
+# Covers runtime receipt uploads under static/uploads/ too.
+fb_dashboard/static/
 
 # E2E test-run artifacts (regenerated on demand)
 fb_dashboard/e2e_artifacts/

@@ -121,8 +121,10 @@ export async function getToken(context: BrowserContext, base = FRONT_BASE): Prom
 /**
  * أدمن البذرة عبر API (نمط journey.spec.ts L103-111): POST /api/login →
  * استخراج token من set-cookie، مع تخزين القرص. يُدخل مرة واحدة لكل جولة.
+ * (r132-F3a: export dropped — module-internal, used by approvePayment;
+ * the specs use the disk-cached loadAdminToken() instead.)
  */
-export async function adminToken(request: APIRequestContext): Promise<string> {
+async function adminToken(request: APIRequestContext): Promise<string> {
   const cached = loadAdminToken()
   if (cached) return cached
   const r = await withRateGuard(() =>
@@ -146,27 +148,8 @@ export async function approvePayment(
   )
 }
 
-/**
- * تخطي المعالج برمجياً (نمط mobile-nav.spec.ts L38-42): POST
- * /api/onboarding/complete ببند الجلسة — بلا Origin والتحقق double-submit
- * يسقط عند غياب كوكي csrf (العقد المُثبت).
- */
-export async function skipOnboarding(
-  request: APIRequestContext | Page,
-  token: string
-): Promise<void> {
-  if ('goto' in (request as any)) {
-    // صفحة: استخدم السياق المباشر
-    const page = request as Page
-    await page.request.post(`${FRONT_BASE}/api/onboarding/complete`, {
-      headers: { cookie: `token=${token}` },
-    })
-    return
-  }
-  await apiPost(request as APIRequestContext, '/api/onboarding/complete', undefined, {
-    token,
-  })
-}
+/* r132-F3a: skipOnboarding deleted — zero consumers (the wizard-completion
+ * path is exercised via the specs' own browserFetch/apiPost calls). */
 
 /** زر «تخطي» لجولة joyride إن ظهرت (نفس الحرس القائم). */
 export async function skipJoyride(page: Page): Promise<void> {

@@ -12,7 +12,10 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
-import { DirectionalIcon } from "@/components/ui/directional-icon"
+/* r132 (A8 F-SB-1): the retired «السابق/التالي» hand-rolled pager → the
+ * canonical numbered TablePagination footer (fleet ruling "numbered pag" —
+ * the audience/admin-support/leads twin). */
+import { TablePagination } from "@/components/shared/TablePagination"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost, PostsResponse } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
@@ -70,8 +73,12 @@ export default function PostsPage() {
   })
   const fbPosts = fbEnvelope?.items ?? []
   const syncFailed = fbEnvelope?.synced === false && fbEnvelope?.sync_attempted === true
-  /* v25 (W-07): المؤشرات من الظرف — has_next يقرّر «التالي»، وعدد الصفحات
-   * من total/per_page (مثل audience/leads). */
+  /* v25 (W-07): المؤشرات من الظرف — الصفحة الفعلية من data.page وعدد
+   * الصفحات من total/per_page (عقد audience/leads نفسه).
+   * r132 (A8 F-SB-1): both now feed the canonical TablePagination — the
+   * envelope's has_next was only the hand-rolled «التالي» disabled source
+   * and is derived server-side from the SAME total (facebook_routes.py:1064),
+   * so totalPages is the exact equivalent for the numbered window. */
   const fbShownPage = fbEnvelope?.page ?? fbPage
   const fbTotalPages = Math.max(1, Math.ceil((fbEnvelope?.total ?? 0) / (fbEnvelope?.per_page ?? 10)))
 
@@ -239,33 +246,24 @@ export default function PostsPage() {
                 ))
               )}
 
-              {/* v25 (W-07): مِرقاة صفحات منشورات فيسبوك — القسم كان يعرض أول
-                  10 فقط؛ has_next من الظرف يقرّر «التالي» (مع احتياط
-                  total/per_page) — نمط admin/support v24-C3. */}
+              {/* r132 (A8 F-SB-1): the «السابق/التالي» link row → the canonical
+                  numbered TablePagination footer (window from the envelope's
+                  total/per_page — the exact math admin/support uses; the
+                  sr-only status line stays as the polite live region,
+                  admin/support:514 twin). */}
               {!fbLoading && !fbIsError && fbPosts.length > 0 && (
-                <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFbPage((p) => Math.max(1, p - 1))}
-                    disabled={fbPage <= 1}
-                    aria-label="الصفحة السابقة"
-                  >
-                    <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
-                  </Button>
-                  <span className="text-xs text-muted-foreground" role="status">
+                <>
+                  <p className="sr-only" role="status">
                     صفحة {formatNumber(fbShownPage)} من {formatNumber(fbTotalPages)}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFbPage((p) => p + 1)}
-                    disabled={!(fbEnvelope?.has_next ?? fbShownPage < fbTotalPages)}
-                    aria-label="الصفحة التالية"
-                  >
-                    التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
-                  </Button>
-                </div>
+                  </p>
+                  <TablePagination
+                    page={fbShownPage}
+                    totalPages={fbTotalPages}
+                    total={fbEnvelope?.total ?? 0}
+                    onPageChange={setFbPage}
+                    unitLabel="منشور"
+                  />
+                </>
               )}
             </div>
           )}

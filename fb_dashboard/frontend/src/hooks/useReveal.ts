@@ -201,7 +201,9 @@ const unregister = (entry: RevealEntry) => {
   if (registry.size === 0) detachBelt();
 };
 
-export function useReveal<T extends HTMLElement = HTMLElement>(options?: {
+/* r132-F3a: export dropped — zero external importers (every landing consumer
+ * reaches this module through RevealCssClass below); module-internal now. */
+function useReveal<T extends HTMLElement = HTMLElement>(options?: {
   threshold?: number;
   rootMargin?: string;
   once?: boolean;

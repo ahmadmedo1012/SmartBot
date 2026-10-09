@@ -227,6 +227,15 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   /* v18-1a (أ): the failed-save verdict — set by handleNext, rendered by the
    * failing step's content, cleared on retry / bypass / step change. */
   const [saveError, setSaveError] = useState<SaveFailure | null>(null)
+  /* r132 (A8 F-SB-3): the empty-form advance was SILENT — an empty step-1/
+   * step-2 form skipped the save entirely and advanced with zero feedback,
+   * so the user reached «كل شيء جاهز!» believing the page was linked / the
+   * rule created (v18-1a's own honesty philosophy, missing at the advance
+   * gate). The failed-save path already blocks honestly; the empty path now
+   * blocks too — per-field Arabic errors + focus on the first invalid field.
+   * Cleared per-field as the user types, and on every step transition. */
+  type FieldKey = "pageId" | "accessToken" | "keyword" | "reply"
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({})
 
   // Step 1 (index 1): Facebook page fields
   const [pageId, setPageId] = useState("")
@@ -324,9 +333,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
   }, [saveError])
 
   /* v18-1a (أ): a stale error never survives a step transition — going back
-   * (or a successful retry's advance) resets the verdict state. */
+   * (or a successful retry's advance) resets the verdict state.
+   * r132 (A8 F-SB-3): field errors join the same reset. */
   useEffect(() => {
     setSaveError(null)
+    setFieldErrors({})
   }, [step])
 
   const total = STEPS.length
@@ -404,6 +415,23 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
     })
   }, [])
 
+  /* r132 (A8 F-SB-3): the validation gate's focus contract — the first
+   * invalid field receives focus (rAF, the same timing as the failed-save
+   * alert and focusStepTitle) so keyboard/SR users land where the fix is. */
+  const focusFirstInvalidField = useCallback((id: FieldKey) => {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id) as HTMLElement | null
+      el?.focus()
+    })
+  }, [])
+
+  /* r132 (A8 F-SB-3): errors clear as the user types — a stale verdict under
+   * a field the user just filled is noise. The setter returns the same object
+   * when the field is already clear (no extra render). */
+  const clearFieldError = useCallback((field: FieldKey) => {
+    setFieldErrors((fe) => (fe[field] ? { ...fe, [field]: undefined } : fe))
+  }, [])
+
   const handleNext = useCallback(async () => {
     /* v18-1a (أ — أخطاء الحفظ بصدق): the two save steps used to swallow
      * their failures with a silent "Non-fatal — continue wizard" catch — a
@@ -411,7 +439,37 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
      * user believed the page was linked. Now: unwrap the ok() envelope (so a
      * 200 success:false is ALSO a failure), surface the server's Arabic
      * detail in a role="alert" region, and BLOCK the advance — the only
-     * way forward is a successful retry or the explicit «المتابعة رغم ذلك». */
+     * way forward is a successful retry or the explicit «المتابعة رغم ذلك».
+     *
+     * r132 (A8 F-SB-3) — the advance gate: an EMPTY form used to skip the
+     * save entirely and advance silently (zero feedback — the twin hole of
+     * the swallowed failure above). Required fields are validated FIRST:
+     * empty → per-field Arabic errors, NO POST, NO advance; the save path
+     * below only ever runs with the required fields present. */
+    // Step 1 (index 1) → required: page id + access token (page name is
+    // optional by its own label; the token-less "connection" is a dead bot).
+    if (step === 1) {
+      const errors: Partial<Record<FieldKey, string>> = {}
+      if (!pageId.trim()) errors.pageId = "معرف الصفحة مطلوب لربط صفحتك قبل المتابعة"
+      if (!accessToken.trim()) errors.accessToken = "رمز الوصول مطلوب لربط صفحتك قبل المتابعة"
+      if (errors.pageId || errors.accessToken) {
+        setFieldErrors((fe) => ({ ...fe, ...errors }))
+        focusFirstInvalidField(errors.pageId ? "pageId" : "accessToken")
+        return
+      }
+    }
+    // Step 2 (index 2) → required: keyword + reply (a rule without either
+    // half is not a rule; the API payload defaults are empty strings).
+    if (step === 2) {
+      const errors: Partial<Record<FieldKey, string>> = {}
+      if (!keyword.trim()) errors.keyword = "الكلمة المفتاحية مطلوبة لإنشاء القاعدة قبل المتابعة"
+      if (!reply.trim()) errors.reply = "نص الرد مطلوب لإنشاء القاعدة قبل المتابعة"
+      if (errors.keyword || errors.reply) {
+        setFieldErrors((fe) => ({ ...fe, ...errors }))
+        focusFirstInvalidField(errors.keyword ? "keyword" : "reply")
+        return
+      }
+    }
     // Step 1 (index 1) → save page connection before advancing
     if (step === 1 && pageId) {
       setLoading(true)
@@ -478,7 +536,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
      * in the deps a stale/empty token could be POSTed silently when the
      * user typed it after the callback was memoized (pageId/pageName were
      * already listed — the omission was an oversight). */
-  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply, focusStepTitle, clearPersistedStep])
+  }, [step, total, onComplete, pageId, pageName, accessToken, keyword, reply, focusStepTitle, clearPersistedStep, focusFirstInvalidField])
 
   /* v18-1a (أ): the explicit bypass — advance WITHOUT saving, after the
    * alert spelled out exactly what was not persisted. Same focus contract
@@ -660,7 +718,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     label="معرف الصفحة (Page ID)"
                     id="pageId"
                     value={pageId}
-                    onChange={(e) => setPageId(e.target.value)}
+                    onChange={(e) => {
+                      setPageId(e.target.value)
+                      clearFieldError("pageId")
+                    }}
+                    error={fieldErrors.pageId}
                     placeholder="مثال: 1234567890"
                     dir="ltr"
                   />
@@ -669,7 +731,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     id="accessToken"
                     type="password"
                     value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
+                    onChange={(e) => {
+                      setAccessToken(e.target.value)
+                      clearFieldError("accessToken")
+                    }}
+                    error={fieldErrors.accessToken}
                     placeholder="EAAG…"
                     dir="ltr"
                     hint="من Graph API Explorer بصلاحيات الصفحة — يُشفّر فور الحفظ"
@@ -763,7 +829,11 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     label="كلمة مفتاحية"
                     id="keyword"
                     value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
+                    onChange={(e) => {
+                      setKeyword(e.target.value)
+                      clearFieldError("keyword")
+                    }}
+                    error={fieldErrors.keyword}
                     placeholder="مثال: سعر"
                     hint="البوت يرد عند ذكر هذه الكلمة في التعليق"
                   />
@@ -794,18 +864,31 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     {/* r131-F7b (A4 P1-1): raw textarea → the shared Textarea
                         seam (dir="auto" + the canonical input recipe are
                         built in — was rounded-sm + a hand-rolled ring + 14px
-                        text, the iOS-zoom + third-focus-grammar drift). */}
+                        text, the iOS-zoom + third-focus-grammar drift).
+                        r132 (A8 F-SB-3): the reply field joins the validation
+                        gate — the Input component's error contract (error text
+                        + aria-invalid + aria-describedby, error replaces the
+                        hint) reproduced for this hand-labelled field. */}
                     <Textarea
                       id="reply"
                       value={reply}
-                      onChange={(e) => setReply(e.target.value)}
+                      onChange={(e) => {
+                        setReply(e.target.value)
+                        clearFieldError("reply")
+                      }}
                       placeholder="شكراً لسؤالك! السعر يبدأ من 50 د.ل…"
                       rows={3}
                       className="resize-none"
+                      aria-invalid={fieldErrors.reply ? true : undefined}
+                      aria-describedby={fieldErrors.reply ? "reply-error" : undefined}
                     />
-                    <p className="text-3xs text-muted-foreground">
-                      اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
-                    </p>
+                    {fieldErrors.reply ? (
+                      <p id="reply-error" className="text-xs text-destructive-ink">{fieldErrors.reply}</p>
+                    ) : (
+                      <p className="text-3xs text-muted-foreground">
+                        اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

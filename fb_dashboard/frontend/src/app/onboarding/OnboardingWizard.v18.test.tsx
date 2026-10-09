@@ -109,6 +109,24 @@ function clickNext() {
   fireEvent.click(screen.getByRole("button", { name: "التالي" }))
 }
 
+/* r132 (A8 F-SB-3): the empty-form advance is BLOCKED at the two save steps
+ * (the validation gate — see the dedicated describe below). Walk-helpers
+ * feed the required fields so the step-walking cases still traverse; the
+ * unmatched-route default (ok({})) satisfies both saves. */
+async function fillConnectAndAdvance() {
+  fireEvent.change(screen.getByLabelText("معرف الصفحة (Page ID)"), { target: { value: "1234567890" } })
+  fireEvent.change(screen.getByLabelText(/رمز الوصول \(Page Access Token\)/), { target: { value: "EAAG.walk.token" } })
+  clickNext()
+  await screen.findByText("أنشئ أول قاعدة رد")
+}
+
+async function fillRuleAndAdvance() {
+  fireEvent.change(screen.getByLabelText("كلمة مفتاحية"), { target: { value: "سعر" } })
+  fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "السعر يبدأ من 50 د.ل" } })
+  clickNext()
+  await screen.findByText("اختر خطتك")
+}
+
 async function goToConnectStep(api: ReturnType<typeof stubFetch>) {
   clickNext()
   await screen.findByText("اربط صفحة فيسبوك")
@@ -222,11 +240,13 @@ describe("v18-1a (أ) — honest save failures", () => {
       "POST /api/onboarding/first-rule": () => jsonRes({ detail: "تعذر حفظ القاعدة" }, 500),
     })
     renderWizard()
-    // empty page id → no connect POST → walk to the rule step
+    /* r132 (A8 F-SB-3): step 1 validates on advance — walk to it first
+     * (step 0 has no fields), then fill the required connection fields to
+     * reach the rule step (the connect save answers the unmatched-route
+     * default ok({})). */
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
+    await fillConnectAndAdvance()
 
     fireEvent.change(screen.getByLabelText("كلمة مفتاحية"), { target: { value: "سعر" } })
     fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "السعر يبدأ من 50 د.ل" } })
@@ -325,10 +345,9 @@ describe("v18-1a (ب) — persisted progress (sb-onboarding-step)", () => {
     renderWizard()
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
-    clickNext()
-    await screen.findByText("اختر خطتك")
+    await fillConnectAndAdvance()
+    await fillRuleAndAdvance()
+    // the helpers land on the plan step — one more «التالي» crosses to done
     clickNext()
     await screen.findByText("كل شيء جاهز!")
 
@@ -342,9 +361,8 @@ describe("v18-1a (هـ) — «عرض كل الباقات» opens a new tab", () 
   async function goToPlanStep() {
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
-    clickNext()
+    await fillConnectAndAdvance()
+    await fillRuleAndAdvance()
     await screen.findByText("اختر خطتك")
   }
 
@@ -373,5 +391,88 @@ describe("v18-1a (هـ) — «عرض كل الباقات» opens a new tab", () 
 
     expect(mocks.push).toHaveBeenCalledWith("/subscribe")
     expect(window.localStorage.getItem(STEP_KEY)).toBeNull()
+  })
+})
+
+/* r132 (A8 F-SB-3) — the empty-advance twin of the honest-save contract above:
+ * an EMPTY step-1/step-2 form used to skip the save entirely and advance
+ * silently (the user reached «كل شيء جاهز!» believing the page was linked /
+ * the rule created). The gate now blocks with per-field Arabic errors, no
+ * POST, focus on the first invalid field — errors clear as the user types. */
+describe("r132 (A8 F-SB-3) — the empty-advance validation gate", () => {
+  it("step 1: empty form → both field errors, NO connect POST, NO advance, focus on the first invalid field", async () => {
+    const api = stubFetch({ [PLANS_ROUTE]: plansResponse })
+    renderWizard()
+    await goToConnectStep(api)
+
+    clickNext()
+
+    // both required fields carry their Arabic verdict (error text + aria-invalid)
+    expect(await screen.findByText("معرف الصفحة مطلوب لربط صفحتك قبل المتابعة")).toBeInTheDocument()
+    expect(screen.getByText("رمز الوصول مطلوب لربط صفحتك قبل المتابعة")).toBeInTheDocument()
+    expect(screen.getByLabelText("معرف الصفحة (Page ID)")).toHaveAttribute("aria-invalid", "true")
+    expect(screen.getByLabelText(/رمز الوصول \(Page Access Token\)/)).toHaveAttribute("aria-invalid", "true")
+    // no save was attempted, and the wizard did NOT move on
+    expect(api.callsFor("/api/onboarding/connect-page").length).toBe(0)
+    expect(screen.getByText("اربط صفحة فيسبوك")).toBeInTheDocument()
+    expect(screen.queryByText("أنشئ أول قاعدة رد")).toBeNull()
+    // keyboard + SR users land on the first field that needs fixing (rAF)
+    await waitFor(() => expect(document.activeElement?.id).toBe("pageId"))
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true)
+  })
+
+  it("step 1: errors clear per-field as the user types, then the filled form saves + advances", async () => {
+    const api = stubFetch({
+      [PLANS_ROUTE]: plansResponse,
+      "POST /api/onboarding/connect-page": () => jsonRes({ success: true, data: { ok: true } }),
+    })
+    renderWizard()
+    const f = await goToConnectStep(api)
+    clickNext()
+    await screen.findByText("معرف الصفحة مطلوب لربط صفحتك قبل المتابعة")
+
+    fireEvent.change(f.pageId, { target: { value: "1234567890" } })
+    expect(screen.queryByText("معرف الصفحة مطلوب لربط صفحتك قبل المتابعة")).toBeNull()
+    // the token verdict stays until its own field is typed into
+    expect(screen.getByText("رمز الوصول مطلوب لربط صفحتك قبل المتابعة")).toBeInTheDocument()
+
+    fireEvent.change(f.token, { target: { value: "EAAG.valid" } })
+    clickNext()
+
+    await screen.findByText("أنشئ أول قاعدة رد")
+    expect(api.bodiesFor("/api/onboarding/connect-page")).toEqual([
+      { page_id: "1234567890", page_name: "", access_token: "EAAG.valid" },
+    ])
+  })
+
+  it("step 2: empty keyword/reply → blocked (no first-rule POST); partial fill shows only the missing verdict", async () => {
+    const api = stubFetch({
+      [PLANS_ROUTE]: plansResponse,
+      "POST /api/onboarding/connect-page": () => jsonRes({ success: true, data: {} }),
+    })
+    renderWizard()
+    const f = await goToConnectStep(api)
+    fireEvent.change(f.pageId, { target: { value: "1" } })
+    fireEvent.change(f.token, { target: { value: "t" } })
+    clickNext()
+    await screen.findByText("أنشئ أول قاعدة رد")
+
+    clickNext() // both rule fields empty
+
+    expect(await screen.findByText("الكلمة المفتاحية مطلوبة لإنشاء القاعدة قبل المتابعة")).toBeInTheDocument()
+    expect(screen.getByText("نص الرد مطلوب لإنشاء القاعدة قبل المتابعة")).toBeInTheDocument()
+    expect(api.callsFor("/api/onboarding/first-rule").length).toBe(0)
+    expect(screen.getByText("أنشئ أول قاعدة رد")).toBeInTheDocument()
+    expect(screen.queryByText("اختر خطتك")).toBeNull()
+    await waitFor(() => expect(document.activeElement?.id).toBe("keyword"))
+
+    // typing the keyword clears ITS verdict only; the reply textarea carries
+    // the Input error recipe hand-wired (aria-invalid + describedby + text)
+    fireEvent.change(screen.getByLabelText("كلمة مفتاحية"), { target: { value: "سعر" } })
+    expect(screen.queryByText("الكلمة المفتاحية مطلوبة لإنشاء القاعدة قبل المتابعة")).toBeNull()
+    expect(screen.getByText("نص الرد مطلوب لإنشاء القاعدة قبل المتابعة")).toBeInTheDocument()
+    const reply = screen.getByLabelText("نص الرد") as HTMLTextAreaElement
+    expect(reply).toHaveAttribute("aria-invalid", "true")
+    expect(reply).toHaveAttribute("aria-describedby", "reply-error")
   })
 })

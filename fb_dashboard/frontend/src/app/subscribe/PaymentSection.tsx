@@ -31,11 +31,11 @@ export function ReviewSummary({
 }) {
   return (
     <div className="animate-fade-in max-w-lg mx-auto">
-      {/* v17-S1 (D4-بند4): التدرج الأبيض الخام (نهاية to نحو الأبيض) كان
-          يكسر الوضع الفاتح (بطاقة بيضاء صريحة) — التدرج الآن توكني بالكامل
-          (D4: from-accent/15 → to-card فاتحًا، accent/20 داكنًا) بنفس قصد
-          Smart-Menu الأصلي. */}
-      <div className="rounded-md p-5 mb-8 border-2 border-accent-foreground/30 bg-gradient-to-r from-accent/15 to-card dark:from-accent/20">
+      {/* r132-F3a: the gradient tile flattened to the Smart-Menu family twin
+          (SubscribeForm.tsx:526) — identical stops = a flat 5% wash + 1px
+          border + rounded-2xl; the v17-S1 2-stop gradient + 2px border were
+          the last r131 de-glow-tail stragglers. */}
+      <div className="rounded-2xl p-5 mb-8 border border-accent-foreground/20 bg-gradient-to-r from-accent-foreground/[0.05] to-accent-foreground/[0.05]">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-lg">{currentPlan.nameAr}</p>

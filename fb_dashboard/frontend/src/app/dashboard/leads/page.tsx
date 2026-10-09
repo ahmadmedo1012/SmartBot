@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
-import { DirectionalIcon } from "@/components/ui/directional-icon"
+/* r132 (A8 F-SB-1): the retired «السابق/التالي» hand-rolled pager → the
+ * canonical numbered TablePagination footer (fleet ruling "numbered pag" —
+ * the audience/admin-support twin). */
+import { TablePagination } from "@/components/shared/TablePagination"
 import { unwrapApi } from "@/lib/api"
 import type { CrmCustomer } from "@/lib/types"
 import { formatDateOnly, formatNumber } from "@/lib/format"
@@ -67,7 +70,6 @@ export default function LeadsPage() {
    * لأن هذا الظرف يفصح عن per_page). */
   const shownPage = data?.page ?? page
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / (data?.per_page ?? 25)))
-  const hasNextPage = shownPage < totalPages
 
   return (
     <div className="flex-1 flex flex-col">
@@ -158,33 +160,27 @@ export default function LeadsPage() {
           </div>
         )}
 
-        {/* v25 (W-07): مِرقاة الصفحات — مرآة لنمط admin/support (v24-C3:
-            السابق/التالي عبر DirectionalIcon chevrons + مؤشر «صفحة X من Y»
-            role=status)؛ تُخفى عند التحميل/الخطأ. */}
-        {!isLoading && !isError && (
-          <div className="flex items-center justify-center gap-3 p-4 border-t border-border">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              aria-label="الصفحة السابقة"
-            >
-              <DirectionalIcon semanticDirection="back" variant="chevron" className="size-4" /> السابق
-            </Button>
-            <span className="text-xs text-muted-foreground" role="status">
+        {/* r132 (A8 F-SB-1): the «السابق/التالي» link row → the canonical
+             TablePagination footer (hairline-topped, count on the start side,
+             windowed page-number buttons + ellipsis gaps, 44px touch below
+             sm). The empty-guard joins audience/posts: the footer renders
+             ONLY when there is something to page — the old row painted
+             «صفحة 1 من 1» with both steps disabled on an empty list. The
+             sr-only status line stays as the polite live region for the
+             current window (admin/support:514 twin). */}
+        {!isLoading && !isError && customers.length > 0 && (
+          <>
+            <p className="sr-only" role="status">
               صفحة {formatNumber(shownPage)} من {formatNumber(totalPages)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!hasNextPage}
-              aria-label="الصفحة التالية"
-            >
-              التالي <DirectionalIcon semanticDirection="forward" variant="chevron" className="size-4" />
-            </Button>
-          </div>
+            </p>
+            <TablePagination
+              page={shownPage}
+              totalPages={totalPages}
+              total={data?.total ?? 0}
+              onPageChange={setPage}
+              unitLabel="عميل"
+            />
+          </>
         )}
       </div>
     </div>

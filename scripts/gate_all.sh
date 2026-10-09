@@ -171,10 +171,13 @@ else
             else
               echo "✅ static freshness: synced buildId $_BID"
               PASSED+=("static-freshness")
-              # informational only: refreshed static must be committed before
-              # pushing — the api-domain serves it from the repo
+              # informational only (r132-F3a): fb_dashboard/static is
+              # UNTRACKED (gitignored regen artifact) — a refreshed copy is
+              # local-only; single-server deploys regenerate it themselves
+              # (npm run build + scripts/sync_next_static.py). Nothing to
+              # commit.
               if [[ -n "$(git status --porcelain -- fb_dashboard/static)" ]]; then
-                echo "ℹ️  fb_dashboard/static refreshed — commit it before pushing"
+                echo "ℹ️  fb_dashboard/static refreshed locally (untracked regen artifact — nothing to commit)"
               fi
             fi
           else

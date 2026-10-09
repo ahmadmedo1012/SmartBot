@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { brandedToast } from "@/lib/premium-toast"
 import { Check, X, Loader2, Shield, Zap, MessageCircle, Webhook, Copy, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -41,6 +42,9 @@ type ConnectTestResult = {
 }
 
 export default function ConnectPage() {
+  /* r132 (A8 F-SB-4): SPA navigation for the success CTA — the app's CTA
+   * contract (pricing/admin/analytics), not a full-reload anchor. */
+  const router = useRouter()
   const [pageId, setPageId] = useState("")
   const [accessToken, setAccessToken] = useState("")
   const [status, setStatus] = useState<Status>("idle")
@@ -339,37 +343,44 @@ export default function ConnectPage() {
                 </div>
               </div>
 
-              {/* Page ID */}
+              {/* Page ID — r132 (A8 F-SB-4): the hand-rolled well (rounded-lg
+                  border-input/60 + bg-background/50 + focus-within ring, with
+                  the primitive's own recipe stripped via h-11 border-0
+                  bg-transparent focus-visible:ring-0) is retired — the shared
+                  Input now carries the canonical recipe itself: 44px h-11,
+                  16px floor, r-md, solid border-input, and the single
+                  sanctioned --state-input-focus-halo (3px @ 22% solid accent).
+                  dir="ltr" keeps live digits isolated; text-end preserves the
+                  current end-aligned entry UX on the RTL form. */}
               <div className="space-y-2">
                 <Label htmlFor="page-id" className="text-sm font-medium">معرف الصفحة (Page ID)</Label>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
-                  <Input
-                    id="page-id"
-                    dir="ltr"
-                    placeholder="123456789012345"
-                    value={pageId}
-                    onChange={(e) => setPageId(e.target.value)}
-                    className="h-11 border-0 bg-transparent text-end focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
+                <Input
+                  id="page-id"
+                  dir="ltr"
+                  placeholder="123456789012345"
+                  value={pageId}
+                  onChange={(e) => setPageId(e.target.value)}
+                  className="text-end"
+                />
               </div>
 
-              {/* Access Token */}
+              {/* Access Token — r132 (A8 F-SB-4): same swap as the page-id
+                  well above — the shared Input recipe (44/16-floor/r-md + the
+                  3px-22% halo token) replaces the stripped-primitive wrapper;
+                  font-mono stays (token strings read better in mono). */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="access-token" className="text-sm font-medium">رمز الوصول (Access Token)</Label>
                 </div>
-                <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
-                  <Input
-                    id="access-token"
-                    dir="ltr"
-                    type="password"
-                    placeholder="EAAx..."
-                    value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
-                    className="h-11 border-0 bg-transparent font-mono focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </div>
+                <Input
+                  id="access-token"
+                  dir="ltr"
+                  type="password"
+                  placeholder="EAAx..."
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  className="font-mono"
+                />
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   رمز الوصول يحتاج الصلاحيات: <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_messaging</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_manage_metadata</code>, <code className="text-accent-foreground/80 bg-accent-foreground/10 px-1 rounded">pages_read_engagement</code>
                 </p>
@@ -452,9 +463,13 @@ export default function ConnectPage() {
                     <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
                     تم التفعيل — البوت جاهز للعمل
                   </p>
-                  <Link href="/dashboard" className="inline-flex h-10 items-center justify-center rounded-lg bg-success px-6 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors">
+                  {/* r132 (A8 F-SB-4): the hand-rolled h-10 bg-success link-button
+                      → the shared Button on its canonical ladder (40px/13px/
+                      600/r-md) + the app's SPA navigation contract (router.push
+                      — the pricing/admin/analytics CTA pattern; no full reload). */}
+                  <Button onClick={() => router.push("/dashboard")}>
                     الذهاب للوحة التحكم
-                  </Link>
+                  </Button>
                 </div>
               )}
 

@@ -8,8 +8,10 @@
  */
 import { createHmac } from 'node:crypto'
 
-/** السر الذي يضبطه السكربت المحلي (FACEBOOK_APP_SECRET). */
-export const APP_SECRET = process.env.SIM_APP_SECRET || 'sim-app-secret'
+/** السر الذي يضبطه السكربت المحلي (FACEBOOK_APP_SECRET).
+ * (r132-F3a: export dropped — module-internal: the default secret of
+ * signRaw/signWebhook below; zero external importers.) */
+const APP_SECRET = process.env.SIM_APP_SECRET || 'sim-app-secret'
 
 /** توكن تحقق الاشتراك (FB_WEBHOOK_VERIFY_TOKEN). */
 export const VERIFY_TOKEN = process.env.SIM_WEBHOOK_VERIFY_TOKEN || 'sim-verify-token'

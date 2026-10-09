@@ -5,10 +5,11 @@ import "./globals.css"
 
 /* Madarek parity: fonts served local-first via /fonts/fonts.css —
  * no next/font module-class dependency, no external Google Fonts round-trip.
- * IBM Plex Sans Arabic (arabic+latin subsets, 400-700) + IBM Plex Mono +
- * IBM Plex Serif italic are @font-face-declared in public/fonts/fonts.css
- * (the 12-file Madarek set). fonts.css also defines the load-bearing
- * --font-cairo shim ("IBM Plex Sans Arabic") BEFORE this sheet loads. */
+ * IBM Plex Sans Arabic (arabic+latin subsets, 400-700) + IBM Plex Mono are
+ * @font-face-declared in public/fonts/fonts.css (r132-F3a: the 10-file set
+ * — the 2 serif italic cuts were deleted, zero font-serif consumers).
+ * fonts.css also defines the load-bearing --font-cairo shim ("IBM Plex Sans
+ * Arabic") BEFORE this sheet loads. */
 
 const siteUrl = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly"
 

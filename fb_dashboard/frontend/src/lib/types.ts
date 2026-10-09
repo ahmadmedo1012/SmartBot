@@ -266,8 +266,11 @@ export interface CrmCustomer {
 
 // ── Ads ─────────────────────────────────────────────────────────────────────
 
-/** Row of /api/ads/accounts (FB Marketing API passthrough). */
-export interface AdAccount {
+/** Row of /api/ads/accounts (FB Marketing API passthrough).
+ * (r132-G3a: export dropped — zero external importers; module-internal,
+ * consumed by AdsAccountsResponse.items below. A5 listed it as deletable
+ * but the internal use makes it export-drop-only, per A5's own split.) */
+interface AdAccount {
   /** Facebook ad-account id ("act_…") */
   id: string
   name?: string
@@ -507,16 +510,9 @@ export interface PostsResponse extends Paginated<FbPost> {
   sync_error?: string
 }
 
-// ── Landing / public site ───────────────────────────────────────────────────
-
-/** Row of /api/public/testimonials (empty until real quotes are seeded). */
-export interface Testimonial {
-  id?: string | number
-  metric?: string
-  text?: string
-  name?: string
-  role?: string
-}
+/* ── Landing / public site ───────────────────────────────────────────────────
+ * (r132-F3a: the Testimonial interface deleted — orphaned when the v17
+ * landing rebuild dropped LandingTestimonials; zero consumers since.) */
 
 // ── Facebook connection (dashboard/pages) ──────────────────────────────────
 

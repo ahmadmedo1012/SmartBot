@@ -82,6 +82,14 @@ export default function AdminPage() {
    * isError/retry pattern as every other page). */
   const [loadError, setLoadError] = useState(false)
   const [actionId, setActionId] = useState<number | null>(null)
+  /* r132 (A8 F-SB-2): «رفض» is the money-path destructive action — a
+   * misclick permanently cancelled a customer's subscription request in
+   * ONE click. The 7-page two-step doctrine (tools/posts/marketing/
+   * scheduled/autoreply/sequences/team — «تأكيد الحذف/إلغاء») now guards
+   * it too: the first tap arms the row (confirm + cancel pair), the second
+   * tap is the only path to POST status="cancelled". «قبول» stays
+   * one-click (the money-positive action, not destructive). */
+  const [confirmRejectId, setConfirmRejectId] = useState<number | null>(null)
 
   useEffect(() => {
     const meta = document.createElement("meta")
@@ -144,6 +152,10 @@ export default function AdminPage() {
       brandedToast.error(e instanceof ApiError ? e.message : "خطأ في الاتصال")
     }
     setActionId(null)
+    /* r132 (A8 F-SB-2): the resolved row leaves the two-step state with the
+     * action — success refetches (status flips off pending), failure keeps
+     * the row so the cluster returns to its un-armed shape either way. */
+    setConfirmRejectId(null)
   }, [fetchPayments])
 
   // Unauthorized state — r131-F7: the .state family (was a bare
@@ -324,10 +336,38 @@ export default function AdminPage() {
                                 onClick={() => handleAction(p.id, "verified")}>
                                 <CheckCircle2 className="size-4" aria-hidden="true" /> قبول
                               </Button>
-                              <Button variant="destructive" size="sm" loading={actionId === p.id}
-                                onClick={() => handleAction(p.id, "cancelled")}>
-                                 <XCircle className="size-4" /> رفض
-                              </Button>
+                              {/* r132 (A8 F-SB-2): same cluster swap as the
+                                  sequences/posts two-step — the armed row
+                                  trades «رفض» for «تأكيد الرفض / إلغاء». */}
+                              {confirmRejectId === p.id ? (
+                                <>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    loading={actionId === p.id}
+                                    onClick={() => handleAction(p.id, "cancelled")}
+                                  >
+                                    <XCircle className="size-4" aria-hidden="true" /> تأكيد الرفض
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setConfirmRejectId(null)}
+                                    aria-label="إلغاء رفض الطلب"
+                                  >
+                                    إلغاء
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setConfirmRejectId(p.id)}
+                                  aria-label={`رفض طلب الاشتراك للمستخدم ${p.username}`}
+                                >
+                                  <XCircle className="size-4" aria-hidden="true" /> رفض
+                                </Button>
+                              )}
                             </>
                           )}
                           {p.status !== "pending" && (

@@ -121,7 +121,17 @@ def _clean_fringe(im: Image.Image) -> Image.Image:
 
 
 def _plain(im: Image.Image, size: int) -> Image.Image:
-    return _clean_fringe(im.resize((size, size), Image.LANCZOS))
+    art = _clean_fringe(im.resize((size, size), Image.LANCZOS))
+    # r132-G3a (A9 SB-4): the 512 "any" icon is palette-quantized (256,
+    # FASTOCTREE — RGBA-aware) before saving: 83.7KB RGBA -> ~11.5KB with
+    # max 18/255 RGB delta on the opaque art and a <=29/255 alpha wobble
+    # confined to the soft shadow ramp (invisible at icon render sizes;
+    # SL's same-purpose icon is 20.1KB). 192 stays RGBA (17KB, not worth
+    # the palette). Must match the committed public/icon-512.png byte-for-byte
+    # on regeneration (deterministic for the same master + PIL version).
+    if size >= 512:
+        art = art.quantize(colors=256, method=Image.FASTOCTREE)
+    return art
 
 
 def _maskable(im: Image.Image, size: int) -> Image.Image:

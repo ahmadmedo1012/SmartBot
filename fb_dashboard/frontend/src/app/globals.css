@@ -515,15 +515,13 @@
   --surface-sunken: #070B16;
 
   /* Glass — Madarek §1.8 dark: rgba(11,16,32,0.78) + 16px blur + neutral
-     hairline; strong = the topbar 94% surface. */
+     hairline. (r132-F3a: the *-strong/-lg siblings + .glass-strong were
+     glass-morphism leftovers with zero consumers — only .glass-card lives.) */
   --glass-bg: rgba(11, 16, 32, 0.78);
-  --glass-bg-strong: rgba(11, 16, 32, 0.94);
   --glass-border: rgba(142, 151, 184, 0.12);
-  --glass-border-strong: rgba(142, 151, 184, 0.28);
   --glass-blur: 16px;
   --scrim-blur: 4px;
   --glass-shadow: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
-  --glass-shadow-lg: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
 
   /* Shadows + elevation ladder — Madarek §1.9 dark recipes: fill-led with
      the 1px inset top-edge highlight. */
@@ -725,13 +723,11 @@
   --surface-sunken: #F7F6F3;
 
   /* Glass — Madarek §1.8 light: rgba(251,250,249,0.78) + 16px blur +
-     warm hairline rgba(25,25,24,0.06). */
+     warm hairline rgba(25,25,24,0.06). (r132-F3a: dead *-strong/-lg
+     siblings pruned, same as the dark block.) */
   --glass-bg: rgba(251, 250, 249, 0.78);
-  --glass-bg-strong: rgba(251, 250, 249, 0.92);
   --glass-border: rgba(25, 25, 24, 0.06);
-  --glass-border-strong: rgba(25, 25, 24, 0.18);
   --glass-shadow: 0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06);
-  --glass-shadow-lg: 0 12px 36px rgba(15, 15, 15, 0.10), 0 32px 80px rgba(15, 15, 15, 0.14);
 
   /* Elevation ladder — Madarek §1.9 light recipes (soft two-layer). */
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.06);
@@ -840,18 +836,15 @@ html.light::-webkit-scrollbar-thumb:hover,
 :focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
 
-.glass-card, .glass {
+/* r132-F3a: the bare `.glass` selector + the whole `.glass-strong` rule were
+   glass-morphism leftovers — only `.glass-card` (ui/card.tsx glass variant)
+   survives. */
+.glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-}
-.glass-strong {
-  background: var(--glass-bg-strong);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-  border: 1px solid var(--glass-border-strong);
-  box-shadow: var(--glass-shadow-lg);
 }
 
 .skeleton {
@@ -959,7 +952,8 @@ html.light::-webkit-scrollbar-thumb:hover,
 @keyframes slide-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scale-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+/* r132-F3a: @keyframes float + .animate-float/.animate-float-delayed deleted —
+   decorative blob motion, zero consumers after the de-glow waves. */
 @keyframes breath { 0%,100% { opacity: 0.6; } 50% { opacity: 0.3; } }
 @keyframes pulse-dot { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
 
@@ -969,8 +963,6 @@ html.light::-webkit-scrollbar-thumb:hover,
    decelerate curve — was --t-slower (520ms) ease-out-quart. Only consumer
    is the premium toast card (rg-verified). */
 .animate-slide-up { animation: slide-up var(--motion-duration-medium) var(--motion-ease-decelerate) both; }
-.animate-float { animation: float 3s var(--ease-smooth) infinite; }
-.animate-float-delayed { animation: float 3.5s var(--ease-smooth) infinite 1s; }
 .animate-pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
 /* r131-F7 (A4 P1-3 — one-line fleet fix): the SPINNER REGISTER. Tailwind's
    animate-spin defaults to 1s; the canonical register is 700ms linear
@@ -991,14 +983,11 @@ html.light::-webkit-scrollbar-thumb:hover,
 .animate-fade-in-150 { animation: fade-in var(--t-slower) var(--ease-out-quart) both 150ms; }
 .animate-fade-in-250 { animation: fade-in var(--t-slower) var(--ease-out-quart) both 250ms; }
 .animate-fade-in-400 { animation: fade-in var(--t-slower) var(--ease-out-quart) both 400ms; }
-.animate-fade-in-900 { animation: fade-in var(--t-slower) var(--ease-out-quart) both 900ms; }
-.animate-fade-in-1100 { animation: fade-in var(--t-cinema) var(--ease-out-quart) both 1100ms; }
-/* clip-path wipe reveal — pure-CSS twin of ClipPathReveal(framer). */
-@keyframes wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
-.animate-wipe-up { animation: wipe-up var(--t-cinema) var(--ease-out-quart) both 200ms; }
+/* r132-F3a: .animate-fade-in-900/-1100 + @keyframes wipe-up + .animate-wipe-up
+   deleted — never consumed (the 150/250/400 rungs above carry the landing
+   entrance staggers). */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-150, .animate-fade-in-250, .animate-fade-in-400,
-  .animate-fade-in-900, .animate-fade-in-1100, .animate-wipe-up { animation: none; }
+  .animate-fade-in-150, .animate-fade-in-250, .animate-fade-in-400 { animation: none; }
 }
 
 /* ── pricing price swap (key-remount tween, Madarek --ease-soft curve). ── */
@@ -1304,7 +1293,10 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
    strengthen. Theme-specific values mirror Madarek's light/dark blocks;
    the painted سماء مدارك sky flattens to the plain ground. ═══ */
 @media (prefers-contrast: more) {
-  /* dark (:root default) — white rings per Madarek dark block */
+  /* dark (:root default) — white rings per Madarek dark block.
+     (r132-F3a: --glass-border-strong dropped — its only consumer,
+     .glass-strong, was deleted; --glass-bg-strong STAYS: parity-pinned
+     by tests/parity.mjs contrast tiers.) */
   :root {
     --elev-1: 0 0 0 1px rgba(255, 255, 255, 0.36);
     --elev-2: 0 0 0 1.5px rgba(255, 255, 255, 0.44);
@@ -1314,7 +1306,6 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
     --glass-bg: var(--card);
     --glass-bg-strong: var(--card);
     --glass-border: rgba(255, 255, 255, 0.36);
-    --glass-border-strong: rgba(255, 255, 255, 0.48);
     --border: rgba(255, 255, 255, 0.48);
   }
   /* light (.light) — black rings per Madarek light block. Later in source
@@ -1328,7 +1319,6 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
     --glass-bg: var(--card);
     --glass-bg-strong: var(--card);
     --glass-border: rgba(0, 0, 0, 0.32);
-    --glass-border-strong: rgba(0, 0, 0, 0.42);
     --border: rgba(0, 0, 0, 0.42);
   }
   .mdrk-night-sky { background: var(--background); }

@@ -122,12 +122,12 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
 }
 
 /* v10-W4: DialogTrigger/Header/Footer/Close deleted (zero importers);
- * Overlay/Portal stay module-internal (used by DialogContent). */
+ * Overlay/Portal stay module-internal (used by DialogContent).
+ * r132-F3a: Overlay/Portal removed from the re-export block too — the
+ * comment above already declared them internal; the export was dead. */
 export {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogOverlay,
-  DialogPortal,
   DialogTitle,
 }

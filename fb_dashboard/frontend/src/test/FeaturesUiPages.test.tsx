@@ -37,6 +37,7 @@ import BillingPage from "@/app/dashboard/billing/page"
 import BroadcastPage from "@/app/dashboard/broadcast/page"
 import ReportsPage from "@/app/dashboard/reports/page"
 import AdminSupportPage from "@/app/admin/support/page"
+import AdminPage from "@/app/admin/page"
 
 const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
@@ -59,6 +60,13 @@ vi.mock("next/link", () => ({
   default: function MockLink({ href, children }: { href: string; children: ReactNode }) {
     return <a href={href}>{children}</a>
   },
+}))
+
+/* r132 (A8 F-SB-2): the admin payments page calls useRouter() for its
+ * unauthorized/«العودة» exits — the app-router context never mounts in
+ * jsdom without this stub (pricing's router.push twin). */
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }))
 
 /* billing's wallet cap reads /api/config through the shared TTL cache —
@@ -444,5 +452,61 @@ describe("admin/support page — platform close (E-F8 D6-5/#9)", () => {
     expect(within(nav).getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page")
     expect(within(nav).getByRole("button", { name: "3" })).toBeEnabled()
     expect(within(nav).getByRole("button", { name: "السابق" })).toBeDisabled()
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════
+// admin (payments) — r132 (A8 F-SB-2): two-step ARABIC confirm on «رفض»
+// ══════════════════════════════════════════════════════════════════════════
+
+describe("admin payments page — reject is a two-step confirm (r132 A8 F-SB-2)", () => {
+  const PENDING = [
+    { id: 11, username: "customer1", plan: "أساسية", amount: 29, status: "pending", created_at: "2026-09-01T10:00:00Z", phone: "0912345678" },
+  ]
+
+  function stubAdminPayments() {
+    return stubFetch({
+      "GET /api/me": () =>
+        jsonRes({ success: true, data: { user: { id: 1, username: "admin", role: "admin", tenant_id: 7 } } }),
+      "GET /api/admin/subscriptions?status=pending": () => jsonRes({ success: true, data: PENDING }),
+      "POST /api/admin/subscriptions": () => jsonRes({ success: true, data: { ok: true } }),
+    })
+  }
+
+  it("«رفض» arms the row first — the confirm tap is the ONLY path to POST cancelled", async () => {
+    installMatchMedia()
+    const fetchState = stubAdminPayments()
+    renderPage(AdminPage)
+
+    // first tap arms: no POST leaves the page, the Arabic confirm pair appears
+    fireEvent.click(await screen.findByRole("button", { name: /رفض طلب الاشتراك/ }))
+    expect(fetchState.callsFor("/api/admin/subscriptions")).toHaveLength(0)
+    expect(screen.getByRole("button", { name: /تأكيد الرفض/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "إلغاء رفض الطلب" })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: /تأكيد الرفض/ }))
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم رفض الطلب"))
+    const posts = fetchState.callsFor("/api/admin/subscriptions").filter((c) => c.method === "POST")
+    expect(posts).toHaveLength(1)
+    expect(JSON.parse(String(posts[0].body))).toEqual({ id: 11, status: "cancelled" })
+  })
+
+  it("«إلغاء» disarms with no POST; «قبول» stays one-click (money-positive action)", async () => {
+    installMatchMedia()
+    const fetchState = stubAdminPayments()
+    renderPage(AdminPage)
+
+    fireEvent.click(await screen.findByRole("button", { name: /رفض طلب الاشتراك/ }))
+    fireEvent.click(screen.getByRole("button", { name: "إلغاء رفض الطلب" }))
+    // disarmed: the plain «رفض» is back and nothing was sent
+    expect(screen.getByRole("button", { name: /رفض طلب الاشتراك/ })).toBeInTheDocument()
+    expect(fetchState.callsFor("/api/admin/subscriptions")).toHaveLength(0)
+
+    // قبول = the non-destructive action — still a single click
+    fireEvent.click(screen.getByRole("button", { name: "قبول" }))
+    await waitFor(() => expect(mocks.toastSuccess).toHaveBeenCalledWith("تم تأكيد الاشتراك"))
+    const posts = fetchState.callsFor("/api/admin/subscriptions").filter((c) => c.method === "POST")
+    expect(posts).toHaveLength(1)
+    expect(JSON.parse(String(posts[0].body))).toEqual({ id: 11, status: "verified" })
   })
 })

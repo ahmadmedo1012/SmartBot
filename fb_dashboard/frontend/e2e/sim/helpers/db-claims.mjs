@@ -22,7 +22,9 @@
  *   — كان عالقاً في v15 فكانت 10 من 12 إدخالاً منتهية تُطبَّق كأنها سارية.
  *
  * الاستخدام:
- *   import { query, queryOne, queryScalar, exec, recordClaim, checkClaim, preflight } from './db-claims.mjs'
+ *   import { queryOne, queryScalar, exec, recordClaim, checkClaim } from './db-claims.mjs'
+ *   (r132-G3a: query/preflight/findingsStatus صارت داخلية — تُستهلك محليًا
+ *   ولها مدخل CLI أدناه، وليست مستوردة من أي spec.)
  * أو CLI:
  *   node e2e/sim/helpers/db-claims.mjs claim  "<SQL>" '["arg1"]'
  *   node e2e/sim/helpers/db-claims.mjs exec   "<SQL>" '["arg1"]'
@@ -114,8 +116,10 @@ function runPy(code, sql, args) {
   return JSON.parse(out)
 }
 
-/** تنفيذ SELECT وإرجاع الصفوف — يرمي عند فشل الاتصال/الاستعلام. */
-export function query(sql, args = []) {
+/** تنفيذ SELECT وإرجاع الصفوف — يرمي عند فشل الاتصال/الاستعلام.
+ * (r132-F3a: export dropped — module-internal: queryOne/queryScalar/
+ * preflight + the CLI dispatch below consume it.) */
+function query(sql, args = []) {
   const parsed = runPy(PY_CODE, sql, args)
   if (!parsed.ok) throw new Error(`فشل ادعاء SQL: ${parsed.error}`)
   return parsed.rows
@@ -307,8 +311,9 @@ export function checkClaim(persona, claim, sql, args, predicate, expected, extra
   )
 }
 
-/** preflight التصميم: أسماء الجداول المتاحة (تثبيت أسماء الجداول). */
-export function preflight() {
+/** preflight التصميم: أسماء الجداول المتاحة (تثبيت أسماء الجداول).
+ * (r132-F3a: export dropped — CLI-internal.) */
+function preflight() {
   const rows = query(
     "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
   )
@@ -317,8 +322,9 @@ export function preflight() {
   return names
 }
 
-/** v15-E8: حالة قائمة السماح (للسكربت والتشخيص). */
-export function findingsStatus() {
+/** v15-E8: حالة قائمة السماح (للسكربت والتشخيص).
+ * (r132-F3a: export dropped — CLI-internal.) */
+function findingsStatus() {
   const live = allowlist()
   return { count: Object.keys(live).length, ids: Object.keys(live) }
 }

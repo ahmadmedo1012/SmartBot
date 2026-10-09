@@ -113,6 +113,25 @@ function clickNext() {
   fireEvent.click(screen.getByRole("button", { name: "التالي" }))
 }
 
+/* r132 (A8 F-SB-3): the empty-form advance is BLOCKED at the two save
+ * steps — required fields must be filled before «التالي» moves on. These
+ * walk-helpers feed the required fields so the suite's step-walking cases
+ * still traverse the wizard; the unmatched-route default (ok({})) satisfies
+ * both saves. */
+async function fillConnectAndAdvance() {
+  fireEvent.change(screen.getByLabelText("معرف الصفحة (Page ID)"), { target: { value: "1234567890" } })
+  fireEvent.change(screen.getByLabelText(/رمز الوصول \(Page Access Token\)/), { target: { value: "EAAG.walk.token" } })
+  clickNext()
+  await screen.findByText("أنشئ أول قاعدة رد")
+}
+
+async function fillRuleAndAdvance() {
+  fireEvent.change(screen.getByLabelText("كلمة مفتاحية"), { target: { value: "سعر" } })
+  fireEvent.change(screen.getByLabelText("نص الرد"), { target: { value: "السعر يبدأ من 50 د.ل" } })
+  clickNext()
+  await screen.findByText("اختر خطتك")
+}
+
 async function goToConnectStep(api: ReturnType<typeof stubFetch>) {
   clickNext()
   await screen.findByText("اربط صفحة فيسبوك")
@@ -314,13 +333,13 @@ describe("OnboardingWizard completion + skip semantics", () => {
     })
     const { onComplete } = renderWizard()
 
-    // fast-forward to the done step
+    // fast-forward to the done step (r132: the two form steps require their
+    // fields now — the walk-helpers fill them; saves answer ok({})). The
+    // helpers land on the PLAN step — one more «التالي» crosses to done.
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
-    clickNext()
-    await screen.findByText("اختر خطتك")
+    await fillConnectAndAdvance()
+    await fillRuleAndAdvance()
     clickNext()
     await screen.findByText("كل شيء جاهز!")
 
@@ -362,6 +381,10 @@ describe("OnboardingWizard first-rule suggestion", () => {
   async function goToRuleStep() {
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
+    /* r132 (A8 F-SB-3): step 1 validates on advance — fill the required
+     * connection fields to reach the rule step. */
+    fireEvent.change(screen.getByLabelText("معرف الصفحة (Page ID)"), { target: { value: "1234567890" } })
+    fireEvent.change(screen.getByLabelText(/رمز الوصول \(Page Access Token\)/), { target: { value: "EAAG.suggest.token" } })
     clickNext()
     await screen.findByText("أنشئ أول قاعدة رد")
     return {
@@ -417,9 +440,8 @@ describe("OnboardingWizard plan grid degradation", () => {
 
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
-    clickNext()
+    await fillConnectAndAdvance()
+    await fillRuleAndAdvance()
     await screen.findByText("اختر خطتك")
 
     // degraded single placeholder card
@@ -463,9 +485,8 @@ describe("OnboardingWizard focus management (back / skip-setup)", () => {
 
     clickNext()
     await screen.findByText("اربط صفحة فيسبوك")
-    clickNext()
-    await screen.findByText("أنشئ أول قاعدة رد")
-    clickNext()
+    await fillConnectAndAdvance()
+    await fillRuleAndAdvance()
     await screen.findByText("اختر خطتك")
 
     fireEvent.click(screen.getByRole("button", { name: "تخطي الإعداد" }))

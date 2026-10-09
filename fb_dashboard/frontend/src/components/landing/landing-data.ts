@@ -1,28 +1,8 @@
-/* v17-E-F4 (D3 #12): Smartphone/Share2/CheckCircle removed — dead imports
-   (BENEFITS/STEPS/FAQS never referenced them; Share2 had no other usage in
-   the whole project). */
-import { Bot, MessageCircle, BarChart3, Calendar, Target, ShieldCheck, Globe, Users } from "lucide-react"
-
-type Benefit = { icon: typeof Bot; title: string; desc: string } // v10-W4: exports dropped — internal only
-type Step = { num: string; title: string; desc: string }
+/* r132-F3a: BENEFITS/STEPS deleted — zero consumers since the v17 landing
+   rebuild folded the copy into the narrative sections (JourneySection /
+   PlateSection / RolesSection carry it; their doc comments cite the old
+   BENEFITS indices as lineage). FAQS stays (LandingFaq.tsx). */
 type Faq = { q: string; a: string }
-
-export const BENEFITS: Benefit[] = [
-  { icon: Bot, title: "ردود تلقائية ذكية", desc: "ردود آنية ومخصصة لجميع تعليقات ورسائل صفحاتك بتقنية الذكاء الاصطناعي" },
-  { icon: MessageCircle, title: "صندوق وارد موحد", desc: "إدارة جميع المحادثات من صفحة واحدة بواجهة بسيطة وسهلة" },
-  { icon: BarChart3, title: "تحليلات وأداء", desc: "تقارير مفصلة عن أداء الصفحات والمنشورات ونسب التفاعل والنمو" },
-  { icon: Calendar, title: "جدولة المنشورات", desc: "إنشاء وجدولة المنشورات مسبقاً مع تقويم محتوى مرئي" },
-  { icon: Target, title: "استهداف الجمهور", desc: "تحليل الجمهور واستهداف الفئات المناسبة لزيادة الوصول" },
-  { icon: ShieldCheck, title: "أمان وتشفير", desc: "حماية متقدمة للبيانات والاتصالات وفق أعلى معايير الأمان" },
-  { icon: Globe, title: "دعم متعدد اللغات", desc: "دعم كامل للغة العربية والإنجليزية مع ردود ذكية بلغة العميل" },
-  { icon: Users, title: "إدارة فريق كامل", desc: "إضافة أعضاء فريقك بصلاحيات مختلفة لإدارة الصفحات معاً" },
-]
-
-export const STEPS: Step[] = [
-  { num: "1", title: "اربط صفحتك", desc: "اربط صفحة فيسبوك بخطوات بسيطة وآمنة مع دليل تفاعلي خطوة بخطوة" },
-  { num: "2", title: "اضبط قواعد الرد", desc: "حدد الكلمات المفتاحية والردود التلقائية التي تناسب نشاطك التجاري" },
-  { num: "3", title: "راقب الأداء", desc: "تابع الإحصائيات والتقارير وحسّن أداء صفحاتك من لوحة تحكم متكاملة" },
-]
 
 export const FAQS: Faq[] = [
   { q: "هل أحتاج صلاحيات خاصة لربط الصفحة؟", a: "تحتاج صلاحية إدارة الصفحة فقط. نطلب أقل الصلاحيات اللازمة للعمل." },

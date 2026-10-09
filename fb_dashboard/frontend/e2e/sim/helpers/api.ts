@@ -22,8 +22,9 @@ const ADMIN_USER = process.env.SIM_ADMIN_USER || process.env.E2E_ADMIN_USER || '
 const ADMIN_PASS = process.env.SIM_ADMIN_PASS || process.env.E2E_ADMIN_PASS || 'V14Admin#2026'
 export { ADMIN_USER, ADMIN_PASS }
 
-/** سر توقيع الجلسة المحلي — يعرفه السكربت فقط في الطبقة المحلية (R9). */
-export const SECRET_KEY = process.env.SIM_SECRET_KEY || ''
+/* r132-F3a: the SECRET_KEY export (SIM_SECRET_KEY read) was deleted — zero
+ * importers (the local stack reads the env var itself; p14's test title
+ * merely mentions the name). */
 
 import crypto from 'node:crypto'
 
@@ -32,8 +33,9 @@ function mintCsrf(): string {
   return crypto.randomBytes(24).toString('hex')
 }
 
-/** استخراج قيمة كوكي من ترويسة set-cookie خام. */
-export function cookieFromSetCookie(setCookie: string | string[] | undefined, name: string): string {
+/** استخراج قيمة كوكي من ترويسة set-cookie خام.
+ * (r132-F3a: export dropped — module-internal, used by tokenFromSetCookie.) */
+function cookieFromSetCookie(setCookie: string | string[] | undefined, name: string): string {
   if (!setCookie) return ''
   const lines = Array.isArray(setCookie) ? setCookie : [setCookie]
   for (const line of lines) {
@@ -184,12 +186,8 @@ export async function browserFetch<T = any>(
   return res
 }
 
-/** عقد ok(): success:true + data — يؤكد شكل المظروف لا قيمته. */
-export function expectEnvelope(body: any): void {
-  if (!body || body.success !== true || !('data' in body)) {
-    throw new Error(`المظروف ليس ok(): ${JSON.stringify(body).slice(0, 220)}`)
-  }
-}
+/* r132-F3a: expectEnvelope deleted — zero consumers (the specs assert
+ * full contracts via checkClaim instead of the ok()-shape probe). */
 
 /**
  * حارس حدود المعدل (§4.5): أي 429 غير متوقع يُعاد المحاولة مرة واحدة

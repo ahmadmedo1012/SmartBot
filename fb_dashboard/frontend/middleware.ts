@@ -11,14 +11,19 @@ const publicPrefixes = [
 /* v10-C1 (G3 rec §8-1) — font files must NOT inherit the page-wide no-store:
  * the matcher below does not exclude /fonts/*.woff2, so every internal
  * navigation re-downloaded ~117-210KB of self-hosted fonts (G3 resource
- * timing, login→dashboard→messages). The fonts are content-stable but NOT
- * hash-named, so they get 7d + stale-while-revalidate (never immutable — a
- * font update still propagates within a day of max-age expiring).
- * Hash-named /_next/static assets never reach this middleware at all (the
- * matcher already excludes them) and keep Next's own immutable caching —
- * verified, nothing to change there. API responses keep no-store. */
+ * timing, login→dashboard→messages).
+ * r132-F3a (A9 SB-N2): the cache ceiling is now immutable 1y — the SB font
+ * filenames ARE family-weight-script qualified (plex-sans-arabic-400-normal-
+ * arabic.woff2 …), the exact immutability justification SO/SL/SM adopted
+ * (SO r131, SL r126, SM round85); the old "not hash-named → 7d + SWR"
+ * reasoning was the family outlier (12 conditional revalidations per
+ * visitor per week). A font file change means a filename change (new
+ * family/weight/script), which busts the cache by construction — same
+ * contract as the /_next/static chunks. next.config.ts carries the same
+ * 1y-immutable rule for /fonts/* where middleware doesn't apply.
+ * API responses keep no-store. */
 const FONT_FILE_RE = /\.(?:woff2?|ttf|otf)$/i;
-const FONT_CACHE_CONTROL = "public, max-age=604800, stale-while-revalidate=86400";
+const FONT_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 /* v12-E5.4 (D8 live finding): the matcher's extension alternatives only
  * exclude paths whose remainder STARTS with ".png" — so /opengraph-image.png,

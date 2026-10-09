@@ -31,14 +31,16 @@ import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
 import type { ApiUser } from "@/lib/types"
 
-/** The one true /api/me cache key (shared with billing/page.tsx since v19). */
-export const ME_QUERY_KEY = ["me"] as const
+/* r132-F3a: the four /api/me query constants below dropped their export
+ * keywords — zero external importers; useMe() at the bottom consumes them
+ * (billing/page.tsx rides the ["me"] key inline, not via these names). */
+const ME_QUERY_KEY = ["me"] as const
 
 /** v24-C3: 5 minutes — children render instantly on every in-shell navigation. */
-export const ME_STALE_TIME = 5 * 60_000
+const ME_STALE_TIME = 5 * 60_000
 
 /** v24-C3: replaces v19's per-pathname refetch — freshness without per-tap RTTs. */
-export const ME_REFETCH_INTERVAL = 60_000
+const ME_REFETCH_INTERVAL = 60_000
 
 /** /api/me answer shape: ok({ user: ApiUser }). */
 export interface MePayload {
@@ -46,7 +48,7 @@ export interface MePayload {
 }
 
 /** The one queryFn for the ["me"] entry (same contract as v19's). */
-export const meQueryFn = async (): Promise<MePayload> => {
+const meQueryFn = async (): Promise<MePayload> => {
   const res = await apiFetch("/api/me")
   if (!res.ok) throw new Error(`فشل تحميل الحساب (${res.status})`)
   return unwrapApi<MePayload>(res)

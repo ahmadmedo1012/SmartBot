@@ -140,7 +140,9 @@ export function RejectedScreen({ resolutionMsg, onClose, onRetry, headingRef }: 
           className="absolute inset-0 rounded-full bg-destructive/20 animate-ping opacity-75"
           style={{ animationDuration: "1.5s" }}
         />
-        <div className="relative size-full rounded-full bg-gradient-to-br from-destructive to-destructive/80 flex items-center justify-center shadow-lg shadow-destructive/30">
+        {/* r132-F3a: colored glow shadow retired — neutral shadow-lg carries
+            the elevation, same recipe as the waiting orb + approved circle. */}
+        <div className="relative size-full rounded-full bg-gradient-to-br from-destructive to-destructive/80 flex items-center justify-center shadow-lg">
           <XCircle className="size-10 text-destructive-foreground" />
         </div>
       </div>
@@ -229,7 +231,9 @@ export function PendingScreen({ planName, amount, onCancel, onWait, cancelling, 
           className="absolute inset-0 rounded-full bg-warning/20 animate-ping opacity-75"
           style={{ animationDuration: "1.5s" }}
         />
-        <div className="relative size-full rounded-full bg-gradient-to-br from-warning/25 to-warning/10 border border-warning/30 flex items-center justify-center shadow-lg shadow-warning/20">
+        {/* r132-F3a: colored glow shadow retired — neutral shadow-lg (family
+            recipe; the warning tone lives in the amber fills + border). */}
+        <div className="relative size-full rounded-full bg-gradient-to-br from-warning/25 to-warning/10 border border-warning/30 flex items-center justify-center shadow-lg">
           <Hourglass className="size-10 text-warning" aria-hidden="true" />
         </div>
       </div>

@@ -28,7 +28,9 @@ import {
  * Send (تليجرام) mirrors in RTL like AdminMobileNav's slot (paper plane is
  * a directional glyph). */
 
-export const adminNavSections: NavSection[] = [
+/* r132-F3a: export dropped — module-internal, consumed by the shell's own
+ * <DashboardShell navSections={adminNavSections}> below. */
+const adminNavSections: NavSection[] = [
   {
     label: "الإدارة",
     items: [

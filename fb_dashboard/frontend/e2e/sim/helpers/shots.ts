@@ -32,8 +32,9 @@ export function runId(): string {
   return fs.readFileSync(RUN_FILE, 'utf-8').trim()
 }
 
-/** مجلد أدلة الجولة الحالية. */
-export function runDir(): string {
+/** مجلد أدلة الجولة الحالية.
+ * (r132-F3a: export dropped — module-internal, used by personaDir.) */
+function runDir(): string {
   return ensureDir(path.join(SIM_ROOT, runId()))
 }
 
@@ -60,18 +61,5 @@ export async function shot(page: Page, persona: string, name: string): Promise<v
   }
 }
 
-/** لقطة لعنصر معيّن (حوار الدفع مثلاً) عند الحاجة لدليل مركّز. */
-export async function shotElement(
-  page: Page,
-  persona: string,
-  name: string,
-  selector: string
-): Promise<void> {
-  const file = path.join(personaDir(persona), `${name}.png`)
-  const el = page.locator(selector).first()
-  try {
-    await el.screenshot({ path: file })
-  } catch {
-    await shot(page, persona, name)
-  }
-}
+/* r132-F3a: shotElement deleted — zero consumers (the specs' focused
+ * evidence all goes through the full-page shot() above). */

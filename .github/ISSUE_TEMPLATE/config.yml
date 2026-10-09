@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "🌐 الموقع المباشر | Live site"
+    url: https://smart-link.ly
+    about: "جرّب المنتجات مباشرة قبل الإبلاغ | Try the products live before filing an issue"
+  - name: "🔒 إبلاغ أمني خاص | Private security report"
+    url: mailto:ahmadmedo1012@gmail.com
+    about: "لا تفتح Issue للثغرات — راجع SECURITY.md | Never open an issue for vulnerabilities — see SECURITY.md"
+  - name: "🛰️ منظومة مدارك | The Madarek ecosystem"
+    url: https://github.com/ahmadmedo1012?tab=repositories
+    about: "بقية مشاريع العائلة | The rest of the family's repositories"

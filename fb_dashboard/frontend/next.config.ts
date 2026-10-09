@@ -44,9 +44,10 @@ const nextConfig: NextConfig = {
   // middleware response headers can override config headers, so the durable
   // og-image fix additionally needs middleware.ts to treat these as cached
   // statics (reported to the coordinator for the middleware owner).
-  // Fonts: the effective live rule is middleware's 604800 + SWR (v10-C1
-  // deliberately avoided immutable because fonts are not hash-named); the
-  // rule below raises the ceiling where middleware doesn't apply.
+  // Fonts: r132-F3a — middleware now serves /fonts/*.woff2 with the same
+  // 1y-immutable rule below (filenames are family-weight-script qualified —
+  // the SO/SL/SM immutability contract); this rule is the ceiling where
+  // middleware doesn't apply. The old 604800+SWR divergence is gone.
   headers: async () => [
     {
       source: "/fonts/:path*",

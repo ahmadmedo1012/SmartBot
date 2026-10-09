@@ -33,6 +33,7 @@ fb_dashboard/routers/payments/
 
 - الأجسام نُقلت **حرفيًا** (نقل لا إعادة كتابة) — سلوك الـAPI مطابق لما قبل التفكيك، وتحرسه اختبارات pytest القائمة على مسار الأموال.
 - **رفع الإيصالات:** تُخزَّن في `fb_dashboard/static/uploads/receipts` — المسار نفسه قبل التفكيك (`_UPLOAD_DIR` مثبّت على جذر `fb_dashboard` رغم تعمّق الحزمة في الشجرة). على Vercel (نظام ملفات للقراءة فقط) يبقى السلوك كما هو: الاستجابة تُرجع data: URL.
+- **بناء الوضع الواحد (r132-F3a):** `fb_dashboard/static/` **غير متتبَّع في git** (خرج بناء قابل لإعادة التوليد — كان يتخلَّف 3 جولات تصميم خلف الكود قبل r132). لتشغيل الخادم الواحد محليًا: `cd fb_dashboard/frontend && npm run build` ثم `python scripts/sync_next_static.py` (حتمي — يمسح ويعيد النسخ من `.next/` + `public/`) ثم `python -m uvicorn runner:app --app-dir fb_dashboard --port 8000`. بوابة `scripts/gate_all.sh` [4.5] تتحقق من نضارة الـbuildId محليًا بعد كل بناء.
 
 ## خطوات النشر
 

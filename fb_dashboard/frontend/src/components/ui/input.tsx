@@ -5,10 +5,13 @@ import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react"
 
-/* Smart-Menu parity (world-class launch plan v3 §6.1):
- * h-12 touch height, rounded-lg, dir=auto, focus ring glow + border-accent-foreground,
- * optional state icons (success/warning/error) — legacy label/hint/error API
- * preserved for existing call sites.
+/* r134 (stale-doc repair — audit R134-W1-SB2b): the header used to claim a
+ * 48px (h-12) rounded-lg field from the Smart-Menu v3 §6.1 port; the recipe
+ * that actually shipped (and r131/r133 kept re-basing) is h-11 (44px) +
+ * rounded-md (10px). The comment now states the shipped reality:
+ * h-11 touch height, rounded-md, dir=auto, focus = border-accent-foreground
+ * + the sanctioned halo token, optional state icons (success/warning/error)
+ * — legacy label/hint/error API preserved for existing call sites.
  * v14-E5: placeholder moved to the dedicated --placeholder-text token
  * (AA 4.5:1 measured in both modes — see globals.css).
  * r130 (W1-E D-13): the focus halo = the single sanctioned

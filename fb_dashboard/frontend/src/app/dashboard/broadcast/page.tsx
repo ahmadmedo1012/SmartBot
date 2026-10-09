@@ -19,8 +19,10 @@ import { countPhrase } from "@/lib/format"
 import type { BroadcastRow } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
+/* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر السارية على الأسطول —
+ * البث مذكر فأخذ تعذّر (التسويق حملة مؤنثة فتأخذ تعذّرت في صفحتها). */
 const BROADCAST_STATUS_LABELS: Record<string, string> = {
-  sent: "مُرسل", pending: "قيد الإرسال", scheduled: "مجدول", failed: "فاشل", draft: "مسودة",
+  sent: "مُرسل", pending: "قيد الإرسال", scheduled: "مجدول", failed: "تعذّر", draft: "مسودة",
   cancelled: "ملغى", sending: "جارٍ الإرسال",
 }
 

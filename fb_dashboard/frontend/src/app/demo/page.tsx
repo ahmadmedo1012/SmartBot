@@ -527,8 +527,9 @@ export default function DemoPage() {
        column + real mobile bottom nav (v4 plan §3.2 — no parallel UI tree). */
     <div className="flex min-h-screen bg-background" dir="rtl">
       {/* Madarek --sidebar-w: 256px (w-64) — DashboardShell parity.
-          r127-F5b: fixed chrome rail = the --z-dropdown rung (100). */}
-      <div className="fixed top-0 right-0 z-(--z-dropdown) h-full w-64 hidden md:block">
+          r127-F5b: fixed chrome rail = the --z-dropdown rung (100).
+          r134 (RTL A12): right-0 → start-0 (logical spelling, r131 rule). */}
+      <div className="fixed top-0 start-0 z-(--z-dropdown) h-full w-64 hidden md:block">
         <AdminSidebar
           onNavigate={handleNavigate}
           onSubscribe={() => router.push("/subscribe")}

@@ -11,10 +11,14 @@ const buttonVariants = cva(
   /* r131-F7 (fleet ruling, R131-W1 "buttons 40/13/600/r10" — A4 P2-5 +
    * A9 P1-9): re-based on the SO r130 canonical ladder verbatim:
    *   default 40px (h-10) / 13px / 600 · sm 32px (h-8) / 12px ·
-   *   lg 44px (h-11) / 14px · icon 40px · icon-sm 32px (NEW).
+   *   lg 48px (h-12) / 14px · icon 40px · icon-sm 32px (NEW).
    * The old 48/40/56 ladder (+ the base min-h-11 that overrode every rung)
    * is retired — one rung chunkier than the whole fleet. Label weight 600,
    * radius r-md 10px, press = scale(0.97) @ 80ms micro (unchanged).
+   * r134 (R134-W1-XC): lg 44px (h-11) → 48px (h-12) — the canon rung
+   * (madarek components.css:474 `.btn.lg { block-size: 48px }`) Smart-Menu
+   * already ships and Smart-Order aligned this round; the rung had drifted
+   * precisely because nothing pinned it (r134 pin added in tests/parity.mjs).
    * Hover on filled CTAs = -2px lift + the NEUTRAL premium card shadow
    * (--shadow-card-h, r131 token) — was -1px + shadow-md.
    * Focus = the ONE global :focus-visible outline (globals.css 2px token
@@ -49,7 +53,7 @@ const buttonVariants = cva(
       size: {
         sm: "h-8 gap-1.5 px-3 text-xs",
         default: "h-10 gap-2 px-5",
-        lg: "h-11 gap-2.5 px-6 text-sm",
+        lg: "h-12 gap-2.5 px-6 text-sm",
         icon: "size-10",
         "icon-sm": "size-8",
       },

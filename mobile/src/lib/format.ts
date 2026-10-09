@@ -57,19 +57,48 @@ export function formatTime(date: Date | string | number | null | undefined): str
   return `${h}:${m}`
 }
 
-/** فرق زمني نسبي مبسّط: "قبل 5 دقائق". */
+/* ── r134: الجمع المزدوج/الجمع العربي (CLDR) — منقول حرفيًا من الويب ──
+ * (format.ts:91-117 + arabicNumberState من arabic-plural.ts): كان الجوال
+ * يفرد دائمًا («قبل 5 دقيقة») بينما الويب يجمع (دقيقتين/دقائق/ساعات)
+ * ويستكمل بفرع الأشهر بعد الثلاثين يومًا بدل السقوط على التاريخ. */
+function arabicNumberState(count: number): 'one' | 'two' | 'few' | 'many' {
+  if (!Number.isInteger(count) || count < 0) {
+    throw new RangeError(`arabicNumberState expects a non-negative integer, got ${count}`)
+  }
+  if (count === 1) return 'one'
+  if (count === 2) return 'two'
+  if (count >= 3 && count <= 10) return 'few'
+  return 'many' // 11+
+}
+
+function _unitPhrase(count: number, one: string, two: string, few: string): string {
+  switch (arabicNumberState(count)) {
+    case 'one':
+      return one
+    case 'two':
+      return two
+    case 'few':
+      return `${toArabicNumber(count)} ${few}`
+    default:
+      return `${toArabicNumber(count)} ${one}`
+  }
+}
+
+/** فرق زمني نسبي بالجمع الصحيح: "قبل دقيقة" / "قبل دقيقتين" / "قبل 5 دقائق"
+ *  / "قبل ساعتين" / "قبل 3 أيام" / "قبل شهرين" … */
 export function timeAgo(date: Date | string | number | null | undefined): string {
   const d = toDate(date)
   if (!isValid(d)) return ''
-  const seconds = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000))
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000)
   if (seconds < 60) return 'الآن'
   const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `قبل ${minutes} دقيقة`
+  if (minutes < 60) return `قبل ${_unitPhrase(minutes, 'دقيقة', 'دقيقتين', 'دقائق')}`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `قبل ${hours} ساعة`
+  if (hours < 24) return `قبل ${_unitPhrase(hours, 'ساعة', 'ساعتين', 'ساعات')}`
   const days = Math.floor(hours / 24)
-  if (days < 30) return `قبل ${days} يوم`
-  return formatDateOnly(d)
+  if (days < 30) return `قبل ${_unitPhrase(days, 'يوم', 'يومين', 'أيام')}`
+  const months = Math.floor(days / 30)
+  return `قبل ${_unitPhrase(months, 'شهر', 'شهرين', 'أشهر')}`
 }
 
 /** عملة: "19 د.ل". */

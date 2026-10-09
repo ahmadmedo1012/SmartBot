@@ -36,7 +36,15 @@ export function AppInput({ label, error, hint, style, ...rest }: AppInputProps) 
           {
             backgroundColor: colors.surface,
             color: colors.foreground,
-            borderColor: focused ? colors.input : colors.border,
+            /* r134 (مرآة وصفة الويب input.tsx): التركيز = إطار accent
+             * (colors.accentFg ≙ border-accent-foreground) + هالة 3px
+             * بشفافية 22% من اللون الصلب (colors.primary ≙ --accent-solid)
+             * — نفس عقد --state-input-focus-halo. كان إطارًا خافتًا
+             * (colors.input) بلا هالة إطلاقًا. boxShadow متاح عبر المنصات
+             * في RN 0.86 (iOS دائمًا؛ Android 28+، وما دونه يسقط بهدوء
+             * ويبقى الإطار الذهبي مؤشر التركيز). */
+            borderColor: focused ? colors.accentFg : colors.border,
+            ...(focused ? { boxShadow: `0 0 0 3px ${colors.primary}38` } : null),
             borderWidth: 1,
             borderRadius: radius.md,
             paddingHorizontal: spacing.lg,

@@ -973,15 +973,19 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   const rawToast131 = nc(readFileSync(new URL('../src/lib/premium-toast.tsx', import.meta.url), 'utf8'));
   const rawProviders131 = nc(readFileSync(new URL('../src/app/providers.tsx', import.meta.url), 'utf8'));
 
-  // button ladder (fleet ruling 40/13/600, sm 32/12, lg 44/14, no base floor)
+  // button ladder (fleet ruling 40/13/600, sm 32/12, no base floor).
+  // r134: lg rung re-pinned 44px (h-11) → 48px (h-12) — the madarek canon
+  // (components.css:474 `.btn.lg { block-size: 48px }`); Smart-Menu ships it,
+  // Smart-Order aligned this round. The rung had drifted precisely because
+  // nothing pinned it.
   const btnLadder = rawButton131.includes('text-[13px] font-semibold')
     && rawButton131.includes('sm: "h-8 gap-1.5 px-3 text-xs"')
     && rawButton131.includes('default: "h-10 gap-2 px-5"')
-    && rawButton131.includes('lg: "h-11 gap-2.5 px-6 text-sm"')
+    && rawButton131.includes('lg: "h-12 gap-2.5 px-6 text-sm"')
     && rawButton131.includes('icon: "size-10"')
     && !rawButton131.includes('min-h-11');
   if (btnLadder) pass += 1;
-  else fails.push('r131 button: ladder must be 40/13/600 (sm h-8/12, lg h-11/14, icon size-10) with NO base min-h-11 floor');
+  else fails.push('r131 button: ladder must be 40/13/600 (sm h-8/12, lg h-12/48px canon, icon size-10) with NO base min-h-11 floor');
   const btnHover = rawButton131.includes('hover:-translate-y-[2px]') && rawButton131.includes('hover:shadow-(--shadow-card-h)');
   if (btnHover) pass += 1;
   else fails.push('r131 button: filled-CTA hover must be -2px lift + the premium --shadow-card-h (was -1px + shadow-md)');
@@ -1208,6 +1212,71 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && !rawStepInd.includes('active:scale-[0.94]') && !rawTgCfg.includes('active:scale-90');
   if (microOk) pass += 1;
   else fails.push('r133 A10: autofill/caret + easing bridge + input hover + canonical 0.97 presses (0.94/0.90 retired)');
+}
+
+// ── §r134 — the frontend+mobile fix wave (R134-W2-SB-FE) ────────────────────
+{
+  /* Self-contained block: its own comment-stripping reader + raw reads.
+     Pins the تعذّر copy policy, the lg rung canon, the og:image alt family
+     form, the logical sidebar docks, and the stale-doc repairs. */
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const read = (p) => nc(readFileSync(new URL(p, import.meta.url), 'utf8'));
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  // (1) تعذّر copy policy — the four web status maps ride the family verb
+  //     and no فاشل survives anywhere user-facing (posts:24 joined the fix
+  //     as the seventh site the audit sweep missed).
+  const rawBcast = read('../src/app/dashboard/broadcast/page.tsx');
+  const rawBill = read('../src/app/dashboard/billing/page.tsx');
+  const rawPosts = read('../src/app/dashboard/posts/page.tsx');
+  const rawMrkt = read('../src/app/dashboard/marketing/page.tsx');
+  const taethirOk = rawBcast.includes('failed: "تعذّر"') && rawBill.includes('failed: "تعذّر"')
+    && rawPosts.includes('failed: "تعذّر"') && rawMrkt.includes('failed: "تعذّرت"')
+    && !rawBcast.includes('فاشل') && !rawBill.includes('فاشل')
+    && !rawPosts.includes('فاشل') && !rawMrkt.includes('فشل');
+  if (taethirOk) pass += 1;
+  else fails.push('r134 تعذّر: broadcast/billing/posts = تعذّر, marketing = تعذّرت, zero فاشل/فشل user-facing');
+
+  // (2) button lg rung = the 48px canon (madarek components.css:474) — the
+  //     r131 ladder pin above carries the same value; this gate exists so
+  //     the canon linkage is named in its own right (the rung had drifted
+  //     precisely because nothing named it).
+  const rawBtn134 = read('../src/components/ui/button.tsx');
+  const lgOk = rawBtn134.includes('lg: "h-12 gap-2.5 px-6 text-sm"')
+    && !rawBtn134.includes('lg: "h-11');
+  if (lgOk) pass += 1;
+  else fails.push('r134 lg rung: lg must be h-12 (48px — madarek .btn.lg canon), never h-11');
+
+  // (3) og:image alt family form «الربط الذكي — SmartBot» (root + 6 routes).
+  const ogFiles = [
+    '../src/app/layout.tsx', '../src/app/privacy/page.tsx', '../src/app/terms/page.tsx',
+    '../src/app/subscribe/layout.tsx', '../src/app/pricing/layout.tsx',
+    '../src/app/demo/layout.tsx', '../src/app/register/layout.tsx',
+  ];
+  const ogOk = ogFiles.every((f) => read(f).includes('alt: "الربط الذكي — SmartBot"'))
+    && ogFiles.every((f) => !read(f).includes('alt: "SmartBot —'));
+  if (ogOk) pass += 1;
+  else fails.push('r134 og alt: every og:image alt must be «الربط الذكي — SmartBot» (family form)');
+
+  // (4) RTL logical docks — the three sidebar rails ride start-0, no right-0.
+  const dockFiles = [
+    '../src/app/dashboard/DashboardShell.tsx',
+    '../src/components/layout/AdminShell.tsx',
+    '../src/app/demo/page.tsx',
+  ];
+  const dockOk = dockFiles.every((f) => read(f).includes('fixed top-0 start-0 z-(--z-dropdown)'))
+    && dockFiles.every((f) => !read(f).includes('top-0 right-0'));
+  if (dockOk) pass += 1;
+  else fails.push('r134 RTL docks: all three sidebar rails must ride top-0 start-0 (logical), zero right-0');
+
+  // (5) stale-doc repairs — read RAW (the claims live inside comments, so
+  //     nc() would strip the very text under test).
+  const rawInputDoc = readRaw('../src/components/ui/input.tsx');
+  const rawDialogDoc = readRaw('../src/components/ui/dialog.tsx');
+  const docOk = !rawInputDoc.includes('h-12 touch height, rounded-lg') && rawInputDoc.includes('h-11 touch height, rounded-md')
+    && !rawDialogDoc.includes('spring-eased scale-in') && rawDialogDoc.includes('ease-smooth @ 240ms');
+  if (docOk) pass += 1;
+  else fails.push('r134 stale docs: input.tsx must document h-11/rounded-md and dialog.tsx ease-smooth @ 240ms (reality)');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

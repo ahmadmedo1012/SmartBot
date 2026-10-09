@@ -32,12 +32,16 @@ const STATUS_TONE: Record<string, 'success' | 'warning' | 'muted' | 'destructive
   cancelled: 'muted',
 }
 
+/* r134 (فشل→تعذّر policy + web-canon vocabulary): الخريطة محاذاة حرفيًا
+ * مع BROADCAST_STATUS_LABELS في الويب (broadcast/page.tsx:22) — كانت
+ * منحرفة (أُرسل/بانتظار) وفشل خارج عائلة تعذّر السارية على الأسطول. */
 const STATUS_LABEL: Record<string, string> = {
-  sent: 'أُرسل',
+  sent: 'مُرسل',
   sending: 'جارٍ الإرسال',
-  pending: 'بانتظار',
+  pending: 'قيد الإرسال',
+  scheduled: 'مجدول',
   draft: 'مسودة',
-  failed: 'فشل',
+  failed: 'تعذّر',
   cancelled: 'ملغى',
 }
 
@@ -160,7 +164,9 @@ export default function BroadcastScreen() {
       {isError ? (
         <ErrorState message={describeError(error)} onRetry={() => refetch()} />
       ) : broadcasts.length === 0 ? (
-        <EmptyState message="لا حملات بث بعد" hint="أنشئ بثًا جماعيًا للوصول لكل مشتركيك دفعة واحدة" />
+        /* r134: صيغة الويب (broadcast/page.tsx:252 «لا توجد رسائل بث جماعي») —
+           كانت «لا حملات بث بعد» منحرفة عن التوأم */
+        <EmptyState message="لا توجد رسائل بث جماعي" hint="أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة." />
       ) : (
         <FlatList
           data={broadcasts}
@@ -189,7 +195,7 @@ export default function BroadcastScreen() {
                 ) : null}
                 {typeof item.failed_count === 'number' && item.failed_count > 0 ? (
                   <AppText variant="caption" style={{ color: colors.destructive }}>
-                    فشل: {item.failed_count}
+                    تعذّر: {item.failed_count}
                   </AppText>
                 ) : null}
               </Row>

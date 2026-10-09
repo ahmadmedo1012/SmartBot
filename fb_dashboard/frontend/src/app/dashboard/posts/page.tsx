@@ -20,8 +20,10 @@ import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost, PostsResponse } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
 
+/* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر — المنشور مذكر
+ * (الموقع السابع الذي فات مسح التدقيق، نفس صنف broadcast:23/billing:24). */
 const POST_STATUS_LABELS: Record<string, string> = {
-  published: "منشور", scheduled: "مجدول", draft: "مسودة", failed: "فاشل",
+  published: "منشور", scheduled: "مجدول", draft: "مسودة", failed: "تعذّر",
 }
 
 /* v25 (W-14): مفتاح استعلام المسودات — مرفوع لثبات المرجع لخطاف

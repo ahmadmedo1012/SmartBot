@@ -34,7 +34,11 @@ export const metadata: Metadata = {
     type: "website", locale: "ar_AR", siteName: "SmartBot", url: siteUrl,
     title: "SmartBot - منصة إدارة فيسبوك الذكية",
     description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة إدارة فيسبوك الذكية" }],
+    /* r134 (R134-W1-XC P2): the alt rides the family Arabic-prefix form
+       «الربط الذكي — …» (Smart-Menu/Smart-Order/Smart-Link convention —
+       e.g. «الربط الذكي — SmartLink»); was the Latin-brand-first
+       «SmartBot — …» split. */
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "الربط الذكي — SmartBot" }],
   },
   twitter: {
     card: "summary_large_image",

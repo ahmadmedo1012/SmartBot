@@ -69,14 +69,32 @@ describe('formatTrend — نسبة موقعة', () => {
   })
 })
 
-describe('timeAgo — نسبي عربي', () => {
+describe('timeAgo — نسبي عربي بجمع CLDR (r134: منقول من الويب)', () => {
   it('الآن للحظات', () => {
     expect(timeAgo(new Date())).toBe('الآن')
   })
-  it('دقائق', () => {
-    expect(timeAgo(new Date(Date.now() - 5 * 60_000))).toBe('قبل 5 دقيقة')
+  it('المفرد: قبل دقيقة / قبل ساعة / قبل يوم / قبل شهر', () => {
+    expect(timeAgo(new Date(Date.now() - 60_000))).toBe('قبل دقيقة')
+    expect(timeAgo(new Date(Date.now() - 3600_000))).toBe('قبل ساعة')
+    expect(timeAgo(new Date(Date.now() - 24 * 3600_000))).toBe('قبل يوم')
+    expect(timeAgo(new Date(Date.now() - 40 * 24 * 3600_000))).toBe('قبل شهر')
   })
-  it('ساعات', () => {
-    expect(timeAgo(new Date(Date.now() - 3 * 3600_000))).toBe('قبل 3 ساعة')
+  it('المثنى: دقيقتين / ساعتين / يومين / شهرين', () => {
+    expect(timeAgo(new Date(Date.now() - 2 * 60_000))).toBe('قبل دقيقتين')
+    expect(timeAgo(new Date(Date.now() - 2 * 3600_000))).toBe('قبل ساعتين')
+    expect(timeAgo(new Date(Date.now() - 2 * 24 * 3600_000))).toBe('قبل يومين')
+    expect(timeAgo(new Date(Date.now() - 70 * 24 * 3600_000))).toBe('قبل شهرين')
+  })
+  it('الجمع (3-10): 5 دقائق / 3 ساعات / 5 أيام', () => {
+    expect(timeAgo(new Date(Date.now() - 5 * 60_000))).toBe('قبل 5 دقائق')
+    expect(timeAgo(new Date(Date.now() - 3 * 3600_000))).toBe('قبل 3 ساعات')
+    expect(timeAgo(new Date(Date.now() - 5 * 24 * 3600_000))).toBe('قبل 5 أيام')
+  })
+  it('العديد (11+): 11 دقيقة مفردة كعرف العربية', () => {
+    expect(timeAgo(new Date(Date.now() - 11 * 60_000))).toBe('قبل 11 دقيقة')
+  })
+  it('فارغ للقيم غير الصالحة', () => {
+    expect(timeAgo(null)).toBe('')
+    expect(timeAgo('not-a-date')).toBe('')
   })
 })

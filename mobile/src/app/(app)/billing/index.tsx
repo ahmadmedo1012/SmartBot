@@ -32,12 +32,21 @@ const PROVIDER_LABEL: Record<string, string> = {
   bank: 'تحويل بنكي',
 }
 
-const STATUS_LABEL: Record<string, { tone: 'success' | 'warning' | 'destructive'; text: string }> = {
-  confirmed: { tone: 'success', text: 'مؤكد' },
-  approved: { tone: 'success', text: 'مؤكد' },
-  PAID: { tone: 'success', text: 'مؤكد' },
-  rejected: { tone: 'destructive', text: 'مرفوض' },
-  pending: { tone: 'warning', text: 'قيد المراجعة' },
+/* r134: الخريطة محاذاة حرفيًا مع قاموس الويب (billing/page.tsx:23-26
+ * STATUS_LABELS) — الويب هو المرجع للطرفين: كانت «قيد المراجعة» بدل
+ * «قيد الانتظار» ومفتاح failed غائبًا كليًا فتظهر الحالة الإنجليزية
+ * الخام للمستخدم، ومفتاحا approved/PAID ميتين (لا كاتب خلفي ينتجهما —
+ * بوابات الدفع تكتب pending/confirmed/cancelled/verified فقط).
+ * النبرة مرآة خريطة شارة الويب: completed→success · pending→warning ·
+ * failed→destructive والبقية muted (secondary). */
+const STATUS_LABEL: Record<string, { tone: 'success' | 'warning' | 'destructive' | 'muted'; text: string }> = {
+  completed: { tone: 'success', text: 'مكتمل' },
+  pending: { tone: 'warning', text: 'قيد الانتظار' },
+  failed: { tone: 'destructive', text: 'تعذّر' },
+  confirmed: { tone: 'muted', text: 'مؤكد' },
+  cancelled: { tone: 'muted', text: 'ملغى' },
+  verified: { tone: 'muted', text: 'مُفعّل' },
+  rejected: { tone: 'muted', text: 'مرفوض' },
 }
 
 export default function BillingScreen() {
@@ -148,7 +157,9 @@ export default function BillingScreen() {
           ) : (
             <View style={{ marginTop: spacing.md, gap: spacing.md }}>
               {payments.map((p) => {
-                const badge = STATUS_LABEL[p.status ?? ''] ?? { tone: 'warning' as const, text: p.status ?? '—' }
+                /* r134: احتياط الحالة المجهولة = muted مثل فرع secondary في
+                   الويب (كان warning) */
+                const badge = STATUS_LABEL[p.status ?? ''] ?? { tone: 'muted' as const, text: p.status ?? '—' }
                 const providerLabel = p.provider ? PROVIDER_LABEL[p.provider] ?? p.provider : ''
                 return (
                   <Row key={String(p.payment_id)} style={{ justifyContent: 'space-between' }}>

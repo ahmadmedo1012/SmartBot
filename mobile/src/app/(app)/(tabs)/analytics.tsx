@@ -162,7 +162,14 @@ export default function AnalyticsScreen() {
                     <View style={{ flex: 1, height: 10, borderRadius: 999, backgroundColor: colors.muted, overflow: 'hidden', marginHorizontal: spacing.md }}>
                       <View style={{ width: `${Math.round((s.value / sentimentTotal) * 100)}%`, height: '100%', backgroundColor: s.color }} />
                     </View>
-                    <AppText variant="caption" color="mutedFg" style={{ width: 60, textAlign: 'left' }}>
+                    {/* r134 (RTL + tnum): محتوى رقمي LTR بتصميم مقصود —
+                       توأم خانة القيمة في الويب (charts/index.tsx:125
+                       «tabular-nums text-muted-foreground w-8 text-end»):
+                       النسبة تُثبَّت على الحافة اللاحقة للصف (اليسار في
+                       RTL — textAlign 'left' هو التهجئة الوحيدة المتاحة
+                       لذلك في اتحاد أنواع RN 0.86 إذ لا يوجد start/end)،
+                       وtabular-nums يمنحها انتظام أعمدة الويب نفسه. */}
+                    <AppText variant="caption" color="mutedFg" style={{ width: 60, textAlign: 'left', fontVariant: ['tabular-nums'] }}>
                       {Math.round((s.value / sentimentTotal) * 100)}%
                     </AppText>
                   </Row>

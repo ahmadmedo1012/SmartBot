@@ -69,8 +69,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           RTL) edge — DashboardShell's exact chrome (z-dropdown rung). The
           brand subtitle says «الإدارة» so the two shells are distinguishable
           at a glance. No onSubscribe: platform admins don't upsell
-          themselves (DashboardShell's conditional CTA stays tenant-only). */}
-      <div className="fixed top-0 right-0 z-(--z-dropdown) h-full w-64 hidden md:block">
+          themselves (DashboardShell's conditional CTA stays tenant-only).
+          r134 (RTL A12): right-0 → start-0 (logical spelling, r131 rule). */}
+      <div className="fixed top-0 start-0 z-(--z-dropdown) h-full w-64 hidden md:block">
         <AdminSidebar
           navSections={adminNavSections}
           subtitle="الإدارة"

@@ -72,23 +72,32 @@ export default function ConversationScreen() {
   const renderItem = useCallback(
     ({ item }: { item: ThreadMessage }) => {
       const fromPage = item.is_from_page
+      /* r134 (تكافؤ التوأم — messages/page.tsx:1035-1037): الوصفة كانت
+       * معكوسة عن الويب (العميل خافت والصفحة أساسية). المرآة الحرفية:
+       * رسالة الصفحة = فقاعة خافتة bg-muted بزاوية بداية مربية
+       * (rounded-ss-sm ≙ borderTopRightRadius في RTL)، ورسالة العميل =
+       * فقاعة أساسية bg-primary بنص primaryFg وزاوية نهاية مربية
+       * (rounded-se-sm ≙ borderTopLeftRadius في RTL) — فتُرسم المحادثة
+       * نفسها على الشاشتين بالهوية نفسها. تعتيم سطر الوقت على الفقاعة
+       * الأساسية أُسقط أيضًا (v14-E5 في الويب: 0.7 يقيس 3.14:1 —
+       * primaryFg الكامل يجتاز). */
       return (
         <View style={[styles.bubbleRow, { justifyContent: fromPage ? 'flex-start' : 'flex-end' }]}>
           {!fromPage ? (
+            <View style={[styles.bubble, { backgroundColor: colors.primary, borderTopLeftRadius: radius.sm }]}>
+              <AppText variant="small" style={{ color: colors.primaryFg }}>
+                {item.message}
+              </AppText>
+              <AppText variant="caption" style={{ color: colors.primaryFg, alignSelf: 'flex-start', marginTop: 2 }}>
+                {formatTime(item.created_time)}
+              </AppText>
+            </View>
+          ) : (
             <View style={[styles.bubble, { backgroundColor: colors.muted, borderTopRightRadius: radius.sm }]}>
               <AppText variant="small" style={{ color: colors.foreground }}>
                 {item.message}
               </AppText>
               <AppText variant="caption" color="mutedFg" style={{ alignSelf: 'flex-start', marginTop: 2 }}>
-                {formatTime(item.created_time)}
-              </AppText>
-            </View>
-          ) : (
-            <View style={[styles.bubble, { backgroundColor: colors.primary, borderTopLeftRadius: radius.sm }]}>
-              <AppText variant="small" style={{ color: colors.primaryFg }}>
-                {item.message}
-              </AppText>
-              <AppText variant="caption" style={{ color: colors.primaryFg, opacity: 0.7, alignSelf: 'flex-start', marginTop: 2 }}>
                 {formatTime(item.created_time)} · الصفحة
               </AppText>
             </View>

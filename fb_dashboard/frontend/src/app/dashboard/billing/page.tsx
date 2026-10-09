@@ -20,8 +20,10 @@ import { normalizeLibyanPhone } from "@/lib/phone"
 import type { PaymentBalance, PaymentRecord } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
 
+/* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر — سجل العمليات يصوغ
+ * بالمذكر المجرد مثل بقية الخريطة (مكتمل/مؤكد/ملغى). */
 const STATUS_LABELS: Record<string, string> = {
-  completed: "مكتمل", pending: "قيد الانتظار", failed: "فاشل",
+  completed: "مكتمل", pending: "قيد الانتظار", failed: "تعذّر",
   confirmed: "مؤكد", cancelled: "ملغى", verified: "مُفعّل", rejected: "مرفوض",
 }
 const PROVIDER_LABELS: Record<string, string> = {

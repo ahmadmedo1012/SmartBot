@@ -5,7 +5,7 @@
  * عقد v25 (scheduled_posts_routes.py — M-13): الإنشاء Form-encoded بالمفتاح
  * message (لا content ولا JSON) — الحالة حقل status ('published').
  */
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '@/hooks/use-theme'
@@ -21,6 +21,27 @@ import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDate } from '@/lib/format'
 import type { ScheduledPost } from '@/types/api'
 
+/* r134 (مرآة scheduled/page.tsx:131): حقل الموعد يستقبل صيغة datetime-local
+ * نفسها (YYYY-MM-DDTHH:mm). لا يوجد type="datetime-local" في React Native
+ * (لا منتقي تاريخ أصلي بلا حزمة إضافية)، فالحقل نصي محكوم: أصغر موعد
+ * محسوب بالمعادلة نفسها كالويب (الآن + دقيقة، محليًا)، وكل قيمة تُفحص قبل
+ * الإرسال — صيغة ثم استقبال — والتسلسل هو تسلسل التوأم حرفيًا:
+ * new Date(v).toISOString() (UTC خالص لا لبس فيه؛ النص المحلي الساذج
+ * كان يُقرأ UTC فيقفز المنشور متأخرًا ساعتين على توقيت ليبيا +02 —
+ * نفس علّة v4 §6.23 التي أصلحها الويب). */
+function localMinDateTime(): string {
+  return new Date(Date.now() + 60000 - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16)
+}
+
+/** يقبّل صيغة datetime-local فقط (YYYY-MM-DDTHH:mm) ويعيد تاريخًا صالحًا. */
+function parseWhen(v: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v.trim())) return null
+  const d = new Date(v.trim())
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
 export default function ScheduledScreen() {
   const { colors } = useTheme()
   const queryClient = useQueryClient()
@@ -28,6 +49,9 @@ export default function ScheduledScreen() {
   const [message, setMessage] = useState('')
   const [when, setWhen] = useState('')
   const [error, setError] = useState<string | null>(null)
+  /* أصغر موعد مسموح — يُحسب مرة عند فتح الشاشة (نفس عقد الويب: min بعد
+   * التركيب؛ الفحص الصارم يبقى للخادم). */
+  const minWhen = useMemo(() => localMinDateTime(), [])
 
   const { data, isLoading, isError, error: queryError, refetch, isRefetching } = useQuery<unknown, Error, ScheduledPost[]>({
     queryKey: ['scheduled-posts'],
@@ -41,11 +65,22 @@ export default function ScheduledScreen() {
   // M-13: العقد الفعلي — Form-encoded {message, scheduled_at} (كان JSON
   // بمفتاح content → 422 «message مطلوب» دائمًا — تدفق ميت)
   const createMutation = useMutation({
-    mutationFn: () =>
-      apiPostForm('/api/scheduled-posts', {
+    /* r134: التسلسل = مرآة الويب (v4 §6.23) — toISOString() لا النص المحلي
+     * الخام: الصيغة تُفحص ثم الاستقبال قبل الإرسال (الخادم يرفض الماضي
+     * ويقارن UTC — راجع localMinDateTime أعلاه). */
+    mutationFn: () => {
+      const d = parseWhen(when)
+      if (!d) {
+        throw new Error('صيغة الموعد غير صالحة — استخدم YYYY-MM-DDTHH:mm مثل 2026-09-20T18:00')
+      }
+      if (d.getTime() <= Date.now()) {
+        throw new Error('لا يمكن جدولة منشور في الماضي — اختر وقتًا مستقبليًا')
+      }
+      return apiPostForm('/api/scheduled-posts', {
         message: message.trim(),
-        scheduled_at: when.trim(),
-      }),
+        scheduled_at: d.toISOString(),
+      })
+    },
     onSuccess: () => {
       setShowNew(false)
       setMessage('')
@@ -123,7 +158,7 @@ export default function ScheduledScreen() {
           renderItem={({ item }) => (
             <Card>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Badge tone={item.status === 'published' ? 'success' : item.status === 'failed' ? 'destructive' : 'warning'} text={item.status === 'published' ? 'نُشر' : item.status === 'failed' ? 'فشل' : 'مجدول'} />
+                <Badge tone={item.status === 'published' ? 'success' : item.status === 'failed' ? 'destructive' : 'warning'} text={item.status === 'published' ? 'نُشر' : item.status === 'failed' ? 'تعذّر' : 'مجدول'} />
                 {item.scheduled_at ? (
                   <AppText variant="caption" color="mutedFg">
                     {formatDate(item.scheduled_at)}
@@ -159,7 +194,17 @@ export default function ScheduledScreen() {
             </AppText>
             <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
               <AppInput label="نص المنشور" value={message} onChangeText={setMessage} placeholder="ماذا ستنشر صفحتك؟" multiline accessibilityLabel="نص المنشور" />
-              <AppInput label="موعد النشر" value={when} onChangeText={setWhen} placeholder="2026-09-20T18:00" accessibilityLabel="موعد النشر" hint="صيغة ISO: 2026-09-20T18:00 — يجب أن يكون مستقبليًا" />
+              <AppInput
+                label="موعد النشر"
+                value={when}
+                onChangeText={setWhen}
+                placeholder={`${minWhen.slice(0, 10)}T18:00`}
+                accessibilityLabel="موعد النشر"
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={16}
+                hint={`صيغة datetime-local — أقرب موعد ${minWhen}، ويجب أن يكون مستقبليًا`}
+              />
               {error ? (
                 <AppText variant="small" style={{ color: colors.destructive }}>
                   {error}

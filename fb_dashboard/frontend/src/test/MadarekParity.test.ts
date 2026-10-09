@@ -633,3 +633,62 @@ describe("r130 Madarek parity — recipe pins (inner radius 16 · page-title res
     expect(offenders, `de-glow offenders found:\n  ${offenders.join("\n  ")}`).toEqual([])
   })
 })
+
+describe("r134 parity — تعذّر policy · lg rung 48px canon · og alt family form · RTL docks · stale docs", () => {
+  const nc = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, " ")
+  const read = (p: string) => nc(readFileSync(p, "utf8"))
+
+  it("تعذّر copy policy: broadcast/billing/posts = تعذّر, marketing = تعذّرت, zero فاشل/فشل user-facing", () => {
+    const rawBcast = read("src/app/dashboard/broadcast/page.tsx")
+    const rawBill = read("src/app/dashboard/billing/page.tsx")
+    const rawPosts = read("src/app/dashboard/posts/page.tsx")
+    const rawMrkt = read("src/app/dashboard/marketing/page.tsx")
+    expect(rawBcast).toContain('failed: "تعذّر"')
+    expect(rawBill).toContain('failed: "تعذّر"')
+    expect(rawPosts).toContain('failed: "تعذّر"')
+    expect(rawMrkt).toContain('failed: "تعذّرت"')
+    expect(rawBcast).not.toContain("فاشل")
+    expect(rawBill).not.toContain("فاشل")
+    expect(rawPosts).not.toContain("فاشل")
+    expect(rawMrkt).not.toContain("فشل")
+  })
+
+  it("button lg rung = h-12 (48px, madarek components.css:474 canon) — never h-11", () => {
+    const rawBtn = read("src/components/ui/button.tsx")
+    expect(rawBtn).toContain('lg: "h-12 gap-2.5 px-6 text-sm"')
+    expect(rawBtn).not.toContain('lg: "h-11')
+  })
+
+  it("og:image alt rides the family form «الربط الذكي — SmartBot» (root + 6 routes)", () => {
+    const ogFiles = [
+      "src/app/layout.tsx", "src/app/privacy/page.tsx", "src/app/terms/page.tsx",
+      "src/app/subscribe/layout.tsx", "src/app/pricing/layout.tsx",
+      "src/app/demo/layout.tsx", "src/app/register/layout.tsx",
+    ]
+    for (const f of ogFiles) {
+      expect(read(f), f).toContain('alt: "الربط الذكي — SmartBot"')
+      expect(read(f), f).not.toContain('alt: "SmartBot —')
+    }
+  })
+
+  it("RTL docks: all three sidebar rails ride top-0 start-0 (logical), zero right-0", () => {
+    const dockFiles = [
+      "src/app/dashboard/DashboardShell.tsx",
+      "src/components/layout/AdminShell.tsx",
+      "src/app/demo/page.tsx",
+    ]
+    for (const f of dockFiles) {
+      expect(read(f), f).toContain("fixed top-0 start-0 z-(--z-dropdown)")
+      expect(read(f), f).not.toContain("top-0 right-0")
+    }
+  })
+
+  it("stale docs repaired: input.tsx documents h-11/rounded-md; dialog.tsx documents ease-smooth @ 240ms", () => {
+    const rawInput = readFileSync("src/components/ui/input.tsx", "utf8")
+    const rawDialog = readFileSync("src/components/ui/dialog.tsx", "utf8")
+    expect(rawInput).not.toContain("h-12 touch height, rounded-lg")
+    expect(rawInput).toContain("h-11 touch height, rounded-md")
+    expect(rawDialog).not.toContain("spring-eased scale-in")
+    expect(rawDialog).toContain("ease-smooth @ 240ms")
+  })
+})

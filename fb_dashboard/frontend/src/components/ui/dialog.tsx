@@ -7,9 +7,12 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import AnimatedX from "@/components/ui/x-icon"
 
-/* Ported from Smart-Menu (smart-link.ly shared identity) — identical
-   overlay/popup treatment: blurred backdrop, spring-eased scale-in,
-   popover surface, RTL direction, AnimatedX close affordance. */
+/* r134 (stale-doc repair — audit R134-W1-SB2b): the header used to claim a
+   spring-eased pop entrance from the Smart-Menu port; the r131 re-base put
+   the entrance on the canonical madarek-pop — ease-smooth @ 240ms
+   (--duration-base), opacity 0→1 + scale .98 + translateY 8px
+   (data-starting-style below). The rest of the port is unchanged:
+   blurred backdrop, popover surface, RTL direction, AnimatedX close. */
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" modal {...props} />

@@ -119,7 +119,9 @@ export function Badge({
   const { bg, fg } = map[tone]
   return (
     <View style={{ backgroundColor: bg, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
-      <AppText variant="caption" style={{ color: fg, fontWeight: '700' }}>
+      {/* r134 (tnum): شارة الويب أساسها tabular-nums (badge.tsx) — أرقام
+          الحالات/العدادات داخل الشارات لا ترقص عموديًا */}
+      <AppText variant="caption" style={{ color: fg, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
         {text}
       </AppText>
     </View>
@@ -170,7 +172,9 @@ export function KpiCard({
         </AppText>
         {icon}
       </Row>
-      <AppText variant="title" style={{ color: toneColor, marginTop: spacing.xs }}>
+      {/* r134 (tnum — مرآة KpiCard.tsx:143 في الويب): خانة القيمة
+          30px تعمل بـ tabular-nums حتى لا ترقص الأرقام عند التحديث */}
+      <AppText variant="title" style={{ color: toneColor, marginTop: spacing.xs, fontVariant: ['tabular-nums'] }}>
         {value}
       </AppText>
       {trend ? (

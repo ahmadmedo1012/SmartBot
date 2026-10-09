@@ -34,7 +34,9 @@ const STATUS_BADGE: Record<string, { tone: 'success' | 'warning' | 'muted' | 'de
   sent: { tone: 'success', text: 'أُرسلت' },
   scheduled: { tone: 'warning', text: 'مجدولة' },
   draft: { tone: 'muted', text: 'مسودة' },
-  failed: { tone: 'destructive', text: 'فشلت' },
+  /* r134 (فشل→تعذّر): نفس صيغة الويب (marketing/page.tsx:69) — الحملة
+     مؤنثة فتأخذ تعذّرت، لا فشلت المحظورة على واجهات الأسطول. */
+  failed: { tone: 'destructive', text: 'تعذّرت' },
 }
 
 export default function MarketingScreen() {

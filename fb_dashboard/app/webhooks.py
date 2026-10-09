@@ -196,8 +196,8 @@ async def _process_webhook_messaging(page_id: str, messaging: dict):
         # Facebook retry the same poison payload (the v24-C4 retry-storm
         # lesson) — the row is the trail, not a signal to the platform.
         try:
-            from models import BotLog
             from _utils import utcnow as _now
+            from models import BotLog
             _mid = str(((messaging or {}).get("message") or {}).get("mid") or "")[:60]
             _why = (
                 f"تعذّرت معالجة رسالة واردة — قد تكون ضائعة ولم يُرَدّ عليها "

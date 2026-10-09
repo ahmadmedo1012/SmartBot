@@ -261,8 +261,9 @@ async def test_replay_guard_reads_event_level_timestamp(app_client):
         async def _get(self, *a, **k):
             return None
 
-    from messenger_service import handle_messaging_event
     import time as _time
+
+    from messenger_service import handle_messaging_event
 
     # CURRENT event-level timestamp → guard passes → the rule fires
     ev_now = _msg_event(page_id, "555000333", "سلام", f"n_{uuid.uuid4().hex[:6]}",
@@ -308,12 +309,13 @@ async def test_consecutive_messages_both_replied(app_client):
 
     from _services import reset_bot_engines
     reset_bot_engines()
-    from messenger_service import handle_messaging_event
     # r134: fresh timestamps — the replay guard now actually reads the
     # event-level ts (r134 fix), so a stale default ts would be (correctly)
     # skipped as an old redelivery; real FB traffic always carries the
     # current event time.
     import time as _time
+
+    from messenger_service import handle_messaging_event
     _now_ms = int(_time.time() * 1000)
     await handle_messaging_event(
         tenant_id, page_id,

@@ -223,5 +223,4 @@ def test_cooldown_store_prunes_expired_entries():
     cd2._store["other"] = now - 120            # older than default window
     cd2.is_blocked("someone_else")             # triggers a prune pass
     assert "vip_user" in cd2._store, "an entry inside its own (long) window survives"
-    assert "other" not in cd2._store or True   # 120s > 60s default but < 3600 horizon → survives
     assert "other" in cd2._store, "prune horizon = MAX window, not the default"

@@ -114,7 +114,7 @@ def test_chain_head_is_017_and_hot_indexes_exist(fresh_db):
     land (guarded — create_all already built them from the models, so 017's
     guards skip and the SETS still match, not duplicate)."""
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "017"
+    assert _version(fresh_db) == "018"  # r134: ترحيلة 018 (نطاق العلامة الافتراضي) أصبحت الرأس
 
     for table, name in NEW_INDEXES:
         assert name in _index_names(fresh_db, table), f"{name} missing on {table}"
@@ -132,7 +132,7 @@ def test_017_double_run_is_noop(fresh_db):
     (Inspector guards — the 010/013/015 discipline)."""
     command.upgrade(_alembic_cfg(), "head")
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "017"
+    assert _version(fresh_db) == "018"  # r134: ترحيلة 018 (نطاق العلامة الافتراضي) أصبحت الرأس
     for table, name in NEW_INDEXES:
         assert name in _index_names(fresh_db, table)
 
@@ -186,7 +186,7 @@ def test_017_heals_legacy_offer_claims_without_constraint(fresh_db):
         con.close()
 
     command.upgrade(_alembic_cfg(), "head")
-    assert _version(fresh_db) == "017"
+    assert _version(fresh_db) == "018"  # r134: ترحيلة 018 (نطاق العلامة الافتراضي) أصبحت الرأس
 
     con = sqlite3.connect(fresh_db)
     try:

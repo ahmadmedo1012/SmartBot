@@ -403,7 +403,7 @@ async def test_sub_approve_pushes_inapp_notification_to_owner(wh):
     n = notes[0]
     assert n.tenant_id == tid and n.type == "payment"
     assert n.title == "تم تأكيد الدفع وتفعيل الاشتراك"
-    assert "29.00" in n.body and W1D5_PLAN in n.body, n.body
+    assert "29 د.ل" in n.body and W1D5_PLAN in n.body, n.body  # r134: fmt_lyd smart-trim — لا .00 عارية
     assert n.link == "/dashboard/billing" and n.read is False
     # editMessageText (the admin's chat) is HTML-safe with escaped user data
     edited = [t for t in wh.edits() if "تم تأكيد الاشتراك" in t]
@@ -421,7 +421,7 @@ async def test_sub_reject_pushes_rejection_notification_to_owner(wh):
     assert len(notes) == 1
     n = notes[0]
     assert n.title == "تم رفض طلب الدفع"
-    assert "رُفضت دفعة بقيمة 29.00" in n.body, n.body
+    assert "رُفضت دفعة بقيمة 29 د.ل" in n.body, n.body  # r134: fmt_lyd smart-trim
     assert n.type == "payment" and n.link == "/dashboard/billing"
     # double-tap: the atomic claim makes the second tap a no-op — no duplicate
     r2 = await wh.post(f"sub_rej:{spid}")

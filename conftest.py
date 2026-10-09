@@ -96,6 +96,37 @@ import pytest  # noqa: E402  (env must be forced before app imports)
 @pytest.fixture(autouse=True)
 async def _dispose_engine_per_test():
     yield
+    # r136 (CI-red root cause, pre-existing since r133): pytest-asyncio closes
+    # the loop right after each test, but spawn()ed fire-and-forget tasks
+    # (_track_event's analytics _write is THE hot one — it opens its OWN
+    # AsyncSessionLocal session and INSERTs) can still be mid-flight. When the
+    # loop dies under them, the aiosqlite write transaction is never committed
+    # nor returned → the temp-FILE DB stays write-locked → the NEXT test's
+    # INSERT exhausts busy_timeout=5000 → "database is locked" → message
+    # "not stored" → the cooldown test's replied=False (test_radical_v4:331,
+    # red on slow CI runners 4/4, green on fast local boxes only by timing
+    # luck). Drain CURRENT-loop tasks to completion (capped) BEFORE the
+    # dispose; zombie tasks from earlier (closed) loops can never run again —
+    # cancel + drop the strong registry ref so GC reclaims them.
+    try:
+        import asyncio as _aio
+
+        from _async import _bg_tasks
+
+        loop = _aio.get_running_loop()
+        live = [t for t in list(_bg_tasks) if not t.done()]
+        if live:
+            mine = [t for t in live if t.get_loop() is loop]
+            for t in live:
+                if t.get_loop() is not loop:
+                    t.cancel()
+                    _bg_tasks.discard(t)
+            if mine:
+                _done, pending = await _aio.wait(mine, timeout=1)
+                for t in pending:
+                    t.cancel()
+    except Exception:
+        pass
     try:
         from database import engine
 

@@ -787,7 +787,12 @@ class BrandConfig(Base):
     brand_name = Column(String(100), default="Smart Link")
     tagline = Column(String(300), default="اللي يواكب التطور يسبق الجميع")
     copyright_text = Column(String(500), default="© 2025 Smart Link. جميع الحقوق محفوظة.")
-    website = Column(String(200), default="https://smart-menu-sigma.vercel.app")
+    # r134 (R134-W1-SB2a2): الشائع الوحيد للرابط الافتراضي — كان عمود + بذر
+    # يحملان "smart-menu-sigma.vercel.app" (نطاق معاينة قديم لـ Smart-Menu)
+    # والبذر التلقائي يثبته في القاعدة عند أول نداء. الرابط الحي:
+    # menu.smart-link.ly (ترحيلة البيانات 018 تصلح الصفوف القائمة).
+    DEFAULT_WEBSITE = "https://menu.smart-link.ly"
+    website = Column(String(200), default=DEFAULT_WEBSITE)
     whatsapp = Column(String(50), default="+218910089975")
     projects = Column(JSON, default=list)  # ["Smart Menu", "Smart Bot", "Smart POS", ...]
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)

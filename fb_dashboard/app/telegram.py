@@ -126,14 +126,14 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                     await push_notification(
                         db, sp.tenant_id,
                         title="تم تأكيد الدفع وتفعيل الاشتراك",
-                        body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                        body=f"تمت الموافقة على دفعة بقيمة {fmt_lyd(sp.amount)} د.ل — باقة {sp.plan_name}",
                         type_="payment", link="/dashboard/billing", user_id=sp.user_id,
                     )
                 else:
                     await push_notification(
                         db, sp.tenant_id,
                         title="تم رفض طلب الدفع",
-                        body=f"رُفضت دفعة بقيمة {float(sp.amount):.2f} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
+                        body=f"رُفضت دفعة بقيمة {fmt_lyd(sp.amount)} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
                         type_="payment", link="/dashboard/billing", user_id=sp.user_id,
                     )
             except Exception:

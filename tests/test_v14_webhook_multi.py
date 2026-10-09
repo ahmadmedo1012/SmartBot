@@ -333,3 +333,53 @@ async def test_webhook_non_page_object_is_acknowledged_without_processing(app_cl
     assert r.status_code == 200
     assert r.json() == {"ok": True}
     assert fake_fb.dm_calls == []
+
+
+# ────────────────────────────────────────────────────────────────────
+# 4. r134 — swallowed messaging failures leave a dead-letter trail
+# ────────────────────────────────────────────────────────────────────
+
+async def test_webhook_messaging_failure_writes_dead_letter_warn(
+        app_client, fake_fb, monkeypatch):
+    """r134 (R134-W1-SB2a2): a messaging-processing error is still ACKed
+    200 (webhook contract — a non-200 makes Facebook redeliver the same
+    poison payload), but it must now leave a BotLog WARN dead-letter row:
+    pre-r134 the catch-all swallowed the error with zero trace, so a
+    dropped CUSTOMER message was indistinguishable from a processed one
+    everywhere the owner looks (/api/logs)."""
+    ac = app_client
+    user = await _register(ac, "dead")
+    await _connect_page(ac, "3000000002")
+    ac.cookies.clear()
+
+    import messenger_service as ms
+
+    async def _boom(*a, **k):
+        raise RuntimeError("simulated pipeline crash")
+
+    monkeypatch.setattr(ms, "handle_messaging_event", _boom)
+
+    mid = f"mid.dead.{uuid.uuid4().hex[:8]}"
+    payload = {"object": "page", "entry": [
+        _messaging_entry("3000000002", "990000002", "سالم", mid,
+                         "السلام عليكم", _now_ms()),
+    ]}
+    body = json.dumps(payload).encode()
+    r = await ac.post("/webhook", content=body,
+                      headers={"x-hub-signature-256": _sign(body)})
+    assert r.status_code == 200 and r.json() == {"ok": True}, (
+        "the 200 ACK semantics must not change (retry-storm lesson)")
+
+    from models import BotLog
+    async with AsyncSessionLocal() as db:
+        rows = (await db.execute(
+            select(BotLog).where(
+                BotLog.tenant_id == user["tenant_id"],
+                BotLog.level == "WARN",
+            )
+        )).scalars().all()
+    assert rows, "a swallowed messaging failure MUST leave a BotLog WARN row"
+    assert any("تعذّرت معالجة رسالة واردة" in row.message and mid in row.message
+               for row in rows), [row.message for row in rows]
+    assert any("simulated pipeline crash" in row.message for row in rows), (
+        "the exception summary must ride the dead-letter row")

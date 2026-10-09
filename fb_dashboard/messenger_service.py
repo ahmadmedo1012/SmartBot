@@ -446,7 +446,14 @@ async def _persist_bot_reply(db, tenant_id: int, page_id: str, user_id: str,
 
 def _is_recent(messaging: dict) -> bool:
     """Only auto-reply to messages younger than 10 minutes (replay guard)."""
-    ts = (messaging.get("message") or {}).get("timestamp")
+    # r134 (R134-W1-SB2a2 P1): Facebook puts ``timestamp`` at the EVENT level
+    # (sibling of ``message``), not inside ``message`` — the same read
+    # persist_message:203 has always used. Reading it from the wrong level
+    # made the guard INERT on real traffic (always fail-open); only the DB
+    # mid-dedup layer was actually replay-protecting. Event level first
+    # (the live shape), message level as fallback for shapes that carry it
+    # there (some test fakes / older simulators).
+    ts = messaging.get("timestamp") or (messaging.get("message") or {}).get("timestamp")
     try:
         if ts:
             import time as _t

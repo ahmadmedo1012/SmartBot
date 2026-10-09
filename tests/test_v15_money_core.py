@@ -770,6 +770,44 @@ async def test_messenger_single_send_attempt_on_failure(eng_world):
     assert logs, "honest failure reason still persisted (tenant-scoped)"
 
 
+async def test_messenger_dm_timeout_class_gets_one_bounded_retry(eng_world):
+    """r134 (R134-W1-SB2a2) — فشل إرسال من عائلة المهلة (timeout/transport،
+    ما يبلّغ عنه fb_client عبر _last_send_error بقيمة 0): محاولة ثانية
+    واحدة فورًا (بلا sleep يحتجز الـACK). عائلة 4xx (الحكم الدائم) تبقى
+    محاولة واحدة — فوقها مباشرة."""
+    from bot_engine.engine import BotEngine
+
+    world = eng_world
+    tid = await _seed_engine_tenant(world, status="PAID")
+    await _mk_rule(world.sf, tid)
+
+    class _TimeoutFB(FakeFB):
+        """send_dm يفشل أول مرة بفشل من عائلة المهلة (نمط ما يبلّغ عنه
+        fb_client.send_dm بعد استنفاد محاولاته الداخلية) ثم ينجح."""
+
+        def __init__(self):
+            super().__init__()
+            self._last_send_error = None
+
+        async def send_dm(self, uid, text, messaging_type="RESPONSE", tag=None):
+            self.dms.append((str(uid), str(text)))
+            if len(self.dms) == 1:
+                self._last_send_error = (0, "send_dm failed (transport/timeout class)")
+                return None
+            self._last_send_error = None
+            return {"message_id": "mid_retry_ok"}
+
+    fake = _TimeoutFB()
+    engine = BotEngine(fake, tenant_id=tid)
+    t0 = asyncio.get_running_loop().time()
+    res = await engine.process_single_message(_messaging("mr1", "كم السعر؟"))
+    elapsed = asyncio.get_running_loop().time() - t0
+    assert res is not None, "the bounded retry must recover a transient stall"
+    assert len(fake.dms) == 2, "exactly ONE extra attempt (bounded — never a loop)"
+    assert res["mid"] == "mid_retry_ok"
+    assert elapsed < 2.0, f"no backoff sleep before the 200 — took {elapsed:.1f}s"
+
+
 # ── D8-B1: نافذة dedup + سباق mark/load ────────────────────────────────────
 
 

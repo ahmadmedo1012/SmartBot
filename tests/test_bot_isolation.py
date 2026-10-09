@@ -192,3 +192,36 @@ async def main():
 
 if __name__ == "__main__":
     exit(asyncio.run(main()))
+
+
+# ── r134 (R134-W1-SB2a2 #8): cooldown store prune-on-write ───────────────────
+
+def test_cooldown_store_prunes_expired_entries():
+    """r134: CooldownManager._store لا ينمو إلى ما لا نهاية — كل كتابة
+    تُسقط المداخل الأقدم من أطول نافذة ممكنة (محركات المستأجرين لا
+    تُطفأ أبدًا، فكان تسربًا بطيئًا للذاكرة). السلوك الوظيفي لا يتغير:
+    مدخل داخل النافذة يبقى، ومن انتهت نافذته لا يمكن أن يُحجب مجددًا."""
+    import time as _time
+
+    from bot_engine.cooldown import CooldownManager
+
+    cd = CooldownManager(default_cooldown_sec=60)
+    now = _time.time()
+    # two stale entries (older than every possible window) + one fresh
+    cd._store = {"stale_1": now - 3600, "stale_2": now - 7200}
+    assert cd.is_blocked("fresh_user") is False  # records + prunes
+    assert "stale_1" not in cd._store and "stale_2" not in cd._store, (
+        "entries older than the max window must be pruned on write")
+    assert "fresh_user" in cd._store
+    # functional behavior intact: fresh entry blocks within its window
+    assert cd.is_blocked("fresh_user") is True
+
+    # a per-user window LONGER than the default keeps its entry alive
+    cd2 = CooldownManager(default_cooldown_sec=60)
+    cd2.adjust_window("vip_user", 3600)
+    cd2.is_blocked("vip_user")
+    cd2._store["other"] = now - 120            # older than default window
+    cd2.is_blocked("someone_else")             # triggers a prune pass
+    assert "vip_user" in cd2._store, "an entry inside its own (long) window survives"
+    assert "other" not in cd2._store or True   # 120s > 60s default but < 3600 horizon → survives
+    assert "other" in cd2._store, "prune horizon = MAX window, not the default"

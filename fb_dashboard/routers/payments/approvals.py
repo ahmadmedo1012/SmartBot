@@ -15,7 +15,7 @@ import os
 from datetime import timedelta
 
 from _responses import ok
-from _utils import iso_z, utcnow
+from _utils import fmt_lyd, iso_z, utcnow
 from database import get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
@@ -164,7 +164,7 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
             await push_notification(
                 db, sp.tenant_id,
                 title="تم تأكيد الدفع وتفعيل الاشتراك",
-                body=f"تمت الموافقة على دفعة بقيمة {float(sp.amount):.2f} د.ل — باقة {sp.plan_name}",
+                body=f"تمت الموافقة على دفعة بقيمة {fmt_lyd(sp.amount)} د.ل — باقة {sp.plan_name}",
                 type_="payment", link="/dashboard/billing", user_id=sp.user_id,
             )
         elif decision == "verified":
@@ -172,14 +172,14 @@ async def admin_resolve_subscription(body: dict = Body(...), db=Depends(get_db),
             await push_notification(
                 db, sp.tenant_id,
                 title="تم تسجيل الدفع دون تفعيل",
-                body=f"سُجّلت دفعة بقيمة {float(sp.amount):.2f} د.ل لكن تعذّر تفعيل الباقة — فريق الدعم سيتواصل معك",
+                body=f"سُجّلت دفعة بقيمة {fmt_lyd(sp.amount)} د.ل لكن تعذّر تفعيل الباقة — فريق الدعم سيتواصل معك",
                 type_="payment", link="/dashboard/billing", user_id=sp.user_id,
             )
         else:
             await push_notification(
                 db, sp.tenant_id,
                 title="تم رفض طلب الدفع",
-                body=f"رُفضت دفعة بقيمة {float(sp.amount):.2f} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
+                body=f"رُفضت دفعة بقيمة {fmt_lyd(sp.amount)} د.ل — راجع تفاصيل الطلب أو تواصل مع الدعم",
                 type_="payment", link="/dashboard/billing", user_id=sp.user_id,
             )
     except Exception:

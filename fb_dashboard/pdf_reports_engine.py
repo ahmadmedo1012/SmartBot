@@ -718,7 +718,10 @@ class PdfReportsEngine:
             ("الحالة", data.get("status", "—")),
             ("المستلمين", data.get("total_recipients", 0)),
             ("تم الإرسال", data.get("sent_count", 0)),
-            ("فشل", data.get("failed_count", 0)),
+            # r134 (R134-W1-SB2a2): فشل → تعذّر — سياسة الأسطول للنصوص
+            # المواجهة للمستخدم (bot.py:533/683 و publisher_routes.py:107/119
+            # كلها تعذّر؛ «فشل» كانت آخر مواقع Python المتبقية).
+            ("تعذّر إرسالها", data.get("failed_count", 0)),
             ("تم الفتح", data.get("opened_count", 0)),
         ]:
             kpi_html += self._kpi_card(lbl, val)
@@ -740,7 +743,7 @@ class PdfReportsEngine:
             <tr><th>المؤشر</th><th>النسبة</th><th>العدد</th></tr>
             <tr><td>معدل الإرسال</td><td class="bar-cell"><span class="bar" style="width:{success_pct}%"></span><span class="bar-label">{success_pct}%</span></td><td>{sent}</td></tr>
             <tr><td>معدل الفتح</td><td class="bar-cell"><span class="bar" style="width:{open_pct}%"></span><span class="bar-label">{open_pct}%</span></td><td>{opened}</td></tr>
-            <tr><td>معدل الفشل</td><td class="bar-cell"><span class="bar" style="width:{fail_pct}%"></span><span class="bar-label">{fail_pct}%</span></td><td>{fail}</td></tr>
+            <tr><td>معدل التعذّر</td><td class="bar-cell"><span class="bar" style="width:{fail_pct}%"></span><span class="bar-label">{fail_pct}%</span></td><td>{fail}</td></tr>
           </table>
         </div>""")
 

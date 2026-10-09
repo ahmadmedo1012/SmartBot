@@ -59,6 +59,35 @@ _DEDUP_LOAD_LIMIT = 5000
 #: increment itself is always exact/atomic).
 _LIMITS_TTL = 60.0
 
+
+def _dm_failure_is_timeout_class(fb, result) -> bool:
+    """r134 (R134-W1-SB2a2): classify a ``send_dm`` failure as RETRYABLE
+    (timeout/transport/5xx family — the classes fb_client._post retries
+    internally, fb_client.py:104-129) versus permanent (a 4xx Graph
+    verdict: bad token, closed 24h window…).
+
+    Reads the ``_last_send_error`` side-channel (set fresh by every real
+    ``send_dm`` — mirror of v22-D2's ``_last_get_error``): ``(0, text)`` =
+    transport family, ``(≥400, body)`` = permanent. A shaped ``_error``
+    dict carries its own status. Opaque clients (test fakes without the
+    side-channel) keep the pre-r134 single-attempt semantics.
+    """
+    if isinstance(result, dict):
+        if not result.get("_error"):
+            return False  # success — not a failure at all
+        try:
+            return int(result.get("status") or 0) == 0
+        except (TypeError, ValueError):
+            return False
+    last = getattr(fb, "_last_send_error", None)
+    if not last:
+        return False
+    try:
+        return int(last[0]) == 0
+    except (TypeError, ValueError, IndexError):
+        return False
+
+
 class BotEngine:
     """Per-tenant auto-reply engine. Each tenant gets its own instance."""
 
@@ -648,7 +677,25 @@ class BotEngine:
         # THIS path; the failure is still logged with the honest v4 §5.17
         # reason so the owner sees why the reply stopped. (Deferring retries
         # to the next heartbeat needs a message flag — E4's messenger path.)
+        #
+        # r134 (R134-W1-SB2a2) amendment — ONE bounded retry, TIMEOUT-CLASS
+        # failures only: exactly the family fb_client._post itself classifies
+        # as retryable (fb_client.py:104-129: transport/timeout/5xx — a 4xx
+        # is a permanent Graph verdict and returns immediately). The class
+        # rides the _last_send_error side-channel (0 = transport family,
+        # ≥400 = permanent). A bad token / closed 24h window keeps the
+        # single-attempt semantics — re-sending a rejected verdict only
+        # delays the ACK Facebook is timing; a transient stall deserves
+        # exactly one immediate second chance (no sleep: the stall itself
+        # already ate the budget). The comment cycle's full loop is
+        # untouched (pipeline.py). Opaque clients (test fakes without the
+        # side-channel) keep the old single-attempt behavior.
         result = await self.fb.send_dm(sender_id, reply_text)
+        if result is None or result.get("_error"):
+            if _dm_failure_is_timeout_class(self.fb, result):
+                self._mon.warn("dm send timeout-class failure — one bounded retry (r134)",
+                               comment_id=ctx.cid[:12], module="webhook")
+                result = await self.fb.send_dm(sender_id, reply_text)
         last_err = (result or {}) if isinstance(result, dict) else None
         if result is None or result.get("_error"):
             result = None
@@ -656,6 +703,14 @@ class BotEngine:
             # from generic failures so the log tells the owner the truth.
             err = last_err.get("_error") if isinstance(last_err, dict) else None
             err_str = str(err or "")
+            # r134: the real send_dm collapses its shaped error to None —
+            # the _last_send_error side-channel carries the class + Graph
+            # body so the honest WARN can name the actual verdict (e.g.
+            # code 10 / 24h window) instead of staying generic.
+            if not err_str:
+                _lse = getattr(self.fb, "_last_send_error", None)
+                if _lse:
+                    err_str = str(_lse[1] or "")[:300]
             code_10 = "code 10" in err_str.lower() or "(10)" in err_str or '"code":10' in err_str.replace(" ", "")
             why = (
                 "العميل خارج نافذة 24 ساعة — فيسبوك يمنع الرد التلقائي الآن"

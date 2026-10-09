@@ -234,6 +234,53 @@ async def test_webhook_message_replay_does_not_reply_twice(app_client):
     assert sent["n"] == 1, f"redelivery produced a duplicate reply: {sent['n']}"
 
 
+async def test_replay_guard_reads_event_level_timestamp(app_client):
+    """r134 (R134-W1-SB2a2 P1): the 10-minute guard must read the EVENT-level
+    ``timestamp`` — the shape Facebook actually sends (and the shape this
+    suite's own _msg_event helper builds). The pre-r134 read looked inside
+    ``message.timestamp`` (never present on real events) so the guard was
+    INERT on live traffic: every stale redelivery was re-answered and only
+    the DB mid-dedup layer was replay-protecting."""
+    ac = app_client
+    user = await _register(ac, "rgts")
+    await _login(ac, user["username"])
+    page_id = f"135790{uuid.uuid4().hex[:4]}"
+    await _connect_page(ac, page_id)
+    tenant_id = user["tenant_id"]
+    await _mk_rule(tenant_id, "تحية الحدث", ["سلام"], "أهلاً بك!", priority=10)
+
+    sent = {"n": 0}
+
+    _pid = page_id
+
+    class FakeFB:
+        page_id = _pid
+        async def send_dm(self, uid, text, messaging_type="RESPONSE", tag=None):
+            sent["n"] += 1
+            return {"message_id": f"mid_out_{sent['n']}"}
+        async def _get(self, *a, **k):
+            return None
+
+    from messenger_service import handle_messaging_event
+    import time as _time
+
+    # CURRENT event-level timestamp → guard passes → the rule fires
+    ev_now = _msg_event(page_id, "555000333", "سلام", f"n_{uuid.uuid4().hex[:6]}",
+                        ts=int(_time.time() * 1000))
+    s1 = await handle_messaging_event(tenant_id, page_id, ev_now, FakeFB())
+    assert s1["stored"] is True
+    assert s1["replied"] is True, f"current EVENT-level ts must pass the guard: {s1}"
+
+    # 11-minute-old event-level timestamp (the live redelivery shape) →
+    # stored (DB dedup is orthogonal) but NOT re-answered.
+    ev_old = _msg_event(page_id, "555000444", "سلام", f"o_{uuid.uuid4().hex[:6]}",
+                        ts=int(_time.time() * 1000) - 11 * 60 * 1000)
+    s2 = await handle_messaging_event(tenant_id, page_id, ev_old, FakeFB())
+    assert s2["stored"] is True
+    assert s2["replied"] is False, f"11-minute-old event must NOT be re-answered: {s2}"
+    assert sent["n"] == 1, f"guard inert on event-level ts — replied anyway: {sent['n']}"
+
+
 # ────────────────────────────────────────────────────────────────────
 # 3. §5.12 — consecutive messages are both answered (no 60s cooldown)
 # ────────────────────────────────────────────────────────────────────
@@ -262,10 +309,21 @@ async def test_consecutive_messages_both_replied(app_client):
     from _services import reset_bot_engines
     reset_bot_engines()
     from messenger_service import handle_messaging_event
+    # r134: fresh timestamps — the replay guard now actually reads the
+    # event-level ts (r134 fix), so a stale default ts would be (correctly)
+    # skipped as an old redelivery; real FB traffic always carries the
+    # current event time.
+    import time as _time
+    _now_ms = int(_time.time() * 1000)
     await handle_messaging_event(
-        tenant_id, page_id, _msg_event(page_id, "555000222", "سلام", f"a_{uuid.uuid4().hex[:6]}"), FakeFB())
+        tenant_id, page_id,
+        _msg_event(page_id, "555000222", "سلام", f"a_{uuid.uuid4().hex[:6]}", ts=_now_ms),
+        FakeFB())
     s2 = await handle_messaging_event(
-        tenant_id, page_id, _msg_event(page_id, "555000222", "شحال السعر؟", f"b_{uuid.uuid4().hex[:6]}"), FakeFB())
+        tenant_id, page_id,
+        _msg_event(page_id, "555000222", "شحال السعر؟", f"b_{uuid.uuid4().hex[:6]}",
+                   ts=_now_ms + 1000),
+        FakeFB())
     # second consecutive question MUST get an answer (the old 60s cooldown
     # swallowed it — the exact owner complaint "bot ignores customers")
     assert s2["replied"] is True, "consecutive message was swallowed (cooldown regression)"

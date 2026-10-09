@@ -22,7 +22,12 @@ async def get_brand(db=Depends(get_db), _=Depends(get_current_user)):
             brand_name="Smart Link",
             tagline="اللي يواكب التطور يسبق الجميع",
             copyright_text="© 2025 Smart Link. جميع الحقوق محفوظة. Smart Menu®",
-            website="https://smart-menu-sigma.vercel.app",
+            # r134 (R134-W1-SB2a2): the seed used to hard-code the stale
+            # Smart-Menu preview domain (smart-menu-sigma.vercel.app) and
+            # PERSISTED it into the DB on first call — now it reuses the
+            # single BrandConfig.DEFAULT_WEBSITE constant (models.py), and
+            # alembic 018 heals rows already seeded with the old URL.
+            website=BrandConfig.DEFAULT_WEBSITE,
             whatsapp="+218910089975",
             projects=["Smart Menu", "Smart Bot (قريباً)", "Smart POS (قريباً)"],
         )

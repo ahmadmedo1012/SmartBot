@@ -245,7 +245,7 @@ def test_chain_head_is_014_on_fresh_db(fresh_db):
     create_all السليمة فلا تغيّر شيئًا هنا."""
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")
-    assert _version(fresh_db) == "017"  # v19: جداول fb_posts/ad_* انضمت؛ v24-C5: فهارس المسار العام + قيد العروض → 017
+    assert _version(fresh_db) == "018"  # v19: جداول fb_posts/ad_* انضمت؛ v24-C5: فهارس المسار العام + قيد العروض → 017؛ r134: شفاء رابط brand_config → 018
 
     engine = create_engine(f"sqlite:///{fresh_db}")
     try:
@@ -458,7 +458,8 @@ def test_chain_drops_manual_dup_index_from_013_state(fresh_db):
     command.upgrade(cfg, "head")
     # v16-E5: الرأس الآن 015 — خطوة 014 نفسها لم تتغير
     # v19: الرأس أصبح 016
-    assert _version(fresh_db) == "017"
+    # r134: الرأس أصبح 018 (شفاء بيانات رابط العلامة)
+    assert _version(fresh_db) == "018"
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
     assert "ix_schedpost_status_sched" not in sched_idx
     assert "ix_schedpost_tenant_status_sched" in sched_idx
@@ -497,8 +498,8 @@ def test_production_boot_path_create_all_reconcile_then_chain(fresh_db):
     cfg = _alembic_cfg()
     command.upgrade(cfg, "head")  # الخطوة 3: السلسلة فوق القاعدة نفسها
 
-    # v16-E5: الرأس الآن 015؛ v19: أصبح 016
-    assert _version(fresh_db) == "017"
+    # v16-E5: الرأس الآن 015؛ v19: أصبح 016؛ r134: أصبح 018
+    assert _version(fresh_db) == "018"
     assert "onboarding_completed" not in _columns(fresh_db, "users")
     assert "amount_numeric" not in _columns(fresh_db, "payment_requests")
     sched_idx = _index_sql(fresh_db, "scheduled_posts")
@@ -743,3 +744,37 @@ async def test_subscribe_sets_tenant_id_and_does_not_poison_caller():
         assert subscribers == 1  # العدّاد زاد مرة واحدة فقط
     finally:
         await engine.dispose()
+
+
+# ── r134 (R134-W1-SB2a2): 018 — شفاء بيانات رابط العلامة ───────────────
+
+
+def test_018_brand_website_data_heal(fresh_db):
+    """r134 (018): الصفوف التي زرعها البذر التلقائي القديم بالرابط
+    smart-menu-sigma.vercel.app (نطاق معاينة Smart-Menu القديم) تُشفى إلى
+    menu.smart-link.ly؛ رابط المالك المخصص لا يُمس أبداً."""
+    cfg = _alembic_cfg()
+    command.upgrade(cfg, "017")  # عالم ما قبل 018
+
+    con = sqlite3.connect(fresh_db)
+    try:
+        con.execute(
+            "INSERT INTO brand_config (tenant_id, brand_name, website) VALUES "
+            "(0, 'StaleSeed', 'https://smart-menu-sigma.vercel.app'), "
+            "(0, 'CustomOwner', 'https://my-brand.ly')"
+        )
+        con.commit()
+    finally:
+        con.close()
+
+    command.upgrade(cfg, "head")  # 018 يعمل
+    rows = dict(_rows(fresh_db, "brand_config", "brand_name, website"))
+    assert rows["StaleSeed"] == "https://menu.smart-link.ly", (
+        "stale seeded URL must be healed by 018")
+    assert rows["CustomOwner"] == "https://my-brand.ly", (
+        "the owner's customized URL must never be touched")
+
+    # إعادة التشغيل no-op (بند WHERE لا يطابق شيئاً)
+    command.downgrade(cfg, "017")
+    command.upgrade(cfg, "head")
+    assert _version(fresh_db) == "018"

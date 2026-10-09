@@ -288,7 +288,22 @@ async def test_refresh_ai_resets_agent_brain_singleton(world, monkeypatch):
     class _Stale:
         available = False
 
-    agent_brain._ai = _Stale()  # ذاكرة قديمة محاكاة لما كان يحدث
+    # r134 (R134-W1-SB2a2 #7 — test hygiene): كل ما يعدّله refresh_ai_from_db
+    # يُلتقط/يُستعاد عبر monkeypatch بدل التنظيف اليدوي القديم الذي كان
+    # يمسح OPENAI_API_KEY إلى "" بدل إعادتها لقيمتها قبل الاختبار، ويترك
+    # بقية مفاتيح env_map (OPENAI_BASE_URL/GEMINI_API_KEY/AI_MODEL) و
+    # أحاديات AI بلا حراسة. الكتابات المباشرة من كود التطبيق داخل
+    # refresh تُستعاد كلها عند teardown (monkeypatch يسجل الحالة الأصلية).
+    import ai_service as _m
+    monkeypatch.setattr(agent_brain, "_ai", _Stale())  # القيمة الأصلية تُستعاد
+    for _k in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "GEMINI_API_KEY", "AI_MODEL"):
+        if _k in os.environ:
+            monkeypatch.setenv(_k, os.environ[_k])     # استعادة القيمة الأصلية
+        else:
+            monkeypatch.setenv(_k, "")                 # تسجيل «حذف عند teardown»
+            del os.environ[_k]                         # إبقاء الحالة (غير مضبوط) أثناء الاختبار
+    monkeypatch.setattr(_m, "_openai", _m._openai)
+    monkeypatch.setattr(_m, "_google", _m._google)
 
     # refresh_ai_from_db يستورد AsyncSessionLocal من database داخل الدالة —
     # الرقعة إذًا على database نفسها (لا على _services).
@@ -301,11 +316,6 @@ async def test_refresh_ai_resets_agent_brain_singleton(world, monkeypatch):
 
     assert os.getenv("OPENAI_API_KEY", "").startswith("sk-v25-"), "env key must refresh"
     assert agent_brain._ai is None, "agent_brain._ai must be invalidated (B-02)"
-    # تنظيف
-    os.environ["OPENAI_API_KEY"] = ""
-    import ai_service as _m
-    _m._openai = None
-    _m._google = None
 
 
 # ══════════════════════════════════════════════════════════════════

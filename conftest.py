@@ -13,9 +13,12 @@ in the v5 organization round); the application code stays flat inside
    pool, never trusting the host's DATABASE_URL / DATABASE_POOLED_URL —
    the exact pollution that caused 15 collection errors and 6 mid-suite
    "no such table" failures;
-3. resets process-global state at each module boundary (api_cache store,
-   cached bot engines, SSE registry, DB-backed rate limiter) so the suite
-   is green in ANY file order (forward / reverse / random).
+3. gives every test FILE its own fresh temp-file database and resets
+   process-global state (api_cache store, cached bot engines, SSE
+   registry, loop-bound httpx client, AI singletons) at each module
+   boundary — the suite is green in ANY file order (forward / reverse /
+   random; r134: the per-module DB removed the shared-DB row leaks the
+   old wipes only patched over).
 """
 import os
 import sys
@@ -68,15 +71,15 @@ os.environ["DATABASE_POOLED_URL"] = ""  # never inherit a pooled prod URL
 # Single shared connection: no cross-connection locking, schema persists
 # in the file even if the connection is recycled across event loops.
 os.environ["SMARTBOT_TEST_POOL"] = "static"
-_TEST_DB_FILE = _path  # for the synchronous limiter wipe below
 # v11: the whole suite shares ONE client IP — the per-IP mutate limiter
-# (30/60s in prod) would make later files nondeterministically 429
-# (the middleware writes through the shared static-pool engine, whose
-# aiosqlite connection is loop-bound — success varies with file order).
+# (30/60s in prod) would make later files nondeterministically 429.
 # Route-level limits (login/topup 429 tests) use the overridden get_db
 # (fresh per-test DB) and stay fully testable. Middleware cap: off.
 os.environ["SMARTBOT_MUTATE_RATE_LIMIT"] = "100000"
-
+# r134: this PRISTINE engine only exists so ``import database`` has a valid
+# URL to build at collection time — the per-module fixture below rebinds
+# it to a fresh temp-file DB before any test runs. Keep the URL hermetic
+# regardless (an imported helper must never touch the host's DB).
 import pytest  # noqa: E402  (env must be forced before app imports)
 
 
@@ -101,15 +104,28 @@ async def _dispose_engine_per_test():
         pass
 
 
-# ── 3. cross-file global-state isolation (v5 §0) ──────────────────────
-# The suite shares ONE temp-file DB for speed, so files that ran earlier can
-# leave PROCESS-GLOBAL state behind (api_cache store, cached bot engines
-# with 120s rule caches, SSE connection registry, DB rate-limit rows). Each
-# test FILE must start from a clean process-global slate — the module
-# boundary is the isolation boundary. (Within a file, tests may legitimately
-# build on each other.)
-@pytest.fixture(autouse=True, scope="module")
-def _reset_process_global_state():
+# ── 3. cross-file global-state isolation (v5 §0; r134 per-module DB) ──
+# r134 (R134-W2-SB-PY #9 — bounded, conftest-level ONLY): each test FILE now
+# gets a FRESH temp-file SQLite (generalizing the in-tree broadcast_race_db
+# recipe, tests/conftest.py:59-100, to the whole suite). Cross-module row
+# leaks are structurally gone — the per-file uuid-prefix self-defense and
+# the sync rate-limit wipe the shared DB forced are retired with it. The 25
+# module-scoped fixture files are NOT migrated this round (documented debt);
+# this fixture only rebinds what the module boundary already owned.
+
+
+def reset_app_state():
+    """One consolidated reset of every process-global the app caches.
+
+    Was 5 inline wipes scattered through the module-boundary fixture
+    (v5 §0: api_cache/_services/ws_manager; r133: loop-bound fb_client._http
+    + the sync rate-limit DELETE that per-module DBs made obsolete). r134
+    folds them into ONE function and extends the reset to the AI
+    singletons: refresh_ai_from_db rebuilds ai_service._openai/_google and
+    invalidates agent_brain._ai from SystemConfig, so a module that seeds
+    AI keys must not leave its clients behind for later modules (None =
+    the documented "rebuild lazily" state for all three).
+    """
     try:
         from api_cache import _cache_store
         _cache_store.clear()
@@ -130,39 +146,139 @@ def _reset_process_global_state():
     # event loop and reused by every later module. pytest-asyncio (auto
     # mode) gives each test a fresh loop, so after the creating loop closes,
     # every later module's FB calls die with "Event loop is closed" → the
-    # messenger flow degrades → order-dependent failures (live CI:
-    # tests/test_radical_v4.py replay + consecutive, both retry passes;
-    # local repro: analytics_engine + bot_isolation + radical_v4 trio).
-    # Abandon the stale client at each module boundary (its transport is on
-    # a dead loop — nothing to close); the next caller re-creates it on ITS
-    # OWN loop via _ensure_client().
+    # messenger flow degrades → order-dependent failures. Abandon the stale
+    # client at each module boundary (its transport is on a dead loop —
+    # nothing to close); the next caller re-creates it on ITS OWN loop via
+    # _ensure_client().
     try:
         import fb_client as _fb_client
 
         _fb_client._http = None
     except Exception:
         pass
-    # DB-backed rate limiter: all tests share one client host/IP, so login/
-    # register attempts accumulate across files and later files would see
-    # 429s in non-forward orders — wipe the limiter table at each module
-    # boundary.
-    # v11: the old wipe ran on a dedicated asyncio loop, but aiosqlite
-    # binds each pooled connection to the loop it was created on — after
-    # the first module used the engine, the dedicated-loop wipe failed
-    # SILENTLY (swallowed except) and limiter rows survived module
-    # boundaries (live failure: telegram + broadcast_sequence → the later
-    # file's POSTs crossed the mutate-limit 30 → 429 → envelope assertions
-    # KeyError). A synchronous sqlite3 DELETE on the temp FILE is loop-
-    # independent and deterministic.
+    # r134: AI singletons — same boundary contract as the engines above.
     try:
-        import sqlite3 as _sqlite3
+        import ai_service as _ai_service
 
-        _conn = _sqlite3.connect(_TEST_DB_FILE, timeout=10.0)
-        try:
-            _conn.execute("DELETE FROM rate_limit_entries")
-            _conn.commit()
-        finally:
-            _conn.close()
+        _ai_service._openai = None
+        _ai_service._google = None
     except Exception:
         pass
-    yield
+    try:
+        import agent_brain as _agent_brain
+
+        _agent_brain._ai = None
+    except Exception:
+        pass
+
+
+def _rebind_db_references(old_pair, new_pair) -> list:
+    """Repoint every loaded module that bound the old (engine, sessionmaker)
+    pair — by IDENTITY, so import-time aliases (``from database import
+    engine as db_engine``) are caught too — to the new pair.
+
+    Deferred imports inside functions resolve ``database.*`` dynamically and
+    pick the rebind up for free; this scan covers the module-level
+    ``from database import ...`` bindings (app modules AND test modules).
+    Returns the touched [(module, name, old_value)] list for exact restore.
+    """
+    import sys
+
+    touched = []
+    for mod in list(sys.modules.values()):
+        d = getattr(mod, "__dict__", None)
+        if not isinstance(d, dict):
+            continue
+        for k, v in list(d.items()):
+            if v is old_pair[0] or v is old_pair[1]:
+                d[k] = new_pair[0] if v is old_pair[0] else new_pair[1]
+                touched.append((mod, k, v))
+    return touched
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _per_module_db():
+    """Fresh temp-file SQLite per test FILE + reset_app_state() (r134 #9).
+
+    Why: the whole suite shared ONE StaticPool temp-file DB — every module's
+    rows leaked into the next file's queries (order-dependent failures; the
+    r133-documented debt). Now each module starts from an empty database:
+    cross-file leaks are structurally impossible and the old defensive wipes
+    (sync sqlite3 rate-limit DELETE, uuid prefixes in assertions) retire.
+
+    Mechanics (conftest-level only — no test-file changes):
+      * the schema is created with the SYNC sqlite driver, so setup touches
+        no event loop; the async engine connects lazily on each test's own
+        loop (the per-test dispose fixture 3a below keeps working — it
+        imports database.engine at run time and gets THIS module's engine);
+      * database.engine/AsyncSessionLocal + every identity-bound reference
+        in loaded modules are rebound for the module's lifetime and exactly
+        restored at teardown;
+      * the busy_timeout PRAGMA mirrors database.py's SQLite listener
+        (r133: writers wait ≤5s instead of failing on cross-transaction
+        contention).
+    """
+    from models import Base
+    from sqlalchemy import create_engine as _sync_create_engine
+    from sqlalchemy import event as _sa_event
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
+    from sqlalchemy.pool import StaticPool as _StaticPool
+
+    fd, path = tempfile.mkstemp(prefix="smartbot_mod_", suffix=".db")
+    os.close(fd)
+    os.unlink(path)  # let the engines create it fresh
+
+    # sync schema build — loop-free, deterministic
+    _sync = _sync_create_engine(f"sqlite:///{path}")
+    try:
+        Base.metadata.create_all(_sync)
+    finally:
+        _sync.dispose()
+
+    new_engine = create_async_engine(
+        f"sqlite+aiosqlite:///{path}",
+        connect_args={"timeout": 30},
+        poolclass=_StaticPool,
+    )
+
+    @_sa_event.listens_for(new_engine.sync_engine, "connect")
+    def _sqlite_lock_tolerant(dbapi_conn, _record):
+        cursor = dbapi_conn.cursor()
+        try:
+            cursor.execute("PRAGMA busy_timeout=5000")
+        finally:
+            cursor.close()
+
+    new_sf = async_sessionmaker(new_engine, class_=AsyncSession, expire_on_commit=False)
+
+    import database as _db_mod
+
+    _orig_pair = (_db_mod.engine, _db_mod.AsyncSessionLocal)
+    _new_pair = (new_engine, new_sf)
+    _touched = _rebind_db_references(_orig_pair, _new_pair)
+
+    reset_app_state()
+    try:
+        yield
+    finally:
+        # exact restore of every recorded binding…
+        for mod, k, v in reversed(_touched):
+            setattr(mod, k, v)
+        # …plus anything imported DURING the module that bound the pair
+        _rebind_db_references(_new_pair, _orig_pair)
+        try:
+            import asyncio as _asyncio
+
+            # best-effort: fixture 3a already disposed the connection after
+            # the last test — this only releases the (usually empty) pool
+            _asyncio.run(new_engine.dispose())
+        except Exception:
+            pass
+        try:
+            os.unlink(path)
+        except OSError:
+            pass

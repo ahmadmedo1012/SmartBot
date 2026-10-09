@@ -170,6 +170,7 @@ async def _process_webhook_messaging(page_id: str, messaging: dict):
 
     Tenant resolution: page_id → BotState.fb_page_id (exact match on value).
     """
+    bs = None
     try:
         if not page_id:
             return
@@ -187,6 +188,36 @@ async def _process_webhook_messaging(page_id: str, messaging: dict):
         _track_event("webhook_message_processed", {"page_id": page_id}, tenant_id=bs.tenant_id)
     except Exception as e:
         log.exception(f"Webhook messaging processing error: {e}")
+        # r134 (R134-W1-SB2a2): this catch-all returned 200 with NO trace —
+        # a dropped CUSTOMER message was indistinguishable from a processed
+        # one everywhere the owner looks. Persist a dead-letter BotLog WARN
+        # row (the engine.py:667-677 observability pattern) so the failure
+        # is visible in /api/logs. The 200 semantics stay: a non-200 makes
+        # Facebook retry the same poison payload (the v24-C4 retry-storm
+        # lesson) — the row is the trail, not a signal to the platform.
+        try:
+            from models import BotLog
+            from _utils import utcnow as _now
+            _mid = str(((messaging or {}).get("message") or {}).get("mid") or "")[:60]
+            _why = (
+                f"تعذّرت معالجة رسالة واردة — قد تكون ضائعة ولم يُرَدّ عليها "
+                f"(الصفحة {page_id or '؟'}"
+                + (f"، الرسالة {_mid}" if _mid else "")
+                + f"): {type(e).__name__}: {e}"
+            )
+            async with AsyncSessionLocal() as session:
+                session.add(BotLog(
+                    tenant_id=bs.tenant_id if bs is not None else 0,
+                    level="WARN",
+                    message=_why,
+                    created_at=_now(),
+                ))
+                await session.commit()
+        except Exception:
+            # r133-A6 (b): the observability row itself failed — say so on
+            # the module logger (never raise out of the webhook 200 path).
+            log.warning("BotLog dead-letter WARN write failed (page=%s): %s",
+                        page_id, e, exc_info=True)
 
 
 async def _process_webhook_comment(comment: dict, post_id: str, entry_page_id: str = ""):

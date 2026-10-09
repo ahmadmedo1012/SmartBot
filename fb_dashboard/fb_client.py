@@ -47,6 +47,13 @@ class FBClient:
         # test fake already patches, without a second raw-HTTP code path.
         # ``None`` after a success; never read for control flow.
         self._last_get_error: tuple[int, str] | None = None
+        # r134 (R134-W1-SB2a2): same side-channel for ``send_dm`` — the
+        # webhook reply path (bot_engine/engine.py) needs the failure CLASS
+        # to decide its bounded retry: (4xx, body) = permanent Graph verdict
+        # (do NOT re-send), (0, text) = the transport/timeout/5xx family
+        # that fb_client._post itself classifies as retryable. ``None``
+        # after a success; set fresh on every send_dm call.
+        self._last_send_error: tuple[int, str] | None = None
 
     # ── Low-level HTTP ───────────────────────────────────────────
 
@@ -398,6 +405,7 @@ class FBClient:
 
     async def send_dm(self, user_id: str, message: str, messaging_type: str = "RESPONSE", tag: str | None = None) -> dict | None:
         if not user_id or user_id == "None":
+            self._last_send_error = None  # no send was attempted — r134
             return None
         data = {
             "recipient": json.dumps({"id": user_id}),
@@ -408,8 +416,16 @@ class FBClient:
             data["tag"] = tag
         r = await self._post(f"{self.page_id}/messages", data)
         if r and r.get("_error"):
+            # r134: keep the failure class for the webhook path's bounded
+            # retry (permanent 4xx verdict — see _last_send_error above).
+            self._last_send_error = (int(r.get("status") or 0),
+                                     str(r.get("body") or "")[:300])
             log.error(f"send_dm ({messaging_type}) failed: {r.get('body', r.get('error', 'unknown'))}")
             return None
+        # r134: dict = success; None = _post exhausted its own retries on the
+        # transport/timeout/5xx family (fb_client.py:104-129) — that whole
+        # family maps to the retryable class (0).
+        self._last_send_error = None if r else (0, "send_dm failed (transport/timeout class)")
         return r
 
     # ── Page info ─────────────────────────────────────────────────

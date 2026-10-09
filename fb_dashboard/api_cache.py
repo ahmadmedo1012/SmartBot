@@ -122,14 +122,6 @@ async def get_or_compute(key: str, ttl: float, factory):
     return result
 
 
-def invalidate_prefix(prefix: str) -> None:
-    """Drop local entries whose key contains ``prefix`` (Redis keeps its TTL)."""
-    for k in [k for k in _cache_store if prefix in k]:
-        _cache_store.pop(k, None)
-        _cache_locks.pop(k, None)
-        _cache_ttl.pop(k, None)
-
-
 class APICache:
     """Decorator-based API cache.
 

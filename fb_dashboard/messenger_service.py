@@ -464,17 +464,3 @@ def _is_recent(messaging: dict) -> bool:
         log.warning("replay-guard ts parse failed (%r) — allowing", ts, exc_info=True)
     return True
 
-
-async def mark_conversation_read(tenant_id: int, fb_conversation_id: str) -> None:
-    """Reset unread counter when the inbox UI opens a conversation."""
-    async with AsyncSessionLocal() as db:
-        row = await db.execute(
-            select(Conversation).where(
-                Conversation.tenant_id == tenant_id,
-                Conversation.fb_conversation_id == fb_conversation_id,
-            )
-        )
-        conv = row.scalar_one_or_none()
-        if conv:
-            conv.unread_count = 0
-            await db.commit()

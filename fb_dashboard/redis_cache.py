@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from collections.abc import Callable
 from typing import Any
 
 from loop_safe import LoopLocalLock
@@ -101,11 +100,3 @@ async def delete(key: str) -> bool:
     except Exception:
         return False
 
-
-async def get_or_set(key: str, ttl: int, loader: Callable) -> Any:
-    cached = await get(key)
-    if cached is not None:
-        return cached
-    value = await loader()
-    await set(key, value, ttl)
-    return value

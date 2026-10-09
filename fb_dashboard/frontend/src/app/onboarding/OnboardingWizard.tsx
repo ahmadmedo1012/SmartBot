@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError, apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { countPhrase } from "@/lib/format"
+import { countPhrase, formatNumber } from "@/lib/format"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -906,7 +906,10 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     {(plans.length > 0
                       ? plans.map((p) => ({
                           name: p.name_ar,
-                          price: String(p.price),
+                          /* r136: عبر نقطة الوصل — كان عرضاً خاماً String(p.price)
+                             خارج عقد الأرقام (i18n-seam: بوابة check_i18n_calls تمنع
+                             toLocale* المباشر فقط، وهذا كان ثغرة العرض الخام). */
+                          price: formatNumber(p.price),
                           desc: (p.features || [])[0] || "",
                           color: p.id === plans[1]?.id ? "border-accent-foreground/40" : "border-border/40",
                         }))

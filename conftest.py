@@ -122,9 +122,18 @@ async def _dispose_engine_per_test():
                     t.cancel()
                     _bg_tasks.discard(t)
             if mine:
-                _done, pending = await _aio.wait(mine, timeout=1)
-                for t in pending:
-                    t.cancel()
+                _done, pending = await _aio.wait(mine, timeout=2.5)
+                if pending:
+                    for t in pending:
+                        t.cancel()
+                    # r136b: let cancellations SETTLE before the dispose —
+                    # a task cancelled mid-commit returns its session to the
+                    # pool via __aexit__ while the aiosqlite thread may still
+                    # be finishing the statement; reusing that connection in
+                    # the next test surfaces as "cannot commit transaction -
+                    # SQL statements in progress". The settle beat lets the
+                    # context-manager cleanup complete on THIS loop.
+                    await _aio.wait(pending, timeout=0.5)
     except Exception:
         pass
     try:

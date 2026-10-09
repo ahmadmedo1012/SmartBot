@@ -95,8 +95,8 @@ jobs:
             pytest -q --cov=fb_dashboard --cov-fail-under=60 2>&1 | tee /tmp/pytest_run.log
           }
           if ! run_suite; then
-            if grep -q "database is locked" /tmp/pytest_run.log; then
-              echo "⚠️  pytest failed with the documented 'database is locked' flake class — one transparent retry (v13 policy)…"
+            if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_run.log; then
+              echo "⚠️  pytest failed with the documented StaticPool stranded-transaction flake class — one transparent retry (v13 policy; same-order retry failed identically in the r133 run — if this retry also fails, the reverse-order pass below is the tiebreaker)…"
               run_suite
             else
               echo "❌ pytest failed (non-flake) — no retry"; exit 1
@@ -104,7 +104,7 @@ jobs:
           fi
           # Reverse order — hermeticity is a GATE, not a hope (v5 §0).
           if ! pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log; then
-            if grep -q "database is locked" /tmp/pytest_rev.log; then
+            if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
               pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
             else

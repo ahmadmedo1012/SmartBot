@@ -125,6 +125,23 @@ def _reset_process_global_state():
         _ws_manager.active.clear()
     except Exception:
         pass
+    # r133 (order-dependence, exposed by CI D2 timeout fix): fb_client's
+    # module-global httpx.AsyncClient is created ONCE on the first test's
+    # event loop and reused by every later module. pytest-asyncio (auto
+    # mode) gives each test a fresh loop, so after the creating loop closes,
+    # every later module's FB calls die with "Event loop is closed" → the
+    # messenger flow degrades → order-dependent failures (live CI:
+    # tests/test_radical_v4.py replay + consecutive, both retry passes;
+    # local repro: analytics_engine + bot_isolation + radical_v4 trio).
+    # Abandon the stale client at each module boundary (its transport is on
+    # a dead loop — nothing to close); the next caller re-creates it on ITS
+    # OWN loop via _ensure_client().
+    try:
+        import fb_client as _fb_client
+
+        _fb_client._http = None
+    except Exception:
+        pass
     # DB-backed rate limiter: all tests share one client host/IP, so login/
     # register attempts accumulate across files and later files would see
     # 429s in non-forward orders — wipe the limiter table at each module
@@ -140,7 +157,7 @@ def _reset_process_global_state():
     try:
         import sqlite3 as _sqlite3
 
-        _conn = _sqlite3.connect(_TEST_DB_FILE)
+        _conn = _sqlite3.connect(_TEST_DB_FILE, timeout=10.0)
         try:
             _conn.execute("DELETE FROM rate_limit_entries")
             _conn.commit()

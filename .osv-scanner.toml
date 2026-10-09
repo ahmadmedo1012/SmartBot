@@ -81,3 +81,16 @@ ignoreUntil = 2026-12-10T00:00:00Z
 id = "PYSEC-2026-3849"
 reason = "httpx2 2.9.1 CVSS 5.6 transitive via openai/mcp trees; same class as 3845-3848 — documented suppression with TTL, fix-first when upstream ships"
 ignoreUntil = 2026-12-10T00:00:00Z
+
+# r133 (2026-10-09) — GHSA-vfj7-8cjw-p6xm: braces 3.0.3 (npm, DEV-only
+# transitive in fb_dashboard/frontend/package-lock.json via chokidar-class
+# build tooling). The lockfile is ALREADY on the latest published braces
+# release (3.0.3 — npm has no newer version), so there is nothing to bump
+# to. Reachability: build/watch tooling only, never shipped in the Next.js
+# runtime bundle; the ReDoS class requires crafted glob patterns fed to the
+# dev tool itself. Remove this entry the day braces publishes a patch.
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = "braces 3.0.3 is the LATEST npm release — no fixed version exists to bump; dev-only build-tooling transitive, never in the runtime bundle; re-verify at TTL"
+ignoreUntil = 2027-01-09T00:00:00Z

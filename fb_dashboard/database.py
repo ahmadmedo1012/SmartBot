@@ -53,6 +53,27 @@ engine = create_async_engine(
 
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+# r133 (exposed by CI D2 timeout fix): SQLite write-lock contention — the
+# shared temp-file test DB under pytest-asyncio's per-test event loops can
+# hit "database is locked" when a background task/event handler holds a
+# pending write transaction while the next INSERT runs (live CI failure:
+# tests/test_radical_v4.py replay test, both forward pass AND the v13
+# transparent retry). busy_timeout makes writers WAIT (≤5s) for the holder
+# to finish instead of failing instantly — the minimal intervention (WAL
+# was tried and REVERTED: it turned the fast-fail flake into 10s-per-
+# statement stalls that breach pytest-timeout). Postgres (prod/Vercel)
+# path is untouched — listener only attaches to the SQLite URL branch.
+if not _is_pg:
+    from sqlalchemy import event
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _sqlite_lock_tolerant(dbapi_conn, _record):
+        cursor = dbapi_conn.cursor()
+        try:
+            cursor.execute("PRAGMA busy_timeout=5000")
+        finally:
+            cursor.close()
+
 
 async def get_db():
     async with AsyncSessionLocal() as session:

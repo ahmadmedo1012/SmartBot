@@ -145,7 +145,7 @@ export default function AuthGuard({
             apiFetch("/api/onboarding/skip", { method: "POST" }).catch(() => {
               premiumToast(
                 "error",
-                "تعذر حفظ تخطي المعالج",
+                "تعذّر حفظ تخطي المعالج",
                 "قد تظهر خطوات التهيئة مجدداً عند تحديث الصفحة — أعد المحاولة أو أكملها من لوحة التحكم",
               )
             })

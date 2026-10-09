@@ -80,7 +80,9 @@ async def check_webhook(db=Depends(get_db), current_user: Any = Depends(get_curr
             if r and r.value:
                 app_secret = r.value
         except Exception:
-            pass
+            # r133-A6 S2: transient DB blip — without this the dashboard would
+            # show the red "webhook not configured" banner for a configured secret.
+            log.warning("secret DB read failed in /api/webhook/check", exc_info=True)
 
     subscribed_fields: list[str] = []
     subscribe_error = ""

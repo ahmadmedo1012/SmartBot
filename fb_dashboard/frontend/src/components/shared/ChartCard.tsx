@@ -83,7 +83,7 @@ export function ChartCard({
                                         <div className="state-icon" aria-hidden="true">
                                                 <AlertCircle />
                                         </div>
-                                        <p className="state-title">تعذر تحميل الرسم البياني</p>
+                                        <p className="state-title">تعذّر تحميل الرسم البياني</p>
                                         <p className="state-desc">{error}</p>
                                         {onRetry ? (
                                                 <Button variant="outline" size="sm" onClick={onRetry}>

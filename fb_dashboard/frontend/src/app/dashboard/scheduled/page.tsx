@@ -71,7 +71,7 @@ export default function ScheduledPage() {
       setMessage(""); setScheduledAt("")
       brandedToast.success("تمت الجدولة")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الجدولة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الجدولة"),
   })
 
   const publishMut = useMutation({
@@ -164,8 +164,8 @@ export default function ScheduledPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <p className="state-title">فشل تحميل المنشورات المجدولة</p>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <p className="state-title">تعذّر تحميل المنشورات المجدولة</p>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (

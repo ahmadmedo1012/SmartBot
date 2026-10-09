@@ -2,7 +2,6 @@
 
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   TrendingUp, Activity, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, MessageCircle,
@@ -79,7 +78,7 @@ function PageErrorState({ message, onRetry }: { message?: string; onRetry: () =>
           <AlertCircle />
         </div>
         <h2 className="state-title">حدث خطأ في التحميل</h2>
-        <p className="state-desc">{message || "تعذر تحميل بيانات لوحة التحكم"}</p>
+        <p className="state-desc">{message || "تعذّر تحميل بيانات لوحة التحكم"}</p>
         <Button variant="outline" size="sm" onClick={onRetry}>
           <RefreshCw className="size-4" aria-hidden="true" /> إعادة المحاولة
         </Button>
@@ -98,7 +97,7 @@ function ChartBars({ data }: { data: Record<string, number> }) {
         data={entries.map(([d, v]) => ({ label: d.slice(5), value: v, hint: d }))}
       />
       {entries.length > 1 && (
-        <div className="flex justify-between mt-2.5 text-3xs text-muted-foreground tabular-nums">
+        <div className="flex justify-between mt-2.5 text-xs text-muted-foreground tabular-nums">
           <span>{entries[0]?.[0]?.slice(5) || ""}</span>
           <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
         </div>
@@ -172,7 +171,7 @@ function BotHealthCard() {
   const runCheck = async () => {
     const res = await refetch()
     if (res.error) {
-      brandedToast.error("تعذر فحص صحة البوت", "تحقق من الاتصال ثم أعد المحاولة")
+      brandedToast.error("تعذّر فحص صحة البوت", "تحقق من الاتصال ثم أعد المحاولة")
       return
     }
     const d = res.data
@@ -212,7 +211,7 @@ function BotHealthCard() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium">صحة البوت</p>
-              <p className="text-xs text-muted-foreground truncate">تعذر جلب حالة البوت</p>
+              <p className="text-xs text-muted-foreground truncate">تعذّر جلب حالة البوت</p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -249,7 +248,7 @@ function BotHealthCard() {
           <div className="min-w-0">
             <p className="text-sm font-medium">صحة البوت</p>
             <p className="text-xs text-muted-foreground truncate">{statusLine}</p>
-            <p className="text-3xs text-muted-foreground" dir="auto">آخر فحص {timeAgo(dataUpdatedAt)}</p>
+            <p className="text-xs text-muted-foreground" dir="auto">آخر فحص {timeAgo(dataUpdatedAt)}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={runCheck} loading={isFetching}>

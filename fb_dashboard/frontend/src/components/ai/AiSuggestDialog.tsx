@@ -129,8 +129,8 @@ export function AiSuggestDialog({
           <>
             {(result?.intent || result?.sentiment) && (
               <div className="flex flex-wrap gap-1.5">
-                {result?.intent && <Badge variant="info" className="text-3xs">النية: {result.intent}</Badge>}
-                {result?.sentiment && <Badge variant="outline" className="text-3xs">النبرة: {result.sentiment}</Badge>}
+                {result?.intent && <Badge variant="info" className="text-xs">النية: {result.intent}</Badge>}
+                {result?.sentiment && <Badge variant="outline" className="text-xs">النبرة: {result.sentiment}</Badge>}
               </div>
             )}
             <ul className="space-y-2" aria-label="الاقتراحات">

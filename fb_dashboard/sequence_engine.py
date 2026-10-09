@@ -562,7 +562,7 @@ class SequenceScheduler:
             try:
                 await self._task
             except asyncio.CancelledError:
-                pass
+                pass  # r133-A6 (a): the expected outcome of cancel() — idiomatic
             self._task = None
             log.info("Sequence scheduler stopped")
 

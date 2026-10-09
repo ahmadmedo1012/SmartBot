@@ -30,7 +30,9 @@ const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HT
           ref={ref}
           dir="auto"
           className={cn(
-            "flex h-11 w-full min-w-0 appearance-none rounded-md border border-input bg-transparent px-4 py-3 pe-10 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) outline-none",
+            /* r133 (A10): hover border state (madarek components.css:721 twin
+               — inputs sat inert until focus). */
+            "flex h-11 w-full min-w-0 appearance-none rounded-md border border-input bg-transparent px-4 py-3 pe-10 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) outline-none hover:not-aria-invalid:border-foreground/25",
             "focus-visible:border-accent-foreground focus-visible:shadow-(--state-input-focus-halo)",
             "aria-invalid:border-destructive aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:ring-2 aria-invalid:focus-visible:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:focus-visible:ring-destructive/40",
             "disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",

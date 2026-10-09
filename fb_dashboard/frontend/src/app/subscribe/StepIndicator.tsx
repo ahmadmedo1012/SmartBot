@@ -55,8 +55,11 @@ export function StepIndicator({
               type="button"
               disabled={!clickable}
               onClick={() => clickable && onNavigate?.(s)}
+              /* r133 (A10): focus = the ONE global outline (the private
+                 ring-2 is retired); press snaps to the canonical 0.97 @ 80ms
+                 (was an off-register 0.94). */
               className={cn(
-                "flex flex-col items-center gap-1.5 group outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-full min-w-11",
+                "flex flex-col items-center gap-1.5 group rounded-full min-w-11",
                 !clickable && "cursor-default",
               )}
               aria-current={isActive ? "step" : undefined}
@@ -66,7 +69,7 @@ export function StepIndicator({
               <div
                 className={cn(
                   "size-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-(--t-base)",
-                  clickable && "active:scale-[0.94]",
+                  clickable && "active:scale-[0.97] active:duration-(--t-micro)",
                   isActive
                     /* r130 (W1-E D-7): the 800 weight class is retired — Plex
                        Sans Arabic ships no 800; the 700 cut is the ceiling.

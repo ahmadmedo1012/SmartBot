@@ -85,7 +85,7 @@ async def calendar_delete(post_id: int, db=Depends(get_db), current_user: User =
 async def calendar_publish(post_id: int, db=Depends(get_db), current_user: User = Depends(require_role("editor"))):
     done = await content_calendar_engine.publish_post(post_id, db, tenant_id=current_user._tenant_id)  # v9-A5: no ok-shadowing
     if not done:
-        raise HTTPException(404, "المنشور غير موجود أو فشل نشره")
+        raise HTTPException(404, "المنشور غير موجود أو تعذّر نشره")
     return ok({"ok": True})
 
 

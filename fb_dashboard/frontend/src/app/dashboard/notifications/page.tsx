@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
 import { countPhrase, timeAgo } from "@/lib/format"
@@ -118,8 +118,10 @@ export default function NotificationsPage() {
     queryKey: ["notifications-feed", feedLimit],
     queryFn: async () => {
       const res = await apiFetch(`/api/notifications?limit=${feedLimit}`)
-      if (!res.ok) throw new Error(`تعذر تحميل الإشعارات (${res.status})`)
-      return unwrapApi(res)
+      if (!res.ok) throw new Error(`تعذّر تحميل الإشعارات (${res.status})`)
+      /* r133 (eslint adoption): explicit unwrapApi type — {items, unread}
+         per the v4 §2.2 unwrapped payload. */
+      return unwrapApi<{ items: NotificationItem[]; unread: number }>(res)
     },
     /* v25 (W-07): توسيع النافذة يُبقي الصفوف السابقة معروضة (بهتة
      * isFetching) بدل وميض الهيكل الكامل — نمط admin/support v24-C3. */
@@ -130,26 +132,26 @@ export default function NotificationsPage() {
   const markAllMutation = useMutation({
     mutationFn: async () => {
       const res = await apiFetch("/api/notifications/read-all", { method: "POST" })
-      if (!res.ok) throw new Error("فشل تحديد الكل كمقروء")
+      if (!res.ok) throw new Error("تعذّر تحديد الكل كمقروء")
       return unwrapApi(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications-feed"] })
       brandedToast.success("تم تحديد جميع الإشعارات كمقروءة")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل تحديد الإشعارات كمقروءة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر تحديد الإشعارات كمقروءة"),
   })
 
   const markOneMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiFetch(`/api/notifications/${id}/read`, { method: "POST" })
-      if (!res.ok) throw new Error("فشل التعليم كمقروء")
+      if (!res.ok) throw new Error("تعذّر التعليم كمقروء")
       return unwrapApi(res)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications-feed"] }),
     // v9-B11 — clicking a notification whose mark-read fails was completely
     // silent (stays unread forever with no feedback)
-    onError: (e: Error) => brandedToast.error(e.message || "فشل تحديد الإشعار كمقروء"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر تحديد الإشعار كمقروء"),
   })
 
   // v4 §2.2 — payload already unwrapped; extra .data hid the feed and unread badge
@@ -161,7 +163,9 @@ export default function NotificationsPage() {
     queryKey: ["notification-settings"],
     queryFn: async () => {
       const res = await apiFetch("/api/notifications/settings")
-      return unwrapApi(res)
+      /* r133 (eslint adoption): explicit unwrapApi type — {preferences}
+         (v4 §2.2). */
+      return unwrapApi<{ preferences: Record<string, boolean> }>(res)
     },
     retry: 1,
   })
@@ -169,7 +173,7 @@ export default function NotificationsPage() {
   const mutation = useMutation({
     // v8 C6 — carries the toggled key so ONLY the acting row's switch is
     // disabled/pending while the request is in flight (admin actionId pattern)
-    mutationFn: async ({ key, prefs }: { key: string; prefs: Record<string, boolean> }) => {
+    mutationFn: async ({ key: _key, prefs }: { key: string; prefs: Record<string, boolean> }) => {
       const res = await apiFetch("/api/notifications/settings", {
         method: "PUT",
         body: JSON.stringify({ preferences: prefs }),
@@ -181,12 +185,14 @@ export default function NotificationsPage() {
       brandedToast.success("تم حفظ الإعدادات")
     },
     onError: (e: Error) => {
-      brandedToast.error(e.message || "فشل حفظ الإعدادات")
+      brandedToast.error(e.message || "تعذّر حفظ الإعدادات")
     },
   })
 
   // v4 §2.2 — preferences live inside the unwrapped payload, not under a second .data
-  const prefs: Record<string, boolean> = data?.preferences || {}
+  /* r133 (eslint adoption): memoized — the bare `|| {}` gave every render
+     a fresh object identity and churned the useCallback dep below. */
+  const prefs: Record<string, boolean> = useMemo(() => data?.preferences || {}, [data])
 
   const toggle = useCallback(
     (key: string) => {
@@ -259,7 +265,7 @@ export default function NotificationsPage() {
                 <CardContent className="p-0">
                   <ErrorState
                     size="sm"
-                    title="تعذر تحميل الإشعارات"
+                    title="تعذّر تحميل الإشعارات"
                     onRetry={() => feedQuery.refetch()}
                   />
                 </CardContent>
@@ -286,7 +292,7 @@ export default function NotificationsPage() {
                       <Card
                         interactive
                         className={[
-                          "transition-all",
+                          "transition-[transform,box-shadow,border-color,background-color,opacity]",
                           /* v15-E6 (D5-H4): read state is marked by the quiet border
                               + muted icon well ONLY — the old opacity-70 dimmed
                               the whole card and dropped muted-foreground body
@@ -312,7 +318,7 @@ export default function NotificationsPage() {
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                             {/* v14-E5 (D4 H-05): /70 timestamp measured 3.2:1 —
                                 full muted passes (5.59/6.54:1) */}
-                            <p className="text-3xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
                           </div>
                         </CardContent>
                       </Card>
@@ -337,11 +343,11 @@ export default function NotificationsPage() {
                     تحميل المزيد
                   </Button>
                 ) : feedLimit >= NOTIFICATIONS_MAX ? (
-                  <p className="text-2xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     تم الوصول للحد الأقصى للعرض ({formatNumber(NOTIFICATIONS_MAX)} إشعار)
                   </p>
                 ) : null}
-                <p className="text-2xs text-muted-foreground" role="status">
+                <p className="text-xs text-muted-foreground" role="status">
                   {formatNumber(notifications.length)} إشعار معروض
                 </p>
               </div>
@@ -371,7 +377,7 @@ export default function NotificationsPage() {
                   <CardContent className="p-0">
                     <ErrorState
                       size="sm"
-                      title="تعذر تحميل الإعدادات"
+                      title="تعذّر تحميل الإعدادات"
                       onRetry={() => refetch()}
                     />
                   </CardContent>
@@ -385,7 +391,7 @@ export default function NotificationsPage() {
                 <Card
                   key={t.key}
                   className={[
-                    "transition-all",
+                    "transition-[transform,box-shadow,border-color,background-color,opacity]",
                     /* v15-E6 (D5-H4 sibling): same container-opacity pattern on
                         the SAME page — off state is already distinguished by
                         the quiet border + bg-muted icon well + switch position;
@@ -425,7 +431,7 @@ export default function NotificationsPage() {
           )}
             </div>
           </section>
-          <p className="text-center text-2xs text-muted-foreground pt-2">
+          <p className="text-center text-xs text-muted-foreground pt-2">
             {/* v17-S2 (E-B3 §3-ج honesty): preferences gate only the notifications
                 directed to the acting user (push_notification consults
                 NotificationPreference by user_id); tenant-wide marketing

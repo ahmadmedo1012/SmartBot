@@ -21,10 +21,11 @@ export type ComparisonPlan = {
   sortOrder: number
 }
 
-/** Sentinel values the DB uses for "unlimited" caps. */
+/** Sentinel values the DB uses for "unlimited" caps. Only replies (999999)
+ *  is consumed client-side; pages/rules caps (999) are server-side guards —
+ *  documented here so the sentinel set stays discoverable (r133 eslint
+ *  adoption removed the two unused locals). */
 const UNLIMITED_REPLIES = 999999
-const UNLIMITED_PAGES = 999
-const UNLIMITED_RULES = 999
 
 /**
  * The headline differentiator phrase under the plan price — SmartBot's

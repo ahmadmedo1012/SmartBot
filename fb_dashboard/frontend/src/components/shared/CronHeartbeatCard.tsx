@@ -33,12 +33,12 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
     if (!enabled) return
     let alive = true
     apiFetch("/api/cron/status")
-      .then(unwrapApi)
+      .then(unwrapApi<CronStatus>)
       .then((d) => { if (alive) setStatus(d) })
       .catch(() => { if (alive) setFailed(true) })
     const t = setInterval(() => {
       apiFetch("/api/cron/status")
-        .then(unwrapApi)
+        .then(unwrapApi<CronStatus>)
         .then((d) => { if (alive) { setStatus(d); setFailed(false) } })
         .catch(() => { if (alive) setFailed(true) })
     }, 60_000)
@@ -48,8 +48,8 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
   if (!enabled) return null
   if (failed && !status) return null // silent when the operator lacks platform-admin rights
 
-  const ageMin = status?.age_seconds != null ? Math.floor(status.age_seconds / 60) : null
-  const healthy = status?.stale === false
+  /* r133 (eslint adoption): the unused `healthy` local is gone — the
+     render branches on stale/never_beaten alone. */
   const stale = status?.stale === true
 
   return (
@@ -74,7 +74,7 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
             <p className="text-sm font-medium">نبض الجدولة (الكرون)</p>
             <p className="text-xs text-muted-foreground truncate">
               {failed
-                ? "تعذر جلب الحالة"
+                ? "تعذّر جلب الحالة"
                 : status?.never_beaten
                   ? "لم يسجل أي نبض بعد — شغّل /api/cron/heartbeat أو اضبط cron-job.org"
                   : stale
@@ -85,7 +85,7 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
             </p>
           </div>
         </div>
-        <p className="text-3xs text-muted-foreground" dir="auto">
+        <p className="text-xs text-muted-foreground" dir="auto">
           {status?.last_heartbeat ? `آخر نبض: ${formatDate(status.last_heartbeat)}` : "—"}
         </p>
       </CardContent>

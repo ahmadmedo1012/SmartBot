@@ -22,12 +22,6 @@ def private_upload_dir(category: str = "") -> Path:
         (uploaders there embed ``data:`` URIs and never write anyway);
       * otherwise (single-server / local dev): a SIBLING of ``static/`` —
         ``fb_dashboard/data/uploads`` — writable next to the static export.
-
-    TODO v24-R3 (for the orchestrator — file NOT owned by this agent):
-    ``routers/ai.py`` agent-interpret uploads (agent_{token}.jpg, written to
-    ``STATIC_DIR / "uploads"`` with a public ``/static/uploads/…`` URL on
-    non-Vercel) should adopt this helper + a private marker to close the same
-    exposure for agent images.
     """
     override = os.getenv("SMARTBOT_PRIVATE_UPLOAD_DIR", "").strip()
     if override:
@@ -37,6 +31,27 @@ def private_upload_dir(category: str = "") -> Path:
     else:
         root = Path(__file__).resolve().parent / "data" / "uploads"
     return root / category if category else root
+
+
+def fmt_lyd(amount) -> str:
+    """Format a LYD money value with the fleet smart-trim contract (r120/R14).
+
+    ``29 → "29"``, ``29.5 → "29.5"``, ``29.25 → "29.25"`` — never a bare
+    ``.0``/``.000`` tail (r133-A12 M3: Telegram payment notifications and
+    wallet/plan instructions were rendering ``29.0 د.ل`` / ``50.000 د.ل``).
+    Mirrors the JS ``formatPrice`` twin (Smart-Menu ``format.ts``); explicit
+    2-decimals stays the DOCUMENTS/receipts convention — this is the
+    display/messages seam. Accepts int/float/Decimal (DB Numeric columns).
+    """
+    try:
+        f = float(amount)
+    except (TypeError, ValueError, OverflowError):
+        return str(amount)
+    if f != f or f in (float("inf"), float("-inf")):  # NaN/∞ — never real money
+        return str(amount)
+    if f.is_integer():
+        return str(int(f))
+    return f"{f:.2f}".rstrip("0").rstrip(".")
 
 
 def utcnow() -> datetime:

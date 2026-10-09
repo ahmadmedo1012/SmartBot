@@ -11,12 +11,18 @@ import { repliesPhrase, type ComparisonPlan } from "@/components/subscribe/plan-
 
 /* Ported from Smart-Menu (smart-link.ly shared identity) — identical
    plan-selection cards: selection check bubble (shape + position carry
-   state alongside color), flame "most popular" badge, gradient icon
-   tile, price + items phrase + first features, and the continue CTA
+   state alongside color), flame "most popular" badge, flat icon chip,
+   price + items phrase + first features, and the continue CTA
    that names the selected plan. Fields adapted to SmartBot's plan
    model (replies/pages/rules caps instead of menus/items/orders).
 
-   v18-1e (البطاقة اليتيمة / orphan-card fix): the flat md:grid-cols-2
+   r133 (A5 S1 — money-path de-glow tail): the pre-r128 gradient recipe
+   is flattened to the SM family twins (r128-F5 §4 flat cards): hairline
+   1px card with border-color-only hover, flat saffron badge, flat pastel
+   icon chips — no gradient, no shadow on the chrome (the SM
+   SubscribeForm.tsx:526 flat-wash + 1px-border doctrine). */
+
+/* v18-1e (البطاقة اليتيمة / orphan-card fix): the flat md:grid-cols-2
    lg:grid-cols-4 row stranded the 5th plan («مؤسسي») alone on a ragged
    second row that filled a quarter of the track — a random wrap, not a
    decision. The grid is now an explicit responsive contract:
@@ -33,24 +39,20 @@ import { repliesPhrase, type ComparisonPlan } from "@/components/subscribe/plan-
 type Plan = ComparisonPlan
 
 // Map by plan name (not index) — survives plan reordering/adding.
-// Madarek contrast recalibration: solid BRAND fills (Basic/Premium/Pro/
-// Enterprise) ride on --primary (gold/copper) and carry the accent-fg ink
-// glyph (--primary-foreground — 10.6:1 dark / 4.95:1 light, the .btn.accent
-// recipe); the accent-foreground token is the accent-as-TEXT ink and must
-// never be a fill under a white glyph (white-on-gold measured 1.89:1).
-// Free keeps the neutral wash + white glyph (pre-existing, decorative).
-type PlanMeta = { icon: typeof Sparkles; gradient: string; iconClass?: string; recommended?: boolean }
+// r133 (A5 S1): flat pastel chips (SM r128-F5 twin "شريحة أيقونة مسطّحة") —
+// each plan keeps its brand hue as a /10–/15 wash with the same-family ink
+// glyph; the gradient fill + shadow-lg are gone.
+type PlanMeta = { icon: typeof Sparkles; chip: string; recommended?: boolean }
 const PLAN_META: Record<string, PlanMeta> = {
-  Free: { icon: Sparkles, gradient: "from-muted-foreground/60 to-muted-foreground/80", iconClass: "text-white" },
-  Basic: { icon: Star, gradient: "from-primary to-primary/80", iconClass: "text-primary-foreground", recommended: true },
-  Premium: { icon: Crown, gradient: "from-saffron to-primary", iconClass: "text-primary-foreground" },
-  Pro: { icon: Building2, gradient: "from-primary to-bloom", iconClass: "text-primary-foreground" },
-  Enterprise: { icon: Building2, gradient: "from-bloom to-primary", iconClass: "text-primary-foreground" },
+  Free: { icon: Sparkles, chip: "bg-muted text-muted-foreground" },
+  Basic: { icon: Star, chip: "bg-primary/10 text-primary", recommended: true },
+  Premium: { icon: Crown, chip: "bg-saffron/15 text-saffron" },
+  Pro: { icon: Building2, chip: "bg-bloom/15 text-bloom" },
+  Enterprise: { icon: Building2, chip: "bg-ember/15 text-ember" },
 }
 const DEFAULT_META: PlanMeta = {
   icon: Sparkles,
-  gradient: "from-muted-foreground/60 to-muted-foreground/80",
-  iconClass: "text-white",
+  chip: "bg-muted text-muted-foreground",
 }
 
 /** Plans beyond this count render as full-width feature cards at lg+. */
@@ -89,23 +91,25 @@ function PlanCard({
       onClick={() => onSelect(plan.id)}
       aria-pressed={isSelected}
       className={cn(
-        "relative flex flex-col rounded-md p-5 text-start transition-[border-color,box-shadow] duration-(--t-base) border-2 hover:shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
+        /* r133 (A5 S1): SM r128-F5 flat-card twin — rounded-2xl hairline
+           border, border-color-only hover, no shadow on either state
+           (the selected card's ring-2 + border carry the selection). */
+        "relative flex flex-col rounded-2xl border p-5 text-start transition-[border-color] duration-(--t-base) hover:border-accent-foreground/30 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/60",
         isSelected
-          /* r131-F7b (A4 P2-4): the selected plan's gold-tinted /15 glow →
-             neutral shadow-lg (ring-2 + border carry the selection). */
-          ? "border-accent-foreground ring-2 ring-accent-foreground/40 bg-accent/50 dark:bg-accent shadow-lg"
-          : "border-border/30 hover:border-accent-foreground/30 hover:shadow-md bg-card/50",
+          ? "border-accent-foreground/40 ring-2 ring-primary/30 bg-card"
+          : "border-border/50 bg-card",
         wide && "lg:flex-row lg:items-center lg:gap-6",
         gridClass,
       )}
     >
       {/* v18-1e: the wide feature card's distinct top border — a flame
-          hairline (ember→saffron, the same gradient as the popularity
-          badge) inset from the card corners. */}
+          hairline inset from the card corners. r133 (A5 S1): the
+          ember→saffron gradient is flattened to a solid saffron rule
+          (gradient ban on the money path). */}
       {wide && (
         <span
           aria-hidden="true"
-          className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-[var(--c-ember)] to-[var(--c-saffron)]"
+          className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-[var(--c-saffron)]"
         />
       )}
       {/* Selection check — shape + position carry the state alongside color (a11y) */}
@@ -119,19 +123,21 @@ function PlanCard({
         <MotionCheck className="size-3.5 text-primary-foreground" />
       </span>
       {meta.recommended && (
-        <span className="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--c-ember)] to-[var(--c-saffron)] px-2.5 py-0.5 text-3xs font-bold text-espresso shadow-sm">
+        /* r133 (A5 S1): SM r128-F5 twin — flat saffron plateau, no
+           gradient, no shadow (espresso text 8.97:1). */
+        <span className="absolute top-3 end-3 inline-flex items-center gap-1 rounded-full bg-[var(--c-saffron)] px-2.5 py-0.5 text-3xs font-bold text-espresso">
           <Flame className="size-3" aria-hidden="true" />
           الأكثر شعبية
         </span>
       )}
       <span
         className={cn(
-          "size-10 rounded-sm bg-gradient-to-br flex items-center justify-center mb-3 shadow-lg shrink-0",
-          meta.gradient,
+          "size-10 rounded-xl flex items-center justify-center mb-3 shrink-0",
+          meta.chip,
           wide && "lg:mb-0",
         )}
       >
-        <Icon className={cn("size-5", meta.iconClass)} aria-hidden="true" />
+        <Icon className="size-5" aria-hidden="true" />
       </span>
       <div className={cn("min-w-0", wide && "lg:shrink-0")}>
         <h3 className="font-bold text-lg mb-1">{plan.nameAr}</h3>

@@ -97,8 +97,8 @@ function RegisterForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setFormError(data.detail || data.error || "فشل إنشاء الحساب")
-        brandedToast.error(data.detail || data.error || "فشل إنشاء الحساب")
+        setFormError(data.detail || data.error || "تعذّر إنشاء الحساب")
+        brandedToast.error(data.detail || data.error || "تعذّر إنشاء الحساب")
         return
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
@@ -107,7 +107,7 @@ function RegisterForm() {
       setTimeout(() => window.location.replace("/dashboard"), 150)
     } catch (e) {
       const msg = e instanceof ApiError
-        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "فشل إنشاء الحساب")
+        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "تعذّر إنشاء الحساب")
         : "خطأ في الاتصال بالخادم"
       setFormError(msg)
       brandedToast.error(msg)
@@ -168,7 +168,7 @@ function RegisterForm() {
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" placeholder="مثال: ahmed_ali" dir="auto"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   aria-invalid={formError ? true : undefined}
@@ -186,7 +186,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="email" type="email" autoComplete="email" placeholder="مثال: ahmed@example.com" dir="auto"
                   value={email} onChange={(e) => setEmail(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
@@ -202,7 +202,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}
@@ -237,7 +237,7 @@ function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-sm font-medium">تأكيد كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="نفس كلمة المرور أعلاه" value={confirm} onChange={(e) => setConfirm(e.target.value)} required
                   aria-invalid={formError ? true : undefined}

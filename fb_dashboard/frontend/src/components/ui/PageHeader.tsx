@@ -14,7 +14,9 @@ interface PageHeaderProps {
   icon?: React.ReactNode
   title: string
   subtitle?: React.ReactNode
-  description?: React.ReactNode
+  /* r133 (eslint adoption): the `description` prop is deleted — it was
+     never rendered and no caller passed it (dead API; A5 dead-export
+     doctrine). */
   breadcrumbs?: { label: string; href?: string }[]
   actions?: React.ReactNode
   status?: { label: string; tone?: "success" | "warning" | "danger" | "neutral" }
@@ -37,7 +39,6 @@ export function PageHeader({
   icon,
   title,
   subtitle,
-  description,
   breadcrumbs,
   actions,
   status,

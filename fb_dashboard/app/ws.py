@@ -136,7 +136,7 @@ async def websocket_endpoint(ws: WebSocket):
 
             capture_exception(e)
         except Exception:
-            pass
+            pass  # r133-A6 (a): log already fired — capture is best-effort
         ws_manager.disconnect(ws)
 
 

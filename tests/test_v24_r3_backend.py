@@ -647,7 +647,7 @@ async def test_bot_trigger_failure_envelope_leaks_nothing(v10_seed, monkeypatch)
     r = await v10_seed.world.client.post("/api/bot/trigger")
     body = r.json()
     assert body["success"] is False
-    assert "فشل تشغيل دورة البوت" in body["error"]
+    assert "تعذّر تشغيل دورة البوت" in body["error"]
     assert "TOPSECRET" not in json.dumps(body, ensure_ascii=False)
 
 

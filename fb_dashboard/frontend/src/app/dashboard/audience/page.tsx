@@ -75,8 +75,8 @@ export default function AudiencePage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">تعذر تحميل بيانات الجمهور</h2>
-            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <h2 className="state-title">تعذّر تحميل بيانات الجمهور</h2>
+            <p className="state-desc">تعذّر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (<>
@@ -106,7 +106,7 @@ export default function AudiencePage() {
                 {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-5" />)}
               </div>
             ) : topQuery.isError ? (
-              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
+              <p className="text-sm text-muted-foreground text-center py-4">تعذّر تحميل المعلقين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => topQuery.refetch()}>إعادة المحاولة</button></p>
             /* r127-F5a: truthiness guard (same semantics as `(len||0)>0` for
                arrays) also NARROWS topQuery.data for the .map below. */
             ) : topQuery.data?.length ? (
@@ -136,7 +136,7 @@ export default function AudiencePage() {
               <h3 className="sb-section-title">
                 المشتركون ({subsQuery.data?.total ?? 0})
               </h3>
-              <span className="text-3xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 يتغذّى تلقائياً من محادثات الماسنجر
               </span>
             </div>
@@ -156,7 +156,7 @@ export default function AudiencePage() {
               /* v17-E-F3 (D1 §5.5): mirror of the top-commenters error above
                  — inline retry link (subsQuery.refetch) instead of hanging
                  text-only error. */
-              <p className="text-sm text-muted-foreground text-center py-4">تعذر تحميل المشتركين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => subsQuery.refetch()}>إعادة المحاولة</button></p>
+              <p className="text-sm text-muted-foreground text-center py-4">تعذّر تحميل المشتركين — <button className="underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded" onClick={() => subsQuery.refetch()}>إعادة المحاولة</button></p>
             ) : (subsQuery.data?.items?.length || 0) === 0 ? (
               <EmptyState
                 icon={Users}
@@ -169,12 +169,12 @@ export default function AudiencePage() {
                 {(subsQuery.data?.items || []).map((s) => (
                   <div key={s.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded-lg hover:bg-muted/40 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="size-7 rounded-full bg-accent-foreground/10 text-accent-foreground text-3xs font-bold flex items-center justify-center shrink-0">
+                      <span className="size-7 rounded-full bg-accent-foreground/10 text-accent-foreground text-xs font-bold flex items-center justify-center shrink-0">
                         {(s.first_name || s.name || "؟").slice(0, 2)}
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm truncate">{s.name || `مشترك #${s.id}`}</p>
-                        <p className="text-3xs text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {s.platform === "messenger" ? "ماسنجر" : s.platform}
                           {s.last_interaction_at ? ` · آخر تفاعل ${formatDateOnly(s.last_interaction_at)}` : ""}
                         </p>

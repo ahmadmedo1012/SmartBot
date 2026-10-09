@@ -31,9 +31,11 @@ const buttonVariants = cva(
         gold:
           "bg-primary text-primary-foreground hover:bg-primary/95 hover:-translate-y-[2px] active:bg-primary/90 shadow-sm hover:shadow-(--shadow-card-h) border-0",
         /* Madarek accent-CTA metal: gold gradient #C9962F→#E9B44C (dark) /
-         * copper→gold (light) with the AA-pinned espresso label */
+         * copper→gold (light) with the AA-pinned espresso label.
+         * r133 (A10): hover:brightness-110 dropped — the reference lifts +
+         * neutral shadow, never a brightness filter. */
         flame:
-          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:brightness-110 hover:-translate-y-[2px] shadow-sm hover:shadow-(--shadow-card-h) border-0",
+          "bg-[linear-gradient(135deg,var(--c-ember),var(--c-saffron))] text-espresso hover:-translate-y-[2px] shadow-sm hover:shadow-(--shadow-card-h) border-0",
         outline:
           "border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35",
         ghost:

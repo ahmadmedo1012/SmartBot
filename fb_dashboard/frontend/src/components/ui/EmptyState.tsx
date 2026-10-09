@@ -93,7 +93,7 @@ interface ErrorStateProps {
 
 export function ErrorState({
   title = "حدث خطأ",
-  message = "تعذر الاتصال، تحقق من الإنترنت",
+  message = "تعذّر الاتصال، تحقق من الإنترنت",
   onRetry,
   className,
   size = "md",

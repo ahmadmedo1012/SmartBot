@@ -23,14 +23,24 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 # ── SPA index.html: cached in memory, refreshed on VERSION change ──
 _spa_html: str | None = None
 _spa_mtime: float = 0
+_spa_missing_warned: bool = False
 
 
 def _get_spa() -> str:
-    global _spa_html, _spa_mtime
+    global _spa_html, _spa_mtime, _spa_missing_warned
     static_index = STATIC_DIR / "index.html"
     html_path = TEMPLATES_DIR / "index.html"
     src = static_index if static_index.exists() else (html_path if html_path.exists() else None)
     if not src:
+        # r133-A6 R1: a fresh single-server deploy without
+        # scripts/sync_next_static.py served this placeholder 200 for EVERY
+        # dashboard route, forever, with ZERO log line — warn ONCE so the
+        # operator sees it in the server log. (Unreachable on Vercel: the
+        # bot domain is served by the frontend deploy there.)
+        if not _spa_missing_warned:
+            _spa_missing_warned = True
+            log.warning("no SPA index found (STATIC_DIR=%s) — serving placeholder; "
+                        "run scripts/sync_next_static.py", STATIC_DIR)
         return "<h1>SmartBot Dashboard</h1><p>Loading...</p>"
     try:
         mtime = src.stat().st_mtime
@@ -38,7 +48,7 @@ def _get_spa() -> str:
             _spa_html = src.read_text(encoding="utf-8")
             _spa_mtime = mtime
     except Exception:
-        pass
+        pass  # r133-A6 (a): mtime cache is an optimization — direct read at :42 below
     return _spa_html or src.read_text(encoding="utf-8")
 
 
@@ -55,7 +65,13 @@ async def spa_catch_all(path: str, request: Request):
     # contract instead of an empty text/html body that the frontend's
     # ApiErrorBody parser cannot read (S2 deviation #3: empty 404 + English
     # 405). SPA page serving below is untouched.
-    if path.startswith(("api/", "static/", "healthz", "webhook", "ws", "_next", "fonts")):
+    # r133-G5 (A6 R1 rider): "app" is the mobile StaticFiles mount in
+    # runner.py. When mobile/dist is absent the mount is skipped — without
+    # this guard /app/* fell through to the DASHBOARD SPA (wrong app, silent
+    # 200). With the mount present it always wins (mounts register before
+    # this catch-all), so the guard only ever fires in the no-mobile build.
+    if path.startswith(("api/", "static/", "app/", "healthz", "webhook", "ws", "_next", "fonts")) \
+            or path == "app":
         # v12-E2.1 — GET on a known POST-only route used to fall through to
         # this branch and answer a misleading 404. Do the same route-table
         # lookup the non-GET catch-all does: a REAL path with a different

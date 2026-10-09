@@ -21,6 +21,7 @@ remains the public facade.
 """
 import asyncio
 import json
+import logging
 import time
 from datetime import timedelta
 
@@ -30,6 +31,10 @@ from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import BotLog, Reply, Rule, Tenant
 from sqlalchemy import Date, cast, func, select
+
+# r133-A6 (b): module logger for observability-write failures — must NOT be
+# self._mon (the StructuredLogger), whose own emit path is what can fail here.
+log = logging.getLogger("fb-bot")
 
 from bot_engine.cooldown import CooldownManager
 from bot_engine.deps import _get_cache, _get_ctx, _get_diag, _get_ei, _get_monitor, ws_manager
@@ -182,7 +187,7 @@ class BotEngine:
                                 spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
                             spawn(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
                     except Exception:
-                        pass
+                        pass  # r133-A6 (a): stats broadcast is WS best-effort — the cycle result stands
 
                     # Cycle end telemetry
                     total_comments = sum(p_.get("_comment_count", 0) for p_ in posts)
@@ -213,7 +218,7 @@ class BotEngine:
                     try:
                         await self._add_log(session, "ERROR", f"Cycle #{self._cycle}: {e}")
                     except Exception:
-                        pass
+                        pass  # r133-A6 (a): add_log guard — the _mon.error line above already fired
             finally:
                 # v15 plan §2 — interface contracts with E3:
                 #   broadcast_engine.process_pending(session) -> int
@@ -423,7 +428,7 @@ class BotEngine:
             try:
                 await session.rollback()
             except Exception:
-                pass
+                pass  # r133-A6 (a): rollback guard — the WARN below already fires
             self._mon.warn(f"expiry notification failed: {e}", module="engine")
 
     async def _get_limits(self, session=None) -> dict | None:
@@ -655,7 +660,7 @@ class BotEngine:
             why = (
                 "العميل خارج نافذة 24 ساعة — فيسبوك يمنع الرد التلقائي الآن"
                 if code_10 else
-                f"فشل إرسال الرد الآلي (رسالة إلى {ctx.from_first})"
+                f"تعذّر إرسال الرد الآلي (رسالة إلى {ctx.from_first})"
                 + (f" — {err_str[:120]}" if err_str else "")
                 + " — تحقق من صلاحية توكن الصفحة"
             )
@@ -671,7 +676,10 @@ class BotEngine:
                         message=why))
                     await session.commit()
             except Exception:
-                pass
+                # r133-A6 (b): the observability row is lost — say so on the
+                # module logger (self._mon would recurse into its own emit).
+                log.warning("BotLog WARN write failed (tenant=%s): %s",
+                            self._tenant_id, why, exc_info=True)
             return None
 
         self._mon.info(f"→ DM reply to {ctx.from_first}", comment_id=ctx.cid[:12],
@@ -710,7 +718,7 @@ class BotEngine:
                 spawn(ws_manager.broadcast_to_tenant(self._tenant_id, "stats_update", payload))
             spawn(event_bus.emit("stats_update", payload, tenant_id=self._tenant_id))
         except Exception:
-            pass
+            pass  # r133-A6 (a): stats broadcast is WS best-effort — the DM reply stands
 
         return {"mid": (result.get("message_id") or result.get("mid") or ""), "text": reply_text,
                 "rule_id": rule_id}

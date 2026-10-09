@@ -149,7 +149,7 @@ export const KpiCard = memo(function KpiCard({
                                                                         ? <AnimatedCounter value={value} />
                                                                         : <>{toArabicNumber(value)}{suffix}</>}
                                         </p>
-                                        {subtitle && <p className="text-2xs text-muted-foreground">{subtitle}</p>}
+                                        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
                                         {(sparklineData !== undefined || trend !== undefined) && (
                                                 <div className="flex items-center gap-2">
                                                         {sparklineData && sparklineData.length > 1 && <MiniSparkline data={sparklineData} />}

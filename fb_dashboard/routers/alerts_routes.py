@@ -41,7 +41,7 @@ async def create_alert(
             "type": alert_type, "severity": severity, "message": message,
         }))
     except Exception:
-        pass
+        pass  # r133-A6 (a): alert WS broadcast is best-effort — the BotAlert row is already committed
     return ok({"id": alert.id})
 
 

@@ -19,6 +19,10 @@ from datetime import UTC, datetime
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 
+# r133-A6 (b): stdlib logger for the batch-writer's own failures — the
+# StructuredLogger._emit path is what can fail here, so it cannot report.
+log = logging.getLogger("fb-monitor")
+
 # BotLog batch buffer and async flush
 _botlog_batch: list[dict] = []
 _botlog_flushing = False
@@ -45,7 +49,10 @@ async def _flush_botlog():
                 ))
             await session.commit()
     except Exception:
-        pass
+        # r133-A6 (b): up to 10 log rows dropped with no signal — surface the
+        # loss (``batch`` holds them post-swap; pre-swap failures have no count).
+        lost = len(batch) if "batch" in locals() else "unknown"
+        log.warning("botlog flush failed — %s events lost", lost, exc_info=True)
     finally:
         _botlog_flushing = False
 
@@ -109,7 +116,9 @@ class StructuredLogger:
             from event_bus import event_bus
             spawn(event_bus.emit("log_event", event.to_dict()))
         except Exception:
-            pass
+            # r133-A6 (b)-lite: WS log stream is best-effort — direct stdlib
+            # call (self._emit would recurse into this very block).
+            self._log.debug("log_event broadcast failed", exc_info=True)
         # Batch-write to BotLog every 10 events
         try:
             d = event.to_dict()
@@ -124,7 +133,10 @@ class StructuredLogger:
             if len(_botlog_batch) >= 10:
                 spawn(_flush_botlog())
         except Exception:
-            pass
+            # r133-A6 (b): the event never reaches the DB batch — direct
+            # stdlib call (same recursion guard as the broadcast above).
+            self._log.warning("botlog batch append failed — event not queued for DB",
+                              exc_info=True)
 
     def get_buffer(self, level: str | None = None, module: str | None = None,
                    since: str | None = None, limit: int = 50) -> list[dict]:
@@ -137,7 +149,7 @@ class StructuredLogger:
             try:
                 items = [e for e in items if e.timestamp >= since]
             except Exception:
-                pass
+                pass  # r133-A6 (a): timestamp filter drop — unfiltered history is fine
         return [e.to_dict() for e in items[-limit:]]
 
     def get_stats(self) -> dict:

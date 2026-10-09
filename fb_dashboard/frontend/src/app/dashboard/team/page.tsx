@@ -67,7 +67,7 @@ export default function TeamPage() {
       setNewUsername(""); setNewPassword(""); setNewRole("viewer")
       brandedToast.success("تمت إضافة العضو")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشلت إضافة العضو"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّرت إضافة العضو"),
   })
 
   /* تغيير دور — PUT /api/users/{id} (Form: role)؛ الرد يتطلب موافقة المستخدم
@@ -82,7 +82,7 @@ export default function TeamPage() {
       queryClient.invalidateQueries({ queryKey: ["team-members"] })
       brandedToast.success("تم تغيير الدور")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل تغيير الدور"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر تغيير الدور"),
   })
 
   /* حذف — DELETE /api/users/{id} بتأكيد عربي من خطوتين
@@ -95,7 +95,7 @@ export default function TeamPage() {
       setConfirmDeleteId(null)
       brandedToast.success("تم حذف العضو")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل حذف العضو"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر حذف العضو"),
   })
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
@@ -167,7 +167,7 @@ export default function TeamPage() {
                   ))}
                 </Select>
               </div>
-              <p className="text-2xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {newRole === "admin"
                   ? "تعيين دور «مدير» متاح لمدير المنصة فقط — سيظهر خطأ عربيًا إن لم تكن مدير المنصة"
                   : "محرر يستطيع إنشاء القواعد والبث، ومشاهد يرى التقارير فقط"}
@@ -205,7 +205,7 @@ export default function TeamPage() {
             <div className="state-icon" aria-hidden="true">
               <Users2 />
             </div>
-            <p className="state-desc">{(error as Error)?.message || "تعذر تحميل الفريق"}</p>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر تحميل الفريق"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : members.length === 0 ? (

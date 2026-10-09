@@ -260,7 +260,7 @@ async def get_payment_receipt(payment_id: int, db=Depends(get_db), current_user:
         try:
             payload = base64.b64decode(b64, validate=False)
         except Exception:
-            raise HTTPException(400, "تعذر فك ترميز الإيصال") from None
+            raise HTTPException(400, "تعذّر فك ترميز الإيصال") from None
         if not payload:
             raise HTTPException(404, "لا يوجد إيصال لهذه الدفعة")
         return Response(content=payload, media_type=mime)
@@ -292,7 +292,7 @@ async def get_payment_receipt(payment_id: int, db=Depends(get_db), current_user:
             raise HTTPException(400, "رابط الإيصال مرفوض") from None
         payload = await _fetch_remote_receipt(receipt)
         if payload is None:
-            raise HTTPException(404, "تعذر جلب الإيصال الخارجي")
+            raise HTTPException(404, "تعذّر جلب الإيصال الخارجي")
         return Response(content=payload, media_type="image/jpeg")
 
     # Legacy rows with anything else stored (http://, junk) → clean refusal

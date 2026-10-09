@@ -158,7 +158,7 @@ def _scrub_event(event: dict) -> dict:
                 if isinstance(cdata, (dict, list)):
                     _scrub_tree(cdata)
     except Exception:
-        pass
+        pass  # r133-A6 (a): scrubbing is best-effort — the event still ships
     return event
 
 
@@ -305,7 +305,7 @@ def capture_exception(exc: BaseException, *, request=None) -> None:
                     scope.set_tag("path", request.url.path)
                     scope.set_tag("method", request.method)
                 except Exception:
-                    pass
+                    pass  # r133-A6 (a): scope tags are enrichment, never a gate
             sentry_sdk.capture_exception(exc)
         # Serverless freeze guard: the background transport batches events
         # with a ~2s delay and Vercel may freeze the instance the moment the
@@ -316,9 +316,9 @@ def capture_exception(exc: BaseException, *, request=None) -> None:
             if client is not None:
                 client.flush(timeout=1.0)
         except Exception:
-            pass
+            pass  # r133-A6 (a): flush is a delivery optimization, never a gate
     except Exception:
-        pass
+        pass  # r133-A6 (a): observability must never amplify the 500 it reports
 
 
 # ─────────────────────────────────────────────────────────────
@@ -402,7 +402,7 @@ async def report_critical(request, exc: BaseException) -> None:
             path = request.url.path
             method = request.method
         except Exception:
-            pass
+            pass  # r133-A6 (a): rid fallback "-" is built in — must never amplify
         fingerprint = f"500:{path}:{type(exc).__name__}"
         text = (
             "🚨 خطأ حرج في SmartBot\n"

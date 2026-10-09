@@ -174,7 +174,7 @@ async def hide_comment(comment_id: str, db=Depends(get_db), current_user: User =
     fb = await _tenant_fb_or_400(current_user._tenant_id)
     result = await fb.hide_comment(comment_id)
     if not result:
-        raise HTTPException(400, "فشل إخفاء التعليق — تحقق من صلاحيات التوكن")
+        raise HTTPException(400, "تعذّر إخفاء التعليق — تحقق من صلاحيات التوكن")
     # keep stored row hidden so DB-first list reflects it
     row = (await db.execute(
         select(Comment).where(
@@ -191,7 +191,7 @@ async def delete_api_comment(comment_id: str, db=Depends(get_db), current_user: 
     fb = await _tenant_fb_or_400(current_user._tenant_id)
     result = await fb.delete_comment(comment_id)
     if not result:
-        raise HTTPException(400, "فشل حذف التعليق — تحقق من صلاحيات التوكن")
+        raise HTTPException(400, "تعذّر حذف التعليق — تحقق من صلاحيات التوكن")
     row = (await db.execute(
         select(Comment).where(
             Comment.tenant_id == current_user._tenant_id, Comment.fb_comment_id == comment_id)
@@ -208,7 +208,7 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
     fb = await _tenant_fb_or_400(current_user._tenant_id)
     result = await fb.reply_to_comment(comment_id, message)
     if not result:
-        raise HTTPException(400, "فشل إرسال الرد — تحقق من صلاحيات التوكن")
+        raise HTTPException(400, "تعذّر إرسال الرد — تحقق من صلاحيات التوكن")
     commenter_name = "[يدوي]"
     comment_text = message
     post_id = ""
@@ -222,7 +222,11 @@ async def reply_to_comment(comment_id: str, message: str = Form(...), db=Depends
             if isinstance(comment_data.get("post"), dict):
                 post_id = str(comment_data["post"].get("id", "") or "")
     except Exception:
-        pass
+        # r133-A6 (c)#11: the reply ROW still persists — but with the fallback
+        # identity ("[يدوي]" name, reply text as comment text, empty post id).
+        # Degraded-but-marked audit trail; visibility, not a behavior change.
+        log.warning("comment meta fetch failed for %s — reply stored with fallback identity",
+                    comment_id, exc_info=True)
     reply = Reply(
         commenter_name=commenter_name,
         comment_text=comment_text,

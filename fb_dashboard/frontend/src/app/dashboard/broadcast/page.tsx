@@ -80,7 +80,7 @@ export default function BroadcastPage() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || `فشل الإنشاء (${res.status})`)
+        throw new Error(body.detail || `تعذّر الإنشاء (${res.status})`)
       }
       return unwrapApi<{ id: number }>(res)
     },
@@ -91,7 +91,7 @@ export default function BroadcastPage() {
       setShowForm(false)
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء البث"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إنشاء البث"),
   })
 
   const sendMut = useMutation({
@@ -99,7 +99,7 @@ export default function BroadcastPage() {
       const res = await apiFetch(`/api/broadcasts/${id}/send`, { method: "POST" })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || `فشل الإرسال (${res.status})`)
+        throw new Error(body.detail || `تعذّر الإرسال (${res.status})`)
       }
       return unwrapApi<{ ok?: boolean }>(res)
     },
@@ -109,7 +109,7 @@ export default function BroadcastPage() {
       /* v24-C2: the queue succeeded — close the confirmation dialog */
       setConfirmSendId(null)
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال — تحقق من ربط الصفحة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الإرسال — تحقق من ربط الصفحة"),
   })
 
   /* v24-C2 (task 2 / A3-B1): the dialog's payload — broadcast detail (message
@@ -129,7 +129,7 @@ export default function BroadcastPage() {
       const res = await apiFetch(`/api/broadcasts/${confirmSendId}`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || `فشل تحميل تفاصيل البث (${res.status})`)
+        throw new Error(body.detail || `تعذّر تحميل تفاصيل البث (${res.status})`)
       }
       const detail = await unwrapApi<BroadcastDetail>(res)
       const est = await apiFetch("/api/broadcasts/estimate", {
@@ -141,7 +141,7 @@ export default function BroadcastPage() {
       })
       if (!est.ok) {
         const body = await est.json().catch(() => ({}))
-        throw new Error(body.detail || "تعذر تقدير عدد المستلمين")
+        throw new Error(body.detail || "تعذّر تقدير عدد المستلمين")
       }
       const { count } = await unwrapApi<{ count: number }>(est)
       return { detail, count }
@@ -159,7 +159,7 @@ export default function BroadcastPage() {
       const res = await apiFetch(`/api/broadcasts/${id}/cancel`, { method: "POST" })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || `فشل الإلغاء (${res.status})`)
+        throw new Error(body.detail || `تعذّر الإلغاء (${res.status})`)
       }
       return unwrapApi<{ ok: boolean }>(res)
     },
@@ -167,7 +167,7 @@ export default function BroadcastPage() {
       brandedToast.success("تم إلغاء البث")
       queryClient.invalidateQueries({ queryKey: ["broadcasts"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إلغاء البث"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إلغاء البث"),
   })
 
   return (
@@ -217,7 +217,7 @@ export default function BroadcastPage() {
                   rows={3}
                   aria-label="نص الرسالة"
                 />
-                <p className="text-2xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   ستُرسل الرسالة للمشتركين عبر الماسنجر — تأكد من ربط صفحتك أولاً
                 </p>
               </div>
@@ -238,7 +238,7 @@ export default function BroadcastPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل رسائل البث</h2>
+            <h2 className="state-title">تعذّر تحميل رسائل البث</h2>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
@@ -321,7 +321,7 @@ export default function BroadcastPage() {
               {confirmLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : confirmError ? (
-                <span className="text-xs text-destructive">تعذر تحديد العدد</span>
+                <span className="text-xs text-destructive">تعذّر تحديد العدد</span>
               ) : (
                 <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmData?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
@@ -332,7 +332,7 @@ export default function BroadcastPage() {
               <Skeleton className="h-16 w-full" />
             ) : confirmData?.detail.message_template?.trim() ? (
               <div className="rounded-lg border border-border/60 bg-background p-3">
-                <p className="text-2xs text-muted-foreground mb-1">معاينة الرسالة</p>
+                <p className="text-xs text-muted-foreground mb-1">معاينة الرسالة</p>
                 <p className="text-sm leading-relaxed line-clamp-3" dir="auto">
                   {confirmData.detail.message_template}
                 </p>
@@ -353,7 +353,7 @@ export default function BroadcastPage() {
             {/* فشل تحميل التفاصيل — إعادة محاولة بلا زر تأكيد أعمى */}
             {confirmError && (
               <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="min-w-0 truncate">{(confirmErrorObj as Error)?.message || "تعذر تحميل تفاصيل البث"}</span>
+                <span className="min-w-0 truncate">{(confirmErrorObj as Error)?.message || "تعذّر تحميل تفاصيل البث"}</span>
                 <Button size="sm" variant="outline" onClick={() => refetchConfirm()}>
                   <RefreshCw className="size-3" /> إعادة المحاولة
                 </Button>

@@ -27,7 +27,7 @@ class EventBus:
         try:
             self._subscribers[event].remove((callback, tenant_id))
         except ValueError:
-            pass
+            pass  # r133-A6 (a): unsubscribe idempotency — not-subscribed is fine
 
     async def emit(self, event: str, data: Any = None, tenant_id: int | None = None):
         """

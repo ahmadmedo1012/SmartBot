@@ -445,7 +445,9 @@ async def _send_claimed_broadcast(broadcast_id: int, session) -> bool:
                 dt = datetime.fromisoformat(subscribed_after)
                 subq = subq.where(Subscriber.first_seen_at >= dt)
             except ValueError:
-                pass
+                # r133-A6 (b): silently dropping the filter sends the broadcast
+                # to MORE recipients than configured — visibility, not a 422.
+                log.warning("invalid subscribed_after=%r — filter ignored", subscribed_after)
 
         last_interaction_before_days = sf.get("last_interaction_before_days")
         if last_interaction_before_days:

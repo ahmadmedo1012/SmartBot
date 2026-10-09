@@ -65,7 +65,7 @@ export default function ActivityPage() {
                 <div className="state-icon" aria-hidden="true">
                   <AlertCircle />
                 </div>
-                <p className="state-title">فشل تحميل النشاطات</p>
+                <p className="state-title">تعذّر تحميل النشاطات</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
               </div>
             ) : isLoading ? (

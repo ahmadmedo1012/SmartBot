@@ -111,7 +111,7 @@ export function WalletInstructions({
           className="h-11 rounded-xl mt-1.5 text-left font-mono"
           dir="ltr"
         />
-        <p className="text-2xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           10 أرقام تبدأ بـ 09 — حتى نتمكن من التأكد من استلام التحويل
         </p>
       </div>

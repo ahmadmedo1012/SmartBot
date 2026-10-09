@@ -369,7 +369,8 @@ async def get_bot_behavior(db=Depends(get_db),
         from _services import refresh_ai_from_db
         await refresh_ai_from_db()
     except Exception:
-        pass
+        # r133-A6 (b): the response's AI status may be stale — surface it.
+        log.warning("refresh_ai_from_db failed in behavior read", exc_info=True)
     behavior.update(_ai_status_sync())
     return ok(behavior)
 
@@ -422,7 +423,7 @@ async def update_bot_behavior(request: Request, db=Depends(get_db),
     except Exception as e:
         await db.rollback()
         log.error("behavior write failed (tenant %s): %s", tenant_id, e)
-        raise HTTPException(500, "تعذر حفظ إعدادات سلوك البوت") from e
+        raise HTTPException(500, "تعذّر حفظ إعدادات سلوك البوت") from e
 
     behavior = await _read_behavior(db, tenant_id)
     behavior.update(_ai_status_sync())
@@ -529,7 +530,7 @@ async def cron_bot_cycle(request: Request, token: str = Query("")):
         # text must not ride the response; the traceback above keeps the
         # detail server-side (cron is Bearer-secret-gated, still no need to
         # leak internals).
-        return fail("فشل دورة الجدولة — راجع سجلات الخادم")
+        return fail("تعذّر تشغيل دورة الجدولة — راجع سجلات الخادم")
 
 
 @router.get("/api/cron/heartbeat")
@@ -603,7 +604,7 @@ async def cron_heartbeat(request: Request):
     log.error("cron heartbeat FAILED (ledger_ok=%s core_failures=%d) — answering 503",
               ledger_ok, core_failures)
     return JSONResponse(status_code=503, content=fail(
-        "فشل نبض الجدولة — راجع سجلات الخادم", data=report))
+        "تعذّر تسجيل نبض الجدولة — راجع سجلات الخادم", data=report))
 
 
 @router.get("/api/logs")
@@ -679,4 +680,4 @@ async def trigger_manual_reply(_=Depends(require_platform_admin)):
         # v24-R3 (B2 M-4): was f"فشل تشغيل دورة البوت: {str(e)[:120]}" — the
         # platform-admin surface gets the fixed Arabic message only; the
         # traceback above carries the detail (Sentry sees it).
-        return fail("فشل تشغيل دورة البوت — راجع سجلات الخادم")
+        return fail("تعذّر تشغيل دورة البوت — راجع سجلات الخادم")

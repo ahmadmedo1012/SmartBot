@@ -143,7 +143,7 @@ function DailyTrendSection() {
       description={`منحنى عدد الردود المرسلة يوميًا خلال آخر ${toArabicNumber(WINDOW_DAYS)} يومًا`}
       icon={TrendingUp}
       loading={q.isLoading}
-      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذر تحميل الاتجاه اليومي") : null}
+      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذّر تحميل الاتجاه اليومي") : null}
       onRetry={() => q.refetch()}
       empty={!q.isError && !q.isLoading && rows.length === 0}
       emptyTitle="لا توجد بيانات بعد"
@@ -195,7 +195,7 @@ function HeatmapSection() {
       description={`كثافة الردود حسب أيام الأسبوع والساعات — بتوقيت غرينتش (UTC) — آخر ${toArabicNumber(WINDOW_DAYS)} يومًا`}
       icon={Grid3x3}
       loading={q.isLoading}
-      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذر تحميل خريطة النشاط") : null}
+      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذّر تحميل خريطة النشاط") : null}
       onRetry={() => q.refetch()}
       empty={!q.isError && !q.isLoading && cells.length === 0}
       emptyTitle="لا توجد بيانات بعد"
@@ -229,7 +229,7 @@ function PeakHourSection() {
       description={`الساعة الأكثر تفاعلًا — بتوقيت غرينتش (UTC) — آخر ${toArabicNumber(WINDOW_DAYS)} يومًا`}
       icon={Clock}
       loading={q.isLoading}
-      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذر تحميل ساعة الذروة") : null}
+      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذّر تحميل ساعة الذروة") : null}
       onRetry={() => q.refetch()}
       /* peak_hour=0 منتصف الليل قيمة صالحة — المقارنة بـ!=null لا ==truthy */
       empty={!q.isError && !q.isLoading && peak == null}
@@ -270,7 +270,7 @@ function TopRulesSection() {
       description={`القواعد التي أطلقت أكبر عدد من الردود ونسبتها من الإجمالي — آخر ${toArabicNumber(WINDOW_DAYS)} يومًا`}
       icon={Flame}
       loading={q.isLoading}
-      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذر تحميل أكثر القواعد تشغيلًا") : null}
+      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذّر تحميل أكثر القواعد تشغيلًا") : null}
       onRetry={() => q.refetch()}
       empty={!q.isError && !q.isLoading && rules.length === 0}
       emptyTitle="لا توجد قواعد بعد"
@@ -339,7 +339,7 @@ function PeriodComparisonSection() {
       description={`آخر ${toArabicNumber(WINDOW_DAYS)} يومًا مقابل ${toArabicNumber(WINDOW_DAYS)} يومًا قبلها`}
       icon={Scale}
       loading={q.isLoading}
-      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذر تحميل مقارنة الفترات") : null}
+      error={q.isError && !locked ? ((q.error as Error)?.message || "تعذّر تحميل مقارنة الفترات") : null}
       onRetry={() => q.refetch()}
       empty={!q.isError && !q.isLoading && d !== undefined && now === 0 && before === 0}
       emptyTitle="لا توجد بيانات بعد"
@@ -407,7 +407,6 @@ export default function AnalyticsPage() {
   ]
 
   const daily = data?.daily_breakdown ? Object.entries(data.daily_breakdown) : []
-  const maxVal = Math.max(...daily.map(([,v]) => v as number), 1)
 
   return (
     <div className="flex-1 flex flex-col">
@@ -429,8 +428,8 @@ export default function AnalyticsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل التحليلات</h2>
-            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <h2 className="state-title">تعذّر تحميل التحليلات</h2>
+            <p className="state-desc">تعذّر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (<><div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-busy={isLoading || undefined}>

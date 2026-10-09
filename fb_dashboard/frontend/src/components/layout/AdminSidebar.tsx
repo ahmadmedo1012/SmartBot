@@ -119,7 +119,7 @@ export const defaultNavSections: NavSection[] = [
 
 export function AdminSidebar({
   navSections = defaultNavSections,
-  logo,
+  logo: _logo,
   title = "SmartBot",
   subtitle = "لوحة التحكم",
   onNavigate,

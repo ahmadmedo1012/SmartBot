@@ -70,7 +70,7 @@ async def health_bot_check(db=Depends(get_db), current_user: User = Depends(get_
                 issues.append({"type": "fb_token", "severity": "critical", "message": "توكن الصفحة غير صالح أو منتهي — أعد الربط من صفحة «الصفحات»"})
     except Exception:
         fan_count = None
-        issues.append({"type": "fb_token", "severity": "critical", "message": "فشل الاتصال بفيسبوك — تحقق من التوكن"})
+        issues.append({"type": "fb_token", "severity": "critical", "message": "تعذّر الاتصال بفيسبوك — تحقق من التوكن"})
 
     # 3. Check rules
     rule_count = await db.scalar(select(func.count(Rule.id)).where(Rule.tenant_id == _tid)) or 0

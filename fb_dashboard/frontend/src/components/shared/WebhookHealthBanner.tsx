@@ -28,6 +28,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { RadioTower } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
+import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
 
 interface FacebookSettings {
@@ -85,14 +86,17 @@ export function WebhookHealthBanner() {
             <p className="text-xs text-muted-foreground leading-snug">{detail}</p>
           </div>
         </div>
-        <button
-          type="button"
+        {/* r133 (A10): the hand-rolled span-button (rounded-lg + brightness
+            hover + transition-all + private focus ring) → the shared Button
+            primitive (gold/sm — 40px rung, canonical press, global outline). */}
+        <Button
+          size="sm"
           onClick={() => router.push("/connect")}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110 transition-all outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
+          className="shrink-0"
         >
           إصلاح الربط
           <DirectionalIcon semanticDirection="forward" className="size-3.5" />
-        </button>
+        </Button>
       </div>
     </div>
   )

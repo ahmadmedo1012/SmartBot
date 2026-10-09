@@ -71,7 +71,10 @@ export function TelegramConfigSection({
                    icon wrapper ≈16×16px — below the minimum target size.
                    rounded-md, the exact reveal-toggle recipe from the login
                    and register password fields. */
-                className="absolute end-3 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-90"
+                /* r133 (A10): focus = the ONE global outline (the private
+                   ring-2 is retired); press snaps to the canonical
+                   0.97 @ 80ms (was an off-register scale-90). */
+                className="absolute end-3 top-1/2 -translate-y-1/2 size-11 rounded-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors active:scale-[0.97] active:duration-(--t-micro)"
                 aria-label={showToken ? "إخفاء الرمز" : "إظهار الرمز"}>
                 {/* v17-E-B2 (D2 §3.3#7): Eye↔EyeOff crossfade instead of the
                     instant swap — the tt-icon recipe (globals.css:507-512)

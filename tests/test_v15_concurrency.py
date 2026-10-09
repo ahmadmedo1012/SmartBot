@@ -773,7 +773,7 @@ async def test_dns_resolution_failure_fails_closed(monkeypatch):
     monkeypatch.setattr(ai_service, "_resolve_host_ips", broken)
     with pytest.raises(UnsafeImageUrlError) as ei:
         await assert_safe_outbound_url("https://unresolvable.example.ly/x.png")
-    assert "تعذر التحقق" in str(ei.value)
+    assert "تعذّر التحقق" in str(ei.value)  # r133-G5 R3: shadda form
 
 
 async def test_public_dns_resolution_passes_and_label_used(monkeypatch):
@@ -1138,7 +1138,7 @@ async def test_bot_trigger_failure_reports_fail_envelope(v10_seed, monkeypatch):
     r = await v10_seed.world.client.post("/api/bot/trigger")
     body = r.json()
     assert body["success"] is False
-    assert "فشل تشغيل دورة البوت" in body["error"]
+    assert "تعذّر تشغيل دورة البوت" in body["error"]
 
 
 def _patch_observability(monkeypatch):

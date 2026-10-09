@@ -186,7 +186,7 @@ export default function AdminSupportPage() {
       brandedToast.success(`تم إغلاق التذكرة #${formatNumber(d.id)}`)
       queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إغلاق التذكرة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إغلاق التذكرة"),
   })
 
   /* v22-D10 (W1-D10 BUG-1): رد فريق الدعم — POST
@@ -205,7 +205,7 @@ export default function AdminSupportPage() {
       setReplyText("")
       queryClient.invalidateQueries({ queryKey: ["admin-support-tickets"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال الرد"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إرسال الرد"),
   })
 
   return (
@@ -284,7 +284,7 @@ export default function AdminSupportPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertTriangle />
               </div>
-              <h2 className="state-title">فشل تحميل التذاكر</h2>
+              <h2 className="state-title">تعذّر تحميل التذاكر</h2>
               <p className="state-desc">
                 {(ticketsQuery.error as Error)?.message || "تعذّر جلب التذاكر من الخادم — أعد المحاولة."}
               </p>
@@ -413,7 +413,7 @@ export default function AdminSupportPage() {
                             id={`admin-ticket-thread-${t.id}`}
                             data-open={openTicketId === t.id || undefined}
                             aria-hidden={openTicketId !== t.id}
-                            className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-(--t-base)"
+                            className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-[grid-template-rows] duration-(--t-base)"
                           >
                             <div className="overflow-hidden">
                               {openTicketId === t.id && (
@@ -421,7 +421,7 @@ export default function AdminSupportPage() {
                                   {/* v22-D10 (BUG-6): نص التذكرة كاملاً — كان
                                       الجدول يخفيه رغم أن الـ API يعيده. */}
                                   <div>
-                                    <p className="text-3xs font-bold text-muted-foreground mb-1">
+                                    <p className="text-xs font-bold text-muted-foreground mb-1">
                                       نص التذكرة
                                     </p>
                                     <p dir="auto" className="text-xs leading-relaxed whitespace-pre-wrap break-words">
@@ -432,7 +432,7 @@ export default function AdminSupportPage() {
                                   {/* الخيط (replies[] من نفس الاستجابة) */}
                                   {(t.replies ?? []).length > 0 && (
                                     <div className="space-y-2">
-                                      <p className="text-3xs font-bold text-muted-foreground">
+                                      <p className="text-xs font-bold text-muted-foreground">
                                         المحادثة ({formatNumber((t.replies ?? []).length)})
                                       </p>
                                       {(t.replies ?? []).map((r) => (
@@ -444,7 +444,7 @@ export default function AdminSupportPage() {
                                               : "bg-muted/50"
                                           }`}
                                         >
-                                          <p className="font-bold mb-1 text-3xs">
+                                          <p className="font-bold mb-1 text-xs">
                                             {r.is_admin ? "فريق الدعم" : "العميل"}
                                           </p>
                                           <p dir="auto" className="text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
@@ -485,7 +485,7 @@ export default function AdminSupportPage() {
                                       </Button>
                                     </div>
                                   ) : (
-                                    <p className="text-2xs text-success-ink text-center py-1" role="status">
+                                    <p className="text-xs text-success-ink text-center py-1" role="status">
                                       هذه التذكرة مغلقة — لا يمكن الرد عليها
                                     </p>
                                   )}

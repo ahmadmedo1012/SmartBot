@@ -9,12 +9,11 @@ import { Footer } from "@/components/layout/Footer"
 import { SectionContainer } from "@/components/ui/SectionContainer"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { KineticText } from "@/components/ui/kinetic-text"
 import { ScrollReveal } from "@/components/ui/scroll-reveal"
 import { apiFetch } from "@/lib/csrf-client"
-import { Sparkles, Check, Crown, Star, Shield, Zap, BarChart3, MessageCircle, Users } from "lucide-react"
+import { Sparkles, Check, Crown, Star, Shield, Zap, MessageCircle, Users } from "lucide-react"
 import { unwrapApi } from "@/lib/api"
 import { formatNumber } from "@/lib/format"
 import { toComparisonPlan, type ComparisonPlanInput } from "@/components/subscribe/plan-comparison"
@@ -147,7 +146,7 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(false)}
             aria-pressed={!annual}
-            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-[background-color,color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -156,7 +155,7 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(true)}
             aria-pressed={annual}
-            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-[background-color,color,box-shadow] flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -222,7 +221,7 @@ export default function PricingPage() {
                   className="h-full transition-transform duration-(--t-base) ease-out hover:-translate-y-1.5"
                 >
                 <Card className={cn(
-                  "relative h-full flex flex-col overflow-hidden transition-all duration-(--t-slower)",
+                  "relative h-full flex flex-col overflow-hidden transition-[border-color,box-shadow,background-color] duration-(--t-slower)",
                   isPopular
                     /* r131-F7b (A4 P2-4 de-glow tail): the popular card's
                         gold-tinted /20 glow → the neutral elev-4 rung
@@ -233,7 +232,10 @@ export default function PricingPage() {
                 )}>
                   {isPopular && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1 shadow-lg">
+                      {/* r133 (A5 S1): flat bg-primary pill — the r120 U11-P2-4
+                          unification with /subscribe (SM PricingClient twin);
+                          the gradient + shadow-lg are gone. */}
+                      <div className="bg-primary text-primary-foreground text-3xs font-bold px-4 py-1.5 rounded-b-xl flex items-center gap-1">
                         <Crown className="size-3 fill-white" />
                         الأكثر شعبية
                       </div>
@@ -266,7 +268,7 @@ export default function PricingPage() {
                           <span className="text-4xl font-bold">مجاني</span>
                         ) : (
                           <>
-                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-bold text-accent-foreground">
+                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-bold tabular-nums text-accent-foreground">
                             {/* Smart-Menu parity: yearly billing = 10× monthly (two months free).
                                 v12-E4.13: formatNumber — prices flow through the
                                 single i18n formatting seam like every other number. */}
@@ -280,7 +282,7 @@ export default function PricingPage() {
                         {plan.price === 0 ? "للأبد، بدون حدود زمنية" : annual ? "سنوياً" : "شهرياً"}
                       </div>
                       {annual && plan.price > 0 && (
-                        <div className="price-swap text-2xs text-accent-foreground mt-0.5">
+                        <div className="price-swap text-xs text-accent-foreground mt-0.5">
                           وفر شهرين عند الاشتراك السنوي
                         </div>
                       )}

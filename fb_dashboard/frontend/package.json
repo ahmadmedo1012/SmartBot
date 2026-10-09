@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "r=$(git rev-parse --short HEAD 2>/dev/null || echo unknown); SENTRY_RELEASE=$r NEXT_PUBLIC_SENTRY_RELEASE=$r next build",
     "start": "next start",
-    "lint": "tsc --noEmit",
+    "lint": "eslint src/ --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
@@ -44,6 +44,8 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.8",
     "jsdom": "^27.4.0",
     "playwright": "^1.63.0",
     "postcss": "^8",
@@ -54,6 +56,7 @@
   "overrides": {
     "sharp": "^0.35.5",
     "source-map-js": "^1.2.2",
-    "brace-expansion": "^5.0.12"
+    "brace-expansion@<2.0.0": "^1.1.12",
+    "brace-expansion@>=2.0.0": "^5.0.12"
   }
 }

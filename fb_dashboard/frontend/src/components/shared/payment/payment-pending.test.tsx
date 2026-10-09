@@ -232,7 +232,7 @@ describe("v18 (1-b) — the create-path 400 «معلق» is a state, not a toast
 
 describe("v18 (1-b) — «إلغاء الطلب المعلق وإعادة المحاولة»", () => {
   it("POSTs /api/subscriptions/cancel {payment_id} and returns to the form", async () => {
-    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
       const u = String(url)
       if (u === "/api/subscriptions/pending")
         return jsonRes({ success: true, data: PENDING_ROW })
@@ -275,7 +275,7 @@ describe("v18 (1-b) — «إلغاء الطلب المعلق وإعادة الم
     // finds nothing pending → the form returns, so the cancel button can
     // never become a dead end of its own.
     let pendingCalls = 0
-    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
       const u = String(url)
       if (u === "/api/subscriptions/pending") {
         pendingCalls += 1

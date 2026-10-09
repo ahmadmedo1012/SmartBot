@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from _responses import ok
-from _utils import iso_z
+from _utils import fmt_lyd, iso_z
 from config import settings
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -237,7 +237,7 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
         notify_admins_new_payment(pr.id, current_user.username, amount, provider, phone)
     )
     instructions = (
-        f"حوالة إلى {provider} على الرقم {phone} بمبلغ {amount} د.ل "
+        f"حوالة إلى {provider} على الرقم {phone} بمبلغ {fmt_lyd(amount)} د.ل "
         f"— بعد الإرسال، انتظر موافقة الإدارة"
     )
     return ok({"payment_id": pr.id, "instructions": instructions})

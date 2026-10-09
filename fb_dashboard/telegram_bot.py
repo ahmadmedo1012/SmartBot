@@ -48,6 +48,7 @@ import time
 from typing import Any
 
 import httpx
+from _utils import fmt_lyd  # r133-A12 M3: smart-trim money in Telegram messages
 
 log = logging.getLogger("fb-tg")
 
@@ -99,7 +100,9 @@ async def get_bot_token() -> str:
             if r and r.value:
                 return r.value
     except Exception:
-        pass
+        # r133-A6 (b): DB wins BY DESIGN — a DB failure silently switches the
+        # notify channel to the env fallback; make the switch visible.
+        log.warning("telegram token DB read failed — env fallback", exc_info=True)
     return _ENV_BOT_TOKEN
 
 
@@ -118,9 +121,9 @@ async def get_admin_ids() -> list[int]:
                     if tid_int not in ids:
                         ids.append(tid_int)
                 except (TypeError, ValueError):
-                    continue
+                    continue  # r133-A6 (a): skip unparseable approver row — the rest still notify
     except Exception:
-        pass
+        pass  # r133-A6 (a): DB approver list unread → env admins still notified
     return ids
 
 
@@ -137,7 +140,8 @@ async def get_chat_id() -> str:
             if r and r.value:
                 return r.value
     except Exception:
-        pass
+        # r133-A6 (b): same DB→env resolution ambiguity as the token read.
+        log.warning("telegram chat_id DB read failed — env fallback", exc_info=True)
     return os.getenv("TELEGRAM_CHAT_ID", "")
 
 
@@ -308,7 +312,7 @@ async def notify_admins_new_payment(payment_id: int, username: str, amount: int,
     msg = (
         f"💳 <b>طلب دفع جديد</b> #{payment_id}\n"
         f"• المستخدم: {escape_user_text(username)}\n"
-        f"• المبلغ: {escape_user_text(amount)} د.ل\n"
+        f"• المبلغ: {escape_user_text(fmt_lyd(amount))} د.ل\n"
         f"• المزود: {escape_user_text(provider)}\n"
         f"• الهاتف: {escape_user_text(phone)}"
     )
@@ -326,7 +330,7 @@ async def notify_admins_new_subscription(payment_id: int, username: str, amount:
         f"📋 <b>طلب اشتراك جديد</b> #{payment_id}\n"
         f"• المستخدم: {escape_user_text(username)}\n"
         f"• الباقة: {escape_user_text(plan_name)}\n"
-        f"• المبلغ: {escape_user_text(amount)} د.ل\n"
+        f"• المبلغ: {escape_user_text(fmt_lyd(amount))} د.ل\n"
         f"• المزود: {escape_user_text(provider)}\n"
         f"• الهاتف: {escape_user_text(phone)}"
     )

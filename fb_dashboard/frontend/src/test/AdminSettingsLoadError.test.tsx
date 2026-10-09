@@ -196,7 +196,7 @@ describe("v17-E-F3 — admin/settings load failure (D1 §5.2)", () => {
 
     const alert = await screen.findByRole("alert")
     // the central network message (page's ApiError branch — specific, Arabic)
-    expect(alert).toHaveTextContent("تعذر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت")
+    expect(alert).toHaveTextContent("تعذّر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت")
     // the English browser message must NOT leak into the UI (D9 contract)
     expect(alert).not.toHaveTextContent(/Failed to fetch/)
     expect(screen.getByRole("button", { name: "إعادة المحاولة" })).toBeInTheDocument()

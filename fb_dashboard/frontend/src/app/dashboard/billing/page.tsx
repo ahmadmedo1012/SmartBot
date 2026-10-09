@@ -15,6 +15,8 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { unwrapApi } from "@/lib/api"
 import { useConfig } from "@/hooks/useConfig"
+import { useMe } from "@/hooks/useMe"
+import { normalizeLibyanPhone } from "@/lib/phone"
 import type { PaymentBalance, PaymentRecord } from "@/lib/types"
 import { formatDate, formatNumber } from "@/lib/format"
 
@@ -52,7 +54,7 @@ export default function BillingPage() {
     queryKey: ["balance"],
     queryFn: async () => {
       const res = await apiFetch("/api/payments/balance")
-      if (!res.ok) throw new Error(`فشل تحميل الرصيد (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل الرصيد (${res.status})`)
       return unwrapApi<PaymentBalance>(res)
     },
     retry: 1,
@@ -62,31 +64,23 @@ export default function BillingPage() {
     queryKey: ["payment-history"],
     queryFn: async () => {
       const res = await apiFetch("/api/payments/history")
-      if (!res.ok) throw new Error(`فشل تحميل سجل الدفع (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل سجل الدفع (${res.status})`)
       return unwrapApi<PaymentRecord[]>(res)
     },
     retry: 1,
   })
 
   /* v17-E-F8 (D6-2): الخطة الحالية + الخطط المتاحة للترقية.
-   * /api/me يعيد user.subscriptionStatus (اسم الخطة صغيرًا) — نطابقه
-   * مع GET /api/plans (name) لاستخراج معرف الخطة الحالية، والعروض
-   * = الخطط ذات id أعلى (نفس شرط الخادم). */
-  const { data: me } = useQuery({
-    queryKey: ["me"],
-    queryFn: async () => {
-      const res = await apiFetch("/api/me")
-      if (!res.ok) throw new Error(`فشل تحميل الحساب (${res.status})`)
-      return unwrapApi<{ user: { subscriptionStatus?: string } }>(res)
-    },
-    retry: 1,
-  })
+   * r133 (A5 N2 — v24-C3 doctrine): the inline /api/me rider retires onto
+   * the shared useMe() hook (same ["me"] cache entry AuthGuard keeps
+   * warm; the staleTime 5min contract + the single queryFn now apply). */
+  const { data: me } = useMe()
 
   const { data: plans = [], isLoading: plansLoad } = useQuery({
     queryKey: ["plans"],
     queryFn: async () => {
       const res = await apiFetch("/api/plans")
-      if (!res.ok) throw new Error(`فشل تحميل الخطط (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل الخطط (${res.status})`)
       return unwrapApi<PlanRow[]>(res)
     },
     retry: 1,
@@ -117,6 +111,29 @@ export default function BillingPage() {
   const [bankAmount, setBankAmount] = useState("")
   const [senderAccountName, setSenderAccountName] = useState("")
   const [senderAccountNumber, setSenderAccountNumber] = useState("")
+  /* r133 (A5 S2): the money-path dialog validates like support/wizard —
+   * per-field Arabic errors + aria-invalid (the Input error prop) +
+   * focus-first-invalid on failed submit; errors clear as the user types
+   * (the r132 OnboardingWizard clearFieldError recipe). */
+  const [fieldErrors, setFieldErrors] = useState<{
+    phone?: string
+    bankAmount?: string
+    senderName?: string
+    senderNumber?: string
+  }>({})
+
+  const clearFieldError = (field: "phone" | "bankAmount" | "senderName" | "senderNumber") => {
+    setFieldErrors((fe) => (fe[field] ? { ...fe, [field]: undefined } : fe))
+  }
+
+  /* r132 (A8 F-SB-3 twin): the first invalid field receives focus (rAF)
+   * so keyboard/SR users land where the fix is. */
+  const focusFirstInvalidField = (id: string) => {
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id) as HTMLElement | null
+      el?.focus()
+    })
+  }
 
   const selectedPlan = upgradeablePlans.find(p => p.id === selectedPlanId) || null
   const requiresBank = !!selectedPlan && Number(selectedPlan.price) > walletCap
@@ -129,6 +146,9 @@ export default function BillingPage() {
     mutationFn: async () => {
       if (!selectedPlan) throw new Error("اختر خطة أولًا")
       const isBank = provider === "bank"
+      /* r133 (A12 S10): +218 / 00218 / Eastern-digit input is normalized
+       * to the canonical 09XXXXXXXX mask before it leaves the client. */
+      const normalizedPhone = normalizeLibyanPhone(phone)
       const amount = isBank
         ? (parseFloat(bankAmount) || selectedPlan.price)
         : selectedPlan.price
@@ -143,7 +163,7 @@ export default function BillingPage() {
                 senderAccountName: senderAccountName.trim(),
                 senderAccountNumber: senderAccountNumber.trim(),
               }
-            : { phone: phone.trim() }),
+            : { phone: normalizedPhone ?? phone.trim() }),
         }),
       })
       return unwrapApi<{ payment_id: number; status: string }>(res)
@@ -153,33 +173,41 @@ export default function BillingPage() {
       setUpgradeOpen(false)
       setSelectedPlanId(null)
       setPhone(""); setBankAmount(""); setSenderAccountName(""); setSenderAccountNumber("")
+      setFieldErrors({})
       queryClient.invalidateQueries({ queryKey: ["payment-history"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال طلب الترقية"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إرسال طلب الترقية"),
   })
 
+  /* r133 (A5 S2): inline per-field verdicts (support:338-348 recipe) —
+   * the toast-only grammar forced a read-locate-fix-resubmit loop on the
+   * money path. Focus lands on the FIRST invalid field (rAF). */
   const submitUpgrade = () => {
     if (!selectedPlan) {
       brandedToast.error("اختر خطة للترقية أولاً")
       return
     }
     if (provider !== "bank") {
-      if (!/^09\d{8}$/.test(phone.trim().replace(/[\s-]/g, ""))) {
-        brandedToast.error("رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)")
+      if (!normalizeLibyanPhone(phone)) {
+        setFieldErrors((fe) => ({ ...fe, phone: "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)" }))
+        focusFirstInvalidField("upgrade-phone")
         return
       }
     } else {
       if (!senderAccountName.trim()) {
-        brandedToast.error("يرجى إدخال اسم صاحب الحساب")
+        setFieldErrors((fe) => ({ ...fe, senderName: "يرجى إدخال اسم صاحب الحساب" }))
+        focusFirstInvalidField("upgrade-sender-name")
         return
       }
       if (!senderAccountNumber.trim()) {
-        brandedToast.error("يرجى إدخال رقم الحساب")
+        setFieldErrors((fe) => ({ ...fe, senderNumber: "يرجى إدخال رقم الحساب" }))
+        focusFirstInvalidField("upgrade-sender-number")
         return
       }
       const amt = parseFloat(bankAmount) || selectedPlan.price
       if (amt < selectedPlan.price * 0.5) {
-        brandedToast.error("المبلغ المدخل أقل من الحد المقبول — نصف سعر الخطة على الأقل")
+        setFieldErrors((fe) => ({ ...fe, bankAmount: "المبلغ المدخل أقل من الحد المقبول — نصف سعر الخطة على الأقل" }))
+        focusFirstInvalidField("upgrade-bank-amount")
         return
       }
     }
@@ -223,11 +251,14 @@ export default function BillingPage() {
               </div>
               <div>
                 <p className="text-sm font-bold">خطتك الحالية: {currentPlanLabel}</p>
-                <p className="text-3xs text-muted-foreground">رقّ خطتك لزيادة حدود الردود والفريق والميزات المتقدمة</p>
+                <p className="text-xs text-muted-foreground">رقّ خطتك لزيادة حدود الردود والفريق والميزات المتقدمة</p>
               </div>
             </div>
             {plansLoad ? (
-              <div className="skeleton h-9 w-28 rounded-lg" aria-label="جارٍ تحميل الخطط" />
+              /* r133 (A5 N1): dead aria-label on a generic div (ignored by
+                 AT per the v8-B13 ruling) — the slab joins the other
+                 aria-hidden skeleton slabs. */
+              <div className="skeleton h-9 w-28 rounded-lg" aria-hidden="true" />
             ) : upgradeablePlans.length === 0 ? (
               /* r131-F8 (A4 P2-3): hand-rolled chip → Badge. */
               <Badge variant="success" className="px-3 py-1.5">أنت على أعلى خطة متاحة</Badge>
@@ -249,11 +280,13 @@ export default function BillingPage() {
                   as if the balance were genuinely absent.
                   r131-F8 (A7 Cluster B): status-as-text rides the -ink tier. */
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-destructive-ink">فشل تحميل الرصيد</p>
+                <p className="text-sm text-destructive-ink">تعذّر تحميل الرصيد</p>
                 <Button size="sm" variant="outline" onClick={() => balRefetch()}>إعادة المحاولة</Button>
               </div>
             ) : balance ? (
-              <p className="text-3xl font-bold">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
+              /* r133 (A12 S9): KPI-grade money digits ride tnum (r131
+                 KPI-tnum ruling — no jitter on live updates). */
+              <p className="text-3xl font-bold tabular-nums">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
             ) : (
               <p className="text-sm text-muted-foreground">غير متاح</p>
             )}
@@ -274,7 +307,7 @@ export default function BillingPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال"}</p>
+              <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال"}</p>
               {/* v9-B11 — retry BOTH queries: either one may be the failed one */}
               <Button size="sm" variant="outline" onClick={() => { balRefetch(); refetch() }}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
@@ -293,7 +326,9 @@ export default function BillingPage() {
                           `?? ""` indexes safely and falls through to the same
                           `|| p.provider` / `|| p.status` fallbacks. */}
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider ?? ""] || p.provider} · {p.phone}</p>
-                      <p className="text-3xs text-muted-foreground">{formatDate(p.created_at)}</p>
+                      {/* r133 (A5 S3 — 12px floor): money-history timestamps
+                          ride text-xs (content-bearing, was text-3xs). */}
+                      <p className="text-xs text-muted-foreground">{formatDate(p.created_at)}</p>
                     </div>
                     {/* r131-F8 (A4 P2-3): hand-rolled status chips → Badge
                         (solid pastel after the F7 re-base; -ink text tier). */}
@@ -375,16 +410,19 @@ export default function BillingPage() {
                   <label htmlFor="upgrade-phone" className="text-xs font-medium text-muted-foreground">رقم هاتف المحفظة</label>
                   {/* r131-F8 (A4 P1-1b): raw input → the shared Input primitive
                       (16px floor / r-md / halo; the explicit dir="ltr" wins
-                      over the built-in dir=auto for phone runs). */}
+                      over the built-in dir=auto for phone runs).
+                      r133 (A5 S2): aria-invalid + inline error ride the Input
+                      error prop; the error clears as the user types. */}
                   <Input
                     id="upgrade-phone"
                     value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    onChange={e => { setPhone(e.target.value); clearFieldError("phone") }}
+                    error={fieldErrors.phone}
                     placeholder="0912345678"
                     inputMode="tel"
                     dir="ltr"
                   />
-                  <p className="text-2xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     حوّل {formatNumber(selectedPlan.price)} د.ل عبر {PROVIDER_LABELS[effectiveProvider]} — انتظر تأكيد الإدارة
                   </p>
                 </div>
@@ -396,7 +434,8 @@ export default function BillingPage() {
                       <Input
                         id="upgrade-bank-amount"
                         value={bankAmount}
-                        onChange={e => setBankAmount(e.target.value)}
+                        onChange={e => { setBankAmount(e.target.value); clearFieldError("bankAmount") }}
+                        error={fieldErrors.bankAmount}
                         placeholder={String(selectedPlan.price)}
                         inputMode="decimal"
                         dir="ltr"
@@ -408,7 +447,8 @@ export default function BillingPage() {
                     <Input
                       id="upgrade-sender-name"
                       value={senderAccountName}
-                      onChange={e => setSenderAccountName(e.target.value)}
+                      onChange={e => { setSenderAccountName(e.target.value); clearFieldError("senderName") }}
+                      error={fieldErrors.senderName}
                     />
                   </div>
                   <div className="space-y-1">
@@ -416,7 +456,8 @@ export default function BillingPage() {
                     <Input
                       id="upgrade-sender-number"
                       value={senderAccountNumber}
-                      onChange={e => setSenderAccountNumber(e.target.value)}
+                      onChange={e => { setSenderAccountNumber(e.target.value); clearFieldError("senderNumber") }}
+                      error={fieldErrors.senderNumber}
                       dir="ltr"
                     />
                   </div>

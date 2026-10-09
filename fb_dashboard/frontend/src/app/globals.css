@@ -141,6 +141,13 @@
   --radius-xl: 16px;
   --radius-2xl: 20px;
   --radius-3xl: 28px;
+
+  /* r133 (A10 §5 — SO globals.css:170-171 bridge): every bare transition-*
+     utility (no explicit ease-* class) rides the canonical settle curve
+     instead of the browser-default ease(0.25,0.1,0.25,1) — one bridge,
+     dozens of consumers snapped onto the family ladder. */
+  --default-transition-duration: 160ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -835,6 +842,38 @@ html.light::-webkit-scrollbar-thumb:hover,
    Elements keep their designed radius; the ring alone signals focus. */
 :focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
+
+/* ─── browser surfaces (r133, A10 Must#2 — SO twin of madarek base.css:104-125) ──
+   Caret / autofill theming: native chrome stops flashing white/blue on
+   the auth + money forms (login/register/subscribe). Caret rides the
+   solid accent; Chromium/Safari repaint their pale-yellow/blue autofill
+   on hover+focus, so all three states are covered — the inset box-shadow
+   is the only reliable cover (the UA paints background-color under it)
+   and -webkit-text-fill-color pins the typed text to the theme ink. */
+input,
+textarea,
+[contenteditable]:not([contenteditable="false"]) {
+  caret-color: var(--primary);
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--background) inset;
+  -webkit-text-fill-color: var(--foreground);
+  caret-color: var(--primary);
+  transition: background-color 9999s ease-out;
+}
+/* Firefox equivalent (its UA lock on :autofill backgrounds lifted
+   long ago — a plain background-color override sticks). */
+input:autofill,
+textarea:autofill {
+  background-color: var(--background);
+  color: var(--foreground);
+  caret-color: var(--primary);
+}
 
 /* r132-F3a: the bare `.glass` selector + the whole `.glass-strong` rule were
    glass-morphism leftovers — only `.glass-card` (ui/card.tsx glass variant)

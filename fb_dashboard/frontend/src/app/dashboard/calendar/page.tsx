@@ -93,7 +93,7 @@ export default function CalendarPage() {
                 <div className="state-icon" aria-hidden="true">
                   <AlertCircle />
                 </div>
-                <p className="state-title">فشل تحميل التقويم</p>
+                <p className="state-title">تعذّر تحميل التقويم</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
               </div>
             ) : isLoading || !month ? (

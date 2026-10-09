@@ -105,7 +105,7 @@ async def publish_scheduled_post(post_id: int, db=Depends(get_db),
     else:
         result = await fb.post_to_page(post.message)
     if not result:
-        raise HTTPException(400, "فشل النشر على فيسبوك — تحقق من صلاحيات توكن الصفحة")
+        raise HTTPException(400, "تعذّر النشر على فيسبوك — تحقق من صلاحيات توكن الصفحة")
     post.status = "published"
     post.fb_post_id = result.get("id", "")
     post.published_at = utcnow()

@@ -10,7 +10,9 @@
 import { ApiError } from "./csrf-client"
 
 /** Unwrap an already-parsed body (dual-shape, migration-safe). */
-function unwrapBody<T = any>(body: unknown): T {
+/* r133 (A5 S6 — eslint adoption): <T = any> defaults → unknown;
+ * every caller passes an explicit type argument. */
+function unwrapBody<T = unknown>(body: unknown): T {
   if (
     body !== null &&
     typeof body === "object" &&
@@ -26,7 +28,7 @@ function unwrapBody<T = any>(body: unknown): T {
 }
 
 /** Parse a Response then unwrap the envelope (throws on success:false). */
-export async function unwrapApi<T = any>(res: Response): Promise<T> {
+export async function unwrapApi<T = unknown>(res: Response): Promise<T> {
   const body = await res.json().catch((): null => null)
   return unwrapBody<T>(body)
 }

@@ -227,7 +227,7 @@ async def money_gate_log(session, tenant_id: int, message: str, *, key: str) -> 
         try:
             await session.rollback()
         except Exception:
-            pass
+            pass  # r133-A6 (a): rollback is itself best-effort — the WARN row is already lost
 
 # -------------------------------------------------------------------
 # Reply Pipeline (v2 — structured stages with error boundaries)
@@ -367,7 +367,7 @@ class ReplyPipeline:
             if ctx.from_id and ctx.from_id not in ('None', '0') and ctx.from_id == page_id_str:
                 return False
         except Exception:
-            pass
+            pass  # r133-A6 (a): own-page skip is an optimization — a missed skip is harmless
 
         # Stage 2: Dedup
         try:
@@ -375,7 +375,9 @@ class ReplyPipeline:
                 self._mon.debug(f"dedup skip {ctx.cid[:12]}")
                 return False
         except Exception:
-            pass
+            # r133-A6 (b): the registry exists precisely to prevent this — a
+            # failed check means a possible duplicate reply for this comment.
+            log.warning("dedup check failed — possible duplicate reply", exc_info=True)
 
         # Stage 2b: Get user context (new vs returning)
         user_ctx = None
@@ -383,7 +385,7 @@ class ReplyPipeline:
             ctx_engine = _get_ctx(self._tenant_id)
             user_ctx = ctx_engine.get(ctx.from_id)
         except Exception:
-            pass
+            pass  # r133-A6 (a): user_ctx=None is a valid "new user" degradation
 
         # Stage 3: Classify intent
         intent = "neutral"
@@ -429,7 +431,8 @@ class ReplyPipeline:
                 self._mon.debug(f"cooldown {ctx.from_first}", comment_id=ctx.cid[:12])
                 return False
         except Exception:
-            pass
+            # r133-A6 (b): per-user rate window bypassed for this comment.
+            log.warning("cooldown check failed", exc_info=True)
 
         # Stage 5b: Urgent notification via WebSocket
         try:
@@ -441,7 +444,7 @@ class ReplyPipeline:
                     "link": f"/comments?comment_id={ctx.cid[:20]}"
                 }))
         except Exception:
-            pass
+            pass  # r133-A6 (a): urgent WS alert is best-effort — the reply itself is unaffected
 
         # Stage 5c: Adjust cooldown by user category
         try:
@@ -450,7 +453,7 @@ class ReplyPipeline:
             else:
                 self.cooldown.adjust_window(ctx.from_id, 60)
         except Exception:
-            pass
+            pass  # r133-A6 (a): default cooldown window stays — tuning is an optimization
 
         # Stage 6: Attach offer (context-aware)
         sales_stage = None
@@ -620,7 +623,7 @@ class ReplyPipeline:
             try:
                 self._diag.record_api_error(f"comment/{ctx.cid[:20]}/comments", 0, "Max retries exceeded")
             except Exception:
-                pass
+                pass  # r133-A6 (a): diag record is telemetry — the error line above already fired
             return False
 
         # Mark dedup only after successful send
@@ -840,7 +843,7 @@ class ReplyPipeline:
                     try:
                         await session.rollback()
                     except Exception:
-                        pass
+                        pass  # r133-A6 (a): v24-C4 (P0) rollback guard — rollback itself best-effort
                     self._mon.warn(f"CRM update failed: {e}", module="pipeline")
         except Exception as e:
             self._mon.warn(f"context update failed: {e}", module="pipeline")
@@ -858,7 +861,7 @@ class ReplyPipeline:
                     "link": "/replies",
                 }))
         except Exception:
-            pass
+            pass  # r133-A6 (a): reply WS notify is best-effort — the DB row is already committed
 
         self._mon.info(f"✓ Replied {ctx.from_first}", comment_id=ctx.cid[:12], rule_id=rule_id)
         return True

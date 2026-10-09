@@ -66,7 +66,7 @@ const STATUS_LABEL: Record<string, string> = {
   scheduled: "مجدولة",
   sent: "مُرسلة",
   sending: "قيد الإرسال",
-  failed: "فشلت",
+  failed: "تعذّرت",
 }
 
 /* v25 (W-01): تسمية الجمهور في حوار تأكيد الإرسال — نفس مصدر تسميات
@@ -92,7 +92,7 @@ export default function MarketingPage() {
     queryKey: ["marketing-campaigns"],
     queryFn: async () => {
       const res = await apiFetch("/api/marketing/campaigns")
-      if (!res.ok) throw new Error(`فشل تحميل الحملات (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل الحملات (${res.status})`)
       return unwrapApi<{ items: Campaign[]; total: number }>(res)
     },
     retry: 1,
@@ -102,8 +102,10 @@ export default function MarketingPage() {
     queryKey: ["audience-size", form.audience],
     queryFn: async () => {
       const res = await apiFetch(`/api/marketing/audience-size?audience=${form.audience}`)
-      if (!res.ok) throw new Error("فشل")
-      return unwrapApi(res)
+      if (!res.ok) throw new Error("تعذّر")
+      /* r133 (eslint adoption): explicit unwrapApi type (the any default
+         is gone) — ok({count}) per routers/marketing.py:133. */
+      return unwrapApi<{ count: number }>(res)
     },
     enabled: showForm,
   })
@@ -115,7 +117,7 @@ export default function MarketingPage() {
         body: JSON.stringify(payload),
       })
       const d = await res.json()
-      if (!res.ok || !d?.success) throw new Error(d?.detail || "فشل إنشاء الحملة")
+      if (!res.ok || !d?.success) throw new Error(d?.detail || "تعذّر إنشاء الحملة")
       return d
     },
     onSuccess: () => {
@@ -124,7 +126,7 @@ export default function MarketingPage() {
       setShowForm(false)
       setForm({ name: "", message: "", audience: "all" })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء الحملة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إنشاء الحملة"),
   })
 
   const sendMutation = useMutation({
@@ -141,14 +143,14 @@ export default function MarketingPage() {
       const sent = d?.sent_count ?? 0
       brandedToast.success(`تم إرسال الحملة إلى ${countPhrase(sent, "مشترك", "مشتركين", "مشتركين")}`)
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الإرسال"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الإرسال"),
   })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiFetch(`/api/marketing/campaigns/${id}`, { method: "DELETE" })
       const d = await res.json()
-      if (!res.ok || !d?.success) throw new Error(d?.detail || "فشل الحذف")
+      if (!res.ok || !d?.success) throw new Error(d?.detail || "تعذّر الحذف")
       return d
     },
     onSuccess: () => {
@@ -157,7 +159,7 @@ export default function MarketingPage() {
       setConfirmDeleteId(null)
       brandedToast.success("تم حذف الحملة")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الحذف"),
   })
 
   // v13-L3: /api/marketing/campaigns answers ok({items,total}) (marketing.py,
@@ -242,7 +244,7 @@ export default function MarketingPage() {
                         role="radio"
                         aria-checked={form.audience === a.value}
                         onClick={() => setForm((f) => ({ ...f, audience: a.value }))}
-                        className={`p-3 rounded-lg border-2 text-start transition-all ${
+                        className={`p-3 rounded-lg border-2 text-start transition-[border-color,background-color] ${
                           form.audience === a.value
                             ? "border-accent-foreground bg-accent-foreground/5"
                             : "border-border/50 hover:border-accent-foreground/30"
@@ -252,11 +254,11 @@ export default function MarketingPage() {
                           <Users className="size-3.5" />
                           {a.label}
                         </p>
-                        <p className="text-3xs text-muted-foreground mt-0.5">{a.desc}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{a.desc}</p>
                       </button>
                     ))}
                   </div>
-                  <p role="status" aria-live="polite" className="text-2xs text-muted-foreground">
+                  <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
                     {audienceQuery.isLoading
                       ? "جارٍ حساب حجم الجمهور…"
                       : `ستصل الحملة إلى ${countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}`}
@@ -296,9 +298,9 @@ export default function MarketingPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <h2 className="state-title">فشل تحميل الحملات</h2>
+              <h2 className="state-title">تعذّر تحميل الحملات</h2>
               <p className="state-desc">
-                {(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
+                {(error as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
               </p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
@@ -388,7 +390,7 @@ export default function MarketingPage() {
 
                     {/* stats */}
                     {c.status === "sent" && (
-                      <div className="flex items-center gap-4 text-2xs text-muted-foreground border-t border-border/40 pt-2.5">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border/40 pt-2.5">
                         <span className="flex items-center gap-1">
                           <Send className="size-3 rtl:-scale-x-100" />
                           أُرسلت إلى {c.sent_count}
@@ -431,7 +433,7 @@ export default function MarketingPage() {
               {estimateLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : estimateError ? (
-                <span className="text-xs text-destructive">تعذر تحديد العدد</span>
+                <span className="text-xs text-destructive">تعذّر تحديد العدد</span>
               ) : (
                 <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmEstimate?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
@@ -440,7 +442,7 @@ export default function MarketingPage() {
             {/* معاينة نص الرسالة */}
             {confirmCampaign?.message?.trim() ? (
               <div className="rounded-lg border border-border/60 bg-background p-3">
-                <p className="text-2xs text-muted-foreground mb-1">معاينة الرسالة</p>
+                <p className="text-xs text-muted-foreground mb-1">معاينة الرسالة</p>
                 <p className="text-sm leading-relaxed line-clamp-3" dir="auto">
                   {confirmCampaign.message}
                 </p>
@@ -461,7 +463,7 @@ export default function MarketingPage() {
             {/* فشل تحميل التقدير — إعادة محاولة بلا زر تأكيد أعمى */}
             {estimateError && (
               <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="min-w-0 truncate">تعذر تقدير حجم الجمهور — لا يمكن التأكيد بلا معاينة</span>
+                <span className="min-w-0 truncate">تعذّر تقدير حجم الجمهور — لا يمكن التأكيد بلا معاينة</span>
                 <Button size="sm" variant="outline" onClick={() => refetchEstimate()}>
                   <RefreshCw className="size-3" /> إعادة المحاولة
                 </Button>

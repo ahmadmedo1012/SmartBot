@@ -272,7 +272,7 @@ export default function AdminPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertTriangle />
               </div>
-              <h2 className="state-title">فشل تحميل طلبات الاشتراك</h2>
+              <h2 className="state-title">تعذّر تحميل طلبات الاشتراك</h2>
               <p className="state-desc">
                 تعذّر جلب الطلبات من الخادم — قد تكون هناك طلبات قيد الانتظار. تحقّق من الاتصال ثم أعد المحاولة.
               </p>

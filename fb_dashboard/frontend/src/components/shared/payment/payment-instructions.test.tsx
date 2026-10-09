@@ -19,6 +19,8 @@ import { BankInstructions, WalletInstructions } from "./payment-instructions"
 
 vi.mock("@/components/ui/OptimizedImage", () => ({
   OptimizedImage: ({ src, alt }: { src: string; alt: string }) => (
+    /* eslint-disable-next-line @next/next/no-img-element -- test double:
+       the mock stubs the optimizer with a bare img on purpose. */
     <img src={src} alt={alt} />
   ),
 }))

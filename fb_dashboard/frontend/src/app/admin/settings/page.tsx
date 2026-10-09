@@ -241,7 +241,7 @@ export default function AdminSettingsPage() {
       brandedToast.success("تم حفظ الإعدادات — تسري فوراً على الموقع")
       await load()
     } catch (e) {
-      brandedToast.error(e instanceof ApiError ? e.message : "فشل الحفظ")
+      brandedToast.error(e instanceof ApiError ? e.message : "تعذّر الحفظ")
     }
     setSaving(false)
   }
@@ -256,7 +256,7 @@ export default function AdminSettingsPage() {
       brandedToast.success("تم إرسال رسالة تجريبية — تحقق من تليجرام")
     } catch (e) {
       brandedToast.error(
-        e instanceof ApiError ? e.message : "فشل الإرسال — احفظ رمز البوت أولاً",
+        e instanceof ApiError ? e.message : "تعذّر الإرسال — احفظ رمز البوت أولاً",
       )
     }
     setTesting(false)
@@ -309,7 +309,7 @@ export default function AdminSettingsPage() {
           compact
         />
         <div className="state-icon" aria-hidden="true"><RefreshCw /></div>
-        <h1 className="state-title">تعذر تحميل الإعدادات</h1>
+        <h1 className="state-title">تعذّر تحميل الإعدادات</h1>
         <p className="state-desc">{loadError}</p>
         <Button size="sm" variant="outline" onClick={load}>
           <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة

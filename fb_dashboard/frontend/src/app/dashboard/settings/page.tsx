@@ -52,7 +52,7 @@ export default function SettingsPage() {
       setNewPw("")
       setShowPw(false)
     } catch (e) {
-      brandedToast.error(e instanceof ApiError ? e.message : "تعذر تغيير كلمة المرور")
+      brandedToast.error(e instanceof ApiError ? e.message : "تعذّر تغيير كلمة المرور")
     }
     setPwBusy(false)
   }

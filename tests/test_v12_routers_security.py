@@ -216,7 +216,7 @@ async def test_cron_heartbeat_503_when_ledger_write_fails(v10_seed, monkeypatch)
     body = r.json()
     assert body["success"] is False, body
     assert body["data"]["errors"], body  # the failure is reported in data
-    assert "فشل" in body["error"], body
+    assert "تعذّر" in body["error"], body
 
 
 async def test_cron_heartbeat_authorization_header_preferred(v10_seed, monkeypatch):

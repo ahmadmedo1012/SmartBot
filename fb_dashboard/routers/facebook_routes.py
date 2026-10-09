@@ -552,11 +552,11 @@ def _classify_subscribe_failure(webhook_result: dict | None) -> str:
         return ""
     body = str(webhook_result.get("body") or "")
     if webhook_result.get("_error") and "pages_manage_metadata" in body:
-        return ("تعذر تفعيل الويبهوك — تطبيق SmartBot لم تُمنح له صلاحية "
+        return ("تعذّر تفعيل الويبهوك — تطبيق SmartBot لم تُمنح له صلاحية "
                 "pages_manage_metadata لدى فيسبوك (خطأ 403). منح الصلاحية "
                 "ثم إعادة الربط يفعّل الرسائل والتعليقات اللحظية.")
     if webhook_result.get("_error"):
-        return ("تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في "
+        return ("تعذّر تفعيل الويبهوك — راجع صلاحيات التطبيق في "
                 "developers.facebook.com ثم أعد الربط")
     return ""
 
@@ -637,12 +637,17 @@ async def update_facebook_settings(
             from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
             _inbox_fb_cache.pop(tenant_id, None)
         except Exception:
-            pass
+            # r133-A6 (c)#2: token rows are already deleted — a failed eviction
+            # means this instance keeps serving the inbox with the dead token.
+            log.warning("inbox client cache eviction failed (tenant=%s)", tenant_id,
+                        exc_info=True)
         try:
             from _services import reset_bot_engines
             reset_bot_engines()
         except Exception:
-            pass
+            # r133-A6 (c)#3: engines keep auto-replying for a DISCONNECTED page.
+            log.warning("bot engine reset failed after disconnect (tenant=%s)", tenant_id,
+                        exc_info=True)
         _track_event("fb_settings_cleared", {}, tenant_id=tenant_id)
         return ok({"ok": True, "cleared": True})
 
@@ -779,7 +784,7 @@ async def update_facebook_settings(
                                 str(webhook_result.get("body") or "")[:300])
                     real_cause = _classify_subscribe_failure(webhook_result)
                     webhook_result = ({"error": real_cause} if real_cause else
-                                      {"error": "تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"})
+                                      {"error": "تعذّر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"})
 
         # Store page identity snapshot for instant UI display (no live calls)
         if page_id and page_profile:
@@ -845,12 +850,16 @@ async def update_facebook_settings(
         from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
         _inbox_fb_cache.pop(tenant_id, None)
     except Exception:
-        pass
+        # r133-A6 (c)#4: token rotation already committed — stale inbox client risk.
+        log.warning("inbox client cache eviction failed (tenant=%s)", tenant_id,
+                    exc_info=True)
     try:
         from _services import reset_bot_engines
         reset_bot_engines()
     except Exception:
-        pass
+        # r133-A6 (c)#5: engines may keep replying with the OLD token/credentials.
+        log.warning("bot engine reset failed after settings update (tenant=%s)", tenant_id,
+                    exc_info=True)
 
     _track_event("fb_settings_updated", {"page_id": page_id[:40]}, tenant_id=tenant_id)
     return ok({"ok": True, "webhook": webhook_result or "skipped",
@@ -990,7 +999,10 @@ async def test_facebook_connection(
                     from routers.inbox import _tenant_fb_cache as _inbox_cache
                     _inbox_cache.pop(tenant_id, None)
                 except Exception:
-                    pass
+                    # r133-A6 (c)#6: the PAGE token is persisted; other instances
+                    # keep a client built on the old USER token until restart.
+                    log.warning("inbox client cache eviction failed (tenant=%s)", tenant_id,
+                                exc_info=True)
                 log.info("facebook test: stored USER token exchanged + persisted "
                          "as PAGE token (tenant=%s page=%s)", tenant_id,
                          page_id[:40])
@@ -1029,7 +1041,7 @@ async def test_facebook_connection(
         log.warning("facebook connection test failed (tenant=%s page=%s): %s",
                     tenant_id, page_id[:40], str(e)[:300])
         return ok({"connected": False, "fan_count": 0, "token_type": token_type,
-                   "error": "فشل الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"})
+                   "error": "تعذّر الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"})
 
 
 @router.get("/api/posts")
@@ -1117,7 +1129,7 @@ async def delete_post(post_id: str, current_user: User = Depends(require_role("e
     fb = await _tenant_fb(current_user)
     result = await fb.delete_post(post_id)
     if not result:
-        raise HTTPException(400, "فشل حذف المنشور")
+        raise HTTPException(400, "تعذّر حذف المنشور")
     return ok({"ok": True})
 
 
@@ -1126,7 +1138,7 @@ async def publish_post(message: str = Form(...), current_user: User = Depends(re
     fb = await _tenant_fb(current_user)
     result = await fb.post_to_page(message)
     if not result:
-        raise HTTPException(status_code=500, detail="فشل النشر")
+        raise HTTPException(status_code=500, detail="تعذّر النشر")
     _track_event("post_published", {"post_id": (result or {}).get("id", "")[:40]},
                  tenant_id=current_user._tenant_id)
     return ok(result)

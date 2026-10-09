@@ -15,7 +15,7 @@ import logging
 
 from _responses import ok
 from _subscription import get_tenant_for_user, is_subscription_active
-from _utils import iso_z
+from _utils import fmt_lyd, iso_z
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from loop_safe import LoopLocalLock
@@ -211,7 +211,7 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     if provider == "bank":
         msg = "تم استلام طلب التحويل البنكي — سيتم التفعيل بعد موافقة الإدارة"
     else:
-        msg = f"تحويل {amount} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الإدارة"
+        msg = f"تحويل {fmt_lyd(amount)} د.ل عبر {provider} إلى الرقم {phone} — انتظر تأكيد الإدارة"
     return ok({
         "payment_id": sp.id,
         "status": "pending",

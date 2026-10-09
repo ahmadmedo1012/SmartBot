@@ -53,7 +53,7 @@ export default function LeadsPage() {
     queryFn: async () => {
       const stageQ = stage === "all" ? "" : `&stage=${encodeURIComponent(stage)}`
       const res = await apiFetch(`/api/crm/customers?page=${page}${stageQ}`)
-      if (!res.ok) throw new Error(`فشل تحميل العملاء (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل العملاء (${res.status})`)
       // API returns a paginated envelope {total, page, per_page, items} —
       // this page maps the LIST. The old code mapped the envelope object
       // itself and crashed with "e.map is not a function" on first render.
@@ -119,8 +119,8 @@ export default function LeadsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل العملاء</h2>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال"}</p>
+            <h2 className="state-title">تعذّر تحميل العملاء</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : customers.length === 0 ? (
@@ -148,10 +148,10 @@ export default function LeadsPage() {
                     {c.phone && <p>الهاتف: {c.phone}</p>}
                     {c.notes && <p dir="auto">{c.notes}</p>}
                     {c.first_seen_at && (
-                      <p className="text-3xs">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
+                      <p className="text-xs">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>
                     )}
                     {c.last_contacted_at && (
-                      <p className="text-3xs">آخر تواصل: {formatDateOnly(c.last_contacted_at)}</p>
+                      <p className="text-xs">آخر تواصل: {formatDateOnly(c.last_contacted_at)}</p>
                     )}
                   </div>
                 </CardContent>

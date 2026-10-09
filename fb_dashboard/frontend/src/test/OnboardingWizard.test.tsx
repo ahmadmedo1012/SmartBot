@@ -265,7 +265,7 @@ describe("OnboardingWizard connection test (خطوة الربط)", () => {
     fireEvent.click(screen.getByRole("button", { name: /اختبار الاتصال قبل التأكيد/ }))
 
     const status = await screen.findByRole("status")
-    expect(status).toHaveTextContent("تعذر الاتصال — تحقق من البيانات")
+    expect(status).toHaveTextContent("تعذّر الاتصال — تحقق من البيانات")
   })
 
   it("surfaces the backend's ok({connected:false}) error verbatim", async () => {
@@ -347,7 +347,7 @@ describe("OnboardingWizard completion + skip semantics", () => {
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
     expect(mocks.toastError).toHaveBeenCalledWith(
-      "فشل حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم",
+      "تعذّر حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم",
     )
   })
 
@@ -427,7 +427,7 @@ describe("OnboardingWizard first-rule suggestion", () => {
     fireEvent.click(screen.getByRole("button", { name: "اقترح رداً" }))
 
     await waitFor(() =>
-      expect(mocks.toastError).toHaveBeenCalledWith("تعذر الاقتراح — اكتب الرد يدوياً"),
+      expect(mocks.toastError).toHaveBeenCalledWith("تعذّر الاقتراح — اكتب الرد يدوياً"),
     )
     expect((screen.getByLabelText("نص الرد") as HTMLTextAreaElement).value).toBe("رد يدوي")
   })

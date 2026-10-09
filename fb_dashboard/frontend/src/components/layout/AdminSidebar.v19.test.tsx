@@ -53,7 +53,7 @@ vi.mock("next-themes", () => ({
 vi.mock("@/lib/csrf-client", () => {
   class ApiError extends Error {
     constructor(public status: number, public body: unknown) {
-      super(`فشل الطلب (${status})`)
+      super(`تعذّر الطلب (${status})`)
     }
   }
   return { ApiError, apiFetch: mocks.apiFetch }
@@ -135,11 +135,11 @@ describe("AdminSidebar «اشتراك» CTA gate (v19)", () => {
 /* ---------- ads page (v19 Step 2 — DB-first envelope) ---------- */
 
 describe("ads page v19 DB-first envelope states", () => {
-  it("synced=false + empty items → the honest «فشل الاتصال بفيسبوك» error state", async () => {
+  it("synced=false + empty items → the honest «تعذّر الاتصال بفيسبوك» error state", async () => {
     mocks.apiFetch.mockResolvedValue(adsRes({ items: [], source: "db", synced: false }))
     renderAds()
 
-    expect(await screen.findByText("فشل الاتصال بفيسبوك")).toBeInTheDocument()
+    expect(await screen.findByText("تعذّر الاتصال بفيسبوك")).toBeInTheDocument()
     // a way out is offered — retry refetches the envelope
     expect(screen.getByRole("button", { name: "إعادة المحاولة" })).toBeInTheDocument()
     // NOT the old lying empty state
@@ -152,7 +152,7 @@ describe("ads page v19 DB-first envelope states", () => {
 
     expect(await screen.findByText("لا توجد حسابات إعلانية مرتبطة")).toBeInTheDocument()
     // a healthy empty is neither an error nor a staleness warning
-    expect(screen.queryByText("فشل الاتصال بفيسبوك")).toBeNull()
+    expect(screen.queryByText("تعذّر الاتصال بفيسبوك")).toBeNull()
     expect(screen.queryByText(/يتم عرض آخر بيانات محفوظة/)).toBeNull()
   })
 
@@ -173,6 +173,6 @@ describe("ads page v19 DB-first envelope states", () => {
     expect(screen.getByText("نشطة")).toBeInTheDocument()
     expect(screen.getByText("العملة: USD")).toBeInTheDocument()
     // …but no hard error — serving stored rows beats a lying failure state
-    expect(screen.queryByText("فشل الاتصال بفيسبوك")).toBeNull()
+    expect(screen.queryByText("تعذّر الاتصال بفيسبوك")).toBeNull()
   })
 })

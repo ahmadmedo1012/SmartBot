@@ -37,6 +37,7 @@ import { Smartphone } from "lucide-react"
 import { useConfig } from "@/hooks/useConfig"
 import { compressImage } from "@/lib/image-compress"
 import { formatNumber } from "@/lib/format"
+import { normalizeLibyanPhone } from "@/lib/phone"
 import { PaymentMethodTabs } from "./payment-methods"
 import { WalletInstructions, BankInstructions } from "./payment-instructions"
 import { WaitingScreen, ApprovedScreen, RejectedScreen, SuccessScreen, PendingScreen } from "./payment-status"
@@ -225,11 +226,11 @@ export function PaymentDialog({
       })
       const d = await r.json()
       if (d.data?.url) setReceiptImageUrl(d.data.url)
-      else premiumToast("error", "فشل رفع الصورة")
+      else premiumToast("error", "تعذّر رفع الصورة")
     } catch (err) {
       premiumToast(
         "error",
-        err instanceof Error ? err.message : "فشل رفع الصورة",
+        err instanceof Error ? err.message : "تعذّر رفع الصورة",
       )
     } finally {
       setUploadingReceipt(false)
@@ -312,7 +313,9 @@ export function PaymentDialog({
     // v15-E5 (C-FREE1): the free journey keeps the phone validation (the
     // backend requires a phone on every non-bank subscription request) but
     // drops the wallet/price guards — price 0 IS the plan's price here.
-    if (!isBank && !/^09\d{8}$/.test(phone.trim().replace(/[\s-]/g, ""))) {
+    // r133 (A12 S10): +218 / 00218 / Eastern-digit input is accepted and
+    // normalized to the canonical 09XXXXXXXX mask (SO phone.ts twin).
+    if (!isBank && !normalizeLibyanPhone(phone)) {
       premiumToast("error", "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)")
       return
     }
@@ -343,7 +346,9 @@ export function PaymentDialog({
           plan_id: planId,
           provider,
           amount: isBank ? bankAmount : price,
-          phone: isBank ? undefined : phone.trim(),
+          /* r133 (A12 S10): the canonical 09XXXXXXXX mask leaves the client
+             even when the user typed +218/Eastern digits. */
+          phone: isBank ? undefined : (normalizeLibyanPhone(phone) ?? phone.trim()),
           ...(isBank
             ? {
                 senderAccountName: senderAccountName.trim(),
@@ -355,7 +360,7 @@ export function PaymentDialog({
       })
       const json = await res.json()
       const pid = json?.data?.payment_id
-      if (!pid) throw new Error(json?.error ?? "فشل إرسال طلب الدفع")
+      if (!pid) throw new Error(json?.error ?? "تعذّر إرسال طلب الدفع")
       setPaymentId(pid)
       setStep("waiting")
     } catch (e: unknown) {
@@ -388,7 +393,7 @@ export function PaymentDialog({
       const msg =
         (body !== null && "error" in body && String(body.error)) ||
         (e instanceof Error && e.message) ||
-        "فشل إرسال طلب الدفع"
+        "تعذّر إرسال طلب الدفع"
       /* v18 (1-b): the 400 «لديك طلب دفع معلق» is a STATE, not an error —
        * the old fast-vanishing toast left the user stuck in the form with no
        * way out (the message itself promised «أو ألغِه»). Land on the pending
@@ -457,7 +462,7 @@ export function PaymentDialog({
             pollFailures++
             if (pollFailures >= 3 && !warnedRef.current) {
               warnedRef.current = true
-              premiumToast("error", "تعذر الاتصال بالخادم — تحقق من اتصالك بالإنترنت")
+              premiumToast("error", "تعذّر الاتصال بالخادم — تحقق من اتصالك بالإنترنت")
             }
           }
         }, 5000)
@@ -539,7 +544,7 @@ export function PaymentDialog({
           encodeURIComponent(window.location.pathname + window.location.search)
         return
       }
-      const msg = e instanceof Error && e.message ? e.message : "فشل إلغاء الطلب المعلق"
+      const msg = e instanceof Error && e.message ? e.message : "تعذّر إلغاء الطلب المعلق"
       premiumToast("error", msg)
       /* The row may have been resolved server-side while this screen was
        * open (admin approved/rejected, or a same-tenant teammate cancelled)
@@ -682,7 +687,7 @@ export function PaymentDialog({
                   className="h-11 rounded-xl mt-1.5 text-left font-mono"
                   dir="ltr"
                 />
-                <p className="text-2xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   للتواصل مع الإدارة عند الحاجة — لا يوجد أي مبلغ لهذه الخطة
                 </p>
               </div>

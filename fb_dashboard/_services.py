@@ -177,7 +177,7 @@ class _TenantSequenceEngineProxy:
         self._attempts[due["sub_id"]] = failures
         if failures >= self.MAX_SEND_ATTEMPTS:
             await self._fail_subscription(session, due, tid,
-                                          reason=f"فشل إرسال الخطوة بعد {self.MAX_SEND_ATTEMPTS} محاولات")
+                                          reason=f"تعذّر إرسال الخطوة بعد {self.MAX_SEND_ATTEMPTS} محاولات")
         return False
 
     async def _fail_subscription(self, session, due: dict, tid: int, reason: str) -> None:
@@ -304,7 +304,10 @@ async def refresh_ai_from_db() -> None:
             import agent_brain as _brain
             _brain._ai = None
         except Exception:
-            pass
+            # r133-A6 (c)#9: eviction swallowed → the agent keeps the OLD keys
+            # and silently degrades to heuristic (the v25 B-02 regression).
+            log.warning("agent_brain eviction failed — agent may use stale AI keys",
+                        exc_info=True)
 
 # Bot engine — per-tenant dict registry (same pattern as _get_ctx/_get_offer)
 _bot_engines: dict[int, BotEngine] = {}
@@ -538,7 +541,9 @@ async def _repair_stored_user_token(tenant_id: int, page_id: str, token: str) ->
             from routers.inbox import _tenant_fb_cache as _inbox_cache
             _inbox_cache.pop(tenant_id, None)
         except Exception:
-            pass
+            # r133-A6 (c)#10: the PAGE token IS persisted — only the eviction is silent.
+            log.warning("inbox client cache eviction failed (tenant=%s)", tenant_id,
+                        exc_info=True)
         await _stamp_token_check(tenant_id, "user_token_exchanged",
                                  "استُبدل رمز المستخدم برمز صفحة تلقائياً")
         log.info("v20 self-heal: tenant %s stored USER token exchanged for a "
@@ -610,7 +615,9 @@ def _track_event(event_type: str, metadata: dict | None = None, tenant_id: int =
                                      metadata_json=metadata or {}))
                 await s.commit()
         except Exception:
-            pass
+            # r133-A6 (b)-lite: analytics telemetry — the product path never
+            # depends on it (fire-and-forget by design).
+            log.debug("analytics event write failed (%s)", event_type, exc_info=True)
     spawn(_write())
     return
 

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
-import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff } from "lucide-react"
+import { Search, Send, Inbox, Link2, RefreshCw, MessageCircle, ChevronUp, ChevronDown, WifiOff, AlertCircle } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
 import { useMe } from "@/hooks/useMe"
-import { countPhrase, formatDate, formatDateOnly, timeAgo } from "@/lib/format"
+import { countPhrase, formatDate, timeAgo } from "@/lib/format"
 import type { Conversation, ConversationList, Message } from "@/lib/types"
 
 function initials(name: string | undefined) {
@@ -132,13 +132,13 @@ function ConvItem({ conv, selectedId, onSelect }: {
             <p className={`text-sm truncate ${hasUnread ? "font-bold" : "font-medium"}`} dir="auto">
               {conv.subject || conv.senders?.[0]?.name || "بدون موضوع"}
             </p>
-            <span className="text-2xs text-muted-foreground shrink-0">{timeAgo(conv.updated_time)}</span>
+            <span className="text-xs text-muted-foreground shrink-0">{timeAgo(conv.updated_time)}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate mt-1" dir="auto">
             {conv.senders?.map((s) => s.name).join("، ") || "غير معروف"}
           </p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-2xs text-muted-foreground">{countPhrase(conv.message_count ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
+            <span className="text-xs text-muted-foreground">{countPhrase(conv.message_count ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
             {hasUnread && (
               /* r131-F8 (A4 P2-3): the unread counter rides the Badge
                  primitive (compact overrides preserve the 16px bubble
@@ -684,7 +684,7 @@ function MessagesView() {
         queryClient.setQueryData<Message[]>(["inbox-messages", id], (old) =>
           (old ?? []).filter((m) => !String(m.id ?? "").startsWith("optimistic-")))
       }
-      brandedToast.error(e.message || "فشل الإرسال")
+      brandedToast.error(e.message || "تعذّر الإرسال")
     },
   })
 
@@ -766,7 +766,7 @@ function MessagesView() {
                 className="flex items-center gap-1.5 shrink-0"
               >
                 <span className="size-1.5 rounded-full bg-success animate-pulse-dot" aria-hidden="true" />
-                <span className="text-2xs text-muted-foreground">مباشر</span>
+                <span className="text-xs text-muted-foreground">مباشر</span>
               </span>
               <div className="relative flex-1">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -843,10 +843,16 @@ function MessagesView() {
                 </div>
               </div>
             ) : isError ? (
-              <div className="p-8 text-center text-sm text-muted-foreground space-y-3">
-                <p>تعذر تحميل المحادثات</p>
+              /* r133 (A5 S5 — the F3b crack): plain muted text → the canonical
+                 .state state-danger family (the analytics:428-436 shape,
+                 compact py-8 rung for the sidebar column). */
+              <div className="state state-danger py-8" role="alert">
+                <div className="state-icon" aria-hidden="true">
+                  <AlertCircle />
+                </div>
+                <p className="state-title">تعذّر تحميل المحادثات</p>
                 <Button size="sm" variant="outline" onClick={() => refetch()}>
-                  <RefreshCw className="size-3" /> إعادة المحاولة
+                  <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
                 </Button>
               </div>
             ) : conversations.length === 0 ? (
@@ -927,7 +933,7 @@ function MessagesView() {
                   {/* live subscriber name — dir="auto" isolates bidi
                       (v14-E5 pattern) for Latin/mixed Facebook names */}
                   <p className="text-sm font-bold truncate" dir="auto">{threadIdentity}</p>
-                  <p className="text-2xs text-muted-foreground truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {countPhrase(threadMessageCount, "رسالة", "رسالتين", "رسائل")}
                   </p>
                 </div>
@@ -977,7 +983,7 @@ function MessagesView() {
                       (support:449-455). */
                   <div className="text-center py-6 space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      {(msgError as Error)?.message || "تعذر تحميل الرسائل"}
+                      {(msgError as Error)?.message || "تعذّر تحميل الرسائل"}
                     </p>
                     <Button size="sm" variant="outline" onClick={() => refetchMessages()}>
                       <RefreshCw className="size-3" /> إعادة المحاولة
@@ -1006,7 +1012,7 @@ function MessagesView() {
                         >
                           <ChevronUp className="size-3.5" />
                           تحميل الرسائل الأقدم
-                          <span className="text-2xs text-muted-foreground">({hiddenCount})</span>
+                          <span className="text-xs text-muted-foreground">({hiddenCount})</span>
                         </Button>
                       </div>
                     )}
@@ -1059,7 +1065,7 @@ function MessagesView() {
                                 bubble measured 3.14:1 — inherit the full bubble
                                 text color instead (passes in both bubbles). */}
                             {msg.postback_payload && !msg.message && (
-                              <p className="text-2xs mb-0.5">اختيار: {msg.postback_payload}</p>
+                              <p className="text-xs mb-0.5">اختيار: {msg.postback_payload}</p>
                             )}
                             {/* v15-E6 (D5-M7): message bodies are live customer
                                 values — dir="auto" isolates Latin/mixed text
@@ -1073,7 +1079,7 @@ function MessagesView() {
                             {/* v14-E5 (D4 H-05): /70 on the primary bubble measured
                                 3.14:1 — full primary-foreground passes
                                 (4.94:1 dark / 9.02:1 light). */}
-                            <p className={`text-3xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
+                            <p className={`text-xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
                               {msg.created_time ? formatDate(msg.created_time) : ""}
                             </p>
                           </div>

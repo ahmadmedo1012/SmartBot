@@ -44,13 +44,18 @@ export default function GlobalError({
             <TriangleAlert />
           </div>
           <h1 className="state-title">حدث خطأ غير متوقع</h1>
-          <p className="state-desc">تعذر تحميل التطبيق. يرجى تحديث الصفحة.</p>
+          <p className="state-desc">تعذّر تحميل التطبيق. يرجى تحديث الصفحة.</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button size="lg" onClick={() => reset()}>
               إعادة المحاولة
             </Button>
             {/* v16-E3 (D1 C2): un-nested <a><Button> — outline lg visuals
-                moved to a span, the anchor is the single tab stop. */}
+                moved to a span, the anchor is the single tab stop.
+                r133 (eslint adoption): raw <a> is DELIBERATE here — the
+                self-contained boundary renders its own <html>/<body> with
+                no Next runtime, so next/link is unavailable (the same
+                documented exception as SL's global-error; A5 §Part4). */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a href="/">
               <span className="relative inline-flex shrink-0 items-center justify-center rounded-md border border-border/70 bg-transparent text-foreground hover:bg-foreground/5 hover:border-accent-foreground/40 hover:shadow-sm dark:hover:bg-foreground/10 dark:hover:border-accent-foreground/35 font-sans text-sm font-semibold whitespace-nowrap select-none isolate overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-(--t-fast) ease-smooth h-11 min-h-11 min-w-11 gap-2.5 px-6 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&>*]:relative">
                 العودة للرئيسية

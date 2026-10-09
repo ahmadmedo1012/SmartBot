@@ -111,7 +111,7 @@ export default function AdminTelegramPage() {
    * and dashboard/notifications:140). */
   const targets: BroadcastTarget[] = targetsQuery.data || []
   useEffect(() => {
-    if (targetsQuery.isError) brandedToast.error("فشل تحميل جهات الإرسال")
+    if (targetsQuery.isError) brandedToast.error("تعذّر تحميل جهات الإرسال")
   }, [targetsQuery.isError])
 
   // ── Initial dry-run diagnose (health snapshot) ──
@@ -125,7 +125,7 @@ export default function AdminTelegramPage() {
     if (diagnoseQuery.data) setDiagnose(diagnoseQuery.data)
   }, [diagnoseQuery.data])
   useEffect(() => {
-    if (diagnoseQuery.isError) brandedToast.error("فشل تحميل التشخيص الأولي")
+    if (diagnoseQuery.isError) brandedToast.error("تعذّر تحميل التشخيص الأولي")
   }, [diagnoseQuery.isError])
   /* v15-E5 (D4-H4): adminCount is the backend's real key (linkedAdmins was
    * never in the response → the count read 0 forever). */
@@ -147,7 +147,7 @@ export default function AdminTelegramPage() {
   })
   const approvers: Approver[] = approversQuery.data || []
   useEffect(() => {
-    if (approversQuery.isError) brandedToast.error("فشل تحميل الموافقين")
+    if (approversQuery.isError) brandedToast.error("تعذّر تحميل الموافقين")
   }, [approversQuery.isError])
 
   const [saving, setSaving] = useState(false)
@@ -173,10 +173,10 @@ export default function AdminTelegramPage() {
         body: JSON.stringify(payload),
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الحفظ")
+      if (!json.success) throw new Error(json.error || "تعذّر الحفظ")
       queryClient.invalidateQueries({ queryKey: ["telegram-config"] })
       brandedToast.success("تم حفظ إعدادات تليجرام")
-    } catch (e) { brandedToast.error((e as Error).message || "فشل حفظ الإعدادات") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر حفظ الإعدادات") }
     finally { setSaving(false) }
   }
 
@@ -185,9 +185,9 @@ export default function AdminTelegramPage() {
     try {
       const res = await apiFetch("/api/telegram/test", { method: "POST" })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الإرسال")
+      if (!json.success) throw new Error(json.error || "تعذّر الإرسال")
       brandedToast.success("تم إرسال رسالة الاختبار")
-    } catch (e) { brandedToast.error((e as Error).message || "فشل إرسال رسالة الاختبار") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر إرسال رسالة الاختبار") }
     finally { setTesting(false) }
   }
 
@@ -200,7 +200,7 @@ export default function AdminTelegramPage() {
        * than the page's own initial load. */
       const d = await apiFetch("/api/telegram/diagnose?dryRun=true").then(unwrapApi<DiagnoseResult>)
       setDiagnose(d)
-    } catch (e) { brandedToast.error((e as Error).message || "فشل التشخيص") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر التشخيص") }
     finally { setDiagnosing(false) }
   }
 
@@ -210,10 +210,10 @@ export default function AdminTelegramPage() {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label, chatId }),
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الإضافة")
+      if (!json.success) throw new Error(json.error || "تعذّر الإضافة")
       queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
       brandedToast.success("تمت إضافة جهة الإرسال")
-    } catch (e) { brandedToast.error((e as Error).message || "فشل إضافة جهة الإرسال") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر إضافة جهة الإرسال") }
   }
 
   const handleToggleTarget = async (id: number, isActive: boolean) => {
@@ -222,19 +222,19 @@ export default function AdminTelegramPage() {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ isActive }),
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل التحديث")
+      if (!json.success) throw new Error(json.error || "تعذّر التحديث")
       queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
-    } catch (e) { brandedToast.error((e as Error).message || "فشل تحديث الحالة") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر تحديث الحالة") }
   }
 
   const handleDeleteTarget = async (id: number) => {
     try {
       const res = await apiFetch(`/api/telegram/broadcast-targets/${id}`, { method: "DELETE" })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الحذف")
+      if (!json.success) throw new Error(json.error || "تعذّر الحذف")
       queryClient.invalidateQueries({ queryKey: ["telegram-broadcast-targets"] })
       brandedToast.success("تم حذف جهة الإرسال")
-    } catch (e) { brandedToast.error((e as Error).message || "فشل حذف جهة الإرسال") }
+    } catch (e) { brandedToast.error((e as Error).message || "تعذّر حذف جهة الإرسال") }
   }
 
   if (accessDenied) return (
@@ -272,7 +272,7 @@ export default function AdminTelegramPage() {
           (was a one-off toast + silently empty form) */}
       {configQuery.isError && (
         <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-destructive-ink">{(configQuery.error as Error)?.message || "فشل تحميل الإعدادات"}</p>
+          <p className="text-sm text-destructive-ink">{(configQuery.error as Error)?.message || "تعذّر تحميل الإعدادات"}</p>
           <Button size="sm" variant="outline" onClick={() => configQuery.refetch()}>
             <RefreshCw className="size-3.5" aria-hidden="true" /> إعادة المحاولة
           </Button>

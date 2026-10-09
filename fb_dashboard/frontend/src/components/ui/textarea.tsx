@@ -26,7 +26,9 @@ const Textarea = React.forwardRef<
       ref={ref}
       dir="auto"
       className={cn(
-        "flex field-sizing-content min-h-24 w-full rounded-md border border-input bg-transparent px-4 py-3 text-base leading-(--lh-base) shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) outline-none placeholder:text-placeholder-text disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
+        /* r133 (A10): hover border state (madarek components.css:721 twin
+           — inputs sat inert until focus). */
+        "flex field-sizing-content min-h-24 w-full rounded-md border border-input bg-transparent px-4 py-3 text-base leading-(--lh-base) shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) outline-none placeholder:text-placeholder-text hover:not-aria-invalid:border-foreground/25 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
         "focus-visible:border-accent-foreground focus-visible:shadow-(--state-input-focus-halo)",
         "aria-invalid:border-destructive aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:ring-2 aria-invalid:focus-visible:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:focus-visible:ring-destructive/40",
         className

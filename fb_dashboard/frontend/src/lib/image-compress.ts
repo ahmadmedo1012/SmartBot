@@ -15,12 +15,12 @@ export function compressImage(file: File, maxDim = 1200, quality = 0.7): Promise
       const ctx = canvas.getContext("2d")!
       ctx.drawImage(img, 0, 0, w, h)
       canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error("فشل ضغط الصورة"))),
+        (b) => (b ? resolve(b) : reject(new Error("تعذّر ضغط الصورة"))),
         "image/jpeg",
         quality
       )
     }
-    img.onerror = () => reject(new Error("فشل قراءة الصورة"))
+    img.onerror = () => reject(new Error("تعذّر قراءة الصورة"))
     img.src = URL.createObjectURL(file)
   })
 }

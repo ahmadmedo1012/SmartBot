@@ -192,7 +192,7 @@ async def api_health_ready():
 
             capture_exception(e)
         except Exception:
-            pass
+            pass  # r133-A6 (a): observability must not amplify the readiness failure
         return JSONResponse(
             status_code=503,
             content={"ok": False, "database": "unreachable"},
@@ -335,7 +335,9 @@ if _app_mobile_dir.is_dir():
         _mobile_app = StaticFiles(directory=str(_app_mobile_dir), html=True)
         app.mount("/app", _mobile_app, name="mobile")
     except Exception:
-        pass
+        # r133-A6 (b): the ONLY silent mount in this block — its three
+        # siblings above log.error; a failed /app mount must not pass silently.
+        log.error("mobile /app mount failed", exc_info=True)
     # HEAD handler for StaticFiles 405
     @app.api_route("/app", methods=["HEAD"])
     @app.api_route("/app/{path:path}", methods=["HEAD"])

@@ -45,7 +45,11 @@ async def _get_webhook_app_secret() -> str:
             if r and r.value:
                 return r.value
     except Exception:
-        pass
+        # r133-A6 S1: the secret IS set — the DB read failed. Without this
+        # line the 401 below was misattributed to "not set", sending 2am
+        # operators re-entering a secret that is already there.
+        log.warning("app-secret DB lookup failed — webhook will 401 until it recovers",
+                    exc_info=True)
     return ""
 
 

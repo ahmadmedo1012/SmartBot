@@ -174,12 +174,16 @@ async def connect_page(
         from routers.inbox import _tenant_fb_cache as _inbox_fb_cache
         _inbox_fb_cache.pop(current_user.tenant_id, None)
     except Exception:
-        pass
+        # r133-A6 (c)#7: same eviction family as the settings PUT — silent here too.
+        log.warning("inbox client cache eviction failed (tenant=%s)",
+                    current_user.tenant_id, exc_info=True)
     try:
         from _services import reset_bot_engines
         reset_bot_engines()
     except Exception:
-        pass
+        # r133-A6 (c)#8: engines may keep running on the previous connection.
+        log.warning("bot engine reset failed after connect (tenant=%s)",
+                    current_user.tenant_id, exc_info=True)
 
     # ── C-CORE1: subscribe the page to webhooks via the TENANT client ──
     webhook_result = None
@@ -297,10 +301,10 @@ async def test_connection(
                 err = r.json().get("error", {})
                 detail = err.get("message", "")[:150]
             except Exception:
-                pass
+                pass  # r133-A6 (a): non-JSON error body — the status-code fallback below is the message
             # v12-E2.11: ok() envelope (see above)
             return ok({"connected": False, "token_type": token_type,
-                    "error": f"فشل التحقق من فيسبوك: {detail or r.status_code}"})
+                    "error": f"تعذّر التحقق من فيسبوك: {detail or r.status_code}"})
         data = r.json()
         return ok({"connected": True, "token_type": token_type,
                 "page_name": data.get("name", ""), "fan_count": data.get("fan_count", 0)})
@@ -312,7 +316,7 @@ async def test_connection(
         log.warning("onboarding test-connection failed (tenant=%s page=%s): %s",
                     current_user._tenant_id, page_id[:40], str(e)[:300])
         return ok({"connected": False,
-                   "error": "تعذر الاتصال بفيسبوك — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"})
+                   "error": "تعذّر الاتصال بفيسبوك — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"})
 
 
 # Deterministic fallbacks so the wizard works with zero AI configuration

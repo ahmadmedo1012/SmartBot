@@ -81,7 +81,6 @@ const min = (a: number, b: number) => Math.min(a, b)
 
 describe("v24-C6 — globals.css contrast tokens (B4 failing pairs, pinned)", () => {
   it("light --input border ≥ 3:1 vs card AND background (WCAG 1.4.11; was 1.53/1.47)", () => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const input = light["input"]!.rgb
     const vsCard = contrast(input, light["card"]!.rgb)
     const vsBg = contrast(input, light["background"]!.rgb)
@@ -97,7 +96,9 @@ describe("v24-C6 — globals.css contrast tokens (B4 failing pairs, pinned)", ()
   })
 
   it("espresso text ≥ 4.5:1 on BOTH flame-gradient ends, both themes (WCAG 1.4.3; ember was 2.24/2.91)", () => {
-    for (const [mode, toks] of [["dark", dark], ["light", light]] as const) {
+    /* r133 (eslint adoption): the destructure's mode half is unused in
+       these two loops — the theme is in the tokens themselves. */
+    for (const [_mode, toks] of [["dark", dark], ["light", light]] as const) {
       const espresso = toks["c-espresso"]!.rgb
       const vsEmber = contrast(espresso, toks["c-ember"]!.rgb)
       const vsSaffron = contrast(espresso, toks["c-saffron"]!.rgb)
@@ -110,7 +111,7 @@ describe("v24-C6 — globals.css contrast tokens (B4 failing pairs, pinned)", ()
   })
 
   it("landing badge composite ≥ 4.5:1 both themes (accent-foreground over its /10 tint over card; was 4.28 dark)", () => {
-    for (const [mode, toks] of [["dark", dark], ["light", light]] as const) {
+    for (const [_mode, toks] of [["dark", dark], ["light", light]] as const) {
       const accFg = toks["accent-foreground"]!.rgb
       const badgeBg = over(accFg, 0.1, toks["card"]!.rgb)
       expect(contrast(accFg, badgeBg)).toBeGreaterThanOrEqual(4.5)

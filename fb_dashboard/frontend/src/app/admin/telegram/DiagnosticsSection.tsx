@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { UserCheck, Plus, Trash2, Loader2, Stethoscope, CheckCircle2, XCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { brandedToast } from "@/lib/premium-toast"
 import { apiFetch } from "@/lib/csrf-client"
 
@@ -48,13 +47,13 @@ export function DiagnosticsSection({
         body: JSON.stringify({ telegramId: Number(newApproverId), label: newApproverLabel.trim() }),
       })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الإضافة")
+      if (!json.success) throw new Error(json.error || "تعذّر الإضافة")
       onApproversChange([json.data, ...approvers])
       setNewApproverId("")
       setNewApproverLabel("")
       brandedToast.success("تمت إضافة الموافق")
     } catch (e) {
-      brandedToast.error((e as Error).message || "فشل إضافة الموافق")
+      brandedToast.error((e as Error).message || "تعذّر إضافة الموافق")
     } finally { setAddingApprover(false) }
   }
 
@@ -62,11 +61,11 @@ export function DiagnosticsSection({
     try {
       const res = await apiFetch(`/api/admin/telegram/approvers/${id}`, { method: "DELETE" })
       const json = await res.json()
-      if (!json.success) throw new Error(json.error || "فشل الحذف")
+      if (!json.success) throw new Error(json.error || "تعذّر الحذف")
       onApproversChange(approvers.filter((x) => x.id !== id))
       brandedToast.success("تم حذف الموافق")
     } catch (e) {
-      brandedToast.error((e as Error).message || "فشل حذف الموافق")
+      brandedToast.error((e as Error).message || "تعذّر حذف الموافق")
     }
   }
 
@@ -178,7 +177,7 @@ export function DiagnosticsSection({
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20" role="alert">
                   <XCircle className="size-4 shrink-0 text-destructive-ink mt-0.5" />
                   <div className="min-w-0">
-                    <p className="text-sm text-destructive-ink font-semibold">فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح</p>
+                    <p className="text-sm text-destructive-ink font-semibold">تعذّر إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح</p>
                     <p className="text-xs text-muted-foreground break-all" dir="ltr">{diagnose.dryRunResult}</p>
                   </div>
                 </div>

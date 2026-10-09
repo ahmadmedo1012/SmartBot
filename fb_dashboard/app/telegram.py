@@ -20,7 +20,7 @@ import logging
 from datetime import timedelta
 
 from _services import get_bot_engine, get_tenant_fb_client
-from _utils import utcnow
+from _utils import fmt_lyd, utcnow
 from _wallet import credit_wallet, to_wallet_decimal
 from config import settings
 from database import AsyncSessionLocal
@@ -137,7 +137,10 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
                         type_="payment", link="/dashboard/billing", user_id=sp.user_id,
                     )
             except Exception:
-                pass
+                # r133-A6 (b): the user is never told their payment was rejected
+                # — the in-app notification is the only channel that carries it.
+                log.warning("payment-rejection notification failed (payment=%s)",
+                            sp.id, exc_info=True)
             await db.commit()
             # v22-D7 (FIX-B #1): editMessageText is now parse_mode=HTML —
             # plan_name/username are user data («مميز_السعر», ``fixb_x``) and
@@ -181,7 +184,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
+                                   f"✅ <b>تم تأكيد الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await runner.answer_callback(cq["id"], "✅ تم تأكيد الدفع وإضافة الرصيد")
         else:
@@ -189,7 +192,7 @@ async def telegram_webhook(request: Request, body: dict = Body(...)):
             msg = cq.get("message", {})
             if msg.get("chat") and msg.get("message_id"):
                 await runner.edit_message(msg["chat"]["id"], msg["message_id"],
-                                   f"❌ <b>تم رفض الدفع</b> #{payment_id}\nالمبلغ: {pr.amount} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
+                                   f"❌ <b>تم رفض الدفع</b> #{payment_id}\nالمبلغ: {fmt_lyd(pr.amount)} د.ل\nالمستخدم: {escape_user_text(pr.username)}")
                 await runner.edit_keyboard(msg["chat"]["id"], msg["message_id"])
             await runner.answer_callback(cq["id"], "❌ تم رفض طلب الدفع")
     return {"ok": True}
@@ -222,7 +225,7 @@ async def _run_bot_loop():
 
                         capture_exception(e)
                     except Exception:
-                        pass
+                        pass  # r133-A6 (a): log already fired — capture is best-effort
         except Exception as e:
             # v12-E3.5b (D12): the bot loop is the revenue path — a cycle
             # failure must reach Sentry with its traceback, not just a
@@ -234,5 +237,5 @@ async def _run_bot_loop():
 
                 capture_exception(e)
             except Exception:
-                pass
+                pass  # r133-A6 (a): log already fired — capture is best-effort
         await asyncio.sleep(settings.BOT_INTERVAL_SECONDS)

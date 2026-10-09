@@ -129,4 +129,4 @@ async def upload_receipt(request: Request, file: UploadFile = File(...), current
         return ok({"url": url})
     except Exception as e:
         log.error(f"receipt upload failed: {e}", exc_info=True)
-        raise HTTPException(500, "تعذر حفظ الصورة — حاول مرة أخرى") from e
+        raise HTTPException(500, "تعذّر حفظ الصورة — حاول مرة أخرى") from e

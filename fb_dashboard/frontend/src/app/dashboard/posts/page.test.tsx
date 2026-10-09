@@ -50,7 +50,7 @@ vi.mock("@/lib/premium-toast", () => ({
 vi.mock("@/lib/csrf-client", () => {
   class ApiError extends Error {
     constructor(public status: number, public body: unknown) {
-      super(`فشل الطلب (${status})`)
+      super(`تعذّر الطلب (${status})`)
     }
   }
   return { ApiError, apiFetch: mocks.apiFetch }
@@ -58,7 +58,7 @@ vi.mock("@/lib/csrf-client", () => {
 
 /* ---------- harnesses ---------- */
 
-const BANNER_TEXT = "فشل التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة."
+const BANNER_TEXT = "تعذّر التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة."
 
 const fbRow = (over: Partial<FbPost> = {}): FbPost => ({
   id: "p_101",
@@ -204,7 +204,7 @@ describe("posts page v21 sync-failure banner states", () => {
     /* the page query retries once (house `retry: 1`) with react-query's
      * ~1s backoff — allow the error state to land past findBy's 1s default */
     expect(
-      await screen.findByText("فشل تحميل منشورات فيسبوك", {}, { timeout: 4000 }),
+      await screen.findByText("تعذّر تحميل منشورات فيسبوك", {}, { timeout: 4000 }),
     ).toBeInTheDocument()
     expect(screen.getByText("اربط صفحتك على فيسبوك أولاً")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "إعادة المحاولة" })).toBeInTheDocument()

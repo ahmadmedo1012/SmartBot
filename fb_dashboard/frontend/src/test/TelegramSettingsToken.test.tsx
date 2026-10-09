@@ -245,7 +245,7 @@ describe("D4-H4 — diagnostics use the REAL backend keys + honest dry-run verdi
 
     await screen.findByRole("heading", { level: 1, name: "إعدادات تليجرام" })
     expect(
-      await screen.findByText("فشل إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح"),
+      await screen.findByText("تعذّر إرسال رسالة التجربة — البوت لا يعمل بشكل صحيح"),
     ).toBeInTheDocument()
     // the old dishonest success claim must be gone even though configExists=true
     // (anchor on the success-specific prefix — the FAILURE message legitimately

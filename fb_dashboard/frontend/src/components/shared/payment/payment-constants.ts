@@ -53,4 +53,4 @@ export const BANK_IBAN_ROW_LABEL = "IBAN"
 
 // Clipboard toast messages
 export const COPY_SUCCESS_MESSAGE = "تم النسخ"
-export const COPY_ERROR_MESSAGE = "فشل النسخ"
+export const COPY_ERROR_MESSAGE = "تعذّر النسخ"

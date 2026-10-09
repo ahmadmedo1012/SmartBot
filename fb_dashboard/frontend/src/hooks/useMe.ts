@@ -50,7 +50,7 @@ export interface MePayload {
 /** The one queryFn for the ["me"] entry (same contract as v19's). */
 const meQueryFn = async (): Promise<MePayload> => {
   const res = await apiFetch("/api/me")
-  if (!res.ok) throw new Error(`فشل تحميل الحساب (${res.status})`)
+  if (!res.ok) throw new Error(`تعذّر تحميل الحساب (${res.status})`)
   return unwrapApi<MePayload>(res)
 }
 

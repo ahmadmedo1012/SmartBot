@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ApiError, apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
-import { countPhrase, formatNumber } from "@/lib/format"
+import { countPhrase } from "@/lib/format"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -159,9 +159,9 @@ function apiErrorMessage(e: unknown): string {
     const body = (e.body ?? null) as Record<string, unknown> | null
     const detail = body?.detail ?? body?.error
     if (typeof detail === "string" && detail.trim()) return detail
-    return e.message // "فشل الطلب (status)" Arabic fallback built into ApiError
+    return e.message // "تعذّر الطلب (status)" Arabic fallback built into ApiError
   }
-  return "تعذر الوصول إلى الخادم — تحقق من اتصالك ثم أعد المحاولة"
+  return "تعذّر الوصول إلى الخادم — تحقق من اتصالك ثم أعد المحاولة"
 }
 
 /* v18-1a (أ): the honest save-failure verdict — rendered INSIDE the failing
@@ -192,7 +192,7 @@ function SaveErrorAlert({
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive-ink" aria-hidden="true" />
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-bold text-destructive-ink">
-            {isPage ? "فشل ربط الصفحة" : "فشل حفظ قاعدة الرد"}
+            {isPage ? "تعذّر ربط الصفحة" : "تعذّر حفظ قاعدة الرد"}
           </p>
           {/* the server's own Arabic message — 409 conflicts, envelopes, all */}
           <p className="text-xs leading-relaxed text-destructive-ink">{failure.message}</p>
@@ -370,8 +370,8 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
       if (d?.connected && d?.page_name && !pageName) {
         setPageName(d.page_name)
       }
-    } catch (e) {
-      setTestResult({ connected: false, error: "تعذر الاتصال — تحقق من البيانات" })
+    } catch {
+      setTestResult({ connected: false, error: "تعذّر الاتصال — تحقق من البيانات" })
     } finally {
       setTesting(false)
     }
@@ -396,7 +396,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         brandedToast.success(d.source === "ai" ? "اقتراح بالذكاء الاصطناعي" : "اقتراح جاهز — عدّله كما تريد")
       }
     } catch {
-      brandedToast.error("تعذر الاقتراح — اكتب الرد يدوياً")
+      brandedToast.error("تعذّر الاقتراح — اكتب الرد يدوياً")
     } finally {
       setSuggesting(false)
     }
@@ -518,7 +518,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
         clearPersistedStep()
         onComplete()
       } catch {
-        brandedToast.error("فشل حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم")
+        brandedToast.error("تعذّر حفظ الإعدادات — يمكنك إكمالها لاحقاً من لوحة التحكم")
         clearPersistedStep()
         onComplete()
       } finally {
@@ -675,7 +675,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                   <div
                     /* v17-S3 (D2 §3.2): duration-(--t-slow) was a lone off-scale
                        value — now the --duration-slow token (500ms). */
-                    className={`h-1 flex-1 rounded-full transition-all duration-(--duration-slow) ${
+                    className={`h-1 flex-1 rounded-full transition-[background-color] duration-(--duration-slow) ${
                       done ? "bg-primary" : active ? "bg-accent-foreground/60" : "bg-muted"
                     }`}
                   />
@@ -792,7 +792,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                               : ""}
                           </>
                         ) : (
-                          testResult.error || "فشل الاتصال"
+                          testResult.error || "تعذّر الاتصال"
                         )}
                       </span>
                     </div>
@@ -851,7 +851,7 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                            minimum target size. min-h-8 + px-2.5 clears it
                            (32px) while staying visually subordinate to the
                            textarea label. */
-                        className="min-h-8 px-2.5 rounded-md text-2xs font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1 transition-colors"
+                        className="min-h-8 px-2.5 rounded-md text-xs font-medium text-accent-foreground hover:text-accent-foreground/80 disabled:opacity-50 flex items-center gap-1 transition-colors"
                       >
                         {suggesting ? (
                           <Loader2 className="size-3 animate-spin" />
@@ -885,8 +885,10 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                     {fieldErrors.reply ? (
                       <p id="reply-error" className="text-xs text-destructive-ink">{fieldErrors.reply}</p>
                     ) : (
-                      <p className="text-3xs text-muted-foreground">
-                        اضغط "اقترح رداً" لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
+                      <p className="text-xs text-muted-foreground">
+                        {/* r133 (A9 R6 + eslint adoption): ASCII "" → the
+                            fleet «…» guillemets (no-unescaped-entities). */}
+                        اضغط «اقترح رداً» لكتابة تلقائية بالذكاء الاصطناعي ثم عدّلها كما تشاء
                       </p>
                     )}
                   </div>

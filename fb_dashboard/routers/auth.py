@@ -314,7 +314,7 @@ async def logout(request: Request, db=Depends(get_db)):
                     str(jti)[:8],
                 )
                 raise HTTPException(
-                    500, "تعذر إبطال الجلسة على الخادم — يرجى المحاولة مرة أخرى"
+                    500, "تعذّر إبطال الجلسة على الخادم — يرجى المحاولة مرة أخرى"
                 ) from None
     secure = not getattr(settings, 'DEBUG', False)
     resp = JSONResponse(ok())

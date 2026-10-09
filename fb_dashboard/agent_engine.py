@@ -123,7 +123,9 @@ class AgentEngine:
                     bot_running = _sys.modules['runner']._bot_task is not None \
                         and not _sys.modules['runner']._bot_task.done()
             except Exception:
-                pass
+                # r133-A6 (b)-lite: probe only flavors telemetry ctx — a
+                # failure just claims not-running, never blocks the reply.
+                log.debug("bot_running probe failed", exc_info=True)
             ctx = {
                 "page_id": settings.FACEBOOK_PAGE_ID,
                 "bot_running": bot_running,
@@ -238,7 +240,7 @@ class AgentEngine:
                 if result and result.get("id"):
                     return {"success": True, "data": {"post_id": result["id"]},
                             "message_ar": f"تم النشر بنجاح ✅\n{msg[:100]}"}
-                return {"success": False, "message_ar": "فشل النشر على فيسبوك"}
+                return {"success": False, "message_ar": "تعذّر النشر على فيسبوك"}
 
             elif action == "reply_to_comment":
                 if fb is None:
@@ -251,7 +253,7 @@ class AgentEngine:
                 result = await fb.reply_to_comment(cid, msg)
                 if result:
                     return {"success": True, "message_ar": "تم الرد على التعليق ✅"}
-                return {"success": False, "message_ar": "فشل الرد على التعليق"}
+                return {"success": False, "message_ar": "تعذّر الرد على التعليق"}
 
             elif action == "toggle_bot":
                 import sys as _sys

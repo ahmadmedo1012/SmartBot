@@ -188,7 +188,7 @@ describe("apiFetch network rejection (v17-S2 — Arabic, never «Failed to fetch
 
     expect(caught).toBeInstanceOf(ApiError)
     expect((caught as ApiError).status).toBe(0)
-    expect((caught as ApiError).message).toBe("تعذر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت")
+    expect((caught as ApiError).message).toBe("تعذّر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت")
     // the English rejection text must never reach a toast
     expect((caught as ApiError).message).not.toContain("Failed")
   })

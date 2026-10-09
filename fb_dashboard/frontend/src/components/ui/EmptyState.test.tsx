@@ -103,7 +103,7 @@ describe("ErrorState", () => {
     render(<ErrorState />)
 
     expect(screen.getByText("حدث خطأ")).toBeInTheDocument()
-    expect(screen.getByText("تعذر الاتصال، تحقق من الإنترنت")).toBeInTheDocument()
+    expect(screen.getByText("تعذّر الاتصال، تحقق من الإنترنت")).toBeInTheDocument()
   })
 
   it("renders a retry button only when onRetry is provided, and wires it", () => {
@@ -116,9 +116,9 @@ describe("ErrorState", () => {
   })
 
   it("renders no retry affordance without onRetry", () => {
-    render(<ErrorState title="فشل التحميل" />)
+    render(<ErrorState title="تعذّر التحميل" />)
 
-    expect(screen.getByText("فشل التحميل")).toBeInTheDocument()
+    expect(screen.getByText("تعذّر التحميل")).toBeInTheDocument()
     expect(screen.queryByRole("button")).toBeNull()
   })
 })

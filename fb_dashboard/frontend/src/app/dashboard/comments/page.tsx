@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { AiSuggestDialog, type AiSuggestResult } from "@/components/ai/AiSuggestDialog"
-import { countPhrase, formatDateOnly, formatNumber, timeAgo } from "@/lib/format"
+import { countPhrase, formatNumber, timeAgo } from "@/lib/format"
 import type { CommentRow } from "@/lib/types"
 
 /* v25 (W-06): عقد /api/comments (routers/replies.py:139) — حد فقط
@@ -52,7 +52,7 @@ export default function CommentsPage() {
     queryKey: commentsKey,
     queryFn: async () => {
       const res = await apiFetch(`/api/comments?limit=${commentsLimit}`)
-      if (!res.ok) throw new Error(`فشل تحميل التعليقات (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل التعليقات (${res.status})`)
       // v13-L3 (dec-envelope-prune): /api/comments returns ok({items, source})
       // — single envelope via unwrapApi; `?? []` is null-safety only.
       const json = await unwrapApi<{ items: CommentRow[]; source: string }>(res)
@@ -147,7 +147,7 @@ export default function CommentsPage() {
       })
       brandedToast.success("تم الرد على التعليق")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الرد"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الرد"),
   })
 
   return (
@@ -183,8 +183,8 @@ export default function CommentsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل التعليقات</h2>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال بالخادم"}</p>
+            <h2 className="state-title">تعذّر تحميل التعليقات</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال بالخادم"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : comments.length === 0 ? (
@@ -207,9 +207,9 @@ export default function CommentsPage() {
                         {/* v14-E5 (D3-ج): from_name is a live Facebook value —
                             dir="auto" isolates Latin/mixed commenter names. */}
                         <span className="text-sm font-medium" dir="auto">{c.from_name}</span>
-                        <span className="text-2xs text-muted-foreground">{timeAgo(c.created_time)}</span>
+                        <span className="text-xs text-muted-foreground">{timeAgo(c.created_time)}</span>
                         {c.reply_text && (
-                          <Badge variant="info" className="text-3xs">تم الرد</Badge>
+                          <Badge variant="info" className="text-xs">تم الرد</Badge>
                         )}
                       </div>
                       {/* v15-E6 (D5-M7): comment bodies are live Facebook
@@ -219,7 +219,7 @@ export default function CommentsPage() {
 
                       {c.reply_text && (
                         <div className="bg-muted/50 rounded-lg p-3 mt-2 text-sm border-s-2 border-accent-foreground">
-                          <p className="text-2xs text-muted-foreground mb-1">الرد:</p>
+                          <p className="text-xs text-muted-foreground mb-1">الرد:</p>
                           <p>{c.reply_text}</p>
                         </div>
                       )}
@@ -300,11 +300,11 @@ export default function CommentsPage() {
                 تحميل المزيد
               </Button>
             ) : commentsLimit >= COMMENTS_MAX ? (
-              <p className="text-2xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 تم الوصول للحد الأقصى للعرض ({formatNumber(COMMENTS_MAX)} تعليق)
               </p>
             ) : null}
-            <p className="text-2xs text-muted-foreground" role="status">
+            <p className="text-xs text-muted-foreground" role="status">
               {countPhrase(comments.length, "تعليق معروض", "تعليقان معروضان", "تعليقات معروضة")}
             </p>
           </div>
@@ -320,7 +320,7 @@ export default function CommentsPage() {
         commentText={suggestFor?.message ?? ""}
         commenterName={suggestFor?.from_name}
         pending={suggestMut.isPending}
-        error={suggestMut.error ? (suggestMut.error.message || "تعذر توليد الاقتراحات") : null}
+        error={suggestMut.error ? (suggestMut.error.message || "تعذّر توليد الاقتراحات") : null}
         result={suggestMut.data ?? null}
         onRetry={() => { if (suggestFor) suggestMut.mutate(suggestFor) }}
         onInsert={handleInsert}

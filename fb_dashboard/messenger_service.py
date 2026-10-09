@@ -393,7 +393,8 @@ async def handle_messaging_event(tenant_id: int, page_id: str, messaging: dict,
                     "link": "/messages",
                 }))
         except Exception:
-            pass
+            # r133-A6 (b)-lite: the WS "رسالة جديدة" alert is best-effort UI.
+            log.debug("new-message WS alert spawn failed", exc_info=True)
 
     return status
 
@@ -451,7 +452,9 @@ def _is_recent(messaging: dict) -> bool:
             import time as _t
             return (int(_t.time() * 1000) - int(ts)) < 10 * 60 * 1000
     except Exception:
-        pass
+        # r133-A6 (b): deliberate fail-OPEN direction (a corrupt timestamp
+        # still gets its reply) — but the bypass must be visible, not silent.
+        log.warning("replay-guard ts parse failed (%r) — allowing", ts, exc_info=True)
     return True
 
 

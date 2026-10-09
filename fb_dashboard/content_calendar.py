@@ -332,7 +332,7 @@ class ContentCalendarEngine:
             if attempts >= self.MAX_PUBLISH_ATTEMPTS:
                 await self._mark_failed(
                     post, session,
-                    reason=f"فشل النشر على فيسبوك بعد {self.MAX_PUBLISH_ATTEMPTS} محاولات",
+                    reason=f"تعذّر النشر على فيسبوك بعد {self.MAX_PUBLISH_ATTEMPTS} محاولات",
                 )
             else:
                 # v15-E4 (D12-H1): release the claim so the next sweep retries.

@@ -126,8 +126,12 @@ function stepCountOf(s: SequenceCardRow): number {
 
 /* ── محرر الحملة (إنشاء/تحرير + محرر الخطوات + الجمهور) ────────────────── */
 
-/** خطوة في المحرر — id غائب = خطوة جديدة (POST)، موجودة = PUT عند التغيير. */
+/** خطوة في المحرر — id غائب = خطوة جديدة (POST)، موجودة = PUT عند التغيير.
+ * r133 (A13 S-01): key محلي ثابت لكل مسودة — مفاتيح React على الفهرس
+ * كانت تعيد استخدام DOM خاطئ عند نقل/حذف خطوة أثناء التحرير (التركيز
+ * يهبط على حقل الخطوة الأخرى)؛ id الخادم يبقى دليل الحفظ (PUT/POST). */
 interface DraftStep {
+  key: string
   id?: number
   message: string
   days: number
@@ -136,8 +140,11 @@ interface DraftStep {
   orig?: { message: string; days: number; hours: number; order: number }
 }
 
+/** عدّاد مفاتيح العميل — بسيط ورتيب (مفتاح React فقط، لا يغادر المتصفح). */
+let stepKeySeq = 0
+
 function stepDraft(): DraftStep {
-  return { message: "", days: 0, hours: 0 }
+  return { key: `step-${++stepKeySeq}`, message: "", days: 0, hours: 0 }
 }
 
 function SequenceEditor({
@@ -199,6 +206,7 @@ function SequenceEditor({
     setName(detail.data.name)
     setDescription(detail.data.description ?? "")
     const mapped: DraftStep[] = detail.data.steps.map((st) => ({
+      key: `step-${++stepKeySeq}`,
       id: st.id,
       message: st.message_template ?? "",
       days: st.delay_days ?? 0,
@@ -211,7 +219,10 @@ function SequenceEditor({
       },
     }))
     setSteps(mapped.length > 0 ? mapped : [stepDraft()])
-  }, [isCreate, detail.data])
+    /* r133 (eslint adoption): seqId joins the deps — it is read by the
+       createdIdRef guard above; the hydrated ref short-circuits re-runs,
+       so behavior is unchanged (route-param switches remount the editor). */
+  }, [isCreate, detail.data, seqId])
 
   const subscribers = useQuery({
     queryKey: ["sequence-audience", audApplied],
@@ -264,14 +275,14 @@ function SequenceEditor({
           method: "POST",
           body: JSON.stringify({ name: name.trim(), description: description.trim() }),
         }).then(unwrapApi<{ id: number }>)
-        if (!created?.id) throw new Error("تعذر إنشاء الحملة")
+        if (!created?.id) throw new Error("تعذّر إنشاء الحملة")
         /* v25 (W-08): تعقّب الحملة المُنشأة ومعرّفات الخطوات المحفوظة —
            مرآة onError أسفل. */
         createdIdRef.current = created.id
         savedStepIdsRef.current = new Map()
         for (let i = 0; i < steps.length; i++) {
           const d = await postStep(created.id, i, steps[i]!)
-          if (!d?.id) throw new Error(`تعذر حفظ الخطوة ${i + 1}`)
+          if (!d?.id) throw new Error(`تعذّر حفظ الخطوة ${i + 1}`)
           savedStepIdsRef.current.set(i, d.id)
         }
         return
@@ -300,7 +311,7 @@ function SequenceEditor({
         }
         if (!st.id) {
           const d = await postStep(seqId as number, i, st)
-          if (!d?.id) throw new Error(`تعذر حفظ الخطوة ${i + 1}`)
+          if (!d?.id) throw new Error(`تعذّر حفظ الخطوة ${i + 1}`)
         } else if (
           !st.orig ||
           st.orig.message !== st.message ||
@@ -338,12 +349,12 @@ function SequenceEditor({
         onCreateBound?.(createdId)
         queryClient.invalidateQueries({ queryKey: ["sequences"] })
         brandedToast.warning(
-          "تم إنشاء الحملة لكن فشل حفظ بعض الخطوات — أكمل التعديل",
+          "تم إنشاء الحملة لكن تعذّر حفظ بعض الخطوات — أكمل التعديل",
           e.message,
         )
         return
       }
-      brandedToast.error(e.message || "فشل حفظ الحملة")
+      brandedToast.error(e.message || "تعذّر حفظ الحملة")
     },
   })
 
@@ -362,7 +373,7 @@ function SequenceEditor({
       brandedToast.success("أُضيف المشترك — سيبدأ من الخطوة الأولى")
       queryClient.invalidateQueries({ queryKey: ["sequences"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشلت إضافة المشترك"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّرت إضافة المشترك"),
   })
 
   const valid =
@@ -388,8 +399,8 @@ function SequenceEditor({
       <Card>
         <CardContent className="p-5">
           <ErrorState
-            title="فشل تحميل الحملة"
-            message={(detail.error as Error)?.message || "تعذر جلب تفاصيل الحملة"}
+            title="تعذّر تحميل الحملة"
+            message={(detail.error as Error)?.message || "تعذّر جلب تفاصيل الحملة"}
             onRetry={() => detail.refetch()}
             size="sm"
           />
@@ -434,16 +445,18 @@ function SequenceEditor({
         {/* محرر الخطوات المتسلسلة */}
         <div className="space-y-2">
           <p className="text-sm font-semibold">خطوات السلسلة</p>
-          <p className="text-2xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             كل خطوة تُرسل بعد انقضاء تأخيرها من إرسال الخطوة السابقة (الأولى من
             إضافة المشترك). متغيرات متاحة: {"{name}"} {"{full_name}"} {"{mention}"} {"{date}"}
           </p>
           {steps.map((st, i) => (
-            <div key={i} className="rounded-xl border border-border/60 p-3 space-y-2 bg-background/40">
+            /* r133 (A13 S-01): مفتاح محلي ثابت — الفهرس كان يعيد استخدام
+                DOM الخطوة الخاطئة عند النقل/الحذف أثناء التحرير. */
+            <div key={st.key} className="rounded-xl border border-border/60 p-3 space-y-2 bg-background/40">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge variant="gold" className="shrink-0">الخطوة {i + 1}</Badge>
-                  <span className="text-2xs text-muted-foreground truncate">
+                  <span className="text-xs text-muted-foreground truncate">
                     {i === 0 ? "بعد إضافة المشترك" : "بعد الخطوة السابقة"} · {delayLabel(st.days, st.hours)}
                   </span>
                 </div>
@@ -525,7 +538,7 @@ function SequenceEditor({
                 {countPhrase(row?.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}
               </span>
             </div>
-            <p className="text-2xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               كل مشترك تضيفه يستلم الخطوات تباعًا وفق تأخير كل خطوة.
             </p>
             <form
@@ -554,12 +567,21 @@ function SequenceEditor({
                 ))}
               </div>
             ) : subscribers.isError ? (
-              <ErrorState
-                title="فشل تحميل المشتركين"
-                message={(subscribers.error as Error)?.message || "تعذر جلب قائمة المشتركين"}
-                onRetry={() => subscribers.refetch()}
-                size="sm"
-              />
+              /* r133 (A5 S5): the local EmptyState-based ErrorState in the
+                 subscribers drawer → the canonical .state state-danger
+                 family (the same file's :709 recipe, compact py-8 rung). */
+              <div className="state state-danger py-8" role="alert">
+                <div className="state-icon" aria-hidden="true">
+                  <AlertCircle />
+                </div>
+                <p className="state-title">تعذّر تحميل المشتركين</p>
+                <p className="state-desc">
+                  {(subscribers.error as Error)?.message || "تعذّر جلب قائمة المشتركين"}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => subscribers.refetch()}>
+                  <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
+                </Button>
+              </div>
             ) : (subscribers.data?.items ?? []).length === 0 ? (
               <p className="text-xs text-muted-foreground py-2">لا يوجد مشتركون مطابقون.</p>
             ) : (
@@ -573,7 +595,7 @@ function SequenceEditor({
                       <p className="text-xs font-medium truncate">
                         {sub.first_name || sub.name || `مشترك #${sub.id}`}
                       </p>
-                      <p className="text-2xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {sub.platform === "instagram" ? "إنستغرام" : "ماسنجر"}
                       </p>
                     </div>
@@ -609,7 +631,7 @@ function SequenceEditor({
           </Button>
         </div>
         {!valid && (
-          <p className="text-2xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             الحفظ يحتاج اسمًا وخطوة واحدة على الأقل بنص رسالة لكل خطوة.
           </p>
         )}
@@ -661,7 +683,7 @@ export default function SequencesPage() {
       brandedToast.success(v.status === "active" ? "تم تفعيل الحملة" : "تم إيقاف الحملة مؤقتًا")
       queryClient.invalidateQueries({ queryKey: ["sequences"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل تغيير حالة الحملة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر تغيير حالة الحملة"),
   })
 
   const deleteMut = useMutation({
@@ -672,7 +694,7 @@ export default function SequencesPage() {
       setConfirmDeleteId(null)
       queryClient.invalidateQueries({ queryKey: ["sequences"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل حذف الحملة"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر حذف الحملة"),
   })
 
   return (
@@ -712,9 +734,9 @@ export default function SequencesPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <h2 className="state-title">فشل تحميل الحملات التسلسلية</h2>
+              <h2 className="state-title">تعذّر تحميل الحملات التسلسلية</h2>
               <p className="state-desc">
-                {(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
+                {(error as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}
               </p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
                 <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
@@ -776,7 +798,7 @@ export default function SequencesPage() {
                           · {countPhrase(s.subscriber_count ?? 0, "مشترك نشط", "مشتركان نشطان", "مشتركين نشطين")} ·
                           أُرسلت {countPhrase(s.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}
                         </p>
-                        <p className="text-2xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           أُنشئت {formatDateOnly(s.created_at) || "—"} · آخر تحديث{" "}
                           {formatDateOnly(s.updated_at) || "—"}
                         </p>

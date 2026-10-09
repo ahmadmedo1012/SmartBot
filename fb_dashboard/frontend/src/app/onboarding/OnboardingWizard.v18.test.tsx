@@ -141,8 +141,10 @@ async function goToConnectStep(api: ReturnType<typeof stubFetch>) {
 /** Fill the connect step with a conflicting page and advance once. */
 async function failConnectPage(
   api: ReturnType<typeof stubFetch>,
-  detail = "هذه الصفحة مربوطة بمساحة عمل أخرى — تواصل مع الدعم إن كنت تعتقد أن ذلك خطأ",
-  status = 409,
+  /* r133 (eslint adoption): unused-by-design — the 409 payload is stubbed
+     by each caller's route map; kept for positional readability. */
+  _detail = "هذه الصفحة مربوطة بمساحة عمل أخرى — تواصل مع الدعم إن كنت تعتقد أن ذلك خطأ",
+  _status = 409,
 ) {
   const f = await goToConnectStep(api)
   fireEvent.change(f.pageId, { target: { value: "1235690416285843" } })
@@ -177,7 +179,7 @@ describe("v18-1a (أ) — honest save failures", () => {
     await failConnectPage(api)
 
     const alert = await screen.findByRole("alert")
-    expect(alert).toHaveTextContent("فشل ربط الصفحة")
+    expect(alert).toHaveTextContent("تعذّر ربط الصفحة")
     expect(alert).toHaveTextContent("هذه الصفحة مربوطة بمساحة عمل أخرى")
     expect(alert).toHaveTextContent("لم يتم ربط صفحتك بعد")
     // two explicit paths out — never a silent advance
@@ -202,12 +204,12 @@ describe("v18-1a (أ) — honest save failures", () => {
       "POST /api/onboarding/connect-page": () => {
         attempts += 1
         return attempts === 1
-          ? jsonRes({ detail: "تعذر الوصول إلى الخادم" }, 503)
+          ? jsonRes({ detail: "تعذّر الوصول إلى الخادم" }, 503)
           : jsonRes({ success: true, data: { ok: true } })
       },
     })
     renderWizard()
-    await failConnectPage(api, "تعذر الوصول إلى الخادم", 503)
+    await failConnectPage(api, "تعذّر الوصول إلى الخادم", 503)
     await screen.findByRole("alert")
 
     fireEvent.click(screen.getByRole("button", { name: "إعادة المحاولة" }))
@@ -237,7 +239,7 @@ describe("v18-1a (أ) — honest save failures", () => {
   it("first-rule failure → Arabic detail in role=alert, step stays, form intact", async () => {
     const api = stubFetch({
       [PLANS_ROUTE]: plansResponse,
-      "POST /api/onboarding/first-rule": () => jsonRes({ detail: "تعذر حفظ القاعدة" }, 500),
+      "POST /api/onboarding/first-rule": () => jsonRes({ detail: "تعذّر حفظ القاعدة" }, 500),
     })
     renderWizard()
     /* r132 (A8 F-SB-3): step 1 validates on advance — walk to it first
@@ -253,8 +255,8 @@ describe("v18-1a (أ) — honest save failures", () => {
     clickNext()
 
     const alert = await screen.findByRole("alert")
-    expect(alert).toHaveTextContent("فشل حفظ قاعدة الرد")
-    expect(alert).toHaveTextContent("تعذر حفظ القاعدة")
+    expect(alert).toHaveTextContent("تعذّر حفظ قاعدة الرد")
+    expect(alert).toHaveTextContent("تعذّر حفظ القاعدة")
     expect(alert).toHaveTextContent("لم تُحفظ قاعدة الرد")
     expect(screen.queryByText("اختر خطتك")).toBeNull()
     // the typed rule is still in the form — nothing was lost

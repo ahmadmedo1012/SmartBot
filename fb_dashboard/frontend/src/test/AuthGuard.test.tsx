@@ -210,7 +210,7 @@ describe("AuthGuard skip — X-CSRF-Token double-submit (D4-H1)", () => {
     await waitFor(() => {
       expect(mocks.toast).toHaveBeenCalledWith(
         "error",
-        "تعذر حفظ تخطي المعالج",
+        "تعذّر حفظ تخطي المعالج",
         "قد تظهر خطوات التهيئة مجدداً عند تحديث الصفحة — أعد المحاولة أو أكملها من لوحة التحكم",
       )
     })

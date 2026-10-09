@@ -665,7 +665,7 @@ class FBClient:
                     out["error_code"] == 200 and status == 403):
                 out["missing_permission"] = "pages_manage_metadata"
         except Exception:
-            pass
+            pass  # r133-A6 (a): fb_error stays None — GraphAPIError still raised
         return out
 
     async def check_token_scopes(self) -> dict:

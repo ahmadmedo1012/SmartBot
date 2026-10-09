@@ -13,6 +13,7 @@
    RevealCssClass observers. HeroMockup + the flat HeroOrbits chart are
    retired. */
 import "./landing.css";
+import Link from "next/link";
 import { Check, MessageCircle, Languages } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { LandingStage } from "@/components/landing/LandingStage";
@@ -176,7 +177,11 @@ export default function HomePage() {
               <MagneticGoldLink href="/subscribe" withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
                 ابدأ الآن مجاناً
               </MagneticGoldLink>
-              <a href="/demo" className="ln-btn-ghost">جرب البوت الآن</a>
+              {/* r133 (A5 S4 — r132 F-SB-6 crack closed): the hero secondary
+                  CTA rides next/link like every other internal anchor on the
+                  route (MagneticGoldLink/LandingHeader/FinaleCta) — no raw
+                  <a> MPA navigation on the conversion path. */}
+              <Link href="/demo" className="ln-btn-ghost">جرب البوت الآن</Link>
             </RevealCssClass>
 
             <RevealCssClass as="ul" className="ln-hero-meta" delay={4}>

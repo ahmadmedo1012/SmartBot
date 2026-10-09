@@ -54,7 +54,7 @@ function jsonRes(body: unknown, status = 200): Response {
 }
 
 function stubFetch(res: () => Response) {
-  const fn = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => res())
+  const fn = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => res())
   vi.stubGlobal("fetch", fn)
   return fn
 }

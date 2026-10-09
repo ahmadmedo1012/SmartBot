@@ -143,12 +143,12 @@ async def assert_safe_outbound_url(url: str, label: str = "رابط الصورة
         ipaddress.ip_address(host)
         return  # IP حرفي — تحقّق منه الحارس السريع أعلاه
     except ValueError:
-        pass
+        pass  # r133-A6 (a): not a literal IP — fall through to DNS resolution
     try:
         ips = await _resolve_host_ips(host)
     except Exception as exc:
         raise UnsafeImageUrlError(
-            f"{label} مرفوض — تعذر التحقق من سلامة النطاق"
+            f"{label} مرفوض — تعذّر التحقق من سلامة النطاق"
         ) from exc
     for ip_text in ips:
         try:
@@ -288,14 +288,14 @@ def _expected_provider_error_types() -> tuple[type[BaseException], ...]:
         from openai import APIError as _OpenAIAPIError  # type: ignore[assignment]
 
         types.append(_OpenAIAPIError)
-    except Exception:
-        pass
+    except ImportError:
+        pass  # r133-A6 (a): SDK optional — base list suffices
     try:  # best-effort: the Gemini SDK's GoogleAPIError family
         from google.api_core.exceptions import GoogleAPIError  # type: ignore[assignment]
 
         types.append(GoogleAPIError)
-    except Exception:
-        pass
+    except ImportError:
+        pass  # r133-A6 (a): SDK optional — base list suffices
     return tuple(types)
 
 
@@ -644,5 +644,6 @@ class AIService:
                 try:
                     return json.loads(m.group())
                 except json.JSONDecodeError:
-                    pass
+                    # r133-A6 (b)-lite: neutral defaults below are the designed fallback.
+                    log.debug("AI JSON extract failed — neutral defaults", exc_info=True)
             return {"suggestions": [], "intent": "محايد", "sentiment": "محايد", "confidence": 0.0}

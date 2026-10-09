@@ -9,7 +9,7 @@ export class ApiError extends Error {
     const detail =
       (body as Record<string, unknown> | null)?.detail ??
       (body as Record<string, unknown> | null)?.error
-    super(typeof detail === "string" && detail ? detail : `فشل الطلب (${status})`)
+    super(typeof detail === "string" && detail ? detail : `تعذّر الطلب (${status})`)
   }
 }
 
@@ -148,7 +148,7 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
   try {
     res = await fetch(url, { ...requestInit, headers, credentials: "include" })
   } catch {
-    throw new ApiError(0, { detail: "تعذر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت" })
+    throw new ApiError(0, { detail: "تعذّر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت" })
   }
   // v15-E5 (D4-H3) — see the block comment above for the full contract.
   if (

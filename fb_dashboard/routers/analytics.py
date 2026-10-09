@@ -101,7 +101,8 @@ async def analytics_overview(days: int = Query(30, ge=1, le=365), db=Depends(get
         )
         sentiment = {row[0]: row[1] for row in sent_rows}
     except Exception:
-        pass
+        # r133-A6 top-5: sentiment card renders empty with no signal — surface it.
+        log.warning("sentiment aggregation failed (tenant=%s)", _tid, exc_info=True)
 
     # Peak hour
     peak_hour_rows = await db.execute(

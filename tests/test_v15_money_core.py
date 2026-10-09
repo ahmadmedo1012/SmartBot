@@ -766,7 +766,7 @@ async def test_messenger_single_send_attempt_on_failure(eng_world):
     assert len(fake.dms) == 1, "exactly ONE send attempt"
     assert elapsed < 2.0, f"no 1.2^n backoff before the 200 — took {elapsed:.1f}s"
     logs = [lg for lg in await _rows(world.sf, BotLog, tenant_id=tid)
-            if "فشل إرسال الرد الآلي" in (lg.message or "")]
+            if "تعذّر إرسال الرد الآلي" in (lg.message or "")]
     assert logs, "honest failure reason still persisted (tenant-scoped)"
 
 

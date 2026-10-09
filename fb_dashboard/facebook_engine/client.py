@@ -78,7 +78,10 @@ class GraphClient:
                         import json as _json
                         wait = max(wait, float(_json.loads(retry_after).get("call_count", 0)) / 100.0)
                     except Exception:
-                        pass
+                        # r133-A6 (b)-lite: Retry-After is a HINT — the computed
+                        # backoff below is the floor either way.
+                        log.debug("Retry-After header unparseable (%r) — using backoff",
+                                  retry_after)
                 log.warning("graph %s %s → %s (attempt %d), retrying in %.1fs",
                             method, path, resp.status_code, attempt + 1, wait)
                 await asyncio.sleep(wait)
@@ -91,7 +94,7 @@ class GraphClient:
                     body = resp.json()
                     fb_error = body.get("error") if isinstance(body, dict) else None
                 except Exception:
-                    pass
+                    pass  # r133-A6 (a): fb_error stays None — GraphAPIError still raised
                 raise GraphAPIError(resp.status_code, fb_error)
 
             if resp.status_code == 204 or not resp.content:

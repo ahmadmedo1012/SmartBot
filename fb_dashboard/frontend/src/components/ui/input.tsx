@@ -49,10 +49,15 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             dir="auto"
             className={cn(
-              "flex h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-placeholder-text focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/20 focus-visible:shadow-(--state-input-focus-halo) disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
+              /* r133 (A10): hover border state (madarek components.css:721)
+                 — inputs sat inert until focus; invalid inputs keep their
+                 destructive border on hover. The base focus ring-2 ring-ring/20
+                 is RETIRED — it stacked a second indicator on the sanctioned
+                 3px/22% halo (focus = halo only). */
+              "flex h-11 w-full min-w-0 rounded-md border border-input bg-transparent px-4 py-3 text-base shadow-xs transition-[color,background-color,border-color,box-shadow] duration-(--t-fast) file:border-0 file:bg-transparent file:text-base file:font-medium placeholder:text-placeholder-text hover:not-aria-invalid:border-foreground/25 focus-visible:outline-none focus-visible:border-accent-foreground focus-visible:shadow-(--state-input-focus-halo) disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground/60 dark:bg-input/30 dark:disabled:bg-muted dark:disabled:text-muted-foreground/50",
               startIcon && "ps-11",
               StateIcon && "pe-11",
-              effectiveState === "error" && "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
+              effectiveState === "error" && "border-destructive focus-visible:border-destructive dark:focus-visible:ring-destructive/40 focus-visible:ring-destructive/20",
               effectiveState === "success" && "border-success focus-visible:border-success focus-visible:ring-success/20",
               effectiveState === "warning" && "border-warning focus-visible:border-warning focus-visible:ring-warning/20",
               className

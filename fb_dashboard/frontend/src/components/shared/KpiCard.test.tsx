@@ -15,7 +15,7 @@
  * next/link is mocked with the documented default→anchor recipe.
  */
 import type { ReactNode } from "react"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { MessageCircle } from "lucide-react"
 

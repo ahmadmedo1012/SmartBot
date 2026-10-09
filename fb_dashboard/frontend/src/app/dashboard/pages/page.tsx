@@ -28,7 +28,7 @@ export default function PagesPage() {
     queryKey: ["facebook-settings"],
     queryFn: async () => {
       const res = await apiFetch("/api/facebook/settings")
-      if (!res.ok) throw new Error(`فشل التحميل (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر التحميل (${res.status})`)
       return unwrapApi<FacebookSettings>(res)
     },
     retry: 1,
@@ -46,11 +46,11 @@ export default function PagesPage() {
         body: JSON.stringify({ page_id: pageId.trim(), access_token: accessToken.trim(), subscribe_webhook: true }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.detail || "فشل الحفظ")
+      if (!res.ok) throw new Error(json.detail || "تعذّر الحفظ")
       queryClient.invalidateQueries({ queryKey: ["facebook-settings"] })
       brandedToast.success("تم حفظ بيانات فيسبوك والاشتراك في الويبهوك")
     } catch (e) {
-      brandedToast.error((e as Error).message || "فشل الحفظ")
+      brandedToast.error((e as Error).message || "تعذّر الحفظ")
     }
     setSaving(false)
   }
@@ -72,11 +72,11 @@ export default function PagesPage() {
       if (json.connected) {
         brandedToast.success(`تم الاتصال — متابعو الصفحة: ${formatNumber(json.fan_count)}`)
       } else {
-        brandedToast.error(json.error || "فشل الاتصال")
+        brandedToast.error(json.error || "تعذّر الاتصال")
       }
     } catch (e) {
       setTestResult({ connected: false, error: (e as Error).message })
-      brandedToast.error((e as Error).message || "فشل الاختبار")
+      brandedToast.error((e as Error).message || "تعذّر الاختبار")
     }
     setTesting(false)
   }
@@ -102,8 +102,8 @@ export default function PagesPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل الإعدادات</h2>
-            <p className="state-desc">تعذر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
+            <h2 className="state-title">تعذّر تحميل الإعدادات</h2>
+            <p className="state-desc">تعذّر الاتصال بالخادم، تحقق من الإنترنت ثم أعد المحاولة.</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : isLoading ? (
@@ -155,7 +155,7 @@ export default function PagesPage() {
                   {testResult.connected
                     ? <CheckCircle2 className="size-4 text-success" />
                     : <XCircle className="size-4 text-destructive" />}
-                  <span className="text-sm font-bold">{testResult.connected ? "اتصال ناجح" : "فشل الاتصال"}</span>
+                  <span className="text-sm font-bold">{testResult.connected ? "اتصال ناجح" : "تعذّر الاتصال"}</span>
                 </div>
                 {testResult.connected && (
                   <>
@@ -168,7 +168,7 @@ export default function PagesPage() {
                     {testResult.scopes?.scopes && (
                       <div className="flex flex-wrap gap-1">
                         {testResult.scopes.scopes.map((s: string) => (
-                          <Badge key={s} variant="info" className="text-3xs">{s}</Badge>
+                          <Badge key={s} variant="info" className="text-xs">{s}</Badge>
                         ))}
                       </div>
                     )}

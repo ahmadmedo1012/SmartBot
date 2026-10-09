@@ -201,7 +201,7 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
     if "telegram_bot_token" in payload and str(payload["telegram_bot_token"] or "").strip():
         tok = str(payload["telegram_bot_token"]).strip()
         if not _re.match(r'^\d{6,12}:[A-Za-z0-9_-]{30,}$', tok):
-            raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA... من BotFather")
+            raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA… من BotFather")
     if "telegram_chat_id" in payload and str(payload["telegram_chat_id"] or "").strip():
         cid = str(payload["telegram_chat_id"]).strip()
         if not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', cid):
@@ -238,7 +238,12 @@ async def admin_set_config(body: dict = None, db=Depends(get_db), current_user: 
         from _services import api_cache
         api_cache.clear_all()
     except Exception:
-        pass
+        # r133-A6 (c)#1: swallow stays best-effort (a failed cache clear must
+        # not fail the save) — but the staleness becomes visible: /api/config
+        # serves old values until the ttl=300 in-process cache (and the edge
+        # s-maxage=120) expires.
+        log.warning("api_cache clear failed — /api/config serves stale values until TTL",
+                    exc_info=True)
     return ok({"updated": sorted(payload.keys())})
 
 
@@ -342,7 +347,7 @@ async def repair(current_user: User = Depends(require_platform_admin)):
         return ok({"ok": True, "message": "DB repaired"})
     except Exception:
         log.exception("DB repair failed")
-        raise HTTPException(status_code=500, detail="فشل إصلاح قاعدة البيانات — راجع سجلات الخادم") from None
+        raise HTTPException(status_code=500, detail="تعذّر إصلاح قاعدة البيانات — راجع سجلات الخادم") from None
 
 
 @router.delete("/api/admin/tenants/{tenant_id}")

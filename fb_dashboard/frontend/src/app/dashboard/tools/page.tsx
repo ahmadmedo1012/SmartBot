@@ -28,7 +28,7 @@ export default function ToolsPage() {
     queryKey: ["offers"],
     queryFn: async () => {
       const res = await apiFetch("/api/offers")
-      if (!res.ok) throw new Error(`فشل تحميل العروض (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل العروض (${res.status})`)
       return unwrapApi<Offer[]>(res)
     },
     retry: 1,
@@ -38,7 +38,7 @@ export default function ToolsPage() {
     queryKey: ["templates"],
     queryFn: async () => {
       const res = await apiFetch("/api/templates")
-      if (!res.ok) throw new Error(`فشل تحميل القوالب (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل القوالب (${res.status})`)
       return unwrapApi<ReplyTemplate[]>(res)
     },
     retry: 1,
@@ -58,7 +58,7 @@ export default function ToolsPage() {
       body: JSON.stringify({ name: tmplName.trim(), text: tmplText.trim(), category: tmplCategory.trim() }),
     }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["templates"] }); setShowTmplForm(false); setTmplName(""); setTmplText(""); setTmplCategory(""); brandedToast.success("تم إنشاء القالب") },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الإنشاء"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الإنشاء"),
   })
 
   /* v17-E-F8 (D6 #7): تعديل قالب قائم — PUT بنفس جسم JSON الذي يرسله الإنشاء
@@ -74,7 +74,7 @@ export default function ToolsPage() {
       setTmplName(""); setTmplText(""); setTmplCategory("")
       brandedToast.success("تم حفظ تعديلات القالب")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل حفظ التعديلات"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر حفظ التعديلات"),
   })
 
   const deleteTmpl = useMutation({
@@ -112,7 +112,7 @@ export default function ToolsPage() {
       setOfferTitle(""); setOfferCode(""); setOfferDesc(""); setOfferDiscountType("percentage"); setOfferDiscountValue("10")
       brandedToast.success("تم إنشاء العرض")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء العرض"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إنشاء العرض"),
   })
 
   const toggleOffer = useMutation({
@@ -182,7 +182,7 @@ export default function ToolsPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <p className="state-desc">{(tmplError as Error)?.message || "تعذر الاتصال"}</p>
+              <p className="state-desc">{(tmplError as Error)?.message || "تعذّر الاتصال"}</p>
               <Button size="sm" variant="outline" onClick={() => tmplRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : templates.length === 0 ? (
@@ -197,7 +197,7 @@ export default function ToolsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-bold">{t.name}</span>
-                        {t.category && <span className="text-3xs bg-muted px-1.5 py-0.5 rounded">{t.category}</span>}
+                        {t.category && <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{t.category}</span>}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{t.text}</p>
                     </div>
@@ -335,7 +335,7 @@ export default function ToolsPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <p className="state-desc">{(offError as Error)?.message || "تعذر الاتصال"}</p>
+              <p className="state-desc">{(offError as Error)?.message || "تعذّر الاتصال"}</p>
               <Button size="sm" variant="outline" onClick={() => offRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : offers.length === 0 ? (

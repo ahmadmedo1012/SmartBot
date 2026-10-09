@@ -32,7 +32,10 @@ concurrency:
 jobs:
   quality-gates:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # r133 (A14 D2): 25 → 40 — the pytest gate (Gate 2) was cancelled at
+    # the 25-minute wall five runs in a row (last one killed 25m15s into
+    # "Gate 2 — pytest"); the Python suite is 1118+ tests and needs headroom.
+    timeout-minutes: 40
     defaults:
       run:
         shell: bash

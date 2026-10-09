@@ -135,7 +135,7 @@ async def ai_analyze_image(data: dict = Body(...), db=Depends(get_db),
             return ok({"analysis": (r.text or "").strip()[:100]})
     except Exception as e:
         log.error("ai_analyze_image provider call failed: %s", e, exc_info=True)
-        return ok({"analysis": "", "error": ai.last_error or "فشل تحليل الصورة"})
+        return ok({"analysis": "", "error": ai.last_error or "تعذّر تحليل الصورة"})
     return ok({"analysis": "", "error": "لا يوجد مزوّد AI مهيأ"})
 
 

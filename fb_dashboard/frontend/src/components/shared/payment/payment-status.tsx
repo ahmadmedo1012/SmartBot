@@ -63,7 +63,7 @@ export function WaitingScreen({ provider, freePlan, headingRef }: WaitingScreenP
           <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75" />
           <span className="relative rounded-full size-2 bg-primary" />
         </span>
-        <span className="text-2xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {freePlan
             ? "بانتظار موافقة الإدارة"
             : provider === "liyana"
@@ -76,7 +76,7 @@ export function WaitingScreen({ provider, freePlan, headingRef }: WaitingScreenP
           leaves with the POST response (v14-E1 inline send) and SSE/poll are
           live, so "close the window and come back" is now a safe promise
           instead of the old silent limbo the first customer hit. */}
-      <p className="text-2xs text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
+      <p className="text-xs text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
         سيصل إشعار للمسؤول فوراً — يمكنك إغلاق النافذة والعودة لاحقاً، أو انتظار الموافقة هنا
       </p>
     </div>

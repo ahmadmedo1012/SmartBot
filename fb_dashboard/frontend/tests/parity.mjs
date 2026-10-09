@@ -1104,6 +1104,110 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && !rawInput.includes('text-destructive"');
   if (inkOk) pass += 1;
   else fails.push('r131-F7b -ink: PageHeader status chips + Input state icons/error text ride the AA -ink tier');
+
+  // ── §r133 — the Finest Details wave (A5 S1-S6 + A9/A10/A12/A13 + F4/G4) ──
+  // Money-path de-glow tail (A5 S1): the PlanSelector port flattened to the
+  // SM r128-F5 twins — hairline border + border-color-only hover (no
+  // border-2/shadow-xl), flat saffron badge, flat pastel icon chips, and
+  // the pricing ribbon is a flat bg-primary pill (no gradient/shadow-lg).
+  const rawPlanSel = nc(readFileSync(new URL('../src/app/subscribe/PlanSelector.tsx', import.meta.url), 'utf8'));
+  const rawPricing = nc(readFileSync(new URL('../src/app/pricing/page.tsx', import.meta.url), 'utf8'));
+  const planFlatOk = rawPlanSel.includes('rounded-2xl border p-5')
+    && rawPlanSel.includes('transition-[border-color] duration-(--t-base) hover:border-accent-foreground/30')
+    && rawPlanSel.includes('rounded-full bg-[var(--c-saffron)] px-2.5 py-0.5 text-3xs font-bold text-espresso')
+    && rawPlanSel.includes('size-10 rounded-xl flex items-center justify-center mb-3 shrink-0')
+    && rawPlanSel.includes('bg-[var(--c-saffron)]') // wide hairline = flat saffron rule
+    && !rawPlanSel.includes('bg-gradient-to-br')
+    && !rawPlanSel.includes('hover:shadow-xl')
+    && rawPricing.includes('"bg-primary text-primary-foreground text-3xs font-bold px-4 py-1.5 rounded-b-xl')
+    && !rawPricing.includes('from-primary to-primary/80 text-primary-foreground text-3xs');
+  if (planFlatOk) pass += 1;
+  else fails.push('r133 A5-S1: money-path plan surfaces ride the SM flat twins (hairline card / flat saffron badge / flat chips / flat pricing ribbon)');
+
+  // Raw-<a> closure (A5 S4 + A13 S-04): the landing hero secondary CTA is a
+  // next/link; the ONLY raw internal <a> left in src is global-error's
+  // documented self-contained boundary (guarded by its own eslint-disable).
+  const rawLanding = nc(readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8'));
+  /* global-error is read RAW (no comment stripping) — the eslint-disable
+     directive that guards the deliberate raw <a> lives inside a JSX comment
+     and must survive the pin. */
+  const rawGlobalErr = readFileSync(new URL('../src/app/global-error.tsx', import.meta.url), 'utf8');
+  const linkOk = rawLanding.includes('<Link href="/demo" className="ln-btn-ghost">')
+    && (nc(rawGlobalErr).match(/<a href="\/">/g) || []).length === 1
+    && rawGlobalErr.includes('eslint-disable-next-line @next/next/no-html-link-for-pages');
+  if (linkOk) pass += 1;
+  else fails.push('r133 A5-S4: hero CTA = Link; global-error keeps exactly the one documented raw <a>');
+
+  // Error-state family last mile (A5 S5): messages' conversations column and
+  // the sequences subscribers drawer ride .state state-danger + role=alert.
+  const rawMessages = nc(readFileSync(new URL('../src/app/dashboard/messages/page.tsx', import.meta.url), 'utf8'));
+  const rawSeq2 = nc(readFileSync(new URL('../src/app/dashboard/sequences/page.tsx', import.meta.url), 'utf8'));
+  const errFamilyOk = rawMessages.includes('state state-danger py-8" role="alert"')
+    && rawSeq2.includes('state state-danger py-16" role="alert"');
+  if (errFamilyOk) pass += 1;
+  else fails.push('r133 A5-S5: messages:845 + sequences drawer ride the canonical .state state-danger error family');
+
+  // Editable-list key hygiene (A13 S-01): the sequences step editor keys on
+  // the local stable draft key (st.key), never the index.
+  if (rawSeq2.includes('<div key={st.key}') && rawSeq2.includes('key: `step-${++stepKeySeq}`')) pass += 1;
+  else fails.push('r133 A13-S01: sequence steps key on the stable draft key (minted in stepDraft/load), not the index');
+
+  // Microcopy canon (A9 V1/V2 + R5/R6): تعذّر (shadda) everywhere user-facing
+  // on the money path; فشل banned; the wizard hint rides «…» guillemets.
+  const rawBill2 = nc(readFileSync(new URL('../src/app/dashboard/billing/page.tsx', import.meta.url), 'utf8'));
+  const rawPayIdx = nc(readFileSync(new URL('../src/components/shared/payment/index.tsx', import.meta.url), 'utf8'));
+  const rawCsrf = nc(readFileSync(new URL('../src/lib/csrf-client.ts', import.meta.url), 'utf8'));
+  const rawWizard = nc(readFileSync(new URL('../src/app/onboarding/OnboardingWizard.tsx', import.meta.url), 'utf8'));
+  const verbOk = rawBill2.includes('تعذّر تحميل الرصيد') && rawBill2.includes('تعذّر إرسال طلب الترقية')
+    && rawPayIdx.includes('تعذّر إرسال طلب الدفع') && rawCsrf.includes('تعذّر الطلب (')
+    && rawWizard.includes('«اقترح رداً»')
+    && !rawBill2.includes('فشل') && !rawPayIdx.includes('فشل') && !rawCsrf.includes('فشل');
+  if (verbOk) pass += 1;
+  else fails.push('r133 A9: money-path copy rides تعذّر (shadda), zero فشل, «…» guillemets in the wizard hint');
+
+  // Phone normalization twin (A12 S10/R10/R12): the SO normalizeLibyanPhone
+  // twin exists and the two payment paths normalize before submit.
+  const rawPhone = nc(readFileSync(new URL('../src/lib/phone.ts', import.meta.url), 'utf8'));
+  const phoneOk = rawPhone.includes('export function normalizeLibyanPhone')
+    && rawPayIdx.includes('normalizeLibyanPhone(phone)') && !rawPayIdx.includes('/^09\\d{8}$/')
+    && rawBill2.includes('normalizeLibyanPhone(phone)') && !rawBill2.includes('/^09\\d{8}$/');
+  if (phoneOk) pass += 1;
+  else fails.push('r133 A12-S10: +218/00218/Eastern-digit input normalizes to 09XXXXXXXX on both payment paths (regex guards retired)');
+
+  // og:locale = ar_AR (A12 S13/R11) — Facebook only recognizes ar_AR.
+  const rawLayout2 = nc(readFileSync(new URL('../src/app/layout.tsx', import.meta.url), 'utf8'));
+  if (rawLayout2.includes('locale: "ar_AR"')) pass += 1;
+  else fails.push('r133 A12-S13/R11: og:locale must be ar_AR (ar_LY is dropped by FB scrapers)');
+
+  // Billing upgrade validation (A5 S2) + useMe doctrine (N2): inline
+  // per-field errors + focus-first-invalid on the money dialog; the inline
+  // /api/me rider is retired onto the shared hook.
+  const s2Ok = rawBill2.includes('focusFirstInvalidField') && rawBill2.includes('error={fieldErrors.phone}')
+    && rawBill2.includes('const { data: me } = useMe()') && !rawBill2.includes('"/api/me"');
+  if (s2Ok) pass += 1;
+  else fails.push('r133 A5-S2/N2: billing upgrade dialog = support/wizard validation recipe; me query rides useMe()');
+
+  // 12px readability floor, worst sites (A5 S3): the money-history timestamp
+  // and the leads first-seen/last-contact dates ride text-xs (content tier).
+  const rawLeads = nc(readFileSync(new URL('../src/app/dashboard/leads/page.tsx', import.meta.url), 'utf8'));
+  const floorOk = rawBill2.includes('text-xs text-muted-foreground">{formatDate(p.created_at)}')
+    && rawLeads.includes('text-xs">أول ظهور:') && rawLeads.includes('text-xs">آخر تواصل:')
+    && !rawLeads.includes('text-3xs');
+  if (floorOk) pass += 1;
+  else fails.push('r133 A5-S3: content-bearing micro text rides the 12px floor (billing history dates, leads dates)');
+
+  // Micro-interaction canon (A10): autofill/caret theming ported, the
+  // default-easing bridge, off-register presses retired, input hover border.
+  const rawGlobals = nc(readFileSync(new URL('../src/app/globals.css', import.meta.url), 'utf8'));
+  const rawStepInd = nc(readFileSync(new URL('../src/app/subscribe/StepIndicator.tsx', import.meta.url), 'utf8'));
+  const rawTgCfg = nc(readFileSync(new URL('../src/app/admin/telegram/TelegramConfigSection.tsx', import.meta.url), 'utf8'));
+  const microOk = rawGlobals.includes('input:-webkit-autofill') && rawGlobals.includes('caret-color: var(--primary)')
+    && rawGlobals.includes('--default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1)')
+    && rawInput.includes('hover:not-aria-invalid:border-foreground/25')
+    && rawStepInd.includes('active:scale-[0.97]') && rawTgCfg.includes('active:scale-[0.97]')
+    && !rawStepInd.includes('active:scale-[0.94]') && !rawTgCfg.includes('active:scale-90');
+  if (microOk) pass += 1;
+  else fails.push('r133 A10: autofill/caret + easing bridge + input hover + canonical 0.97 presses (0.94/0.90 retired)');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

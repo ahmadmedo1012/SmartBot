@@ -29,7 +29,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
-    type: "website", locale: "ar_LY", siteName: "SmartBot", url: siteUrl,
+    /* r133 (A12 S13, R11): ar_AR — the only Arabic locale Facebook's
+       scrapers recognize (SL seo.ts reference; ar_LY is dropped). */
+    type: "website", locale: "ar_AR", siteName: "SmartBot", url: siteUrl,
     title: "SmartBot - منصة إدارة فيسبوك الذكية",
     description: "أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك",
     images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: "SmartBot — منصة إدارة فيسبوك الذكية" }],

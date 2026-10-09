@@ -196,19 +196,19 @@ describe("مؤشر حالة الذكاء الاصطناعي", () => {
   })
 })
 
-describe("فشل تحميل السلوك (GET)", () => {
+describe("تعذّر تحميل السلوك (GET)", () => {
   it("بطاقة خطأ عربية مع زر إعادة — والقواعد تستمر أسفلها", async () => {
     const api = stubFetch({
       "GET /api/rules": () => jsonRes({ success: true, data: [] }),
-      "GET /api/bot/behavior": () => jsonRes({ detail: "تعذر قراءة إعدادات سلوك البوت" }, 500),
+      "GET /api/bot/behavior": () => jsonRes({ detail: "تعذّر قراءة إعدادات سلوك البوت" }, 500),
     })
     renderAutoReply()
 
     /* the query retries once (retry: 1) with TanStack's ~1s backoff — the
        default 1s findByText timeout races it, so give the settle room */
-    expect(await screen.findByText("فشل تحميل سلوك البوت", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText("تعذّر تحميل سلوك البوت", {}, { timeout: 4000 })).toBeInTheDocument()
     // the backend's Arabic detail surfaces verbatim (ApiError contract)
-    expect(screen.getByText("تعذر قراءة إعدادات سلوك البوت")).toBeInTheDocument()
+    expect(screen.getByText("تعذّر قراءة إعدادات سلوك البوت")).toBeInTheDocument()
 
     // the rules section is independent: its own data loaded fine
     expect(await screen.findByText("لا توجد قواعد رد تلقائي")).toBeInTheDocument()

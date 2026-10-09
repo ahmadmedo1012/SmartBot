@@ -53,7 +53,7 @@ async def test_facebook_test_connection_fixed_arabic_error(v10_seed, monkeypatch
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert data["connected"] is False
-    assert data["error"] == "فشل الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"
+    assert data["error"] == "تعذّر الاتصال بفيسبوك — تحقق من رمز الوصول ومعرف الصفحة"
     # لا أثر للنص الإنجليزي في أي مكان من الحمولة (وليس detail فقط)
     assert "English raw error" not in r.text
     assert "Access token does not have permission" not in r.text
@@ -80,7 +80,7 @@ async def test_facebook_settings_webhook_fixed_arabic_error(v10_seed, monkeypatc
     data = r.json()["data"]
     assert data["ok"] is True
     assert data["webhook"] == {
-        "error": "تعذر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"}
+        "error": "تعذّر تفعيل الويبهوك — راجع صلاحيات التطبيق في developers.facebook.com ثم أعد الربط"}
     assert "Service temporarily unavailable" not in r.text
     assert "Graph returned" not in r.text
 
@@ -107,7 +107,7 @@ async def test_onboarding_test_connection_fixed_arabic_error(v10_seed, monkeypat
     assert r.status_code == 200, r.text
     data = r.json()["data"]
     assert data["connected"] is False
-    assert data["error"] == "تعذر الاتصال بفيسبوك — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"
+    assert data["error"] == "تعذّر الاتصال بفيسبوك — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"
     assert "All connection attempts failed" not in r.text
     assert "English network error" not in r.text
 

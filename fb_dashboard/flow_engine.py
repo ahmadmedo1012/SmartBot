@@ -384,7 +384,10 @@ class FlowEngine:
                     try:
                         await session.commit()
                     except Exception:
-                        pass
+                        # r133-A6 (b): resume state not persisted — the next
+                        # resume may replay this DELAY node.
+                        log.warning("flow delay state persist failed (exec=%s)",
+                                    execution_id, exc_info=True)
                 log.info(f"DELAY {node_id}: scheduled {amount} {unit} ({total_sec}s)")
                 return {"action": "scheduled", "node_id": node_id, "seconds": total_sec}
             else:

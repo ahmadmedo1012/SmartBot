@@ -155,7 +155,7 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
         # hostnames, page ids and partial URLs. Generic Arabic surface; the
         # traceback stays in the server log.
         log.exception("dashboard bundle: connection probe failed (tenant %s)", _tid)
-        connection_error = "تعذر التحقق من اتصال فيسبوك — حاول تحديث الصفحة"
+        connection_error = "تعذّر التحقق من اتصال فيسبوك — حاول تحديث الصفحة"
 
     # v4 §3.7 — honest fallback: serve the stored connect-time/heartbeat
     # value; when nothing is stored yet, say so instead of a fake 0+healthy.
@@ -293,7 +293,7 @@ async def dashboard_bundle(db=Depends(get_db), current_user: User = Depends(get_
         return ok(payload)
     except Exception:
         log.exception("dashboard_bundle error")
-        raise HTTPException(status_code=500, detail="تعذر حساب إحصاءات لوحة البيانات — حاول لاحقاً") from None
+        raise HTTPException(status_code=500, detail="تعذّر حساب إحصاءات لوحة البيانات — حاول لاحقاً") from None
 
 
 # v12-E2.8: GET /api/stats + GET /api/stats/hourly REMOVED — dead legacy

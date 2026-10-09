@@ -101,7 +101,7 @@ export default function AutoReplyPage() {
     queryKey: RULES_KEY,
     queryFn: async () => {
       const res = await apiFetch("/api/rules")
-      if (!res.ok) throw new Error(`فشل تحميل القواعد (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل القواعد (${res.status})`)
       return unwrapApi<ReplyRule[]>(res)
     },
     refetchInterval,
@@ -126,7 +126,7 @@ export default function AutoReplyPage() {
         }),
       }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rules"] }); setShowForm(false); setName(""); setKeyword(""); setReplyText(""); setPriority("50"); brandedToast.success("تم إنشاء القاعدة") },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الإنشاء"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الإنشاء"),
   })
 
   const toggleMut = useMutation({
@@ -156,7 +156,7 @@ export default function AutoReplyPage() {
       setName(""); setKeyword(""); setReplyText(""); setPriority("50")
       brandedToast.success("تم حفظ تعديلات القاعدة")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل حفظ التعديلات"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر حفظ التعديلات"),
   })
 
   const deleteMut = useMutation({
@@ -182,7 +182,7 @@ export default function AutoReplyPage() {
     queryKey: ["bot-behavior"],
     queryFn: async () => {
       const res = await apiFetch("/api/bot/behavior")
-      if (!res.ok) throw new Error(`فشل تحميل سلوك البوت (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل سلوك البوت (${res.status})`)
       return unwrapApi<BotBehavior>(res)
     },
     staleTime: 30000,
@@ -207,7 +207,7 @@ export default function AutoReplyPage() {
     },
     onError: (e: Error, _patch: BotBehaviorPatch, ctx) => {
       if (ctx?.prev) queryClient.setQueryData<BotBehavior>(["bot-behavior"], ctx.prev)
-      brandedToast.error(e.message || "فشل حفظ سلوك البوت")
+      brandedToast.error(e.message || "تعذّر حفظ سلوك البوت")
     },
   })
 
@@ -226,7 +226,10 @@ export default function AutoReplyPage() {
        ثم نعتبر القيمة الخادمية آخر قيمة محفوظة. */
     if (toneInput === lastSavedTone.current) setToneInput(serverTone)
     lastSavedTone.current = serverTone
-  }, [behavior?.ai_tone])
+    /* r133 (eslint adoption): toneInput joins the deps — the guard above
+       short-circuits while the user types (serverTone === lastSavedTone),
+       so the sync still only fires on real server arrivals. */
+  }, [behavior?.ai_tone, toneInput])
 
   /* v23: تنظيف مؤقّت الـdebounce عند مغادرة الصفحة حتى لا يطلق PUT يتيماً. */
   useEffect(
@@ -301,8 +304,8 @@ export default function AutoReplyPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل سلوك البوت</h2>
-            <p className="state-desc">{(behaviorErrorObj as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <h2 className="state-title">تعذّر تحميل سلوك البوت</h2>
+            <p className="state-desc">{(behaviorErrorObj as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => refetchBehavior()}>
               <RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة
             </Button>
@@ -471,8 +474,8 @@ export default function AutoReplyPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل القواعد</h2>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <h2 className="state-title">تعذّر تحميل القواعد</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : rules.length === 0 ? (
@@ -496,17 +499,17 @@ export default function AutoReplyPage() {
                           {k}
                         </code>
                       ))}
-                      <span className={`inline-flex items-center gap-1 text-2xs font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success-ink"}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs font-medium ${r.enabled === false ? "text-muted-foreground" : "text-success-ink"}`}>
                         <span className={`size-1.5 rounded-full ${r.enabled === false ? "bg-muted-foreground" : "bg-success"}`} />
                         {r.enabled === false ? "متوقف" : "نشط"}
                       </span>
-                      <span className="text-3xs text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
+                      <span className="text-xs text-muted-foreground" title="الأولوية — الأقل يُفحص أولاً">
                         أولوية {r.priority ?? 999}
                       </span>
                       {/* r127-F5a: replies_count is optional — `?? 0` (unreachable
                           behind the guard, but proves the type for countPhrase). */}
                       {(r.replies_count ?? 0) > 0 && (
-                        <span className="text-3xs text-muted-foreground">{countPhrase(r.replies_count ?? 0, "رد", "ردين", "ردود")}</span>
+                        <span className="text-xs text-muted-foreground">{countPhrase(r.replies_count ?? 0, "رد", "ردين", "ردود")}</span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{r.reply_template}</p>

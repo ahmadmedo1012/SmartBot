@@ -207,5 +207,6 @@ def _parse_json(text: str) -> dict:
                 result = json.loads(m.group())
                 return _validate_with_schema(result) if result.get("action") else result
             except json.JSONDecodeError:
-                pass
+                # r133-A6 (b)-lite: «آسف ما فهمتش» below is the designed fallback.
+                log.debug("agent action JSON extract failed", exc_info=True)
         return {"action": "unknown", "params": {}, "response_ar": "آسف ما فهمتش", "confidence": 0.0}

@@ -19,7 +19,7 @@ import base64
 import html
 import logging
 import re
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, unquote_to_bytes, urlsplit
@@ -29,6 +29,37 @@ from ai_service import _assert_safe_image_url
 from sqlalchemy import Date, cast, desc, func, select
 
 log = logging.getLogger("fb-pdf-reports")
+
+# r133-A12 S5: Arabic month names for user-facing PDF dates — an Arabic
+# report must not ship "September 2026" (English %B) or a raw ISO/UTC
+# stamp. Twin of the frontend ARABIC_MONTHS map (format.ts:41).
+_AR_MONTHS = ("يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+              "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر")
+
+
+def _tripoli_now() -> datetime:
+    """utcnow() rendered in Africa/Tripoli (fleet rulings R8/R11).
+
+    Libya is UTC+2 year-round (no DST since 2013 — madarek dates.ts model);
+    the fixed-offset fallback keeps the stamp honest on serverless images
+    whose zoneinfo carries no tzdata bundle."""
+    now = utcnow().replace(tzinfo=UTC)
+    try:
+        from zoneinfo import ZoneInfo
+        return now.astimezone(ZoneInfo("Africa/Tripoli"))
+    except Exception:
+        return now.astimezone(timezone(timedelta(hours=2)))
+
+
+def _ar_month_year(dt: datetime) -> str:
+    """«سبتمبر 2026» — the frontend formatMonth twin (Western digits)."""
+    return f"{_AR_MONTHS[dt.month - 1]} {dt.year}"
+
+
+def _ar_date_time(dt: datetime) -> str:
+    """«8 أكتوبر 2026 16:30» — the frontend formatDate twin (24h)."""
+    return f"{dt.day} {_AR_MONTHS[dt.month - 1]} {dt.year} {dt:%H:%M}"
+
 
 # ── v26-F4 (P4-A4 §2 P2): bundled IBM Plex Sans Arabic ────────────────────
 # The README always claimed Plex on every surface; the engine rendered
@@ -81,7 +112,7 @@ except Exception as exc:  # v22-F1 (W1-D9): the probe must survive ANY import fa
         from fpdf import FPDF  # noqa: F401 — fallback availability probe
         _FPDF = True
     except Exception:
-        pass
+        pass  # r133-A6 (a): absence degrades honestly — the weasyprint twin at :78 already logged
 
 
 # v16-E1 (D2-LEAD C — SSRF lockdown): WeasyPrint used to resolve <img src=…>
@@ -117,7 +148,7 @@ def _data_only_url_fetcher(url: str):
                 with open(resolved, "rb") as fh:
                     return URLFetcherResponse(url, fh.read(), {"Content-Type": "font/ttf"})
         except (OSError, ValueError):
-            pass
+            pass  # r133-A6 (a): falls through to the explicit raise ValueError below
         raise ValueError(f"PDF renderer refuses non-bundled file URL: {url[:80]!r}")
     if not low.startswith("data:"):
         raise ValueError(f"PDF renderer refuses non-data URL: {url[:80]!r}")
@@ -392,7 +423,7 @@ class PdfReportsEngine:
         return f'<div class="kpi"><div class="val">{html.escape(str(value))}</div><div class="lbl">{html.escape(str(label))}</div></div>'
 
     def _footer_html(self, brand: BrandingConfig) -> str:
-        return f'<div class="footer">{html.escape(str(brand.company_name))} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {utcnow().strftime("%Y-%m-%d %H:%M")} UTC</div>'
+        return f'<div class="footer">{html.escape(str(brand.company_name))} | <span class="pg">صفحة </span> | تم الإنشاء بواسطة SmartBot في {_ar_date_time(_tripoli_now())} بتوقيت ليبيا</div>'
 
     def _build_html(self, body_parts: list[str], brand: BrandingConfig, title: str, subtitle: str = "") -> str:
         parts = [
@@ -759,7 +790,7 @@ class PdfReportsEngine:
             sentiment_trend = await self._get_sentiment_trend(days, session, tenant_id)
             top_commenters = await self._get_top_commenters(days, 10, session, tenant_id)
             subscriber_growth = await self._get_subscriber_growth(days, session, tenant_id)
-            period = f"{utcnow().strftime('%B %Y')} | آخر {days} يوم"
+            period = f"{_ar_month_year(_tripoli_now())} | آخر {days} يوم"
             html = self._build_monthly_html(overview, daily_trend, top_rules, sentiment_trend,
                                             top_commenters, subscriber_growth, brand, days, period)
         return await self._render_async(html)

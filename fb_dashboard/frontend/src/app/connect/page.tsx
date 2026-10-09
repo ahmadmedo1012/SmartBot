@@ -123,8 +123,8 @@ export default function ConnectPage() {
         brandedToast.success(`تم الاتصال — متابعو الصفحة: ${formatNumber(td.fan_count ?? 0)}`)
       } else {
         setStatus("idle")
-        setErrorMsg(td.error || "فشل الاتصال — تحقق من رمز الوصول والصفحة")
-        brandedToast.error(td.error || "فشل الاتصال")
+        setErrorMsg(td.error || "تعذّر الاتصال — تحقق من رمز الوصول والصفحة")
+        brandedToast.error(td.error || "تعذّر الاتصال")
       }
     } catch (e) {
       setStatus("idle")
@@ -206,7 +206,7 @@ export default function ConnectPage() {
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <div className="leading-relaxed">
                   <p className="font-medium">تعذّر الاتصال بصفحة فيسبوك — أعد الربط</p>
-                  <p className="mt-1 text-2xs text-destructive-ink/85">
+                  <p className="mt-1 text-xs text-destructive-ink/85">
                     {existing.token_check.detail || "الرمز المخزّن لا يعمل مع بيانات الصفحة."}
                   </p>
                   <Button size="sm" variant="outline" className="mt-2" onClick={() => setExisting({ ...existing, connected: false })}>
@@ -224,7 +224,7 @@ export default function ConnectPage() {
                   <button
                     dir="ltr"
                     aria-label="نسخ عنوان الويبهوك"
-                    className="flex items-center gap-1.5 font-mono text-2xs text-foreground hover:text-accent-foreground transition-colors"
+                    className="flex items-center gap-1.5 font-mono text-xs text-foreground hover:text-accent-foreground transition-colors"
                     onClick={() => { navigator.clipboard?.writeText(wh.webhook_url ?? ""); brandedToast.success("تم نسخ عنوان الويبهوك") }}
                   >
                     {wh.webhook_url} <Copy className="size-3" aria-hidden="true" />
@@ -253,7 +253,7 @@ export default function ConnectPage() {
                   </span>
                 </div>
                 {(!secretOk || !messagesOk || !feedOk) && (
-                  <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-2xs leading-relaxed text-foreground/80">
+                  <div className="rounded-md bg-accent-foreground/10 border border-accent-foreground/20 p-2.5 text-xs leading-relaxed text-foreground/80">
                     سجّل في <span className="font-medium">developers.facebook.com ← تطبيقك ← Webhooks ← Page</span> بالعنوان أعلاه،
                     واشترك في حقلي <span className="font-medium" dir="ltr">feed</span> و<span className="font-medium" dir="ltr">messages</span>.
                     بدون ذلك لا تصل الرسائل/التعليقات لحظياً ولن يرد البوت تلقائياً.
@@ -329,17 +329,17 @@ export default function ConnectPage() {
             <CardContent className="space-y-6">
               {/* Info badges */}
               <div className="grid grid-cols-3 gap-2.5">
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-[border-color,background-color] duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <MessageCircle className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
-                  <span className="text-2xs font-medium text-foreground/80">ردود تلقائية</span>
+                  <span className="text-xs font-medium text-foreground/80">ردود تلقائية</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-[border-color,background-color] duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <Zap className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
-                  <span className="text-2xs font-medium text-foreground/80">بوت ذكي</span>
+                  <span className="text-xs font-medium text-foreground/80">بوت ذكي</span>
                 </div>
-                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-all duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
+                <div className="group flex flex-col items-center gap-1.5 rounded-xl border border-accent-foreground/20 bg-accent-foreground/5 p-3 text-center transition-[border-color,background-color] duration-(--t-fast) hover:border-accent-foreground/40 hover:bg-accent-foreground/10">
                   <Shield className="h-5 w-5 text-accent-foreground transition-transform duration-(--t-fast) group-hover:scale-110" />
-                  <span className="text-2xs font-medium text-foreground/80">بيانات مشفرة</span>
+                  <span className="text-xs font-medium text-foreground/80">بيانات مشفرة</span>
                 </div>
               </div>
 

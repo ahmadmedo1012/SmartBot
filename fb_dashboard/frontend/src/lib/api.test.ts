@@ -66,8 +66,8 @@ describe("ApiError message precedence", () => {
       "انتهت الجلسة، سجّل الدخول من جديد",
     )
     // non-string detail must not leak "undefined" into the message
-    expect(new ApiError(500, { detail: 123 }).message).toBe("فشل الطلب (500)")
-    expect(new ApiError(503, null).message).toBe("فشل الطلب (503)")
+    expect(new ApiError(500, { detail: 123 }).message).toBe("تعذّر الطلب (500)")
+    expect(new ApiError(503, null).message).toBe("تعذّر الطلب (503)")
   })
 })
 
@@ -116,6 +116,6 @@ describe("apiFetch", () => {
     const err = await rejection(apiFetch("/api/dashboard"))
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(401)
-    expect((err as ApiError).message).toBe("فشل الطلب (401)")
+    expect((err as ApiError).message).toBe("تعذّر الطلب (401)")
   })
 })

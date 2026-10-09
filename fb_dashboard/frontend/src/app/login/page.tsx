@@ -111,7 +111,9 @@ function LoginForm() {
 
   useEffect(() => {
     apiFetch("/api/me")
-      .then(unwrapApi)
+      /* r133 (eslint adoption): explicit unwrapApi type — the any default
+         is gone; landingFor reads role/tenant_id (v10-B5 shape). */
+      .then(unwrapApi<{ user?: { role?: string; tenant_id?: number } }>)
       .then(d => {
         if (d?.user) {
           window.location.replace(landingFor(d.user, rawRedirect))
@@ -120,7 +122,10 @@ function LoginForm() {
         }
       })
       .catch(() => setCheckingAuth(false))
-  }, [])
+    /* r133 (eslint adoption): rawRedirect joins the deps — it comes from
+       useSearchParams (stable unless the URL's ?redirect= changes, in
+       which case re-checking against the new destination is correct). */
+  }, [rawRedirect])
 
   if (checkingAuth) {
     return (
@@ -154,7 +159,7 @@ function LoginForm() {
       if (!res.ok) {
         // v10-B7 (G2-07): inline alert only — the error toast was a second,
         // simultaneous copy of the same message on /login
-        setFormError(data.detail || "فشل تسجيل الدخول")
+        setFormError(data.detail || "تعذّر تسجيل الدخول")
         return
       }
       // apiFetch throws ApiError on non-2xx — surface the backend's Arabic
@@ -165,7 +170,7 @@ function LoginForm() {
       setTimeout(() => window.location.replace(target), 150)
     } catch (e) {
       const msg = e instanceof ApiError
-        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "فشل تسجيل الدخول")
+        ? ((e.body as ApiErrorBody)?.detail || (e.body as ApiErrorBody)?.error || "تعذّر تسجيل الدخول")
         : "خطأ في الاتصال بالخادم"
       // v10-B7 (G2-07): one message, one place — the inline role=alert above
       // the submit button (the parallel error toast doubled it visually)
@@ -231,7 +236,7 @@ function LoginForm() {
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم أو البريد الإلكتروني</Label>
-              <div className="rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" dir="auto" placeholder="مثال: ahmed أو ahmed@example.com"
                   value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus
                   aria-invalid={formError ? true : undefined}
@@ -242,7 +247,7 @@ function LoginForm() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
-              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-all duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
+              <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" dir="auto"
                   placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required
                   aria-invalid={formError ? true : undefined}

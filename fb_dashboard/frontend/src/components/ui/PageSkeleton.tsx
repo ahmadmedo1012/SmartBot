@@ -23,8 +23,9 @@ function Bar({ className }: { className?: string }) {
   return <div className={cn("skeleton", className)} aria-hidden="true" />
 }
 
-const VARIANTS = ["page", "list", "cards", "form", "article"] as const
-export type PageSkeletonVariant = (typeof VARIANTS)[number]
+/* r133 (eslint adoption): the runtime array was only ever read as a type —
+   the union literal is the whole contract. */
+export type PageSkeletonVariant = "page" | "list" | "cards" | "form" | "article"
 
 export function PageSkeleton({
   variant = "page",

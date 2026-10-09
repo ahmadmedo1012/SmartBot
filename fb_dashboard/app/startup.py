@@ -286,7 +286,9 @@ async def lifespan(app: FastAPI):
                         {"event": "bot_health", "data": data}, ensure_ascii=False, default=str
                     ))
                 except Exception:
-                    pass
+                    # r133-A6 (a): a dead socket mid-broadcast is expected —
+                    # the remaining connections still get the health push.
+                    log.debug("bot_health WS send failed (dead socket expected)", exc_info=True)
         event_bus.subscribe("bot_health", _ws_bridge_global)
 
         # Health push background task (every 30s)

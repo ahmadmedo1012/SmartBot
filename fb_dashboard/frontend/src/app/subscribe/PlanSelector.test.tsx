@@ -13,7 +13,7 @@
  * balanced 2-up/full-width layout below that. ≤4 plans keep a plain
  * balanced grid with no wide card.
  */
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { PlanSelector } from "./PlanSelector"

@@ -100,7 +100,7 @@ export default function SupportPage() {
     queryKey: ["support-tickets"],
     queryFn: async () => {
       const res = await apiFetch("/api/support/tickets")
-      if (!res.ok) throw new Error(`فشل تحميل التذاكر (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل التذاكر (${res.status})`)
       // v10-D2: backend wraps the list as {items, total} inside the envelope
       const payload = await unwrapApi<{ items: SupportTicket[]; total: number }>(res)
       return payload.items
@@ -115,7 +115,7 @@ export default function SupportPage() {
     queryKey: ["support-ticket", openTicketId],
     queryFn: async () => {
       const res = await apiFetch(`/api/support/tickets/${openTicketId}`)
-      if (!res.ok) throw new Error("فشل تحميل التذكرة")
+      if (!res.ok) throw new Error("تعذّر تحميل التذكرة")
       return unwrapApi<SupportTicket>(res)
     },
     enabled: openTicketId !== null,
@@ -128,7 +128,7 @@ export default function SupportPage() {
         body: JSON.stringify({ message }),
       })
       const d = await res.json()
-      if (!res.ok || !d?.success) throw new Error(d?.detail || "فشل إرسال الرد")
+      if (!res.ok || !d?.success) throw new Error(d?.detail || "تعذّر إرسال الرد")
       return d
     },
     onSuccess: () => {
@@ -139,7 +139,7 @@ export default function SupportPage() {
       setReplyText("")
       brandedToast.success("تم إرسال ردك")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إرسال الرد"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إرسال الرد"),
   })
   const [replyText, setReplyText] = useState("")
 
@@ -171,7 +171,7 @@ export default function SupportPage() {
       queryClient.invalidateQueries({ queryKey: ["support-tickets"] })
     },
     onError: (e: Error) => {
-      brandedToast.error(e.message || "فشل إرسال الطلب")
+      brandedToast.error(e.message || "تعذّر إرسال الطلب")
     },
   })
 
@@ -314,7 +314,7 @@ export default function SupportPage() {
                         /* v24-C1: h-11 (44px) touch target — raw radios at h-8
                             (32px) bypassed the touch floor (A1 S3 family).
                             r131-F8: rounded-sm → r-md (the control rung). */
-                        className={`h-11 rounded-md border text-xs font-medium transition-all ${
+                        className={`h-11 rounded-md border text-xs font-medium transition-[border-color,background-color,color] ${
                           form.priority === p
                             ? "border-accent-foreground bg-accent-foreground/10 text-accent-foreground"
                             : "border-border/50 text-muted-foreground hover:border-accent-foreground/30"
@@ -408,7 +408,7 @@ export default function SupportPage() {
           ) : ticketsQuery.isError ? (
             <Card>
               <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                {(ticketsQuery.error as Error)?.message || "تعذر تحميل التذاكر"}
+                {(ticketsQuery.error as Error)?.message || "تعذّر تحميل التذاكر"}
               </CardContent>
             </Card>
           ) : tickets.length === 0 ? (
@@ -468,7 +468,7 @@ export default function SupportPage() {
                       id={`ticket-thread-${t.id}`}
                       data-open={openTicketId === t.id || undefined}
                       aria-hidden={openTicketId !== t.id}
-                      className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-all duration-(--t-base)"
+                      className="grid grid-rows-[0fr] data-open:grid-rows-[1fr] transition-[grid-template-rows] duration-(--t-base)"
                     >
                       <div className="overflow-hidden">
                         {openTicketId === t.id && (
@@ -482,7 +482,7 @@ export default function SupportPage() {
                               /* v9-B11 — a failed thread load used to render an empty
                                   replies list (looked like "no replies yet") */
                               <div className="text-center py-3 space-y-2">
-                                <p className="text-xs text-muted-foreground">{(ticketDetailQuery.error as Error)?.message || "تعذر تحميل التذكرة"}</p>
+                                <p className="text-xs text-muted-foreground">{(ticketDetailQuery.error as Error)?.message || "تعذّر تحميل التذكرة"}</p>
                                 <Button size="sm" variant="outline" onClick={() => ticketDetailQuery.refetch()}>إعادة المحاولة</Button>
                               </div>
                             ) : (
@@ -497,7 +497,7 @@ export default function SupportPage() {
                                           : "bg-muted/50"
                                       }`}
                                     >
-                                      <p className="font-bold mb-1 text-3xs">
+                                      <p className="font-bold mb-1 text-xs">
                                         {r.is_admin ? "فريق الدعم" : "أنت"}
                                       </p>
                                       <p className="text-muted-foreground leading-relaxed">{r.message}</p>
@@ -537,7 +537,7 @@ export default function SupportPage() {
                                 {/* v17-E-F8 (D6 #5): التذكرة المغلقة تُعلن السبب
                                     (كانت تخفي الرد فقط بلا تفسير). */}
                                 {t.status === "closed" && (
-                                  <p className="text-2xs text-success text-center py-1" role="status">
+                                  <p className="text-xs text-success text-center py-1" role="status">
                                     هذه التذكرة مغلقة — تم حل المشكلة. أرسل طلباً جديداً إن احتجت مساعدة أخرى
                                   </p>
                                 )}

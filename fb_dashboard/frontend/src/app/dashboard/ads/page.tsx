@@ -22,7 +22,7 @@ export default function AdsPage() {
     queryKey: ["ads-accounts"],
     queryFn: async () => {
       const res = await apiFetch("/api/ads/accounts")
-      if (!res.ok) throw new Error(`فشل تحميل حسابات الإعلانات (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل حسابات الإعلانات (${res.status})`)
       return unwrapApi<AdsAccountsResponse>(res)
     },
     retry: 1,
@@ -70,8 +70,8 @@ export default function AdsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل الحسابات</h2>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال"}</p>
+            <h2 className="state-title">تعذّر تحميل الحسابات</h2>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
         ) : syncFailed && accounts.length === 0 ? (
@@ -80,9 +80,9 @@ export default function AdsPage() {
            * of broken). Say the truth + offer retry. */
           <div className="text-center py-16">
             <WifiOff className="size-12 mx-auto mb-3 text-destructive/50" />
-            <h2 className="sb-section-title mb-1">فشل الاتصال بفيسبوك</h2>
+            <h2 className="sb-section-title mb-1">تعذّر الاتصال بفيسبوك</h2>
             <p className="text-xs text-muted-foreground mb-4">
-              تعذر تحديث حساباتك الإعلانية من فيسبوك — تحقق من صلاحية رمز الوصول ثم أعد المحاولة.
+              تعذّر تحديث حساباتك الإعلانية من فيسبوك — تحقق من صلاحية رمز الوصول ثم أعد المحاولة.
             </p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" /> إعادة المحاولة</Button>
           </div>
@@ -95,9 +95,9 @@ export default function AdsPage() {
             {syncFailed && (
               /* rows ARE stored + refresh failed → serve them, but honestly
                * (v19: no silent stale data). */
-              <div className="flex items-center gap-2 text-2xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
                 <WifiOff className="size-3.5 shrink-0" />
-                <span>فشل التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
+                <span>تعذّر التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
               </div>
             )}
             {accounts.map((a) => (

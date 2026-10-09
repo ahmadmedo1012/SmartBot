@@ -82,7 +82,7 @@ export default function SubscribeContent() {
           retryTimer = setTimeout(fetchPlans, 1000)
         } else {
           setPlansFailed(true)
-          premiumToast("error", "تعذر تحميل الخطط")
+          premiumToast("error", "تعذّر تحميل الخطط")
         }
       }
     }
@@ -112,7 +112,7 @@ export default function SubscribeContent() {
       })
       .catch(() => {
         setPlansFailed(true)
-        premiumToast("error", "تعذر تحميل الخطط")
+        premiumToast("error", "تعذّر تحميل الخطط")
       })
   }, [preselectedPlan])
 

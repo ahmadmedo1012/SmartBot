@@ -37,7 +37,7 @@ export default function ReportsPage() {
     queryKey: ["analytics-dashboard"],
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/dashboard?days=30")
-      if (!res.ok) throw new Error(`فشل تحميل الإحصائيات (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل الإحصائيات (${res.status})`)
       return unwrapApi<AnalyticsDashboard>(res)
     },
     retry: 1,
@@ -47,7 +47,7 @@ export default function ReportsPage() {
     queryKey: ["analytics-top-commenters"],
     queryFn: async () => {
       const res = await apiFetch("/api/analytics/top-commenters?limit=10")
-      if (!res.ok) throw new Error(`فشل تحميل المعلقين (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل المعلقين (${res.status})`)
       return unwrapApi<TopCommenter[]>(res)
     },
     retry: 1,
@@ -60,7 +60,7 @@ export default function ReportsPage() {
     queryKey: ["reports-pdf-status"],
     queryFn: async () => {
       const res = await apiFetch("/api/reports/status")
-      if (!res.ok) throw new Error("تعذر فحص جاهزية التقارير")
+      if (!res.ok) throw new Error("تعذّر فحص جاهزية التقارير")
       return unwrapApi<{ available: boolean; engine: string }>(res)
     },
     retry: 1,
@@ -99,7 +99,7 @@ export default function ReportsPage() {
     onSuccess: (d) => {
       brandedToast.success(`تم تنزيل ${d.typeLabel}`, "افتح الملف من مجلد التنزيلات")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل توليد التقرير"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر توليد التقرير"),
   })
 
   const loading = dbLoad || tcLoad
@@ -127,8 +127,8 @@ export default function ReportsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <h2 className="state-title">فشل تحميل التقارير</h2>
-            <p className="state-desc">{(dbError as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <h2 className="state-title">تعذّر تحميل التقارير</h2>
+            <p className="state-desc">{(dbError as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => dbRefetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : (
@@ -154,7 +154,7 @@ export default function ReportsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold">تقرير PDF</p>
-                      <p className="text-3xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {pdfAvailable
                           ? "تقرير PDF جاهز للتنزيل — يعتمد على بياناتك في الفترة المحددة"
                           : `محرك التقارير غير متاح حالياً على الخادم${pdfStatus?.engine ? ` (${pdfStatus.engine})` : ""} — تواصل مع الدعم`}
@@ -213,9 +213,9 @@ export default function ReportsPage() {
                   <div>
                     <p className="text-sm font-bold">
                       {formatNumber(dashboard?.today_replies ?? 0)}
-                      <span className="text-3xs text-muted-foreground font-normal"> رد اليوم</span>
+                      <span className="text-xs text-muted-foreground font-normal"> رد اليوم</span>
                     </p>
-                    <p className="text-3xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {formatNumber(dashboard?.unique_commenters ?? 0)} معلّق فريد · {formatNumber(dashboard?.active_rules ?? 0)} قاعدة نشطة · آخر {formatNumber(dashboard?.period_days ?? 30)} يوماً
                     </p>
                   </div>
@@ -233,7 +233,7 @@ export default function ReportsPage() {
                 /* r131-F8 (A4 P1-2): pulse → .skeleton slabs. */
                 <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-3"><div className="skeleton h-6 w-48 rounded" /></CardContent></Card>)}</div>
               ) : tcErr ? (
-                <Card><CardContent className="p-4 text-center text-xs text-muted-foreground">تعذر تحميل المعلقين</CardContent></Card>
+                <Card><CardContent className="p-4 text-center text-xs text-muted-foreground">تعذّر تحميل المعلقين</CardContent></Card>
               ) : topCommenters.length === 0 ? (
                 <Card><CardContent className="p-0">
                   <EmptyState icon={MessageSquare} size="sm" title="لا توجد بيانات كافية" description="ستظهر أسماء أكثر المعلقين تفاعلاً هنا بعد وصول تعليقات على منشوراتك." />

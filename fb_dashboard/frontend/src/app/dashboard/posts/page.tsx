@@ -63,7 +63,7 @@ export default function PostsPage() {
       /* v25 (W-07): صفحة 1 بلا معامل (الافتراضي الخلفي نفسه — يبقي عقد
        * الاستهلاك الحالي)، والأعلى تحمل page صراحةً. */
       const res = await apiFetch(fbPage === 1 ? "/api/posts" : `/api/posts?page=${fbPage}`)
-      if (!res.ok) throw new Error(`فشل تحميل منشورات فيسبوك (${res.status})`)
+      if (!res.ok) throw new Error(`تعذّر تحميل منشورات فيسبوك (${res.status})`)
       return unwrapApi<PostsResponse>(res)
     },
     /* v25 (W-07): تبديل الصفحة يُبقي الصفوف السابقة معروضة (بهتة
@@ -104,7 +104,7 @@ export default function PostsPage() {
       setNewMessage("")
       brandedToast.success("تم إنشاء المنشور")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل إنشاء المنشور"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إنشاء المنشور"),
   })
 
   const publishMut = useMutation({
@@ -116,7 +116,7 @@ export default function PostsPage() {
       setConfirmPublishId(null)
       brandedToast.success("تم النشر على فيسبوك")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل النشر"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر النشر"),
   })
 
   const deleteMut = useMutation({
@@ -128,7 +128,7 @@ export default function PostsPage() {
       setConfirmDeleteId(null)
       brandedToast.success("تم حذف المنشور")
     },
-    onError: (e: Error) => brandedToast.error(e.message || "فشل الحذف"),
+    onError: (e: Error) => brandedToast.error(e.message || "تعذّر الحذف"),
   })
 
   return (
@@ -192,8 +192,8 @@ export default function PostsPage() {
               <div className="state-icon" aria-hidden="true">
                 <AlertCircle />
               </div>
-              <p className="state-title">فشل تحميل منشورات فيسبوك</p>
-              <p className="state-desc">{(fbError as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+              <p className="state-title">تعذّر تحميل منشورات فيسبوك</p>
+              <p className="state-desc">{(fbError as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
               <Button size="sm" variant="outline" onClick={() => refetchFb()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
             </div>
           ) : (
@@ -206,11 +206,11 @@ export default function PostsPage() {
                  * a failure, no banner). v21: sync_error (English diagnostic)
                  * rides as the title tooltip, never as main Arabic text. */
                 <div
-                  className="flex items-center gap-2 text-2xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2"
+                  className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2"
                   title={fbEnvelope?.sync_error || undefined}
                 >
                   <WifiOff className="size-3.5 shrink-0" />
-                  <span>فشل التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
+                  <span>تعذّر التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
                 </div>
               )}
               {fbPosts.length === 0 ? (
@@ -289,8 +289,8 @@ export default function PostsPage() {
             <div className="state-icon" aria-hidden="true">
               <AlertCircle />
             </div>
-            <p className="state-title">فشل تحميل المنشورات</p>
-            <p className="state-desc">{(error as Error)?.message || "تعذر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
+            <p className="state-title">تعذّر تحميل المنشورات</p>
+            <p className="state-desc">{(error as Error)?.message || "تعذّر الاتصال، تحقق من الإنترنت ثم أعد المحاولة"}</p>
             <Button size="sm" variant="outline" onClick={() => refetch()}><RefreshCw className="size-3" aria-hidden="true" /> إعادة المحاولة</Button>
           </div>
         ) : posts.length === 0 ? (

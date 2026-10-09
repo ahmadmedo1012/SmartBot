@@ -122,7 +122,7 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
     chat_id = str(body.get("chatId") or body.get("telegram_chat_id") or "").strip()
 
     if token and not _re.match(r'^\d{6,12}:[A-Za-z0-9_-]{30,}$', token):
-        raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA... من BotFather")
+        raise HTTPException(400, "telegram_bot_token غير صالح — الصيغة: 123456789:AA… من BotFather")
     if chat_id and not _re.match(r'^(-?\d{5,}|@[A-Za-z0-9_]{4,})$', chat_id):
         raise HTTPException(400, "telegram_chat_id غير صالح — معرف رقمي أو @قناة")
 
@@ -142,7 +142,7 @@ async def update_config(body: dict = Body(None), db=Depends(get_db),
     if body.get("events") is not None:
         raw_events = body["events"]
         if not isinstance(raw_events, list):
-            raise HTTPException(400, "الأحداث المرسلة يجب أن تكون قائمة: events = [\"new_order\", ...]")
+            raise HTTPException(400, "الأحداث المرسلة يجب أن تكون قائمة: events = [\"new_order\", …]")
         events = [str(e).strip().lower() for e in raw_events if str(e or "").strip()]
         if len(events) > _MAX_EVENTS:
             raise HTTPException(400, f"الحد الأقصى {_MAX_EVENTS} حدثاً في قائمة الأحداث المرسلة")
@@ -309,14 +309,14 @@ async def test_telegram(db=Depends(get_db), _=Depends(require_platform_admin)):
             if r is not None:
                 sent += 1
             else:
-                last_err = "فشل الإرسال — تحقق من التوكن وأن البوت بدأ محادثة مع المستلم"
+                last_err = "تعذّر الإرسال — تحقق من التوكن وأن البوت بدأ محادثة مع المستلم"
         except Exception:
             # v24-R3 (B2 M-4): was str(e)[:160] → raised verbatim in the 400
             # detail — generic Arabic surface; the traceback stays in the
             # server log (the platform admin loses nothing actionable that
             # the fixed hint below does not already say).
             log.exception("telegram test send failed")
-            last_err = "فشل الإرسال — حدث خطأ في الاتصال بتيليجرام؛ راجع سجلات الخادم"
+            last_err = "تعذّر الإرسال — حدث خطأ في الاتصال بتليجرام؛ راجع سجلات الخادم"
     if sent == 0:
-        raise HTTPException(400, last_err or "فشل الإرسال")
+        raise HTTPException(400, last_err or "تعذّر الإرسال")
     return ok({"sent": True, "recipients": sent})

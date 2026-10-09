@@ -104,7 +104,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
             raise HTTPException(400, "لا توجد صفحة فيسبوك مرتبطة بحسابك — اربط صفحتك أولاً")
         result = await fb.post_to_page(message)
         if not result:
-            raise HTTPException(400, "فشل النشر على فيسبوك")
+            raise HTTPException(400, "تعذّر النشر على فيسبوك")
         fb_post_id = result.get("id", "")
         # v22 (FIX-D): tenant attribution (was t0)
         _track_event("post_published", {"platform": "facebook"}, tenant_id=current_user._tenant_id)
@@ -116,7 +116,7 @@ async def publisher_publish(data: dict = Body(...), db=Depends(get_db),
         await engine.load_credentials(db, tenant_id=current_user._tenant_id)
         result = await engine.publish_to_platform(platform, message, image_url)
         if not result:
-            raise HTTPException(400, f"فشل النشر على {engine.get_platform_display_name(platform)}")
+            raise HTTPException(400, f"تعذّر النشر على {engine.get_platform_display_name(platform)}")
         # v22 (FIX-D): tenant attribution (was t0)
         _track_event("post_published", {"platform": platform}, tenant_id=current_user._tenant_id)
         return ok({**result, "status": "published"})

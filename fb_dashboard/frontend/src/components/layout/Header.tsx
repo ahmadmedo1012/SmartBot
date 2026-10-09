@@ -20,13 +20,16 @@ function HamburgerButton({ open, onClick }: { open: boolean; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-all duration-(--t-fast) active:scale-[0.97] active:duration-(--t-micro) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50"
+      /* r133 (A10): focus = the ONE global :focus-visible outline (the
+         private ring-2 is retired); transition narrowed to the animated
+         property (background-color), per the transition-all purge. */
+      className="lg:hidden relative size-11 rounded-lg border border-border flex items-center justify-center hover:bg-accent-foreground/20 transition-[background-color] duration-(--t-fast) active:scale-[0.97] active:duration-(--t-micro)"
       aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
     >
       <span className="relative size-3.5">
-        <span className={cn("absolute inset-x-0 top-[2px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base) origin-center", open && "rotate-45 top-[6px]")} />
-        <span className={cn("absolute inset-x-0 top-[6px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base)", open && "opacity-0")} />
-        <span className={cn("absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-foreground transition-all duration-(--t-base) origin-center", open && "-rotate-45 bottom-[6px]")} />
+        <span className={cn("absolute inset-x-0 top-[2px] h-[2px] rounded-full bg-foreground transition-[transform,opacity,top,bottom] duration-(--t-base) origin-center", open && "rotate-45 top-[6px]")} />
+        <span className={cn("absolute inset-x-0 top-[6px] h-[2px] rounded-full bg-foreground transition-[transform,opacity,top,bottom] duration-(--t-base)", open && "opacity-0")} />
+        <span className={cn("absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-foreground transition-[transform,opacity,top,bottom] duration-(--t-base) origin-center", open && "-rotate-45 bottom-[6px]")} />
       </span>
     </button>
   )
@@ -70,7 +73,10 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
     }
     panel.addEventListener("keydown", handleKeyDown)
     return () => panel.removeEventListener("keydown", handleKeyDown)
-  }, [open])
+    /* r133 (eslint adoption): onClose joins the deps — re-attaching the
+       focus-trap listener when the parent's callback identity changes is
+       free and keeps the closure honest. */
+  }, [open, onClose])
 
   const isActive = (href: string) =>
     href === "/login" ? pathname === "/login" : pathname.startsWith(href.replace(/:.*/, ""))
@@ -99,7 +105,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         aria-hidden={!open}
         className={cn(
           "fixed inset-x-0 top-0 z-(--z-sheet) mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
-          "transition-all duration-(--t-base) ease-out",
+          "transition-[opacity,transform] duration-(--t-base) ease-out",
           open ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
         )}
         style={{ transformOrigin: "top center" }}
@@ -112,7 +118,7 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
               tracking guard (globals.css) zeroes every tracking-* on
               non-mono text, so the class was inert dead weight. */}
           <span className="text-sm font-medium text-foreground/80">SmartBot</span>
-          <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-[0.97] active:duration-(--t-micro) outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/50" aria-label="إغلاق" tabIndex={open ? 0 : -1}><X className="size-4" /></button>
+          <button onClick={onClose} className="size-11 rounded-lg border border-border/10 flex items-center justify-center hover:bg-accent-foreground/20 transition-colors active:scale-[0.97] active:duration-(--t-micro)" aria-label="إغلاق" tabIndex={open ? 0 : -1}><X className="size-4" /></button>
         </div>
         <nav className="px-4 py-4 space-y-1">
           {landingLinks.map((link, i) => {

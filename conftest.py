@@ -25,12 +25,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-# r137 (الصمام المسمّى — الجزء 2): احتفظ بـ fd STDERR الأصلي قبل أن تبدأ
-# طبقة أسر pytest في إعادة توجيه fd 2 — كلب الحراسة يكتب عليه مباشرة
-# (كتابة os.write على fd 2 المُعيد توجيهه تذهب إلى أنبوب الأسر الذي يُفقد
-# عند إجهاض faulthandler — نفس السبب الذي جعل تفريغات الكلب السابقة غير مرئية).
-_REAL_STDERR_FD = os.dup(2)
-
 # ── 1. import path: fb_dashboard package root ────────────────────────
 _FB_DIR = str(Path(__file__).resolve().parent / "fb_dashboard")
 if _FB_DIR not in sys.path:
@@ -107,14 +101,8 @@ async def _dispose_engine_per_test():
     # بعد 90ث (قبل حائط faulthandler الـ120ث) ويطبع كل مهمة async معلّقة
     # مع سلسلة await الكاملة عبر Task.get_stack() — فيُسمّى المذنب فعليًا.
     import asyncio as _aio_watch
-    import os as _os_watch
 
     _loop = _aio_watch.get_running_loop()
-
-    def _wd_print(msg: str) -> None:
-        # الكتابة على fd STDERR الأصلي المحفوظ أعلى الملف — طبقة أسر pytest
-        # تبتلع أي كتابة على fd 2 المُعاد توجيهه عند إجهاض faulthandler.
-        _os_watch.write(_REAL_STDERR_FD, (msg + "\n").encode("utf-8", "replace"))
 
     async def _watchdog():
         await _aio_watch.sleep(90)
@@ -122,16 +110,27 @@ async def _dispose_engine_per_test():
             t for t in _aio_watch.all_tasks(_loop)
             if t is not _aio_watch.current_task() and not t.done()
         ]
-        _wd_print("\n[WD-r137] this test exceeded 90s — pending async tasks:")
+        # اطبع عبر print العادي — طبقة أسر pytest تُعيد تشغيله في مخرجات
+        # الاختبار الفاشل (التفريغ يصل السجل حتمًا لأن الكلب نفسه يُنهي
+        # الاختبار بالفشل بدل إجهاض faulthandler الذي يُرمى معه الأسير).
+        print(
+            "\n[WD-r137] test exceeded 90s — pending async tasks "
+            f"(cancelling {len(_tasks)}):"
+        )
         for _t in _tasks:
             _stack = _t.get_stack()
             _frames = " -> ".join(
                 f"{f.f_code.co_filename.rsplit('/', 1)[-1]}:{f.f_lineno} in {f.f_code.co_name}"
                 for f in _stack
             ) or "(no frames — parked on a bare future)"
-            _wd_print(f"[WD-r137] TASK {_t.get_coro()!r}")
-            _wd_print(f"[WD-r137]   {_frames}")
-        _wd_print("[WD-r137] end watchdog dump")
+            print(f"[WD-r137] TASK {_t.get_coro()!r}")
+            print(f"[WD-r137]   {_frames}")
+        print("[WD-r137] end watchdog dump — cancelling stuck tasks now", flush=True)
+        # الإلغاء هو الآلية: الاختبار يفشل بـ CancelledError (فشل عادي
+        # مسمّى، مخرجاته تُعاد)، والسلسلة تُكمل — بدل حائط faulthandler
+        # الذي يجهض العملية كلها ويُفقد الأسير.
+        for _t in _tasks:
+            _t.cancel()
 
     _wd = _aio_watch.get_running_loop().create_task(_watchdog())
     yield

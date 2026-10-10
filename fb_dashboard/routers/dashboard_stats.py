@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from _responses import ok
 from _services import fb, get_ai, get_tenant_fb_client, has_global_fb_credentials
-from _utils import iso_z, utcnow
+from _utils import iso_z, tripoli_day_start, utcnow
 from api_cache import get_or_compute
 from config import settings
 from database import get_db
@@ -75,8 +75,10 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
       * 60s per-tenant response cache (see dashboard_bundle).
     """
     now = utcnow()
-    today = now.date()
-    today_start = datetime(now.year, now.month, now.day)
+    # r137 (ليبي أولاً): «اليوم» و«أمس» بحدّ طرابلس (UTC+2 ثابت بلا صيفي)
+    # — كانت حدود منتصف ليل UTC تجعل مقارنة اليوم/أمس تتبدل 02:00 طرابلس
+    # وتحسب رد 01:30 على الأمس (نفس صنف خطأ الـ KPI اليومي).
+    today_start = tripoli_day_start(now)
     yesterday_start = today_start - timedelta(days=1)
     week_start = now - timedelta(days=7)
     prior_week_start = now - timedelta(days=14)
@@ -86,7 +88,8 @@ async def _build_dashboard_bundle(db, _tid: int) -> dict:
     stats_row = (await db.execute(
         select(
             func.count(Reply.id).label("total"),
-            func.count(Reply.id).filter(day_expr == today).label("today"),
+            func.count(Reply.id).filter(
+                Reply.created_at >= today_start).label("today"),
             func.count(Reply.id).filter(
                 Reply.created_at >= today_start).label("t_today"),
             func.count(Reply.id).filter(
@@ -309,12 +312,13 @@ async def get_system_stats(db=Depends(get_db), current_user: User = Depends(requ
     total_users = await db.scalar(select(func.count(User.id)).where(User.tenant_id == _tid)) or 0
     total_tenants = 1 if _tid else 0
     total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid)) or 0
-    today = utcnow().date()
-    # v15-E7: portable DATE filter (the old bare cast() silently mis-counted
-    # on SQLite — see _day_expr) — same numeric contract on both dialects.
+    # r137 (ليبي أولاً): بداية اليوم بتوقيت طرابلس (UTC+2 ثابت) — كانت
+    # utcnow().date() تُصفّر «ردود اليوم» 02:00 طرابلس. المقارنة الزمنية
+    # ``>=`` بديل محمول (نفس عقد _day_expr على اللهجتين).
+    today_start = tripoli_day_start()
     today_replies = await db.scalar(
         select(func.count(Reply.id)).where(
-            Reply.tenant_id == _tid, _day_expr(Reply.created_at, db) == today)
+            Reply.tenant_id == _tid, Reply.created_at >= today_start)
     ) or 0
     active_pages = 1 if _tid else 0
     # v4 §7.27 — real revenue from confirmed PaymentRequests (was a literal 0)

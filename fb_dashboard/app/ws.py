@@ -11,7 +11,7 @@ import json
 import logging
 
 import jwt
-from _utils import utcnow
+from _utils import tripoli_day_start
 from config import settings
 from database import AsyncSessionLocal
 from event_bus import event_bus
@@ -19,7 +19,7 @@ from fastapi import Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from models import BlacklistedToken, Reply, Tenant, User
 from routers.auth import ALGORITHM, get_current_user
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import func, select
 from ws_manager import ws_manager
 
 log = logging.getLogger("fb-api")
@@ -110,10 +110,13 @@ async def websocket_endpoint(ws: WebSocket):
                 try:
                     async with AsyncSessionLocal() as db:
                         total = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == ws_tid)) or 0
-                        today_date = utcnow().date()
+                        # r137 (ليبي أولاً): «اليوم» بحدّ طرابلس (UTC+2 ثابت)
+                        # — كان cast(..., Date) == utcnow().date() يُصفّر
+                        # العدّ 02:00 طرابلس ويحسب رد 01:30 على الأمس.
                         today = await db.scalar(
                             select(func.count(Reply.id))
-                            .where(Reply.tenant_id == ws_tid, cast(Reply.created_at, Date) == today_date)
+                            .where(Reply.tenant_id == ws_tid,
+                                   Reply.created_at >= tripoli_day_start())
                         ) or 0
                         await ws.send_text(json.dumps({
                             "event": "stats_update",

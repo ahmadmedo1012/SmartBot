@@ -6,7 +6,7 @@ import logging
 from datetime import timedelta
 
 from _responses import ok
-from _utils import iso_z, utcnow
+from _utils import iso_z, tripoli_day_start, utcnow
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
@@ -31,8 +31,10 @@ async def analytics_overview(days: int = Query(30, ge=1, le=365), db=Depends(get
     cutoff = utcnow() - timedelta(days=days)
 
     total_replies = await db.scalar(select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)) or 0
+    # r137 (ليبي أولاً): «اليوم» يبدأ منتصف ليل طرابلس (UTC+2 ثابت) — كان
+    # cast(created_at, Date) == utcnow().date() يُصفّره 02:00 طرابلس.
     today_replies = await db.scalar(
-        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, cast(Reply.created_at, Date) == utcnow().date())
+        select(func.count(Reply.id)).where(Reply.tenant_id == _tid, Reply.created_at >= tripoli_day_start())
     ) or 0
 
     # Daily breakdown

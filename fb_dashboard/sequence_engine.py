@@ -26,7 +26,7 @@ import asyncio
 import logging
 from datetime import timedelta
 
-from _utils import iso_z, utcnow
+from _utils import iso_z, tripoli_now, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import BotState, Sequence, SequenceStep, SequenceSubscription, Subscriber
@@ -531,7 +531,10 @@ class SequenceEngine:
         """
         if not template:
             return ""
-        today = utcnow().strftime("%Y-%m-%d")
+        # r137 (ليبي أولاً): تاريخ اليوم بتوقيت طرابلس (UTC+2 ثابت) — كان
+        # utcnow().strftime يجعل {date} يتقلب 02:00 طرابلس (رسالة 01:30
+        # تحمل تاريخ الأمس أمام المشترك الليبي).
+        today = tripoli_now().strftime("%Y-%m-%d")
         result = template.replace("{name}", sub_first_name or "")
         result = result.replace("{full_name}", sub_full_name or "")
         result = result.replace("{mention}", f"@[{sub_fb_id}]")

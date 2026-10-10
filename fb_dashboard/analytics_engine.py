@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
-from _utils import iso_z, utcnow
+from _utils import iso_z, tripoli_day_start, utcnow
 from models import AISuggestion, Conversation, Customer, Message, Reply, Rule, Subscriber
 from sqlalchemy import Date, and_, cast, desc, extract, func, select, text
 
@@ -45,13 +45,16 @@ class AnalyticsEngine:
         now = utcnow()
         cutoff = self._cutoff(days)
         prior_cutoff = self._cutoff(days * 2)
-        today = now.date()
+        # r137 (ليبي أولاً): بداية اليوم بتوقيت طرابلس (UTC+2 ثابت بلا صيفي)
+        # — كان ``now.date()`` يُصفّر «ردود اليوم» 02:00 طرابلس ويحسب رد
+        # 01:30 على الأمس. المقارنة الزمنية ``>=`` بديل محمول عن قصّ التاريخ.
+        today_start = tripoli_day_start(now)
 
         # Single aggregation: total, today, prior period, unique commenters
         result = await session.execute(
             select(
                 func.count(Reply.id).filter(Reply.created_at >= cutoff).label("total_replies"),
-                func.count(Reply.id).filter(cast(Reply.created_at, Date) == today).label("today_replies"),
+                func.count(Reply.id).filter(Reply.created_at >= today_start).label("today_replies"),
                 func.count(Reply.id).filter(
                     Reply.created_at >= prior_cutoff, Reply.created_at < cutoff
                 ).label("prior_replies"),

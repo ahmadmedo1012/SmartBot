@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -57,6 +57,61 @@ def fmt_lyd(amount) -> str:
 def utcnow() -> datetime:
     """Return UTC-naive datetime (compatible with SQLAlchemy/Postgres timestamp)."""
     return datetime.now(UTC).replace(tzinfo=None)
+
+
+# r137 (ليبي أولاً): ليبيا = UTC+2 ثابت بلا توقيت صيفي منذ 2013 (نفس
+# حكم Smart-Order src/lib/arabic.ts). الخادم يعمل بتوقيت UTC (Vercel/CI)
+# فكان «اليوم» يتبدل 02:00 طرابلس: رد الساعة 01:30 يُحسب على الأمس،
+# و«ردود اليوم» تُصفّر متأخرة ساعتين. كل حدود اليوم في المسار الخادمي
+# (عرضًا وتجميعًا) تمرّ من هنا الآن.
+TRIPOLI_UTC_OFFSET = timedelta(hours=2)
+
+
+def tripoli_now() -> datetime:
+    """utcnow() rendered in Africa/Tripoli (fleet rulings R8/R11).
+
+    Libya is UTC+2 year-round (no DST since 2013 — madarek dates.ts model);
+    the fixed-offset fallback keeps the stamp honest on serverless images
+    whose zoneinfo carries no tzdata bundle. (Moved verbatim from
+    pdf_reports_engine._tripoli_now — r137: ONE Tripoli seam, not two.)
+    """
+    now = utcnow().replace(tzinfo=UTC)
+    try:
+        from zoneinfo import ZoneInfo
+
+        return now.astimezone(ZoneInfo("Africa/Tripoli"))
+    except Exception:
+        return now.astimezone(timezone(TRIPOLI_UTC_OFFSET))
+
+
+def _naive_utc(dt: datetime | None) -> datetime:
+    """Normalize any datetime to the repo's naive-UTC storage convention."""
+    if dt is None:
+        return utcnow()
+    if dt.tzinfo is not None:
+        return dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
+
+
+def tripoli_day_start(now: datetime | None = None) -> datetime:
+    """Start of the current Tripoli day, as a NAIVE-UTC datetime.
+
+    Python twin of Smart-Order ``tripoliDayStart``: shift +2h, drop the
+    clock, shift back. Comparable with the naive-UTC ``created_at`` columns
+    via ``>=`` (the SQLite-portable replacement for ``cast(col, Date) ==
+    utcnow().date()``, which bucketed by the UTC day).
+    """
+    shifted = _naive_utc(now) + TRIPOLI_UTC_OFFSET
+    return shifted.replace(hour=0, minute=0, second=0, microsecond=0) - TRIPOLI_UTC_OFFSET
+
+
+def tripoli_date(dt: datetime) -> date:
+    """Calendar date of a naive-UTC timestamp AS SEEN IN TRIPOLI (UTC+2).
+
+    Python twin of Smart-Order ``tripoliDateParts`` (as a ``date``): UTC
+    2026-10-09 23:30 is Tripoli 2026-10-10 01:30 → belongs to Oct 10.
+    """
+    return (_naive_utc(dt) + TRIPOLI_UTC_OFFSET).date()
 
 
 def iso_z(dt: datetime | None) -> str | None:

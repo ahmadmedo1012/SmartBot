@@ -26,11 +26,11 @@ import time
 from datetime import timedelta
 
 from _async import spawn  # v9-A11: GC-safe background tasks
-from _utils import utcnow
+from _utils import tripoli_day_start, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import BotLog, Reply, Rule, Tenant
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import func, select
 
 # r133-A6 (b): module logger for observability-write failures — must NOT be
 # self._mon (the StructuredLogger), whose own emit path is what can fail here.
@@ -208,7 +208,9 @@ class BotEngine:
                             today_val = await s.scalar(
                                 select(func.count(Reply.id))
                                 .where(Reply.tenant_id == self._tenant_id,
-                                       cast(Reply.created_at, Date) == utcnow().date())
+                                       # r137: «اليوم» بحدّ طرابلس لا UTC
+                                       # (كان cast(..., Date) == utcnow().date())
+                                       Reply.created_at >= tripoli_day_start())
                             ) or 0
                             payload = {"total_replies": total, "today_replies": today_val,
                                        "cycle": self._cycle}

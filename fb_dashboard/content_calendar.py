@@ -8,7 +8,7 @@ import logging
 from datetime import date, datetime, timedelta
 
 from _async import spawn  # v9-A11: GC-safe background tasks
-from _utils import iso_z, utcnow
+from _utils import iso_z, tripoli_date, utcnow
 from database import AsyncSessionLocal
 from fb_client import FBClient
 from models import AnalyticsEvent, BotState, ScheduledPost
@@ -403,7 +403,10 @@ class ContentCalendarEngine:
         daily = {}
         for p in posts:
             if p.scheduled_at:
-                k = p.scheduled_at.strftime("%Y-%m-%d")
+                # r137 (ليبي أولاً): مفتاح اليوم بتقويم طرابلس (UTC+2 ثابت)
+                # — كان strftime("%Y-%m-%d") على قيمة UTC يضع منشورًا
+                # مجدولًا 00:30 طرابلس على يوم الأمس في العدّ اليومي.
+                k = tripoli_date(p.scheduled_at).isoformat()
                 daily[k] = daily.get(k, 0) + 1
         return {
             "total_posts": len(posts),

@@ -19,12 +19,13 @@ import base64
 import html
 import logging
 import re
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, unquote_to_bytes, urlsplit
 
-from _utils import utcnow
+from _utils import tripoli_day_start, utcnow
+from _utils import tripoli_now as _tripoli_now
 from ai_service import _assert_safe_image_url
 from sqlalchemy import Date, cast, desc, func, select
 
@@ -36,19 +37,9 @@ log = logging.getLogger("fb-pdf-reports")
 _AR_MONTHS = ("يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
               "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر")
 
-
-def _tripoli_now() -> datetime:
-    """utcnow() rendered in Africa/Tripoli (fleet rulings R8/R11).
-
-    Libya is UTC+2 year-round (no DST since 2013 — madarek dates.ts model);
-    the fixed-offset fallback keeps the stamp honest on serverless images
-    whose zoneinfo carries no tzdata bundle."""
-    now = utcnow().replace(tzinfo=UTC)
-    try:
-        from zoneinfo import ZoneInfo
-        return now.astimezone(ZoneInfo("Africa/Tripoli"))
-    except Exception:
-        return now.astimezone(timezone(timedelta(hours=2)))
+# r137: _tripoli_now انتقلت حرفيًا إلى _utils.tripoli_now (المسار الواحد
+# لكل حدود اليوم الطرابلسية — عرضًا وتجميعًا)؛ الاسم المحلي مستورد
+# باسمه القديم حتى تبقى مواقع العرض الثلاثة دون تغيير.
 
 
 def _ar_month_year(dt: datetime) -> str:
@@ -513,10 +504,14 @@ class PdfReportsEngine:
         cutoff = utcnow() - timedelta(days=days)
         total = await session.scalar(
             select(func.count(Reply.id)).where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)) or 0
+        # r137 (ليبي أولاً): بداية اليوم بتوقيت طرابلس (UTC+2 ثابت) — كان
+        # ``_day_expr(...) == utcnow().date()`` يُصفّر «ردود اليوم» 02:00
+        # طرابلس ويحسب رد 01:30 على الأمس. المقارنة الزمنية ``>=`` تُغني عن
+        # قصّ التاريخ كليًا (وتصلح قالب cast الكامن على SQLite هنا أيضًا).
         today = await session.scalar(
             select(func.count(Reply.id)).where(
                 Reply.tenant_id == tenant_id,
-                self._day_expr(Reply.created_at, session) == utcnow().date())) or 0
+                Reply.created_at >= tripoli_day_start())) or 0
         rules = await session.scalar(
             select(func.count(Rule.id)).where(Rule.tenant_id == tenant_id, Rule.enabled == True)) or 0
         subs = await session.scalar(

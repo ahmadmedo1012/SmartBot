@@ -5,13 +5,13 @@ import json
 import logging
 import os
 from contextvars import ContextVar
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from _async import spawn  # v9-A11: GC-safe background tasks
 from _crypto import decrypt_token  # re-export: routers import it from here
 from _crypto import encrypt_token as encrypt_token
 from _lazy import lazy
-from _utils import utcnow
+from _utils import tripoli_day_start, utcnow
 from bot import BotEngine
 from config import settings
 from database import AsyncSessionLocal
@@ -572,7 +572,9 @@ async def _repair_stored_user_token(tenant_id: int, page_id: str, token: str) ->
 # Trend helper
 async def _get_trend_data(db, tenant_id: int) -> dict:
     now = utcnow()
-    today_start = datetime(now.year, now.month, now.day, tzinfo=now.tzinfo)
+    # r137 (ليبي أولاً): «اليوم/أمس» بحدّ طرابلس (UTC+2 ثابت بلا صيفي) —
+    # كانت حدود منتصف ليل UTC تجعل اتجاه اليوم يتبدل 02:00 طرابلس.
+    today_start = tripoli_day_start(now)
     yesterday_start = today_start - timedelta(days=1)
     week_start = now - timedelta(days=7)
     prior_week_start = now - timedelta(days=14)

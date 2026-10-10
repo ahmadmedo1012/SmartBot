@@ -110,3 +110,17 @@ ignoreUntil = 2027-01-09T00:00:00Z
 id = "GHSA-w5hq-g745-h8pq"
 reason = "uuid 7.0.3 transitive of xcode@3.0.1 (^7 pin — 11.x unreachable); iOS build-time tooling only, never in the app runtime bundle; re-verify at TTL"
 ignoreUntil = 2027-01-10T00:00:00Z
+
+# r137 (follow-up) — the mobile-lockfile npm update surfaced two more
+# transitive advisories with no in-place path:
+[[IgnoredVulns]]
+id = "GHSA-vcc3-ghjq-m6fr"
+reason = "decode-uri-component 0.2.2 transitive with a consumer semver range below 0.5.0 (major jump — override risks metro tooling); query-string parsing class, dev/build toolchain only; re-verify at TTL"
+ignoreUntil = 2027-01-10T00:00:00Z
+
+# node-forge 1.4.0: OSV lists NO fixed version at all (the '--' column) —
+# same class as the braces entry: nothing exists to bump to.
+[[IgnoredVulns]]
+id = "GHSA-86w9-cpqp-85rv"
+reason = "node-forge 1.4.0 has NO fixed version published (OSV fixed column empty — same class as braces); dev/build toolchain transitive only, never in the app runtime bundle; re-verify at TTL"
+ignoreUntil = 2027-01-10T00:00:00Z

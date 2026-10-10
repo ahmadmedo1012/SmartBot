@@ -175,10 +175,17 @@ async def _dispose_engine_per_test():
                     await _aio.wait(pending, timeout=0.5)
     except Exception:
         pass
+    import asyncio as _aio_dispose
+
+    # r137 (الجذر الأخير للتجمّد): dispose نفسه يمكن أن يتوقف للأبد — عندما
+    # تكون عملية SQLAlchemy جسرًا عبر greenlet لحظة إلغاء مهمة، يقف
+    # _run_to_completion داخل _deliver_cancellation ولا يعود أبدًا (هو
+    # توقيع كل جدران CI منذ r136c). المهلة تحوّل توقف الـdispose إلى
+    # تحذير متجاوَز — قاعدة البيانات المؤقتة تموت مع العملية أصلًا.
     try:
         from database import engine
 
-        await engine.dispose()
+        await _aio_dispose.wait_for(engine.dispose(), timeout=5)
     except Exception:
         pass
 

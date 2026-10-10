@@ -99,6 +99,9 @@ export function WalletInstructions({
       {/* User phone */}
       <div>
         <Label htmlFor="payment-phone">رقم هاتفك *</Label>
+        {/* r138: رفع سقف الحقل إلى 16 محرفًا ليتسع لكتابة +218/00218
+            كاملةً — التعليق التوثيقي r133 كان يعد بقبولها وسقف الـ10
+            المحارف يقطعها قبل أن يصل التطبيع أصلًا. */}
         <Input
           id="payment-phone"
           value={phone}
@@ -107,12 +110,13 @@ export function WalletInstructions({
           inputMode="numeric"
           autoComplete="tel"
           required
-          maxLength={10}
+          maxLength={16}
           className="h-11 rounded-xl mt-1.5 text-left font-mono"
           dir="ltr"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          10 أرقام تبدأ بـ 09 — حتى نتمكن من التأكد من استلام التحويل
+          {/* r138: صياغة محايدة للعقد الموحّد (محمول 09 قصير/طويل + أرضي) */}
+          رقم ليبي صحيح (مثال: 0912345678) — حتى نتمكن من التأكد من استلام التحويل
         </p>
       </div>
     </>

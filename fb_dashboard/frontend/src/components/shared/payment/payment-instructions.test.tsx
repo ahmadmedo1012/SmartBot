@@ -82,17 +82,19 @@ describe("WalletInstructions", () => {
     }
   })
 
-  it("contracts the subscriber phone input: numeric keypad, 10 digits, required", () => {
+  it("contracts the subscriber phone input: numeric keypad, room for +218 forms, required", () => {
     render(<WalletInstructions {...walletProps()} />)
 
     const input = screen.getByLabelText("رقم هاتفك *")
     expect(input).toHaveAttribute("inputmode", "numeric")
-    expect(input).toHaveAttribute("maxlength", "10")
+    // r138: السقف 16 محرفًا ليتسع لكتابة +218/00218 كاملةً (كان 10 يقطعها)
+    expect(input).toHaveAttribute("maxlength", "16")
     expect(input).toHaveAttribute("required", "")
     expect(input).toHaveAttribute("autocomplete", "tel")
     expect(input).toHaveAttribute("placeholder", "09XXXXXXXX")
     expect(input).toHaveAttribute("dir", "ltr")
-    expect(screen.getByText(/10 أرقام تبدأ بـ 09/)).toBeInTheDocument()
+    // r138: النص المساعد محايد للعقد الموحّد الأوسع (محمول قصير/طويل + أرضي)
+    expect(screen.getByText(/رقم ليبي صحيح \(مثال: 0912345678\)/)).toBeInTheDocument()
   })
 
   it("reports every keystroke through onPhoneChange", () => {

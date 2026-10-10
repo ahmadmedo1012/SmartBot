@@ -315,8 +315,10 @@ export function PaymentDialog({
     // drops the wallet/price guards — price 0 IS the plan's price here.
     // r133 (A12 S10): +218 / 00218 / Eastern-digit input is accepted and
     // normalized to the canonical 09XXXXXXXX mask (SO phone.ts twin).
+    // r138: صياغة الخطأ محايدة للعقد (محمول 09 قصير/طويل + أرضي) —
+    // «10 أرقام تبدأ بـ 09» كانت تصف العقد القديم الضيق.
     if (!isBank && !normalizeLibyanPhone(phone)) {
-      premiumToast("error", "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)")
+      premiumToast("error", "رقم الهاتف يجب أن يكون رقمًا ليبيًا صحيحًا (مثال: 0912345678)")
       return
     }
     if (!isFreePlan && !isBank && Number(price) <= 0) {

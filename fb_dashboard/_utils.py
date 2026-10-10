@@ -118,20 +118,28 @@ def tripoli_date(dt: datetime) -> date:
 # r137 (ليبي أولاً): التوأم البايثوني لـ frontend/src/lib/phone.ts (منقول
 # r133 A12 S10 عن Smart-Order lib/phone.ts) — الخادم يطبّق نفس العقد الذي
 # يطبّقه العميل قبل الإرسال، فلا يمرّ رقم غير ليبي إلى سجلات الدفع.
+# r138 (توحيد الأسطولة — قرار r138-SO الموثق في Smart-Order src/lib/phone.ts):
+# «10 خانات بالضبط + 0[125-9]» كان صرامةً بلا مبرر موثق — «091234567»
+# (محمول 9 خانات) يُقبل في Smart-Link ويُرفض هنا. العقد الموحّد الأوسع:
+# محمول 09 بطول 9-10 خانات (النموذج القصير للناقلين) + أرضي 0[1-9] بعشر
+# خانات. مقايضة مقبولة عمدًا (توثيقًا للعائلة): إسقاط الخانة الأخيرة من
+# محمول 10 خانات يُنتج قصيرًا صالحًا — أولوية القبول على الرفض.
 _EASTERN_DIGITS = "٠١٢٣٤٥٦٧٨٩"
 _FOLD_EASTERN = str.maketrans(_EASTERN_DIGITS, "0123456789")
-_LIBYAN_NATIONAL_PREFIX_RE = re.compile(r"^0[125-9]")  # 09X mobiles + landline prefixes
+_LIBYAN_NATIONAL_PREFIX_RE = re.compile(r"^0[1-9]")  # 09X mobiles + ALL landline prefixes (r138)
 
 
 def normalize_libyan_phone(raw) -> str | None:
-    """Normalize a Libyan phone number to the canonical local 10-digit mask
-    (``09XXXXXXXX``) or None when it cannot be a valid Libyan number.
+    """Normalize a Libyan phone number to its local form (0XXXXXXXXX or the
+    r138 short mobile 0XXXXXXXX) or None when it cannot be a valid Libyan
+    number.
 
     Accepts (same contract as the frontend twin): 0912345678, 218912345678,
     +218 91 234 5678, ٩١٢٣٤٥٦٧٨, 912345678 — Eastern digits folded,
     separators stripped, 00218/218 country prefixes removed, missing trunk
-    zero restored, then validated against the Libyan national prefixes
-    (^0[125-9]) and the 10-digit length.
+    zero restored (r138: for BOTH the 9- and 8-digit short mobile forms),
+    then validated against the widened national prefixes (^0[1-9]) with the
+    10-digit length for landlines and 9-10 for 09X mobiles.
     """
     if not isinstance(raw, str):
         return None
@@ -142,8 +150,13 @@ def normalize_libyan_phone(raw) -> str | None:
         digits = digits[5:]
     elif digits.startswith("218"):
         digits = digits[3:]
-    if len(digits) == 9 and digits.startswith("9"):
-        digits = "0" + digits  # 91xxxxxxx missing trunk 0
+    # جذع 0 المفقود للمحمول: 9xxxxxxxx (10 خانات بعد الجذع) و9xxxxxxx
+    # (9 خانات — النموذج القصير؛ الجذع يُسبق قبل التحقق — فكرة Smart-Link)
+    if digits.startswith("9") and len(digits) in (8, 9):
+        digits = "0" + digits
+    # (r138) المحمول القصير 9 خانات: 09 + 7 أرقام — نموذج المشغلين القصار
+    if len(digits) == 9 and digits.startswith("09"):
+        return digits
     if len(digits) != 10 or not digits.startswith("0"):
         return None
     if not _LIBYAN_NATIONAL_PREFIX_RE.match(digits):

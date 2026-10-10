@@ -1,10 +1,12 @@
 /**
  * شاشة الفواتير (نفس الويب /dashboard/billing):
  * GET /api/payments/balance · /api/payments/history · POST /api/payments/topup.
- * عقد v25 (routers/payments/wallet.py — M-12):
- *  - الشحن JSON {provider (liyana|madar)، phone (≥7)، amount} — كان يرسل
- *    amount فقط → 400 «مزود الدفع غير صالح» دائمًا (تدفق ميت).
+ * عقد الخادم (routers/payments/wallet.py — M-12 + بوابة r137):
+ *  - الشحن JSON {provider (liyana|madar)، phone (رقم ليبي صالح)، amount}
+ *    — الشحن بالمحافظ فقط (WALLET_PROVIDERS بلا بنك).
  *  - السجل مصفوفة مجردة مفاتيحها payment_id (لا id) + provider/kind (M-17).
+ * r138: الهاتف عبر mobile/src/lib/phone.ts — توأم بوابة r137 الخادمية
+ * (كانت «length ≥ 7» تمرّر «1234567» فيردّها الخادم بـ422 بعد الإرسال).
  */
 import { useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
@@ -21,6 +23,7 @@ import { apiGet, apiPost } from '@/services/api'
 import { extractItems } from '@/lib/envelope'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
 import { formatDate, formatMoney } from '@/lib/format'
+import { normalizeLibyanPhone } from '@/lib/phone'
 import { useAuth } from '@/state/auth'
 import type { PaymentRecord, WalletBalance } from '@/types/api'
 
@@ -80,7 +83,10 @@ export default function BillingScreen() {
     mutationFn: () =>
       apiPost('/api/payments/topup', {
         provider,
-        phone: phone.trim(),
+        // r138: الشكل المحلي القانوني يغادر الجهاز حتى لو كتب المستخدم
+        // +218 أو الأرقام الشرقية (نفس عقد الويب والخادم — واتسع بالجولة
+        // نفسها إلى محمول 9-10 خانات + أرضي 0[1-9]).
+        phone: normalizeLibyanPhone(phone) ?? phone.trim(),
         amount: Number(amount) || 0,
       }),
     onSuccess: () => {
@@ -94,8 +100,9 @@ export default function BillingScreen() {
   })
 
   const amountNum = Number(amount)
+  // r138: بوابة الهاتف الليبي (توأم الخادم r137) بدل «length ≥ 7»
   const formValid =
-    Number.isFinite(amountNum) && amountNum >= 1 && amountNum <= 10000 && phone.trim().length >= 7
+    Number.isFinite(amountNum) && amountNum >= 1 && amountNum <= 10000 && normalizeLibyanPhone(phone) !== null
 
   return (
     <StackScreen title="الفواتير والاشتراك" subtitle={user?.subscriptionStatus} isLoading={balLoading}>
@@ -242,7 +249,7 @@ export default function BillingScreen() {
                 placeholder="09xxxxxxxx"
                 keyboardType="phone-pad"
                 accessibilityLabel="رقم هاتف الشحن"
-                hint="مطلوب (7 أرقام على الأقل) لإتمام الحوالة"
+                hint="رقم ليبي — مثال: 0912345678 (يُقبل +218 والأرقام الشرقية)"
               />
               {actionError ? (
                 <AppText variant="small" style={{ color: colors.destructive }}>

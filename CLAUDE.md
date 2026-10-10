@@ -49,6 +49,11 @@ Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu
 5. **Design ratchet:** scripts/design_baseline.py grades structure/fields/color/motion/ai_slop (A-F) — round-close re-seeds with --force; regressions are tracked, not blocked.
 6. **Sim battery:** 15 personas (p15 = new-features user); local runs split PART=1/PART=2 (sandbox kills background daemons between calls); uvicorn --timeout-keep-alive 120 prevents the Next-proxy ECONNRESET race.
 
+## r138 Conventions (اصطلاحات جولة r138)
+
+1. **عقد الهاتف الليبي موحّد عبر الأسطولة (قرار r138-SO):** محمول 09 بطول 9-10 خانات (النموذج القصير 091234567 + جذع 0 المفقود للنموذجين 9xxxxxxxx/9xxxxxxx) وأرضي 0[1-9] بعشر خانات. التوائم الثلاثة في SB (الخادم `_utils.normalize_libyan_phone`، الويب `src/lib/phone.ts`، الجوال `mobile/src/lib/phone.ts`) تحمل نفس المنطق حرفيًا — أي تعديل مستقبلي على أحد التوائم يُطبَّق على الثلاثة في نفس الجولة. المقايلة الموثقة: إسقاط الخانة الأخيرة من محمول 10 خانات يُنتج قصيرًا صالحًا (أولوية القبول على الرفض — نفس مقايضة Smart-Link). رسائل أخطاء الهاتف محايدة للعقد («رقم ليبي صحيح — مثال: 0912345678») لا تصف عقدًا بعينه.
+2. **حقول إدخال الهاتف لا تقطع الأشكال الموعودة:** maxLength يوسّع ليتسع لأطول شكل مقبول (16 محرفًا: `+218 91 234 5678`) — سقف 10 محارف كان يناقض وعد r133 بقبول +218 (النموذج يقطع قبل التطبيع).
+
 ## v13 Conventions (اصطلاحات جولة v13)
 
 1. **Routers are packages now:** a domain router may decompose into a package — `fb_dashboard/routers/payments/` is the precedent (`wallet.py` · `bank.py` · `approvals.py` · `sse.py` · `plans.py`). Aggregation lives in the package's `__init__.py` via an **untagged** `APIRouter` that includes the sub-routers, preserving the single import surface `fb_dashboard.routers.payments` — importers never see the split. Bodies move verbatim (decomposition = move, not rewrite; the pytest suite guards the money path).

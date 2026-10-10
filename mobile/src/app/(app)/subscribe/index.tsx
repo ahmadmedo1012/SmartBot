@@ -1,10 +1,13 @@
 /**
  * شاشة الاشتراك في خطة (نفس الويب /pricing + /subscribe):
  * GET /api/plans (عام) · POST /api/subscriptions.
- * عقد v25 (routers/payments/plans.py — M-11): الطلب JSON
+ * عقد الخادم (routers/payments/plans.py): الطلب JSON
  * {plan_id, amount (= سعر الخطة رقمًا), provider (liyana|madar|bank),
- *  phone (≥7 أرقام — مطلوب لغير البنكي)} — الطلب القديم كان يرسل plan_id
- * فقط → 400 «المبلغ غير مطابق» دائمًا (تدفق ميت).
+ *  phone (رقم ليبي صالح — مطلوب لغير البنكي)} · البنكي يطلب
+ * senderAccountName + senderAccountNumber (وإلا 400 «اسم صاحب الحساب
+ * المُرسِل مطلوب» — عقد الويب نفسه في payment/index.tsx).
+ * r138: الهاتف عبر mobile/src/lib/phone.ts (توأم بوابة r137 الخادمية —
+ * كانت «length ≥ 7» تمرّر «1234567» ثم يردها الخادم بـ422).
  */
 import { useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
@@ -19,6 +22,7 @@ import { AppInput } from '@/components/input'
 import { apiGet, apiPost } from '@/services/api'
 import { LoadingState, ErrorState, describeError } from '@/components/state-views'
 import { formatMoney } from '@/lib/format'
+import { normalizeLibyanPhone } from '@/lib/phone'
 import type { Plan } from '@/types/api'
 
 type Provider = 'liyana' | 'madar' | 'bank'
@@ -37,13 +41,22 @@ export default function SubscribeScreen() {
   const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null)
   const [provider, setProvider] = useState<Provider>('liyana')
   const [phone, setPhone] = useState('')
+  // r138: حقولا المرسل للبنكي — الخادم يطلبهما (plans.py: «اسم صاحب
+  // الحساب المُرسِل مطلوب») وكان مسار البنك في الجوال يموت بـ400 دائمًا.
+  const [senderName, setSenderName] = useState('')
+  const [senderAccount, setSenderAccount] = useState('')
 
   const { data: plans, isLoading, isError, error, refetch } = useQuery<Plan[]>({
     queryKey: ['plans'],
     queryFn: () => apiGet<Plan[]>('/api/plans'),
   })
 
-  const phoneValid = phone.trim().length >= 7
+  // r138: بوابة الهاتف الليبي (توأم الخادم r137) — «length ≥ 7» كانت
+  // تمرّر «1234567» فيصطدم المستخدم بـ422 بعد إرسال الطلب.
+  const isBank = provider === 'bank'
+  const phoneValid = normalizeLibyanPhone(phone) !== null
+  const bankValid = senderName.trim().length > 0 && senderAccount.trim().length > 0
+  const formValid = isBank ? bankValid : phoneValid
 
   const subscribeMutation = useMutation({
     mutationFn: (plan: Plan) =>
@@ -51,7 +64,15 @@ export default function SubscribeScreen() {
         plan_id: plan.id,
         amount: plan.price, // يجب أن يطابق سعر الخطة رقمًا (شرط الخادم)
         provider,
-        phone: phone.trim(),
+        // r138: الشكل المحلي القانوني يغادر الجهاز حتى لو كتب المستخدم
+        // +218 أو الأرقام الشرقية؛ البنكي بلا هاتف (عقد الويب — واتسع
+        // العقد بالجولة نفسها: محمول 9-10 خانات + أرضي 0[1-9]).
+        ...(isBank
+          ? {
+              senderAccountName: senderName.trim(),
+              senderAccountNumber: senderAccount.trim(),
+            }
+          : { phone: normalizeLibyanPhone(phone) ?? phone.trim() }),
       }),
     onSuccess: (_data, plan) => {
       setActionError(null)
@@ -117,6 +138,9 @@ export default function SubscribeScreen() {
                         setCheckoutPlan(plan)
                         setProvider('liyana')
                         setPhone('')
+                        // r138: تصفير حقول البنك مع كل فتح للنموذج
+                        setSenderName('')
+                        setSenderAccount('')
                         setActionError(null)
                       }}
                       loading={subscribeMutation.isPending}
@@ -181,15 +205,37 @@ export default function SubscribeScreen() {
                   ))}
                 </Row>
               </View>
-              <AppInput
-                label="رقم الهاتف"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="09xxxxxxxx"
-                keyboardType="phone-pad"
-                accessibilityLabel="رقم هاتف الدفع"
-                hint="مطلوب (7 أرقام على الأقل) لإتمام الحوالة"
-              />
+              {/* r138: حقل الهاتف للمحافظ فقط — البنكي لا يحتاجه (عقد
+                  الخادم والويب) بل يطلب بيانات المُرسِل. */}
+              {!isBank ? (
+                <AppInput
+                  label="رقم الهاتف"
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="09xxxxxxxx"
+                  keyboardType="phone-pad"
+                  accessibilityLabel="رقم هاتف الدفع"
+                  hint="رقم ليبي — مثال: 0912345678 (يُقبل +218 والأرقام الشرقية)"
+                />
+              ) : (
+                <>
+                  <AppInput
+                    label="اسم صاحب الحساب المُرسِل"
+                    value={senderName}
+                    onChangeText={setSenderName}
+                    accessibilityLabel="اسم صاحب الحساب المرسل"
+                    hint="الاسم كما في الحساب البنكي — يطلبه التحقق اليدوي"
+                  />
+                  <AppInput
+                    label="رقم حساب المُرسِل"
+                    value={senderAccount}
+                    onChangeText={setSenderAccount}
+                    keyboardType="numbers-and-punctuation"
+                    accessibilityLabel="رقم حساب المرسل"
+                    hint="رقم الحساب/المطاردة الذي حوّلت منه"
+                  />
+                </>
+              )}
               {actionError ? (
                 <AppText variant="small" style={{ color: colors.destructive }}>
                   {actionError}
@@ -200,7 +246,7 @@ export default function SubscribeScreen() {
                   title="إرسال طلب الاشتراك"
                   onPress={() => checkoutPlan && subscribeMutation.mutate(checkoutPlan)}
                   loading={subscribeMutation.isPending}
-                  disabled={!phoneValid}
+                  disabled={!formValid}
                 />
                 <Button title="إلغاء" variant="ghost" onPress={() => setCheckoutPlan(null)} />
               </Row>

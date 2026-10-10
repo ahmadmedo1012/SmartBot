@@ -19,7 +19,8 @@ mobile/
 ├── src/state/auth.tsx        الجلسة: /api/auth/token + expo-secure-store
 ├── src/constants/theme.ts    توكنات مدارك (ليلي/نهاري) + radius + spacing + motion
 ├── src/components/           UI مشترك + حالات loading/empty/error/retry/unauth
-└── src/lib/format.ts         التنسيق العربي (ar-LY) — نفس اصطلاحات الويب
+├── src/lib/format.ts         التنسيق العربي (ar-LY) — نفس اصطلاحات الويب
+└── src/lib/phone.ts          الهاتف الليبي (r138) — توأم بوابة الخادم: تطبيع +218/شرقية/جذع 0 ثم عقد الأسطولة الموحّد (محمول 09 بطول 9-10 + أرضي 0[1-9] بعشر)
 ```
 
 ## المصادقة (جديدة على الباكند — additive)

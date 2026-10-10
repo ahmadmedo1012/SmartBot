@@ -156,7 +156,8 @@ describe("PaymentFreePlan — phone validation (no network on bad input)", () =>
 
     expect(mocks.toast).toHaveBeenCalledWith(
       "error",
-      "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)",
+      // r138: صياغة محايدة للعقد الموحّد الأوسع (قرار r138-SO)
+      "رقم الهاتف يجب أن يكون رقمًا ليبيًا صحيحًا (مثال: 0912345678)",
     )
     // v18 (1-b): the only call is the open probe (GET /api/subscriptions/
     // pending — silent dead-end guard); the invalid phone never POSTs.

@@ -195,7 +195,8 @@ export default function BillingPage() {
     }
     if (provider !== "bank") {
       if (!normalizeLibyanPhone(phone)) {
-        setFieldErrors((fe) => ({ ...fe, phone: "رقم الهاتف يجب أن يبدأ بـ 09 ويتكون من 10 أرقام (مثال: 0912345678)" }))
+        // r138: صياغة محايدة للعقد الموحّد الأوسع (محمول 09 قصير/طويل + أرضي)
+        setFieldErrors((fe) => ({ ...fe, phone: "رقم الهاتف يجب أن يكون رقمًا ليبيًا صحيحًا (مثال: 0912345678)" }))
         focusFirstInvalidField("upgrade-phone")
         return
       }

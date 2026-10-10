@@ -239,11 +239,11 @@ const STATUS_DARK = {
   '--destructive-soft': '#2C1620',
 };
 const STATUS_LIGHT = {
-  '--success': '#4FA66D', '--success-foreground': '#191918',
+  '--success': '#2F7D4F', '--success-foreground': '#191918',
   '--success-soft': '#DCF1E2',
-  '--warning': '#D6A330', '--warning-soft': '#FCF1CD',
-  '--info': '#5C8FCE', '--info-soft': '#DDEBF7',
-  '--destructive': '#DD6E78', '--destructive-foreground': '#191918',
+  '--warning': '#8C6A1D', '--warning-soft': '#FCF1CD',
+  '--info': '#3B6FB5', '--info-soft': '#DDEBF7',
+  '--destructive': '#C2414D', '--destructive-foreground': '#191918',
   '--destructive-soft': '#FCE0E2',
 };
 pinAll(dark, 'status-dark', STATUS_DARK);
@@ -617,7 +617,7 @@ for (const scope of [dark, light]) {
   pin(scope, 'easing-r129', '--ease-spring-snappy', 'cubic-bezier(0.5, 1.6, 0.4, 1)');
 }
 // Canonical brand aliases: --gold (dark = the accent-solid gold, light = the
-// yellow-ink gold #D6A330 — Madarek's own light rung), --gold-soft (the
+// yellow-ink gold #8C6A1D — Madarek's own light rung), --gold-soft (the
 // yellow family ground), --brand-purple (the lavender-ink chain), and
 // --text-on-accent bridged to --accent-fg (the documented product semantic:
 // the products' light primary is copper, so text on it is the deep fg).

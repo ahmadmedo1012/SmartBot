@@ -631,7 +631,7 @@
      keeps its family role on --c-rose-deep. --destructive-foreground =
      Madarek --danger-fg light #191918 (white on #DD6E78 measured 3.19:1
      — fails; warm ink on it = 5.5:1, AA). */
-  --destructive: #DD6E78;
+  --destructive: #C2414D;
   --destructive-foreground: #191918;
   /* Madarek light hairline: --border = neutral-200 #E9E7E2. */
   --border: #E9E7E2;
@@ -648,10 +648,10 @@
      roles on the family slots (--c-mint-deep #1F4F30 …, pinned below);
      status fill foregrounds = warm ink #191918 (measured 5.9:1 on mint,
      7.7:1 on yellow, 5.3:1 on sky — the Madarek --danger-fg pattern). */
-  --success: #4FA66D;
+  --success: #2F7D4F;
   --success-foreground: #191918;
-  --warning: #D6A330;
-  --info: #5C8FCE;
+  --warning: #8C6A1D;
+  --info: #3B6FB5;
   /* r131-F7 (A7 Cluster B — the 9-site light 1.4.3 failure): light status
    * BASES are 2.20-3.00:1 as text on cream, so the fleet ships a dedicated
    * -ink TEXT tier on the pastel -deep values (SL/SO/SM pattern — SO

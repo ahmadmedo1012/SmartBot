@@ -79,12 +79,38 @@ def main() -> int:
             i += 1
         theme_spans.append((m.start(), i))
 
+    # r137: أسطح أوفرايد إمكانية الوصول داخل @media (prefers-contrast) هي
+    # طبقة شرعية ثالثة (r132: حلقات الحواف/الزجاج الصلب في نمط التباين
+    # العالي — إعادة تعريف مقصودة لكل سمة)؛ استثناؤها من عدّ التكرار
+    # مثل @theme تمامًا. كان العدّاد يحسبها «تعريفًا خامًا ثالثًا/رابعًا»
+    # ويفشل — لكن البوابة نفسها لم تُشغَّل منذ قبل r136 (كل تشغيلة كانت
+    # تموت عند pytest أولاً) فانكشف الأمر فقط بعد إصلاح pytest هذا الجولة.
+    contrast_spans: list[tuple[int, int]] = []
+    for m in re.finditer(r"@media\s*\(prefers-contrast[^{]*\{", masked_text):
+        depth = 1
+        start = m.end()
+        i = start
+        while i < len(masked_text) and depth:
+            if masked_text[i] == "{":
+                depth += 1
+            elif masked_text[i] == "}":
+                depth -= 1
+            i += 1
+        contrast_spans.append((m.start(), i))
+
     def in_theme(pos: int) -> bool:
         return any(a <= pos <= b for a, b in theme_spans)
+
+    def in_contrast_override(pos: int) -> bool:
+        return any(a <= pos <= b for a, b in contrast_spans)
 
     defs: dict[str, list[tuple[int, bool]]] = defaultdict(list)
     for m in VAR_RE.finditer(text):
         name = m.group(1)
+        # r137: تعريفات أوفرايد التباين العالي تُستثنى كليًا (طبقة a11y
+        # شرعية ثالثة) — لا تُحتسب @theme ولا خامًا.
+        if in_contrast_override(m.start()):
+            continue
         defs[name].append((m.start(), in_theme(m.start())))
 
     errors: list[str] = []

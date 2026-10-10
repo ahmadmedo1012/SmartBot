@@ -36,6 +36,18 @@ def break_weasyprint(monkeypatch):
     يعيد تحميل pdf_reports_engine ليعاد تشغيل فحص التوفر تحت الاستيراد
     المكسور، ثم يستعيد الوحدة السليمة عند الخروج (بقية الجناح تعتمد
     عليها). break_fpdf=True يحاكي الإنتاج أيضاً (fpdf2 غير مثبت هناك).
+
+    r137 (جذر احمرار المرور العكسي في CI): ``importlib.reload`` يعيد
+    تنفيذ الوحدة في نفس القاموس فيُعيد ربط كل الأسماء إلى كائنات
+    «كلاس» *جديدة* — بينما الـ singleton الكسول ``_services.pdf_engine``
+    (الذي تستخدمه المسارات فعليًا) يظل ممسكًا بالكلاس *الأصلي*. أي
+    اختبار لاحق يرقّع ``pdf_reports_engine.PdfReportsEngine`` عبر اسم
+    الوحدة (test_v16_ssrf يفعل بالضبط) يرقّع كلاسًا لا يستخدمه أحد
+    ← المحرك الحقيقي يعمل ← PDF حقيقي ≠ المزيف ← فشل يظهر في الترتيب
+    العكسي فقط (v22 يسبق v16 عكسيًا ويلحقه أماميًا). الإصلاح الجذري:
+    لقطة للأسماء الأصلية قبل أول reload تُستعاد حرفيًا عند الخروج
+    (هوية الكلاس محفوظة)، والـ lazy proxy يُصفَّر ليعيد الاعتماد على
+    الكلاس المُستعاد.
     """
     made = {"broken": False}
 
@@ -44,6 +56,14 @@ def break_weasyprint(monkeypatch):
         import importlib
 
         import pdf_reports_engine as pre
+
+        # r137: لقطة هوية واحدة قبل أول reload فقط (استدعاءات _break
+        # المتعددة داخل نفس الاختبار تُعيد التحميل على نفس القاموس
+        # مجددًا — اللقطة الأولى هي الحالة السليمة التي نعود إليها).
+        if "orig" not in made:
+            made["orig"] = {
+                k: v for k, v in vars(pre).items() if not k.startswith("__")
+            }
 
         real_import = builtins.__import__
 
@@ -67,6 +87,26 @@ def break_weasyprint(monkeypatch):
 
         import pdf_reports_engine as pre
         importlib.reload(pre)
+        # r137: إعادة التحميل وحدها لا تكفي — reload ينفّذ الوحدة من جديد
+        # فيُنتج كلاسات *جديدة* سليمة لكنها ليست هوية الكلاس الذي يمسكه
+        # singleton التطبيق. استعادة اللقطة الأصلية حرفيًا تُرجع الاسم
+        # إلى نفس كائن الكلاس الذي بُني عليه المحرك الكسول، فتظل ترقيعات
+        # أي اختبار لاحق عبر اسم الوحدة فعّالة بأي ترتيب تشغيل.
+        orig = made.get("orig") or {}
+        _ns = vars(pre)
+        for _k in [k for k in _ns if not k.startswith("__") and k not in orig]:
+            del _ns[_k]
+        _ns.update(orig)
+        # r137: تصفير الـ lazy proxy — إن حُلّ المحرك أثناء نافذة الكسر
+        # (مسار /api/reports/status في اختبار أعلاه يلمسه فعليًا) فهو
+        # instance من الكلاس المكسور؛ التصفير يجعل اللمسة التالية تعيد
+        # البناء من الكلاس المُستعاد السليم.
+        try:
+            import _services
+
+            object.__setattr__(_services.pdf_engine, "_v", None)
+        except Exception:
+            pass
 
 
 # ════════════════════════════════════════════════════════════════════════════

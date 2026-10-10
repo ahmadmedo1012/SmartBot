@@ -91,8 +91,15 @@ jobs:
         # gate immediately (no blanket re-run).
         run: |
           set -o pipefail
+          # r137 (صمام التجمّد — الطبقة الثانية): pytest.ini يحمل الآن
+          # faulthandler_timeout=120 + exit_on_timeout (يُسمّي الاختبار
+          # المتجمّد ويقتله فورًا). هذه الطبقة تحدّ *المرور كاملًا*:
+          # `timeout -s ABRT 480` = 2.4× المُلاحظ (~200ث) — إن تجاوز
+          # المرور الميزانية يرسل SIGABRT فيُفرغ faulthandler كل تتابعات
+          # الخيوط قبل الموت، فنفشل بصخب وبموقع التجمّد بدل حائط 40
+          # دقيقة الذي أكل تشغيلة r136c العكسية بلا دليل.
           run_suite () {
-            pytest -q --cov=fb_dashboard --cov-fail-under=60 2>&1 | tee /tmp/pytest_run.log
+            timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=60 2>&1 | tee /tmp/pytest_run.log
           }
           if ! run_suite; then
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_run.log; then
@@ -103,10 +110,10 @@ jobs:
             fi
           fi
           # Reverse order — hermeticity is a GATE, not a hope (v5 §0).
-          if ! pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log; then
+          if ! timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log; then
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
-              pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
+              timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
             else
               echo "❌ pytest (reverse) failed (non-flake) — no retry"; exit 1
             fi

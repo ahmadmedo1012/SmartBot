@@ -82,10 +82,22 @@ async def subscription_status_stream(payment_id: int = Query(...),
             while _time.monotonic() < deadline:
                 # v18 (2-f): a client that dropped the connection ends the
                 # stream here instead of polling to the lifetime cap.
+                # r137 (جذر التجمّد المتقطع منذ r136c — الصمام أمسكه مرتين):
+                # ``request.is_disconnected()`` نفسها يمكن أن تتوقف إلى الأبد
+                # على وسائط نقل لا ترسل رسالة الفصل أبدًا (ASGITransport في
+                # الاختبارات أساسًا) — فيتوقف المولّد هنا → لا بيانات →
+                # ``aiter_lines()`` لدى العميل يتوقف → الاختبار يتجمد بصمت.
+                # تحديد النداء بمهلة يحفظ النية الأصلية (كشف القطع خلال
+                # دورة استطلاع واحدة) ويحوّل وسائط «بلا دلالات قطع» إلى
+                # استطلاع عادي بدل توقف دائم.
                 if request is not None:
                     try:
-                        if await request.is_disconnected():
+                        if await _asyncio.wait_for(
+                            request.is_disconnected(), timeout=1.0
+                        ):
                             return
+                    except TimeoutError:
+                        pass  # transport without disconnect semantics — keep polling
                     except Exception:
                         pass  # transport without disconnect semantics — keep polling
                 # v18 (2-f): fresh short session PER POLL (see module docstring)

@@ -80,19 +80,24 @@ async def test_sse_pushes_approval_instantly(env):
 
     approver = asyncio.create_task(approve_after_delay())
 
+    # r137: لا انتظار بلا سقف أبدًا — إن تعطّل البث (جذر is_disconnected
+    # المصلح هذا_الجولة) يفشل الاختبار بصخب بدل التجمّد الصامت.
     events: list[dict] = []
-    async with ac.stream("GET", f"/api/subscriptions/status-stream?payment_id={ids['payment']}") as resp:
-        assert resp.status_code == 200
-        assert resp.headers["content-type"].startswith("text/event-stream")
-        async for line in resp.aiter_lines():
-            if line.startswith("data: "):
-                events.append(json.loads(line[6:]))
-                if events[-1].get("status") == "verified":
-                    break
-            if len(events) > 10:
-                break
 
-    await approver
+    async def _consume():
+        async with ac.stream("GET", f"/api/subscriptions/status-stream?payment_id={ids['payment']}") as resp:
+            assert resp.status_code == 200
+            assert resp.headers["content-type"].startswith("text/event-stream")
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    events.append(json.loads(line[6:]))
+                    if events[-1].get("status") == "verified":
+                        break
+                if len(events) > 10:
+                    break
+
+    await asyncio.wait_for(_consume(), timeout=30)
+    await asyncio.wait_for(approver, timeout=10)
     statuses = [e.get("status") for e in events]
     assert "verified" in statuses, f"SSE never pushed approval — got: {statuses}"
 
@@ -106,10 +111,15 @@ async def test_sse_rejects_foreign_payment(env):
         "username": uname, "email": f"{uname}@t.ly", "password": "Test12345!", "name": "SSE Two",
     })
     # (cookie now belongs to user 2)
-    got_error = False
-    async with ac.stream("GET", f"/api/subscriptions/status-stream?payment_id={ids['payment']}") as resp:
-        async for line in resp.aiter_lines():
-            if line.startswith("event: error"):
-                got_error = True
-                break
+
+    async def _consume():
+        async with ac.stream("GET", f"/api/subscriptions/status-stream?payment_id={ids['payment']}") as resp:
+            async for line in resp.aiter_lines():
+                if line.startswith("event: error"):
+                    return True
+            return False  # البث أُغلق بلا حدث الخطأ
+
+    # r137: هذا الاختبار بعينه كان مصدر التجمّد المتقطع (#243 — التقطه
+    # الصمام مرتين) — سقف 30ث يحوّل أي تعطّل مستقبلي إلى فشل مسمّى.
+    got_error = await asyncio.wait_for(_consume(), timeout=30)
     assert got_error, "foreign payment must raise the error event"

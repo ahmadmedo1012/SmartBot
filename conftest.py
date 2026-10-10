@@ -25,6 +25,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+# r137 (الصمام المسمّى — الجزء 2): احتفظ بـ fd STDERR الأصلي قبل أن تبدأ
+# طبقة أسر pytest في إعادة توجيه fd 2 — كلب الحراسة يكتب عليه مباشرة
+# (كتابة os.write على fd 2 المُعيد توجيهه تذهب إلى أنبوب الأسر الذي يُفقد
+# عند إجهاض faulthandler — نفس السبب الذي جعل تفريغات الكلب السابقة غير مرئية).
+_REAL_STDERR_FD = os.dup(2)
+
 # ── 1. import path: fb_dashboard package root ────────────────────────
 _FB_DIR = str(Path(__file__).resolve().parent / "fb_dashboard")
 if _FB_DIR not in sys.path:
@@ -95,7 +101,41 @@ import pytest  # noqa: E402  (env must be forced before app imports)
 # (fixture never runs outside pytest). Cheap: one sqlite reconnect per test.
 @pytest.fixture(autouse=True)
 async def _dispose_engine_per_test():
+    # r137 (الصمام المسمّى): faulthandler يفرغ تتابعات *الخيوط* فقط —
+    # لكن الكوروتين المعلّق يعيش في الـheap فلا يظهر أبدًا (التجمّد المتقطع
+    # منذ r136c يُفرغ «select في base_events» بلا اسم). هذا الكلب يستيقظ
+    # بعد 90ث (قبل حائط faulthandler الـ120ث) ويطبع كل مهمة async معلّقة
+    # مع سلسلة await الكاملة عبر Task.get_stack() — فيُسمّى المذنب فعليًا.
+    import asyncio as _aio_watch
+    import os as _os_watch
+
+    _loop = _aio_watch.get_running_loop()
+
+    def _wd_print(msg: str) -> None:
+        # الكتابة على fd STDERR الأصلي المحفوظ أعلى الملف — طبقة أسر pytest
+        # تبتلع أي كتابة على fd 2 المُعاد توجيهه عند إجهاض faulthandler.
+        _os_watch.write(_REAL_STDERR_FD, (msg + "\n").encode("utf-8", "replace"))
+
+    async def _watchdog():
+        await _aio_watch.sleep(90)
+        _tasks = [
+            t for t in _aio_watch.all_tasks(_loop)
+            if t is not _aio_watch.current_task() and not t.done()
+        ]
+        _wd_print("\n[WD-r137] this test exceeded 90s — pending async tasks:")
+        for _t in _tasks:
+            _stack = _t.get_stack()
+            _frames = " -> ".join(
+                f"{f.f_code.co_filename.rsplit('/', 1)[-1]}:{f.f_lineno} in {f.f_code.co_name}"
+                for f in _stack
+            ) or "(no frames — parked on a bare future)"
+            _wd_print(f"[WD-r137] TASK {_t.get_coro()!r}")
+            _wd_print(f"[WD-r137]   {_frames}")
+        _wd_print("[WD-r137] end watchdog dump")
+
+    _wd = _aio_watch.get_running_loop().create_task(_watchdog())
     yield
+    _wd.cancel()
     # r136 (CI-red root cause, pre-existing since r133): pytest-asyncio closes
     # the loop right after each test, but spawn()ed fire-and-forget tasks
     # (_track_event's analytics _write is THE hot one — it opens its OWN

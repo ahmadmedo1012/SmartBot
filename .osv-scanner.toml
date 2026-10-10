@@ -94,3 +94,19 @@ ignoreUntil = 2026-12-10T00:00:00Z
 id = "GHSA-vfj7-8cjw-p6xm"
 reason = "braces 3.0.3 is the LATEST npm release — no fixed version exists to bump; dev-only build-tooling transitive, never in the runtime bundle; re-verify at TTL"
 ignoreUntil = 2027-01-09T00:00:00Z
+
+# r137 (2026-10-10) — GHSA-w5hq-g745-h8pq: uuid 7.0.3 in mobile/package-lock.json
+# (transitive: expo-splash-screen → @expo/config-plugins → xcode@3.0.1, which
+# pins ^7.0.3 — uuid 11.1.1 is UNREACHABLE through the tree until xcode ships
+# a release accepting it). Reachability: xcode is iOS build-time tooling that
+# runs in EAS/local builds ONLY — never in the app runtime bundle, and never
+# in an Android build at all. The two sibling mobile advisories this round
+# (shell-quote GHSA-pqg4-j6r4-53mv 9.2, source-map-js GHSA-68fv-2mgg-jv7q)
+# were FIXED AT THE ROOT by npm update (shell-quote 1.12.0, source-map-js
+# 1.2.2) — fix-first policy held; this uuid entry is the only mobile
+# suppression. Remove the day xcode accepts uuid@^11.
+
+[[IgnoredVulns]]
+id = "GHSA-w5hq-g745-h8pq"
+reason = "uuid 7.0.3 transitive of xcode@3.0.1 (^7 pin — 11.x unreachable); iOS build-time tooling only, never in the app runtime bundle; re-verify at TTL"
+ignoreUntil = 2027-01-10T00:00:00Z

@@ -27,7 +27,11 @@ const STATUS_LABELS: Record<string, string> = {
   confirmed: "مؤكد", cancelled: "ملغى", verified: "مُفعّل", rejected: "مرفوض",
 }
 const PROVIDER_LABELS: Record<string, string> = {
-  liyana: "ليبيانا", madar: "مدار", bank: "تحويل بنكي",
+  // r137: الخادم يكتب المفتاح القانوني «libyana» (routers/payments/wallet.py
+  // canonical_provider) ويقبل المرادف القديم «liyana» من عملاء الموبايل
+  // المنشورين — السطور القديمة تحمل القديم والجديدة تحمل القانوني،
+  // والعرض واحد: «ليبيانا».
+  libyana: "ليبيانا", liyana: "ليبيانا", madar: "مدار", bank: "تحويل بنكي",
 }
 
 /* v17-E-F8 (D6-2): عقد POST /api/subscriptions/upgrade

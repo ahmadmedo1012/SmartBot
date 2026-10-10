@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -112,6 +113,42 @@ def tripoli_date(dt: datetime) -> date:
     2026-10-09 23:30 is Tripoli 2026-10-10 01:30 → belongs to Oct 10.
     """
     return (_naive_utc(dt) + TRIPOLI_UTC_OFFSET).date()
+
+
+# r137 (ليبي أولاً): التوأم البايثوني لـ frontend/src/lib/phone.ts (منقول
+# r133 A12 S10 عن Smart-Order lib/phone.ts) — الخادم يطبّق نفس العقد الذي
+# يطبّقه العميل قبل الإرسال، فلا يمرّ رقم غير ليبي إلى سجلات الدفع.
+_EASTERN_DIGITS = "٠١٢٣٤٥٦٧٨٩"
+_FOLD_EASTERN = str.maketrans(_EASTERN_DIGITS, "0123456789")
+_LIBYAN_NATIONAL_PREFIX_RE = re.compile(r"^0[125-9]")  # 09X mobiles + landline prefixes
+
+
+def normalize_libyan_phone(raw) -> str | None:
+    """Normalize a Libyan phone number to the canonical local 10-digit mask
+    (``09XXXXXXXX``) or None when it cannot be a valid Libyan number.
+
+    Accepts (same contract as the frontend twin): 0912345678, 218912345678,
+    +218 91 234 5678, ٩١٢٣٤٥٦٧٨, 912345678 — Eastern digits folded,
+    separators stripped, 00218/218 country prefixes removed, missing trunk
+    zero restored, then validated against the Libyan national prefixes
+    (^0[125-9]) and the 10-digit length.
+    """
+    if not isinstance(raw, str):
+        return None
+    digits = re.sub(r"\D", "", raw.translate(_FOLD_EASTERN))
+    if not digits:
+        return None
+    if digits.startswith("00218"):
+        digits = digits[5:]
+    elif digits.startswith("218"):
+        digits = digits[3:]
+    if len(digits) == 9 and digits.startswith("9"):
+        digits = "0" + digits  # 91xxxxxxx missing trunk 0
+    if len(digits) != 10 or not digits.startswith("0"):
+        return None
+    if not _LIBYAN_NATIONAL_PREFIX_RE.match(digits):
+        return None
+    return digits
 
 
 def iso_z(dt: datetime | None) -> str | None:

@@ -15,7 +15,7 @@ import logging
 
 from _responses import ok
 from _subscription import get_tenant_for_user, is_subscription_active
-from _utils import fmt_lyd, iso_z
+from _utils import fmt_lyd, iso_z, normalize_libyan_phone
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from loop_safe import LoopLocalLock
@@ -26,11 +26,14 @@ from telegram_bot import notify_admins_new_subscription
 
 from routers.auth import get_current_user
 from routers.payments.wallet import (
+    INVALID_PHONE_DETAIL,
+    SUBSCRIPTION_PROVIDERS,
     _as_float,
     _as_int,
     _notify_admins_inline,
     _payment_rate_limit,
     _reject_wallet_above_cap,
+    canonical_provider,
 )
 
 log = logging.getLogger("fb-api")
@@ -90,7 +93,7 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     """Create payment request for new subscription. Notifies Telegram admins.
 
     Supports three providers:
-      - liyana / madar → mobile wallet (amount must equal plan price; user phone required)
+      - libyana / madar → mobile wallet (amount must equal plan price; user phone required)
       - bank → bank transfer (amount can equal plan price; sender account info required)
 
     Rate-limited to 5 attempts/min per IP to prevent Telegram-bot flooding.
@@ -117,10 +120,12 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
     # 500 (+ critical Sentry/Telegram alert) on a client typo; now 422 Arabic.
     # Numeric strings ("50") still coerce — same leniency as before.
     amount = _as_float(body.get("amount", 0), "المبلغ")
-    provider = body.get("provider", "liyana")
+    # r137: المفتاح القانوني «libyana» (المرادف القديم «liyana» يُقبل
+    # توافقًا مع عملاء الموبايل المنشورين ويُكتب بالقانوني).
+    provider = canonical_provider(body.get("provider", "libyana"))
     plan_id = _as_int(body.get("plan_id", 0) or 0, "معرف الباقة")
 
-    if provider not in ("liyana", "madar", "bank"):
+    if provider not in SUBSCRIPTION_PROVIDERS:
         raise HTTPException(400, "مزود الدفع غير صالح")
     plan = await db.get(SubscriptionPlan, plan_id)
     if not plan or not plan.is_active:
@@ -129,8 +134,13 @@ async def create_subscription(request: Request, body: dict = Body(...), db=Depen
         raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
     # غلاف المحافظ (فرض على الخادم — التحويل فوق السقف بنكي فقط؛ v10-D1: القيمة من DB)
     await _reject_wallet_above_cap(provider, amount if provider != "bank" else 0, db)
-    if provider != "bank" and (not phone or len(phone) < 7):
-        raise HTTPException(400, "رقم الهاتف غير صالح")
+    if provider != "bank":
+        # r137 (ليبي أولاً): التحقق الخادمي من الهاتف الليبي (تطبيع +218 /
+        # 00218 / الأرقام الشرقية / جذع 0) — كان ``len(phone) < 7`` وحده
+        # يقبل «1234567»؛ التحويلات البنكية تبقى بلا هاتف (نفس العقد).
+        phone = normalize_libyan_phone(phone)
+        if not phone:
+            raise HTTPException(422, INVALID_PHONE_DETAIL)
 
     # Bank transfer: collect sender info into extra_data for admin review
     bank_extra: dict = {"username": current_user.username}
@@ -314,12 +324,14 @@ async def cancel_pending_subscription(body: dict = Body(...), db=Depends(get_db)
 
 @router.post("/api/subscriptions/upgrade")
 async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Upgrade existing subscription to higher plan. Supports liyana/madar/bank."""
+    """Upgrade existing subscription to higher plan. Supports libyana/madar/bank."""
     # Same 5/min limit as create — this fan-outs Telegram admin notifications too
     await _payment_rate_limit(request, "sub-upgrade", max_attempts=5, window=300)
     plan_id = _as_int(body.get("plan_id", 0) or 0, "معرف الباقة")
     phone = body.get("phone", "")
-    provider = body.get("provider", "liyana")
+    # r137: المفتاح القانوني «libyana» — المرادف القديم «liyana» يُقبل
+    # توافقًا مع عملاء الموبايل المنشورين (نفس بوابة إنشاء الاشتراك).
+    provider = canonical_provider(body.get("provider", "libyana"))
     # v15-E3 (D1-H1): was a raw float(amount) at the compare sites — the
     # conversion now happens once, with a 422 Arabic on garbage input.
     amount = _as_float(body.get("amount", 0), "المبلغ")
@@ -327,7 +339,7 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
     sender_account = (body.get("senderAccountNumber") or "").strip()
     receipt_url = _validated_receipt_url(body.get("receiptImageUrl"))
 
-    if provider not in ("liyana", "madar", "bank"):
+    if provider not in SUBSCRIPTION_PROVIDERS:
         raise HTTPException(400, "مزود الدفع غير صالح")
     new_plan = await db.get(SubscriptionPlan, plan_id)
     if not new_plan or not new_plan.is_active:
@@ -340,8 +352,11 @@ async def upgrade_subscription(request: Request, body: dict = Body(...), db=Depe
         raise HTTPException(400, "هذه الباقة أقل أو تساوي باقتك الحالية")
 
     if provider != "bank":
-        if not phone or len(phone) < 7:
-            raise HTTPException(400, "رقم الهاتف غير صالح")
+        # r137 (ليبي أولاً): نفس التحقق الخادمي لهاتف المحفظة الليبية الذي
+        # طبّقناه على الإنشاء — «len < 7» وحده كان يقبل «1234567».
+        phone = normalize_libyan_phone(phone) or ""
+        if not phone:
+            raise HTTPException(422, INVALID_PHONE_DETAIL)
         if amount != float(new_plan.price):
             raise HTTPException(400, "المبلغ غير مطابق لسعر الباقة")
         await _reject_wallet_above_cap(provider, amount, db)

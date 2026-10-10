@@ -27,6 +27,10 @@ import type { PaymentRecord, WalletBalance } from '@/types/api'
 type TopupProvider = 'liyana' | 'madar'
 
 const PROVIDER_LABEL: Record<string, string> = {
+  // r137: الخادم يكتب المفتاح القانوني «libyana» ويقبل المرادف القديم
+  // «liyana» الذي يرسله هذا التطبيق المنشور — السطور الجديدة تعرض
+  // «ليبيانا» بنفس القيمة.
+  libyana: 'ليبيانا',
   liyana: 'ليبيانا',
   madar: 'مدار',
   bank: 'تحويل بنكي',

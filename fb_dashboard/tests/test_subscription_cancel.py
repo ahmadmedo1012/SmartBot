@@ -291,7 +291,8 @@ async def test_subscription_pending_returns_own_pending_fields():
         assert data["plan_id"] == plan_id
         assert data["plan_name"] == "الأساسية"
         assert data["amount"] == 50.0
-        assert data["provider"] == "liyana"
+        # r137: المسار يكتب المفتاح القانوني «libyana» (canonical_provider)
+        assert data["provider"] == "libyana"
         assert data["created_at"], data  # ISO-Z string (iso_z)
     finally:
         await _teardown(fixture)

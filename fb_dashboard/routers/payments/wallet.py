@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from _responses import ok
-from _utils import fmt_lyd, iso_z
+from _utils import fmt_lyd, iso_z, normalize_libyan_phone
 from config import settings
 from database import AsyncSessionLocal, get_db
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
@@ -56,6 +56,31 @@ def _as_int(value, field: str) -> int:
     if as_float != int(as_float):
         raise HTTPException(422, f"قيمة غير صالحة: {field} يجب أن يكون رقماً صحيحاً")
     return int(as_float)
+
+
+# r137 (نطاقات الحقيقة): «liyana» كانت خطأ إملائياً لاسم الشركة «ليبيانا» —
+# التوأمان العائليان (Smart-Order/Smart-Menu) ومفاتيح العرض العربية كلها
+# «libyana». القيمة مخزّنة في قاعدة البيانات (payment_requests.provider /
+# subscription_payments.provider) فلا إعادة تسمية عمياء: القبول متوافق
+# (عملاء الموبايل المنشورون يرسلون «liyana» بعد) وكل سطر جديد يُكتب
+# بالمفتاح القانوني «libyana» — القديم يبقى كما خُزّن ويُعرض عبر خرائط
+# التسميات التي تقبل الصيغتين.
+def canonical_provider(raw) -> str:
+    """Map the legacy "liyana" spelling to the canonical "libyana" key."""
+    value = str(raw or "").strip()
+    return "libyana" if value == "liyana" else value
+
+
+#: r137: المفاتيح القانونية لمزودي الدفع (القبول يشمل المرادف القديم عبر
+#: canonical_provider فوق — الكتابة دائماً بالقانوني).
+WALLET_PROVIDERS = ("libyana", "madar")
+SUBSCRIPTION_PROVIDERS = ("libyana", "madar", "bank")
+
+
+#: r137: رسالة 422 لهاتف محفظة غير صالح — نفس عائلة «قيمة غير صالحة»
+#: (v15-E3) مع مثال العقد الليبي (تطبيع +218/00218/الأرقام الشرقية في
+#: _utils.normalize_libyan_phone — التوأم البايثوني لـ frontend/src/lib/phone.ts).
+INVALID_PHONE_DETAIL = "قيمة غير صالحة: رقم الهاتف يجب أن يكون رقمًا ليبيًا صحيحًا (مثال: 0912345678)"
 
 
 # v14-E1 #3: money-approval notifications are sent INLINE (awaited BEFORE the
@@ -140,8 +165,9 @@ async def _reject_wallet_above_cap(provider: str, amount: float, db) -> None:
     /api/config exports — an admin's change used to be cosmetic-only while
     the real gate stayed frozen at the env value (financial risk in both
     directions). Fallback: env MOBILE_WALLET_CAP when no/invalid DB row.
+    r137: المرادف القديم «liyana» يُطبّع قبل الفحص (نفس بوابة القبول).
     """
-    if provider not in ("liyana", "madar"):
+    if canonical_provider(provider) not in WALLET_PROVIDERS:
         return
     cap = await _get_mobile_wallet_cap(db)
     if float(amount) > cap:
@@ -211,15 +237,20 @@ async def payment_topup(request: Request, body: dict = Body(...), db=Depends(get
     # v15-E3 (D1-H1): raw ``amount < 1`` with a string amount was a TypeError
     # → 500 + critical alert for a client typo. Now: 422 «قيمة غير صالحة».
     amount = _as_float(body.get("amount", 0), "المبلغ")
-    provider = body.get("provider", "")
-    phone = body.get("phone", "")
+    # r137: المفتاح القانوني «libyana» (المرادف القديم «liyana» يُقبل توافقًا
+    # مع عملاء الموبايل المنشورين ويُكتب بالقانوني).
+    provider = canonical_provider(body.get("provider", ""))
+    # r137 (ليبي أولاً): التحقق الخادمي من رقم الهاتف الليبي (تطبيع +218 /
+    # 00218 / الأرقام الشرقية / جذع 0 ثم التحقق من البادئات الوطنية) — كان
+    # ``len(phone) < 7`` وحده يقبل «1234567» ويخزّنها في سجل الدفعة.
+    phone = normalize_libyan_phone(body.get("phone"))
     if amount < 1 or amount > 10000:
         raise HTTPException(400, "المبلغ غير صالح (1-10000)")
-    if provider not in ("liyana", "madar"):
+    if provider not in WALLET_PROVIDERS:
         raise HTTPException(400, "مزود الدفع غير صالح")
     await _reject_wallet_above_cap(provider, amount, db)
-    if not phone or len(phone) < 7:
-        raise HTTPException(400, "رقم الهاتف غير صالح")
+    if not phone:
+        raise HTTPException(422, INVALID_PHONE_DETAIL)
     pr = PaymentRequest(
         tenant_id=current_user._tenant_id,
         username=current_user.username,

@@ -862,7 +862,10 @@ class SubscriptionPayment(Base):
     tenant_id = Column(Integer, nullable=True)             # FK → tenants.id
     phone = Column(String(50), nullable=False)             # payer phone number
     amount = Column(Numeric(10, 2), nullable=False)
-    provider = Column(String(20), default="liyana")        # liyana, madar
+    # r137: القانوني «libyana» (التوائم العائلية Smart-Order/Smart-Menu) —
+    # السطور القديمة تحمل المرادف المكتوب «liyana» وتبقى كما خُزّنت؛ القبول
+    # على الخادم يشمل الصيغتين (canonical_provider).
+    provider = Column(String(20), default="libyana")  # libyana, madar
     plan_id = Column(Integer, nullable=False)              # FK → subscription_plans.id
     plan_name = Column(String(100), default="")            # snapshot at time of payment
     status = Column(String(20), default="pending")         # pending, verified, cancelled
@@ -965,7 +968,9 @@ class PaymentRequest(Base):
     tenant_id = Column(Integer, nullable=False, default=0)
     username = Column(String(100), default="")
     amount = Column(Numeric(10, 3), nullable=False, default=0)
-    provider = Column(String(20), default="liyana")  # liyana, madar
+    # r137: القانوني «libyana» — نفس حكم subscription_payments فوق (المرادف
+    # القديم «liyana» مقبول في الإدخال ولا يُلمس في المخزون).
+    provider = Column(String(20), default="libyana")  # libyana, madar
     phone = Column(String(50), default="")
     reference = Column(String(100), default="")
     status = Column(String(20), default="pending")  # pending, confirmed, cancelled

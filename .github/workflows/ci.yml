@@ -278,8 +278,36 @@ jobs:
           # SCAN TARGET ("failed to resolve path: .../version" → exit≠0, the
           # CI-red class since the v2.5.1 pin). The flag form is the contract.
           osv-scanner --version
-      - name: Gate — OSV scan (both lockfiles, explicit config)
+      - name: Gate — OSV scan (all three lockfiles, explicit config)
         run: |
           osv-scanner scan --config=.osv-scanner.toml \
             --lockfile=requirements.txt \
-            --lockfile=fb_dashboard/frontend/package-lock.json
+            --lockfile=fb_dashboard/frontend/package-lock.json \
+            --lockfile=mobile/package-lock.json
+
+  # r137 (فجوة سلسلة التوريد + فجوة البوابة): تطبيق الموبايل (64 ملف src،
+  # 56 اختبار vitest) لم يكن في CI إطلاقًا — أي انحدار فيه غير قابل
+  # للكشف آليًا، وبطاقة اعتماده غير ممسوحة في OSV. البوابات الثلاث
+  # الموثقة في mobile/README.md + package.json (typecheck · test · lint)
+  # بنفس نمط الوظائف الأخرى: actions مثبتة بـSHA، Node 24 (توافق
+  # type-stripping مع بقية الأسطول)، كاش npm على القفل الخاص بالموبايل.
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install (npm ci — strict)
+        run: cd mobile && npm ci
+      - name: Gate — mobile typecheck
+        run: cd mobile && npm run typecheck
+      - name: Gate — mobile tests (vitest)
+        run: cd mobile && npm run test
+      - name: Gate — mobile lint (expo lint)
+        run: cd mobile && npm run lint

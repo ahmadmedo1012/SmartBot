@@ -380,7 +380,7 @@ class Subscriber(Base):
     username = Column(String(100), default="")
     locale = Column(String(20), default="")
     gender = Column(String(10), default="")
-    platform = Column(String(20), default="messenger")  # messenger/instagram/whatsapp
+    platform = Column(String(20), default="messenger")  # messenger (المنفّذ الوحيد)؛ instagram/whatsapp قيم معلنة غير منفذة (خارطة طريق — لا تعدّها منصات حية)
     page_id = Column(String(100), default="")
     status = Column(String(20), default="active")  # active/inactive/blocked
     first_seen_at = Column(DateTime, default=utcnow)
@@ -944,7 +944,7 @@ class Customer(Base):
     name = Column(String(200), default="")
     phone = Column(String(50), default="")
     email = Column(String(200), default="")
-    source = Column(String(50), default="facebook")  # facebook, whatsapp, instagram, website
+    source = Column(String(50), default="facebook")  # facebook (المنفّذ الوحيد)؛ whatsapp/instagram/website قيم معلنة غير منفذة (خارطة طريق)
     stage = Column(String(30), default="lead")  # lead, prospect, trial, active, churned
     notes = Column(Text, default="")
     total_interactions = Column(Integer, default=0)

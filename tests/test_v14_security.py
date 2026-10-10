@@ -263,7 +263,8 @@ async def test_topup_notifies_admins_inline(v10_seed, monkeypatch):
     assert r.status_code == 200, r.text
     assert len(seen) == 1, "الإشعار لم يُرسل قبل الرد"
     assert seen[0][1] == uname
-    assert seen[0][3] == "liyana"
+    # r137: المسار يكتب المفتاح القانوني «libyana» (canonical_provider)
+    assert seen[0][3] == "libyana"
 
 
 async def test_subscription_create_notifies_admins_inline(v10_seed, monkeypatch):

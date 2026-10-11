@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 import { CountUp } from "@/components/ui/CountUp";
+import { getArabicPlural } from "@/lib/arabic-plural";
 import { usePublicStats } from "@/lib/usePublicStats";
 
 /* v16-r142 «رفيق» — the trust band rebuilt as a mono COCKPIT readout:
@@ -19,6 +20,11 @@ import { usePublicStats } from "@/lib/usePublicStats";
  * below) — verifiable in-repo, never presented as a live metric. This file
  * deliberately never spells the banned metric name: the parity honesty pin
  * greps for it (parity.mjs trust-band honesty).
+ * 15-SB acceptance wave: the captions agree with their numeral through the
+ * shared Arabic plural engine (below) — «4 صفحات نشطة» reads correctly now;
+ * the middle stat stays «رد آلي» on purpose: /api/public/stats carries no
+ * stronger verifiable field (activeUsers30d is 0 live — swapping would
+ * drop the cell by the >0 honesty gate, not strengthen the band).
  * aria-live="polite" on the inner readout: the fallback→figures swap is
  * announced to screen readers instead of updating silently (QA r144).
  * Client island: the fetch + CountUp need the browser; the section
@@ -40,8 +46,26 @@ const FALLBACK: Cell[] = [
  * commerce, context, flow, offer, pdf_reports, publisher, sequence,
  * subscriber, team) plus the bot_engine/ and facebook_engine/ packages.
  * Changes only with a deploy; the label grammar matches the live cells
- * («N | صفحة نشطة» → «14 | محرك أتمتة»). */
+ * («N | صفحات نشطة» → «14 | محرك أتمتة»). */
 const ENGINE_COUNT = 14;
+
+/* Caption agreement for a counted phrase whose numeral is displayed
+ * separately (cockpit cell = value + caption on one baseline): 3–10 →
+ * the plural («4 صفحات نشطة» — the r144 live defect), every other state
+ * keeps the singular — 1/2 read naturally with the digit («2 رد آلي»;
+ * the dual is reserved for a noun standing alone, never numeral+noun)
+ * and 11+ takes the singular by rule («14 محرك أتمتة»). Broken plurals
+ * and the adjective are explicit forms — mechanical derivation cannot
+ * produce «صفحات نشطة». getArabicPlural throws on malformed counts; a
+ * bad stats payload must never crash the band, hence the singular
+ * fallback. */
+function countedLabel(count: number, singular: string, plural: string): string {
+  try {
+    return getArabicPlural(count, singular, { two: singular }, plural);
+  } catch {
+    return singular;
+  }
+}
 
 export function TrustBand() {
   const { stats, ready } = usePublicStats();
@@ -50,9 +74,9 @@ export function TrustBand() {
   if (ready && stats) {
     const tenants = stats.activeTenants ?? 0;
     const replies = stats.totalReplies ?? 0;
-    if (tenants > 0) cells.push({ value: String(tenants), label: "صفحة نشطة" });
-    if (replies > 0) cells.push({ value: String(replies), label: "رد آلي" });
-    cells.push({ value: String(ENGINE_COUNT), label: "محرك أتمتة" });
+    if (tenants > 0) cells.push({ value: String(tenants), label: countedLabel(tenants, "صفحة نشطة", "صفحات نشطة") });
+    if (replies > 0) cells.push({ value: String(replies), label: countedLabel(replies, "رد آلي", "ردود آلية") });
+    cells.push({ value: String(ENGINE_COUNT), label: countedLabel(ENGINE_COUNT, "محرك أتمتة", "محركات أتمتة") });
   }
   const shown = cells.length > 0 ? cells : FALLBACK;
 

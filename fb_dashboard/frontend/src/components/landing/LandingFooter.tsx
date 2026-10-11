@@ -5,7 +5,20 @@ import Link from "next/link";
  * only: every Link targets an existing SmartBot surface
  * (/pricing /demo /subscribe /login /register /privacy /terms) or a
  * companion-narrative anchor. The product Footer keeps serving the app
- * surfaces. */
+ * surfaces.
+ * 15-SB acceptance wave: the sibling row — the ecosystem was the one
+ * asymmetry left (order.smart-link.ly and menu.smart-link.ly both link
+ * out; the رفيق footer linked nowhere). Plain external anchors with
+ * rel="noopener noreferrer", same column anatomy — zero new CSS
+ * (reference pattern: Smart-Order 86fb698 footer column). */
+
+/* صف الأشقاء — الأهداف هي نطاقات المنظومة الثلاثة كما هي، بلا أوصاف
+ * من الخيال: كل وسم هو اسم المنتج المعلن على نطاقه نفسه. */
+const ECOSYSTEM = [
+  { href: "https://smart-link.ly", label: "الربط الذكي" },
+  { href: "https://menu.smart-link.ly", label: "سمارت منيو" },
+  { href: "https://order.smart-link.ly", label: "سمارت أوردر" },
+];
 
 export function LandingFooter() {
   const year = new Date().getFullYear();
@@ -49,6 +62,21 @@ export function LandingFooter() {
             <div className="landing-footer-heading">المؤسسة</div>
             <Link href="/privacy" prefetch={false} className="landing-footer-link">سياسة الخصوصية</Link>
             <Link href="/terms" prefetch={false} className="landing-footer-link">شروط الاستخدام</Link>
+          </div>
+
+          <div className="landing-footer-col">
+            <div className="landing-footer-heading">منظومة الربط الذكي</div>
+            {ECOSYSTEM.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="landing-footer-link"
+              >
+                {l.label}
+              </a>
+            ))}
           </div>
         </div>
 

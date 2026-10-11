@@ -135,6 +135,26 @@ async def _dispose_engine_per_test():
     _wd = _aio_watch.get_running_loop().create_task(_watchdog())
     yield
     _wd.cancel()
+    # r140 (X140-SB-CI الفئة 1 — قاتل التجمّد العكسي عند 74%): عميل httpx
+    # العالمي في fb_client يُنشأ على أول حلقة تلمس Graph ثم يُعاد استخدامه
+    # عبر كل الاختبارات — لكن pytest-asyncio (auto) يعطي كل اختبار حلقة
+    # جديدة، فداخل الوحدة الواحدة يصبح العميل مرتبطًا بحلقة ميتة: إعداد
+    # auth_client (وضع track_e يفحص نوع التوكن عبر PUT /api/facebook/settings)
+    # يبني العميل على حلقة الاختبار الأول، ثم يرثه أول مسار خروج شبكي حقيقي
+    # في الاختبار الثاني ([ads] — /api/ads/accounts — الموضع الحتمي للتجمّد
+    # في 4 من 5 تشغيلات CI) والاتصال keepalive وأنسجة anyio كلها ملك حلقة
+    # مغلقة → الطلب يتوقف للأبد، وكل إلغاء لاحق (كلب المراقبة 90ث، إلغاءات
+    # التفكيك) يُحقن في جسر greenlet فيدور _run_to_completion إلى الأبد —
+    # توقيع anyio _deliver_cancellation في كل تفريغ خيوط CI. نفس دواء حدود
+    # الوحدات (r133) لكن لكل اختبار: الاختبار التالي الذي يحتاج Graph يبني
+    # عميله على حلقته هو. (لا يُلمس كود التطبيق — الإنتاج يعمل بحلقة واحدة
+    # طوال عمر العملية.)
+    try:
+        import fb_client as _fb_client_mod
+
+        _fb_client_mod._http = None
+    except Exception:
+        pass
     # r136 (CI-red root cause, pre-existing since r133): pytest-asyncio closes
     # the loop right after each test, but spawn()ed fire-and-forget tasks
     # (_track_event's analytics _write is THE hot one — it opens its OWN
@@ -180,12 +200,28 @@ async def _dispose_engine_per_test():
     # r137 (الجذر الأخير للتجمّد): dispose نفسه يمكن أن يتوقف للأبد — عندما
     # تكون عملية SQLAlchemy جسرًا عبر greenlet لحظة إلغاء مهمة، يقف
     # _run_to_completion داخل _deliver_cancellation ولا يعود أبدًا (هو
-    # توقيع كل جدران CI منذ r136c). المهلة تحوّل توقف الـdispose إلى
-    # تحذير متجاوَز — قاعدة البيانات المؤقتة تموت مع العملية أصلًا.
+    # توقيع كل جدران CI منذ r136c).
+    # r140 (X140-SB-CI — ترقية العلاج): wait_for كان «يشفي» التوقف بإلغاء
+    # المهمة عند المهلة — لكن wait_for يلغي ثم ينتظر اكتمال الإلغاء،
+    # والإلغاء داخل جسر greenlet (shield _run_to_completion) لا يكتمل
+    # أبدًا، فالانتظار نفسه يتجمد: تفريغات خيوط CI تُظهر العملية عالقة
+    # داخل _cancel_and_wait → _deliver_cancellation. الصيغة الجديدة
+    # shield+abandon: المهلة تنفصل عن المهمة (الـdispose يستمر مهمةً خلفية
+    # تكتمل متى اكتملت ولا يُلغى شيء أبدًا)، والقاعدة المؤقتة تموت مع
+    # العملية أصلًا (ملاحظة r137 نفسها) — أسوأ حالة محتملة الآن هي تحذير
+    # Task-destroyed-pending عند إغلاق الحلقة، لا جدار الـ120ث.
     try:
         from database import engine
 
-        await _aio_dispose.wait_for(engine.dispose(), timeout=5)
+        _dispose_task = _aio_dispose.ensure_future(engine.dispose())
+        try:
+            await _aio_dispose.wait_for(
+                _aio_dispose.shield(_dispose_task), timeout=5
+            )
+        except _aio_dispose.TimeoutError:
+            # متعمّد: تُرك الـdispose يعمل في الخلفية — لا إلغاء يُحقن في
+            # جسر greenlet مهما حدث (الشرح في كتلة r140 أعلاه).
+            pass
     except Exception:
         pass
 

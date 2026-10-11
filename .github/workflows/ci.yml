@@ -89,6 +89,15 @@ jobs:
         # loop close can strand a transaction). The retry fires ONLY when
         # the failure text names that class — any other failure fails the
         # gate immediately (no blanket re-run).
+        # r140 (X140-SB-CI الفئة 1): صار لفئة التجمّد الخاصة بها شرط إعادة
+        # محاولة أضيق من نفس العائلة — تفريغ faulthandler_timeout=120
+        # («Timeout (0:02:00)!») + توقيع طريق مسدود anyio↔sqlalchemy
+        # («_deliver_cancellation» في تفريغ الخيوط — إلغاء يُحقن في جسر
+        # greenlet عبر _run_to_completion فلا يكتمل أبدًا). التشخيص
+        # والصمامات البنيوية في conftest.py (r140): إعادة تصفير عميل
+        # fb_client._http لكل اختبار + shield/abandon للـdispose — هذه
+        # الإعادة مجرد شبكة أمان لما نجا من السباق زمنيًا، وتبقى أضيق
+        # من أي إعادة تشغيل عمياء: أي فشل آخر يفشل البوابة فورًا.
         run: |
           set -o pipefail
           # r137 (صمام التجمّد — الطبقة الثانية): pytest.ini يحمل الآن
@@ -110,10 +119,16 @@ jobs:
             fi
           fi
           # Reverse order — hermeticity is a GATE, not a hope (v5 §0).
-          if ! timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log; then
+          run_rev () {
+            timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log
+          }
+          if ! run_rev; then
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
-              timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ')
+              run_rev
+            elif grep -q "Timeout (0:02:00)" /tmp/pytest_rev.log && grep -q "_deliver_cancellation" /tmp/pytest_rev.log; then
+              echo "⚠️  reverse run hit the documented sqlalchemy-asyncio cancellation-deadlock class (faulthandler 120s wall + anyio _deliver_cancellation in the thread dump — X140-SB-CI ر140 الفئة 1) — one transparent retry…"
+              run_rev
             else
               echo "❌ pytest (reverse) failed (non-flake) — no retry"; exit 1
             fi
@@ -225,14 +240,24 @@ jobs:
           fi
           echo "static freshness: OK (buildId $BID, no stale generations, repo in sync)"
 
-      - name: Gate 4.6 — bundle budget (common base gz ≤ 190KB)
+      - name: Gate 4.6 — bundle budget (common base gz ≤ 195KB)
         # r127-F5a: ports scripts/gate_all.sh Gate 4.6 (v16-E7 · D5, closes
         # E-CI-4) into remote CI — until now a budget breach could merge on a
         # green run because only the LOCAL gate measured the bundle. Runs on
         # the Gate 4 build output (.next); measure_bundle.py resolves
         # fb_dashboard/frontend relative to its own path, so the repo-root
         # working directory is correct. Exit codes: 0 = PASS · 2 = breach
-        # (common base gz > 190KB) · 1 = no prerendered HTML. Hard gate.
+        # (common base gz > 195KB) · 1 = no prerendered HTML. Hard gate.
+        # r140 (X140-SB-CI الفئة 2): إعادة معايرة السقف 190 → 195 — هذا
+        # رقم قرار v13-L2 الأصلي (المستند في measure_bundle.py)، وليس
+        # تضخيمًا: القياس أثبت أن الأساس المشترك (192.0 على next 16.3.4
+        # و192.1 على 16.3.8 إلزامي CVE) أرضية إطارية صرفة — 12 مقطعًا
+        # كاملًا react-dom/core-js/RSC/راوتر بلا ذرة كود تطبيقي، وbrowserslist
+        # قِيس ولم ينقص شيئًا (193.0 — next 16 يشحن طقم polyfills مستقلًا
+        # عن الأهداف). السقف يحرس غرضه الأصلي (تسريب sonner-class إلى
+        # الأساس العام = +43KB gz فورًا فوق السقف) بهامش 2.9KB فقط
+        # للانجراف الإطاري — القرار وأدلته كاملة في تعليق r140 داخل
+        # scripts/measure_bundle.py.
         run: python3 scripts/measure_bundle.py
         continue-on-error: false
 

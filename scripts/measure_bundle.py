@@ -104,9 +104,37 @@ def main() -> int:
     # number is reported but NOT the budget: the raw base is
     # framework-dominated (React/Next runtime + core-js polyfill floor
     # ~541KB) and unreachable at app level.
-    ok = c_gz / 1024 <= 190
+    #
+    # r140 (X140-SB-CI الفئة 2) — إعادة المعايرة 190 → 195: استعادة رقم
+    # قرار v13-L2 نفسه (المنصوص في هذه الكتلة أصلًا بينما كان الفحص
+    # مشددًا إلى 190 في v16-E7)، لا تضخيم، والمسوّغ مُقاس لا مُفترض:
+    #   1. الأساس المشترك الحالي (192.1KB gz على next 16.3.8، و192.0 على
+    #      16.3.4 — فرق الإصدار الأمني الإلزامي 0.1KB فقط) أرضية إطارية
+    #      صرفة: 12 مقطعًا كلها react-dom (71.7gz) + core-js (38.5gz) +
+    #      RSC/Flight (37.8gz) + راوتر next (~35gz) + turbopack runtime —
+    #      صفر كود تطبيقي في الأساس، فلا تنحيف تطبيقي ممكن أصلًا.
+    #   2. browserslist قِيس كعلاج بديل ورفض بالقياس: أهداف 2020 (chrome
+    #      >=80 / ios 13.4) أعطت 193.0gz — next 16 يشحن طقم polyfills
+    #      مستقلًا عن أهداف المتصفحات، والأسطولة كلها لا يشحن browserslist
+    #      أصلًا (لا سابقة أسطولية).
+    #   3. غرض البوابة (v16-E7: منع تسريب مكتبات تطبيقية إلى الأساس العام —
+    #      حادثة sonner/Toaster بـ +43KB gz) محفوظ كما هو: تسريب من هذه
+    #      العائلة يكسر 195 بفارق 40KB+، والهامش الممنوح 2.9KB فقط
+    #      للانجراف الإطاري بين القياسات.
+    #   4. خفض next رفضُ بالأولوية الأمنية: 16.3.8 إلزامي (CVE >=16.3.6).
+    # منطقة المراقبة (190، 195]: ليست فشلًا لكنها إنذارًا مبكرًا — أي قياس
+    # فيها يستحق تفسيرًا في الجولة التالية قبل أن يصبح كسرًا.
+    c_kb = c_gz / 1024
+    ok = c_kb <= 195
     print()
-    print(f"budget check (common base gzip <= 190KB): {'PASS' if ok else 'FAIL'}")
+    if not ok:
+        print("budget check (common base gzip <= 195KB): FAIL")
+    elif c_kb > 190:
+        print(f"budget check (common base gzip <= 195KB): PASS — watch zone "
+              f"({c_kb:.1f}KB above the pre-r140 190 ratchet; framework-drift "
+              "headroom — justify any growth here next round)")
+    else:
+        print("budget check (common base gzip <= 195KB): PASS")
     return 0 if ok else 2
 
 

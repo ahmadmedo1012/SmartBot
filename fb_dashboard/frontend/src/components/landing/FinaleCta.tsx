@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Bot } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
@@ -8,7 +9,11 @@ import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
  * magnetic gold CTA (useMagnetic(7)) + ghost. Copy folds the shipped
  * hero CTAs (ابدأ الآن مجاناً → /subscribe، جرب البوت الآن → /demo)
  * and the real free-plan terms (100 رد/شهر، صفحة واحدة — the product
- * schema's published offer). */
+ * schema's published offer).
+ * Task 2-b: the companion's narrative presence at the finish — a small
+ * waving robot beside the start button with a one-line invitation. A
+ * character beat, not a sticker: one instance, at the one moment the
+ * visitor decides. The wave is pure CSS (§16d) with its RM off-switch. */
 
 export function FinaleCta() {
   const year = new Date().getFullYear();
@@ -31,6 +36,17 @@ export function FinaleCta() {
           الذكية قبل أي التزام.
         </RevealCssClass>
         <RevealCssClass as="div" className="ln-cta-actions" delay={3}>
+          <span className="ln-cta-bot" aria-hidden="true">
+            <span className="ln-cta-bot-say">صفحتك جاهزة!</span>
+            <Image
+              src="/images/robot/robot-wave.webp"
+              alt=""
+              width={148}
+              height={148}
+              sizes="74px"
+              className="ln-cta-bot-img"
+            />
+          </span>
           <MagneticGoldLink href="/subscribe" xl withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
             ابدأ الآن مجاناً
           </MagneticGoldLink>

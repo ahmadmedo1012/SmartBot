@@ -1788,3 +1788,580 @@
 .landing .ln-hero-scroll:hover .ln-hero-scroll-line {
   transform: scaleY(1.3);
 }
+
+/* ═══ 2-b — THE ROBOT CHARACTER LAYER («الرفيق الآلي») ══════════════════
+   Task 2-b: the landing stops being a generic Orbit-Ink template and
+   gains its own cast — the SmartBot robot. Everything below is NEW names
+   (--ln-bot-*) and NEW classes (.ln-bot-* · .ln-botchat-* ·
+   .ln-botstate-*): the canonical §1 palette, the alias chain, the
+   marquee anatomy and the P4 pins above are parity-pinned and
+   byte-untouched. Voice mapping:
+   lime = the bot's voice (bubbles/badges — same grammar as the gold pill),
+   amber = the warm eye/heart light (accents + LARGE text on ink only). */
+
+/* ── bot token block — NEW names only (canonical set untouched) ─────── */
+.landing {
+  --ln-bot-glow: rgb(223 237 178 / 0.14);   /* lime halo — automated-reply presence */
+  --ln-bot-glow-deep: rgb(223 237 178 / 0.26);
+  --ln-bot-amber: #F2C48D;                   /* warm eye light — LARGE text/accents on ink only */
+  --ln-bot-amber-soft: rgb(242 196 141 / 0.13);
+  --ln-bot-bubble-in: rgb(24 28 44 / 0.94);  /* messenger incoming bubble on ink */
+  --ln-bot-bubble-in-line: rgb(245 243 231 / 0.18);
+  --ln-bot-frame: rgb(245 243 231 / 0.06);   /* portrait plate wash */
+  --ln-bot-dur-orbit: 64s;                   /* one lap of the hero orbit ring */
+  --ln-bot-dur-float: 7s;                    /* bubble drift period */
+  --ln-bot-dur-pulse: 3.8s;                  /* eye-glow breathing */
+}
+
+/* ── 16a · hero portrait composition («بطل المشهد») ────────────────────
+   The hero grid pairs the RTL copy column (inline-start) with the robot
+   stage (inline-end). The h1/sub keep their instant server paint — this
+   wrapper adds no reveal, no gate (LCP doctrine unchanged). */
+.landing .ln-hero-grid {
+  display: grid;
+  align-items: center;
+  gap: clamp(32px, 4.5vw, 56px);
+}
+@media (min-width: 1025px) {
+  .landing .ln-hero-grid { grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr); }
+  /* the copy column fills its track (the standalone 46vw cap was for the
+     solo-column hero; the track now does the constraining) */
+  .landing .ln-hero-grid > .ln-hero-content { max-inline-size: 100%; }
+}
+
+.landing .ln-bot-hero {
+  position: relative;
+  inline-size: min(100%, 470px);
+  margin-inline: auto;
+  aspect-ratio: 1;
+  justify-self: center;
+}
+/* the lime/amber heart — the single sanctioned hero depth wash (α ≤ 0.26,
+   radial falloff, no filter blur, no glass) */
+.landing .ln-bot-hero-glow {
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(46% 46% at 50% 46%, var(--ln-bot-glow-deep) 0%, transparent 68%),
+    radial-gradient(64% 64% at 50% 52%, var(--ln-bot-glow) 0%, transparent 74%);
+  pointer-events: none;
+}
+/* the portrait plate — the robot's own dark stage framed in the flat
+   grammar (hairline + 20px radius + one quiet shadow, like the chart
+   stage). Image is a full-bleed portrait, object-fit keeps the face. */
+.landing .ln-bot-hero-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  background: var(--ln-bot-frame);
+  border: 1px solid var(--ln-line);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 14px 34px rgba(0,0,0,0.22);
+}
+.landing .ln-bot-hero-img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* the living face — a soft amber breathing glow over the head zone
+   (overall halo per the alignment ruling — no pinpoint dots). Screen
+   blend keeps the flat-ink discipline: it lights the portrait, never
+   paints over the ground. */
+.landing .ln-bot-hero-eye {
+  position: absolute;
+  inset-inline: 30%;
+  top: 11%;
+  block-size: 22%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(242 196 141 / 0.38) 0%, transparent 74%);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: ln-bot-pulse var(--ln-bot-dur-pulse) var(--ln-ease-soft) infinite;
+  pointer-events: none;
+}
+/* the orbital ring — one dashed hairline lap, one static soft lap */
+.landing .ln-bot-orbit {
+  position: absolute;
+  inset: -6.5%;
+  border-radius: var(--ln-radius-pill);
+  border: 1px dashed rgb(223 237 178 / 0.30);
+  animation: ln-bot-orbit var(--ln-bot-dur-orbit) var(--ln-ease-linear) infinite;
+  pointer-events: none;
+}
+.landing .ln-bot-orbit--outer {
+  inset: -13%;
+  border-style: solid;
+  border-color: var(--ln-line-soft);
+  animation: none;
+}
+/* a single lime traveller on the ring — the bot «on duty» marker */
+.landing .ln-bot-orbit::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  inset-inline-start: 50%;
+  translate: -50%;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-lime);
+  box-shadow: 0 0 12px var(--ln-bot-glow-deep);
+}
+@keyframes ln-bot-orbit { to { transform: rotate(1turn); } }
+@keyframes ln-bot-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+/* floating messenger bubbles — the product's real voice, identity-tuned:
+   client = ink bubble (incoming), SmartBot = lime bubble (the bot voice).
+   Base transform IS the layout position; the drift rides transform so
+   reduced motion (belt + the §16d off-switch) leaves them in place. */
+.landing .ln-bot-bubble {
+  position: absolute;
+  z-index: 2;
+  max-inline-size: 200px;
+  padding: 8px 13px 9px;
+  border-radius: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18), 0 8px 22px rgba(0,0,0,0.14);
+  animation: ln-bot-float var(--ln-bot-dur-float) var(--ln-ease-soft) infinite;
+}
+.landing .ln-bot-bubble-who {
+  display: block;
+  font-family: var(--ln-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  opacity: 0.78;
+  margin-block-end: 2px;
+}
+.landing .ln-bot-bubble--in {
+  background: var(--ln-bot-bubble-in);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-cream);
+  border-end-start-radius: 5px;
+}
+.landing .ln-bot-bubble--out {
+  background: var(--ln-lime);
+  color: var(--ln-ink);
+  border-end-end-radius: 5px;
+  font-weight: var(--fw-medium);
+}
+/* the four anchors — client at the reading start, bot at the far side */
+.landing .ln-bot-bubble--in1  { top: 4%;  inset-inline-start: -3%; }
+.landing .ln-bot-bubble--out1 { top: 25%; inset-inline-end: -4.5%; animation-delay: -1.9s; }
+.landing .ln-bot-bubble--in2  { bottom: 21%; inset-inline-start: -4.5%; animation-delay: -3.4s; }
+.landing .ln-bot-bubble--out2 { bottom: 1%;  inset-inline-end: -1%; animation-delay: -5.2s; }
+@keyframes ln-bot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ── 16b · «روبوتك يشتغل» — the live chat simulator stage ───────────── */
+.landing .ln-botdemo-grid {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(32px, 4vw, 56px);
+  align-items: stretch;
+}
+@media (min-width: 981px) {
+  .landing .ln-botdemo-grid { grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.84fr); }
+}
+
+/* the device window — station-card grammar: flat wash, hairline, r-2xl */
+.landing .ln-botchat {
+  min-inline-size: 0;
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03);
+  border: 1px solid var(--ln-line-soft);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.landing .ln-botchat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgb(28 32 50 / 0.66);
+  border-block-end: 1px solid var(--ln-line-soft);
+}
+.landing .ln-botchat-avatar {
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: var(--ln-radius-pill);
+  overflow: hidden;
+  border: 1px solid var(--ln-line);
+  flex-shrink: 0;
+  position: relative;
+}
+.landing .ln-botchat-name { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); line-height: 1.3; }
+.landing .ln-botchat-status { display: inline-flex; align-items: center; gap: 6px; color: var(--ln-cream-dim); font-size: 11.5px; }
+.landing .ln-botchat-status::before {
+  content: '';
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-lime);
+}
+/* intent chip — what the engine classified, in the bot's mono voice */
+.landing .ln-botchat-intent {
+  margin-inline-start: auto;
+  padding: 5px 11px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-bot-amber);
+  font-family: var(--ln-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-inline-size: 44%;
+}
+
+/* scenario tabs — the three honest product scenarios */
+.landing .ln-botchat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: 12px 16px;
+  border-block-end: 1px solid var(--ln-line-soft);
+}
+.landing .ln-botchat-tab {
+  padding: 7px 15px;
+  min-block-size: 36px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  background: transparent;
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  font-weight: var(--fw-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    color var(--ln-t-fast) var(--ln-ease-soft),
+    background var(--ln-t-fast) var(--ln-ease-soft),
+    border-color var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .ln-botchat-tab:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); }
+.landing .ln-botchat-tab[aria-pressed='true'] {
+  color: var(--ln-ink);
+  background: var(--ln-lime);
+  border-color: var(--ln-lime);
+}
+
+/* the transcript — scroll-capped per the long-list rule */
+.landing .ln-botchat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 16px;
+  min-block-size: 300px;
+  max-block-size: 400px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(245 243 231 / 0.22) transparent;
+}
+.landing .ln-botchat-log::-webkit-scrollbar { inline-size: 6px; }
+.landing .ln-botchat-log::-webkit-scrollbar-thumb {
+  background: rgb(245 243 231 / 0.18);
+  border-radius: var(--ln-radius-pill);
+}
+.landing .ln-botchat-msg {
+  max-inline-size: min(82%, 360px);
+  padding: 9px 13px 10px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  animation: ln-bot-msg-in var(--ln-t-reveal) var(--ln-ease-out) both;
+}
+.landing .ln-botchat-msg.user {
+  align-self: flex-start; /* the customer at the reading start (RTL right) */
+  background: var(--ln-bot-bubble-in);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-cream);
+  border-end-start-radius: 5px;
+}
+.landing .ln-botchat-msg.bot {
+  align-self: flex-end; /* the page's own voice at the far side */
+  background: var(--ln-lime);
+  color: var(--ln-ink);
+  font-weight: var(--fw-medium);
+  border-end-end-radius: 5px;
+}
+.landing .ln-botchat-msg.sys {
+  align-self: center;
+  background: none;
+  border: 0;
+  color: var(--ln-cream-dim);
+  font-family: var(--ln-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding-block: 2px;
+  text-align: center;
+}
+@keyframes ln-bot-msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+/* badges — «رد آلي ⚡» in the bot's lime, «فريق بشري» in the warm amber */
+.landing .ln-botchat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-block-start: 6px;
+  padding: 3px 9px;
+  border-radius: var(--ln-radius-pill);
+  font-family: var(--ln-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.landing .ln-botchat-badge.auto {
+  background: rgb(28 32 50 / 0.14);
+  color: var(--ln-ink);
+}
+.landing .ln-botchat-msg.bot .ln-botchat-badge { margin-inline-start: 8px; margin-block-start: 0; }
+.landing .ln-botchat-badge.human {
+  background: rgb(242 196 141 / 0.14);
+  color: var(--ln-bot-amber);
+}
+
+/* typing indicator — three staggered beads (killed under RM by both the
+   belt and the §16d off-switch; the JS gate never mounts it there) */
+.landing .ln-botchat-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 11px 14px;
+  border-radius: 16px;
+  border-end-end-radius: 5px;
+  background: var(--ln-bot-bubble-in);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  align-self: flex-end;
+}
+.landing .ln-botchat-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-cream-dim);
+  animation: ln-bot-dot 1.1s var(--ln-ease-soft) infinite;
+}
+.landing .ln-botchat-dot:nth-child(2) { animation-delay: 0.15s; }
+.landing .ln-botchat-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ln-bot-dot {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+.landing .ln-botchat-typing--user { align-self: flex-start; border-end-start-radius: 5px; border-end-end-radius: 16px; }
+
+.landing .ln-botchat-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-4);
+  padding: 11px 16px;
+  border-block-start: 1px solid var(--ln-line-soft);
+  color: var(--ln-cream-dim);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.landing .ln-botchat-replay {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  min-block-size: 34px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  background: transparent;
+  color: var(--ln-cream-dim);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition:
+    color var(--ln-t-fast) var(--ln-ease-soft),
+    background var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .ln-botchat-replay:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); }
+
+/* the companion column — robot-chat portrait + its caption plate */
+.landing .ln-botdemo-side {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.landing .ln-botdemo-frame {
+  position: relative;
+  flex: 1;
+  min-block-size: 300px;
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+  background: var(--ln-bot-frame);
+  border: 1px solid var(--ln-line);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 14px 34px rgba(0,0,0,0.20);
+}
+.landing .ln-botdemo-frame-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(52% 46% at 50% 42%, var(--ln-bot-glow) 0%, transparent 72%);
+  pointer-events: none;
+  z-index: 1;
+}
+.landing .ln-botdemo-note {
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03);
+  border: 1px solid var(--ln-line-soft);
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.landing .ln-botdemo-note strong { color: var(--ln-cream); font-weight: var(--fw-semibold); }
+
+/* ── 16c · the four states — zigzag path, not a card grid ────────────── */
+.landing .ln-botstates { background: var(--ln-ink); }
+.landing .ln-botstates-grid {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(28px, 4vw, 48px);
+}
+@media (min-width: 921px) {
+  /* the staggered path: 12 tracks, alternating spans + vertical offsets —
+     asymmetric by construction (grid follows the RTL inline direction) */
+  .landing .ln-botstates-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .landing .ln-botstate.s1 { grid-column: 1 / span 7; }
+  .landing .ln-botstate.s2 { grid-column: 8 / span 5; margin-block-start: 88px; }
+  .landing .ln-botstate.s3 { grid-column: 2 / span 5; margin-block-start: var(--sp-5); }
+  .landing .ln-botstate.s4 { grid-column: 7 / span 6; margin-block-start: 104px; }
+}
+.landing .ln-botstate {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--sp-4);
+  align-content: start;
+}
+.landing .ln-botstate-media {
+  position: relative;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background: var(--ln-bot-frame);
+  border: 1px solid var(--ln-line-soft);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-botstate:hover .ln-botstate-media { border-color: var(--ln-line); }
+.landing .ln-botstate.s1 .ln-botstate-media,
+.landing .ln-botstate.s4 .ln-botstate-media { aspect-ratio: 1 / 1; }
+.landing .ln-botstate.s2 .ln-botstate-media,
+.landing .ln-botstate.s3 .ln-botstate-media { aspect-ratio: 4 / 3; }
+.landing .ln-botstate-media-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(56% 48% at 50% 44%, var(--ln-bot-glow) 0%, transparent 74%);
+  pointer-events: none;
+  z-index: 1;
+}
+.landing .ln-botstate-head { display: flex; align-items: baseline; gap: 10px; }
+.landing .ln-botstate-n {
+  font-family: var(--ln-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ln-bot-amber);
+  font-variant-numeric: tabular-nums;
+}
+.landing .ln-botstate-title { margin: 0; font-size: 20px; font-weight: var(--fw-bold); color: var(--ln-cream); }
+.landing .ln-botstate-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14px; line-height: 1.7; max-inline-size: 46ch; overflow-wrap: anywhere; }
+
+/* ── 16d · finale presence — the companion waves you in ─────────────── */
+.landing .ln-cta-bot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.landing .ln-cta-bot-img {
+  inline-size: 74px;
+  block-size: 74px;
+  border-radius: var(--ln-radius-pill);
+  overflow: hidden;
+  border: 1px solid var(--ln-line);
+  box-shadow: 0 0 0 4px rgb(223 237 178 / 0.10), 0 4px 14px rgba(0,0,0,0.24);
+  transform-origin: 30% 80%;
+  animation: ln-bot-wave 2.8s var(--ln-ease-soft) infinite;
+}
+.landing .ln-cta-bot-say {
+  position: absolute;
+  inset-block-start: -14px;
+  inset-inline-start: 50%;
+  translate: -50% -100%;
+  padding: 4px 10px;
+  border-radius: var(--r-md);
+  background: var(--ln-bot-bubble-in);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-bot-amber);
+  font-size: 10px;
+  white-space: nowrap;
+}
+@keyframes ln-bot-wave {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30% { transform: rotate(-7deg); }
+  20%, 40% { transform: rotate(6deg); }
+  50% { transform: rotate(0deg); }
+}
+@media (max-width: 560px) {
+  .landing .ln-cta-bot { inline-size: 100%; justify-content: center; margin-block-end: var(--sp-2); }
+}
+
+/* ── 16e · mobile demotion — 320px+ compromise, no overflow ─────────── */
+@media (max-width: 1024px) {
+  .landing .ln-bot-hero { inline-size: min(86vw, 400px); margin-block-start: var(--sp-5); }
+}
+@media (max-width: 920px) {
+  .landing .ln-botstate.s2,
+  .landing .ln-botstate.s3,
+  .landing .ln-botstate.s4 { margin-block-start: 0; }
+}
+@media (max-width: 640px) {
+  /* the four bubbles crowd a 375px frame — keep the opening pair only */
+  .landing .ln-bot-bubble { max-inline-size: 156px; font-size: 11.5px; padding: 7px 11px 8px; }
+  .landing .ln-bot-bubble--in2,
+  .landing .ln-bot-bubble--out2 { display: none; }
+  .landing .ln-bot-bubble--in1 { inset-inline-start: -2%; }
+  .landing .ln-bot-bubble--out1 { inset-inline-end: -2%; }
+  .landing .ln-botchat-intent { display: none; }
+  .landing .ln-botchat-msg { max-inline-size: 88%; }
+  .landing .ln-botchat-tab { flex: 1 1 auto; text-align: center; }
+  .landing .ln-botdemo-frame { min-block-size: 240px; }
+  .landing .ln-botstate-title { font-size: 18px; }
+}
+/* landscape phones: the portrait leaves the fold to the value story */
+@media (max-height: 560px) and (orientation: landscape) {
+  .landing .ln-bot-hero { display: none; }
+}
+
+/* ── 16f · reduced-motion off-switches — the §16 verbs, explicitly ─────
+   (the globals belt zeroes durations; raw-duration loops get the marquee
+   treatment: removed entirely — and the JS simulator renders the full
+   transcript instantly under the same query). */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-bot-orbit,
+  .landing .ln-bot-bubble,
+  .landing .ln-bot-hero-eye,
+  .landing .ln-botchat-dot,
+  .landing .ln-botchat-msg,
+  .landing .ln-cta-bot-img { animation: none; }
+  .landing .ln-bot-hero-eye { opacity: 0.6; }
+}
+
+/* the states strip renders below the fold — same lazy-render discipline
+   as §12 (the interactive demo chapter is exempt: its island must mount
+   while approaching, not when already visible) */
+.landing .ln-botstates { content-visibility: auto; contain-intrinsic-size: auto 1040px; }

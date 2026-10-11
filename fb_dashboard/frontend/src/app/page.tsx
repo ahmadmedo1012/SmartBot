@@ -1,6 +1,7 @@
 /* r128 Stage B (F3b) — the SmartBot landing assembled as the Madarek
    journey (PORT-KIT §5 skeleton, §6 Bot column):
    المدار (hero sky) → شريط القدرات (marquee) → الثقة → مدار الميزات
+   → عرض حي (task 2-b: محاكي الدردشة + الرفيق) → أطوار الروبوت (task 2-b)
    → رحلة التشغيل (5 stations + light path) → قصة التقدّم (--sp rings)
    → القنوات (ground plate) → الأدوار → نقطة البداية (+ compact FAQ).
 
@@ -9,9 +10,13 @@
    LandingHeader (chrome/spy/menus), HeroDepthLayer (parallax),
    OrbitScene (the r129 canvas engine port), LandingStage (intro-seen),
    MagneticGoldLink (CTA pull), TrustBand + ProgressSection (public
-   stats + CountUp), JourneySection (light path + --sp), and the
-   RevealCssClass observers. HeroMockup + the flat HeroOrbits chart are
-   retired. */
+   stats + CountUp), JourneySection (light path + --sp), BotChatSimulator
+   (task 2-b: the live conversation island) and the RevealCssClass
+   observers. HeroMockup + the flat HeroOrbits chart are retired.
+   Task 2-b — the robot cast: BotHeroPortrait (hero stage, server),
+   BotDemoSection + BotChatSimulator («روبوتك يشتغل»), BotStatesStrip
+   (أطوار الروبوت, server), and the FinaleCta companion beat — all
+   styled in landing.css §16 (--ln-bot-* tokens). */
 import "./landing.css";
 import Link from "next/link";
 import { Check, MessageCircle, Languages } from "lucide-react";
@@ -20,10 +25,13 @@ import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { HeroDepthLayer } from "@/components/landing/HeroDepthLayer";
 import { OrbitScene } from "@/components/landing/OrbitScene";
+import { BotHeroPortrait } from "@/components/landing/BotHeroPortrait";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
 import { TrustBand } from "@/components/landing/TrustBand";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { BotDemoSection } from "@/components/landing/BotDemoSection";
+import { BotStatesStrip } from "@/components/landing/BotStatesStrip";
 import { JourneySection } from "@/components/landing/JourneySection";
 import { ProgressSection } from "@/components/landing/ProgressSection";
 import { PlateSection } from "@/components/landing/PlateSection";
@@ -145,7 +153,11 @@ export default function HomePage() {
             tabIndex={-1} moves focus here for keyboard users. */}
         <span id="page-content" className="sr-only" tabIndex={-1} />
 
-        {/* ═══ الفصل ٠ — المدار: the hero sky ═══ */}
+        {/* ═══ الفصل ٠ — المدار: the hero sky — task 2-b: the ROBOT is the
+            protagonist now. The OrbitScene sky stays (parity pin + the
+            depth plane), and the copy column is paired with the robot
+            portrait composition (glow + orbital ring + live product
+            bubbles). The h1/sub keep painting instantly (LCP doctrine). ═══ */}
         <section className="ln-hero" aria-label="SmartBot — إدارة صفحات فيسبوك الذكية">
           {/* living sky (r129): starfield depth plane + the REAL canvas
               orbit engine (OrbitScene port — fails safe to the CSS sky
@@ -156,6 +168,7 @@ export default function HomePage() {
             <OrbitScene className="ln-hero-canvas" biasX={-0.35} />
           </div>
 
+          <div className="ln-hero-grid">
           <div className="ln-hero-content">
             <RevealCssClass as="p" className="ln-hero-eyebrow">
               <span className="ln-mono">SmartBot · إدارة صفحات فيسبوك · ليبيا</span>
@@ -193,6 +206,11 @@ export default function HomePage() {
             </RevealCssClass>
           </div>
 
+          {/* task 2-b — the companion takes the stage opposite the copy
+              column: server-rendered, zero JS, all verbs CSS (§16a) */}
+          <BotHeroPortrait />
+          </div>
+
           {/* scroll invitation */}
           <a href="#trust" className="ln-hero-scroll" aria-label="تابع الرحلة">
             <span className="ln-mono">تابع الرحلة</span>
@@ -208,6 +226,12 @@ export default function HomePage() {
 
         {/* ═══ الفصل ٢ — مدار الميزات ═══ */}
         <FeaturesSection />
+
+        {/* ═══ task 2-b — عرض حي: المحاكي التفاعلي + الرفيق ═══ */}
+        <BotDemoSection />
+
+        {/* ═══ task 2-b — أطوار الروبوت: المسار المتعرج ═══ */}
+        <BotStatesStrip />
 
         {/* ═══ الفصل ٣ — كيف يعمل لوحة التحكم ═══ */}
         <JourneySection />

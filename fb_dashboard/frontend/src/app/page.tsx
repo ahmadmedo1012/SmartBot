@@ -1,22 +1,31 @@
-/* r128 Stage B (F3b) — the SmartBot landing assembled as the Madarek
-   journey (PORT-KIT §5 skeleton, §6 Bot column):
-   المدار (hero sky) → شريط القدرات (marquee) → الثقة → مدار الميزات
-   → عرض حي (task 2-b: محاكي الدردشة + الرفيق) → أطوار الروبوت (task 2-b)
-   → رحلة التشغيل (5 stations + light path) → قصة التقدّم (--sp rings)
-   → القنوات (ground plate) → الأدوار → نقطة البداية (+ compact FAQ).
+/* v16-r142 — «رفيق» the radical redesign: the page IS the companion's
+   story. The robot is not a hero image — it is the protagonist with a
+   live state (HeroCompanion: the lit stage + the 4-pose state machine
+   hero→wave→think→chat, driven by the visitor's first scroll, the stage
+   press, and the SAME playback that streams the integrated chat
+   simulator).
+
+   The narrative (RTL reading order):
+   ٠ الهيرو «تعرّف على رفيقك» — stage + live simulator (one state machine)
+   ٠ شريط القدرات (marquee) — the real capability names
+   ٠ لغة العقل (#mind) — capabilities as chat threads + intent chips
+   ٠ يوم في الحياة (#day) — the 4-state storyboard, --sp-lit rail
+   ٠ المنصة الحقيقية (#platform) — real dashboard captures (inbox +
+     analytics), honestly captioned
+   ٠ الأرقام (#trust) — the mono cockpit band (public stats, CountUp)
+   ٠ الختام «وظّف رفيقك الرقمي» — finale CTA + compact FAQ
 
    The page stays a SERVER component — the h1 and hero sub render inline
-   (instant-paint LCP doctrine, v6 §D); client islands are exactly:
-   LandingHeader (chrome/spy/menus), HeroDepthLayer (parallax),
-   OrbitScene (the r129 canvas engine port), LandingStage (intro-seen),
-   MagneticGoldLink (CTA pull), TrustBand + ProgressSection (public
-   stats + CountUp), JourneySection (light path + --sp), BotChatSimulator
-   (task 2-b: the live conversation island) and the RevealCssClass
-   observers. HeroMockup + the flat HeroOrbits chart are retired.
-   Task 2-b — the robot cast: BotHeroPortrait (hero stage, server),
-   BotDemoSection + BotChatSimulator («روبوتك يشتغل»), BotStatesStrip
-   (أطوار الروبوت, server), and the FinaleCta companion beat — all
-   styled in landing.css §16 (--ln-bot-* tokens). */
+   (instant-paint LCP doctrine, v6 §D) and the stage's default pose is
+   server-rendered. Client islands are exactly: LandingHeader (chrome/
+   spy/menus), HeroDepthLayer (starfield parallax), OrbitScene (the r129
+   canvas sky — the ambient particle field around the stage), LandingStage
+   (intro-seen calm), MagneticGoldLink (CTA pull), HeroCompanion (the
+   stage state machine + simulator), TrustBand (public stats + CountUp),
+   BotDayStoryboard (--sp scrub) and the RevealCssClass observers.
+   Retired with the old ladder: FeaturesSection (constellation),
+   BotDemoSection, BotHeroPortrait, BotStatesStrip, JourneySection,
+   JourneyLightPath, ProgressSection, PlateSection, RolesSection. */
 import "./landing.css";
 import Link from "next/link";
 import { Check, MessageCircle, Languages } from "lucide-react";
@@ -25,17 +34,13 @@ import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { HeroDepthLayer } from "@/components/landing/HeroDepthLayer";
 import { OrbitScene } from "@/components/landing/OrbitScene";
-import { BotHeroPortrait } from "@/components/landing/BotHeroPortrait";
+import { HeroCompanion } from "@/components/landing/HeroCompanion";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
+import { MindSection } from "@/components/landing/MindSection";
+import { BotDayStoryboard } from "@/components/landing/BotDayStoryboard";
+import { ProductSection } from "@/components/landing/ProductSection";
 import { TrustBand } from "@/components/landing/TrustBand";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { BotDemoSection } from "@/components/landing/BotDemoSection";
-import { BotStatesStrip } from "@/components/landing/BotStatesStrip";
-import { JourneySection } from "@/components/landing/JourneySection";
-import { ProgressSection } from "@/components/landing/ProgressSection";
-import { PlateSection } from "@/components/landing/PlateSection";
-import { RolesSection } from "@/components/landing/RolesSection";
 import { FinaleCta } from "@/components/landing/FinaleCta";
 import { LandingFaq } from "@/components/landing/LandingFaq";
 import { LandingFooter } from "@/components/landing/LandingFooter";
@@ -117,9 +122,9 @@ const faqSchema = {
   ],
 };
 
-/* Marquee vocabulary — the real feature names from the landing registry
-   (landing-data.ts BENEFITS titles), ×2 by the marquee kit for the
-   seamless 42s RTL loop. */
+/* Marquee vocabulary — the real capability names (the product schema's
+   featureList + the shipped dashboard routes), ×2 by the marquee kit for
+   the seamless 42s RTL loop. */
 const MARQUEE_ITEMS = [
   "ردود تلقائية ذكية",
   "صندوق وارد موحد",
@@ -138,31 +143,28 @@ export default function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      {/* r128: `.landing` wrapper (LandingStage, r129) — the Orbit-Ink token
-          layer + section chrome (R4: dark stage in BOTH themes) + the
+      {/* `.landing` wrapper (LandingStage) — the Orbit-Ink token layer +
+          section chrome (R4: dark stage in BOTH themes) + the
           returning-visitor data-intro-seen calm. */}
       <LandingStage>
       <LandingHeader />
 
       {/* r129 (P0 fix): ONE main landmark per page — the root layout owns
-          the landmark + its id; this wrapper is a plain <div> (the r128
-          assembly nested a second <main> carrying the SAME id here —
-          duplicate id + nested landmark, invalid HTML). */}
+          the landmark + its id; this wrapper is a plain <div>. */}
       <div>
         {/* v8-B7/v9-D3: skip-link target — lands past the header nav.
             tabIndex={-1} moves focus here for keyboard users. */}
         <span id="page-content" className="sr-only" tabIndex={-1} />
 
-        {/* ═══ الفصل ٠ — المدار: the hero sky — task 2-b: the ROBOT is the
-            protagonist now. The OrbitScene sky stays (parity pin + the
-            depth plane), and the copy column is paired with the robot
-            portrait composition (glow + orbital ring + live product
-            bubbles). The h1/sub keep painting instantly (LCP doctrine). ═══ */}
-        <section className="ln-hero" aria-label="SmartBot — إدارة صفحات فيسبوك الذكية">
-          {/* living sky (r129): starfield depth plane + the REAL canvas
-              orbit engine (OrbitScene port — fails safe to the CSS sky
-              below; biasX −0.35 keeps the orbital mass opposite the RTL
-              text column, containment-capped at 45% of the short side) */}
+        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: the companion takes the stage
+            — literally. The OrbitScene sky stays (parity pin + ambient
+            particle field), the copy column keeps its instant paint, and
+            the stage + live simulator form ONE client island sharing a
+            single state machine. ═══ */}
+        <section className="ln-hero" aria-label="SmartBot — رفيق صفحات فيسبوك">
+          {/* living sky: starfield depth plane + the REAL canvas orbit
+              engine (fails safe to the CSS sky below; biasX −0.35 keeps
+              the orbital mass opposite the RTL text column) */}
           <div className="ln-hero-sky" aria-hidden="true">
             <HeroDepthLayer />
             <OrbitScene className="ln-hero-canvas" biasX={-0.35} />
@@ -171,29 +173,28 @@ export default function HomePage() {
           <div className="ln-hero-grid">
           <div className="ln-hero-content">
             <RevealCssClass as="p" className="ln-hero-eyebrow">
-              <span className="ln-mono">SmartBot · إدارة صفحات فيسبوك · ليبيا</span>
+              <span className="ln-mono">SmartBot · رفيق صفحات فيسبوك · ليبيا</span>
             </RevealCssClass>
 
             {/* h1 + sub paint INSTANTLY — server-rendered inline, no reveal,
-                no client gate (LCP doctrine). One lime word: واحترافية. */}
+                no client gate (LCP doctrine). One lime word: رفيقك. */}
             <h1 className="ln-hero-title">
-              <span className="ln-hero-line">إدارة <em>تفاعل</em> فيسبوك</span>
-              <span className="ln-hero-line">بذكاءٍ <em className="ln-hero-gold">واحترافية</em></span>
+              <span className="ln-hero-line">تعرّف على <em className="ln-hero-gold">رفيقك</em> الرقمي</span>
+              <span className="ln-hero-line">يرد، يفهم، ويشتغل <em>دائماً</em></span>
             </h1>
 
             <p className="ln-hero-sub">
-              أتمتة الردود، تحليلات متقدمة، وإدارة متكاملة لصفحات فيسبوك.{" "}
-              <strong>المنصة الأولى في ليبيا بذكاء اصطناعي يفهم لهجتك.</strong>
+              SmartBot رفيق صفحتك على فيسبوك: يصنّف نية كل عميل لحظة وصوله،
+              يردّ فوراً بلغته، ويحوّل اللي يحتاج قراراً لفريقك —{" "}
+              <strong>وتقارير النمو تصلك جاهزة.</strong>
             </p>
 
             <RevealCssClass as="div" className="ln-hero-actions" delay={3}>
               <MagneticGoldLink href="/subscribe" withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
                 ابدأ الآن مجاناً
               </MagneticGoldLink>
-              {/* r133 (A5 S4 — r132 F-SB-6 crack closed): the hero secondary
-                  CTA rides next/link like every other internal anchor on the
-                  route (MagneticGoldLink/LandingHeader/FinaleCta) — no raw
-                  <a> MPA navigation on the conversion path. */}
+              {/* the hero secondary CTA rides next/link like every other
+                  internal anchor on the route (parity-pinned contract). */}
               <Link href="/demo" className="ln-btn-ghost">جرب البوت الآن</Link>
             </RevealCssClass>
 
@@ -206,14 +207,14 @@ export default function HomePage() {
             </RevealCssClass>
           </div>
 
-          {/* task 2-b — the companion takes the stage opposite the copy
-              column: server-rendered, zero JS, all verbs CSS (§16a) */}
-          <BotHeroPortrait />
+          {/* the companion: lit stage + live state machine + the integrated
+              simulator (hero island §17) */}
+          <HeroCompanion />
           </div>
 
           {/* scroll invitation */}
-          <a href="#trust" className="ln-hero-scroll" aria-label="تابع الرحلة">
-            <span className="ln-mono">تابع الرحلة</span>
+          <a href="#mind" className="ln-hero-scroll" aria-label="تابع رحلة رفيقك">
+            <span className="ln-mono">تابع رحلة رفيقك</span>
             <span className="ln-hero-scroll-line" aria-hidden="true" />
           </a>
         </section>
@@ -221,31 +222,19 @@ export default function HomePage() {
         {/* ═══ شريط القدرات — مدار واحد تنتظم فيه الأسماء (marquee) ═══ */}
         <LandingMarquee items={MARQUEE_ITEMS} />
 
-        {/* ═══ الفصل ١ — الثقة (quiet mono DATA band, real figures) ═══ */}
+        {/* ═══ ٠١ — لغة العقل: القدرات كخيوط محادثة حقيقية ═══ */}
+        <MindSection />
+
+        {/* ═══ ٠٢ — يوم في الحياة: قصة لوحات متتابعة بالحالات الأربع ═══ */}
+        <BotDayStoryboard />
+
+        {/* ═══ ٠٣ — المنصة الحقيقية: لقطات من لوحة التحكم الفعلية ═══ */}
+        <ProductSection />
+
+        {/* ═══ ٠٤ — الأرقام: قمرة المنصّة (بيانات عمومية حقيقية) ═══ */}
         <TrustBand />
 
-        {/* ═══ الفصل ٢ — مدار الميزات ═══ */}
-        <FeaturesSection />
-
-        {/* ═══ task 2-b — عرض حي: المحاكي التفاعلي + الرفيق ═══ */}
-        <BotDemoSection />
-
-        {/* ═══ task 2-b — أطوار الروبوت: المسار المتعرج ═══ */}
-        <BotStatesStrip />
-
-        {/* ═══ الفصل ٣ — كيف يعمل لوحة التحكم ═══ */}
-        <JourneySection />
-
-        {/* ═══ الفصل ٤ — قصّة التقدّم ═══ */}
-        <ProgressSection />
-
-        {/* ═══ الفصل ٥ — الأرض: عالم القنوات ═══ */}
-        <PlateSection />
-
-        {/* ═══ الفصل ٦ — الأدوار ═══ */}
-        <RolesSection />
-
-        {/* ═══ الفصل ٧ — نقطة البداية ═══ */}
+        {/* ═══ الختام — وظّف رفيقك الرقمي ═══ */}
         <FinaleCta />
 
         {/* ═══ الأسئلة الشائعة — compact, ln-styled ═══ */}

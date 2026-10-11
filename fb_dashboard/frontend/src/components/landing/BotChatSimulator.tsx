@@ -4,22 +4,28 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { RotateCcw, UserRound, Zap } from "lucide-react";
 
-/* Task 2-b — «روبوتك يشتغل»: the live conversation simulator. A client
- * island inside a server chapter (the only JS on the landing page that
- * streams copy). Three honest scenarios drawn from the shipped product —
- * price inquiry (auto reply + real plan terms), booking intent (auto
- * confirmation), complaint (auto empathy + escalation to the HUMAN team
- * via the unified inbox). Each step: a typing phase (messenger beads),
- * then the message — bot replies carry the «رد آلي ⚡» badge, the human
- * takeover carries the amber «فريق بشري» badge.
+/* v16-r142 «رفيق» — the live conversation simulator, now mounted INSIDE
+ * the hero beside the companion stage. Three honest scenarios drawn from
+ * the shipped product — price inquiry (auto reply + real plan terms),
+ * booking intent (auto confirmation), complaint (auto empathy +
+ * escalation to the HUMAN team via the unified inbox). Each step: a
+ * typing phase (messenger beads), then the message — bot replies carry
+ * the «رد آلي ⚡» badge, the human takeover carries the amber
+ * «فريق بشري» badge.
  * Honesty rules: plan figures mirror the published offers (0/19/29…,
  * the product schema), and the escalation path is the real unified-inbox
  * + team-roles capability. Nothing invented.
+ * r142 — `onPhase` lets the hero companion stage ride the SAME playback
+ * (typing → think, bot message → chat): one state machine, one truth —
+ * the character's pose and the transcript can never disagree.
  * Reduced motion: the matchMedia gate renders the FULL transcript
  * instantly — no timers, no typing beads (the CSS belt kills the rest).
  * Auto-starts once when the stage enters the viewport; tabs + replay
  * re-run a scenario on demand. The log auto-scrolls, is scroll-capped
  * (max-height + overflow-y), and announces via aria-live. */
+
+type SimPhase = "typing" | "message" | "idle";
+type SimWho = "user" | "bot" | "sys";
 
 type Msg = {
   from: "user" | "bot" | "sys";
@@ -100,7 +106,22 @@ const SCENARIOS: Scenario[] = [
 const TYPING_USER_MS = 950;
 const TYPING_BOT_MS = 1250;
 
-export function BotChatSimulator() {
+export function BotChatSimulator({
+  compact = false,
+  onPhase,
+}: {
+  /** hero variant — the compact window docked under the stage */
+  compact?: boolean;
+  /** live-state bridge for the companion stage (optional) */
+  onPhase?: (phase: SimPhase, who?: SimWho) => void;
+} = {}) {
+  /* the callback rides a ref so the playback effect never re-arms
+     because the parent passed a new closure */
+  const phaseRef = useRef(onPhase);
+  useEffect(() => {
+    phaseRef.current = onPhase;
+  }, [onPhase]);
+
   const [scenarioId, setScenarioId] = useState(SCENARIOS[0]!.id);
   const [step, setStep] = useState(0); // messages visible so far
   const [typing, setTyping] = useState<"user" | "bot" | null>(null);
@@ -150,16 +171,19 @@ export function BotChatSimulator() {
     if (!started || reduced) return;
     if (step >= scenario.msgs.length) {
       setTyping(null);
+      phaseRef.current?.("idle");
       return;
     }
     const next = scenario.msgs[step]!;
     const isUser = next.from === "user";
     const isSys = next.from === "sys";
     setTyping(isSys ? null : isUser ? "user" : "bot");
+    phaseRef.current?.("typing", isSys ? "sys" : isUser ? "user" : "bot");
     const t = window.setTimeout(
       () => {
         setTyping(null);
         setStep((s) => s + 1);
+        phaseRef.current?.("message", next.from);
       },
       isSys ? 650 : isUser ? TYPING_USER_MS : TYPING_BOT_MS,
     );
@@ -184,7 +208,7 @@ export function BotChatSimulator() {
   const finished = step >= scenario.msgs.length;
 
   return (
-    <div ref={rootRef} className="ln-botchat" data-testid="bot-chat-simulator">
+    <div ref={rootRef} className={`ln-botchat${compact ? " compact" : ""}`} data-testid="bot-chat-simulator">
       {/* window chrome — the page's bot on duty */}
       <div className="ln-botchat-head">
         <span className="ln-botchat-avatar" aria-hidden="true">

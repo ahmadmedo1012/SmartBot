@@ -1,10 +1,11 @@
 import Link from "next/link";
 
-/* r128 Stage B (F3b) — the landing's own footer (canonical
+/* v16-r142 «رفيق» — the landing's own footer (canonical
  * LandingPage ground-plate footer anatomy). ln-styled, real routes
  * only: every Link targets an existing SmartBot surface
  * (/pricing /demo /subscribe /login /register /privacy /terms) or a
- * landing anchor. The product Footer keeps serving the app surfaces. */
+ * companion-narrative anchor. The product Footer keeps serving the app
+ * surfaces. */
 
 export function LandingFooter() {
   const year = new Date().getFullYear();
@@ -28,12 +29,11 @@ export function LandingFooter() {
           </div>
 
           <div className="landing-footer-col">
-            <div className="landing-footer-heading">الرحلة</div>
-            <a href="#features" className="landing-footer-link">الميزات</a>
-            <a href="#journey" className="landing-footer-link">رحلة التشغيل</a>
-            <a href="#progress" className="landing-footer-link">قصة التقدّم</a>
-            <a href="#plate" className="landing-footer-link">القنوات</a>
-            <a href="#roles" className="landing-footer-link">الأدوار</a>
+            <div className="landing-footer-heading">رحلة الرفيق</div>
+            <a href="#mind" className="landing-footer-link">لغة العقل</a>
+            <a href="#day" className="landing-footer-link">يوم في الحياة</a>
+            <a href="#platform" className="landing-footer-link">المنصّة الحقيقية</a>
+            <a href="#trust" className="landing-footer-link">الأرقام</a>
           </div>
 
           <div className="landing-footer-col">

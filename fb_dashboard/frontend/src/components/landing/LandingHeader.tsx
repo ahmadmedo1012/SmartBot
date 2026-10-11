@@ -2,26 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, BarChart3, Share2 } from "lucide-react";
+import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, LayoutDashboard, BarChart3 } from "lucide-react";
 
-/* r128 Stage B (F3b) — the landing header, converted from the product's
- * flat 3-link pill to the canonical Madarek chrome (PORT-KIT §4):
+/* v16-r142 «رفيق» — the landing header, now navigating the companion's
+ * narrative (mind → day → platform) instead of the old chapter ladder.
  * · persistent sticky header — solid ink-2 @ 92% once scrolled, hairline
  *   edge, NO glass blur anywhere;
  * · `.scrolled` + the top progress ribbon's `--p` are written
  *   imperatively (one passive scroll listener → one rAF → DOM writes);
  *   React NEVER re-renders for scrolling (zero setState);
- * · scroll-spy (r128 R2): IntersectionObserver thresholds [0,.35,.5,.65,1],
+ * · scroll-spy: IntersectionObserver thresholds [0,.35,.5,.65,1],
  *   rootMargin -20% 0px -40% 0px, candidates ratio > .35, winner by most
  *   viewport coverage → header.dataset.activeSection (the landing.css
  *   rules read it there);
  * · megamenu with tone-coded icon wells (Escape + onBlur close, focus
- *   return to the trigger) replacing the flat 3-link pill;
- * · burger + mobile drawer ≤1080px (r129: aligned to the canonical
- *   breakpoint, was 1024).
+ *   return to the trigger);
+ * · burger + mobile drawer ≤1080px (canonical breakpoint).
  * The product Header keeps serving every non-landing surface. */
 
-const SPY_SECTIONS = "#trust, #features, #journey, #progress, #plate, #roles";
+const SPY_SECTIONS = "#mind, #day, #platform, #trust";
 
 export function LandingHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -145,39 +144,39 @@ export function LandingHeader() {
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
               <div className="landing-megamenu" onClick={closeMegamenu}>
-                <a href="#features" className="landing-megamenu-item">
+                <a href="#mind" className="landing-megamenu-item">
                   <span className="ln-menu-ico azure" aria-hidden="true"><Bot size={20} /></span>
                   <span className="landing-megamenu-item-body">
-                    <span className="landing-megamenu-item-title">الميزات</span>
-                    <span className="landing-megamenu-item-desc">ثماني قدرات في مدار واحد</span>
+                    <span className="landing-megamenu-item-title">لغة العقل</span>
+                    <span className="landing-megamenu-item-desc">قدرات رفيقك بلغة محادثة</span>
                   </span>
                 </a>
-                <a href="#journey" className="landing-megamenu-item">
+                <a href="#day" className="landing-megamenu-item">
                   <span className="ln-menu-ico gold" aria-hidden="true"><Route size={20} /></span>
                   <span className="landing-megamenu-item-body">
-                    <span className="landing-megamenu-item-title">رحلة التشغيل</span>
-                    <span className="landing-megamenu-item-desc">من الربط إلى الأتمتة</span>
+                    <span className="landing-megamenu-item-title">يوم في الحياة</span>
+                    <span className="landing-megamenu-item-desc">أربع لوحات من يوم الرفيق</span>
                   </span>
                 </a>
-                <a href="#progress" className="landing-megamenu-item">
-                  <span className="ln-menu-ico mist" aria-hidden="true"><BarChart3 size={20} /></span>
+                <a href="#platform" className="landing-megamenu-item">
+                  <span className="ln-menu-ico mist" aria-hidden="true"><LayoutDashboard size={20} /></span>
                   <span className="landing-megamenu-item-body">
-                    <span className="landing-megamenu-item-title">قصة التقدّم</span>
-                    <span className="landing-megamenu-item-desc">أرقام المنصّة الحقيقية</span>
+                    <span className="landing-megamenu-item-title">المنصّة الحقيقية</span>
+                    <span className="landing-megamenu-item-desc">لقطات من لوحة التحكم الفعلية</span>
                   </span>
                 </a>
-                <a href="#plate" className="landing-megamenu-item">
-                  <span className="ln-menu-ico gold" aria-hidden="true"><Share2 size={20} /></span>
+                <a href="#trust" className="landing-megamenu-item">
+                  <span className="ln-menu-ico gold" aria-hidden="true"><BarChart3 size={20} /></span>
                   <span className="landing-megamenu-item-body">
-                    <span className="landing-megamenu-item-title">القنوات</span>
-                    <span className="landing-megamenu-item-desc">تعليقات ورسائل ومنشورات</span>
+                    <span className="landing-megamenu-item-title">الأرقام</span>
+                    <span className="landing-megamenu-item-desc">قمرة أرقام المنصّة الحقيقية</span>
                   </span>
                 </a>
               </div>
             </div>
-            <a href="#features" className="landing-nav-link">الميزات</a>
-            <a href="#journey" className="landing-nav-link">الرحلة</a>
-            <a href="#progress" className="landing-nav-link">النتائج</a>
+            <a href="#mind" className="landing-nav-link">العقل</a>
+            <a href="#day" className="landing-nav-link">يومه</a>
+            <a href="#platform" className="landing-nav-link">المنصّة</a>
           </nav>
 
           <div className="landing-header-cta">
@@ -201,11 +200,10 @@ export function LandingHeader() {
 
         {menuOpen && (
           <nav className="landing-mobile-menu" aria-label="قائمة الجوال" onClick={() => setMenuOpen(false)}>
-            <a href="#features" className="ln-btn-ghost">الميزات</a>
-            <a href="#journey" className="ln-btn-ghost">رحلة التشغيل</a>
-            <a href="#progress" className="ln-btn-ghost">النتائج</a>
-            <a href="#plate" className="ln-btn-ghost">القنوات</a>
-            <a href="#roles" className="ln-btn-ghost">الأدوار</a>
+            <a href="#mind" className="ln-btn-ghost">لغة العقل</a>
+            <a href="#day" className="ln-btn-ghost">يوم في الحياة</a>
+            <a href="#platform" className="ln-btn-ghost">المنصّة الحقيقية</a>
+            <a href="#trust" className="ln-btn-ghost">الأرقام</a>
             <Link href="/demo" className="ln-btn-ghost">جرّب البوت</Link>
             <Link href="/subscribe" className="ln-btn-gold">
               ابدأ مجاناً

@@ -4,16 +4,13 @@ import { Bot } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 
-/* r128 Stage B (F3b) — Chapter 06 «الوصول»: the starting point
- * (canonical LandingPage.tsx:698-727 anatomy). Converging orbit rings,
- * magnetic gold CTA (useMagnetic(7)) + ghost. Copy folds the shipped
- * hero CTAs (ابدأ الآن مجاناً → /subscribe، جرب البوت الآن → /demo)
- * and the real free-plan terms (100 رد/شهر، صفحة واحدة — the product
- * schema's published offer).
- * Task 2-b: the companion's narrative presence at the finish — a small
- * waving robot beside the start button with a one-line invitation. A
- * character beat, not a sticker: one instance, at the one moment the
- * visitor decides. The wave is pure CSS (§16d) with its RM off-switch. */
+/* v16-r142 «رفيق» — Chapter 04 «الوصول»: the starting point. The page
+ * ends where it began — with the companion: converging orbit rings,
+ * magnetic gold CTA (useMagnetic(7)) + ghost, and the waving robot
+ * beat. Copy folds the shipped hero CTAs (ابدأ الآن مجاناً → /subscribe،
+ * جرب البوت الآن → /demo), the real free-plan terms (100 رد/شهر، صفحة
+ * واحدة) and the published 19 د.ل entry price (the product schema).
+ * The wave is pure CSS (§16d) with its RM off-switch. */
 
 export function FinaleCta() {
   const year = new Date().getFullYear();
@@ -27,17 +24,17 @@ export function FinaleCta() {
         <span className="ln-cta-orbit o2" />
       </div>
       <div className="ln-cta-inner">
-        <span className="ln-label">{"06 — الوصول · ACCESS"}</span>
+        <span className="ln-label">{"04 — الوصول · ACCESS"}</span>
         <RevealCssClass as="h2" className="ln-cta-title" delay={1}>
-          صفحتك الأولى <em>تبدأ من هنا</em>
+          وظّف <em>رفيقك الرقمي</em> اليوم
         </RevealCssClass>
         <RevealCssClass as="p" className="ln-cta-lede" delay={2}>
-          خطة مجانية بـ100 رد شهري وصفحة واحدة — اربط صفحتك وجرّب الردود
-          الذكية قبل أي التزام.
+          خطة مجانية بـ100 رد شهرياً وصفحة واحدة — وخطط تبدأ من 19 د.ل.
+          اربط صفحتك، ودع رفيقك يبدأ العمل قبل أن تغلق اللابتوب.
         </RevealCssClass>
         <RevealCssClass as="div" className="ln-cta-actions" delay={3}>
           <span className="ln-cta-bot" aria-hidden="true">
-            <span className="ln-cta-bot-say">صفحتك جاهزة!</span>
+            <span className="ln-cta-bot-say">رفيقك جاهز!</span>
             <Image
               src="/images/robot/robot-wave.webp"
               alt=""

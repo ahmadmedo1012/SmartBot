@@ -2,16 +2,16 @@ import { ChevronDown } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { FAQS } from "@/components/landing/landing-data";
 
-/* r128 Stage B (F3b) — the compact FAQ, ln-styled (native <details>,
- * zero JS). Content = the landing's real FAQS registry (landing-data.ts,
- * the same six questions the FAQPage schema publishes) — nothing
- * invented. */
+/* v16-r142 «رفيق» — the compact FAQ closing the page, ln-styled (native
+ * <details>, zero JS). Content = the landing's real FAQS registry
+ * (landing-data.ts, the same six questions the FAQPage schema
+ * publishes) — nothing invented. */
 
 export function LandingFaq() {
   return (
     <section className="ln-faq" aria-label="الأسئلة الشائعة">
       <div className="ln-faq-head">
-        <span className="ln-label">{"07 — الأسئلة الشائعة"}</span>
+        <span className="ln-label">{"الأسئلة الشائعة · FAQ"}</span>
         <RevealCssClass as="h2" className="ln-chapter-title" delay={1}>
           أسئلة <em>متكرّرة</em>
         </RevealCssClass>

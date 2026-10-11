@@ -284,15 +284,12 @@
 
 /* Scroll-spy active state (R2) — the observer writes
    data-active-section on the HEADER element; these rules read it there.
-   Section ids follow the SmartBot skeleton (PORT-KIT §5 content-slot
-   mapping: colleges→features, campus→plate); Stage B extends the list
-   if final section ids diverge. */
-.landing header[data-active-section="trust"] .landing-nav-link[href="#trust"],
-.landing header[data-active-section="features"] .landing-nav-link[href="#features"],
-.landing header[data-active-section="journey"] .landing-nav-link[href="#journey"],
-.landing header[data-active-section="progress"] .landing-nav-link[href="#progress"],
-.landing header[data-active-section="plate"] .landing-nav-link[href="#plate"],
-.landing header[data-active-section="roles"] .landing-nav-link[href="#roles"] {
+   v16-r142: the ids follow the companion narrative (mind → day →
+   platform) plus the trust band. */
+.landing header[data-active-section="mind"] .landing-nav-link[href="#mind"],
+.landing header[data-active-section="day"] .landing-nav-link[href="#day"],
+.landing header[data-active-section="platform"] .landing-nav-link[href="#platform"],
+.landing header[data-active-section="trust"] .landing-nav-link[href="#trust"] {
   color: var(--ln-cream);
   background: rgb(245 243 231 / 0.08);
 }
@@ -499,9 +496,8 @@
    §0h-§15 — chapter scaffolding, header internals, hero sky, trust band,
    features constellation, journey light path, progress rings, ground
    plate, roles ledger, finale CTA, FAQ, footer, perf + mobile blocks.
-   Domain renames only (R6 cascade order kept): ln-features→ln-features,
-   ln-plate→ln-plate (PORT-KIT §5/§6 Bot column: features constellation,
-   channels plate). Rule bodies byte-equal. */
+   v16-r142 «رفيق»: the section layers for the retired chapters were
+   removed with their components; §17 carries the companion system. */
 /* ── 0h · chapter scaffolding — canonical landing.css:767-818 ──────── */
 .landing .ln-chapter {
   position: relative;
@@ -870,474 +866,43 @@
   color: var(--ln-cream-dim);
   font-size: 14.5px; /* GAP-4: social proof must be READ, not squinted at */
 }
-/* the band is a quiet mono DATA strip — the numbers carry the proof */
+/* v16-r142 «رفيق» — the band is a mono COCKPIT readout: a breathing
+   LIVE marker + instrument cells (big tabular value + dimmed unit +
+   label). The .ln-trust-inner shell, the separators and the 390px
+   pinned wrap rule keep their canonical form. */
 .landing .ln-trust .ln-mono {
-  font-size: 13px;
-  color: var(--ln-cream);
+  font-size: 12px;
+  color: var(--ln-cream-dim);
 }
 .landing .ln-trust-sep { inline-size: 26px; block-size: 1px; background: var(--ln-line); }
-
-/* ── 4 · products constellation (colleges→products, §6) —
-   canonical landing.css:828-980, rule bodies verbatim ─────────────── */
-.landing .ln-features { overflow: hidden; }
-.landing .ln-features .ln-chapter-head { gap: var(--sp-6); margin-block-end: clamp(48px, 7vh, 84px); }
-.landing .ln-constellation {
-  max-inline-size: 1180px;
-  margin-inline: auto;
-  display: grid;
-  gap: var(--sp-8); /* air around the visual */
-}
-.landing .ln-constellation-stage {
-  position: relative;
-  aspect-ratio: 1000 / 640;
-  border-radius: var(--r-2xl);
-  /* P2-13 (canonical): the chart floats in the SAME sky as the hero —
-     a faint violet light source at the orrery's heart (α 0.07) */
-  background:
-    radial-gradient(52% 88% at 50% 50%, rgb(122 107 242 / 0.07) 0%, transparent 72%),
-    rgb(245 243 231 / 0.02);
-  border: 1px solid rgb(245 243 231 / 0.05);
-  overflow: hidden;
-}
-.landing .ln-constellation-svg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; }
-/* static dashed hairlines — the flat sky chart. `animation: none` guard
-   keeps any CSS layer from ever restarting a dash crawl. */
-.landing .ln-constellation-ring {
-  fill: none;
-  stroke: rgb(245 243 231 / 0.16);
-  stroke-width: 1.5;
-  stroke-dasharray: 2 6;
-  animation: none;
-  transition:
-    stroke-dasharray var(--ln-t-cinema) var(--ln-ease-out) calc(var(--ln-ri, 0) * 90ms),
-    stroke-dashoffset var(--ln-t-cinema) var(--ln-ease-out) calc(var(--ln-ri, 0) * 90ms);
-}
-/* pre-reveal: unplotted chart — zero-length dashes, one period of phase */
-.landing .reveal-up:not(.in-view) .ln-constellation-ring {
-  stroke-dasharray: 0 8;
-  stroke-dashoffset: 8;
-}
-
-/* DOM overlay dots — flat product pins, crisp + focusable */
-.landing .ln-constellation-dot {
-  position: absolute;
-  translate: -50% -50%;
-  inline-size: 13px;
-  block-size: 13px;
+.landing .ln-trust-live { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.22em; color: var(--ln-lime); }
+.landing .ln-trust-live i {
+  inline-size: 7px;
+  block-size: 7px;
   border-radius: var(--ln-radius-pill);
-  background: var(--dot);
-  padding: 0;
-  cursor: pointer;
-  transition:
-    transform var(--ln-t-base) var(--ln-ease-out),
-    box-shadow var(--ln-t-base) var(--ln-ease-out),
-    opacity var(--ln-t-slow) var(--ln-ease-out) calc(var(--ln-ci, 0) * 45ms);
+  background: var(--ln-lime);
+  box-shadow: 0 0 10px rgb(223 237 178 / 0.4);
+  animation: ln-trust-live 3.2s var(--ln-ease-soft) infinite;
 }
-.landing .ln-constellation-dot:hover,
-.landing .ln-constellation-dot:focus-visible { transform: scale(1.3); }
-.landing .ln-constellation-dot:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
-/* pre-reveal: dots unborn (opacity lane only) */
-.landing .reveal-up:not(.in-view) .ln-constellation-dot { opacity: 0; }
-/* generous invisible hit target (45px) around each 13px pin */
-.landing .ln-constellation-dot::before {
-  content: '';
-  position: absolute;
-  inset: -16px;
-  border-radius: var(--ln-radius-pill);
+@keyframes ln-trust-live {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
-
-.landing .ln-constellation-tip {
-  position: absolute;
-  inset-inline-start: 50%;
-  translate: -50% calc(-100% - 14px);
-  padding: 8px 12px;
-  border-radius: var(--r-md);
-  background: var(--ln-ink-2);
-  border: 1px solid var(--ln-line);
-  white-space: nowrap;
-  display: grid;
-  gap: 1px;
-  pointer-events: none;
-  z-index: 2;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--ln-t-fast) var(--ln-ease-out),
-    visibility 0s var(--ln-ease-linear) var(--ln-t-fast);
-}
-/* SmartBot adaptation: the canonical tip is driven by React hover
-   state; this stage is a server component, so the tip rides CSS only. */
-.landing .ln-constellation-dot:hover .ln-constellation-tip,
-.landing .ln-constellation-dot:focus-visible .ln-constellation-tip {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
-}
-.landing .ln-constellation-tip b { color: var(--ln-cream); font-size: 13px; font-weight: var(--fw-semibold); }
-.landing .ln-constellation-tip i { color: var(--ln-cream-dim); font-style: normal; font-size: 11px; }
-
-.landing .ln-constellation-strip { display: none; }
-
-.landing .ln-features-note {
-  max-inline-size: 1180px;
-  margin: var(--sp-8) auto 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--ln-cream-dim);
-  font-size: 13px;
-  line-height: 1.65;
-}
-.landing .ln-features-note svg { color: var(--ln-violet); flex-shrink: 0; }
-
-/* ── 5 · journey — the light path, canonical landing.css:821/982-1098 ── */
-.landing .ln-journey { background: var(--ln-ink-2); }
-.landing .ln-journey-stage {
-  position: relative;
-  max-inline-size: 1080px;
-  margin-inline: auto;
-  padding-block-start: var(--sp-6);
-}
-.landing .ln-journey-path {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  z-index: 0;
-}
-.landing .ln-journey-path-base {
-  fill: none;
-  stroke: var(--ln-line-soft);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-.landing .ln-journey-path-light {
-  fill: none;
-  stroke: var(--ln-cream);
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: calc(1 - var(--sp, 0));
-}
-
-.landing .ln-journey-stations {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: clamp(32px, 5vh, 52px);
-  position: relative;
-  z-index: 1;
-}
-.landing .ln-station { position: relative; display: block; }
-.landing .ln-station-card { max-inline-size: 440px; }
-.landing .ln-station.from-start .ln-station-card { margin-inline-end: auto; }
-.landing .ln-station.from-end .ln-station-card { margin-inline-start: auto; }
-
-/* nodes anchor to the CARD so they hug the center-facing edge; geometry
-   is load-bearing (JourneyLightPath measures these boxes) */
-.landing .ln-station-node {
-  position: absolute;
-  top: 30px;
-  inline-size: 13px;
-  block-size: 13px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-cream); /* stations are content, not accent */
-  box-shadow: 0 0 0 4px rgb(245 243 231 / 0.16); /* crisp flat ring, no glow */
-  z-index: 2;
-}
-.landing .ln-station-node-core {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  border-radius: var(--ln-radius-pill);
-  background: inherit;
-}
-.landing .ln-station.from-start .ln-station-card .ln-station-node { inset-inline-end: -40px; }
-.landing .ln-station.from-end .ln-station-card .ln-station-node { inset-inline-start: -40px; }
-.landing .ln-station:last-child .ln-station-node {
-  inline-size: 17px;
-  block-size: 17px;
-  box-shadow: 0 0 0 5px rgb(245 243 231 / 0.2);
-}
-
-.landing .ln-station-card {
-  position: relative;
-  inline-size: 100%;
-  min-height: 0; /* flex/grid overflow guard */
-  padding: var(--sp-6) var(--sp-7);
-  border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03); /* card recipe (spec §4.2.6) */
-  border: 1px solid var(--ln-line-soft);
-  transition: border-color var(--ln-t-base) var(--ln-ease);
-  /* r129 (P3-28, canonical landing.css:1066): subtle depth for station cards */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-}
-.landing .ln-station-card:hover { border-color: var(--ln-line); }
-.landing .ln-station-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-block-end: var(--sp-4);
-}
-.landing .ln-station-n { color: var(--ln-cream-dim); font-size: 13px; }
-.landing .ln-station-ico {
-  inline-size: 40px;
-  block-size: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: rgb(245 243 231 / 0.08);
-  color: var(--ln-cream-dim);
-  flex-shrink: 0;
-}
-.landing .ln-station-tag {
-  margin-inline-start: auto;
-  padding: 4px 12px;
-  border-radius: var(--ln-radius-pill);
-  border: 1px solid var(--ln-line);
-  color: var(--ln-cream-dim);
-  font-size: 11.5px;
-  overflow-wrap: anywhere;
-}
-.landing .ln-station-title { margin: 0 0 var(--sp-3); font-size: 22px; font-weight: var(--fw-bold); color: var(--ln-cream); }
-.landing .ln-station-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14.5px; line-height: 1.7; overflow-wrap: anywhere; }
-
-/* ── 6 · progress story — canonical landing.css:1100-1228 ──────────── */
-.landing .ln-progress-grid {
-  max-inline-size: 1280px;
-  margin-inline: auto;
-  display: grid;
-  gap: clamp(40px, 6vw, 80px);
-  align-items: center;
-}
-@media (min-width: 1025px) {
-  .landing .ln-progress-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
-}
-
-/* the orbit diagram — hairline circles, violet core (accent 2). The
-   system expands, the rings materialize, the core grows and the four
-   milestones ignite staggered as the chapter passes — scrubbed by the
-   section's --sp (useSectionProgress), pure CSS. Reduced motion: the
-   hook pins --sp: 1; no-JS fallback 0.65 reads as a half-expanded,
-   fully-legible system. */
-.landing .ln-progress-visual {
-  display: grid;
-  place-items: center;
-  min-block-size: 340px;
-  /* r129 (P3-29, canonical landing.css:1124): inset top-edge highlight */
-  box-shadow: inset 0 1px 0 rgba(245,243,231,0.04);
-}
-.landing .ln-progress-orbits {
-  position: relative;
-  inline-size: min(380px, 78vw);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  transform: scale(calc(0.86 + var(--sp, 0.65) * 0.3));
-}
-.landing .ln-progress-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--ln-radius-pill);
-  border: 1px solid var(--ln-line-soft);
-  opacity: clamp(0.3, calc(0.25 + var(--sp, 0.65) * 0.75), 1);
-}
-.landing .ln-progress-ring.r1 { inset: 14%; border-color: var(--ln-line); }
-.landing .ln-progress-ring.r2 { inset: 28%; border-color: rgb(245 243 231 / 0.1); }
-.landing .ln-progress-ring.r3 { inset: 42%; border-color: rgb(245 243 231 / 0.12); border-style: dashed; }
-.landing .ln-progress-core {
-  inline-size: 14px;
-  block-size: 14px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-violet);
-  transform: scale(calc(0.75 + var(--sp, 0.65) * 0.45));
-}
-.landing .ln-progress-milestone {
-  position: absolute;
-  inline-size: 10px;
-  block-size: 10px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-ink-2);
-  border: 1px solid var(--ln-line);
-  --m: 0.3; /* ignition threshold along --sp */
-}
-.landing .ln-progress-milestone::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-cream);
-  opacity: clamp(0, calc((var(--sp, 0.65) - var(--m, 0.3)) * 5), 1);
-}
-.landing .ln-progress-milestone.m0 { inset-inline-start: 18%; inset-block-start: 30%; --m: 0.22; }
-.landing .ln-progress-milestone.m1 { inset-inline-start: 62%; inset-block-start: 12%; --m: 0.42; }
-.landing .ln-progress-milestone.m2 { inset-inline-start: 78%; inset-block-start: 64%; --m: 0.6; }
-.landing .ln-progress-milestone.m3 { inset-inline-start: 34%; inset-block-start: 80%; --m: 0.78; }
-.landing .ln-progress-label {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: 0;
-  text-align: center;
-  color: var(--ln-cream-dim);
-}
-.landing .ln-progress-label .ln-mono { font-size: 11.5px; letter-spacing: 0.2em; }
-
-.landing .ln-progress-copy { display: grid; gap: var(--sp-4); }
-.landing .ln-progress-copy .ln-chapter-title { max-inline-size: 18ch; }
-.landing .ln-progress-copy .ln-chapter-lede { margin: 0; }
-
-.landing .ln-progress-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--sp-4);
-  margin-block-start: var(--sp-6);
-}
-.landing .ln-stat {
-  min-height: 0;
-  padding: var(--sp-5) var(--sp-5) var(--sp-4);
-  border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03);
-  border: 1px solid var(--ln-line-soft);
-  transition: border-color var(--ln-t-base) var(--ln-ease);
-  /* r129 (P3-30, canonical landing.css:1202): subtle depth for stat cards */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-}
-.landing .ln-stat:hover { border-color: var(--ln-line); }
-.landing .ln-stat-value {
+.landing .ln-trust-cell { display: inline-flex; align-items: baseline; gap: 9px; }
+.landing .ln-trust-value {
   font-family: var(--ln-mono);
-  font-size: 40px;
+  font-size: 20px;
   font-weight: var(--fw-medium);
   color: var(--ln-cream);
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
   direction: ltr;
+  unicode-bidi: plaintext;
 }
-/* r130 (W1-E L-6): .ln-stat-unit is BACK (canonical landing.css:1215) — the
-   ProgressSection uptime cell now splits its "%" into a dimmed unit span
-   instead of baking it into the CountUp value; the live value/label/note
-   rules stay byte-equal. */
-.landing .ln-stat-label { margin-block-start: 8px; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
-.landing .ln-stat-note { margin-block-start: 3px; color: var(--ln-cream-dim); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
-/* r130 (W1-E L-6): the canonical stat-unit rung (madarek landing.css:1215) —
-   units (%, +) are dimmed cream at 24px, never baked into the value. */
-.landing .ln-stat-unit { color: var(--ln-cream-dim); font-size: 24px; margin-inline-start: 2px; }
-
-.landing .ln-progress-source {
-  margin: var(--sp-6) 0 0;
-  color: var(--ln-cream-dim);
-  font-size: 12.5px;
-  line-height: 1.65;
-  border-inline-start: 1px solid var(--ln-line);
-  padding-inline-start: var(--sp-4);
-  max-inline-size: 56ch;
-}
-
-/* ── 7 · platforms — the ground plate (campus→platforms, §6) ─────────
-   SmartBot's ground is not a campus photo (no new image binaries) —
-   it is the channel world: the platforms the products live on. Flat
-   ink-2 band, hairline cells, no cards, no shadows, no glass. */
-.landing .ln-plate {
-  background: var(--ln-ink-2);
-  overflow: hidden;
-}
-.landing .ln-plate-grid {
-  max-inline-size: 1180px;
-  margin-inline: auto;
-  display: grid;
-  gap: var(--sp-3);
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-}
-.landing .ln-plate-cell {
-  min-height: 0;
-  padding: var(--sp-6) var(--sp-5);
-  border: 1px solid var(--ln-line-soft);
-  border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03);
-  display: grid;
-  gap: var(--sp-3);
-  align-content: start;
-  transition: border-color var(--ln-t-base) var(--ln-ease);
-}
-.landing .ln-plate-cell:hover { border-color: var(--ln-line); }
-.landing .ln-plate-ico {
-  inline-size: 52px;
-  block-size: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  flex-shrink: 0;
-}
-.landing .ln-plate-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-plate-ico.azure { background: rgb(122 107 242 / 0.14); color: var(--ln-violet); }
-.landing .ln-plate-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-plate-name { font-size: 17px; font-weight: var(--fw-bold); color: var(--ln-cream); }
-.landing .ln-plate-desc { margin: 0; color: var(--ln-cream-dim); font-size: 13.5px; line-height: 1.65; overflow-wrap: anywhere; }
-.landing .ln-plate-tag { color: var(--ln-cream-dim); }
-
-/* ── 8 · roles ledger — canonical landing.css:1294-1352 ────────────── */
-.landing .ln-roles-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-inline-size: 1280px;
-  margin-inline: auto;
-  display: grid;
-  gap: var(--sp-3);
-}
-.landing .ln-role-row {
-  display: grid;
-  gap: var(--sp-3) var(--sp-6);
-  padding: var(--sp-6) var(--sp-4);
-  border-radius: var(--r-2xl);
-  border: 1px solid transparent;
-  border-block-end-color: var(--ln-line-soft);
-  transition:
-    background var(--ln-t-base) var(--ln-ease),
-    border-color var(--ln-t-base) var(--ln-ease);
-}
-.landing .ln-role-row:hover {
-  background: rgb(245 243 231 / 0.03);
-  border-color: var(--ln-line-soft);
-  /* r129 (P3-35, canonical landing.css:1318): subtle depth on hover */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-}
-.landing .ln-role-row:hover .ln-role-index { color: var(--ln-cream); }
-@media (min-width: 921px) {
-  .landing .ln-role-row { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); align-items: start; }
-}
-.landing .ln-role-key { display: flex; align-items: center; gap: var(--sp-4); }
-.landing .ln-role-ico {
-  inline-size: 52px;
-  block-size: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  flex-shrink: 0;
-}
-.landing .ln-role-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-role-ico.azure { background: rgb(122 107 242 / 0.14); color: var(--ln-violet); }
-.landing .ln-role-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-role-name { font-size: 21px; font-weight: var(--fw-bold); color: var(--ln-cream); }
-.landing .ln-role-index {
-  margin-inline-start: auto;
-  color: var(--ln-cream-dim);
-  transition: color var(--ln-t-fast) var(--ln-ease-soft);
-}
-.landing .ln-role-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14.5px; line-height: 1.7; max-inline-size: 68ch; overflow-wrap: anywhere; }
-.landing .ln-role-quote {
-  margin: var(--sp-2) 0 0;
-  padding: var(--sp-3) var(--sp-5);
-  border-inline-start: 1px solid var(--ln-line);
-  color: var(--ln-cream-dim);
-  font-size: 13.5px;
-  line-height: 1.7;
-  max-inline-size: 64ch;
-}
-.landing .ln-role-quote-mark { color: var(--ln-cream-dim); font-size: 20px; margin-inline-end: 6px; }
+/* the canonical stat-unit rung (madarek landing.css:1215) — units (%, +)
+   are dimmed, never baked into the value (r142 consumer: the TrustBand
+   uptime cell; the same grammar ProgressSection rode in r130). */
+.landing .ln-trust-value .ln-stat-unit { color: var(--ln-cream-dim); font-size: 14px; margin-inline-start: 1px; }
+.landing .ln-trust-label { color: var(--ln-cream-dim); font-size: 13.5px; }
 
 /* ── 9 · final CTA — convergence, canonical landing.css:1395-1476 ──── */
 .landing .ln-cta {
@@ -1542,11 +1107,9 @@
    estimates sized to this anatomy (products stage ≈ 1240, journey
    5 stations ≈ 1700, progress grid ≈ 860, platforms 4 cells ≈ 700,
    roles 2 rows ≈ 800, cta ≈ 740, faq 6 rows ≈ 860). */
-.landing .ln-features { content-visibility: auto; contain-intrinsic-size: auto 1240px; }
-.landing .ln-journey { content-visibility: auto; contain-intrinsic-size: auto 1700px; }
-.landing .ln-progress { content-visibility: auto; contain-intrinsic-size: auto 860px; }
-.landing .ln-plate { content-visibility: auto; contain-intrinsic-size: auto 700px; }
-.landing .ln-roles { content-visibility: auto; contain-intrinsic-size: auto 800px; }
+.landing .ln-mind { content-visibility: auto; contain-intrinsic-size: auto 1500px; }
+.landing .ln-day { content-visibility: auto; contain-intrinsic-size: auto 1560px; }
+.landing .ln-product { content-visibility: auto; contain-intrinsic-size: auto 1280px; }
 .landing .ln-cta { content-visibility: auto; contain-intrinsic-size: auto 740px; }
 .landing .ln-faq { content-visibility: auto; contain-intrinsic-size: auto 860px; }
 
@@ -1570,33 +1133,11 @@
   .landing .ln-hero { padding-block: clamp(104px, 14vh, 150px) 88px; }
 }
 @media (max-width: 920px) {
-  /* journey spine — stations stack vertically, nodes ride the gutter.
-     Spine stroke up 1.5→2px: hairlines vanish on low-contrast OLED in
-     sunlight — the path must stay findable. */
-  .landing .ln-journey-path-base { stroke-width: 2; }
-  .landing .ln-journey-path-light { stroke-width: 2.5; }
-  .landing .ln-journey-stage { padding-inline-start: 30px; }
-  .landing .ln-station .ln-station-node {
-    top: 34px;
-    inset-inline-start: -23px;
-    inset-inline-end: auto;
-    inline-size: 11px;
-    block-size: 11px;
-  }
-  .landing .ln-station.from-start .ln-station-card .ln-station-node,
-  .landing .ln-station.from-end .ln-station-card .ln-station-node { inset-inline-start: -23px; inset-inline-end: auto; }
-  .landing .ln-station-card { max-inline-size: none; }
-  .landing .ln-station.from-start .ln-station-card,
-  .landing .ln-station.from-end .ln-station-card { margin-inline: 0; }
-
   .landing .landing-nav { padding-inline: 16px; }
   .landing .landing-mobile-menu { padding-inline: 16px; }
-  .landing .ln-progress-grid { grid-template-columns: 1fr; }
-  .landing .ln-progress-visual { min-block-size: 280px; }
   .landing .ln-chapter { padding-inline: var(--page-gutter-mobile); }
   .landing .ln-hero { padding-inline: max(5vw, 16px); }
   .landing .ln-trust { padding-inline: max(5vw, 16px); }
-  .landing .ln-plate { padding-inline: var(--page-gutter-mobile); }
   .landing .ln-faq { padding-inline: var(--page-gutter-mobile); }
   .landing .ln-cta { padding-inline: var(--page-gutter-mobile); }
   .landing .ln-hero-scroll { display: none; }
@@ -1604,45 +1145,8 @@
 @media (max-width: 768px) {
   /* GAP-5 · mobile density pass — tighter chapters, tighter heads,
      same narrative, phone-native pacing. */
-  .landing .ln-journey-stations { gap: 28px; }
   .landing .ln-trust { padding-block: var(--sp-5); }
   .landing .ln-cta { padding-block: clamp(72px, 11vh, 104px); }
-
-  /* constellation: the full sky is too dense — domain strip instead */
-  .landing .ln-constellation-stage { display: none; }
-  .landing .ln-constellation-strip {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--sp-3);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .landing .ln-constellation-chip {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px; /* spec §4.3 — never below 16px */
-    min-height: 0;
-    border-radius: var(--r-2xl);
-    border: 1px solid rgb(245 243 231 / 0.05);
-    background: rgb(245 243 231 / 0.03);
-  }
-  .landing .ln-constellation-chip-dot {
-    inline-size: 9px;
-    block-size: 9px;
-    border-radius: var(--ln-radius-pill);
-    background: var(--dot);
-    flex-shrink: 0;
-  }
-  .landing .ln-constellation-chip-label { color: var(--ln-cream); font-size: 13px; font-weight: var(--fw-medium); overflow-wrap: anywhere; }
-  .landing .ln-constellation-chip-count {
-    margin-inline-start: auto;
-    font-family: var(--ln-mono);
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    color: var(--ln-cream-dim);
-  }
 
   /* decorative canvas recedes; text stays on top */
   .landing .ln-hero-canvas { --ln-canvas-op: 0.35; animation-name: ln-scene-in-dim; }
@@ -1654,8 +1158,6 @@
   .landing .landing-footer-col { padding-block: var(--sp-5); border-block-end: 1px solid var(--ln-line-soft); gap: var(--sp-4); }
   .landing .landing-footer-grid .landing-footer-col:last-child { border-block-end: 0; }
 
-  .landing .ln-station-card { padding: var(--sp-5); }
-  .landing .ln-role-row { padding: var(--sp-5) var(--sp-4); }
 }
 @media (max-width: 640px) {
   /* WCAG 2.5.5 Target Size (Minimum): 48px floor for landing-page
@@ -1675,14 +1177,8 @@
   .landing .ln-hero-actions { gap: var(--sp-3); }
   .landing .ln-hero-actions .ln-btn-gold,
   .landing .ln-hero-actions .ln-btn-ghost { inline-size: 100%; }
-  .landing .ln-constellation-strip { grid-template-columns: 1fr; }
-  /* GAP-5: 2×2 at 390px was a solid text block — give the numbers room */
-  .landing .ln-progress-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5) var(--sp-3); }
-  .landing .ln-stat-value { font-size: 28px; }
-  .landing .ln-stat-label { font-size: 12.5px; }
   .landing .ln-cta-actions .ln-btn-gold.xl,
   .landing .ln-cta-actions .ln-btn-ghost.xl { inline-size: 100%; }
-  .landing .ln-plate-grid { grid-template-columns: 1fr; }
 }
 
 /* r129 (P2-9, canonical landing.css:1723-1725): tiny-phone trust wrap. */
@@ -1725,21 +1221,18 @@
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-hero-canvas { animation: none; opacity: var(--ln-canvas-op, 1); }
   .landing .ln-hero-scroll-line::after { animation: none; }
-  .landing .ln-journey-path-light { stroke-dashoffset: 0; }
   /* r129 (P3-32, canonical landing.css:1826): the scroll progress bar
      stays visible under reduced motion. */
   .landing .landing-progress { opacity: 1 !important; }
-  /* P3-21/P2-13 bespoke verbs: all off — the chart plots instantly, the
-     finale stands still */
+  /* bespoke verbs: all off — the board stands still, the finale is calm */
   .landing .ln-cta-orbit.o0,
-  .landing .ln-cta-orbit.o2,
-  .landing .ln-constellation-ring,
-  .landing .ln-constellation-dot { animation: none; }
+  .landing .ln-cta-orbit.o2 { animation: none; }
   .landing .ln-btn-gold,
   .landing .ln-btn-ghost,
   .landing .landing-header,
-  .landing .ln-station-card,
-  .landing .ln-role-row { transition: none; }
+  .landing .ln-mind-thread,
+  .landing .ln-product-window,
+  .landing .ln-companion-stage { transition: none; }
   /* P4-20: the starfield position is static; only the parallax drift
      is killed */
   .landing .ln-hero-depth { opacity: 0.4; }
@@ -1749,9 +1242,9 @@
    Lift + subtle shadow on hover signals interactivity without violating
    the flat-ground rule (hairlines stay). The press tail (P4-01) ships
    with the button rules in §4 above (R6 cascade). */
-.landing .ln-station-card:hover,
-.landing .ln-stat:hover,
-.landing .ln-plate-cell:hover {
+.landing .ln-mind-thread:hover,
+.landing .ln-product-window:hover,
+.landing .ln-day-media:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
 }
@@ -1789,13 +1282,11 @@
   transform: scaleY(1.3);
 }
 
-/* ═══ 2-b — THE ROBOT CHARACTER LAYER («الرفيق الآلي») ══════════════════
-   Task 2-b: the landing stops being a generic Orbit-Ink template and
-   gains its own cast — the SmartBot robot. Everything below is NEW names
-   (--ln-bot-*) and NEW classes (.ln-bot-* · .ln-botchat-* ·
-   .ln-botstate-*): the canonical §1 palette, the alias chain, the
-   marquee anatomy and the P4 pins above are parity-pinned and
-   byte-untouched. Voice mapping:
+/* ═══ 2-b/17 — THE COMPANION LAYER («الرفيق») ══════════════════════════
+   The SmartBot robot is the page's living protagonist. §16 keeps the
+   simulator + finale beats (--ln-bot-* names); §17 is the v16-r142 stage
+   system with its OWN token namespace --sb-* (the .landing scope keeps
+   the --ln-* isolation both ways — parity-pinned). Voice mapping:
    lime = the bot's voice (bubbles/badges — same grammar as the gold pill),
    amber = the warm eye/heart light (accents + LARGE text on ink only). */
 
@@ -1829,147 +1320,11 @@
   .landing .ln-hero-grid > .ln-hero-content { max-inline-size: 100%; }
 }
 
-.landing .ln-bot-hero {
-  position: relative;
-  inline-size: min(100%, 470px);
-  margin-inline: auto;
-  aspect-ratio: 1;
-  justify-self: center;
-}
-/* the lime/amber heart — the single sanctioned hero depth wash (α ≤ 0.26,
-   radial falloff, no filter blur, no glass) */
-.landing .ln-bot-hero-glow {
-  position: absolute;
-  inset: -12%;
-  background:
-    radial-gradient(46% 46% at 50% 46%, var(--ln-bot-glow-deep) 0%, transparent 68%),
-    radial-gradient(64% 64% at 50% 52%, var(--ln-bot-glow) 0%, transparent 74%);
-  pointer-events: none;
-}
-/* the portrait plate — the robot's own dark stage framed in the flat
-   grammar (hairline + 20px radius + one quiet shadow, like the chart
-   stage). Image is a full-bleed portrait, object-fit keeps the face. */
-.landing .ln-bot-hero-frame {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--r-2xl);
-  overflow: hidden;
-  background: var(--ln-bot-frame);
-  border: 1px solid var(--ln-line);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 14px 34px rgba(0,0,0,0.22);
-}
-.landing .ln-bot-hero-img {
-  inline-size: 100%;
-  block-size: 100%;
-  object-fit: cover;
-}
-/* the living face — a soft amber breathing glow over the head zone
-   (overall halo per the alignment ruling — no pinpoint dots). Screen
-   blend keeps the flat-ink discipline: it lights the portrait, never
-   paints over the ground. */
-.landing .ln-bot-hero-eye {
-  position: absolute;
-  inset-inline: 30%;
-  top: 11%;
-  block-size: 22%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(242 196 141 / 0.38) 0%, transparent 74%);
-  mix-blend-mode: screen;
-  opacity: 0.55;
-  animation: ln-bot-pulse var(--ln-bot-dur-pulse) var(--ln-ease-soft) infinite;
-  pointer-events: none;
-}
-/* the orbital ring — one dashed hairline lap, one static soft lap */
-.landing .ln-bot-orbit {
-  position: absolute;
-  inset: -6.5%;
-  border-radius: var(--ln-radius-pill);
-  border: 1px dashed rgb(223 237 178 / 0.30);
-  animation: ln-bot-orbit var(--ln-bot-dur-orbit) var(--ln-ease-linear) infinite;
-  pointer-events: none;
-}
-.landing .ln-bot-orbit--outer {
-  inset: -13%;
-  border-style: solid;
-  border-color: var(--ln-line-soft);
-  animation: none;
-}
-/* a single lime traveller on the ring — the bot «on duty» marker */
-.landing .ln-bot-orbit::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  inset-inline-start: 50%;
-  translate: -50%;
-  inline-size: 8px;
-  block-size: 8px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-lime);
-  box-shadow: 0 0 12px var(--ln-bot-glow-deep);
-}
-@keyframes ln-bot-orbit { to { transform: rotate(1turn); } }
-@keyframes ln-bot-pulse {
-  0%, 100% { opacity: 0.45; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.05); }
-}
-
-/* floating messenger bubbles — the product's real voice, identity-tuned:
-   client = ink bubble (incoming), SmartBot = lime bubble (the bot voice).
-   Base transform IS the layout position; the drift rides transform so
-   reduced motion (belt + the §16d off-switch) leaves them in place. */
-.landing .ln-bot-bubble {
-  position: absolute;
-  z-index: 2;
-  max-inline-size: 200px;
-  padding: 8px 13px 9px;
-  border-radius: 16px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18), 0 8px 22px rgba(0,0,0,0.14);
-  animation: ln-bot-float var(--ln-bot-dur-float) var(--ln-ease-soft) infinite;
-}
-.landing .ln-bot-bubble-who {
-  display: block;
-  font-family: var(--ln-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-  opacity: 0.78;
-  margin-block-end: 2px;
-}
-.landing .ln-bot-bubble--in {
-  background: var(--ln-bot-bubble-in);
-  border: 1px solid var(--ln-bot-bubble-in-line);
-  color: var(--ln-cream);
-  border-end-start-radius: 5px;
-}
-.landing .ln-bot-bubble--out {
-  background: var(--ln-lime);
-  color: var(--ln-ink);
-  border-end-end-radius: 5px;
-  font-weight: var(--fw-medium);
-}
-/* the four anchors — client at the reading start, bot at the far side */
-.landing .ln-bot-bubble--in1  { top: 4%;  inset-inline-start: -3%; }
-.landing .ln-bot-bubble--out1 { top: 25%; inset-inline-end: -4.5%; animation-delay: -1.9s; }
-.landing .ln-bot-bubble--in2  { bottom: 21%; inset-inline-start: -4.5%; animation-delay: -3.4s; }
-.landing .ln-bot-bubble--out2 { bottom: 1%;  inset-inline-end: -1%; animation-delay: -5.2s; }
-@keyframes ln-bot-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-/* ── 16b · «روبوتك يشتغل» — the live chat simulator stage ───────────── */
-.landing .ln-botdemo-grid {
-  max-inline-size: 1180px;
-  margin-inline: auto;
-  display: grid;
-  gap: clamp(32px, 4vw, 56px);
-  align-items: stretch;
-}
-@media (min-width: 981px) {
-  .landing .ln-botdemo-grid { grid-template-columns: minmax(0, 1.16fr) minmax(0, 0.84fr); }
-}
-
+/* ── 16b · the live chat simulator stage ───────────────────────────────
+   v16-r142: the simulator mounts INSIDE the hero (docked under the
+   companion stage — §17b); the old standalone demo chapter is retired.
+   The window grammar below is shared by the hero dock, and §17c reuses
+   the msg/badge classes for the mind threads. */
 /* the device window — station-card grammar: flat wash, hairline, r-2xl */
 .landing .ln-botchat {
   min-inline-size: 0;
@@ -2191,96 +1546,6 @@
 }
 .landing .ln-botchat-replay:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); }
 
-/* the companion column — robot-chat portrait + its caption plate */
-.landing .ln-botdemo-side {
-  min-inline-size: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-.landing .ln-botdemo-frame {
-  position: relative;
-  flex: 1;
-  min-block-size: 300px;
-  border-radius: var(--r-2xl);
-  overflow: hidden;
-  background: var(--ln-bot-frame);
-  border: 1px solid var(--ln-line);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 14px 34px rgba(0,0,0,0.20);
-}
-.landing .ln-botdemo-frame-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(52% 46% at 50% 42%, var(--ln-bot-glow) 0%, transparent 72%);
-  pointer-events: none;
-  z-index: 1;
-}
-.landing .ln-botdemo-note {
-  padding: var(--sp-4) var(--sp-5);
-  border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03);
-  border: 1px solid var(--ln-line-soft);
-  color: var(--ln-cream-dim);
-  font-size: 13px;
-  line-height: 1.7;
-}
-.landing .ln-botdemo-note strong { color: var(--ln-cream); font-weight: var(--fw-semibold); }
-
-/* ── 16c · the four states — zigzag path, not a card grid ────────────── */
-.landing .ln-botstates { background: var(--ln-ink); }
-.landing .ln-botstates-grid {
-  max-inline-size: 1180px;
-  margin-inline: auto;
-  display: grid;
-  gap: clamp(28px, 4vw, 48px);
-}
-@media (min-width: 921px) {
-  /* the staggered path: 12 tracks, alternating spans + vertical offsets —
-     asymmetric by construction (grid follows the RTL inline direction) */
-  .landing .ln-botstates-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-  .landing .ln-botstate.s1 { grid-column: 1 / span 7; }
-  .landing .ln-botstate.s2 { grid-column: 8 / span 5; margin-block-start: 88px; }
-  .landing .ln-botstate.s3 { grid-column: 2 / span 5; margin-block-start: var(--sp-5); }
-  .landing .ln-botstate.s4 { grid-column: 7 / span 6; margin-block-start: 104px; }
-}
-.landing .ln-botstate {
-  min-inline-size: 0;
-  display: grid;
-  gap: var(--sp-4);
-  align-content: start;
-}
-.landing .ln-botstate-media {
-  position: relative;
-  border-radius: var(--r-xl);
-  overflow: hidden;
-  background: var(--ln-bot-frame);
-  border: 1px solid var(--ln-line-soft);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.10);
-  transition: border-color var(--ln-t-base) var(--ln-ease);
-}
-.landing .ln-botstate:hover .ln-botstate-media { border-color: var(--ln-line); }
-.landing .ln-botstate.s1 .ln-botstate-media,
-.landing .ln-botstate.s4 .ln-botstate-media { aspect-ratio: 1 / 1; }
-.landing .ln-botstate.s2 .ln-botstate-media,
-.landing .ln-botstate.s3 .ln-botstate-media { aspect-ratio: 4 / 3; }
-.landing .ln-botstate-media-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(56% 48% at 50% 44%, var(--ln-bot-glow) 0%, transparent 74%);
-  pointer-events: none;
-  z-index: 1;
-}
-.landing .ln-botstate-head { display: flex; align-items: baseline; gap: 10px; }
-.landing .ln-botstate-n {
-  font-family: var(--ln-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--ln-bot-amber);
-  font-variant-numeric: tabular-nums;
-}
-.landing .ln-botstate-title { margin: 0; font-size: 20px; font-weight: var(--fw-bold); color: var(--ln-cream); }
-.landing .ln-botstate-desc { margin: 0; color: var(--ln-cream-dim); font-size: 14px; line-height: 1.7; max-inline-size: 46ch; overflow-wrap: anywhere; }
-
 /* ── 16d · finale presence — the companion waves you in ─────────────── */
 .landing .ln-cta-bot {
   position: relative;
@@ -2321,30 +1586,14 @@
 }
 
 /* ── 16e · mobile demotion — 320px+ compromise, no overflow ─────────── */
-@media (max-width: 1024px) {
-  .landing .ln-bot-hero { inline-size: min(86vw, 400px); margin-block-start: var(--sp-5); }
-}
-@media (max-width: 920px) {
-  .landing .ln-botstate.s2,
-  .landing .ln-botstate.s3,
-  .landing .ln-botstate.s4 { margin-block-start: 0; }
-}
 @media (max-width: 640px) {
-  /* the four bubbles crowd a 375px frame — keep the opening pair only */
-  .landing .ln-bot-bubble { max-inline-size: 156px; font-size: 11.5px; padding: 7px 11px 8px; }
-  .landing .ln-bot-bubble--in2,
-  .landing .ln-bot-bubble--out2 { display: none; }
-  .landing .ln-bot-bubble--in1 { inset-inline-start: -2%; }
-  .landing .ln-bot-bubble--out1 { inset-inline-end: -2%; }
   .landing .ln-botchat-intent { display: none; }
   .landing .ln-botchat-msg { max-inline-size: 88%; }
   .landing .ln-botchat-tab { flex: 1 1 auto; text-align: center; }
-  .landing .ln-botdemo-frame { min-block-size: 240px; }
-  .landing .ln-botstate-title { font-size: 18px; }
 }
-/* landscape phones: the portrait leaves the fold to the value story */
+/* landscape phones: the stage leaves the fold to the value story */
 @media (max-height: 560px) and (orientation: landscape) {
-  .landing .ln-bot-hero { display: none; }
+  .landing .ln-companion { display: none; }
 }
 
 /* ── 16f · reduced-motion off-switches — the §16 verbs, explicitly ─────
@@ -2352,16 +1601,545 @@
    treatment: removed entirely — and the JS simulator renders the full
    transcript instantly under the same query). */
 @media (prefers-reduced-motion: reduce) {
-  .landing .ln-bot-orbit,
-  .landing .ln-bot-bubble,
-  .landing .ln-bot-hero-eye,
   .landing .ln-botchat-dot,
   .landing .ln-botchat-msg,
   .landing .ln-cta-bot-img { animation: none; }
-  .landing .ln-bot-hero-eye { opacity: 0.6; }
 }
 
-/* the states strip renders below the fold — same lazy-render discipline
-   as §12 (the interactive demo chapter is exempt: its island must mount
-   while approaching, not when already visible) */
-.landing .ln-botstates { content-visibility: auto; contain-intrinsic-size: auto 1040px; }
+/* ═══ 17 — THE COMPANION STAGE SYSTEM («رفيق» v16-r142) ══════════════════
+   New token namespace --sb-* (SmartBot) inside the .landing scope — the
+   pinned --ln-* canon above is byte-untouched and the scope-isolation
+   contract (no --ln-* in globals, no unscoped selectors here) holds.
+
+/* ── 17 · companion tokens — NEW names only ─────────────────────────── */
+.landing {
+  --sb-spot: rgb(223 237 178 / 0.10);        /* the stage spotlight wash */
+  --sb-spot-deep: rgb(223 237 178 / 0.22);   /* the floor disc lit pool */
+  --sb-wash: rgb(223 237 178 / 0.05);        /* the stage base wash */
+  --sb-led: var(--ln-lime);                  /* the LED halo */
+  --sb-led-dim: rgb(223 237 178 / 0.30);
+  --sb-hud-bg: rgb(28 32 50 / 0.78);         /* the HUD chip ground */
+  --sb-dur-crossfade: 460ms;                 /* pose crossfade */
+  --sb-dur-breathe: 4.2s;                    /* LED breathing period */
+  --sb-dur-spin: 26s;                        /* one floor-ring lap */
+}
+
+/* ── 17a · the companion stage (hero) ──────────────────────────────────
+   The character stands on a lit platform: spotlight wash, 3D turntable
+   floor (two counter-rotating dashed rings on a rotateX plane), LED
+   dots, HUD state chip, and the four poses crossfading behind the same
+   frame. The stage button carries the pose click (wave + greeting). */
+.landing .ln-companion {
+  position: relative;
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--sp-5);
+  justify-items: center;
+}
+.landing .ln-companion-scene {
+  position: relative;
+  inline-size: min(100%, 460px);
+  perspective: 1000px;
+}
+/* the tilt plane — --rx/--ry are written imperatively (rAF, zero
+   setState) by HeroCompanion on fine pointers; the transition eases
+   pointer leaves back to level */
+.landing .ln-companion-tilt {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 260ms var(--ln-ease-out);
+  will-change: transform;
+}
+.landing .ln-companion-stage {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--ln-line);
+  border-radius: var(--r-2xl);
+  background:
+    radial-gradient(58% 44% at 50% 6%, var(--sb-spot) 0%, transparent 70%),
+    radial-gradient(84% 60% at 50% 104%, var(--sb-wash) 0%, transparent 74%),
+    var(--ln-bot-frame);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 18px 44px rgba(0,0,0,0.24);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-companion-stage:hover { border-color: rgb(245 243 231 / 0.26); }
+
+/* the four poses — crossfade lanes on ONE plane (data-pose on the root
+   decides the lit layer; the SSR default is hero = instant paint) */
+.landing .ln-companion-figures { position: absolute; inset: 0; display: block; }
+.landing .ln-companion-fig {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  object-position: 50% 26%;
+  opacity: 0;
+  transition: opacity var(--sb-dur-crossfade) var(--ln-ease-out);
+}
+.landing [data-pose='hero'] .ln-companion-fig.f-hero { opacity: 1; }
+.landing [data-pose='wave'] .ln-companion-fig.f-wave { opacity: 1; }
+.landing [data-pose='think'] .ln-companion-fig.f-think { opacity: 1; }
+.landing [data-pose='chat'] .ln-companion-fig.f-chat { opacity: 1; }
+
+/* vignette — keeps the figure seated in the flat ink world */
+.landing .ln-companion-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(28 32 50 / 0.5) 100%);
+}
+
+/* the turntable floor — perspective-tilted disc + two counter-rotating
+   dashed rings (compositor-only verbs) */
+.landing .ln-companion-floor {
+  position: absolute;
+  inset-inline: 8%;
+  inset-block-end: 4%;
+  block-size: 16%;
+  pointer-events: none;
+  transform: perspective(620px) rotateX(64deg);
+  transform-origin: 50% 100%;
+}
+.landing .ln-companion-floor::before {
+  content: '';
+  position: absolute;
+  inset: -34% -12%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sb-spot-deep) 0%, transparent 74%);
+}
+.landing .ln-companion-floor-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--sb-led-dim);
+}
+.landing .ln-companion-floor-ring i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px dashed rgb(223 237 178 / 0.38);
+  animation: ln-stage-spin var(--sb-dur-spin) var(--ln-ease-linear) infinite;
+}
+.landing .ln-companion-floor-ring.r2 { inset: -20% -10%; border-color: rgb(223 237 178 / 0.16); }
+.landing .ln-companion-floor-ring.r2 i {
+  animation-duration: calc(var(--sb-dur-spin) * 1.6);
+  animation-direction: reverse;
+}
+@keyframes ln-stage-spin { to { transform: rotate(1turn); } }
+
+/* the LED halo — three breathing dots at the stage apron */
+.landing .ln-companion-leds {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 1.8%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.landing .ln-companion-leds i {
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--sb-led);
+  box-shadow: 0 0 8px var(--sb-led-dim);
+  animation: ln-stage-led var(--sb-dur-breathe) var(--ln-ease-soft) infinite;
+}
+.landing .ln-companion-leds i:nth-child(2) { animation-delay: -1.4s; }
+.landing .ln-companion-leds i:nth-child(3) { animation-delay: -2.8s; }
+@keyframes ln-stage-led {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+/* the greeting bubble — pops on wave (data-show), pointer-inert */
+.landing .ln-companion-greet {
+  position: absolute;
+  top: 7%;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  max-inline-size: min(88%, 310px);
+  padding: 10px 16px 11px;
+  border-radius: 16px;
+  border-end-start-radius: 5px;
+  background: var(--ln-bot-bubble-in);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-cream);
+  font-size: 13px;
+  line-height: 1.6;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2), 0 10px 26px rgba(0,0,0,0.18);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity var(--ln-t-base) var(--ln-ease-out),
+    transform var(--ln-t-base) var(--ln-ease-out),
+    visibility 0s var(--ln-ease-linear) var(--ln-t-base);
+  pointer-events: none;
+}
+.landing .ln-companion-greet[data-show] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s;
+}
+.landing .ln-companion-greet b { color: var(--ln-lime); font-weight: var(--fw-semibold); }
+
+/* the HUD state chip — the machine's voice, mono */
+.landing .ln-companion-hud {
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--sb-hud-bg);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  pointer-events: none;
+}
+.landing .ln-companion-hud-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--sb-led);
+  animation: ln-stage-led var(--sb-dur-breathe) var(--ln-ease-soft) infinite;
+}
+.landing .ln-companion-hud .ln-mono { font-size: 10px; letter-spacing: 0.12em; }
+
+/* ── 17b · hero dock — the simulator under the stage ─────────────────── */
+.landing .ln-botchat.compact {
+  inline-size: 100%;
+  max-inline-size: 460px;
+}
+.landing .ln-botchat.compact .ln-botchat-log {
+  min-block-size: 210px;
+  max-block-size: 280px;
+}
+
+/* ── 17c · «لغة العقل» — the capabilities as chat threads ────────────── */
+.landing .ln-mind .ln-chapter-head { gap: var(--sp-6); margin-block-end: clamp(36px, 5vh, 56px); }
+.landing .ln-mind-strip {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  margin-block-end: clamp(28px, 4vh, 44px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.landing .ln-mind-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  min-block-size: 40px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  transition:
+    color var(--ln-t-fast) var(--ln-ease-soft),
+    background var(--ln-t-fast) var(--ln-ease-soft),
+    border-color var(--ln-t-fast) var(--ln-ease-soft);
+}
+.landing .ln-mind-chip:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); border-color: rgb(245 243 231 / 0.26); }
+.landing .ln-mind-chip:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
+.landing .ln-mind-chip-dot {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--dot, var(--ln-lime));
+  flex-shrink: 0;
+}
+.landing .ln-mind-chip .ln-mono { font-size: 11px; }
+
+.landing .ln-mind-threads {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(20px, 3vh, 32px);
+}
+.landing .ln-mind-thread {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--sp-4) clamp(28px, 4vw, 56px);
+  padding: clamp(20px, 3vw, 32px);
+  border-radius: var(--r-2xl);
+  background: rgb(245 243 231 / 0.03);
+  border: 1px solid var(--ln-line-soft);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-mind-thread:hover { border-color: var(--ln-line); }
+@media (min-width: 941px) {
+  .landing .ln-mind-thread { grid-template-columns: minmax(0, 0.62fr) minmax(0, 1.38fr); align-items: start; }
+}
+.landing .ln-mind-n { font-size: 11px; letter-spacing: 0.12em; color: var(--ln-bot-amber); }
+.landing .ln-mind-cap {
+  margin: var(--sp-2) 0 0;
+  font-size: clamp(19px, 2vw, 23px);
+  font-weight: var(--fw-bold);
+  color: var(--ln-cream);
+}
+.landing .ln-mind-intent {
+  display: inline-flex;
+  margin-block-start: var(--sp-3);
+  padding: 5px 12px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-bot-bubble-in-line);
+  color: var(--ln-bot-amber);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+.landing .ln-mind-main { min-inline-size: 0; display: grid; gap: var(--sp-4); }
+.landing .ln-mind-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-margin-block: 120px; /* the chip anchors clear the sticky header */
+}
+.landing .ln-mind-note {
+  margin: 0;
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  line-height: 1.7;
+  border-inline-start: 1px solid var(--ln-line);
+  padding-inline-start: var(--sp-4);
+  overflow-wrap: anywhere;
+}
+.landing .ln-mind-foot {
+  max-inline-size: 1180px;
+  margin: clamp(28px, 4vh, 44px) auto 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ln-cream-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.landing .ln-mind-foot svg { color: var(--ln-violet); flex-shrink: 0; }
+
+/* ── 17d · «يوم في الحياة» — the storyboard with the lit rail ────────── */
+.landing .ln-day { background: var(--ln-ink-2); }
+.landing .ln-day-board {
+  position: relative;
+  max-inline-size: 1080px;
+  margin-inline: auto;
+  padding-block-start: var(--sp-4);
+}
+/* the rail — base hairline + the --sp-scrubbed light (scaleY from the
+   top: the day lights up as the section passes; --sp comes from
+   useSectionProgress, RM pins it to 1) */
+.landing .ln-day-path {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 21px;
+  inline-size: 2px;
+}
+.landing .ln-day-path-base { position: absolute; inset: 0; background: var(--ln-line-soft); }
+.landing .ln-day-path-light {
+  position: absolute;
+  inset: 0;
+  background: var(--ln-cream);
+  transform: scaleY(var(--sp, 0));
+  transform-origin: 50% 0;
+}
+.landing .ln-day-panels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(40px, 7vh, 72px);
+}
+.landing .ln-day-panel {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--sp-2) var(--sp-5);
+}
+.landing .ln-day-node {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 7px;
+  padding-block-start: 8px;
+}
+.landing .ln-day-node::before {
+  content: '';
+  inline-size: 11px;
+  block-size: 11px;
+  border-radius: var(--ln-radius-pill);
+  background: var(--ln-cream);
+  box-shadow: 0 0 0 4px rgb(245 243 231 / 0.14);
+}
+.landing .ln-day-panel:last-child .ln-day-node::before {
+  inline-size: 15px;
+  block-size: 15px;
+  box-shadow: 0 0 0 5px rgb(245 243 231 / 0.18);
+}
+.landing .ln-day-clock { font-size: 10.5px; color: var(--ln-cream-dim); }
+.landing .ln-day-card {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--sp-4);
+}
+@media (min-width: 761px) {
+  .landing .ln-day-card { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; }
+}
+.landing .ln-day-media {
+  position: relative;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  border: 1px solid var(--ln-line-soft);
+  background: var(--ln-bot-frame);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.10);
+  aspect-ratio: 16 / 10;
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-day-media img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.landing .ln-day-media-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(56% 48% at 50% 44%, var(--ln-bot-glow) 0%, transparent 74%);
+  pointer-events: none;
+}
+.landing .ln-day-body { min-inline-size: 0; }
+.landing .ln-day-pose { font-size: 11px; letter-spacing: 0.14em; color: var(--ln-bot-amber); }
+.landing .ln-day-title {
+  margin: var(--sp-2) 0 0;
+  font-size: clamp(19px, 2.1vw, 24px);
+  font-weight: var(--fw-bold);
+  color: var(--ln-cream);
+}
+.landing .ln-day-desc {
+  margin: var(--sp-2) 0 0;
+  color: var(--ln-cream-dim);
+  font-size: 14px;
+  line-height: 1.7;
+  max-inline-size: 48ch;
+  overflow-wrap: anywhere;
+}
+
+/* ── 17e · «المنصة الحقيقية» — the real dashboard windows ────────────── */
+.landing .ln-product { overflow: hidden; }
+.landing .ln-product-grid {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(24px, 3.5vw, 44px);
+}
+@media (min-width: 921px) {
+  .landing .ln-product-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: start; }
+  .landing .ln-product-window.w1 { grid-column: 1 / span 7; }
+  .landing .ln-product-window.w2 { grid-column: 6 / span 7; margin-block-start: -64px; }
+}
+.landing .ln-product-window {
+  min-inline-size: 0;
+  border-radius: var(--r-2xl);
+  border: 1px solid var(--ln-line-soft);
+  background: rgb(245 243 231 / 0.03);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  overflow: hidden;
+  transition: border-color var(--ln-t-base) var(--ln-ease);
+}
+.landing .ln-product-window:hover { border-color: var(--ln-line); }
+.landing .ln-product-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: rgb(28 32 50 / 0.66);
+  border-block-end: 1px solid var(--ln-line-soft);
+  box-shadow: inset 0 1px 0 rgba(245,243,231,0.04);
+}
+.landing .ln-product-bar i {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--ln-radius-pill);
+  background: rgb(245 243 231 / 0.18);
+}
+.landing .ln-product-bar .ln-mono { font-size: 10.5px; margin-inline-start: 6px; letter-spacing: 0.06em; }
+.landing .ln-product-shot { display: block; inline-size: 100%; block-size: auto; }
+.landing .ln-product-cap {
+  margin: 0;
+  padding: 12px 16px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  border-block-start: 1px solid var(--ln-line-soft);
+  color: var(--ln-cream-dim);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.landing .ln-product-cap b { color: var(--ln-cream); font-weight: var(--fw-semibold); }
+.landing .ln-product-rails {
+  max-inline-size: 1180px;
+  margin: clamp(28px, 4vh, 44px) auto 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.landing .ln-product-rail {
+  padding: 7px 14px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line-soft);
+  color: var(--ln-cream-dim);
+}
+.landing .ln-product-cta-row {
+  max-inline-size: 1180px;
+  margin: var(--sp-5) auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--ln-cream-dim);
+  font-size: 13.5px;
+}
+
+/* ── 17f · mobile demotion — 320px+ compromise, no overflow ─────────── */
+@media (max-width: 1024px) {
+  .landing .ln-companion-scene { inline-size: min(86vw, 420px); }
+}
+@media (max-width: 640px) {
+  .landing .ln-companion-scene { inline-size: min(100%, 340px); }
+  .landing .ln-companion-greet { font-size: 12px; max-inline-size: 92%; }
+  .landing .ln-botchat.compact { max-inline-size: 100%; }
+  .landing .ln-day-panel { grid-template-columns: 34px minmax(0, 1fr); }
+  .landing .ln-day-path { inset-inline-start: 16px; }
+  .landing .ln-mind-thread { padding: var(--sp-4); }
+  .landing .ln-product-bar .ln-mono { display: none; }
+}
+@media (max-width: 390px) {
+  .landing .ln-mind-chip { padding: 8px 12px; font-size: 12px; }
+  .landing .ln-trust-value { font-size: 17px; }
+  .landing .ln-product-window.w2 { margin-block-start: 0; }
+  .landing .ln-companion-hud .ln-mono { font-size: 9px; letter-spacing: 0.08em; }
+}
+
+/* ── 17g · reduced-motion off-switches — the §17 verbs, explicitly ─────
+   (the globals belt zeroes durations and transitions; raw-duration loops
+   get the marquee treatment: removed entirely). */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-companion-tilt { transition: none; }
+  .landing .ln-companion-fig { transition: none; }
+  .landing .ln-companion-floor-ring i,
+  .landing .ln-companion-leds i,
+  .landing .ln-companion-hud-dot,
+  .landing .ln-trust-live i { animation: none; }
+  .landing .ln-day-path-light { transform: scaleY(1); }
+}

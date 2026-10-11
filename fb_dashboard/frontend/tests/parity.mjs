@@ -507,17 +507,17 @@ if (marqueeRmOff) pass += 1;
 else fails.push('marquee RM off-switch: @media (prefers-reduced-motion) .landing .ln-marquee-track { animation: none } not found');
 
 // (d) --sp scrub consumers — the imperative section-progress variable
-//     drives the journey light path, the progress ring system and the
-//     chapter veil (raw expressions: the fallbacks are part of the contract)
-pinDecl('sp-consumer', '.landing .ln-journey-path-light', 'stroke-dashoffset', 'calc(1 - var(--sp, 0))');
-pinDecl('sp-consumer', '.landing .ln-progress-orbits', 'transform', 'scale(calc(0.86 + var(--sp, 0.65) * 0.3))');
+//     drives the day storyboard's lit rail and the chapter veil (raw
+//     expressions: the fallbacks are part of the contract)
+pinDecl('sp-consumer', '.landing .ln-day-path-light', 'transform', 'scaleY(var(--sp, 0))');
 pinDecl('sp-consumer', '.landing .ln-chapter::before', 'opacity', 'calc(var(--sp, 0) * 0.5)');
 
-// (e) scroll-spy selectors — all six section ids keep their R2-form active
-//     rules (header[data-active-section=X] .landing-nav-link[href="#X"] —
-//     the attribute-selector form; naive text dumps render it deceptively
+// (e) scroll-spy selectors — the companion-narrative section ids keep
+//     their R2-form active rules
+//     (header[data-active-section=X] .landing-nav-link[href="#X"] — the
+//     attribute-selector form; naive text dumps render it deceptively
 //     as ".landing-nav-link ref=")
-const SPY_SECTIONS = ['trust', 'features', 'journey', 'progress', 'plate', 'roles'];
+const SPY_SECTIONS = ['mind', 'day', 'platform', 'trust'];
 const spyMissing = SPY_SECTIONS.filter(
   (s) => !landingCss.includes(`header[data-active-section="${s}"] .landing-nav-link[href="#${s}"]`),
 );
@@ -704,12 +704,13 @@ pinDecl('press', '.landing .ln-btn-gold:active', 'transition-duration', 'var(--t
 pinDecl('press', '.landing .ln-btn-ghost:active', 'transform', 'scale(var(--press-scale, 0.97))');
 pinDecl('press', '.landing .ln-btn-ghost:active', 'transition-duration', 'var(--t-micro)');
 
-// P3-28/29/30/35 card depth recipes — resting station/stat shadows, the
-// role-row hover shadow, the progress-visual inset top-edge highlight.
-pinDeclLast('depth', '.landing .ln-station-card', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
-pinDeclLast('depth', '.landing .ln-stat', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
-pinDeclLast('depth', '.landing .ln-role-row:hover', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
-pinDeclLast('depth', '.landing .ln-progress-visual', 'box-shadow', 'inset 0 1px 0 rgba(245,243,231,0.04)');
+// P3-28/29/30/35 card depth recipes — the SAME canonical values ride the
+// v16-r142 consumers (mind threads, product windows, day media): resting
+// station shadows + the product-bar inset top-edge highlight.
+pinDeclLast('depth', '.landing .ln-mind-thread', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
+pinDeclLast('depth', '.landing .ln-product-window', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
+pinDecl('depth', '.landing .ln-product-bar', 'box-shadow', 'inset 0 1px 0 rgba(245,243,231,0.04)');
+pinDeclLast('depth', '.landing .ln-day-media', 'box-shadow', '0 1px 2px rgba(0,0,0,0.10)');
 
 // P1-2 universal cream focus ring on the ink stage (canonical
 // landing.css:1783-1794) — the product gold --state-focus-ring-color must
@@ -753,7 +754,6 @@ pinDecl('scroll-hover', '.landing .ln-hero-scroll:hover .ln-hero-scroll-line', '
 const rawPage = readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
 const rawLandingStage = readFileSync(new URL('../src/components/landing/LandingStage.tsx', import.meta.url), 'utf8');
 const rawOrbitScene = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
-const rawFeatures = readFileSync(new URL('../src/components/landing/FeaturesSection.tsx', import.meta.url), 'utf8');
 
 // P0: exactly ONE id="main-content" in the rendered page — the layout owns
 // it; the landing wrapper must not re-render it (duplicate id + nested
@@ -765,32 +765,36 @@ const rawFeatures = readFileSync(new URL('../src/components/landing/FeaturesSect
   else fails.push(`main-landmark: page.tsx must not re-render id="main-content" (layout renders it exactly once; layout occurrences = ${layoutCount})`);
 }
 // P2-10: the dead .ln-btn-text classes stay deleted (zero consumers).
-// r130 (W1-E L-6): .ln-stat-unit is BACK and CONSUMED — the ProgressSection
-// uptime cell renders a dimmed unit span; the pin asserts both the rule and
-// the consumer now (was a dead-class delete in r129).
+// r142 «رفيق»: .ln-stat-unit is BACK and CONSUMED — the TrustBand uptime
+// cell renders a dimmed unit span (the same canonical grammar the
+// ProgressSection stat rode until it folded into the cockpit band); the
+// pin asserts both the rule and the consumer.
 {
   const deadGone = !/\.ln-btn-text\b/.test(landingCss);
   if (deadGone) pass += 1;
   else fails.push('dead classes: .ln-btn-text still present in landing.css with zero consumers');
-  const rawProgress = readFileSync(new URL('../src/components/landing/ProgressSection.tsx', import.meta.url), 'utf8');
-  const unitBack = /\.landing \.ln-stat-unit\s*\{[^}]*color:\s*var\(--ln-cream-dim\)[^}]*font-size:\s*24px/.test(landingCss)
-    && rawProgress.includes('ln-stat-unit');
+  const rawTrust = readFileSync(new URL('../src/components/landing/TrustBand.tsx', import.meta.url), 'utf8');
+  const unitBack = /\.landing \.ln-trust-value \.ln-stat-unit\s*\{[^}]*color:\s*var\(--ln-cream-dim\)/.test(landingCss)
+    && rawTrust.includes('ln-stat-unit');
   if (unitBack) pass += 1;
-  else fails.push('stat-unit: the canonical .ln-stat-unit rule + its ProgressSection consumer not found (dimmed 24px unit span)');
+  else fails.push('stat-unit: the canonical .ln-stat-unit rule + its TrustBand consumer not found (dimmed unit span in the cockpit band)');
 }
-// P2-5 mitigation: the constellation chips strip is derived from the SAME
-// registry that feeds the sky pins (all 8 names accessibly) — r130 (L-7):
-// the pins are now FOCUSABLE <button aria-label> elements (canonical
-// CollegeConstellation grammar), not aria-hidden spans.
+// P2-5 mitigation: the mind chips strip is derived from the SAME registry
+// that feeds the chat threads (all 4 capability names accessibly) —
+// the chips are real ANCHOR links (native keyboard navigation, zero JS),
+// each with an Arabic aria-label.
 {
-  const chipsFromRegistry = rawFeatures.includes('const CHIPS = FEATURES.map')
-    && rawFeatures.includes('ln-constellation-strip');
+  const rawMind = readFileSync(new URL('../src/components/landing/MindSection.tsx', import.meta.url), 'utf8');
+  const chipsFromRegistry = rawMind.includes('const CHIPS = THREADS.map')
+    && rawMind.includes('ln-mind-strip');
   if (chipsFromRegistry) pass += 1;
-  else fails.push('constellation a11y: the chips strip must be derived from the FEATURES registry (all 8 names accessible)');
-  const pinsFocusable = rawFeatures.includes('<button') && rawFeatures.includes('ln-constellation-dot')
-    && !/ln-constellation-dot[^>]*aria-hidden/.test(rawFeatures);
-  if (pinsFocusable) pass += 1;
-  else fails.push('constellation a11y: pins must be focusable <button> elements with aria-labels (no aria-hidden)');
+  else fails.push('mind a11y: the chips strip must be derived from the THREADS registry (all 4 capability names accessible)');
+  const chipsAnchors = rawMind.includes('<a')
+    && rawMind.includes('className="ln-mind-chip"')
+    && rawMind.includes('aria-label')
+    && !/className="ln-mind-chip"[^>]*aria-hidden/.test(rawMind);
+  if (chipsAnchors) pass += 1;
+  else fails.push('mind a11y: chips must be real <a> anchors with aria-labels (no aria-hidden)');
 }
 // P2-4 (documented override): the skip target #page-content exists inside
 // the landing (the app-level chip in layout.tsx remains the single skip

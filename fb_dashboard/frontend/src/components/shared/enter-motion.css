@@ -2,11 +2,11 @@
  *
  * The dashboard routes shipped the ~116KB framer-motion engine in FIRST-LOAD
  * JS purely for three entrance animations (shell page-fade, KPI-card stagger,
- * section fadeUp) and the sparkline draw. framer-motion itself stays in the
- * app for lazy consumers (OnboardingWizard, OnboardingTour) and MotionConfig
- * in app/providers.tsx still enforces reducedMotion="user" for them — but the
- * eager dashboard graph no longer imports it, so the engine chunk is fetched
- * only when a lazy animated component actually mounts.
+ * section fadeUp) and the sparkline draw. r144 comment repair: the claim
+ * that framer-motion "stays in the app for lazy consumers" is retired —
+ * the dependency left the app entirely (v13; grep-verified: zero imports,
+ * no MotionConfig anywhere), so these CSS twins are the FINAL entrance
+ * implementation, not a bridge.
  *
 /* Values map onto the Madarek motion ladder (globals.css :root tokens):
  *   - page enter:  160ms --ease-out (polish v9 re-tune of madarek-page-enter

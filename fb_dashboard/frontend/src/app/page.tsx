@@ -115,7 +115,7 @@ const faqSchema = {
   mainEntity: [
     { "@type": "Question", name: "هل أحتاج صلاحيات خاصة لربط الصفحة؟", acceptedAnswer: { "@type": "Answer", text: "تحتاج صلاحية إدارة الصفحة فقط. نطلب أقل الصلاحيات اللازمة للعمل." } },
     { "@type": "Question", name: "هل بياناتي آمنة؟", acceptedAnswer: { "@type": "Answer", text: "جميع البيانات مشفرة. لا نشارك معلومات صفحاتك مع أي جهة خارجية." } },
-    { "@type": "Question", name: "كم صفحة يمكنني ربطها؟", acceptedAnswer: { "@type": "Answer", text: "يمكنك ربط صفحة واحدة في الخطة المجانية، وحتى 10 صفحات في الخطة الاحترافية." } },
+    { "@type": "Question", name: "كم صفحة يمكنني ربطها؟", acceptedAnswer: { "@type": "Answer", text: "يمكنك ربط صفحة واحدة في الخطة المجانية، وحتى 5 صفحات في الخطة الاحترافية." } },
     { "@type": "Question", name: "هل تدعم اللغة العربية كاملاً؟", acceptedAnswer: { "@type": "Answer", text: "نعم، الواجهة كاملة بالعربية مع دعم كامل للردود والتعليقات العربية." } },
     { "@type": "Question", name: "ماذا يحدث إذا تجاوزت حد الردود الشهري؟", acceptedAnswer: { "@type": "Answer", text: "في الخطة المجانية، يقتصر الرد على 100 رد شهرياً. للردود غير المحدودة، اختر الخطة المؤسسية." } },
     { "@type": "Question", name: "هل يمكنني تجربة البوت قبل الشراء؟", acceptedAnswer: { "@type": "Answer", text: "نعم! يمكنك تجربة لوحة التحكم التجريبية ببيانات وهمية لترى كل الميزات قبل الاشتراك." } },
@@ -124,7 +124,11 @@ const faqSchema = {
 
 /* Marquee vocabulary — the real capability names (the product schema's
    featureList + the shipped dashboard routes), ×2 by the marquee kit for
-   the seamless 42s RTL loop. */
+   the seamless 42s RTL loop. r144: «دعم متعدد اللغات» replaced with
+   «فهم اللهجة الليبية» — the product is Arabic-only at every surface, but
+   the Libyan dialect IS engine-backed (enhanced_intent.py Libyan keyword
+   catalogs; ai_service.py «الردود باللهجة الليبية العامية» prompt) — the
+   old multi-language claim had zero backing (QA r144 P3). */
 const MARQUEE_ITEMS = [
   "ردود تلقائية ذكية",
   "صندوق وارد موحد",
@@ -132,7 +136,7 @@ const MARQUEE_ITEMS = [
   "جدولة المنشورات",
   "استهداف الجمهور",
   "أمان وتشفير",
-  "دعم متعدد اللغات",
+  "فهم اللهجة الليبية",
   "إدارة فريق كامل",
 ];
 

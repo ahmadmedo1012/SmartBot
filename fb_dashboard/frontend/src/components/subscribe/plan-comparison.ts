@@ -6,7 +6,7 @@
  * caps instead of Smart-Menu's menus/items/orders.
  */
 import { getArabicPlural } from "@/lib/arabic-plural"
-import { toArabicNumber } from "@/lib/format"
+import { formatCount } from "@/lib/format"
 
 /** Plan shape from GET /api/plans. */
 export type ComparisonPlan = {
@@ -30,10 +30,13 @@ const UNLIMITED_REPLIES = 999999
 /**
  * The headline differentiator phrase under the plan price — SmartBot's
  * equivalent of Smart-Menu's itemsPhrase (menu items → bot replies).
+ * r144: the count rides formatCount (comma grouping) so «حتى 2,000 رد»
+ * matches the DB-seeded feature strings («2,000 رد/شهر») beside it — the
+ * raw toString() rendered «حتى 2000 رد» and clashed (QA r144).
  */
 export function repliesPhrase(plan: ComparisonPlan): string {
   if (plan.maxReplies >= UNLIMITED_REPLIES) return "ردود غير محدودة"
-  return `حتى ${toArabicNumber(plan.maxReplies)} ${getArabicPlural(plan.maxReplies, "رد", undefined, "ردود")}`
+  return `حتى ${formatCount(plan.maxReplies)} ${getArabicPlural(plan.maxReplies, "رد", undefined, "ردود")}`
 }
 
 /** Input shape of a plan row from GET /api/plans (trusted backend contract:

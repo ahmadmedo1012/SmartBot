@@ -153,7 +153,12 @@ async def public_stats(db=Depends(get_db)):
         activeTenants — count of tenants with paid or trial subscriptions
         totalReplies — count of all bot replies ever
         activeUsers30d — count of users who logged in within the past 30 days (best-effort)
-        uptimePercent — fixed 99.9 (status page assumed; replace with real probe later)
+
+    r144 (honesty wave): ``uptimePercent`` REMOVED — it was a hardcoded 99.9
+    ("status page assumed; replace with real probe later") i.e. a fabricated
+    metric that the live landing rounded to «100% جهوزية». REAL-or-ABSENT
+    doctrine (usePublicStats/test_phase_c_landing): no probe exists, so the
+    field is gone until a real one does. The TrustBand cell went with it.
     """
     from models import Tenant
     try:
@@ -174,7 +179,6 @@ async def public_stats(db=Depends(get_db)):
         "activeTenants": active_tenants,
         "totalReplies": total_replies,
         "activeUsers30d": 0,
-        "uptimePercent": 99.9,
     })
 
 

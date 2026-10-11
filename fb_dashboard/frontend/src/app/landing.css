@@ -899,8 +899,9 @@
   unicode-bidi: plaintext;
 }
 /* the canonical stat-unit rung (madarek landing.css:1215) — units (%, +)
-   are dimmed, never baked into the value (r142 consumer: the TrustBand
-   uptime cell; the same grammar ProgressSection rode in r130). */
+   are dimmed, never baked into the value (r130 grammar). r144: the TrustBand
+   uptime consumer is GONE with the fabricated 99.9 payload field (REAL-or-
+   ABSENT) — the rule stays defined for future real units. */
 .landing .ln-trust-value .ln-stat-unit { color: var(--ln-cream-dim); font-size: 14px; margin-inline-start: 1px; }
 .landing .ln-trust-label { color: var(--ln-cream-dim); font-size: 13.5px; }
 
@@ -1068,16 +1069,21 @@
   font-weight: var(--fw-semibold);
   margin-block-end: var(--sp-3);
 }
-/* generous leading = comfortable ≈44px rows (spec §4.3) */
+/* generous leading = comfortable ≈44px rows (spec §4.3) — r144: the intent
+   is now an explicit min-block-size floor (QA measured 32–43px rows). */
 .landing .landing-footer-link {
   color: var(--ln-cream-dim);
   text-decoration: none;
   font-size: 14px;
   line-height: 2.2;
   padding-block: 7px;
+  min-block-size: 44px;
   width: fit-content;
   transition: color var(--ln-t-fast) var(--ln-ease-soft);
 }
+/* r144 a11y: the footer brand link (QA 390px: 32px) meets the same floor —
+   scoped to the footer column so the header brand keeps its compact form. */
+.landing .landing-footer-col .landing-brand { min-block-size: 44px; }
 /* r129 (P4-13, canonical landing.css:2001-2008): footer links get a
    subtle underline on hover so they feel interactive even without the
    color shift. */
@@ -1161,10 +1167,15 @@
 }
 @media (max-width: 640px) {
   /* WCAG 2.5.5 Target Size (Minimum): 48px floor for landing-page
-     interactive elements on small screens. */
+     interactive elements on small screens. r144: the simulator controls
+     and footer links join the floor (QA 390px: tabs 37px / replay 34px /
+     footer rows 32–43px). */
   .landing .ln-btn-gold,
   .landing .ln-btn-ghost,
-  .landing .landing-nav-link {
+  .landing .landing-nav-link,
+  .landing .ln-botchat-tab,
+  .landing .ln-botchat-replay,
+  .landing .landing-footer-link {
     min-block-size: 48px;
     padding-block: var(--sp-3);
   }
@@ -1388,7 +1399,9 @@
 }
 .landing .ln-botchat-tab {
   padding: 7px 15px;
-  min-block-size: 36px;
+  /* r144 a11y (QA 390px: 37px): WCAG 2.5.8 target floor — 44px like the
+     mind chips and footer links; the wrap row absorbs the extra height. */
+  min-block-size: 44px;
   border-radius: var(--ln-radius-pill);
   border: 1px solid var(--ln-line);
   background: transparent;
@@ -1531,7 +1544,8 @@
   align-items: center;
   gap: 6px;
   padding: 6px 13px;
-  min-block-size: 34px;
+  /* r144 a11y (QA 390px: 34px): 44px target floor (WCAG 2.5.8). */
+  min-block-size: 44px;
   border-radius: var(--ln-radius-pill);
   border: 1px solid var(--ln-line);
   background: transparent;
@@ -1841,7 +1855,9 @@
   align-items: center;
   gap: 9px;
   padding: 9px 16px;
-  min-block-size: 40px;
+  /* r144 a11y (QA 390px: 40px): 44px target floor (WCAG 2.5.8) — the chips
+     are real anchor links (parity-pinned) and the strip wraps. */
+  min-block-size: 44px;
   border-radius: var(--ln-radius-pill);
   border: 1px solid var(--ln-line);
   color: var(--ln-cream-dim);

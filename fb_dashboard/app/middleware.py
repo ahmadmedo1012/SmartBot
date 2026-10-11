@@ -56,13 +56,18 @@ async def dedup_middleware(request: Request, call_next):
 
 
 async def rate_limit_middleware(request: Request, call_next):
-    """Rate-limit mutating POST/PUT/DELETE endpoints (excludes login/register which have per-IP limits, webhooks).
+    """Rate-limit mutating POST/PUT/PATCH/DELETE endpoints (excludes login/register which have per-IP limits, webhooks).
+
+    r144: PATCH joins the limiter — CORS already advertises PATCH
+    (runner.py allow_methods) and csrf_origin_check has always validated it,
+    so a PATCH mutation was the one mutate verb that slipped past the
+    per-IP window entirely.
 
     Graceful degradation: if the DB is unavailable (e.g. Neon cold-start), the request
     is allowed through so that health probes and critical auth flows are never blocked
     by a failing rate-limiter.
     """
-    if request.method in ("POST", "PUT", "DELETE"):
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         path = request.url.path
         # v8-A6: exact path-prefix match — the old substring `p in path`
         # also exempted paths like /api/x/telegram-leak or /api/register-page.

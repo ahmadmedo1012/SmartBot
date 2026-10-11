@@ -765,19 +765,22 @@ const rawOrbitScene = readFileSync(new URL('../src/components/landing/OrbitScene
   else fails.push(`main-landmark: page.tsx must not re-render id="main-content" (layout renders it exactly once; layout occurrences = ${layoutCount})`);
 }
 // P2-10: the dead .ln-btn-text classes stay deleted (zero consumers).
-// r142 «رفيق»: .ln-stat-unit is BACK and CONSUMED — the TrustBand uptime
-// cell renders a dimmed unit span (the same canonical grammar the
-// ProgressSection stat rode until it folded into the cockpit band); the
-// pin asserts both the rule and the consumer.
+// r144 honesty wave: the fabricated uptime cell is GONE from TrustBand (the
+// backend's hardcoded 99.9 violated REAL-or-ABSENT) — this pin flips from
+// "a unit consumer exists" to an honesty gate: the band must render NO
+// جهوزية/uptime claim, the code-defined engine-count cell (محرك أتمتة)
+// rides in its slot, and the canonical .ln-stat-unit rule stays defined in
+// landing.css for future REAL units (grammar kept, consumer optional).
 {
   const deadGone = !/\.ln-btn-text\b/.test(landingCss);
   if (deadGone) pass += 1;
   else fails.push('dead classes: .ln-btn-text still present in landing.css with zero consumers');
   const rawTrust = readFileSync(new URL('../src/components/landing/TrustBand.tsx', import.meta.url), 'utf8');
-  const unitBack = /\.landing \.ln-trust-value \.ln-stat-unit\s*\{[^}]*color:\s*var\(--ln-cream-dim\)/.test(landingCss)
-    && rawTrust.includes('ln-stat-unit');
-  if (unitBack) pass += 1;
-  else fails.push('stat-unit: the canonical .ln-stat-unit rule + its TrustBand consumer not found (dimmed unit span in the cockpit band)');
+  const bandHonest = /\.landing \.ln-trust-value \.ln-stat-unit\s*\{[^}]*color:\s*var\(--ln-cream-dim\)/.test(landingCss)
+    && !/uptime|جهوزية/.test(rawTrust)
+    && rawTrust.includes('محرك أتمتة');
+  if (bandHonest) pass += 1;
+  else fails.push('trust-band honesty: .ln-stat-unit rule must stay defined, the band must render NO uptime/جهوزية claim, and the verifiable engine-count cell (محرك أتمتة) must replace it');
 }
 // P2-5 mitigation: the mind chips strip is derived from the SAME registry
 // that feeds the chat threads (all 4 capability names accessibly) —

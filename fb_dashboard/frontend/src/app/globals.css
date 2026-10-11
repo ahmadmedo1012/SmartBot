@@ -1029,12 +1029,10 @@ textarea:autofill {
   .animate-fade-in-150, .animate-fade-in-250, .animate-fade-in-400 { animation: none; }
 }
 
-/* ── pricing price swap (key-remount tween, Madarek --ease-soft curve). ── */
-@keyframes price-swap-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.price-swap { animation: price-swap-in var(--t-slow) var(--ease-smooth) both; }
-@media (prefers-reduced-motion: reduce) {
-  .price-swap { animation: none; }
-}
+/* r144 honesty wave: @keyframes price-swap-in + .price-swap deleted —
+   the only consumer (the /pricing annual key-remount swap) left with the
+   fabricated yearly display; the card price is a static monthly figure.
+   Same dead-class doctrine as r132-F3a above. */
 
 .delay-300 { animation-delay: 300ms; }
 

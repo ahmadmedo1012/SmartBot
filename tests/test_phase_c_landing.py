@@ -83,7 +83,9 @@ async def test_public_stats_reflect_real_db_changes():
         # لا تسريب: المخرجات مجاميع فقط — أسماء/معرفات المستأجرين غائبة
         body_text = r.text
         assert "T1" not in body_text and "tenant_id" not in body_text
-        assert set(d2.keys()) >= {"activeTenants", "totalReplies", "activeUsers30d", "uptimePercent"}
+        # r144: uptimePercent removed from the payload (hardcoded 99.9 was a
+        # fabricated metric — REAL-or-ABSENT). The pin no longer requires it.
+        assert set(d2.keys()) >= {"activeTenants", "totalReplies", "activeUsers30d"}
     finally:
         from database import get_db
         app.dependency_overrides.pop(get_db, None)

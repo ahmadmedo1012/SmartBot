@@ -38,6 +38,22 @@ function formatNumber(n: number | string | null | undefined): string {
   return num.toLocaleString("ar-LY");
 }
 
+/**
+ * Grouped count for plan caps and other big quantities that must MATCH the
+ * DB-seeded feature copy — Western digits + "," thousands ("2,000"), the
+ * exact style the SubscriptionPlan.features strings use on the wire
+ * (app/startup.py seed: «2,000 رد/شهر», «50,000 رد/شهر»).
+ * r144: /subscribe's «حتى N رد» phrase rendered raw toString() ("2000") and
+ * clashed with the comma-grouped feature lists beside it (QA r144) — every
+ * such display now goes through THIS seam function.
+ */
+function formatCount(n: number | string | null | undefined): string {
+  if (n === null || n === undefined || n === "") return "";
+  const num = typeof n === "string" ? Number(n) : n;
+  if (!Number.isFinite(num)) return String(n);
+  return num.toLocaleString("en-US");
+}
+
 const ARABIC_MONTHS = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
@@ -135,4 +151,4 @@ function countPhrase(
   }
 }
 
-export { toArabicNumber, formatNumber, formatDate, formatDateOnly, formatMonth, timeAgo, countPhrase };
+export { toArabicNumber, formatNumber, formatCount, formatDate, formatDateOnly, formatMonth, timeAgo, countPhrase };

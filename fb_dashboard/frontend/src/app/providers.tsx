@@ -9,10 +9,10 @@ import { ReactNode, useEffect } from "react"
  *    engine into the shared base chunk of EVERY route (public pages
  *    included) for animations only 2 lazy components actually used.
  *    The eager routes now use the CSS twins in
- *    components/shared/enter-motion.css; the only JS-motion consumer
- *    left (OnboardingWizard) wraps its own root in MotionConfig —
- *    it is dynamic(ssr:false) via AuthGuard, so framer stays in ITS
- *    lazy chunk only.
+ *    components/shared/enter-motion.css. r144 comment repair: the
+ *    OnboardingWizard MotionConfig clause is retired too — the framer
+ *    dependency left the app entirely (v13), so there is no lazy JS-motion
+ *    consumer anymore; the CSS twins are final.
  * 2. QueryClientProvider REMOVED — react-query was only consumed under
  *    /dashboard (22 pages) + /admin (telegram). It now mounts in those
  *    layouts via components/shared/QueryProvider, so public routes

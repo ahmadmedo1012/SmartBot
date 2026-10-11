@@ -51,7 +51,6 @@ const PLAN_ICONS = [Sparkles, Star, Crown, Crown]
 export default function PricingPage() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>(DEFAULT_VIEW_PLANS)
-  const [annual, setAnnual] = useState(false)
   const [plansFailed, setPlansFailed] = useState(false)
 
   const loadPlans = useCallback(() => {
@@ -136,37 +135,12 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Billing toggle */}
-        <ScrollReveal
-          y={6}
-          delay={200}
-          duration={0.45}
-          className="mt-10 inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 p-1 backdrop-blur"
-        >
-          <button
-            onClick={() => setAnnual(false)}
-            aria-pressed={!annual}
-            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-[background-color,color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
-              !annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            شهري
-          </button>
-          <button
-            onClick={() => setAnnual(true)}
-            aria-pressed={annual}
-            className={`min-h-11 px-5 py-1.5 text-sm font-medium rounded-full transition-[background-color,color,box-shadow] flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
-              annual ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            سنوي
-            <span className={`text-3xs font-bold px-1.5 py-0.5 rounded-full ${
-              annual ? "bg-primary-foreground/20 text-primary-foreground" : "bg-accent-foreground/15 text-accent-foreground"
-            }`}>
-              وفّر شهرين
-            </span>
-          </button>
-        </ScrollReveal>
+        {/* r144 honesty wave: the «شهري/سنوي — وفّر شهرين» billing toggle is
+            REMOVED. The yearly figure (10× monthly) and the savings claim
+            were display-only — no annual billing concept exists anywhere in
+            the backend, and the CTA always subscribed the MONTHLY plan, so
+            the displayed price could never match the charged one. Clean
+            monthly pricing only, matching the money path. */}
       </SectionContainer>
 
       <SectionContainer className="pb-24">
@@ -259,33 +233,27 @@ export default function PricingPage() {
                   </CardHeader>
 
                   <CardContent className="flex-1 flex flex-col px-6 pb-6">
-                    {/* Price — v9-C3: key-remount swap. key={annual} re-mounts the
-                     * price/period nodes on billing toggle so the .price-swap
-                     * entrance (globals.css) plays — framer-free by design. */}
+                    {/* Price — r144: static monthly figure. The old annual
+                     * key-remount swap (key={annual} + .price-swap) rode the
+                     * removed billing toggle; a monthly-only card needs no
+                     * swap machinery. formatNumber — prices flow through the
+                     * single i18n formatting seam (v12-E4.13). */}
                     <div className="text-center mb-6 py-4 border-y border-border/40">
                       <div className="flex items-baseline justify-center gap-1.5">
                         {plan.price === 0 ? (
                           <span className="text-4xl font-bold">مجاني</span>
                         ) : (
                           <>
-                          <span key={annual ? "y" : "m"} className="price-swap text-5xl font-bold tabular-nums text-accent-foreground">
-                            {/* Smart-Menu parity: yearly billing = 10× monthly (two months free).
-                                v12-E4.13: formatNumber — prices flow through the
-                                single i18n formatting seam like every other number. */}
-                            {formatNumber(annual ? Math.round(plan.price * 10 * 100) / 100 : plan.price)}
+                          <span className="text-5xl font-bold tabular-nums text-accent-foreground">
+                            {formatNumber(plan.price)}
                           </span>
                             <span className="text-base text-muted-foreground font-medium">د.ل</span>
                           </>
                         )}
                       </div>
-                      <div key={annual ? "y" : "m"} className="price-swap text-xs text-muted-foreground mt-1">
-                        {plan.price === 0 ? "للأبد، بدون حدود زمنية" : annual ? "سنوياً" : "شهرياً"}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {plan.price === 0 ? "للأبد، بدون حدود زمنية" : "شهرياً"}
                       </div>
-                      {annual && plan.price > 0 && (
-                        <div className="price-swap text-xs text-accent-foreground mt-0.5">
-                          وفر شهرين عند الاشتراك السنوي
-                        </div>
-                      )}
                     </div>
 
                     {/* Features */}
@@ -348,8 +316,14 @@ export default function PricingPage() {
 
 function getDescription(planId: number): string {
   // v18-1-c: id رقمي على السلك (1-5) — فروع "free"/"basic" النصية القديمة
-  // لم تكن تطابق أبداً؛ رُبط الوصف المقصود بالمعرف الرقمي
+  // لم تكن تطابق أبداً؛ رُبط الوصف المقصود بالمعرف الرقمي.
+  // r144 (QA): the three paid plans above Basic all shared the one
+  // copy-paste line «للشركات والوكالات الكبيرة» — three differentiated,
+  // seed-accurate subtitles now (startup.py:Premium 10k رد/بث/فريق حتى 2 ·
+  // Pro 50k/5 صفحات/تسلسلات/فريق حتى 5 · Enterprise غير محدود/24-7).
   if (planId === 1) return "للتجربة والصفحات الصغيرة"
   if (planId === 2) return "للنشاطات التجارية المتوسطة"
-  return "للشركات والوكالات الكبيرة"
+  if (planId === 3) return "للشركات النامية والفرق الصغيرة"
+  if (planId === 4) return "للوكالات والنشاطات متعددة الصفحات"
+  return "للمؤسسات الكبيرة ذات التشغيل الواسع"
 }

@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react"
  *   - StatsSection's AnimatedNumber (the retired r128-era
  *     sections/StatsSection.tsx, deleted r129 with the rest of the dead
  *     landing sections; the live count-up consumers are the landing
- *     TrustBand/ProgressSection islands and the shared KpiCard):
+ *     TrustBand island and the shared KpiCard):
  *     setInterval stepping (≈30 × 30ms, linear, always 0 → target),
  *     in-view gated, reduced-motion honored only since v14-E5 (D2-M6).
  *
@@ -27,7 +27,7 @@ import { useEffect, useRef, useState } from "react"
  * number, not a string; formatting is lib/format.ts's job (v6 §A single seam).
  *
  * `paused` exists for view-gating (the in-view gate pattern the retired
- * StatsSection used — now the landing TrustBand/ProgressSection islands):
+ * StatsSection used — now the landing TrustBand island):
  * the counter holds at its current value until the gate opens.
  *
  * usePrefersReducedMotion is exported alongside the hook because KpiCard's

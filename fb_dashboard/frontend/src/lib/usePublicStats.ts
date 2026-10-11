@@ -9,13 +9,12 @@ interface PublicStats {
   totalReplies?: number
   totalPages?: number
   activeUsers30d?: number
-  uptimePercent?: number
 }
 
 /* v10-C2 (G3 rec §8-2) — the hook's doc-comment always claimed a "single
  * shared fetch", but each of the three then-mounting consumers (the
  * retired LandingIslands/StatsSection/FinalCTASection trio — the live
- * consumers are the landing TrustBand + ProgressSection) ran its own
+ * consumer is the landing TrustBand) ran its own
  * useEffect → THREE identical /api/public/stats requests on every home
  * load (G3 measured 380–1339ms each, back-to-back, local and prod). One
  * module-level in-flight promise now serves every consumer on the page;
@@ -50,6 +49,8 @@ function loadPublicStats(): Promise<PublicStats | null> {
 
 /**
  * Plan §3.1 — landing page numbers must be REAL or ABSENT, never fake.
+ * (r144 honesty wave: the fabricated uptimePercent field left the payload
+ * and this interface — see /api/public/stats.)
  * Single shared fetch for /api/public/stats so the hero, stats band and
  * CTA all display the same source of truth. (v10-C2: actually single now —
  * see loadPublicStats above.)

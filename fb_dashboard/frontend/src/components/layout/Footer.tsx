@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useConfig } from "@/hooks/useConfig"
+import { toWaMe } from "@/lib/phone"
 import { MessageCircle } from "lucide-react"
 
 interface FooterProps { className?: string }
@@ -24,7 +25,13 @@ const SERVICES = [
 
 export function Footer({ className }: FooterProps) {
   const { config } = useConfig()
-  const waNumber = String(config.support_whatsapp || config.whatsapp_number || "218910089975").replace(/[^0-9]/g, "")
+  /* (r140 — درس SL r138 «بوابة wa.me»): قيمة الإنتاج الحية لـ
+   * support_whatsapp مخزنة بالشكل المحلي (0910089975) وwa.me يتطلب
+   * دوليًا بلا صفر بادئ — الحقل كان يُنظّف من غير الرقمي فقط فيولد
+   * رابطًا ميتًا. toWaMe (بيت العقد العائلي src/lib/phone.ts) يقلب
+   * المحمول المحلي طويلًا أو قصيرًا (r138) إلى 218 ويُبقي الدولي كما
+   * هو؛ غير المحمول يمر كما نُظّف — نفس احتياطي السلوك السابق. */
+  const waNumber = toWaMe(String(config.support_whatsapp || config.whatsapp_number || "218910089975"))
   const [year, setYear] = useState(2026)
   useEffect(() => { setYear(new Date().getFullYear()) }, [])
 

@@ -7,7 +7,7 @@
 
 [![Live](https://img.shields.io/badge/live-bot.smart%2Dlink%2Dly-2EA44F?style=flat-square)](https://bot.smart-link.ly)
 [![API](https://img.shields.io/badge/API-api.smart%2Dlink%2Dly-8B5E3C?style=flat-square)](https://api.smart-link.ly/api/health)
-[![Tests](https://img.shields.io/badge/pytest-1118%2B%20dynamic-2EA44F?style=flat-square)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/pytest-1184%2B%20dynamic-2EA44F?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-proprietary-D4380D?style=flat-square)](LICENSE)
 
 **[🌐 bot.smart-link.ly](https://bot.smart-link.ly)** · [🧪 Live demo](https://bot.smart-link.ly/demo) · [📚 Docs](docs/INDEX.md) · [العربية](README.md) · **English**
@@ -119,7 +119,7 @@ fb_dashboard/               ← production code (backend)
 └── migrations/             ← legacy SQL migrations (001–002)
 mobile/                     ← mobile app (Expo + React Native) — see mobile/README.md
 alembic/versions/           ← Alembic migrations (up to 017)
-tests/                      ← pytest suite (1118+ — grows every round, see CHANGELOG.md)
+tests/                      ← pytest suite (1184+ — grows every round, see CHANGELOG.md)
 e2e/  (frontend/e2e/)       ← Playwright simulation battery (personas p01–p15)
 scripts/                    ← gates and checks (gate_all.sh, CSS-token scan…)
 docs/                       ← structured docs — docs/INDEX.md (screenshots in docs/screenshots/)
@@ -142,7 +142,7 @@ Run automatically on every push/PR via GitHub Actions (Node 24):
 | Gate | Command | Expectation |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | zero findings |
-| Backend tests | `.venv/bin/python -m pytest -q` | **1118+ passed** — grows every round (see CHANGELOG.md) |
+| Backend tests | `.venv/bin/python -m pytest -q` | **1184+ passed** — grows every round (see CHANGELOG.md) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 errors |
 | Frontend tests | `cd fb_dashboard/frontend && npx vitest run` | green — grows every round |
 | Production build | `npm run build` | succeeds before merge |

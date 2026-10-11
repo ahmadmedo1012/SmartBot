@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { isWaMeNumber, toWaMe } from "@/lib/phone"
 import type { SupportTicket } from "@/lib/types"
 
 /* r131-F8 (A4 P2-3): the hand-rolled chip style maps → Badge variant maps
@@ -189,8 +190,15 @@ export default function SupportPage() {
   // don't control; real values come from /admin/settings via /api/support/info).
   const email = info?.email || "support@smart-link.ly"
   const whatsappRaw = info?.whatsapp || info?.phone || "218910089975"
-  // normalize local 09XXXXXXXX → international 218XXXXXXXXX for wa.me
-  const whatsapp = whatsappRaw.replace(/\D/g, "").replace(/^0(9\d{8})$/, "218$1")
+  // (r140 — درس SL r138 «بوابة wa.me»): التطبيع الجزئي القديم (المحمول
+  // الطويل 0(9\d{8}) فقط) استُبدل بعقد toWaMe الكامل في بيت العقد
+  // العائلي (src/lib/phone.ts): المحمول المحلي طويلًا كان أو قصيرًا (r138)
+  // → 218 دوليًا، والدولي الجاهز يمر كما هو — قيمة الإنتاج الحية
+  // (0910089975) كانت تُنتج رابط wa.me ميتًا قبل هذا.
+  const whatsapp = toWaMe(whatsappRaw)
+  // (r140) مذهب الأسطولة (توأم SL contact-emails): wa.me محمول حصرًا —
+  // الأرضي/الغريب يُعرض نصًا خامًا أسفل السطر فلا يولد رابطًا ميتًا.
+  const whatsappLinkable = isWaMeNumber(whatsappRaw)
   const phone = info?.phone || "—"
   const hours = info?.working_hours || "24/7"
 
@@ -229,16 +237,25 @@ export default function SupportPage() {
                   <Mail className="size-4 text-muted-foreground shrink-0" />
                   <span>{email}</span>
                 </a>
-                <a
-                  href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`واتساب: ${whatsapp} — يفتح في تبويب جديد`}
-                  className="flex items-center gap-3 text-sm hover:text-success transition-colors"
-                >
-                  <MessageCircle className="size-4 text-muted-foreground shrink-0" />
-                  <span>واتساب: {whatsapp}</span>
-                </a>
+                {/* (r140) المحمول → رابط wa.me صالح (toWaMe قلبه للدولي)؛
+                    غير المحمول → نص خام قابل للقراءة، لا رابط ميت. */}
+                {whatsappLinkable ? (
+                  <a
+                    href={`https://wa.me/${whatsapp}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`واتساب: ${whatsapp} — يفتح في تبويب جديد`}
+                    className="flex items-center gap-3 text-sm hover:text-success transition-colors"
+                  >
+                    <MessageCircle className="size-4 text-muted-foreground shrink-0" />
+                    <span>واتساب: {whatsapp}</span>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-3 text-sm">
+                    <MessageCircle className="size-4 text-muted-foreground shrink-0" />
+                    <span>واتساب: {whatsapp}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <Phone className="size-4 text-muted-foreground shrink-0" />
                   <span>هاتف: {phone}</span>

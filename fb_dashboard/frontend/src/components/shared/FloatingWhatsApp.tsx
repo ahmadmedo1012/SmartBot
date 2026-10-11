@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import AnimatedMessageCircle from "@/components/ui/message-circle-icon"
 import { cn } from "@/lib/utils"
 import { useConfig } from "@/hooks/useConfig"
+import { toWaMe } from "@/lib/phone"
 
 /* Smart-Menu visual treatment (final-launch plan v3 §2.4 port): safe-area
  * offset, token-aware shadow tiers (shadow-xl → hover:shadow-2xl
@@ -62,7 +63,12 @@ function useModalDialogOpen(): boolean {
 export default function FloatingWhatsApp() {
   const { config } = useConfig()
   const modalOpen = useModalDialogOpen()
-  const waNumber = String(config.support_whatsapp || config.whatsapp_number || WHATSAPP_FALLBACK).replace(/[^0-9]/g, "")
+  /* (r140 — درس SL r138 «بوابة wa.me»): هذا الزر مركّب في layout الجذري
+   * فهو على كل صفحة — قيمة الإنتاج الحية (0910089975 محليًا) كانت تولّد
+   * wa.me/0910089975 رابطًا ميتًا على كلٍّ منها. toWaMe يقلب المحمول
+   * المحلي (طويل/قصير r138) إلى 218 دوليًا ويُبقي الجاهز كما هو؛ غير
+   * المحمول يمر كما نُظّف (نفس احتياطي السلوك السابق). */
+  const waNumber = toWaMe(String(config.support_whatsapp || config.whatsapp_number || WHATSAPP_FALLBACK))
   if (!waNumber) return null
   /* Hidden while a modal dialog owns the screen — see the header comment.
    * Hooks above stay unconditional; this is a render-time bail only. */

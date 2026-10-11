@@ -1141,6 +1141,14 @@ textarea:autofill {
        (SO:882 / SM:1624 / SL:1112 pattern; the universal belt below is
        the second, belt-and-braces kill). */
     --motion-duration-skeleton: 0ms;
+    /* (r140 — P-SB-2): page/reveal قيمتان حرفيتان (320/360ms) فوق
+       السلم الخام فلا تصفيرهما معه — أي مستهلك JS مستقبلي لعقد
+       readMotionDurationMs كان سينجو بمدة كاملة تحت RM. العقد الكنوني
+       (توأما SM:1704 وSL:998، وlanding.css:75 محليًا): الدخول يحتفظ
+       بتلاشي عرض 80ms — لا صفرًا كاملًا (يفقد الإحساس بالاستجابة)
+       ولا بالمدة الكاملة. */
+    --motion-duration-page: 80ms;
+    --motion-duration-reveal: 80ms;
   }
 }
 

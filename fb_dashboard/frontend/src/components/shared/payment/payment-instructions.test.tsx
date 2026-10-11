@@ -4,7 +4,8 @@
  * WalletInstructions pins: the provider phone card (LTR mono), the USSD
  * quick-transfer card with the "نسخ واتصال" one-tap (which must await the
  * copy result), and the subscriber phone input contract (inputMode=numeric,
- * maxLength=10, required, per-keystroke onPhoneChange).
+ * maxLength=16 since r138 — room for the full +218 91 234 5678 spelling
+ * before normalization, required, per-keystroke onPhoneChange).
  * BankInstructions pins: the three copy rows, the Number() amount guard
  * (NaN/negative never call back), the sender fields, the upload-pending
  * state and the receipt delete affordance.

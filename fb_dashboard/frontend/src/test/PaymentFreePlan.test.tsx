@@ -136,6 +136,10 @@ describe("PaymentFreePlan — dedicated free step (no payment machinery)", () =>
 
     // the phone (backend contract: required on every non-bank request)
     expect(screen.getByLabelText("رقم هاتفك *")).toBeInTheDocument()
+    // r140 (V1): السقف 16 محرفًا — نفس عقد r138 لحقول الدفع (يتسع لكتابة
+    // +218 91 234 5678 كاملةً قبل التطبيع؛ كان 10 يقطعها فيرى المستخدم
+    // المجاني «رقم ليبي صحيح» خطأً) — مسمار يمنع تدهور السقف مرة أخرى.
+    expect(screen.getByLabelText("رقم هاتفك *")).toHaveAttribute("maxlength", "16")
     // the CTA
     expect(screen.getByRole("button", { name: "تفعيل الخطة المجانية" })).toBeInTheDocument()
     // the old dead-end message is gone

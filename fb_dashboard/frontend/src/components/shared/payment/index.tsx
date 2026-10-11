@@ -677,6 +677,11 @@ export function PaymentDialog({
 
               <div>
                 <Label htmlFor="payment-phone">رقم هاتفك *</Label>
+                {/* r140: رفع سقف حقل الخطة المجانية إلى 16 محرفًا — نفس
+                    إصلاح r138 الذي طُبّق على payment-instructions.tsx:113
+                    وفات هذا الحقل: السقف 10 كان يقطع كتابة +218/00218
+                    كاملةً قبل أن يصلها التطبيع أصلًا، فيرى المستخدم المجاني
+                    «رقم ليبي صحيح» خطأً متناقضًا مع وعد r133/r138. */}
                 <Input
                   id="payment-phone"
                   value={phone}
@@ -685,7 +690,7 @@ export function PaymentDialog({
                   inputMode="numeric"
                   autoComplete="tel"
                   required
-                  maxLength={10}
+                  maxLength={16}
                   className="h-11 rounded-xl mt-1.5 text-left font-mono"
                   dir="ltr"
                 />

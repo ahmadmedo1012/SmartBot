@@ -7,11 +7,13 @@
 > below mirrors the canonical Madarek tokens.
 >
 > **RULE OF RULES:** When building a specific page, first check
-> `docs/design-system.md` (the Arabic operational guide) and
-> `design-system/pages/[page-name].md` if present — page rules override this
-> Master file. If nothing more specific exists, strictly follow the rules
-> below. If any file in this repo contradicts Madarek, Madarek wins and the
-> file is wrong.
+> `docs/design-system.md` (the Arabic operational guide) — semantic usage
+> rules override this Master file. There are NO per-page design docs in
+> this repo (r140 تصحيح توثيق: الإحالة السابقة إلى
+> `design-system/pages/[page-name].md` كانت إلى مسار غير موجود — الطبقتان
+> الفعليتان هما الدليل التشغيلي وهذه الوثيقة). If nothing more specific
+> exists, strictly follow the rules below. If any file in this repo
+> contradicts Madarek, Madarek wins and the file is wrong.
 
 ---
 
@@ -26,9 +28,9 @@
 | Layer | File | Role |
 |---|---|---|
 | **Upstream SSOT** | `repos/madarek/frontend/src/styles/tokens.css` | The canonical Madarek token sheet. SmartBot does NOT invent values — every color, radius, duration and elevation below is mirrored from it. |
-| **Reference digest** | `download/madarek-reference-digest.md` | Extracted read-only snapshot of tokens.css for sibling projects (values + section numbers cited below as §). |
+| **Design reference (Arabic)** | `repos/madarek/DESIGN.md` | (r140 تصحيح توثيق) الإحالة السابقة إلى `download/madarek-reference-digest.md` كانت إلى ملف لم يوجد في هذا المستودع قط — المرجع الحي هو مستودع مدارك نفسه: DESIGN.md (الجذر) للدليل العربي وtokens.css للقيم. أرقام الأقسام (§) أدناه ميراث ترقيم اللقطة التاريخية؛ عند أي التباس القيم الحية في tokens.css هي الحكم (قاعدة «مدارك يغلب» أعلاه). |
 | **Local bridge (this repo)** | `fb_dashboard/frontend/src/app/globals.css` | The ONLY file in SmartBot that defines design tokens. Dark block `:root` + light block `.light`, Tailwind v4 `@theme inline` bridge to utility classes. |
-| Fonts | `fb_dashboard/frontend/public/fonts/fonts.css` | Self-hosted 12-file IBM Plex woff2 set; `--font-cairo` shim name resolves to "IBM Plex Sans Arabic". |
+| Fonts | `fb_dashboard/frontend/public/fonts/fonts.css` | Self-hosted 10-file IBM Plex woff2 set (r140 تصحيح توثيق: 10 لا 12 — الوجهان المائلان Serif حُذفا في r132، صفر مستهلكين، موثق داخل fonts.css نفسه); `--font-cairo` shim name resolves to "IBM Plex Sans Arabic". |
 | Operational guide (Arabic) | `docs/design-system.md` | Semantic usage rules (which token for which role) in Arabic. |
 
 **Forbidden:** introducing a raw hex, font, shadow, duration or radius in a
@@ -118,11 +120,13 @@ defaults must come from a family triad (tag default = lavender-ink
 
 ## 3. Typography
 
-- **Family:** IBM Plex Sans Arabic (self-hosted, `public/fonts/`, 12 woff2 ≈
-  329 KB) for sans + display + Arabic; IBM Plex Mono for Latin
-  digits/code; IBM Plex Serif italic for sanctioned Latin runs only.
-  **No Google Fonts imports. No Cairo/Readex/Tajawal** (Tajawal survives
-  only as an inert fallback name).
+- **Family:** IBM Plex Sans Arabic (self-hosted, `public/fonts/`, **10 woff2
+  ≈ 287 KB** — r140 تصحيح توثيق: العدد 12/‏≈329KB كان يعدّ وجهي IBM Plex
+  Serif italic اللذين حُذفا في r132 (صفر مستهلك لـfont-serif، وثّقه
+  fonts.css:18-26) — الموجود فعليًا 8 وجهات سانس عربي (4 أوزان ×
+  عربي/لاتيني) + وجهتا مونو 400/500) for sans + display + Arabic;
+  IBM Plex Mono for Latin digits/code. **No Google Fonts imports. No
+  Cairo/Readex/Tajawal** (Tajawal survives only as an inert fallback name).
 - **Weights:** 400 / 500 / 600 / 700. **Plex Sans Arabic ships no 800** —
   display weight is the true 700 cut.
 - **Arabic cursive rule (non-negotiable):** `letter-spacing: 0` on all

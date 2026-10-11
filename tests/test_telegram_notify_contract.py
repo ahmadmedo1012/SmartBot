@@ -2,11 +2,20 @@ from __future__ import annotations
 
 """v18-1-d — بوابة قابلية رصد إشعارات تليجرام (متانة القناة الميتة).
 
+(r140 إنقاذ): هذا العقد عاش يتيمًا في fb_dashboard/tests/ (خارج
+``testpaths = tests`` فلم يجمعه تشغيل pytest القياسي أبدًا — مخالفة
+v5 §1) ثم حُذف مع الجولة r140. يُرحَّل هنا نصًا كما كان (بلا sys.path
+hack — conftest الجذر يملك الاستيراد) لأن تغطيته الحية في tests/ ناقصة:
+test_v22_telegram_escaping يغطي البُناة الثلاثة والتهريب وإعادة المحاولة
+الواحدة لخطأ التحليل (400 can't parse entities)، وtest_v14_security
+يغطي مهلة _notify_admins_inline — لكن **عقد السكب** (صفر مستلمين/بلا
+توكن) و**أسطر الحكم القابلة للgrep** كانا هنا وحدهما.
+
 الخلل المؤكد (تقرير المنسق): عندما يكون bot_token والمستلمون فارغين —
 حالة الإنتاج المرجحة — كانت notify_* تكرّر حلقة فارغة بصمت تام: صفر رسائل،
 صفر سجلات، صفر أخطاء. يدفع العميل → لا إشعار → لا موافقة → طلب معلق للأبد.
 
-هذه البوابة تُثبت العقد الجديد:
+هذه البوابة تُثبت العقد:
 
   [x] العقد الملخص: notify_admins_new_payment/_subscription/_support تعيد
         {"sent": n, "failed": m, "recipients": k, "skipped_no_config": bool}
@@ -14,7 +23,7 @@ from __future__ import annotations
   [x] تحذير واحد قابل للgrep لكل نداء عند السكب:
         "telegram notify skipped: no bot token configured (kind=…)"
         "telegram notify skipped: zero admin recipients (kind=…)"
-  [x] عدّ sent/failed بدقة عبر httpx مُحاكى — sent = فقط ما أقرّه تليجرام
+  [x] عدّ sent/failed بدقة عبر httpx مُحاكى — sent = فقط ما أقرّه تيلجرام
         ({"ok": true})؛ failed = فشل بعد إعادة المحاولة الواحدة.
   [x] إعادة المحاولة الواحدة: timeout/5xx → محاولة ثانية بعد 0.5s
         (مصفّرة في الاختبار)؛ 4xx لا يُعاد (خطأ تهيئة لا ومضة).
@@ -30,14 +39,10 @@ get_admin_ids كلها monkeypatched.
 
 import asyncio
 import logging
-import os
-import sys
 import time
 
 import httpx
 import pytest
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 VALID_TOKEN = "123456789:AAHfiqksKZ8WmoMTsD2ky9KzR7pZ5c5c9"
 ADMIN_A, ADMIN_B = 111, 222
@@ -220,8 +225,8 @@ async def test_telegram_notify_no_retry_on_client_error(tg):
 
 
 async def test_telegram_notify_ok_false_response_is_not_sent(tg, caplog):
-    """200 لكن {"ok": false} (رد غير معتاد من تليجرام) لا يُعدّ sent —
-    العقد: sent = ما أقرّه تليجرام فعلاً بok:true."""
+    """200 لكن {"ok": false} (رد غير معتاد من تيلجرام) لا يُعدّ sent —
+    العقد: sent = ما أقرّه تيلجرام فعلاً بok:true."""
     def weird(url, json=None, timeout=None):
         tg.calls.append({"url": url, "json": json, "timeout": timeout})
         return httpx.Response(200, json={"ok": False, "description": "chat not found"})

@@ -7,7 +7,7 @@
 
 [![Live](https://img.shields.io/badge/live-bot.smart%2Dlink%2Dly-2EA44F?style=flat-square)](https://bot.smart-link.ly)
 [![API](https://img.shields.io/badge/API-api.smart%2Dlink%2Dly-8B5E3C?style=flat-square)](https://api.smart-link.ly/api/health)
-[![Tests](https://img.shields.io/badge/pytest-1118%2B%20dynamic-2EA44F?style=flat-square)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/pytest-1184%2B%20dynamic-2EA44F?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-proprietary-D4380D?style=flat-square)](LICENSE)
 
 **[🌐 bot.smart-link.ly](https://bot.smart-link.ly)** · [🧪 لوحة تجريبية](https://bot.smart-link.ly/demo) · [📚 التوثيق](docs/INDEX.md) · **العربية** · [English](README.en.md)
@@ -119,7 +119,7 @@ fb_dashboard/               ← كود الإنتاج (الخلفية)
 └── migrations/             ← ترحيلات SQL التاريخية (001–002)
 mobile/                     ← تطبيق الجوال (Expo + React Native) — انظر mobile/README.md
 alembic/versions/           ← ترحيلات Alembic (حتى 017)
-tests/                      ← اختبارات pytest (1118+ — ترتفع كل جولة، انظر CHANGELOG.md)
+tests/                      ← اختبارات pytest (1184+ — ترتفع كل جولة، انظر CHANGELOG.md)
 e2e/  (frontend/e2e/)       ← بطارية محاكاة Playwright (شخصيات p01–p15)
 scripts/                    ← بوابات وفحوص (gate_all.sh، فحص توكنز CSS…)
 docs/                       ← التوثيق المنظَّم — docs/INDEX.md (اللقطات في docs/screenshots/)
@@ -142,7 +142,7 @@ docs/                       ← التوثيق المنظَّم — docs/INDEX.m
 | البوابة | الأمر | التوقع |
 |---|---|---|
 | Lint | `ruff check fb_dashboard api tests scripts` | صفر ملاحظة |
-| اختبارات الخلفية | `.venv/bin/python -m pytest -q` | **1118+ passed** — ترتفع كل جولة (انظر CHANGELOG.md) |
+| اختبارات الخلفية | `.venv/bin/python -m pytest -q` | **1184+ passed** — ترتفع كل جولة (انظر CHANGELOG.md) |
 | TypeScript | `cd fb_dashboard/frontend && npm run typecheck` | 0 خطأ |
 | اختبارات الواجهة | `cd fb_dashboard/frontend && npx vitest run` | خضراء — ترتفع كل جولة |
 | بناء الإنتاج | `npm run build` | ينجح قبل الدمج |

@@ -1141,6 +1141,11 @@ textarea:autofill {
        (SO:882 / SM:1624 / SL:1112 pattern; the universal belt below is
        the second, belt-and-braces kill). */
     --motion-duration-skeleton: 0ms;
+    /* (r140 — تكملة P-SB-2): الدرجات الدلالية الأخرى تموت أيضًا تحت RM
+       (نمط SM:1700/SL:1008 التوثيقي) — stat مربوط بالسبينر (.animate-spin)
+       والحزام العام يقتل حركته أصلًا؛ الصفريّ يحرس أي مستهلك JS مستقبلي
+       لعقد readMotionDurationMs من النجاة بمدة كاملة تحت RM. */
+    --motion-duration-stat: 0ms;
     /* (r140 — P-SB-2): page/reveal قيمتان حرفيتان (320/360ms) فوق
        السلم الخام فلا تصفيرهما معه — أي مستهلك JS مستقبلي لعقد
        readMotionDurationMs كان سينجو بمدة كاملة تحت RM. العقد الكنوني

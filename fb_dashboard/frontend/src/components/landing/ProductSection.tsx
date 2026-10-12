@@ -67,12 +67,18 @@ export function ProductSection() {
               <i />
               <span className="ln-mono">bot.smart-link.ly/demo</span>
             </div>
+            {/* v17-SB (17-PERF #1): sizes = the .ln-product-window width,
+                derived from landing.css (not guessed). ≤920: single column,
+                gutter 20×2 → calc(100vw − 40px). ≥921: 7 of 12 grid cols on
+                min(1180px, 100vw−96) with gap clamp(24px,3.5vw,44px) →
+                (7·C − 5·gap)/12 — the old 58vw over-fetched a 1080px
+                candidate for a 670px slot at 1440. */}
             <Image
               src={w.src}
               alt={w.alt}
               width={1440}
               height={900}
-              sizes="(min-width: 921px) 58vw, 92vw"
+              sizes="(max-width: 920px) calc(100vw - 40px), calc((7 * min(1180px, 100vw - 96px) - 5 * clamp(24px, 3.5vw, 44px)) / 12)"
               className="ln-product-shot"
             />
             <p className="ln-product-cap">

@@ -43,7 +43,10 @@ export function Footer({ className }: FooterProps) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-10 sm:mb-12">
           <div className="col-span-2 sm:col-span-1">
             {/* v6 §D — next/image (was raw <img>) */}
-            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="h-7 w-auto mb-4" />
+            {/* v17-SB (17-PERF #1): sizes = the real slot (h-7 = 28px) — the
+                optimizer then serves 32/48/96px candidates, not the 160px
+                source. */}
+            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} sizes="28px" className="h-7 w-auto mb-4" />
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               منصة رقمية لإدارة صفحات فيسبوك — ردود تلقائية، تحليلات، وجدولة منشورات بذكاء
             </p>

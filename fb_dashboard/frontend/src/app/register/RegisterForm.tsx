@@ -155,7 +155,8 @@ function RegisterForm() {
         <CardHeader className="pb-2 pt-8 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             {/* v6 §D — next/image: 160×160 intrinsic dims, no CLS */}
-            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="size-full object-contain drop-shadow-lg" priority />
+            {/* v17-SB (17-PERF #1): sizes = the real slot (size-16 = 64px). */}
+            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} sizes="64px" className="size-full object-contain drop-shadow-lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">إنشاء حساب جديد</CardTitle>
           {/* v14-E4 (D4 H-03): /80 on muted-foreground measured 3.89:1 dark /

@@ -21,8 +21,28 @@ import { resolveSentryRelease } from "./src/lib/sentry-config"
 // that is the desired semantics (release == the commit that shipped).
 const sentryRelease = resolveSentryRelease(process.env)
 
+// ── v17-SB (17-PERF #1) — image optimization ON where a Next server runs ──
+// The measured #1 bottleneck: with `unoptimized: true` forced globally, every
+// next/image rendered as a RAW <img> — the landing shipped 12 full-size
+// 1024px webps (~303KB of the 867KB mobile page; desktop LCP element WAS the
+// raw robot-hero.webp). The optimizer (/_next/image) is a Next SERVER route:
+//   * Vercel (bot.smart-link.ly — the measured surface): full Next server,
+//     VERCEL=1 is set for every build → optimization ON, srcset per <sizes>.
+//   * single-server SPA snapshot (scripts/sync_next_static.py → FastAPI):
+//     there is NO Next process there — /_next/image would fall through
+//     app/spa.py (the `_next` prefix is excluded from the SPA fallback) and
+//     404, breaking EVERY image. So that artifact keeps the raw public/
+//     URLs (identical markup to what it ships today) — that is correctness,
+//     not a compromise: no optimizer process exists to serve it.
+// Per-image opt-outs stay in place: the messages attachments (graph.
+// facebook.com, unoptimized prop) and data: receipt URIs (the default image
+// loader passes data:/blob: URLs through untouched — see OptimizedImage).
+const imagesConfig: NextConfig["images"] = process.env.VERCEL
+  ? {}
+  : { unoptimized: true }
+
 const nextConfig: NextConfig = {
-  images: { unoptimized: true },
+  images: imagesConfig,
   // v15-E6 (D14-H2) — see the block comment above. Inlining happens only
   // when an honest release exists; otherwise the key is omitted entirely.
   ...(sentryRelease

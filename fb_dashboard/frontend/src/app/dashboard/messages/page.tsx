@@ -1042,6 +1042,10 @@ function MessagesView() {
                               // v6 §D — next/image (was raw <img>): explicit
                               // dimensions reserve layout space (no CLS) and
                               // h-auto preserves the intrinsic ratio once loaded.
+                              // v17-SB (17-PERF #1): unoptimized stays — these
+                              // are graph.facebook.com URLs (ephemeral signed
+                              // CDN links); the documented exception to the
+                              // optimizer-on config, kept raw with dims.
                               <Image
                                 src={msg.attachment_url}
                                 alt="مرفق"
@@ -1052,6 +1056,8 @@ function MessagesView() {
                               />
                             )}
                             {isSticker && msg.attachment_url && (
+                              // v17-SB: same graph.facebook.com exception as
+                              // the attachment above — dims reserve the slot.
                               <Image
                                 src={msg.attachment_url}
                                 alt="ملصق"

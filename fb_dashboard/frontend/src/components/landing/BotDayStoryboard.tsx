@@ -17,6 +17,14 @@ import { useSectionProgress } from "@/hooks/useSectionProgress";
  * The four renders are the character's real poses (wave/think/chat/
  * hero). Server-safe layout; the only client work is the --sp scrub. */
 
+/* v17-SB (17-PERF #1): sizes = the .ln-day-media rendered width, derived
+ * from landing.css (not guessed). ≤760: single column — gutter 20×2 + node
+ * col 34px + gap --sp-5 20px → calc(100vw − 94px). 641–760 single col keeps
+ * the 44px node → calc(100vw − 104px). 761–920: two-col card
+ * (media = 0.9fr/2 = 0.45), gutter 20 + col 44 + gap 20 → 0.45·(100vw−104).
+ * ≥921: board caps at 1080px, gutter 48×2 → 0.45·(min(1080px,100vw−96)−64).
+ * Below-fold panels stay lazy (no priority) — the optimizer now serves the
+ * candidate the slot actually needs instead of the raw 1024px source. */
 const PANELS = [
   {
     key: "p1",
@@ -27,7 +35,7 @@ const PANELS = [
     alt: "روبوت SmartBot يلوّح بترحيب",
     title: "يفتح يومه بترحيب كل تعليق",
     desc: "أول تعليق على منشورك يحصل على ردّ ترحيبي فوري — بلهجة صفحتك، قبل أن تفتح أنت عينيك.",
-    sizes: "(min-width: 761px) 34vw, 92vw",
+    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p2",
@@ -38,7 +46,7 @@ const PANELS = [
     alt: "روبوت SmartBot يفكّر ويد على ذقنه",
     title: "يصنّف كل رسالة قبل أن يرد",
     desc: "استفسار، طلب، شكوى تحتاج فريقك — النية تُحدَّد لحظة الوصول فكل رد يأتي في سياقه الصحيح.",
-    sizes: "(min-width: 761px) 34vw, 92vw",
+    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p3",
@@ -49,7 +57,7 @@ const PANELS = [
     alt: "روبوت SmartBot يحمل فقاعة محادثة",
     title: "يردّ فوراً — وينقل المهم لفريقك",
     desc: "بلغة العميل وفي أي ساعة، على الرسائل والتعليقات — واللي يحتاج قراراً بشرياً يوصل جاهزاً لصندوقك الموحد.",
-    sizes: "(min-width: 761px) 34vw, 92vw",
+    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p4",
@@ -60,7 +68,7 @@ const PANELS = [
     alt: "روبوت SmartBot يقف واثقاً على منصته",
     title: "يقرأ لك أرقام اليوم… ويستعد للغد",
     desc: "تحليلات الأداء والتفاعل تصل واضحة — تعرف بالأرقام أين تزيد خطوتك القادمة، ورفيقك يبقى على منصته.",
-    sizes: "(min-width: 761px) 34vw, 92vw",
+    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
 ] as const;
 

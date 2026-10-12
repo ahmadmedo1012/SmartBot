@@ -151,11 +151,13 @@ export function AdminSidebar({
           28px mark, hairline block-end rule. */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-4 min-h-[72px]">
         <div className="relative shrink-0">
+          {/* v17-SB (17-PERF #1): sizes = the real slot (size-8 = 32px). */}
           <Image
             src="/brand-icon.png"
             alt="SmartBot"
             width={64}
             height={64}
+            sizes="32px"
             className="size-8 rounded-lg object-cover"
             priority
           />

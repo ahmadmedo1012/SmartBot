@@ -224,7 +224,8 @@ function LoginForm() {
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             {/* v6 §D — next/image (was raw <img>): intrinsic 160×160 reserving
                 layout space, no CLS on the auth screens' hero icon */}
-            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} className="size-full object-contain drop-shadow-lg" priority />
+            {/* v17-SB (17-PERF #1): sizes = the real slot (size-16 = 64px). */}
+            <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} sizes="64px" className="size-full object-contain drop-shadow-lg" priority />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">SmartBot</CardTitle>
           <CardDescription className="text-base text-muted-foreground">لوحة التحكم الذكية</CardDescription>

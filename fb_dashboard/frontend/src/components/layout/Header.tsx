@@ -113,7 +113,8 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
               text; a duplicated alt tripped axe image-redundant-alt. */}
-          <Image src="/brand-icon.png" alt="" width={160} height={160} className="h-9 w-auto" priority />
+          {/* v17-SB (17-PERF #1): sizes = the real slot (h-9 = 36px). */}
+          <Image src="/brand-icon.png" alt="" width={160} height={160} sizes="36px" className="h-9 w-auto" priority />
           {/* r131-F7 (globals hygiene): tracking-tight dropped — the RTL
               tracking guard (globals.css) zeroes every tracking-* on
               non-mono text, so the class was inert dead weight. */}
@@ -200,7 +201,8 @@ export function Header({ className }: HeaderProps) {
             <Link href="/" className="flex items-center gap-2 shrink-0 group">
               {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
                   text; a duplicated alt tripped axe image-redundant-alt. */}
-              <Image src="/brand-icon.png" alt="" width={160} height={160} className="h-9 w-auto" priority />
+              {/* v17-SB (17-PERF #1): sizes = the real slot (h-9 = 36px). */}
+              <Image src="/brand-icon.png" alt="" width={160} height={160} sizes="36px" className="h-9 w-auto" priority />
               {/* r131-F7: tracking-normal dropped — inert under the RTL
                   tracking guard (letter-spacing 0 is the law anyway). */}
               <span className="text-base font-bold text-foreground/90 group-hover:text-accent-foreground transition-colors duration-(--t-fast)" style={{ fontFamily: "var(--font-heading)" }}>SmartBot</span>

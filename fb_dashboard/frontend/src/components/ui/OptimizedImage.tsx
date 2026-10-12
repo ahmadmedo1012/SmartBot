@@ -7,7 +7,11 @@ import { Bot } from "lucide-react"
 
 /* Ported from Smart-Menu (smart-link.ly shared identity) — shimmer
    skeleton + fade-in + gradient fallback, identical treatment.
-   next.config.ts sets images.unoptimized so remote receipt URLs work.
+   v17-SB (17-PERF #1): the sole caller (bank receipt preview) feeds a
+   data: URI (routers/payments/bank.py returns data-URIs on serverless) —
+   the default image loader passes data:/blob: URLs through untouched, so
+   no remotePatterns are needed. On the single-server snapshot the config
+   keeps images.unoptimized (no Next server → no /_next/image route).
    v6+: shimmer exit is a CSS opacity transition (framer-free) — the
    skeleton div stays mounted and pointer-events-dead until removed. */
 

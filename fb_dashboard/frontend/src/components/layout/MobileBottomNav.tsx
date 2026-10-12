@@ -133,11 +133,13 @@ export function MobileBottomNav({
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Real brand mark (v3 §5.4) — the mobile navigation header
                 carries the logo, mirroring Smart-Menu's MobileNav header. */}
+            {/* v17-SB (17-PERF #1): sizes = the real slot (size-10 = 40px). */}
             <Image
               src="/brand-icon.png"
               alt="SmartBot"
               width={40}
               height={40}
+              sizes="40px"
               className="size-10 rounded-xl shrink-0"
             />
             <div className="min-w-0">

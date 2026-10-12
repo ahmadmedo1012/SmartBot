@@ -208,7 +208,7 @@ export default function PostsPage() {
                  * a failure, no banner). v21: sync_error (English diagnostic)
                  * rides as the title tooltip, never as main Arabic text. */
                 <div
-                  className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2"
+                  className="flex items-center gap-2 text-xs text-warning-ink bg-warning/10 border border-warning/30 rounded-lg px-3 py-2"
                   title={fbEnvelope?.sync_error || undefined}
                 >
                   <WifiOff className="size-3.5 shrink-0" />
@@ -371,7 +371,7 @@ export default function PostsPage() {
                               <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="hover:text-destructive" aria-label="حذف المنشور">
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="hover:text-destructive-ink" aria-label="حذف المنشور">
                             <Trash2 className="size-3" aria-hidden="true" />
                           </Button>
                         </>

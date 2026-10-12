@@ -105,7 +105,7 @@ export function ApprovedScreen({ resolutionMsg, onContinue, headingRef }: Approv
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-success animate-fade-in">
+        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-success-ink animate-fade-in">
           تم الموافقة على الاشتراك
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
@@ -147,7 +147,7 @@ export function RejectedScreen({ resolutionMsg, onClose, onRetry, headingRef }: 
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-destructive animate-fade-in">
+        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-destructive-ink animate-fade-in">
           تم رفض طلب الاشتراك
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">
@@ -185,7 +185,7 @@ export function SuccessScreen({ onClose, headingRef }: SuccessScreenProps) {
       <div className="relative size-20">
         <div className="absolute inset-0 rounded-full bg-success/10 animate-scale-in" />
         <div className="relative size-full rounded-full bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center">
-          <CheckCircle2 className="size-10 text-success" />
+          <CheckCircle2 className="size-10 text-success-ink" />
         </div>
       </div>
       <div className="text-center space-y-1">
@@ -234,11 +234,11 @@ export function PendingScreen({ planName, amount, onCancel, onWait, cancelling, 
         {/* r132-F3a: colored glow shadow retired — neutral shadow-lg (family
             recipe; the warning tone lives in the amber fills + border). */}
         <div className="relative size-full rounded-full bg-gradient-to-br from-warning/25 to-warning/10 border border-warning/30 flex items-center justify-center shadow-lg">
-          <Hourglass className="size-10 text-warning" aria-hidden="true" />
+          <Hourglass className="size-10 text-warning-ink" aria-hidden="true" />
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-warning animate-fade-in">
+        <p ref={headingRef} tabIndex={-1} className="text-lg font-bold text-warning-ink animate-fade-in">
           لديك طلب دفع معلق
         </p>
         <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed animate-fade-in-150">

@@ -93,7 +93,11 @@
   --ln-grain-op:   0.075;
   --ln-radius-pill: var(--r-full);
   --ln-h1:         clamp(2.75rem, 8.2vw, 6.75rem);
-  --ln-h1-lh:      1.04;
+  /* r148 (19-AUDIT-SB SB-D4): 1.04 is the PORT-KIT Latin-display leading —
+     at 108px Arabic it set the hamza of «تعرّف» nearly onto line 2
+     (rubric: headings 1.1–1.3). 1.12 = the fleet heading rung (SM h1);
+     --ln-h1 clamp itself is byte-untouched (parity-pinned). */
+  --ln-h1-lh:      1.12;
   --ln-t-fast:      var(--t-fast);    /* 160ms */
   --ln-t-base:      var(--t-base);    /* 240ms */
   --ln-t-slow:      var(--t-slow);    /* 380ms */
@@ -233,6 +237,15 @@
    duration loop; the animation is removed entirely. */
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-marquee-track { animation: none; }
+}
+/* r148 (19-AUDIT-SB SB-D2 — WCAG 2.2.2 Pause/Stop/Hide): the 42s
+   auto-scroll ran forever with no pause affordance for pointer/keyboard
+   users (RM users are covered by the off-switch above). Hovering or
+   focusing INTO the strip pauses it in place — resume on leave; the
+   animation itself (keyframes, 42s, gap 48px) is untouched. */
+.landing .ln-marquee:hover .ln-marquee-track,
+.landing .ln-marquee:focus-within .ln-marquee-track {
+  animation-play-state: paused;
 }
 
 /* ── 4 · chrome — header rail, nav, megamenu, buttons, ribbon ───────── */
@@ -488,6 +501,17 @@
 .landing .reveal-d-4.in-view { transition-delay: 320ms; }
 .landing .reveal-d-5.in-view { transition-delay: 400ms; }
 @media (prefers-reduced-motion: reduce) {
+  .landing .reveal-up { opacity: 1; transform: none; }
+}
+/* r148 (19-AUDIT-SB SB-D1) — the no-JS contract, fleet doctrine (SL r133
+   landing.css twin): the hidden state above ships in SSR CSS, but .in-view
+   is written only by the JS observer belt — a no-JS / failed-hydration
+   visitor got a page empty below the h1. A scripting:none browser reveals
+   everything (content must never stay hidden behind a one-shot that can
+   never fire). The clause matches the (0,2,0) specificity of the hidden
+   rule; JS visitors keep the exact zero-FOUC reveal (scripting: none
+   never matches a JS session — verified via matchMedia probe). */
+@media (scripting: none) {
   .landing .reveal-up { opacity: 1; transform: none; }
 }
 

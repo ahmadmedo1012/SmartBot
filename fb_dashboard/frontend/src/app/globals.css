@@ -98,8 +98,11 @@
      v26-F4 (P4-A4/P4-A6): --ease-spring carried the BOUNCE value 1.56 —
      fork-corrected to the canonical spring 1.36 (rubric A6 assertion 6);
      the playful 1.56 tier now lives on --ease-spring-bounce (utility
-     ease-spring-bounce) for the press family that wants it (.motion-icon). */
-  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+     ease-spring-bounce) for the press family that wants it (.motion-icon).
+     r148 (19-AUDIT-CROSS R10): --ease-out-quart aliases the settle curve
+     like Menu/Order (r130 doctrine — no invented curves fleet-wide); the
+     true-quart fork (0.165,0.84,0.44,1) was SB's last private easing. */
+  --ease-out-quart: var(--ease-out);
   /* r127-F5b: --ease-smooth = the canonical settle curve (0.16, 1, 0.3, 1)
      — identical to --ease-out; the (0.16, 1, 0.2, 1) fork made the same
      `ease-smooth` utility animate differently than Link/Order (A6 P2). */
@@ -208,7 +211,9 @@
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring-soft: cubic-bezier(0.34, 1.18, 0.64, 1);
-  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* r148 (19-AUDIT-CROSS R10): settle alias — was the true-quart fork;
+     same curve family as --ease-smooth (A6 P2 doctrine). */
+  --ease-out-quart: var(--ease-out);
   /* r127-F5b: settled onto the canonical curve — was the (0.16, 1, 0.2, 1)
      fork, off-fleet for the same utility class (A6 P2). */
   --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
@@ -563,6 +568,11 @@
      (dark only — .light swaps to flat neutral-150). */
   --nav-active-bg: rgb(233 180 76 / 0.10);
   --nav-active-halo: 0 0 18px -4px rgb(233 180 76 / 0.16), inset 0 0 0 1px rgb(233 180 76 / 0.10);
+
+  /* r148 (19-AUDIT-CROSS R10): scrollbar thumbs — token-driven like
+     SM/SO/SL (values = the mist rgba the 6px recipe hardcoded). */
+  --scrollbar-thumb: rgba(142, 151, 184, 0.20);
+  --scrollbar-thumb-hover: rgba(142, 151, 184, 0.34);
 }
 
 .light {
@@ -630,8 +640,12 @@
      (fleet parity with Menu/Link/Order); the text-safe rose-deep #6B2128
      keeps its family role on --c-rose-deep. --destructive-foreground =
      Madarek --danger-fg light #191918 (white on #DD6E78 measured 3.19:1
-     — fails; warm ink on it = 5.5:1, AA). */
-  --destructive: #C2414D;
+     — fails; warm ink on it = 5.5:1, AA).
+     r148 (19-AUDIT-CROSS R1): the value shipped #C2414D while this very
+     comment claimed #DD6E78 — the code now ships the hex the comment
+     (and Menu/Link/Order) always declared; parity STATUS_LIGHT moved in
+     the same commit. */
+  --destructive: #DD6E78;
   --destructive-foreground: #191918;
   /* Madarek light hairline: --border = neutral-200 #E9E7E2. */
   --border: #E9E7E2;
@@ -647,11 +661,15 @@
      again instead of the collapsed -deeps. The text-safe deeps keep their
      roles on the family slots (--c-mint-deep #1F4F30 …, pinned below);
      status fill foregrounds = warm ink #191918 (measured 5.9:1 on mint,
-     7.7:1 on yellow, 5.3:1 on sky — the Madarek --danger-fg pattern). */
-  --success: #2F7D4F;
+     7.7:1 on yellow, 5.3:1 on sky — the Madarek --danger-fg pattern).
+     r148 (19-AUDIT-CROSS R1): the BASE slots had shipped the collapsed
+     values #2F7D4F/#8C6A1D/#3B6FB5 while claiming the fleet inks — code
+     now equals the declared fleet set; status-AS-TEXT consumers ride
+     text-*-ink (r131-F7 sweep completed for the stragglers in r148). */
+  --success: #4FA66D;
   --success-foreground: #191918;
-  --warning: #8C6A1D;
-  --info: #3B6FB5;
+  --warning: #D6A330;
+  --info: #5C8FCE;
   /* r131-F7 (A7 Cluster B — the 9-site light 1.4.3 failure): light status
    * BASES are 2.20-3.00:1 as text on cream, so the fleet ships a dedicated
    * -ink TEXT tier on the pastel -deep values (SL/SO/SM pattern — SO
@@ -762,6 +780,11 @@
   /* Sidebar active (light) — flat neutral-150 wash, no halo (§5.5). */
   --nav-active-bg: #F1EFEC;
   --nav-active-halo: none;
+
+  /* r148: scrollbar thumbs, light half (ink 16% / 28% hover — the values
+     the 6px recipe hardcoded). */
+  --scrollbar-thumb: rgba(25, 25, 24, 0.16);
+  --scrollbar-thumb-hover: rgba(25, 25, 24, 0.28);
 }
 
 @layer base {
@@ -821,16 +844,23 @@
   }
 }
 
-/* Scrollbars — Madarek §1.16: thin, neutral thumbs, quiet hover. */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(142, 151, 184, 0.20); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(142, 151, 184, 0.34); }
-* { scrollbar-width: thin; scrollbar-color: rgba(142, 151, 184, 0.20) transparent; }
-html.light::-webkit-scrollbar-thumb,
-.light ::-webkit-scrollbar-thumb { background: rgba(25, 25, 24, 0.16); }
-html.light::-webkit-scrollbar-thumb:hover,
-.light ::-webkit-scrollbar-thumb:hover { background: rgba(25, 25, 24, 0.28); }
+/* Scrollbars — r148 (19-AUDIT-CROSS R10): the canonical Madarek rail
+   (polish.css:5200-5213, SM/SO/SL verbatim convention) replaces the SB-only
+   6px plain thumb: a 10px rail with a 2px transparent border clipped to the
+   padding box — a calm rounded hairline inset into the rail, not a slab. */
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+*::-webkit-scrollbar { inline-size: 10px; block-size: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--r-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
 
 /* Selection — Madarek base.css: accent at 28% over the ground. */
 ::selection { background: color-mix(in srgb, var(--primary) 28%, transparent); color: var(--foreground); }

@@ -230,6 +230,11 @@ for (const [fam, [bg, ink, deep]] of Object.entries(famLight)) {
 // standard — NOT the text-safe deeps, which keep their roles on --c-*-deep),
 // with Madarek --danger-fg #191918 as the fill foreground. This is the pin
 // set that would have caught the light deep-collapse drift.
+// r148 (19-AUDIT-CROSS R1, authorized pin edit): the light BASE hues move
+// to the resolved fleet set — success #2F7D4F→#4FA66D (mint-ink), warning
+// #8C6A1D→#D6A330 (yellow-ink), info #3B6FB5→#5C8FCE (sky-ink), destructive
+// #C2414D→#DD6E78 (rose-ink) — the exact values the r127 comment already
+// claimed; Menu/Link/Order ship these verbatim. Count unchanged (421).
 const STATUS_DARK = {
   '--success': '#7FD39A', '--success-foreground': '#191918',
   '--success-soft': '#0F241C',
@@ -239,11 +244,11 @@ const STATUS_DARK = {
   '--destructive-soft': '#2C1620',
 };
 const STATUS_LIGHT = {
-  '--success': '#2F7D4F', '--success-foreground': '#191918',
+  '--success': '#4FA66D', '--success-foreground': '#191918',
   '--success-soft': '#DCF1E2',
-  '--warning': '#8C6A1D', '--warning-soft': '#FCF1CD',
-  '--info': '#3B6FB5', '--info-soft': '#DDEBF7',
-  '--destructive': '#C2414D', '--destructive-foreground': '#191918',
+  '--warning': '#D6A330', '--warning-soft': '#FCF1CD',
+  '--info': '#5C8FCE', '--info-soft': '#DDEBF7',
+  '--destructive': '#DD6E78', '--destructive-foreground': '#191918',
   '--destructive-soft': '#FCE0E2',
 };
 pinAll(dark, 'status-dark', STATUS_DARK);

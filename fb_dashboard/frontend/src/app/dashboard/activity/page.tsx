@@ -20,9 +20,9 @@ const LOG_LEVEL_LABEL: Record<string, string> = {
   info: "معلومات",
 }
 const LOG_LEVEL_TEXT: Record<string, string> = {
-  error: "text-destructive",
-  warning: "text-warning",
-  info: "text-info",
+  error: "text-destructive-ink",
+  warning: "text-warning-ink",
+  info: "text-info-ink",
 }
 
 /* v24-R2 (A2 #6/#7): مفتاح مستقر للاستطلاع المرئي — نفس مفتاح useQuery. */

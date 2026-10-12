@@ -238,7 +238,7 @@ export default function ScheduledPage() {
                           <Button size="sm" variant="ghost" onClick={() => setConfirmPublishId(p.id)} className="size-11 p-0" aria-label="نشر المنشور المجدول الآن">
                             <Send className="size-3 rtl:-scale-x-100" aria-hidden="true" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="size-11 p-0 hover:text-destructive" aria-label="حذف المنشور المجدول">
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(p.id)} className="size-11 p-0 hover:text-destructive-ink" aria-label="حذف المنشور المجدول">
                             <Trash2 className="size-3" aria-hidden="true" />
                           </Button>
                         </>

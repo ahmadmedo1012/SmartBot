@@ -20,8 +20,9 @@ import { Toaster } from "sonner"
  * bottom (mobile bottom-center behavior, clearing the bottom-nav via the
  * default mobile offsets). Entrance rides the retuned slide-up (12px/240ms
  * decelerate — globals.css), padding 8 → 12/16px (madarek .toast sp-3/sp-4),
- * default duration 5000 → 4000 (the polite 4s family rung; error cards pass
- * Infinity for manual dismiss at the call site). */
+ * default duration 5000 → 4000 (r131-F7), then → **6000** in r148
+ * (19-AUDIT-CROSS R10): unified on the fleet 6s rung (SO sonner.tsx
+ * duration={6000}; errors keep Infinity manual-dismiss at the call sites). */
 export function AppToaster() {
   const { resolvedTheme } = useTheme()
   return (
@@ -31,10 +32,11 @@ export function AppToaster() {
       /* v12-E4.4: sonner's default container label is the English
        * "Notifications" — screen-reader-only English on an all-Arabic app.
        * The per-card roles live on premiumToast's custom card
-       * (role=alert for errors, role=status otherwise). */
+       * (role=alert for errors, role=status otherwise). «الإشعارات» is
+       * also the fleet-majority term (SM + SB). */
       containerAriaLabel="الإشعارات"
       theme={resolvedTheme === "light" ? "light" : "dark"}
-      duration={4000}
+      duration={6000}
       toastOptions={{
         style: {
           background: "var(--card)",

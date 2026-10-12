@@ -105,7 +105,7 @@ export default function TeamPage() {
   const roleIcon = (role: string | undefined) => {
     switch (role) {
       case "admin": return <Shield className="size-3 text-accent-foreground" />
-      case "editor": return <User className="size-3 text-info" />
+      case "editor": return <User className="size-3 text-info-ink" />
       default: return <User className="size-3 text-muted-foreground" />
     }
   }
@@ -293,7 +293,7 @@ export default function TeamPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="size-11 p-0 hover:text-destructive"
+                          className="size-11 p-0 hover:text-destructive-ink"
                           onClick={() => setConfirmDeleteId(m.id)}
                           aria-label={`حذف العضو ${m.username}`}
                         >

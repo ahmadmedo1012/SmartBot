@@ -207,7 +207,7 @@ function BotHealthCard() {
         <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="size-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <AlertCircle className="size-4 text-destructive" aria-hidden="true" />
+              <AlertCircle className="size-4 text-destructive-ink" aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium">صحة البوت</p>
@@ -240,9 +240,9 @@ function BotHealthCard() {
         <div className="flex items-center gap-3 min-w-0">
           <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", critical ? "bg-destructive/10" : warning ? "bg-warning/10" : "bg-success/10")}>
             {critical || warning ? (
-              <AlertTriangle className={cn("size-4", critical ? "text-destructive" : "text-warning")} aria-hidden="true" />
+              <AlertTriangle className={cn("size-4", critical ? "text-destructive-ink" : "text-warning-ink")} aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="size-4 text-success" aria-hidden="true" />
+              <CheckCircle2 className="size-4 text-success-ink" aria-hidden="true" />
             )}
           </div>
           <div className="min-w-0">

@@ -118,7 +118,7 @@ export default function PagesPage() {
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className={`size-10 rounded-lg flex items-center justify-center ${connected ? "bg-success-soft" : "bg-muted"}`}>
-                  {connected ? <CheckCircle2 className="size-5 text-success" /> : <XCircle className="size-5 text-muted-foreground" />}
+                  {connected ? <CheckCircle2 className="size-5 text-success-ink" /> : <XCircle className="size-5 text-muted-foreground" />}
                 </div>
                 <div>
                   <p className="font-bold text-sm">{connected ? (data?.page_name || "صفحة متصلة") : "غير متصلة"}</p>
@@ -129,10 +129,10 @@ export default function PagesPage() {
                   a silently-empty dashboard (verdict from the self-heal). */}
               {connected && data?.token_ok === false && data.token_check && (
                 <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
-                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden="true" />
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive-ink" aria-hidden="true" />
                   <div className="leading-relaxed">
-                    <p className="font-medium text-destructive">تعذّر الاتصال بصفحة فيسبوك</p>
-                    <p className="mt-1 text-xs text-destructive/85">
+                    <p className="font-medium text-destructive-ink">تعذّر الاتصال بصفحة فيسبوك</p>
+                    <p className="mt-1 text-xs text-destructive-ink/85">
                       {data.token_check.detail || "الرمز المخزّن لا يعمل مع بيانات الصفحة — أعد إدخال رمز الوصول أدناه."}
                     </p>
                   </div>
@@ -153,8 +153,8 @@ export default function PagesPage() {
               <CardContent className="p-5 space-y-2">
                 <div className="flex items-center gap-2">
                   {testResult.connected
-                    ? <CheckCircle2 className="size-4 text-success" />
-                    : <XCircle className="size-4 text-destructive" />}
+                    ? <CheckCircle2 className="size-4 text-success-ink" />
+                    : <XCircle className="size-4 text-destructive-ink" />}
                   <span className="text-sm font-bold">{testResult.connected ? "اتصال ناجح" : "تعذّر الاتصال"}</span>
                 </div>
                 {testResult.connected && (
@@ -173,12 +173,12 @@ export default function PagesPage() {
                       </div>
                     )}
                     {testResult.warning && (
-                      <p className="text-xs text-warning">{testResult.warning}</p>
+                      <p className="text-xs text-warning-ink">{testResult.warning}</p>
                     )}
                   </>
                 )}
                 {testResult.error && (
-                  <p className="text-xs text-destructive">{testResult.error}</p>
+                  <p className="text-xs text-destructive-ink">{testResult.error}</p>
                 )}
               </CardContent>
             </Card>

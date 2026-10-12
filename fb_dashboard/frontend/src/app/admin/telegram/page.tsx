@@ -286,7 +286,7 @@ export default function AdminTelegramPage() {
         <div role="alert" aria-label="تحذير: إشعارات تليجرام غير مكوّنة"
              className="rounded-xl border border-warning/30 bg-warning/10 p-4 sm:p-5 space-y-3">
           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-            <AlertTriangle className="size-4 shrink-0 text-warning" aria-hidden="true" />
+            <AlertTriangle className="size-4 shrink-0 text-warning-ink" aria-hidden="true" />
             {!tokenConfigured ? "إشعارات تليجرام غير مكوّنة — لن يصل أي إشعار" : "لا يوجد مستلم للإشعارات — لن يصل أي إشعار"}
           </div>
           <p className="text-sm text-foreground/80 leading-relaxed">

@@ -140,7 +140,14 @@ export function LandingHeader() {
                 ref={megamenuTriggerRef}
                 onClick={() => setMegamenuOpen((v) => !v)}
               >
-                المنصّة
+                {/* r148 (19-AUDIT-SB SB-D7): the trigger read «المنصّة» —
+                    identical to the adjacent direct #platform link one slot
+                    away, with different behaviors (opens menu vs anchors).
+                    «الرحلة» names what the menu actually holds (the four
+                    companion chapters) and matches the nav's own
+                    aria-label «أقسام الرحلة»; link text unpinned, spy ids
+                    (mind/day/platform/trust) untouched. */}
+                الرحلة
                 <ChevronDown size={14} aria-hidden="true" />
               </button>
               <div className="landing-megamenu" onClick={closeMegamenu}>

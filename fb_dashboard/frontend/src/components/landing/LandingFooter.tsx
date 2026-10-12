@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CurrentYear } from "@/components/current-year";
 
 /* v16-r142 «رفيق» — the landing's own footer (canonical
  * LandingPage ground-plate footer anatomy). ln-styled, real routes
@@ -12,12 +13,16 @@ import Link from "next/link";
  * rel="noopener noreferrer", same column anatomy — zero new CSS
  * (reference pattern: Smart-Order 86fb698 footer column). */
 
-/* صف الأشقاء — الأهداف هي نطاقات المنظومة الثلاثة كما هي، بلا أوصاف
- * من الخيال: كل وسم هو اسم المنتج المعلن على نطاقه نفسه. */
+/* صف الأشقاء — الأهداف هي نطاقات المنظومة الثلاثة كما هي. r148
+ * (19-AUDIT-CROSS R8): الأسماء العارية صارت «اسم — وصف» بصياغة الأسطول
+ * الموحدة (تذييل SL 15-SL وتذييل SM — الكانون الحرفي:
+ * «سمارت بوت — منصة إدارة فيسبوك الذكية» من تذييل SL نفسه)، والأوصاف من
+ * هوية كل منتج المنشورة نفسها لا من الخيال، وهذه الصفحة لا تُذكر
+ * (عقيدة «المائدة نفسها»). */
 const ECOSYSTEM = [
-  { href: "https://smart-link.ly", label: "الربط الذكي" },
-  { href: "https://menu.smart-link.ly", label: "سمارت منيو" },
-  { href: "https://order.smart-link.ly", label: "سمارت أوردر" },
+  { href: "https://smart-link.ly", label: "الربط الذكي — منصة الأعمال المتكاملة" },
+  { href: "https://menu.smart-link.ly", label: "سمارت منيو — قوائم QR التفاعلية" },
+  { href: "https://order.smart-link.ly", label: "سمارت أوردر — منصة الطلبات الرقمية" },
 ];
 
 export function LandingFooter() {
@@ -36,7 +41,7 @@ export function LandingFooter() {
               </span>
             </Link>
             <p className="landing-footer-about">
-              منصة إدارة صفحات فيسبوك الذكية — أتمتة الردود والتحليلات
+              منصة إدارة فيسبوك الذكية — أتمتة الردود والتحليلات
               لصفحات فيسبوك في ليبيا.
             </p>
           </div>
@@ -81,8 +86,11 @@ export function LandingFooter() {
         </div>
 
         <div className="landing-footer-bottom">
+          {/* r148 (19-AUDIT-CROSS R8): جزيرة السنة الحية — توأم SL
+              (r140/LandingFooter.tsx:90)؛ كانت new Date().getFullYear()
+              سيرفرية تتجمد زمن البناء. */}
           <span className="ln-mono">
-            © {year} SmartBot — جميع الحقوق محفوظة
+            © <CurrentYear buildYear={year} /> SmartBot — جميع الحقوق محفوظة
           </span>
           <span className="ln-footer-cluster">صُنع في ليبيا</span>
         </div>

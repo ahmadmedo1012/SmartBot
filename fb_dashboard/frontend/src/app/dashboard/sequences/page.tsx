@@ -484,7 +484,7 @@ function SequenceEditor({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="size-10 p-0 hover:text-destructive"
+                    className="size-10 p-0 hover:text-destructive-ink"
                     aria-label={`حذف الخطوة ${i + 1}`}
                     onClick={() => removeStep(i)}
                   >
@@ -861,7 +861,7 @@ export default function SequencesPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="hover:text-destructive"
+                            className="hover:text-destructive-ink"
                             onClick={() => setConfirmDeleteId(s.id)}
                             aria-label={`حذف الحملة ${s.name}`}
                           >

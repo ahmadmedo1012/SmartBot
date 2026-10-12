@@ -245,7 +245,7 @@ export default function SupportPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`واتساب: ${whatsapp} — يفتح في تبويب جديد`}
-                    className="flex items-center gap-3 text-sm hover:text-success transition-colors"
+                    className="flex items-center gap-3 text-sm hover:text-success-ink transition-colors"
                   >
                     <MessageCircle className="size-4 text-muted-foreground shrink-0" />
                     <span>واتساب: {whatsapp}</span>
@@ -554,7 +554,7 @@ export default function SupportPage() {
                                 {/* v17-E-F8 (D6 #5): التذكرة المغلقة تُعلن السبب
                                     (كانت تخفي الرد فقط بلا تفسير). */}
                                 {t.status === "closed" && (
-                                  <p className="text-xs text-success text-center py-1" role="status">
+                                  <p className="text-xs text-success-ink text-center py-1" role="status">
                                     هذه التذكرة مغلقة — تم حل المشكلة. أرسل طلباً جديداً إن احتجت مساعدة أخرى
                                   </p>
                                 )}

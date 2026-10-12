@@ -128,7 +128,7 @@ export function SetupWarnings() {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-          <AlertTriangle className={`size-4 shrink-0 ${critical ? "text-destructive" : "text-warning"}`} />
+          <AlertTriangle className={`size-4 shrink-0 ${critical ? "text-destructive-ink" : "text-warning-ink"}`} />
           {warnings.length > 1 ? "إعدادات ناقصة توقف عمل المنصة" : warnings[0].title}
         </div>
         <button

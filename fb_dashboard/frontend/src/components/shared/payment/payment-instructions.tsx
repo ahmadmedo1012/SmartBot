@@ -276,7 +276,7 @@ export function BankInstructions({
             <button
               type="button"
               onClick={() => onReceiptImageUrlChange("")}
-              className="text-xs text-destructive hover:underline shrink-0"
+              className="text-xs text-destructive-ink hover:underline shrink-0"
             >
               حذف الصورة
             </button>

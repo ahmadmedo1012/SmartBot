@@ -140,7 +140,7 @@ function DemoHeader({ tab }: { tab: TabKey }) {
           <Badge variant="warning">تجربة - بيانات وهمية</Badge>
           <span className="hidden sm:flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-success" />
-            <span className="text-sm text-success">البوت نشط</span>
+            <span className="text-sm text-success-ink">البوت نشط</span>
           </span>
         </div>
       </div>

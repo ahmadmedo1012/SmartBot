@@ -379,7 +379,7 @@ export default function MarketingPage() {
                               onClick={() => setConfirmDeleteId(c.id)}
                               disabled={deleteMutation.isPending && deleteMutation.variables === c.id}
                               aria-label="حذف الحملة"
-                              className="h-11 text-muted-foreground hover:text-destructive"
+                              className="h-11 text-muted-foreground hover:text-destructive-ink"
                             >
                               <Trash2 className="size-3" />
                             </Button>
@@ -433,7 +433,7 @@ export default function MarketingPage() {
               {estimateLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : estimateError ? (
-                <span className="text-xs text-destructive">تعذّر تحديد العدد</span>
+                <span className="text-xs text-destructive-ink">تعذّر تحديد العدد</span>
               ) : (
                 <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmEstimate?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
@@ -448,14 +448,14 @@ export default function MarketingPage() {
                 </p>
               </div>
             ) : (
-              <p className="flex items-start gap-1.5 text-xs text-warning">
+              <p className="flex items-start gap-1.5 text-xs text-warning-ink">
                 <AlertTriangle className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                 هذه الحملة بلا نص رسالة — تأكد من محتواها قبل الإرسال.
               </p>
             )}
 
             {/* تحذير عدم قابلية التراجع */}
-            <p className="flex items-start gap-2 text-xs text-destructive leading-relaxed" role="alert">
+            <p className="flex items-start gap-2 text-xs text-destructive-ink leading-relaxed" role="alert">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
               تحذير: سيصل البث إلى كل هؤلاء المشتركين دفعة واحدة، ولا يمكن التراجع عن الإرسال بعد بدئه.
             </p>

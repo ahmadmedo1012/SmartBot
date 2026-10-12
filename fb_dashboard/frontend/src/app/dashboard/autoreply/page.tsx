@@ -568,12 +568,12 @@ export default function AutoReplyPage() {
                     </Button>
                     {/* v25 (W-09): size-11 p-0 — هدف لمس 44px صريح (كان size-8). */}
                     <Button size="sm" variant="ghost" onClick={() => toggleMut.mutate(r.id)} disabled={toggleMut.isPending && toggleMut.variables === r.id} className="size-11 p-0" aria-pressed={r.enabled !== false} aria-label={`تبديل حالة قاعدة ${r.name}`}>
-                      {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success" />}
+                      {r.enabled === false ? <ToggleLeft className="size-4" /> : <ToggleRight className="size-4 text-success-ink" />}
                     </Button>
                     {/* v24-C2 (task 3 / A3-A1): الضغط الأول يكشف خطوة التأكيد
                         (لا حذف مباشر) — أزرار التأكيد تستوفي 44px افتراضيا.
                         v25 (W-09): size-11 p-0 صريح (كان size-8). */}
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(r.id)} className="size-11 p-0 hover:text-destructive" aria-label={`حذف قاعدة ${r.name}`}>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(r.id)} className="size-11 p-0 hover:text-destructive-ink" aria-label={`حذف قاعدة ${r.name}`}>
                       <Trash2 className="size-3.5" />
                     </Button>
                       </>

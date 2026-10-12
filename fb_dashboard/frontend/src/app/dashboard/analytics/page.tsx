@@ -371,7 +371,7 @@ function PeriodComparisonSection() {
               </p>
             ) : (
               <p
-                className={`text-2xl font-bold tabular-nums flex items-center justify-center gap-1 ${pct > 0 ? "text-success" : pct < 0 ? "text-destructive" : "text-muted-foreground"}`}
+                className={`text-2xl font-bold tabular-nums flex items-center justify-center gap-1 ${pct > 0 ? "text-success-ink" : pct < 0 ? "text-destructive-ink" : "text-muted-foreground"}`}
                 dir="ltr"
               >
                 <span aria-hidden="true">{pct > 0 ? "↑" : pct < 0 ? "↓" : "—"}</span>

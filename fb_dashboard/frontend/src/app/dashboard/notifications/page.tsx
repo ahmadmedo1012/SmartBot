@@ -46,10 +46,10 @@ interface NotificationItem {
 }
 
 const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string; label: string }> = {
-  payment: { icon: CreditCard, color: "text-warning", label: "دفع" },
+  payment: { icon: CreditCard, color: "text-warning-ink", label: "دفع" },
   reply: { icon: MessageSquare, color: "text-accent-foreground", label: "رد" },
-  support: { icon: MessageCircle, color: "text-info", label: "دعم" },
-  marketing: { icon: TrendingUp, color: "text-success", label: "تسويق" },
+  support: { icon: MessageCircle, color: "text-info-ink", label: "دعم" },
+  marketing: { icon: TrendingUp, color: "text-success-ink", label: "تسويق" },
   system: { icon: Rocket, color: "text-accent-foreground", label: "نظام" },
   mention: { icon: UserPlus, color: "text-bloom", label: "إشارة" },
 }
@@ -74,21 +74,21 @@ const TOGGLES = [
     label: "رسائل جديدة",
     desc: "عند وصول رسالة جديدة للصفحة",
     icon: MessageCircle,
-    color: "text-info",
+    color: "text-info-ink",
   },
   {
     key: "new_leads",
     label: "عملاء متوقعون جدد",
     desc: "عند تسجيل عميل محتمل جديد",
     icon: UserPlus,
-    color: "text-success",
+    color: "text-success-ink",
   },
   {
     key: "payment_alerts",
     label: "إشعارات الدفع",
     desc: "عند تأكيد أو رفض طلب دفع",
     icon: CreditCard,
-    color: "text-warning",
+    color: "text-warning-ink",
   },
   {
     key: "system_updates",

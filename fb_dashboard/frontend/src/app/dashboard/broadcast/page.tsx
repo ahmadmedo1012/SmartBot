@@ -288,7 +288,7 @@ export default function BroadcastPage() {
                         disabled={cancelMut.isPending && cancelMut.variables === b.id}
                         loading={cancelMut.isPending && cancelMut.variables === b.id}
                         aria-label={`إلغاء البث ${b.name || `#${b.id}`}`}
-                        className="hover:text-destructive"
+                        className="hover:text-destructive-ink"
                       >
                         إلغاء
                       </Button>
@@ -323,7 +323,7 @@ export default function BroadcastPage() {
               {confirmLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : confirmError ? (
-                <span className="text-xs text-destructive">تعذّر تحديد العدد</span>
+                <span className="text-xs text-destructive-ink">تعذّر تحديد العدد</span>
               ) : (
                 <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmData?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
@@ -340,14 +340,14 @@ export default function BroadcastPage() {
                 </p>
               </div>
             ) : (
-              <p className="flex items-start gap-1.5 text-xs text-warning">
+              <p className="flex items-start gap-1.5 text-xs text-warning-ink">
                 <AlertTriangle className="size-3.5 shrink-0 mt-0.5" aria-hidden="true" />
                 هذا البث بلا نص رسالة — تأكد من محتواه قبل الإرسال.
               </p>
             )}
 
             {/* تحذير عدم قابلية التراجع */}
-            <p className="flex items-start gap-2 text-xs text-destructive leading-relaxed" role="alert">
+            <p className="flex items-start gap-2 text-xs text-destructive-ink leading-relaxed" role="alert">
               <AlertTriangle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
               تحذير: سيصل البث إلى كل هؤلاء المشتركين دفعة واحدة، ولا يمكن التراجع عن الإرسال بعد بدئه.
             </p>

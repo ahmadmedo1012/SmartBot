@@ -79,7 +79,7 @@ export default function AdsPage() {
            * «لا توجد حسابات إعلانية مرتبطة» here (data looked empty instead
            * of broken). Say the truth + offer retry. */
           <div className="text-center py-16">
-            <WifiOff className="size-12 mx-auto mb-3 text-destructive/50" />
+            <WifiOff className="size-12 mx-auto mb-3 text-destructive-ink/50" />
             <h2 className="sb-section-title mb-1">تعذّر الاتصال بفيسبوك</h2>
             <p className="text-xs text-muted-foreground mb-4">
               تعذّر تحديث حساباتك الإعلانية من فيسبوك — تحقق من صلاحية رمز الوصول ثم أعد المحاولة.
@@ -95,7 +95,7 @@ export default function AdsPage() {
             {syncFailed && (
               /* rows ARE stored + refresh failed → serve them, but honestly
                * (v19: no silent stale data). */
-              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-xs text-warning-ink bg-warning/10 border border-warning/30 rounded-lg px-3 py-2">
                 <WifiOff className="size-3.5 shrink-0" />
                 <span>تعذّر التحديث من فيسبوك — يتم عرض آخر بيانات محفوظة.</span>
               </div>

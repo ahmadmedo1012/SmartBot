@@ -197,10 +197,15 @@ const STATUS_DARK = {
   "--destructive": "#F0938F", "--destructive-soft": "#2C1620", "--destructive-foreground": "#05070F",
 }
 const STATUS_LIGHT = {
-  "--success": "#2F7D4F", "--success-soft": "#DCF1E2", "--success-foreground": "#191918", // mint-ink / mint-bg / danger-fg
-  "--warning": "#8C6A1D", "--warning-soft": "#FCF1CD", // yellow-ink / yellow-bg
-  "--info": "#3B6FB5", "--info-soft": "#DDEBF7", // sky-ink / sky-bg
-  "--destructive": "#C2414D", "--destructive-soft": "#FCE0E2", "--destructive-foreground": "#191918", // rose-ink / rose-bg / danger-fg
+  // r148 (19-AUDIT-CROSS R1, authorized pin edit — mirrors tests/parity.mjs
+  // STATUS_LIGHT): the light BASE hues move to the resolved fleet set the
+  // r127 comment always claimed (Menu/Link/Order ship these verbatim):
+  // success #2F7D4F→#4FA66D · warning #8C6A1D→#D6A330 · info #3B6FB5→#5C8FCE
+  // · destructive #C2414D→#DD6E78. Count unchanged.
+  "--success": "#4FA66D", "--success-soft": "#DCF1E2", "--success-foreground": "#191918", // mint-ink / mint-bg / danger-fg
+  "--warning": "#D6A330", "--warning-soft": "#FCF1CD", // yellow-ink / yellow-bg
+  "--info": "#5C8FCE", "--info-soft": "#DDEBF7", // sky-ink / sky-bg
+  "--destructive": "#DD6E78", "--destructive-soft": "#FCE0E2", "--destructive-foreground": "#191918", // rose-ink / rose-bg / danger-fg
 }
 const FAMILIES_DARK: Record<string, [string, string, string]> = {
   peach: ["#2C1A16", "#F2A07F", "#FCD9C4"],

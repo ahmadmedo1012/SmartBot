@@ -139,8 +139,13 @@ export const KpiCard = memo(function KpiCard({
                                 <div className="min-w-0 space-y-1.5">
                                         <p className="text-xs font-semibold text-muted-foreground">{label}</p>
                                         {/* value = the 30px display-metric slot (tnum+lnum, lh 1.10)
-                                         * with the 700ms pop-in (scale .92 backout, RM-killed) */}
-                                        <p className="sb-kpi-pop font-heading text-[30px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]">
+                                         * with the 700ms pop-in (scale .92 backout, RM-killed).
+                                         * r148 (19-AUDIT-SB SB-D5): below 420px the 2-up grids
+                                         * leave the slot ~65px — a 6-glyph value («12.500»)
+                                         * measured 99px and bled onto the icon well. The
+                                         * sub-420px rung drops to 18px (59px); ≥420px stays the
+                                         * canonical 30px (r131-F8 metric slot untouched). */}
+                                        <p className="sb-kpi-pop font-heading text-[30px] max-[420px]:text-[18px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]">
                                                 {value == null
                                                         ? fallback
                                                         : typeof value === 'string'

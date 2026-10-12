@@ -242,7 +242,7 @@ export default function ToolsPage() {
                           </Button>
                         </>
                       ) : (
-                        <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteTmplId(t.id)} className="size-11 p-0 hover:text-destructive" aria-label={`حذف القالب ${t.name}`}>
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteTmplId(t.id)} className="size-11 p-0 hover:text-destructive-ink" aria-label={`حذف القالب ${t.name}`}>
                           <Trash2 className="size-3" />
                         </Button>
                       )}

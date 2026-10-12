@@ -237,9 +237,13 @@ export default function PricingPage() {
                      * key-remount swap (key={annual} + .price-swap) rode the
                      * removed billing toggle; a monthly-only card needs no
                      * swap machinery. formatNumber — prices flow through the
-                     * single i18n formatting seam (v12-E4.13). */}
+                     * single i18n formatting seam (v12-E4.13).
+                     * r148 (19-AUDIT-SB SB-D6a): the row is a shared 64px
+                     * bottom-aligned track — «مجاني» (36px) and «19» (48px)
+                     * now share one bottom edge across cards (they sat 8-16px
+                     * apart on the old free-height baseline row). */}
                     <div className="text-center mb-6 py-4 border-y border-border/40">
-                      <div className="flex items-baseline justify-center gap-1.5">
+                      <div className="flex min-h-16 items-end justify-center gap-1.5">
                         {plan.price === 0 ? (
                           <span className="text-4xl font-bold">مجاني</span>
                         ) : (
@@ -278,8 +282,11 @@ export default function PricingPage() {
                          (shadow-lg shadow-accent-foreground/30) is retired —
                          the canonical Button carries its own premium hover
                          shadow (the gold-glow-on-CTA was the flagged
-                         pricing:307 site). */
-                      className="w-full h-10"
+                         pricing:307 site).
+                         r148 (19-AUDIT-SB SB-D6b): the h-10 override is gone
+                         — size="lg" rides its canonical h-12 (48px money-CTA
+                         canon, r134); measured 318×40 before. */
+                      className="w-full"
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}
                     >
                       {plan.price === 0 ? "ابدأ مجاناً" : "اشترك الآن"}

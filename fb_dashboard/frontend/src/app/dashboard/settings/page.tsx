@@ -91,7 +91,7 @@ export default function SettingsPage() {
                 </div>
                 {user.email && (
                   <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                    <div className="size-9 rounded-lg bg-info-soft text-info flex items-center justify-center shrink-0">
+                    <div className="size-9 rounded-lg bg-info-soft text-info-ink flex items-center justify-center shrink-0">
                       <Mail className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -101,7 +101,7 @@ export default function SettingsPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                  <div className="size-9 rounded-lg bg-success-soft text-success flex items-center justify-center shrink-0">
+                  <div className="size-9 rounded-lg bg-success-soft text-success-ink flex items-center justify-center shrink-0">
                     <Shield className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">

@@ -872,6 +872,16 @@
    Elements keep their designed radius; the ring alone signals focus. */
 :focus-visible { outline: 2px solid var(--state-focus-ring-color); outline-offset: 2px; }
 :focus:not(:focus-visible) { outline: none; }
+/* r149 (SB1): the global skip chip rides the fleet geometry (2px @ offset
+   3, layout.tsx). While the Orbit-Ink landing is mounted the chip floats
+   on the ink ground in BOTH themes — the light-theme ring
+   (--accent-strong #5C3416) nearly vanishes on it, so the ring joins the
+   landing's cream family (SM r149 unified its chip ring the same way).
+   :has() keeps it to the landing pages; every other surface keeps the
+   product ring. */
+main:has(> .landing) > a[href="#page-content"]:focus-visible {
+  outline-color: var(--ln-cream, #F5F3E7);
+}
 
 /* ─── browser surfaces (r133, A10 Must#2 — SO twin of madarek base.css:104-125) ──
    Caret / autofill theming: native chrome stops flashing white/blue on

@@ -155,10 +155,13 @@ export default function HomePage() {
 
       {/* r129 (P0 fix): ONE main landmark per page — the root layout owns
           the landmark + its id; this wrapper is a plain <div>. */}
-      <div>
-        {/* v8-B7/v9-D3: skip-link target — lands past the header nav.
-            tabIndex={-1} moves focus here for keyboard users. */}
-        <span id="page-content" className="sr-only" tabIndex={-1} />
+      {/* v8-B7/v9-D3: skip-link target — lands past the header nav.
+          r149 (SB2 — audit: the sr-only <span> carried tabIndex while
+          clipped to 1×1, an invisible "interactive" element): the id
+          rides the real content wrapper now (the SL/SO fleet pattern —
+          the target is the content block itself, tabIndex -1). Same
+          focus behavior, zero visual change. */}
+      <div id="page-content" tabIndex={-1}>
 
         {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: the companion takes the stage
             — literally. The OrbitScene sky stays (parity pin + ambient

@@ -119,15 +119,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 any landmark, which tripped axe's region best-practice rule on
                 every public page. Still the first focusable element in tab
                 order (the overlays above are aria-hidden decoration). */}
-            {/* v16-E3 (D1 LEAD A — allowlist p11-rtl-tab-order): the reveal
-                used focus:absolute focus:end-4 — in RTL `end` = LEFT edge
-                (x≈16), so Tab 1 landed far from the RTL reading start, and
-                `absolute` used document coords → off-viewport when scrolled
-                (measured y=−784). fixed + start-4 reveals at the top-RIGHT
-                (RTL reading start) and stays in-viewport at any scrollY. */}
+            {/* v16-E3 (D1 LEAD A — allowlist p11-rtl-tab-order): fixed + start-4
+                reveals at the top-RIGHT (RTL reading start) and stays
+                in-viewport at any scrollY.
+                r149 (SB1 — audit: the sr-only/unfocus geometry measured 1×1):
+                the fleet a11y recipe (SL SiteChrome / SM shell) — the chip is
+                ALWAYS fixed at the viewport corner with its real ≥44px
+                geometry, hidden by opacity until focus (sr-only clipped it to
+                1×1 for every scanner sweep); opacity + pointer-events swap on
+                focus keeps it unclickable while hidden. The ring unifies to
+                the fleet geometry (2px @ offset 3) via the product focus
+                token instead of the ring/outline-none split. focus:z-(--z-toast)
+                stays (parity-pinned fleet rung). */}
             <a
               href="#page-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-(--z-toast) focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium focus:outline-none focus:shadow-lg focus:ring-2 focus:ring-accent-foreground/50"
+              className="fixed top-4 start-4 pointer-events-none opacity-0 focus:pointer-events-auto focus:opacity-100 focus:z-(--z-toast) focus:px-6 focus:py-3 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium focus:shadow-lg focus:outline-offset-3"
             >
               تخطي إلى المحتوى الرئيسي
             </a>

@@ -130,7 +130,12 @@ export default function LeadsPage() {
           <Card><CardContent className="p-0">
               {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
                   ينتظر أول عميل محتمل؛ أيقونة UserPlus تتقاعد هنا). */}
-              <EmptyState robot size="sm" title="لا يوجد عملاء متوقعون بعد" description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه." />
+              <EmptyState
+                robot
+                size="sm"
+                title="لا يوجد عملاء متوقعون بعد"
+                description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه."
+              />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">

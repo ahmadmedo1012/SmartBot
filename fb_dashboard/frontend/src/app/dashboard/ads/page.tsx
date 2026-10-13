@@ -93,7 +93,12 @@ export default function AdsPage() {
           <Card><CardContent className="p-0">
               {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
                   ينتظر ربط أول حساب إعلاني؛ أيقونة Target تتقاعد هنا). */}
-              <EmptyState robot size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
+              <EmptyState
+                robot
+                size="sm"
+                title="لا توجد حسابات إعلانية مرتبطة"
+                description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا."
+              />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">

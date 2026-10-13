@@ -1848,6 +1848,175 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('r154c robot empties: RobotMark hosts the empty wells on broadcast/sequences/scheduled/calendar/comments; comments AI glyph lime');
 }
 
+// ── §r154d — phase6 package 4 (P6-2-d3): the DATA/ACCOUNT screens speak the ──
+//    machine ─────────────────────────────────────────────────────────────────
+{
+  /* Self-contained block (own raw readers): pins the P6-2-d3 data/account
+     package grammar — the PageHeader trace across the fifteen remaining
+     surfaces (static for account/data surfaces; LIVE for the 15s-polled
+     activity log), the money register (.sb-numerals on billing + the payment
+     dialog + the admin queue), the mono HH:MM stamps (billing/support/
+     notifications/activity/admin queues), the payment-instruction trace
+     stations, the petrol ticket/queue/level chips, the opt-in traceField
+     forms, the robot empty wells, the lime live nodes (healthy webhook /
+     active offers / broadcast targets / the cron heartbeat pulse) and the
+     terms/privacy identity chrome. Business logic / API contracts untouched. */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const rawBilling = readRaw('../src/app/dashboard/billing/page.tsx');
+  const rawTeam = readRaw('../src/app/dashboard/team/page.tsx');
+  const rawSettings = readRaw('../src/app/dashboard/settings/page.tsx');
+  const rawSupport = readRaw('../src/app/dashboard/support/page.tsx');
+  const rawPages = readRaw('../src/app/dashboard/pages/page.tsx');
+  const rawAudience = readRaw('../src/app/dashboard/audience/page.tsx');
+  const rawLeads = readRaw('../src/app/dashboard/leads/page.tsx');
+  const rawAds = readRaw('../src/app/dashboard/ads/page.tsx');
+  const rawTools = readRaw('../src/app/dashboard/tools/page.tsx');
+  const rawReports = readRaw('../src/app/dashboard/reports/page.tsx');
+  const rawNotifications = readRaw('../src/app/dashboard/notifications/page.tsx');
+  const rawActivity = readRaw('../src/app/dashboard/activity/page.tsx');
+  const rawAdmin = readRaw('../src/app/admin/page.tsx');
+  const rawAdminSettings = readRaw('../src/app/admin/settings/page.tsx');
+  const rawAdminSupport = readRaw('../src/app/admin/support/page.tsx');
+  const rawAdminTelegram = readRaw('../src/app/admin/telegram/page.tsx');
+  const rawTgConfig = readRaw('../src/app/admin/telegram/TelegramConfigSection.tsx');
+  const rawTgTargets = readRaw('../src/app/admin/telegram/BroadcastTargetsSection.tsx');
+  const rawTgDiag = readRaw('../src/app/admin/telegram/DiagnosticsSection.tsx');
+  const rawPayment = readRaw('../src/components/shared/payment/index.tsx');
+  const rawPayInstr = readRaw('../src/components/shared/payment/payment-instructions.tsx');
+  const rawCron = readRaw('../src/components/shared/CronHeartbeatCard.tsx');
+  const rawTerms = readRaw('../src/app/terms/page.tsx');
+  const rawPrivacy = readRaw('../src/app/privacy/page.tsx');
+
+  // (1) the fifteen remaining surfaces ride the PageHeader trace option —
+  //     `trace="static"` on the account/data/admin surfaces (the lime live
+  //     node is reserved for live streams), plain live `trace` on the
+  //     15s-polled activity log; no manual <hr> appends anywhere.
+  const traceStaticPages = [
+    rawBilling, rawTeam, rawSettings, rawSupport, rawPages,
+    rawAudience, rawLeads, rawAds, rawTools, rawReports, rawNotifications,
+    rawAdmin, rawAdminSettings, rawAdminSupport, rawAdminTelegram,
+  ];
+  const tracePagesOk = traceStaticPages.every((raw) =>
+      /(^|\n)[ \t]*trace="static"[ \t]*(\n|$)/.test(raw)
+      && !raw.includes('<hr className="sb-trace"'))
+    && /(^|\n)[ \t]*trace[ \t]*(\n|$)/.test(rawActivity)
+    && !rawActivity.includes('<hr className="sb-trace"');
+  if (tracePagesOk) pass += 1;
+  else fails.push('r154d trace: the PageHeader trace option rides billing/team/settings/support/pages/audience/leads/ads/tools/reports/notifications (static) + the 4 admin surfaces + activity (live) — no manual <hr> appends');
+
+  // (2) the money register: billing wallet + history amounts, the payment
+  //     dialog figures and the admin queue amounts ride .sb-numerals.
+  const moneyOk = rawBilling.includes('<p className="text-3xl font-bold sb-numerals">')
+    && rawBilling.includes('<p className="text-sm font-medium sb-numerals">{formatNumber(p.amount)} د.ل</p>')
+    && (rawPayment.match(/text-lg font-bold text-accent-foreground sb-numerals/g) || []).length >= 2
+    && rawAdmin.includes('<td className="p-3 px-4 sb-numerals" data-label="المبلغ">');
+  if (moneyOk) pass += 1;
+  else fails.push('r154d money mono: billing balance/history + payment dialog figures + admin queue amounts ride .sb-numerals');
+
+  // (3) the log registers: local timeStamp helpers + mono HH:MM stamps
+  //     (dir=ltr, tabular) with the full Arabic date in the title tooltip
+  //     on billing/support/notifications/activity and the two admin queues.
+  const stampsOk = [rawBilling, rawSupport, rawNotifications, rawActivity, rawAdmin, rawAdminSupport]
+    .every((raw) => raw.includes('function timeStamp(') && raw.includes('className="font-mono tabular-nums"'))
+    && rawNotifications.includes('title={formatDate(n.created_at) || undefined}')
+    && rawActivity.includes('title={formatDate(log.created_at) || undefined}')
+    && rawSupport.includes('title={formatDate(t.created_at) || undefined}');
+  if (stampsOk) pass += 1;
+  else fails.push('r154d mono stamps: HH:MM mono dir=ltr + Arabic date title on billing/support/notifications/activity and the admin queues');
+
+  // (4) the payment steps: the shared payment instructions carry the quiet
+  //     circuit trace stations between the wallet/bank steps, and the
+  //     provider reference code rides the mono/tabular register.
+  const payStepsOk = (rawPayInstr.match(/<hr className="sb-trace" aria-hidden="true" \/>/g) || []).length >= 3
+    && rawPayInstr.includes('font-bold text-lg tracking-wide font-mono tabular-nums');
+  if (payStepsOk) pass += 1;
+  else fails.push('r154d payment steps: sb-trace stations between the wallet/bank instruction steps + tabular provider reference code');
+
+  // (5) the ticket chips ride the PETROL register (KpiCard vocabulary) on
+  //     BOTH support surfaces: open=lime (in flight), pending=sand, closed=
+  //     foam grey, resolved=signal copper — Badge secondary + className.
+  const ticketChipsOk = rawSupport.includes('open: "bg-(--c-lime-bg) text-(--c-lime-ink)"')
+    && rawSupport.includes('pending: "bg-(--c-sand-bg) text-(--c-sand-ink)"')
+    && rawSupport.includes('closed: "bg-(--c-grey-bg) text-(--c-grey-ink)"')
+    && rawSupport.includes('resolved: "bg-(--c-copper-bg) text-(--c-copper-ink)"')
+    && rawAdminSupport.includes('open: "bg-(--c-lime-bg) text-(--c-lime-ink)"')
+    && rawAdminSupport.includes('className={STATUS_PETROL[t.status] || undefined}');
+  if (ticketChipsOk) pass += 1;
+  else fails.push('r154d ticket petrol: open=lime / pending=sand / closed=foam / resolved=copper chips on dashboard+admin support queues');
+
+  // (6) the account forms ride the opt-in traceField circuit ground:
+  //     settings password pair, team invite username, admin settings machine
+  //     fields (non-secret LTR), telegram chat-id/events/approver ids.
+  const traceFormsOk = (rawSettings.match(/traceField/g) || []).length >= 2
+    && rawTeam.includes('aria-label="اسم المستخدم للعضو الجديد"\n                traceField')
+    && rawAdminSettings.includes('traceField={f.ltr && f.type !== "password"}')
+    && (rawTgConfig.match(/traceField/g) || []).length >= 2
+    && rawTgTargets.includes('traceField')
+    && rawTgDiag.includes('traceField');
+  if (traceFormsOk) pass += 1;
+  else fails.push('r154d traceField forms: settings passwords + team username + admin config (non-secret) + telegram machine-code inputs ride the circuit ground');
+
+  // (7) the account/data empty wells host the ONE robot (billing history,
+  //     leads, ads — idle: on duty, waiting).
+  const robotsOk = [rawBilling, rawLeads, rawAds]
+    .every((raw) => /(^|\n)[ \t]*robot[ \t]*(\n|$)/.test(raw));
+  if (robotsOk) pass += 1;
+  else fails.push('r154d robot empties: RobotMark hosts the empty wells on billing/leads/ads');
+
+  // (8) the lime live node marks live rows on the account surfaces: the
+  //     healthy webhook (pages), the active offer (tools) and the active
+  //     broadcast target (admin telegram).
+  const limeNodesOk = rawPages.includes('<span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />')
+    && rawTools.includes('<span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />')
+    && rawTgTargets.includes('<span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />');
+  if (limeNodesOk) pass += 1;
+  else fails.push('r154d lime nodes: the live lime dot marks the healthy webhook, active offers and active telegram broadcast targets');
+
+  // (9) the admin approvals queue: petrol chips (pending=lime, verified=
+  //     signal copper, cancelled=rose), mono phone cell + HH:MM queue stamp,
+  //     and the CronHeartbeatCard carries the live lime pulse node.
+  const adminQueueOk = rawAdmin.includes('pending: "bg-(--c-lime-bg) text-(--c-lime-ink)"')
+    && rawAdmin.includes('verified: "bg-(--c-copper-bg) text-(--c-copper-ink)"')
+    && rawAdmin.includes('cancelled: "bg-(--c-rose-bg) text-(--c-rose-ink)"')
+    && rawAdmin.includes('text-muted-foreground font-mono" data-label="رقم الهاتف"')
+    && rawCron.includes('rounded-full bg-lime animate-ping');
+  if (adminQueueOk) pass += 1;
+  else fails.push('r154d admin statuses: queue petrol chips (pending lime/verified copper/cancelled rose) + mono phone + HH:MM stamp + the cron lime pulse');
+
+  // (10) the data-table registers: audience commenter/subscriber counts ride
+  //      .sb-numerals, the leads phone rides mono, the reports engine code
+  //      is mono and the log levels ride petrol chips (info=copper,
+  //      warning=amber family, error=rose).
+  const dataRegistersOk = rawAudience.includes('text-muted-foreground sb-numerals')
+    && rawAudience.includes('sb-numerals tabular-nums')
+    && rawLeads.includes('<span className="font-mono" dir="ltr">{c.phone}</span>')
+    && rawReports.includes('<span className="font-mono" dir="ltr">{pdfStatus.engine}</span>')
+    && rawReports.includes('tabular-nums font-mono')
+    && rawActivity.includes('info: "bg-(--c-copper-bg) text-(--c-copper-ink)"')
+    && rawActivity.includes('warning: "bg-warning-soft text-warning-ink"')
+    && rawActivity.includes('error: "bg-(--c-rose-bg) text-(--c-rose-ink)"');
+  if (dataRegistersOk) pass += 1;
+  else fails.push('r154d data registers: audience counts sb-numerals + leads phone mono + reports engine mono + activity petrol level chips');
+
+  // (11) the account identity touches: the team owner chip rides the copper
+  //      petrol stamp, the settings username rides mono, and the pages
+  //      screen mirrors /connect (mono page_id + sb-numerals fan count).
+  const identityOk = rawTeam.includes('bg-(--c-copper-bg) text-(--c-copper-ink) rounded-full px-2 py-0.5 font-medium')
+    && rawSettings.includes('font-medium truncate font-mono" dir="ltr">{user.username}')
+    && rawPages.includes('<span className="font-mono" dir="ltr">{data.page_id}</span>')
+    && rawPages.includes('sb-numerals font-bold">{formatNumber(testResult.fan_count)}');
+  if (identityOk) pass += 1;
+  else fails.push('r154d identity: owner copper stamp + mono username + mono page_id + sb-numerals fan count');
+
+  // (12) the legal pages get the identity chrome: the circuit trace divider
+  //      under the display header on terms AND privacy (legal prose intact).
+  const legalOk = [rawTerms, rawPrivacy].every((raw) =>
+    raw.includes('<h1 className="text-3xl font-bold">')
+    && raw.includes('<hr className="sb-trace mt-6 mb-8" aria-hidden="true" />'));
+  if (legalOk) pass += 1;
+  else fails.push('r154d legal chrome: the sb-trace divider rides under the display header on /terms and /privacy (prose verbatim)');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

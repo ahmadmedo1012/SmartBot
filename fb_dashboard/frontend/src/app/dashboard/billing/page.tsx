@@ -336,7 +336,12 @@ export default function BillingPage() {
             <Card><CardContent className="p-0">
               {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
                 على duty ينتظر أول معاملة مال؛ أيقونة Receipt تتقاعد هنا). */}
-            <EmptyState robot size="sm" title="لا توجد معاملات سابقة" description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة." />
+            <EmptyState
+              robot
+              size="sm"
+              title="لا توجد معاملات سابقة"
+              description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة."
+            />
             </CardContent></Card>
           ) : (
             <div className="space-y-2" role="list">

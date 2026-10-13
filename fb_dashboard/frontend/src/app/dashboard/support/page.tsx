@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/csrf-client"
 import { unwrapApi } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 import { isWaMeNumber, toWaMe } from "@/lib/phone"
 import type { SupportTicket } from "@/lib/types"
 
@@ -45,13 +46,30 @@ const TICKET_STATUS_LABEL: Record<string, string> = {
   closed: "مغلقة",
 }
 
-/* v17-E-F8 (D6 #5) → r131-F8: the same status semantics on the Badge
- * primitive (open=تحذير · pending=معلّم · closed=نجاح). */
-const TICKET_STATUS_BADGE: Record<string, "warning" | "info" | "success"> = {
-  open: "warning",
-  pending: "info",
-  closed: "success",
+/* phase6 r154 — رقاقات حالة التذكرة بألوان البترول (سجل KpiCard):
+ * open = لايم الآتمتة النشطة (المحادثة في الجو)، pending = رملي بانتظار
+ * الرد، closed = رغوة هادئة (انتهت)، resolved = إشارة التيل (حُلّت).
+ * تُركّب كـ Badge secondary + className البترول (نمط المنشورات). */
+const TICKET_STATUS_PETROL: Record<string, string> = {
+  open: "bg-(--c-lime-bg) text-(--c-lime-ink)",
+  pending: "bg-(--c-sand-bg) text-(--c-sand-ink)",
+  closed: "bg-(--c-grey-bg) text-(--c-grey-ink)",
+  resolved: "bg-(--c-copper-bg) text-(--c-copper-ink)",
 }
+
+/* phase6 r154 — سجل ختم التذكرة (توأم البث/المنشورات): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
+/* v17-E-F8 (D6 #5): the same status semantics — phase6 r154 moved the
+ * status chips onto the PETROL register above (TICKET_STATUS_PETROL);
+ * the old Badge-variant map (open=تحذير · pending=معلّم · closed=نجاح)
+ * retired with it (A5 dead-export doctrine). */
 
 /* v12-E4.5: the four priority options in visual order (RTL grid runs
  * right→left, so index 0 sits rightmost). */
@@ -210,6 +228,9 @@ export default function SupportPage() {
         title="الدعم"
         subtitle="الدعم الفني والمساعدة"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — التذاكر ليست دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -451,18 +472,40 @@ export default function SupportPage() {
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold truncate">#{t.id} {t.subject}</p>
+                          {/* phase6 r154 — رقم التذكرة (رمز مرجعي للآلة)
+                              يركب السجل المونو dir=ltr. */}
+                          <p className="text-sm font-bold truncate">
+                            <span className="font-mono tabular-nums" dir="ltr">#{t.id}</span>{" "}{t.subject}
+                          </p>
                           {/* r127-F5a: priority is optional on SupportTicket —
                               `?? ""` mirrors the sibling `t.status ?? ""` idiom
                               one line below. */}
                           <Badge variant={PRIORITY_BADGE[t.priority ?? ""] ?? "secondary"}>
                             {PRIORITY_LABEL[t.priority ?? ""] || t.priority}
                           </Badge>
-                          <Badge variant={TICKET_STATUS_BADGE[t.status ?? ""] ?? "secondary"}>
+                          {/* phase6 r154 — شارة الحالة بألوان البترول
+                              (open=لايم، pending=رملي، closed=رغوة). */}
+                          <Badge
+                            variant="secondary"
+                            className={TICKET_STATUS_PETROL[t.status ?? ""] || undefined}
+                          >
                             {TICKET_STATUS_LABEL[t.status ?? ""] || t.status}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{t.body}</p>
+                        {/* phase6 r154 — ختم التذكرة مونو HH:MM (dir=ltr) +
+                            التاريخ العربي الكامل في الـtitle (سجل البث نفسه). */}
+                        {t.created_at && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <span
+                              dir="ltr"
+                              className="font-mono tabular-nums"
+                              title={formatDate(t.created_at) || undefined}
+                            >
+                              {timeStamp(t.created_at)}
+                            </span>
+                          </p>
+                        )}
                       </div>
                       {/* v7 §2.2 EXCEPTION (documented, not replaced): disclosure
                           chevron — an expand/collapse indicator that ROTATES -90°
@@ -514,8 +557,21 @@ export default function SupportPage() {
                                           : "bg-muted/50"
                                       }`}
                                     >
-                                      <p className="font-bold mb-1 text-xs">
+                                      <p className="font-bold mb-1 text-xs flex items-center gap-2">
                                         {r.is_admin ? "فريق الدعم" : "أنت"}
+                                        {/* phase6 r154 — ختم الرد مونو HH:MM
+                                            (dir=ltr) + التاريخ الكامل في
+                                            الـtitle — خيط الردود كما هو
+                                            (المنطق بلا تغيير). */}
+                                        {r.created_at && (
+                                          <span
+                                            dir="ltr"
+                                            className="font-mono tabular-nums font-normal text-muted-foreground"
+                                            title={formatDate(r.created_at) || undefined}
+                                          >
+                                            {timeStamp(r.created_at)}
+                                          </span>
+                                        )}
                                       </p>
                                       <p className="text-muted-foreground leading-relaxed">{r.message}</p>
                                     </div>

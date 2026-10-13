@@ -91,6 +91,9 @@ export default function PagesPage() {
         title="الصفحات"
         subtitle="ربط وإدارة صفحات فيسبوك"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — الربط ليس دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -121,8 +124,21 @@ export default function PagesPage() {
                   {connected ? <CheckCircle2 className="size-5 text-success-ink" /> : <XCircle className="size-5 text-muted-foreground" />}
                 </div>
                 <div>
-                  <p className="font-bold text-sm">{connected ? (data?.page_name || "صفحة متصلة") : "غير متصلة"}</p>
-                  <p className="text-xs text-muted-foreground">{data?.page_id ? `المعرف: ${data.page_id}` : "لم يتم ربط أي صفحة بعد"}</p>
+                  <p className="font-bold text-sm flex items-center gap-1.5">
+                    {connected ? (data?.page_name || "صفحة متصلة") : "غير متصلة"}
+                    {/* phase6 r154 — عقدة اللايم الحية: الويبهوك السليم
+                        يستمع الآن (توأم عقدة المودال الحية — الآلة تعمل). */}
+                    {connected && (
+                      <span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />
+                    )}
+                  </p>
+                  {/* phase6 r154 — معرف الصفحة (رمز مرجعي للآلة) يركب السجل
+                      المونو dir=ltr — مرآة عنوان الويبهوك في /connect. */}
+                  <p className="text-xs text-muted-foreground">
+                    {data?.page_id
+                      ? <>المعرف: <span className="font-mono" dir="ltr">{data.page_id}</span></>
+                      : "لم يتم ربط أي صفحة بعد"}
+                  </p>
                 </div>
               </div>
               {/* v20 §5.2 — a known-bad stored token gets a loud banner, not
@@ -159,7 +175,9 @@ export default function PagesPage() {
                 </div>
                 {testResult.connected && (
                   <>
-                    <p className="text-sm">متابعو الصفحة: {formatNumber(testResult.fan_count)}</p>
+                    {/* phase6 r154 — عدد المتابعين يركب سجل sb-numerals
+                        (رقم العرض + tabular — سجل KpiCard نفسه). */}
+                    <p className="text-sm">متابعو الصفحة: <span className="sb-numerals font-bold">{formatNumber(testResult.fan_count)}</span></p>
                     {testResult.token_type && (
                       <p className="text-xs text-muted-foreground">
                         نوع الرمز: {testResult.token_type === "page" ? "رمز صفحة (سليم)" : testResult.token_type === "user" ? "رمز مستخدم (تم الاستبدال أو يحتاج استبدالاً)" : "غير معروف"}

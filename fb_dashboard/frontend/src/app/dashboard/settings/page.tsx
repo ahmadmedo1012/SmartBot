@@ -64,6 +64,9 @@ export default function SettingsPage() {
         title="الإعدادات"
         subtitle="إعدادات الحساب"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — نموذج حساب ليس دفق أتمتة حيًا). */
+        trace="static"
       />
       <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-3xl mx-auto w-full">
         {isLoading ? (
@@ -86,7 +89,9 @@ export default function SettingsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">اسم المستخدم</p>
-                    <p className="font-medium truncate">{user.username}</p>
+                    {/* phase6 r154 — هوية الآلة (اسم المستخدم) تُعرض على
+                        السجل المونو — قيمة لاتينية تُقرأ رقمَ دارة. */}
+                    <p className="font-medium truncate font-mono" dir="ltr">{user.username}</p>
                   </div>
                 </div>
                 {user.email && (
@@ -153,6 +158,7 @@ export default function SettingsPage() {
                       autoComplete="current-password"
                       value={currentPw}
                       onChange={(e) => setCurrentPw(e.target.value)}
+                      traceField
                       autoFocus
                     />
                     <Input
@@ -163,6 +169,7 @@ export default function SettingsPage() {
                       autoComplete="new-password"
                       value={newPw}
                       onChange={(e) => setNewPw(e.target.value)}
+                      traceField
                     />
                     <div className="flex gap-2">
                       <Button onClick={changePassword} disabled={pwBusy || !currentPw || newPw.length < 8}>

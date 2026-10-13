@@ -652,8 +652,10 @@ export function PaymentDialog({
             <div className="flex justify-between items-center">
               <span className="font-bold">{planNameAr}</span>
               {/* v15-E5 (C-FREE1): «مجاني» instead of «0 د.ل» (the same
-                  wording PlanSelector already uses for price=0). */}
-              <span className="text-lg font-bold text-accent-foreground">
+                  wording PlanSelector already uses for price=0).
+                  phase6 r154: رقم المال يركب سجل sb-numerals (Space
+                  Grotesk + tabular — رقم الآلة على مسار البترول). */}
+              <span className="text-lg font-bold text-accent-foreground sb-numerals">
                 {isFreePlan ? "مجاني" : `${formatNumber(price)} د.ل`}
               </span>
             </div>
@@ -762,7 +764,9 @@ export function PaymentDialog({
               {provider !== "bank" && (
                 <div className="rounded-xl bg-muted/30 border border-border/20 p-3 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">المبلغ المطلوب</span>
-                  <span className="text-lg font-bold text-accent-foreground">{formatNumber(price)} د.ل</span>
+                  {/* phase6 r154 — المبلغ المطلوب يركب سجل sb-numerals
+                      (توأم ملخّص الخطة أعلاه — أرقام المال موحّدة). */}
+                  <span className="text-lg font-bold text-accent-foreground sb-numerals">{formatNumber(price)} د.ل</span>
                 </div>
               )}
 

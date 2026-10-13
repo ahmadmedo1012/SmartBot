@@ -7,7 +7,10 @@
      subscriber phone input.
    - BankInstructions (provider === "bank"): bank account card with
      per-row copy, amount, sender name/number inputs and the optional
-     receipt upload (upload logic itself stays in the dialog). */
+     receipt upload (upload logic itself stays in the dialog).
+   phase6 r154: خطوات الدفع تفصلها فواصل الأثر الساكنة (<hr class="sb-trace">)
+   — محطات الدارة بين خطوات التعليمات؛ الرموز المرجعية (رقم المزوّد/رمز
+   التحويل/بنك CopyRow) مونو أصلًا ويبقى سجل الآلة. */
 
 import { useId } from "react"
 import { Landmark, Loader2 } from "lucide-react"
@@ -52,7 +55,9 @@ export function WalletInstructions({
       <div className="rounded-xl bg-muted/30 border border-border/20 p-3">
         <p className="text-xs text-muted-foreground mb-1">أرسل المبلغ إلى {providerName}</p>
         <div className="flex items-center justify-between">
-          <span className="font-bold text-lg tracking-wide font-mono" dir="ltr">
+          {/* phase6 r154 — الرمز المرجعي للمزوّد يركب السجل المونو
+              (dir=ltr + tabular — رقم الدارة على المسار). */}
+          <span className="font-bold text-lg tracking-wide font-mono tabular-nums" dir="ltr">
             {providerPhone}
           </span>
           <CopyIconButton
@@ -63,6 +68,10 @@ export function WalletInstructions({
           />
         </div>
       </div>
+
+      {/* phase6 r154 — فاصل الأثر بين خطوات الدفع (ساكن: مسار المال
+          ليس دفق أتمتة حيًا). */}
+      <hr className="sb-trace" aria-hidden="true" />
 
       {/* Quick transfer code */}
       <div className="rounded-xl bg-success/10 border border-success/25 p-3">
@@ -95,6 +104,9 @@ export function WalletInstructions({
           </div>
         </div>
       </div>
+
+      {/* phase6 r154 — فاصل الأثر بين خطوة الرمز وهاتفك (نفس محطة الدارة). */}
+      <hr className="sb-trace" aria-hidden="true" />
 
       {/* User phone */}
       <div>
@@ -184,6 +196,10 @@ export function BankInstructions({
           <CopyRow key={row.label} label={row.label} value={row.value} onCopy={onCopy} />
         ))}
       </div>
+
+      {/* phase6 r154 — فاصل الأثر بين الحساب البنكي وحقول المُرسِل
+          (محطة الدارة تفصل خطوة الحساب عن خطوة المبالغ). */}
+      <hr className="sb-trace" aria-hidden="true" />
 
       {/* Bank amount — no wallet cap (server enforces plan price) */}
       <div>

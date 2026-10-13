@@ -34,6 +34,15 @@ const PROVIDER_LABELS: Record<string, string> = {
   libyana: "ليبيانا", liyana: "ليبيانا", madar: "مدار", bank: "تحويل بنكي",
 }
 
+/* phase6 r154 — سجل ختم سجل الدفع (توأم المنشورات/البث): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
 /* v17-E-F8 (D6-2): عقد POST /api/subscriptions/upgrade
  * (routers/payments/plans.py:198) — جسم JSON: {plan_id, provider,
  * amount, phone, senderAccountName, senderAccountNumber} ويرد
@@ -232,6 +241,9 @@ export default function BillingPage() {
         title="الفواتير"
         subtitle="الرصيد وسجل الدفع"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة، الأثر
+            الساكن: مسار المال ليس دفق أتمتة حيًا — اللايم محجوز للأتمتة). */
+        trace="static"
         actions={
           /* Recharge CTA (plan v3 §7c — support FAQ pointed here with no button before)
               r131-F8 (A4 P2-4): the glowy hand-rolled span-button → a real
@@ -292,8 +304,10 @@ export default function BillingPage() {
               </div>
             ) : balance ? (
               /* r133 (A12 S9): KPI-grade money digits ride tnum (r131
-                 KPI-tnum ruling — no jitter on live updates). */
-              <p className="text-3xl font-bold tabular-nums">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
+                 KPI-tnum ruling — no jitter on live updates).
+                 phase6 r154: أرقام المال تركب سجل العرض sb-numerals
+                 (Space Grotesk + tabular — رقم الآلة على مسار البترول). */
+              <p className="text-3xl font-bold sb-numerals">{formatNumber(balance.balance)} <span className="text-lg font-normal text-muted-foreground">{balance.currency}</span></p>
             ) : (
               <p className="text-sm text-muted-foreground">غير متاح</p>
             )}
@@ -320,7 +334,9 @@ export default function BillingPage() {
             </div>
           ) : history.length === 0 ? (
             <Card><CardContent className="p-0">
-              <EmptyState icon={Receipt} size="sm" title="لا توجد معاملات سابقة" description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة." />
+              {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
+                على duty ينتظر أول معاملة مال؛ أيقونة Receipt تتقاعد هنا). */}
+            <EmptyState robot size="sm" title="لا توجد معاملات سابقة" description="ستظهر عمليات الشحن والدفع هنا — يمكنك الاشتراك أو شحن رصيدك من زر الرصيد أعلى الصفحة." />
             </CardContent></Card>
           ) : (
             <div className="space-y-2" role="list">
@@ -328,14 +344,20 @@ export default function BillingPage() {
                 <Card key={p.payment_id} role="listitem">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium">{formatNumber(p.amount)} د.ل</p>
+                      {/* phase6 r154 — مبلغ المعاملة يركب سجل sb-numerals
+                          (أرقام المال على مسار العرض نفسه). */}
+                      <p className="text-sm font-medium sb-numerals">{formatNumber(p.amount)} د.ل</p>
                       {/* r127-F5a: provider/status are optional on PaymentRow —
                           `?? ""` indexes safely and falls through to the same
                           `|| p.provider` / `|| p.status` fallbacks. */}
                       <p className="text-xs text-muted-foreground" dir="auto">{PROVIDER_LABELS[p.provider ?? ""] || p.provider} · {p.phone}</p>
                       {/* r133 (A5 S3 — 12px floor): money-history timestamps
-                          ride text-xs (content-bearing, was text-3xs). */}
-                      <p className="text-xs text-muted-foreground">{formatDate(p.created_at)}</p>
+                          ride text-xs (content-bearing, was text-3xs).
+                          phase6 r154 — ختم HH:MM مونو (dir=ltr) + التاريخ
+                          العربي الكامل في الـtitle (توأم صفحة المنشورات). */}
+                      <p className="text-xs text-muted-foreground">{formatDate(p.created_at)}{timeStamp(p.created_at) && (
+                        <span dir="ltr" className="font-mono tabular-nums" title={formatDate(p.created_at) || undefined}>{" · "}{timeStamp(p.created_at)}</span>
+                      )}</p>
                     </div>
                     {/* r131-F8 (A4 P2-3): hand-rolled status chips → Badge
                         (solid pastel after the F7 re-base; -ink text tier). */}

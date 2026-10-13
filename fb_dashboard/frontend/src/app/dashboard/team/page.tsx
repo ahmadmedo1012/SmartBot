@@ -119,6 +119,9 @@ export default function TeamPage() {
         title="الفريق"
         subtitle="إدارة أعضاء الفريق"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — إدارة الحسابات ليست دفق أتمتة حيًا). */
+        trace="static"
         actions={
           /* v17-E-F8 (D6-5): وعد «فريق حتى N» بلا سطح إنشاء — زر مرآة
               لبقية صفحات القوائم (بث/قواعد). */
@@ -140,11 +143,15 @@ export default function TeamPage() {
                   r131-F8 (A4 P1-1b/d): the raw-input idiom rides the shared
                   Input/Select primitives (16px floor / r-md / halo). */}
               <p className="text-xs font-bold text-muted-foreground">إضافة عضو جديد</p>
+              {/* phase6 r154 — اسم المستخدم (هوية الآلة للعضو) يركب أرض
+                  الدارة traceField (اختياري — كلمة المرور تبقى بلا ملمس
+                  الدارة: حقل سِرّ ليس محطة دارة). */}
               <Input
                 value={newUsername}
                 onChange={e => setNewUsername(e.target.value)}
                 placeholder="اسم المستخدم (3-32 حرفًا)"
                 aria-label="اسم المستخدم للعضو الجديد"
+                traceField
                 autoFocus
               />
               <Input
@@ -228,7 +235,10 @@ export default function TeamPage() {
                     ~295px of card content, clipping the destructive confirm. */}
                 <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="size-10 rounded-full bg-accent-foreground/10 flex items-center justify-center font-bold text-sm text-accent-foreground shrink-0">
+                    {/* phase6 r154 — لمسة دارة هادئة على صف العضو: حلقة
+                        تيل شفافة على الصورة الرمزية (نفس عائلة عقدة
+                        الأثر — زخرفة فقط، البنية والنص لا يتغيران). */}
+                    <div className="size-10 rounded-full bg-accent-foreground/10 ring-1 ring-primary/20 flex items-center justify-center font-bold text-sm text-accent-foreground shrink-0">
                       {(m.username?.[0] || "?").toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -243,10 +253,12 @@ export default function TeamPage() {
                   {m.role === "owner" ? (
                     /* v17-E-F8 (D6-5): المالك بلا تحكم — «owner» ليس دورًا
                         صالحًا في PUT (400) وحذف المالك مدمر؛ الدور يظهر
-                        كشارة فقط. */
+                        كشارة فقط.
+                        phase6 r154: شارة المالك بألوان البترول — إشارة
+                        التيل (copper) = سلطة الحساب (سجل KpiCard). */
                     <div className="flex flex-wrap items-center gap-1 text-xs justify-end sm:shrink-0">
                       {roleIcon(m.role)}
-                      <span>{ROLE_LABELS[m.role] || "مستخدم"}</span>
+                      <span className="bg-(--c-copper-bg) text-(--c-copper-ink) rounded-full px-2 py-0.5 font-medium">{ROLE_LABELS[m.role] || "مستخدم"}</span>
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2 justify-end sm:shrink-0">

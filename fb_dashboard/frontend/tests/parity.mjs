@@ -19,9 +19,10 @@
  * The consumption gates (structure bans, z-ladder, RM belt, component
  * source pins) are UNCHANGED — they are product-neutral contracts. The
  * pin count is unchanged (421): every pin re-anchored, none deleted.
- * r152b (continuation wave, Task 2-c): +9 pins for the robot/motif
- * system — RobotMark states, the rb-* motion layer, the circuit-trace
- * separators, and the retired-raster-robot zero-reference gate.
+ * r152b/c (continuation wave, Task 2-c): +9+7 pins for the robot/motif
+ * system + product-surface cascade — RobotMark states, the rb-* layer,
+ * the circuit-trace separators, the retired-raster gate, the /demo live
+ * thread, the lime AI registers, and the Grotesk KPI numerals.
  *
  * History: r127 Madarek parity rewrite (82→180+ pins), r131/r133/r134
  * wave pins — superseded value-wise by r152, kept structurally.
@@ -1414,6 +1415,78 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && !rawLanding2.includes('.landing .ln-cta-bot-img {\n  inline-size: 74px;\n  block-size: 74px;\n  border-radius: var(--ln-radius-pill);\n  overflow: hidden;\n  border: 1px solid var(--ln-line);\n  /* phase5: the plate now hosts the RobotMark SVG — petrol wash ground */\n  background: rgb(');
   if (limeOk) pass += 1;
   else fails.push('r152b lime reserve: the AI chip/panel washes ride token color-mix (no raw rgb hex washes on the new §17e layer)');
+}
+
+// ── §r152c — the product-surface cascade: /demo simulator + dashboard ──────
+{
+  /* Self-contained block: own comment-stripper + raw readers. Pins the
+     Circuit Petrol motifs as they land on the PRODUCT surfaces — the /demo
+     live conversation (AI-vs-user grammar), the autoreply/AI-suggest lime
+     registers, the Grotesk numerals on KPIs, the robot in the messages
+     empty states. */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  const rawDemo = readRaw('../src/app/demo/page.tsx');
+  const rawAuto = readRaw('../src/app/dashboard/autoreply/page.tsx');
+  const rawSuggest = readRaw('../src/components/ai/AiSuggestDialog.tsx');
+  const rawKpi = readRaw('../src/components/shared/KpiCard.tsx');
+  const rawMsgs = readRaw('../src/app/dashboard/messages/page.tsx');
+  const rawGlobals3 = readRaw('../src/app/globals.css');
+
+  // (1) /demo: the live conversation speaks the product grammar — lime
+  //     typing dots, mono HH:MM stamps, the lime «رد آلي» mark on bot
+  //     bubbles, the RobotMark riding the same state machine.
+  const demoOk = rawDemo.includes('function DemoThread()')
+    && rawDemo.includes('sb-typing sb-typing--bare')
+    && rawDemo.includes('<RobotMark state={robotState} className="size-8" />')
+    && rawDemo.includes('font-mono tabular-nums" dir="ltr">{m.time}')
+    && rawDemo.includes('رد آلي')
+    && rawDemo.includes('robotState = "thinking"');
+  if (demoOk) pass += 1;
+  else fails.push('r152c /demo: the live thread = RobotMark state machine + lime typing dots + mono stamps + «رد آلي» lime mark');
+
+  // (2) the reduced-motion contract on the demo playback (full transcript,
+  //     zero timers).
+  const demoRmOk = rawDemo.includes('const mq = window.matchMedia("(prefers-reduced-motion: reduce)")')
+    && rawDemo.includes('if (reduced) setStep(mockStats.thread.length)');
+  if (demoRmOk) pass += 1;
+  else fails.push('r152c /demo RM: reduced motion paints the whole transcript instantly (no timers)');
+
+  // (3) autoreply: the AI row + provider status ride the RESERVED lime
+  //     register (bg-lime-soft well, lime glyph, sb-ai-chip, lime status).
+  const autoOk = rawAuto.includes('bg-lime-soft text-lime border border-lime/25')
+    && rawAuto.includes('sb-ai-chip ms-2 align-middle')
+    && rawAuto.includes('behavior.ai_available ? "bg-lime" : "bg-warning"')
+    && rawAuto.includes('behavior.ai_available ? "text-lime" : "text-muted-foreground"');
+  if (autoOk) pass += 1;
+  else fails.push('r152c autoreply: the AI switch row + provider status = the lime register (well/glyph/chip/status)');
+
+  // (4) AI suggest dialog: lime Sparkles + the lime typing dots while
+  //     generating (role=status text contract intact).
+  const suggestOk = rawSuggest.includes('text-lime shrink-0')
+    && rawSuggest.includes('<span className="sb-typing" aria-hidden="true">')
+    && rawSuggest.includes('جارٍ توليد الاقتراحات…')
+    && !rawSuggest.includes('Loader2');
+  if (suggestOk) pass += 1;
+  else fails.push('r152c AI suggest: lime Sparkles + .sb-typing generating state (spinner retired)');
+
+  // (5) KPI numerals: the value slot rides .sb-numerals (Grotesk display
+  //     numerals) — the analytics/demo/owner boards inherit it.
+  const kpiOk = rawKpi.includes('sb-kpi-pop sb-numerals font-heading');
+  if (kpiOk) pass += 1;
+  else fails.push('r152c KpiCard: the value slot carries .sb-numerals (the Grotesk numeral register)');
+
+  // (6) messages: the two empty states host the ONE robot (idle waiting /
+  //     greeting pick-a-conversation) — decorative beside the text.
+  const msgsOk = rawMsgs.includes('<RobotMark state="idle" className="size-14" />')
+    && rawMsgs.includes('<RobotMark state="greeting" className="size-16" />');
+  if (msgsOk) pass += 1;
+  else fails.push('r152c messages: the empty states host RobotMark (idle/greeting), not a generic icon');
+
+  // (7) the bare typing variant exists in globals (inline status rows).
+  const bareOk = rawGlobals3.includes('.sb-typing--bare { padding: 0; background: none; border: 0;');
+  if (bareOk) pass += 1;
+  else fails.push('r152c globals: .sb-typing--bare (the chrome-free dots variant) is defined');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

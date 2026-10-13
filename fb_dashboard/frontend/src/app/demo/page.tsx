@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { AdminSidebar } from "@/components/layout/AdminSidebar"
@@ -16,8 +16,9 @@ import { cn } from "@/lib/utils"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import {
   Bot, MessageCircle, Users, Activity, TrendingUp, Clock,
-  Sparkles, CheckCircle2, Send, Bell, Settings as SettingsIcon,
+  Sparkles, CheckCircle2, Send, Bell, Settings as SettingsIcon, Zap,
 } from "lucide-react"
+import { RobotMark, type RobotState } from "@/components/shared/RobotMark"
 /* v17-E-F4 (D3 #1): success glyph unified on CheckCircle2 (the older
    CheckCircle alias is retired app-wide — one success shape everywhere). */
 /* v10-C4 (G3 rec §8-4) — recharts (352KB raw / 113KB wire) still shipped in
@@ -97,10 +98,13 @@ const mockStats = {
     { id: 3, user: "خالد المزوغي", last: "أريد تفاصيل أكثر", unread: 1, time: "09:58" },
   ],
   thread: [
-    { from: "user", text: "سلام عليكم" },
-    { from: "bot", text: "وعليكم السلام! كيف نساعدك اليوم؟" },
-    { from: "user", text: "كم سعر المنتج؟" },
-    { from: "bot", text: "سعر المنتج 120 د.ل — والتوصيل مجاني داخل طرابلس." },
+    /* phase5 r152 — the demo thread carries mono HH:MM stamps (latin
+       digits, the bot-message meta voice) so the simulator speaks the
+       same grammar as the live conversation surface. */
+    { from: "user", text: "سلام عليكم", time: "10:38" },
+    { from: "bot", text: "وعليكم السلام! كيف نساعدك اليوم؟", time: "10:38" },
+    { from: "user", text: "كم سعر المنتج؟", time: "10:41" },
+    { from: "bot", text: "سعر المنتج 120 د.ل — والتوصيل مجاني داخل طرابلس.", time: "10:42" },
   ],
   subscribers: [
     { id: 1, name: "أحمد سالم", platform: "ماسنجر", last: "اليوم", active: true },
@@ -292,6 +296,153 @@ function StatsTab() {
   )
 }
 
+/* phase5 r152 — «المحاكاة الحيّة»: the demo conversation plays the REAL
+ * product rhythm, not a static transcript: the customer's message lands,
+ * SmartBot THINKS (lime .sb-typing dots — the AI register), then the
+ * auto-reply arrives (teal side, «رد آلي» lime mark, mono HH:MM stamp).
+ * The RobotMark in the thread header rides the SAME state machine
+ * (thinking/responding/idle) so the avatar can never disagree with the
+ * transcript. Reduced motion: the whole transcript paints instantly,
+ * no timers, the calm idle robot (the repo's matchMedia twin — same
+ * contract as the landing simulator). */
+const DEMO_USER_GAP_MS = 900
+const DEMO_BOT_THINK_MS = 1100
+
+function DemoThread() {
+  const [step, setStep] = useState(0) // messages visible so far
+  const [thinking, setThinking] = useState(false)
+  const [reduced, setReduced] = useState(false)
+
+  /* reduced-motion contract: read once on mount (useReveal convention) */
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduced(mq.matches)
+  }, [])
+
+  /* reduced ⇒ full transcript immediately, zero timers */
+  useEffect(() => {
+    if (reduced) setStep(mockStats.thread.length)
+  }, [reduced])
+
+  /* the playback engine — one timer per step, cleaned on every change */
+  useEffect(() => {
+    if (reduced || step >= mockStats.thread.length) return
+    const next = mockStats.thread[step]
+    if (next.from === "bot") {
+      setThinking(true)
+      const t = window.setTimeout(() => {
+        setThinking(false)
+        setStep((s) => s + 1)
+      }, DEMO_BOT_THINK_MS)
+      return () => window.clearTimeout(t)
+    }
+    const t = window.setTimeout(() => setStep((s) => s + 1), DEMO_USER_GAP_MS)
+    return () => window.clearTimeout(t)
+  }, [reduced, step])
+
+  const lastMsg = step > 0 ? mockStats.thread[step - 1] : undefined
+  let robotState: RobotState = "idle"
+  if (!reduced) {
+    if (thinking) robotState = "thinking"
+    else if (lastMsg?.from === "bot") robotState = "responding"
+  }
+
+  return (
+    <Card className="lg:col-span-2 flex flex-col">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-3">
+          {/* the page's bot on duty — the ONE RobotMark, state follows the
+              conversation (decorative: the name sits right beside it) */}
+          <span
+            aria-hidden="true"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-secondary"
+          >
+            <RobotMark state={robotState} className="size-8" />
+          </span>
+          <div className="min-w-0">
+            <CardTitle className="text-base">محادثة: أحمد سالم</CardTitle>
+            <CardDescription>الرد الآلي يعمل — الردود تصل خلال ثوانٍ</CardDescription>
+          </div>
+          <span
+            role="status"
+            className={cn(
+              "ms-auto shrink-0 inline-flex items-center gap-1.5 text-xs",
+              thinking ? "text-lime" : "text-muted-foreground",
+            )}
+          >
+            {/* the thinking register — lime typing dots (.sb-typing) */}
+            {thinking ? (
+              <span className="sb-typing sb-typing--bare" aria-hidden="true">
+                <i /><i /><i />
+              </span>
+            ) : (
+              <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+            )}
+            {thinking ? "الذكاء يصوغ رداً…" : "البوت نشط"}
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 space-y-3 py-4">
+        {mockStats.thread.slice(0, step).map((m, i) => {
+          const isBot = m.from === "bot"
+          return (
+            <div key={i} className={cn("flex", isBot ? "justify-start" : "justify-end")}>
+              <div
+                className={cn(
+                  "max-w-[70%] rounded-xl px-4 py-2.5 text-sm space-y-1",
+                  isBot ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm",
+                )}
+              >
+                <p>{m.text}</p>
+                {/* meta line — mono timestamp + the lime AI-vs-user mark */}
+                <div
+                  className={cn(
+                    "flex items-center gap-2 text-[10px]",
+                    isBot ? "text-muted-foreground" : "text-primary-foreground",
+                  )}
+                >
+                  <span className="font-mono tabular-nums" dir="ltr">{m.time}</span>
+                  {isBot && (
+                    <span className="inline-flex items-center gap-1 font-medium text-lime">
+                      <Zap className="size-2.5" aria-hidden="true" /> رد آلي
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        {thinking && (
+          <div className="flex justify-start">
+            <span className="sb-typing" aria-hidden="true">
+              <i /><i /><i />
+            </span>
+          </div>
+        )}
+        {thinking && <p className="sr-only">SmartBot يكتب…</p>}
+        <div className="flex gap-2 pt-2">
+          {/* r131-F8 (A4 P1-1b): the demo composer rides the shared Input
+              primitive (44px / 16px floor / r-md / halo token) — was a raw
+              h-11 rounded-xl text-sm field. Wrapped in flex-1 because
+              ui/Input renders its own label/hint wrapper div. */}
+          <div className="flex-1">
+            <Input
+              disabled
+              placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
+              aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
+              /* v16-E3 (D1 C3): dir="auto" — same raw-field bidi isolation
+                  as the live message composer (ui/Input keeps dir=auto). */
+            />
+          </div>
+          <Button variant="gold" size="icon" aria-label="إرسال" disabled>
+            <Send className="size-4 rtl:-scale-x-100" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function RepliesTab() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -311,7 +462,7 @@ function RepliesTab() {
                 <p className="text-xs text-muted-foreground truncate">{c.last}</p>
               </div>
               <div className="shrink-0 text-end">
-                <p className="text-xs text-muted-foreground">{c.time}</p>
+                <p className="text-xs text-muted-foreground font-mono tabular-nums">{c.time}</p>
                 {c.unread > 0 && (
                   <span className="inline-flex items-center justify-center size-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold mt-0.5">
                     {c.unread}
@@ -323,42 +474,7 @@ function RepliesTab() {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-2 flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">محادثة: أحمد سالم</CardTitle>
-          <CardDescription>الرد الآلي يعمل — الردود تصل خلال ثوانٍ</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 space-y-3 py-4">
-          {mockStats.thread.map((m, i) => (
-            <div key={i} className={cn("flex", m.from === "bot" ? "justify-start" : "justify-end")}>
-              <div className={cn(
-                "max-w-[70%] rounded-xl px-4 py-2.5 text-sm",
-                m.from === "bot" ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
-              )}>
-                <p>{m.text}</p>
-              </div>
-            </div>
-          ))}
-          <div className="flex gap-2 pt-2">
-            {/* r131-F8 (A4 P1-1b): the demo composer rides the shared Input
-                primitive (44px / 16px floor / r-md / halo token) — was a raw
-                h-11 rounded-xl text-sm field. Wrapped in flex-1 because
-                ui/Input renders its own label/hint wrapper div. */}
-            <div className="flex-1">
-              <Input
-                disabled
-                placeholder="اكتب رداً… (متاح في الحساب الحقيقي)"
-                aria-label="نموذج تجريبي لكتابة الرد — متاح في الحساب الحقيقي"
-                /* v16-E3 (D1 C3): dir="auto" — same raw-field bidi isolation
-                    as the live message composer (ui/Input keeps dir=auto). */
-              />
-            </div>
-            <Button variant="gold" size="icon" aria-label="إرسال" disabled>
-              <Send className="size-4 rtl:-scale-x-100" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <DemoThread />
     </div>
   )
 }

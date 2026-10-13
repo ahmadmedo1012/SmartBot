@@ -145,7 +145,12 @@ export const KpiCard = memo(function KpiCard({
                                          * measured 99px and bled onto the icon well. The
                                          * sub-420px rung drops to 18px (59px); ≥420px stays the
                                          * canonical 30px (r131-F8 metric slot untouched). */}
-                                        <p className="sb-kpi-pop font-heading text-[30px] max-[420px]:text-[18px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]">
+                                        <p className="sb-kpi-pop sb-numerals font-heading text-[30px] max-[420px]:text-[18px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]">
+                                                {/* phase5 r152: .sb-numerals = the Circuit Petrol display
+                                                 * numerals register (Space Grotesk latin digits — the
+                                                 * KPI value IS the Grotesk moment on every analytics
+                                                 * surface; Arabic-Indic digits fall through per-glyph
+                                                 * to Plex Sans Arabic inside AnimatedCounter). */}
                                                 {value == null
                                                         ? fallback
                                                         : typeof value === 'string'

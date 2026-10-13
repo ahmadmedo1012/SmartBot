@@ -268,7 +268,14 @@ export default function CommentsPage() {
                             }
                             className={aiUnavailable ? "text-muted-foreground" : undefined}
                           >
-                            <Sparkles className="size-3" aria-hidden="true" />
+                            {/* phase5 r152 — the AI glyph rides LIME (the
+                                reserved AI register) whenever the engine is
+                                available; muted otherwise (the button-level
+                                text-muted-foreground keeps the promise). */}
+                            <Sparkles
+                              className={aiUnavailable ? "size-3" : "size-3 text-lime"}
+                              aria-hidden="true"
+                            />
                             {suggestMut.isPending && suggestMut.variables?.id === c.id
                               ? "جارٍ الاقتراح…"
                               : "اقترح"}

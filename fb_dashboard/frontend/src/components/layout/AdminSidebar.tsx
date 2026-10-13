@@ -141,10 +141,11 @@ export function AdminSidebar({
   }
 
   return (
-    /* Madarek sidebar (§5.5): 256px rail, flat hairline chrome. Dark mode
-     * paints the سماء مدارك night sky (.mdrk-night-sky — vertical gradient
-     * + gold aurora + constellation dust, exact Madarek recipe); light mode
-     * reverts to the flat cream surface via the html.light override. */
+    /* Madarek sidebar anatomy (§5.5): 256px rail, flat hairline chrome. Dark
+     * mode paints the CIRCUIT PETROL machine-room sky (.mdrk-night-sky —
+     * phase5 r152: petrol gradient + signal-teal aurora + circuit node
+     * dust, one lime LED); light mode reverts to the flat mist surface via
+     * the html.light override. */
     <aside className={cn("mdrk-night-sky flex flex-col h-full border-e border-border text-sm", className)}>
       {/* Logo — the REAL brand image (v3 §5.1): same /brand-icon.png asset
           Header.tsx already serves. Madarek brand block: 12px padding,

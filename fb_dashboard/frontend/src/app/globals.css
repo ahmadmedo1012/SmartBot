@@ -1591,6 +1591,9 @@ html.light .sb-trace-field::before { opacity: 0.6; }
 }
 .sb-typing i:nth-child(2) { animation-delay: 0.18s; }
 .sb-typing i:nth-child(3) { animation-delay: 0.36s; }
+/* the bare variant — same three lime dots without the bubble chrome, for
+   inline status rows (the demo thread header, compact toolbar chips) */
+.sb-typing--bare { padding: 0; background: none; border: 0; border-radius: var(--r-full); gap: 4px; }
 @keyframes sb-dot-pulse {
   0%, 100% { opacity: 0.35; transform: translateY(0); }
   40% { opacity: 1; transform: translateY(-3px); }

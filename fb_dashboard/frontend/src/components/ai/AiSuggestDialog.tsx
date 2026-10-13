@@ -12,15 +12,16 @@
  *          latency_ms })
  *   400 «AI غير مفعل — …» حين لا مفاتيح (apiFetch يرميها ApiError عربيًا).
  *
- * الحالات: جارٍ (سبينر) · خطأ عربي + إعادة محاولة · لا اقتراحات (صادق) ·
- * قائمة 1-3 بنقرة «إدراج». إغلاق Escape/زر الإغلاق من dialog.tsx المشترك
+ * الحالات: جارٍ (نقاط التفكير اللايمية — .sb-typing، سجل AI المحجوز) ·
+ * خطأ عربي + إعادة محاولة · لا اقتراحات (صادق) · قائمة 1-3 بنقطة
+ * «إدراج». إغلاق Escape/زر الإغلاق من dialog.tsx المشترك
  * (base-ui) — onOpenChange(false) يصفّر الهدف في الصفحة.
  *
- * reduced-motion: كل الحركة هنا CSS صرفة (animate-spin للسبينر + انتقالات
+ * reduced-motion: كل الحركة هنا CSS صرفة (نبض نقاط sb-typing + انتقالات
  * dialog.tsx) — يحيّدها الـoverride العالمي `prefers-reduced-motion: reduce`
  * في globals.css (لا حركة JS إطلاقًا في هذا المكوّن). */
 
-import { Sparkles, Loader2, AlertCircle, RefreshCw, TextCursorInput } from "lucide-react"
+import { Sparkles, AlertCircle, RefreshCw, TextCursorInput } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -79,7 +80,9 @@ export function AiSuggestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-accent-foreground shrink-0" aria-hidden="true" />
+          {/* phase5 r152 — the AI glyph rides LIME (the reserved register),
+              not the general teal accent. */}
+          <Sparkles className="size-4 text-lime shrink-0" aria-hidden="true" />
           <DialogTitle>اقتراحات الرد بالذكاء الاصطناعي</DialogTitle>
         </div>
         <DialogDescription>
@@ -101,7 +104,12 @@ export function AiSuggestDialog({
             aria-live="polite"
             className="flex items-center justify-center gap-2 rounded-lg border border-border/60 py-8 text-sm text-muted-foreground"
           >
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            {/* phase5 r152 — the AI thinking register: three lime dots
+                (.sb-typing, LIME = the reserved AI signal) instead of the
+                generic spinner; reduced-motion freezes them at rest. */}
+            <span className="sb-typing" aria-hidden="true">
+              <i /><i /><i />
+            </span>
             جارٍ توليد الاقتراحات…
           </div>
         ) : error ? (

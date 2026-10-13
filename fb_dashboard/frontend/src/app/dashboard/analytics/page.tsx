@@ -241,8 +241,11 @@ function PeakHourSection() {
         <PremiumLockBody feature="ساعة الذروة" />
       ) : peak != null ? (
         <div className="flex flex-col items-center justify-center gap-2 py-6">
-          {/* r131-F8 (A4 P3-12): 48px → the 44px metric cap (tnum kept) */}
-          <p className="font-heading text-[44px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]" dir="ltr">{String(peak).padStart(2, "0")}:00</p>
+          {/* r131-F8 (A4 P3-12): 48px → the 44px metric cap (tnum kept).
+              phase5 r152: .sb-numerals — the Grotesk display-numerals
+              register (latin HH:00 rides Space Grotesk on the petrol
+              cockpit board). */}
+          <p className="sb-numerals font-heading text-[44px] leading-[1.1] font-bold tabular-nums [font-feature-settings:'tnum'_1,'lnum'_1]" dir="ltr">{String(peak).padStart(2, "0")}:00</p>
           <p className="text-xs text-muted-foreground">أكثر ساعة يسجّل فيها جمهورك تفاعلًا مع صفحتك</p>
         </div>
       ) : null}

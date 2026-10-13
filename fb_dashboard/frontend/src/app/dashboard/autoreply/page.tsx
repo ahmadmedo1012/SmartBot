@@ -319,14 +319,29 @@ export default function AutoReplyPage() {
               {BEHAVIOR_SWITCHES.map((row) => {
                 const checked = behavior[row.key] === true
                 const saving = behaviorMut.isPending && !!behaviorMut.variables && row.key in behaviorMut.variables
+                /* phase5 r152 — the AI row rides the RESERVED lime register
+                   (the AI/automation signal): lime well + lime glyph + the
+                   mono AI chip. The other two rows keep the teal accent. */
+                const isAiRow = row.key === "ai_auto_reply"
                 return (
                   <div key={row.key} className="flex items-center justify-between gap-4 py-2.5 border-b border-border/40 last:border-b-0">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <div className="size-9 rounded-xl bg-accent-foreground/10 border border-accent-foreground/20 flex items-center justify-center text-accent-foreground shrink-0">
+                      <div
+                        className={
+                          isAiRow
+                            ? "size-9 rounded-xl bg-lime-soft text-lime border border-lime/25 flex items-center justify-center shrink-0"
+                            : "size-9 rounded-xl bg-accent-foreground/10 border border-accent-foreground/20 flex items-center justify-center text-accent-foreground shrink-0"
+                        }
+                      >
                         <row.Icon className="size-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold mb-0.5">{row.title}</p>
+                        <p className="text-sm font-bold mb-0.5">
+                          {row.title}
+                          {isAiRow && (
+                            <span className="sb-ai-chip ms-2 align-middle" aria-hidden="true">AI</span>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground leading-relaxed">{row.description}</p>
                       </div>
                     </div>
@@ -344,10 +359,12 @@ export default function AutoReplyPage() {
               })}
 
               {/* v23: شريط حالة مزود AI — role=status (aria-live ضمنياً) حتى
-                  يُعلن تغيّر جاهزية المزود لقارئات الشاشة دون تفاعل. */}
+                  يُعلن تغيّر جاهزية المزود لقارئات الشاشة دون تفاعل.
+                  phase5 r152: جاهزية AI = إشارة AI = LIME (النقطة + النص)،
+                  لا الشارة الخضراء العامة. */}
               <div role="status" className="flex items-center gap-2 pt-3 border-t border-border/40">
-                <span className={`size-2 rounded-full shrink-0 ${behavior.ai_available ? "bg-success" : "bg-warning"}`} />
-                <p className="text-xs text-muted-foreground">
+                <span className={`size-2 rounded-full shrink-0 ${behavior.ai_available ? "bg-lime" : "bg-warning"}`} />
+                <p className={`text-xs ${behavior.ai_available ? "text-lime" : "text-muted-foreground"}`}>
                   {behavior.ai_available
                     ? `الذكاء الاصطناعي جاهز (${AI_PROVIDER_LABEL[behavior.ai_provider] ?? "—"})`
                     : "الذكاء الاصطناعي غير مفعّل — أضف مفتاح API من إعدادات الأدمن"}

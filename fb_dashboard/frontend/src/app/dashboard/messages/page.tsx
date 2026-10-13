@@ -16,6 +16,7 @@ import { pillClasses } from "@/components/shared/pills"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { RobotMark } from "@/components/shared/RobotMark"
 import Link from "next/link"
 import Image from "next/image"
 import { unwrapApi } from "@/lib/api"
@@ -857,7 +858,12 @@ function MessagesView() {
               </div>
             ) : conversations.length === 0 ? (
               <EmptyState
-                icon={MessageCircle}
+                /* phase5 r152 — the empty conversations state hosts the ONE
+                   robot (idle — the bot is on duty, waiting for the first
+                   message); decorative: the title/desc carry the meaning. */
+                iconNode={<RobotMark state="idle" className="size-14" />}
+                iconBgClassName="bg-transparent border-transparent"
+                icon={undefined}
                 size="sm"
                 title={search || filter !== "all" ? "لا توجد نتائج" : "لا توجد محادثات بعد"}
                 description={search || filter !== "all"
@@ -886,9 +892,14 @@ function MessagesView() {
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center">
               <EmptyState
-                /* v17-E-F1 (D3): MessageCircle — the second in-page Bell
-                    (same notifications collision as the header icon above). */
-                icon={MessageCircle}
+                /* v17-E-F1 (D3): MessageCircle was the second in-page Bell
+                    (same notifications collision as the header icon above).
+                    phase5 r152: the greeting RobotMark takes the slot — the
+                    bot itself waves you into the conversation (the ONE art
+                    direction, decorative next to the title text). */
+                iconNode={<RobotMark state="greeting" className="size-16" />}
+                iconBgClassName="bg-transparent border-transparent"
+                icon={undefined}
                 size="lg"
                 title="اختر محادثة"
                 description="اختر محادثة من القائمة لعرض الرسائل والرد عليها."

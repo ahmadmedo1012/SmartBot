@@ -108,12 +108,22 @@ jobs:
           # الخيوط قبل الموت، فنفشل بصخب وبموقع التجمّد بدل حائط 40
           # دقيقة الذي أكل تشغيلة r136c العكسية بلا دليل.
           run_suite () {
-            timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=60 2>&1 | tee /tmp/pytest_run.log
+            # phase8-fix (تخزين حتمي): إعادة توجيه مباشرة للملف بدل أنبوب
+            # tee — ذاكرة tee الوسيطة stdio قد تبتلع الأسطر الأخيرة عند
+            # قتل العملية (SIGABRT) قبل كتابتها في الملف فتفشل أنماط فحص
+            # فئة إعادة المحاولة (أثبتته تشغيلتا d1d62c9/a28a271: sync+sleep
+            # لم يكفا — الكتابة نواة-مباشرة تكفي). السجل يُعرض بعد النهاية.
+            set +e
+            timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=60 > /tmp/pytest_run.log 2>&1
+            local rc=$?
+            set -e
+            cat /tmp/pytest_run.log
+            return $rc
           }
           if ! run_suite; then
-            # phase8-fix: نفس حاجز كتابة السباق الذي أدناه — tee قد يؤخر
-            # الأسطر الأخيرة عن لحظة grep.
-            sync; sleep 2
+            # phase8-fix: حاجز مهلة صغير للسلامة (الكتابة نواة-مباشرة أعلاه
+            # تجعله احتياطيًا فقط).
+            sleep 1
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_run.log; then
               echo "⚠️  pytest failed with the documented StaticPool stranded-transaction flake class — one transparent retry (v13 policy; same-order retry failed identically in the r133 run — if this retry also fails, the reverse-order pass below is the tiebreaker)…"
               run_suite
@@ -123,15 +133,20 @@ jobs:
           fi
           # Reverse order — hermeticity is a GATE, not a hope (v5 §0).
           run_rev () {
-            timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log
+            # phase8-fix (تخزين حتمي): نفس نمط run_suite — إعادة توجيه مباشرة
+            # (لا ذاكرة وسيطة تُفقد أسطر faulthandler الأخيرة عند القتل).
+            set +e
+            timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') > /tmp/pytest_rev.log 2>&1
+            local rc=$?
+            set -e
+            cat /tmp/pytest_rev.log
+            return $rc
           }
           if ! run_rev; then
-            # phase8-fix (X140-SB-CI سباق قراءة): تفريغ faulthandler/pytest
-            # يمر عبر أنبوب tee — قُرئت أنماط الفحص قبل كتابة الأسطر الأخيرة
-            # في الملف (لوحظ حيًا في d1d62c9: ❌ بعد 28ms من Timeout بينما
-            # النمطان حاضران في دفّة الإخراج نفسها) فابتلع إعادة المحاولة
-            # الموثقة. حاجز كتابة قبل الفحص يحسم السباق نهائيًا.
-            sync; sleep 2
+            # phase8-fix: حاجز مهلة احتياطي (الكتابة النواة-مباشرة أعلاه هي
+            # الحاسم — أثبتت d1d62c9/a28a271 أن sync لا يفرغ ذاكرة tee
+            # الوسيطة المستخدمة في النسخة القديمة).
+            sleep 1
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
               run_rev

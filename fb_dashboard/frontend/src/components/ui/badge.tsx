@@ -28,7 +28,7 @@ const badgeVariants = cva(
         /* r131-F7b: SOLID PASTEL status pairs — opaque --*-soft family ground
          * + the AA -ink text tier, borderless (madarek .badge recipe).
          * gold = the copper family ground + --accent-ink (theme-flipped:
-         * gold #E9B44C dark / copper-deep #5C3416 light — AA text in both). */
+         * teal #17C3A4 on #0A2E28 dark ≈ 6.6:1 / teal-deep #085B4C on #D7F3EA light ≈ 6.9:1). */
         success: "bg-success-soft text-success-ink",
         warning: "bg-warning-soft text-warning-ink",
         danger: "bg-destructive-soft text-destructive-ink",

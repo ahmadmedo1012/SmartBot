@@ -1,8 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
-   Self-hosted IBM Plex fonts — the 10-file set, served from
-   /public/fonts (Madarek parity anatomy; r132-F3a: the 2 serif
-   italic cuts deleted — zero font-serif consumers, 42.6KB of dead
-   deploy weight per A9 SB-N1).
+   Self-hosted IBM Plex + Space Grotesk fonts — served from
+   /public/fonts (phase5 r152: Space Grotesk joins the set as the
+   Circuit-Petrol LATIN display face; Madarek-era 10-file Plex set
+   unchanged; r132-F3a: the 2 serif italic cuts deleted — zero
+   font-serif consumers, 42.6KB of dead deploy weight per A9 SB-N1).
 
    🔴 THE P1 SHIM (kept, repointed): globals.css declares
    --font-sans/--font-arabic as `var(--font-cairo), "IBM Plex Sans Arabic", …`.
@@ -14,17 +15,23 @@
    here — in the same stylesheet that @font-face-declares the family —
    BEFORE any consumer can read it.
    ─────────────────────────────────────────────────────────
-   What the app uses (Madarek §7):
-   · IBM Plex Sans Arabic 400/500/600/700 — body + display headings + chart
+   What the app uses (phase5 r152 — Circuit Petrol):
+   · IBM Plex Sans Arabic 400/500/600/700 — body + Arabic display + chart
      labels (arabic + latin subsets). NO 800 cut exists; 700 is the heaviest
      file (CSS font matching selects 700 for font-weight: 800 with NO
-     synthetic bold — --fw-black resolves to 700 in Madarek).
+     synthetic bold — --fw-black resolves to 700).
+   · Space Grotesk — VARIABLE woff2 (wght 300-700, latin subset, ~22KB):
+     the Latin display face (headings/hero Latin runs + latin-only
+     numerics). Arabic glyphs are NOT in the subset — the display chain
+     ("Space Grotesk", "IBM Plex Sans Arabic", …) renders Arabic headings
+     in Plex Sans Arabic (never a serif fallback). Consumed via
+     --font-display / --font-heading in globals.css.
    · IBM Plex Mono 400/500 — codes, IDs, numbers, emails, kbd hints,
-     eyebrow labels (Arabic runs in the mono voice continue in Plex Sans
-     Arabic via the composite stack — Madarek §2.1).
-   All weights/subsets = the exact woff2 files the Madarek app ships.
-   font-display: swap on every face. First paint preloads only the two
-     arabic subsets (400 + 700, ~86KB) — see app/layout.tsx.
+     eyebrow labels, bot-message meta + timestamps (Arabic runs in the
+     mono voice continue in Plex Sans Arabic via the composite stack).
+   All Plex weights/subsets = the exact woff2 files the Madarek era
+     shipped. font-display: swap on every face. First paint preloads the
+     two arabic subsets (400 + 700) + Space Grotesk — see app/layout.tsx.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -114,5 +121,20 @@
   font-weight: 500;
   font-display: swap;
   src: url('/fonts/plex-mono-500-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ── Space Grotesk — latin subset, VARIABLE (wght 300-700) ──────────
+   phase5 r152 (Circuit Petrol): the Latin display face. One variable
+   woff2 (~22KB) serves every weight the display voice asks for (500/700
+   are the two the product consumes). Latin-only: the display chain in
+   globals.css puts "IBM Plex Sans Arabic" right behind it so Arabic
+   headings never fall out of the sans world. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }

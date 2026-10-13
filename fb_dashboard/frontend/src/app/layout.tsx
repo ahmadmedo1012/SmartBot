@@ -53,11 +53,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   /* Madarek theme-color sync (index.html pattern): the browser bar follows
-   * the GROUND, not the brand — #FBFAF9 cream (light) / #070B16 night
+   * the GROUND, not the brand — #EDF6F3 mist (light) / #071A21 petrol
    * (dark). Was the flame #bc4700 in both modes. */
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FBFAF9" },
-    { media: "(prefers-color-scheme: dark)", color: "#070B16" },
+    { media: "(prefers-color-scheme: light)", color: "#EDF6F3" },
+    { media: "(prefers-color-scheme: dark)", color: "#071A21" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -95,6 +95,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          * fetch ahead of CSS discovery. */}
         <link rel="preload" as="font" type="font/woff2" href="/fonts/plex-sans-arabic-400-normal-arabic.woff2" crossOrigin="anonymous" />
         <link rel="preload" as="font" type="font/woff2" href="/fonts/plex-sans-arabic-700-normal-arabic.woff2" crossOrigin="anonymous" />
+        {/* phase5 r152: the Latin display face (hero headline Latin runs +
+            latin numerics) — variable woff2, ~22KB. */}
+        <link rel="preload" as="font" type="font/woff2" href="/fonts/space-grotesk-latin.woff2" crossOrigin="anonymous" />
       </head>
       {/* Madarek de-glow: the body ground is FLAT (cream/night) — the
           orange radial, film grain and grid overlay are retired; hairline

@@ -8,10 +8,10 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     /* Madarek ground colors: cream splash on the night browser chrome —
-     * the PWA follows the app's dark default (مدارك night #070B16) with a
-     * warm near-white window (Madarek paper #FBFAF9). Was #0B0A08/#bc4700. */
-    background_color: "#FBFAF9",
-    theme_color: "#070B16",
+     * the PWA follows the app's dark default (Circuit Petrol night
+     * #071A21) with a cool near-white window (petrol mist #EDF6F3). */
+    background_color: "#EDF6F3",
+    theme_color: "#071A21",
     lang: "ar",
     dir: "rtl",
     /* v24-C6 (WCAG 1.3.4 Orientation): `orientation: "portrait"` was removed —

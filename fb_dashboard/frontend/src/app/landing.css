@@ -1,8 +1,11 @@
 /*
- * landing.css — r128-F3a (Stage A foundation).
+ * landing.css — phase5 r152 (Circuit Petrol re-anchor).
  * The SmartBot landing layer: everything scoped under the `.landing` wrapper
- * on the page root (PORT-KIT §0 R4 — the landing paints the Orbit-Ink world
- * in BOTH themes; the product token pins in globals.css stay untouched).
+ * on the page root (PORT-KIT §0 R4 — the landing paints the CIRCUIT PETROL
+ * world in BOTH themes: petrol stage #071A21 / #0D2830, foam ink #E9F5F0,
+ * signal-teal accent (--ln-lime), AI lime (--ln-violet) SPARSELY, robot
+ * visor teal + lime LED; the product token pins in globals.css stay
+ * untouched). Structure/grammar is the r128-F3a port — VALUES re-anchored.
  *
  * Port map (madarek @ cf7ffca, canonical per PORT-KIT r128):
  *   bridge tokens      — values the smart-bot product sheet does not define
@@ -18,8 +21,11 @@
  *   reveal family      — polish.css:470-488 (.reveal-up), the CSS half of
  *                        the useReveal/RevealCssClass port (kit §2)
  *
- * Discipline (PORT-KIT §7): flat ink grounds, hairlines, lime/violet
+ * Discipline (PORT-KIT §7): flat petrol grounds, hairlines, teal/lime
  * accents only — no gradients on grounds, no glow, no glass, no tilt.
+ * Lime discipline (phase5): AI/automation moments only — the label halo,
+ * thinking dots, automated-reply glow, the robot LED. Teal is the voice
+ * of the machine (buttons, bot bubbles, tabs, dots).
  */
 
 /* ── 0 · bridge — canonical Madarek values the product sheet lacks ────
@@ -81,16 +87,16 @@
 
 /* ── 1 · token block — PORT-KIT §1 verbatim ─────────────────────────── */
 .landing {
-  --ln-ink:        #252A3E;   /* primary flat ground */
-  --ln-ink-2:      #1C2032;   /* darker step — scene separation */
-  --ln-cream:      #F5F3E7;   /* primary text on ink — 12.75:1 AAA */
-  --ln-cream-dim:  #C9C6B4;   /* secondary text — 8.26:1 AAA */
-  --ln-lime:       #DFEDB2;   /* accent 1 (pistachio) */
-  --ln-lime-deep:  #B9D778;   /* hover/active lime — 8.82:1 */
-  --ln-violet:     #7A6BF2;   /* accent 2 — large-text/accent only */
-  --ln-violet-deep:#4E2FB8;   /* decorative depth fills only */
-  --ln-line:       rgba(245,243,231,0.14);
-  --ln-line-soft:  rgba(245,243,231,0.07);
+  --ln-ink:        #071A21;   /* primary flat ground */
+  --ln-ink-2:      #0D2830;   /* darker step — scene separation */
+  --ln-cream:      #E9F5F0;   /* primary text on ink — 12.75:1 AAA */
+  --ln-cream-dim:  #9FC3BC;   /* secondary text — 8.26:1 AAA */
+  --ln-lime:       #17C3A4;   /* accent 1 (pistachio) */
+  --ln-lime-deep:  #1FD6B4;   /* hover/active lime — 8.82:1 */
+  --ln-violet:     #C6F24E;   /* accent 2 — large-text/accent only */
+  --ln-violet-deep:#5A7A16;   /* decorative depth fills only */
+  --ln-line:       rgba(233,245,240,0.14);
+  --ln-line-soft:  rgba(233,245,240,0.07);
   /* r129 (P3-22, canonical landing.css:58): grain lifted 0.05 → 0.075 —
      the one permanent texture must be perceivable, not theoretical
      (Madarek tokens.css keeps 0.05 for any non-landing consumer). */
@@ -271,7 +277,7 @@
 }
 /* solid ink-2 @ 92% + hairline — no glass blur anywhere */
 .landing .landing-header.scrolled {
-  background: rgb(28 32 50 / 0.92);
+  background: rgb(13 40 48 / 0.92);
   border-block-end-color: var(--ln-line);
 }
 
@@ -304,7 +310,7 @@
     color var(--ln-t-fast) var(--ln-ease-soft),
     background var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .landing-nav-link:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.04); }
+.landing .landing-nav-link:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.04); }
 .landing .landing-nav-link:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; border-radius: var(--ln-radius-pill); }
 
 /* Scroll-spy active state (R2) — the observer writes
@@ -316,14 +322,14 @@
 .landing header[data-active-section="platform"] .landing-nav-link[href="#platform"],
 .landing header[data-active-section="trust"] .landing-nav-link[href="#trust"] {
   color: var(--ln-cream);
-  background: rgb(245 243 231 / 0.08);
+  background: rgb(233 245 240 / 0.08);
 }
 .landing .landing-nav-link svg { transition: transform var(--ln-t-fast) var(--ln-ease-out); }
 
 /* megamenu — landing.css:277-330 verbatim; opaque panel, hairline edge,
    no blur, no ghost shadow */
 .landing .landing-nav-group { position: relative; }
-.landing .landing-nav-group.open .landing-nav-link { color: var(--ln-cream); background: rgb(245 243 231 / 0.04); }
+.landing .landing-nav-group.open .landing-nav-link { color: var(--ln-cream); background: rgb(233 245 240 / 0.04); }
 .landing .landing-nav-group.open .landing-nav-link svg { transform: rotate(180deg); }
 .landing .landing-megamenu {
   position: absolute;
@@ -358,7 +364,7 @@
   transition: background var(--ln-t-fast) var(--ln-ease-soft);
 }
 .landing .landing-megamenu-item:hover,
-.landing .landing-megamenu-item:focus-visible { background: rgb(245 243 231 / 0.05); }
+.landing .landing-megamenu-item:focus-visible { background: rgb(233 245 240 / 0.05); }
 .landing .ln-menu-ico {
   inline-size: 38px;
   block-size: 38px;
@@ -367,9 +373,9 @@
   border-radius: var(--r-lg);
   flex-shrink: 0;
 }
-.landing .ln-menu-ico.gold { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-menu-ico.azure { background: rgb(122 107 242 / 0.16); color: var(--ln-violet); }
-.landing .ln-menu-ico.mist { background: rgb(245 243 231 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-menu-ico.gold { background: rgb(233 245 240 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-menu-ico.azure { background: rgb(198 242 78 / 0.16); color: var(--ln-violet); }
+.landing .ln-menu-ico.mist { background: rgb(233 245 240 / 0.08); color: var(--ln-cream-dim); }
 .landing .landing-megamenu-item-title { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); }
 .landing .landing-megamenu-item-desc { display: block; color: var(--ln-cream-dim); font-size: 12px; margin-block-start: 2px; }
 
@@ -464,15 +470,15 @@
   color: var(--ln-cream);
   /* GAP-3: the old 0.14 hairline read as a disabled field — the pill
      SHAPE must be visible before the text inside it can feel clickable. */
-  border: 1px solid rgb(245 243 231 / 0.34);
+  border: 1px solid rgb(233 245 240 / 0.34);
   border-radius: var(--ln-radius-pill);
   /* Subtle depth on ghost buttons for premium feel */
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 .landing .ln-btn-ghost:hover {
-  background: rgb(245 243 231 / 0.07);
+  background: rgb(233 245 240 / 0.07);
   color: var(--ln-cream);
-  border-color: rgb(245 243 231 / 0.52);
+  border-color: rgb(233 245 240 / 0.52);
   /* Elevated ghost on hover */
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
@@ -493,7 +499,7 @@
   top: 0;
   block-size: 2px;
   z-index: 90;
-  background: rgb(245 243 231 / 0.08);
+  background: rgb(233 245 240 / 0.08);
   pointer-events: none;
 }
 .landing .landing-progress-bar {
@@ -682,7 +688,7 @@
     color var(--ln-t-base) var(--ln-ease),
     border-color var(--ln-t-base) var(--ln-ease);
 }
-.landing .landing-burger:hover { background: rgb(245 243 231 / 0.04); color: var(--ln-cream); }
+.landing .landing-burger:hover { background: rgb(233 245 240 / 0.04); color: var(--ln-cream); }
 .landing .landing-burger:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
 
 .landing .landing-mobile-menu {
@@ -727,7 +733,7 @@
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  background: radial-gradient(46% 54% at 30% 44%, rgb(122 107 242 / 0.10) 0%, transparent 70%);
+  background: radial-gradient(46% 54% at 30% 44%, rgb(198 242 78 / 0.10) 0%, transparent 70%);
 }
 .landing .ln-hero-sky::after {
   content: '';
@@ -939,7 +945,7 @@
   block-size: 7px;
   border-radius: var(--ln-radius-pill);
   background: var(--ln-lime);
-  box-shadow: 0 0 10px rgb(223 237 178 / 0.4);
+  box-shadow: 0 0 10px rgb(23 195 164 / 0.4);
   animation: ln-trust-live 3.2s var(--ln-ease-soft) infinite;
 }
 @keyframes ln-trust-live {
@@ -1076,7 +1082,7 @@
 .landing .ln-faq-item {
   border: 1px solid var(--ln-line-soft);
   border-radius: var(--r-md);
-  background: rgb(245 243 231 / 0.02);
+  background: rgb(233 245 240 / 0.02);
   transition: border-color var(--ln-t-base) var(--ln-ease);
 }
 .landing .ln-faq-item:hover,
@@ -1371,13 +1377,13 @@
 
 /* ── bot token block — NEW names only (canonical set untouched) ─────── */
 .landing {
-  --ln-bot-glow: rgb(223 237 178 / 0.14);   /* lime halo — automated-reply presence */
-  --ln-bot-glow-deep: rgb(223 237 178 / 0.26);
-  --ln-bot-amber: #F2C48D;                   /* warm eye light — LARGE text/accents on ink only */
-  --ln-bot-amber-soft: rgb(242 196 141 / 0.13);
-  --ln-bot-bubble-in: rgb(24 28 44 / 0.94);  /* messenger incoming bubble on ink */
-  --ln-bot-bubble-in-line: rgb(245 243 231 / 0.18);
-  --ln-bot-frame: rgb(245 243 231 / 0.06);   /* portrait plate wash */
+  --ln-bot-glow: rgb(198 242 78 / 0.14);   /* lime halo — automated-reply presence */
+  --ln-bot-glow-deep: rgb(198 242 78 / 0.26);
+  --ln-bot-amber: #C6F24E;                   /* warm eye light — LARGE text/accents on ink only */
+  --ln-bot-amber-soft: rgb(198 242 78 / 0.13);
+  --ln-bot-bubble-in: rgb(18 48 57 / 0.94);  /* messenger incoming bubble on ink */
+  --ln-bot-bubble-in-line: rgb(233 245 240 / 0.18);
+  --ln-bot-frame: rgb(233 245 240 / 0.06);   /* portrait plate wash */
   --ln-bot-dur-orbit: 64s;                   /* one lap of the hero orbit ring */
   --ln-bot-dur-float: 7s;                    /* bubble drift period */
   --ln-bot-dur-pulse: 3.8s;                  /* eye-glow breathing */
@@ -1408,7 +1414,7 @@
 .landing .ln-botchat {
   min-inline-size: 0;
   border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03);
+  background: rgb(233 245 240 / 0.03);
   border: 1px solid var(--ln-line-soft);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   overflow: hidden;
@@ -1420,7 +1426,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: rgb(28 32 50 / 0.66);
+  background: rgb(13 40 48 / 0.66);
   border-block-end: 1px solid var(--ln-line-soft);
 }
 .landing .ln-botchat-avatar {
@@ -1485,7 +1491,7 @@
     background var(--ln-t-fast) var(--ln-ease-soft),
     border-color var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .ln-botchat-tab:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); }
+.landing .ln-botchat-tab:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); }
 .landing .ln-botchat-tab[aria-pressed='true'] {
   color: var(--ln-ink);
   background: var(--ln-lime);
@@ -1503,11 +1509,11 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  scrollbar-color: rgb(245 243 231 / 0.22) transparent;
+  scrollbar-color: rgb(233 245 240 / 0.22) transparent;
 }
 .landing .ln-botchat-log::-webkit-scrollbar { inline-size: 6px; }
 .landing .ln-botchat-log::-webkit-scrollbar-thumb {
-  background: rgb(245 243 231 / 0.18);
+  background: rgb(233 245 240 / 0.18);
   border-radius: var(--ln-radius-pill);
 }
 .landing .ln-botchat-msg {
@@ -1564,12 +1570,12 @@
   letter-spacing: 0;
 }
 .landing .ln-botchat-badge.auto {
-  background: rgb(28 32 50 / 0.14);
+  background: rgb(13 40 48 / 0.14);
   color: var(--ln-ink);
 }
 .landing .ln-botchat-msg.bot .ln-botchat-badge { margin-inline-start: 8px; margin-block-start: 0; }
 .landing .ln-botchat-badge.human {
-  background: rgb(242 196 141 / 0.14);
+  background: rgb(198 242 78 / 0.14);
   color: var(--ln-bot-amber);
 }
 
@@ -1632,7 +1638,7 @@
     color var(--ln-t-fast) var(--ln-ease-soft),
     background var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .ln-botchat-replay:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); }
+.landing .ln-botchat-replay:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); }
 
 /* ── 16d · finale presence — the companion waves you in ─────────────── */
 .landing .ln-cta-bot {
@@ -1646,7 +1652,7 @@
   border-radius: var(--ln-radius-pill);
   overflow: hidden;
   border: 1px solid var(--ln-line);
-  box-shadow: 0 0 0 4px rgb(223 237 178 / 0.10), 0 4px 14px rgba(0,0,0,0.24);
+  box-shadow: 0 0 0 4px rgb(23 195 164 / 0.10), 0 4px 14px rgba(0,0,0,0.24);
   transform-origin: 30% 80%;
   animation: ln-bot-wave 2.8s var(--ln-ease-soft) infinite;
 }
@@ -1701,12 +1707,12 @@
 
 /* ── 17 · companion tokens — NEW names only ─────────────────────────── */
 .landing {
-  --sb-spot: rgb(223 237 178 / 0.10);        /* the stage spotlight wash */
-  --sb-spot-deep: rgb(223 237 178 / 0.22);   /* the floor disc lit pool */
-  --sb-wash: rgb(223 237 178 / 0.05);        /* the stage base wash */
-  --sb-led: var(--ln-lime);                  /* the LED halo */
-  --sb-led-dim: rgb(223 237 178 / 0.30);
-  --sb-hud-bg: rgb(28 32 50 / 0.78);         /* the HUD chip ground */
+  --sb-spot: rgb(23 195 164 / 0.10);        /* the stage spotlight wash */
+  --sb-spot-deep: rgb(23 195 164 / 0.22);   /* the floor disc lit pool */
+  --sb-wash: rgb(23 195 164 / 0.05);        /* the stage base wash */
+  --sb-led: var(--c-lime-ink);                  /* the LED halo */
+  --sb-led-dim: rgb(198 242 78 / 0.30);
+  --sb-hud-bg: rgb(13 40 48 / 0.78);         /* the HUD chip ground */
   --sb-dur-crossfade: 460ms;                 /* pose crossfade */
   --sb-dur-breathe: 4.2s;                    /* LED breathing period */
   --sb-dur-spin: 26s;                        /* one floor-ring lap */
@@ -1755,7 +1761,7 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 18px 44px rgba(0,0,0,0.24);
   transition: border-color var(--ln-t-base) var(--ln-ease);
 }
-.landing .ln-companion-stage:hover { border-color: rgb(245 243 231 / 0.26); }
+.landing .ln-companion-stage:hover { border-color: rgb(233 245 240 / 0.26); }
 
 /* the four poses — crossfade lanes on ONE plane (data-pose on the root
    decides the lit layer; the SSR default is hero = instant paint) */
@@ -1780,7 +1786,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(28 32 50 / 0.5) 100%);
+  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(13 40 48 / 0.5) 100%);
 }
 
 /* the turntable floor — perspective-tilted disc + two counter-rotating
@@ -1811,10 +1817,10 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px dashed rgb(223 237 178 / 0.38);
+  border: 1px dashed rgb(23 195 164 / 0.38);
   animation: ln-stage-spin var(--sb-dur-spin) var(--ln-ease-linear) infinite;
 }
-.landing .ln-companion-floor-ring.r2 { inset: -20% -10%; border-color: rgb(223 237 178 / 0.16); }
+.landing .ln-companion-floor-ring.r2 { inset: -20% -10%; border-color: rgb(23 195 164 / 0.16); }
 .landing .ln-companion-floor-ring.r2 i {
   animation-duration: calc(var(--sb-dur-spin) * 1.6);
   animation-direction: reverse;
@@ -1943,7 +1949,7 @@
     background var(--ln-t-fast) var(--ln-ease-soft),
     border-color var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .ln-mind-chip:hover { color: var(--ln-cream); background: rgb(245 243 231 / 0.05); border-color: rgb(245 243 231 / 0.26); }
+.landing .ln-mind-chip:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); border-color: rgb(233 245 240 / 0.26); }
 .landing .ln-mind-chip:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
 .landing .ln-mind-chip-dot {
   inline-size: 8px;
@@ -1966,7 +1972,7 @@
   gap: var(--sp-4) clamp(28px, 4vw, 56px);
   padding: clamp(20px, 3vw, 32px);
   border-radius: var(--r-2xl);
-  background: rgb(245 243 231 / 0.03);
+  background: rgb(233 245 240 / 0.03);
   border: 1px solid var(--ln-line-soft);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   transition: border-color var(--ln-t-base) var(--ln-ease);
@@ -2075,12 +2081,12 @@
   block-size: 11px;
   border-radius: var(--ln-radius-pill);
   background: var(--ln-cream);
-  box-shadow: 0 0 0 4px rgb(245 243 231 / 0.14);
+  box-shadow: 0 0 0 4px rgb(233 245 240 / 0.14);
 }
 .landing .ln-day-panel:last-child .ln-day-node::before {
   inline-size: 15px;
   block-size: 15px;
-  box-shadow: 0 0 0 5px rgb(245 243 231 / 0.18);
+  box-shadow: 0 0 0 5px rgb(233 245 240 / 0.18);
 }
 .landing .ln-day-clock { font-size: 10.5px; color: var(--ln-cream-dim); }
 .landing .ln-day-card {
@@ -2142,7 +2148,7 @@
   min-inline-size: 0;
   border-radius: var(--r-2xl);
   border: 1px solid var(--ln-line-soft);
-  background: rgb(245 243 231 / 0.03);
+  background: rgb(233 245 240 / 0.03);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   overflow: hidden;
   transition: border-color var(--ln-t-base) var(--ln-ease);
@@ -2153,7 +2159,7 @@
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  background: rgb(28 32 50 / 0.66);
+  background: rgb(13 40 48 / 0.66);
   border-block-end: 1px solid var(--ln-line-soft);
   box-shadow: inset 0 1px 0 rgba(245,243,231,0.04);
 }
@@ -2161,7 +2167,7 @@
   inline-size: 8px;
   block-size: 8px;
   border-radius: var(--ln-radius-pill);
-  background: rgb(245 243 231 / 0.18);
+  background: rgb(233 245 240 / 0.18);
 }
 .landing .ln-product-bar .ln-mono { font-size: 10.5px; margin-inline-start: 6px; letter-spacing: 0.06em; }
 .landing .ln-product-shot { display: block; inline-size: 100%; block-size: auto; }

@@ -37,7 +37,7 @@ const buttonVariants = cva(
          * canonical -2px with the premium hover shadow (Madarek §4.5). */
         gold:
           "bg-primary text-primary-foreground hover:bg-primary/95 hover:-translate-y-[2px] active:bg-primary/90 shadow-sm hover:shadow-(--shadow-card-h) border-0",
-        /* Madarek accent-CTA metal: gold gradient #C9962F→#E9B44C (dark) /
+        /* Circuit Petrol CTA metal: teal gradient #12A386→#17C3A4 (dark) /
          * copper→gold (light) with the AA-pinned espresso label.
          * r133 (A10): hover:brightness-110 dropped — the reference lifts +
          * neutral shadow, never a brightness filter. */

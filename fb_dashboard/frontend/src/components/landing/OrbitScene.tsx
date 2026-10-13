@@ -74,9 +74,9 @@ export type OrbitSceneProps = {
 };
 
 /** Orbit Ink palette (round 3) — canvas-side of the --ln-* landing tokens. */
-const CREAM = [245, 243, 231] as const; // #F5F3E7 — stars / hairlines
-const LIME = [223, 237, 178] as const; // #DFEDB2 — the knowledge light
-const VIOLET = [122, 107, 242] as const; // #7A6BF2 — depth accent
+const CREAM = [233, 245, 240] as const; // #E9F5F0 foam — stars / hairlines
+const LIME = [23, 195, 164] as const; // #17C3A4 signal teal — the knowledge light
+const VIOLET = [198, 242, 78] as const; // #C6F24E AI lime — depth accent
 
 type NodeColor = 'lime' | 'violet' | 'cream';
 

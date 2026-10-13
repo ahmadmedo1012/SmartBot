@@ -41,11 +41,11 @@ import { ReactNode, useEffect } from "react"
  *     (the viewport metas alone are prefers-color-scheme-bound). */
 
 /* The browser bar follows the GROUND (madarek index.html pattern):
- * night #070B16 dark / cream #FBFAF9 light — the exact pair the root
+ * petrol #071A21 dark / mist #EDF6F3 light — the exact pair the root
  * viewport.themeColor metas declare. Renders null: zero server markup,
  * zero LCP/CLS impact; adjusts the live <meta name="theme-color"> content
  * only (media attributes stay for the no-JS first paint). */
-const THEME_BAR = { dark: "#070B16", light: "#FBFAF9" } as const
+const THEME_BAR = { dark: "#071A21", light: "#EDF6F3" } as const
 
 function ThemeColorSync() {
   const { resolvedTheme } = useTheme()

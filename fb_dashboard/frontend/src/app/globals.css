@@ -3,6 +3,37 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+ * ═══════════════════════════════════════════════════════════════════
+ * PHASE 5 · r152 — CIRCUIT PETROL: THE FRIENDLY MACHINE
+ * The SmartBot visual constitution (Smart Link Ecosystem Phase 5,
+ * total creative reconstruction). This product BREAKS from the family
+ * dark-gold Madarek monoculture: it stays dark, but moves to a
+ * completely different hue world —
+ *
+ *   ground        #071A21 deep petrol          (was indigo #070B16)
+ *   raised        #0D2830 · soft #123039 · hairline #1D4450
+ *   ink           #E9F5F0 foam · #9FC3BC secondary · #6E938E muted
+ *   primary       #17C3A4 SIGNAL TEAL — button text #04231B ≈7.4:1
+ *                 (hover #1FD6B4 · pressed #12A386)
+ *   AI/automation LIME #C6F24E — RESERVED for AI moments ONLY:
+ *                 AI-reply indicators, automation-active states,
+ *                 thinking dots, live metric beats, the robot's status
+ *                 LED. NEVER a general fill.
+ *   WhatsApp green untouched (reserved for WhatsApp, §11 unchanged).
+ *
+ * Token NAMES are untouched everywhere (150+ utility consumers ride
+ * them); VALUES re-graded to the petrol contract. The 9 pastel
+ * families stay nine (names load-bearing), petrol-tinted. Typography:
+ * Space Grotesk (variable, self-hosted) = Latin display + latin-only
+ * numerics; IBM Plex Sans Arabic = body + Arabic; IBM Plex Mono =
+ * codes/IDs/bot-message meta. Motifs: circuit trace (node-dot
+ * dividers/accents) + one coherent robot (matte shell · teal visor ·
+ * lime LED) — see the signature-motif layer at the bottom of this
+ * sheet. Parity pins re-anchored in tests/parity.mjs (same commit).
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+/*
  * Z-ORDER LADDER (Madarek tokens.css §3a — the canonical r126 rungs that
  * Smart-Menu and Smart-Order already ship; r127-F5b converges SmartBot):
  *   base 0 < dropdown 100 < popover 200 < tooltip 250 < sheet 300
@@ -17,23 +48,28 @@
  */
 
 @theme inline {
-  /* ── Font system — Arabic-first, IBM Plex Sans Arabic local-first
-     (Madarek parity). --font-cairo comes from /fonts/fonts.css @font-face
-     "IBM Plex Sans Arabic" (arabic + latin subsets, 400-700 — the var NAME
-     is kept as the load-bearing shim contract: a var() with no fallback
-     that resolves to an undefined custom property invalidates the whole
-     font-family declaration and the body fell back to Times New Roman in
-     prod once; fonts.css defines it FIRST, before this sheet). The literal
-     "IBM Plex Sans Arabic" fallback keeps every stack resolvable even when
-     the var is absent. --font-heading is the SAME display face as body
-     (Madarek §2.1: --font-display = Plex Sans Arabic — one family, weight
-     700 carries display). --font-mono is Madarek's mixed-script stack:
-     Latin/digits in IBM Plex Mono, Arabic runs continue in Plex Sans
+  /* ── Font system — Circuit Petrol (phase5 r152). Arabic-first body:
+     IBM Plex Sans Arabic local-first (the --font-cairo shim contract is
+     kept: a var() with no fallback that resolves to an undefined custom
+     property invalidates the whole font-family declaration and the body
+     fell back to Times New Roman in prod once; fonts.css defines it
+     FIRST, before this sheet). The literal "IBM Plex Sans Arabic"
+     fallback keeps every stack resolvable even when the var is absent.
+     ── DISPLAY (phase5 r152): --font-display = "Space Grotesk" FIRST
+     (self-hosted variable woff2, latin subset) — Latin display/headings
+     and latin-only numerics render in Grotesk; Arabic glyphs are absent
+     from the Grotesk subset so the browser falls through PER GLYPH to
+     "IBM Plex Sans Arabic" — Arabic headings NEVER leave the sans world
+     (Times fallback impossible: Plex Arabic sits in the chain before any
+     generic). --font-heading aliases the same chain. --font-mono is the
+     mixed-script stack: Latin/digits in IBM Plex Mono (codes, IDs, bot
+     message meta + timestamps), Arabic runs continue in Plex Sans
      Arabic. ── */
   --font-sans: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", "IBM Plex Sans Arabic", ui-monospace, "SFMono-Regular", monospace;
   --font-arabic: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
-  --font-heading: var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
+  --font-display: "Space Grotesk", var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
+  --font-heading: "Space Grotesk", var(--font-cairo), "IBM Plex Sans Arabic", "Tajawal", system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -124,6 +160,16 @@
   --color-warning-soft: var(--warning-soft);
   --color-info-soft: var(--info-soft);
   --color-destructive-soft: var(--destructive-soft);
+
+  /* ── LIME — the AI/automation signal (phase5 r152). RESERVED: AI-reply
+     indicators, automation-active states, thinking dots, live metric
+     beats, the robot status LED. Never a general fill; never a
+     primary/CTA color (that is SIGNAL TEAL). text-lime = #C6F24E dark /
+     AA-deep olive #5A7A16 light (both measured ≥4.5:1 on every real
+     composite). bg-lime-soft = the deep olive wash dark / pastel light. */
+  --color-lime: var(--c-lime-ink);
+  --color-lime-ink: var(--c-lime-deep);
+  --color-lime-soft: var(--c-lime-bg);
 }
 
 /* Radius scale — Madarek "Notion-soft" ladder (tokens.css §1.2):
@@ -154,18 +200,19 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   !! BRAND ACCENT — SINGLE SOURCE OF TRUTH (Madarek) !!
-   r129: the canonical --accent family (tokens.css §1.5) ships under the
-   fleet port names (SL/SM spelling) — --accent-solid is THE
-   authoritative solid brand token; --primary aliases it for the
-   shadcn/Tailwind bridge; --ring/--state-focus-ring-color point at
-   --accent-strong (the strong gold/copper-deep focus metal). --accent
-   stays the faint 12–15% wash hint for soft hovers/tints (product
-   semantics — 72 accent-foreground consumers untouched), and
-   --accent-foreground keeps its oklch spelling (= --accent-ink, the
-   AA-tuned accent for TEXT: gold #E9B44C dark / copper-deep #5C3416
-   light, 10.29:1 on cream) so the measured-contrast gate can composite
-   the badge tints. One token per role, never a duplicate value.
+   !! BRAND ACCENT — SINGLE SOURCE OF TRUTH (Circuit Petrol, phase5) !!
+   The --accent family ships under the fleet port names — --accent-solid
+   is THE authoritative solid brand token (#17C3A4 SIGNAL TEAL dark /
+   #0C7563 teal-deep light); --primary aliases it for the
+   shadcn/Tailwind bridge; --ring/--state-focus-ring-color point at the
+   solid accent (dark) / --accent-strong (light). --accent stays the
+   faint 12–15% wash hint for soft hovers/tints (product semantics — 72
+   accent-foreground consumers untouched), and --accent-foreground keeps
+   its oklch spelling (= --accent-ink, the AA-tuned accent for TEXT:
+   teal 7.96:1 on petrol dark / teal-deep 7.36:1 on mist light) so the
+   measured-contrast gate can composite the badge tints. One token per
+   role, never a duplicate value. LIME is NOT part of this family — it
+   lives on --c-lime-* (AI/automation signal only).
    ═══════════════════════════════════════════════════════ */
 :root {
   /* v7 §B — native UA rendering follows the active theme: scrollbars,
@@ -346,50 +393,50 @@
 
   /* ── TOPBAR (r130 — tokens.css dark block): 86% surface glass, the
      canonical translucency (was an off-ladder 95%). */
-  --topbar-bg: rgba(7, 11, 22, 0.86);
+  --topbar-bg: rgba(7, 26, 33, 0.86);
 
   /* ── NEUTRAL SURFACES — Madarek night-indigo ramp (tokens.css §1.3):
      ground #070B16 (neutral-50), surface #0D1428 (neutral-0),
      surface-2 #121A36 (neutral-100), ink #F2EFE6 (neutral-900 sand). ── */
-  --background: #070B16;
+  --background: #071A21;
   /* De-glow (Madarek ground is FLAT — no body radial, no grain, no grid;
      the only painted sky is the sidebar's سماء مدارك wash). Token kept for
      the inline-style contract, value neutralized. */
   --background-radial: none;
-  --foreground: #F2EFE6;
-  --card: #0D1428;
-  --card-foreground: #F2EFE6;
-  --popover: #0D1428;
-  --popover-foreground: #F2EFE6;
+  --foreground: #E9F5F0;
+  --card: #0D2830;
+  --card-foreground: #E9F5F0;
+  --popover: #0D2830;
+  --popover-foreground: #E9F5F0;
 
   /* ── r129 — the canonical neutral ramp under Madarek's own names
      (tokens.css §1.3; SL/SM spelling). The shadcn bridge names above
      carry the same values into utilities; these names complete the
      canonical vocabulary — the five rungs the token matrix flagged
      (150/300/400/500/800) plus their neighbors, all Madarek values. ── */
-  --neutral-0: #0D1428;    /* surface */
-  --neutral-50: #070B16;   /* ground */
-  --neutral-100: #121A36;  /* surface-2 */
-  --neutral-150: #182142;  /* surface-3 (was absent) */
-  --neutral-200: #1B2444;  /* hairline */
-  --neutral-300: #263052;  /* strong hairline (was absent) */
-  --neutral-400: #7A83A0;  /* field border (was absent) */
-  --neutral-500: #8E97B8;  /* placeholder (was absent by name) */
-  --neutral-700: #C3C8DC;  /* text-secondary */
-  --neutral-800: #DDE1EE;  /* (was absent) */
-  --neutral-900: #F2EFE6;  /* ink */
+  --neutral-0: #0D2830;    /* surface */
+  --neutral-50: #071A21;   /* ground */
+  --neutral-100: #123039;  /* surface-2 */
+  --neutral-150: #163842;  /* surface-3 (was absent) */
+  --neutral-200: #1D4450;  /* hairline */
+  --neutral-300: #2A5766;  /* strong hairline (was absent) */
+  --neutral-400: #64949E;  /* field border (was absent) */
+  --neutral-500: #6E938E;  /* placeholder (was absent by name) */
+  --neutral-700: #9FC3BC;  /* text-secondary */
+  --neutral-800: #CFE5DF;  /* (was absent) */
+  --neutral-900: #E9F5F0;  /* ink */
 
   /* ── BRAND SOLID — the canonical Madarek --accent family (tokens.css
        §1.5) under the fleet port names: solid #E9B44C on the مدارك
        night; text on gold = --accent-fg #05070F (10.6:1, measured).
        r129 (audit §4): SmartBot was the only Smart repo without the
        named family — the values existed only as scattered carriers. ── */
-  --accent-solid: #E9B44C;
-  --accent-hover: #F5D48A;
-  --accent-soft: #2C2312;      /* = the copper family ground (--c-copper-bg) */
-  --accent-strong: #C9962F;    /* the strong gold — focus metal, 7.87:1 */
-  --accent-ink: #E9B44C;       /* accent as TEXT (10.39:1 on night) */
-  --accent-fg: #05070F;        /* text ON an accent fill */
+  --accent-solid: #17C3A4;
+  --accent-hover: #1FD6B4;
+  --accent-soft: #0A2E28;      /* = the copper family ground (--c-copper-bg) */
+  --accent-strong: #12A386;    /* the strong gold — focus metal, 7.87:1 */
+  --accent-ink: #17C3A4;       /* accent as TEXT (10.39:1 on night) */
+  --accent-fg: #04231B;        /* text ON an accent fill */
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
   /* r130 (W1-H FLEET-1 decision — true-parity option): dark --ring = the
@@ -405,39 +452,39 @@
 
   /* ── ACCENT — faint 15% gold hint for soft hovers/tints (oklch of
        #E9B44C so the measured-contrast gate can parse/composite it). ── */
-  --accent: oklch(0.7995 0.134 81.4 / 0.15);
+  --accent: oklch(0.7314 0.1342 175.5 / 0.15);
   /* --accent-foreground = Madarek --accent-ink dark (= --accent-solid
      #E9B44C), oklch spelling: gold as TEXT (8.1-10.4:1 on every real
      composite — accent tint, 15% tint, card, background). oklch form so
      the measured-contrast gate can composite the badge-tint pairs. */
-  --accent-foreground: oklch(0.7995 0.134 81.4);
+  --accent-foreground: oklch(0.7314 0.1342 175.5);
 
-  --secondary: #121A36;
-  --secondary-foreground: #C3C8DC;
-  --muted: #121A36;
+  --secondary: #123039;
+  --secondary-foreground: #9FC3BC;
+  --muted: #123039;
   /* Madarek --text-secondary dark = #C3C8DC (neutral-700): 11.8:1 on the
    * night ground, 11:1 on card — AA with the same quiet character. */
-  --muted-foreground: #C3C8DC;
+  --muted-foreground: #9FC3BC;
   /* Madarek neutral-500 dark #8E97B8: 6.1:1 on card-wash composites,
    * 6.8:1 on the ground — placeholder hints stay AA everywhere. */
-  --placeholder-text: #8E97B8;
+  --placeholder-text: #6E938E;
   /* Madarek danger dark #F0938F (rose-ink) as text: 8.1:1 on card. */
-  --destructive: #F0938F;
-  --destructive-foreground: #05070F;
+  --destructive: #F2919B;
+  --destructive-foreground: #04231B;
   /* Madarek hairline: dark --border = neutral-200 #1B2444 (decorative
    * dividers — card furniture, not interactive boundaries). */
-  --border: #1B2444;
+  --border: #1D4450;
   /* WCAG 1.4.11 (≥3:1 on every surface a field touches): Madarek
    * neutral-400 #7A83A0 measures 4.86:1 vs card / 5.22:1 vs the night
    * ground — unfocused fields stay visible (v10-I3 contract held). */
-  --input: #7A83A0;
+  --input: #64949E;
 
   /* Status (dark) — Madarek dark -ink values double as fill+text (§1.6:
    * dark --success-ink == --success). */
-  --success: #7FD39A;
-  --success-foreground: #191918;
-  --warning: #ECC97D;
-  --info: #8FBBF2;
+  --success: #45D6A0;
+  --success-foreground: #04231B;
+  --warning: #F5C46B;
+  --info: #7CC4DE;
   /* r131-F7 (A7 Cluster B): the fleet -ink TEXT tier. Dark: the luminous
    * base inks already measure 7.6-10.9:1 on every surface, so -ink simply
    * aliases the base (SO/SM dark pattern: --success-ink: var(--c-mint-ink)
@@ -450,44 +497,52 @@
   --info-ink: var(--info);
   --destructive-ink: var(--destructive);
   /* Status soft grounds (dark) — Madarek deep pastel -bg fills (opaque). */
-  --success-soft: #0F241C;
-  --warning-soft: #2C2410;
-  --info-soft: #14213A;
-  --destructive-soft: #2C1620;
+  --success-soft: #0C2E24;
+  --warning-soft: #332708;
+  --info-soft: #10303B;
+  --destructive-soft: #331821;
 
   /* ── 9 PASTEL SECTION FAMILIES (dark) — Madarek tokens.css §1.4: deep
      space-tinted bg + luminous ink + pale deep. mint/yellow/sky/rose live
      above as the status set; the remaining five complete the canonical
      nine (digest §1.4 — Task 8-e). Consume via --c-{family}-bg/-ink/-deep
      for section washes, tags and illustrations; never invent a 10th. ── */
-  --c-peach-bg: #2C1A16;
-  --c-peach-ink: #F2A07F;
-  --c-peach-deep: #FCD9C4;
-  --c-lavender-bg: #221B3A;
-  --c-lavender-ink: #B7A0F4;
-  --c-lavender-deep: #DCD2F9;
-  --c-sand-bg: #241F14;
-  --c-sand-ink: #D9C18C;
-  --c-sand-deep: #EFE2C5;
-  --c-grey-bg: #161D33;
-  --c-grey-ink: #A9B0C8;
-  --c-grey-deep: #D5DAE8;
-  --c-copper-bg: #2C2312;
-  --c-copper-ink: #E9B44C;
-  --c-copper-deep: #F5D48A;
+  --c-peach-bg: #2A1E1A;
+  --c-peach-ink: #F2A887;
+  --c-peach-deep: #F8D9C8;
+  --c-lavender-bg: #1E2740;
+  --c-lavender-ink: #9FB2E8;
+  --c-lavender-deep: #D8DEF8;
+  --c-sand-bg: #1B3230;
+  --c-sand-ink: #B9D4C8;
+  --c-sand-deep: #DDEBE1;
+  --c-grey-bg: #14262E;
+  --c-grey-ink: #A3B8BF;
+  --c-grey-deep: #D8E5E8;
+  --c-copper-bg: #0A2E28;
+  --c-copper-ink: #17C3A4;
+  --c-copper-deep: #A9F0DF;
   /* mint/yellow/sky/rose triads (status mirror) for family consumers. */
-  --c-mint-bg: #0F241C;
-  --c-mint-ink: #7FD39A;
-  --c-mint-deep: #C9EAD3;
-  --c-yellow-bg: #2C2410;
-  --c-yellow-ink: #ECC97D;
-  --c-yellow-deep: #F8E5B5;
-  --c-sky-bg: #14213A;
-  --c-sky-ink: #8FBBF2;
-  --c-sky-deep: #C9DCEE;
-  --c-rose-bg: #2C1620;
-  --c-rose-ink: #F0938F;
-  --c-rose-deep: #FACDD2;
+  --c-mint-bg: #0C2E24;
+  --c-mint-ink: #45D6A0;
+  --c-mint-deep: #C9EDDB;
+  --c-yellow-bg: #332708;
+  --c-yellow-ink: #F5C46B;
+  --c-yellow-deep: #F8E7B8;
+  --c-sky-bg: #10303B;
+  --c-sky-ink: #7CC4DE;
+  --c-sky-deep: #CDE9F3;
+  --c-rose-bg: #331821;
+  --c-rose-ink: #F2919B;
+  --c-rose-deep: #FAD3D7;
+  /* ── LIME family (phase5 r152) — the AI/automation signal triad.
+     bg = the deep olive wash for AI/Automation section states; ink =
+     #C6F24E (13.8:1 on the petrol ground — thinking dots, LED, live
+     beats); deep = the pale wash (large AI markers). RESERVED for AI
+     moments only — see the @theme bridge note. ── */
+  --c-lime-bg: #1E3010;
+  --c-lime-ink: #C6F24E;
+  --c-lime-deep: #E4F79A;
   /* Madarek modal scrim (dark 0.62) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.62);
 
@@ -497,16 +552,16 @@
      --accent-fg #05070F (kept as literals — the measured-contrast gate
      parses this block). MEASURED (WCAG 1.4.3): espresso on ember 7.56:1,
      on saffron 10.63:1 — AA on every gradient stop. */
-  --c-ember: #C9962F;
-  --c-flame: #E9B44C;
-  --c-ash: #C3C8DC;
-  --c-ash-dim: #8E97B8;
-  --c-ash-pale: #121A36;
-  --c-night: #070B16;
-  --c-basil: #7FD39A;
-  --c-saffron: #E9B44C;
-  --c-espresso: #05070F;
-  --c-bloom: #F0938F;
+  --c-ember: #12A386;
+  --c-flame: #17C3A4;
+  --c-ash: #9FC3BC;
+  --c-ash-dim: #6E938E;
+  --c-ash-pale: #123039;
+  --c-night: #071A21;
+  --c-basil: #45D6A0;
+  --c-saffron: #17C3A4;
+  --c-espresso: #04231B;
+  --c-bloom: #F2919B;
   --image-shimmer: rgba(0, 0, 0, 0.30);
 
   /* r129 (token-matrix SB fixes) — canonical brand aliases, Madarek
@@ -518,22 +573,22 @@
      is the night ink — the products' light primary is copper, so text
      on it is the deep accent-fg #1A0F06, documented intentional). */
   --gold: var(--accent-solid);
-  --gold-soft: var(--c-yellow-bg);
+  --gold-soft: var(--c-copper-bg);
   --brand-purple: var(--c-lavender-ink);
   --text-on-accent: var(--accent-fg);
 
-  --grid-line: rgba(142, 151, 184, 0.10);
+  --grid-line: rgba(110, 147, 142, 0.10);
 
-  --surface-sunken: #070B16;
+  --surface-sunken: #071A21;
 
   /* Glass — Madarek §1.8 dark: rgba(11,16,32,0.78) + 16px blur + neutral
      hairline. (r132-F3a: the *-strong/-lg siblings + .glass-strong were
      glass-morphism leftovers with zero consumers — only .glass-card lives.) */
-  --glass-bg: rgba(11, 16, 32, 0.78);
-  --glass-border: rgba(142, 151, 184, 0.12);
+  --glass-bg: rgba(13, 40, 48, 0.78);
+  --glass-border: rgba(110, 147, 142, 0.12);
   --glass-blur: 16px;
   --scrim-blur: 4px;
-  --glass-shadow: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
+  --glass-shadow: 0 1px 2px rgba(2, 10, 14, 0.50), 0 8px 22px rgba(2, 10, 14, 0.55), 0 0 0 1px rgba(110, 147, 142, 0.08);
 
   /* Shadows + elevation ladder — Madarek §1.9 dark recipes: fill-led with
      the 1px inset top-edge highlight. */
@@ -552,9 +607,9 @@
      fill-led + the 1px neutral inset ring). Filled CTAs ride it on
      hover:-translate-y-[2px] (ui/button.tsx); NO colored glow on any
      variant (de-glow ruling). */
-  --shadow-card-h: 0 1px 2px rgba(2, 4, 12, 0.50), 0 8px 22px rgba(2, 4, 12, 0.55), 0 0 0 1px rgba(142, 151, 184, 0.08);
-  --shadow-pop: 0 2px 4px rgba(2, 4, 12, 0.55), 0 10px 28px rgba(2, 4, 12, 0.62), 0 0 0 1px rgba(142, 151, 184, 0.10);
-  --shadow-modal: 0 12px 32px rgba(2, 4, 12, 0.66), 0 32px 80px rgba(2, 4, 12, 0.70), 0 0 0 1px rgba(142, 151, 184, 0.12);
+  --shadow-card-h: 0 1px 2px rgba(2, 10, 14, 0.50), 0 8px 22px rgba(2, 10, 14, 0.55), 0 0 0 1px rgba(110, 147, 142, 0.08);
+  --shadow-pop: 0 2px 4px rgba(2, 10, 14, 0.55), 0 10px 28px rgba(2, 10, 14, 0.62), 0 0 0 1px rgba(110, 147, 142, 0.10);
+  --shadow-modal: 0 12px 32px rgba(2, 10, 14, 0.66), 0 32px 80px rgba(2, 10, 14, 0.70), 0 0 0 1px rgba(110, 147, 142, 0.12);
 
   /* Focus ring — Madarek v22 focus system: --state-focus-ring-color =
      --accent-strong (7.87:1 dark / 10.29:1 light) — r129: points at the
@@ -566,52 +621,52 @@
 
   /* Sidebar active state (Madarek §5.5): gold wash 10% + breathing halo
      (dark only — .light swaps to flat neutral-150). */
-  --nav-active-bg: rgb(233 180 76 / 0.10);
-  --nav-active-halo: 0 0 18px -4px rgb(233 180 76 / 0.16), inset 0 0 0 1px rgb(233 180 76 / 0.10);
+  --nav-active-bg: rgb(23 195 164 / 0.10);
+  --nav-active-halo: 0 0 18px -4px rgb(23 195 164 / 0.16), inset 0 0 0 1px rgb(23 195 164 / 0.10);
 
   /* r148 (19-AUDIT-CROSS R10): scrollbar thumbs — token-driven like
      SM/SO/SL (values = the mist rgba the 6px recipe hardcoded). */
-  --scrollbar-thumb: rgba(142, 151, 184, 0.20);
-  --scrollbar-thumb-hover: rgba(142, 151, 184, 0.34);
+  --scrollbar-thumb: rgba(110, 147, 142, 0.20);
+  --scrollbar-thumb-hover: rgba(110, 147, 142, 0.34);
 }
 
 .light {
   color-scheme: light; /* v7 §B — UA counterpart of the :root dark declaration */
   /* Madarek cream world (§1.7): ground #FBFAF9, surface #FFFFFF,
      surface-2 #F7F6F3, ink #191918. */
-  --background: #FBFAF9;
+  --background: #EDF6F3;
   --background-radial: none;
-  --foreground: #191918;
+  --foreground: #0A242E;
   --card: #FFFFFF;
-  --card-foreground: #191918;
+  --card-foreground: #0A242E;
   --popover: #FFFFFF;
-  --popover-foreground: #191918;
+  --popover-foreground: #0A242E;
 
   /* r129 — the light half of the canonical neutral ramp (tokens.css §2.3;
      the dark rungs live in :root above). */
   --neutral-0: #FFFFFF;
-  --neutral-50: #FBFAF9;
-  --neutral-100: #F7F6F3;
-  --neutral-150: #F1EFEC;
-  --neutral-200: #E9E7E2;
-  --neutral-300: #D9D6D0;
-  --neutral-400: #8E8A82;
-  --neutral-500: #6F6C66;
-  --neutral-700: #4F4D48;
-  --neutral-800: #322F2A;
-  --neutral-900: #191918;
+  --neutral-50: #EDF6F3;
+  --neutral-100: #E4F0ED;
+  --neutral-150: #DAEAE6;
+  --neutral-200: #CCE0DB;
+  --neutral-300: #B7D2CC;
+  --neutral-400: #5F837E;
+  --neutral-500: #51736E;
+  --neutral-700: #3A5450;
+  --neutral-800: #243634;
+  --neutral-900: #0A242E;
 
   /* ── BRAND SOLID — the light half of the canonical --accent family
        (Madarek tokens.css §1.5 light): solid = copper #B57438; hover =
        the deep hover copper #9A5F25 (was absent from the entire sheet —
        r129); text on copper = --accent-fg #1A0F06 (4.95:1, measured —
        Madarek's own .btn.accent light pairing). ── */
-  --accent-solid: #B57438;
-  --accent-hover: #9A5F25;
-  --accent-soft: #F4E4D2;      /* = the copper family ground (--c-copper-bg) */
-  --accent-strong: #5C3416;    /* copper-deep — focus metal, 10.29:1 */
-  --accent-ink: #5C3416;       /* accent as TEXT on cream (10.29:1) */
-  --accent-fg: #1A0F06;
+  --accent-solid: #0C7563;
+  --accent-hover: #0A6656;
+  --accent-soft: #D7F3EA;      /* = the copper family ground (--c-copper-bg) */
+  --accent-strong: #085B4C;    /* copper-deep — focus metal, 10.29:1 */
+  --accent-ink: #085B4C;       /* accent as TEXT on cream (10.29:1) */
+  --accent-fg: #F2FDFA;
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
   /* Madarek light focus ring: accent-strong #5C3416 (10.29:1) — r129:
@@ -620,22 +675,22 @@
   --ring: var(--accent-strong);
 
   /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
-  --accent: oklch(0.6166 0.1113 60.9 / 0.12);
+  --accent: oklch(0.5041 0.0909 176.6 / 0.12);
   /* Madarek --accent-ink light = copper-deep #5C3416 (oklch form — the
      contrast gate composites the badge tints from these channels):
      10.29:1 on cream, ≥8.2:1 on every tint composite — AA with margin. */
-  --accent-foreground: oklch(0.3688 0.0718 55);
+  --accent-foreground: oklch(0.4223 0.0763 175.9);
 
-  --secondary: #F7F6F3;
-  --secondary-foreground: #191918;
-  --muted: #F1EFEC;
+  --secondary: #E4F0ED;
+  --secondary-foreground: #0A242E;
+  --muted: #DAEAE6;
   /* Madarek --text-secondary light = #4F4D48 (neutral-700): 8.4:1 on
    * card / 8.1:1 on the cream ground. */
-  --muted-foreground: #4F4D48;
+  --muted-foreground: #3A5450;
   /* Madarek --text-muted light = #6E6C65 — the documented 5.04:1 value
    * on cream; placeholder hierarchy stays one step lighter than
    * --muted-foreground. */
-  --placeholder-text: #6E6C65;
+  --placeholder-text: #51736E;
   /* r127-F5b (A6 P1): light danger base = the canonical rose-ink #DD6E78
      (fleet parity with Menu/Link/Order); the text-safe rose-deep #6B2128
      keeps its family role on --c-rose-deep. --destructive-foreground =
@@ -645,14 +700,14 @@
      comment claimed #DD6E78 — the code now ships the hex the comment
      (and Menu/Link/Order) always declared; parity STATUS_LIGHT moved in
      the same commit. */
-  --destructive: #DD6E78;
-  --destructive-foreground: #191918;
+  --destructive: #D95F6C;
+  --destructive-foreground: #04231B;
   /* Madarek light hairline: --border = neutral-200 #E9E7E2. */
-  --border: #E9E7E2;
+  --border: #CCE0DB;
   /* WCAG 1.4.11: #6E6C65 measures 5.26:1 vs card / 5.04:1 vs the cream
    * ground — light-mode fields stay visible (v24-C6 contract held, with
    * the exact Madarek text-muted value). */
-  --input: #6E6C65;
+  --input: #51736E;
 
   /* r127-F5b (A6 P1): light-mode status BASE slots = the canonical vivid
      family inks (tokens.css §1.6 — mint-ink #4FA66D / yellow-ink #D6A330 /
@@ -666,10 +721,10 @@
      values #2F7D4F/#8C6A1D/#3B6FB5 while claiming the fleet inks — code
      now equals the declared fleet set; status-AS-TEXT consumers ride
      text-*-ink (r131-F7 sweep completed for the stragglers in r148). */
-  --success: #4FA66D;
-  --success-foreground: #191918;
-  --warning: #D6A330;
-  --info: #5C8FCE;
+  --success: #2E9E6F;
+  --success-foreground: #04231B;
+  --warning: #C29217;
+  --info: #3E96BC;
   /* r131-F7 (A7 Cluster B — the 9-site light 1.4.3 failure): light status
    * BASES are 2.20-3.00:1 as text on cream, so the fleet ships a dedicated
    * -ink TEXT tier on the pastel -deep values (SL/SO/SM pattern — SO
@@ -682,42 +737,48 @@
   --info-ink: var(--c-sky-deep);
   --destructive-ink: var(--c-rose-deep);
   /* Light soft grounds — Madarek pastel -bg fills (opaque). */
-  --success-soft: #DCF1E2;
-  --warning-soft: #FCF1CD;
-  --info-soft: #DDEBF7;
-  --destructive-soft: #FCE0E2;
+  --success-soft: #D9F3E6;
+  --warning-soft: #FBF1CF;
+  --info-soft: #DDF0F7;
+  --destructive-soft: #FCE3E6;
 
   /* ── 9 PASTEL SECTION FAMILIES (light) — Madarek tokens.css §2.4: pastel
      ground + saturated ink + deep text shade. Same nine as dark; values
      per digest §2.4 (Task 8-e). ── */
-  --c-peach-bg: #FFE9DC;
-  --c-peach-ink: #E07856;
+  --c-peach-bg: #FFEDE2;
+  --c-peach-ink: #DB7B57;
   --c-peach-deep: #6B2D1A;
-  --c-lavender-bg: #ECE6FA;
-  --c-lavender-ink: #8A6FE0;
-  --c-lavender-deep: #3F2D7A;
-  --c-sand-bg: #F1ECDF;
-  --c-sand-ink: #B59868;
-  --c-sand-deep: #5A4623;
-  --c-grey-bg: #EFECE7;
-  --c-grey-ink: #6B665E;
-  --c-grey-deep: #2D2A24;
-  --c-copper-bg: #F4E4D2;
-  --c-copper-ink: #B57438;
-  --c-copper-deep: #5C3416;
+  --c-lavender-bg: #E8ECF9;
+  --c-lavender-ink: #7086D6;
+  --c-lavender-deep: #2D3A7A;
+  --c-sand-bg: #EBF2EC;
+  --c-sand-ink: #7FA089;
+  --c-sand-deep: #33523F;
+  --c-grey-bg: #EAF0F1;
+  --c-grey-ink: #5F7377;
+  --c-grey-deep: #2A3A3E;
+  --c-copper-bg: #D7F3EA;
+  --c-copper-ink: #0E8A75;
+  --c-copper-deep: #0A4A3C;
   /* mint/yellow/sky/rose triads (status mirror) for family consumers. */
-  --c-mint-bg: #DCF1E2;
-  --c-mint-ink: #4FA66D;
-  --c-mint-deep: #1F4F30;
-  --c-yellow-bg: #FCF1CD;
-  --c-yellow-ink: #D6A330;
+  --c-mint-bg: #D9F3E6;
+  --c-mint-ink: #2E9E6F;
+  --c-mint-deep: #0F4A33;
+  --c-yellow-bg: #FBF1CF;
+  --c-yellow-ink: #C29217;
   --c-yellow-deep: #6B4C0B;
-  --c-sky-bg: #DDEBF7;
-  --c-sky-ink: #5C8FCE;
-  --c-sky-deep: #1F3D63;
-  --c-rose-bg: #FCE0E2;
-  --c-rose-ink: #DD6E78;
+  --c-sky-bg: #DDF0F7;
+  --c-sky-ink: #3E96BC;
+  --c-sky-deep: #0F3D52;
+  --c-rose-bg: #FCE3E6;
+  --c-rose-ink: #D95F6C;
   --c-rose-deep: #6B2128;
+  /* ── LIME family (light, phase5 r152) — AI/automation signal triad.
+     ink #5A7A16 = the AA text tier on mist composites (5.2:1); bg = the
+     pastel olive ground; deep = the document-safe olive ink. ── */
+  --c-lime-bg: #EFF7D2;
+  --c-lime-ink: #5A7A16;
+  --c-lime-deep: #37490C;
   /* Madarek modal scrim (light 0.40) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.40);
 
@@ -725,33 +786,33 @@
      espresso #1A0F06 (Madarek light --accent-fg). MEASURED (WCAG 1.4.3):
      espresso on ember (copper) 4.95:1, on saffron (gold) 8.20:1 — AA on
      every gradient stop (4.95 > 4.7 regression headroom). */
-  --c-ember: #B57438;
-  --c-flame: #B57438;
-  --c-ash: #4F4D48;
-  --c-ash-dim: #6E6C65;
-  --c-ash-pale: #F7F6F3;
-  --c-night: #191918;
-  --c-basil: #4FA66D;
-  --c-saffron: #D6A330;
-  --c-espresso: #1A0F06;
-  --c-bloom: #DD6E78;
+  --c-ember: #095C4C;
+  --c-flame: #0C7563;
+  --c-ash: #3A5450;
+  --c-ash-dim: #51736E;
+  --c-ash-pale: #E4F0ED;
+  --c-night: #0A242E;
+  --c-basil: #2E9E6F;
+  --c-saffron: #0B6B5A;
+  --c-espresso: #F2FDFA;
+  --c-bloom: #D95F6C;
   --image-shimmer: rgba(25, 25, 24, 0.10);
 
   /* r129 — light brand aliases: canonical --gold light = the yellow-ink
      gold #D6A330 (NOT the copper accent-solid — Madarek's own light gold
      rung); ember = the copper accent-solid rung of the light gradient.
      --gold-soft/--brand-purple resolve through their family chains. */
-  --gold: #D6A330;
+  --gold: #0E8A75;
 
-  --grid-line: rgba(25, 25, 24, 0.08);
+  --grid-line: rgba(10, 36, 46, 0.08);
 
-  --surface-sunken: #F7F6F3;
+  --surface-sunken: #E4F0ED;
 
   /* Glass — Madarek §1.8 light: rgba(251,250,249,0.78) + 16px blur +
      warm hairline rgba(25,25,24,0.06). (r132-F3a: dead *-strong/-lg
      siblings pruned, same as the dark block.) */
-  --glass-bg: rgba(251, 250, 249, 0.78);
-  --glass-border: rgba(25, 25, 24, 0.06);
+  --glass-bg: rgba(237, 246, 243, 0.78);
+  --glass-border: rgba(10, 36, 46, 0.06);
   --glass-shadow: 0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06);
 
   /* Elevation ladder — Madarek §1.9 light recipes (soft two-layer). */
@@ -775,16 +836,16 @@
   --state-focus-ring-color: var(--accent-strong);
 
   /* ── TOPBAR (r130 — tokens.css light block): 86% cream glass. */
-  --topbar-bg: rgba(251, 250, 249, 0.86);
+  --topbar-bg: rgba(237, 246, 243, 0.86);
 
   /* Sidebar active (light) — flat neutral-150 wash, no halo (§5.5). */
-  --nav-active-bg: #F1EFEC;
+  --nav-active-bg: #DAEAE6;
   --nav-active-halo: none;
 
   /* r148: scrollbar thumbs, light half (ink 16% / 28% hover — the values
      the 6px recipe hardcoded). */
-  --scrollbar-thumb: rgba(25, 25, 24, 0.16);
-  --scrollbar-thumb-hover: rgba(25, 25, 24, 0.28);
+  --scrollbar-thumb: rgba(10, 36, 46, 0.16);
+  --scrollbar-thumb-hover: rgba(10, 36, 46, 0.28);
 }
 
 @layer base {
@@ -1346,16 +1407,19 @@ textarea:autofill {
   background: linear-gradient(-90deg, var(--border), transparent);
 }
 
-/* ═══ مدارك night shell — the سماء مدارك sky (layout.css, exact recipe):
-   vertical night gradient + gold aurora behind the brand + constellation
-   dust (8 hand-placed points, alpha ≤ 0.22, paint-only, zero motion).
-   Light mode reverts to the flat cream surface (html.light override). ═══ */
+/* ═══ Circuit Petrol night shell — the machine-room sky (phase5 r152;
+   class NAME kept: AdminSidebar consumer + the parity contrast gate
+   reference it). Vertical petrol gradient + a signal-teal aurora behind
+   the brand + circuit NODE dust (8 hand-placed solder points, teal/foam/
+   one lime LED, alpha ≤ 0.22, paint-only, zero motion — the old سماء
+   مدارك gold constellation is retired). Light mode reverts to the flat
+   mist surface (html.light override). ═══ */
 .mdrk-night-sky {
   position: relative;
   background:
-    radial-gradient(340px 200px at 82% -60px, rgb(233 180 76 / 0.06), transparent 72%),
-    radial-gradient(280px 220px at -20% 108%, rgb(111 168 255 / 0.05), transparent 70%),
-    linear-gradient(180deg, #121A36 0%, #070B16 34%, #070B16 100%);
+    radial-gradient(340px 200px at 82% -60px, rgb(23 195 164 / 0.07), transparent 72%),
+    radial-gradient(280px 220px at -20% 108%, rgb(124 196 222 / 0.05), transparent 70%),
+    linear-gradient(180deg, #123039 0%, #071A21 34%, #071A21 100%);
 }
 .mdrk-night-sky::before {
   content: '';
@@ -1363,14 +1427,14 @@ textarea:autofill {
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(1.8px 1.8px at 21% 12%, rgb(242 239 230 / 0.22), transparent 100%),
-    radial-gradient(1px 1px at 68% 7%,  rgb(142 151 184 / 0.16), transparent 100%),
-    radial-gradient(1.5px 1.5px at 87% 21%, rgb(242 239 230 / 0.15), transparent 100%),
-    radial-gradient(1px 1px at 42% 30%, rgb(142 151 184 / 0.12), transparent 100%),
-    radial-gradient(1.8px 1.8px at 9% 44%,  rgb(233 180 76 / 0.18), transparent 100%),
-    radial-gradient(1px 1px at 76% 58%, rgb(142 151 184 / 0.11), transparent 100%),
-    radial-gradient(1.5px 1.5px at 28% 74%, rgb(242 239 230 / 0.14), transparent 100%),
-    radial-gradient(1.2px 1.2px at 58% 88%,  rgb(233 180 76 / 0.12), transparent 100%);
+    radial-gradient(1.8px 1.8px at 21% 12%, rgb(233 245 240 / 0.22), transparent 100%),
+    radial-gradient(1px 1px at 68% 7%,  rgb(110 147 142 / 0.16), transparent 100%),
+    radial-gradient(1.5px 1.5px at 87% 21%, rgb(233 245 240 / 0.15), transparent 100%),
+    radial-gradient(1px 1px at 42% 30%, rgb(110 147 142 / 0.12), transparent 100%),
+    radial-gradient(1.8px 1.8px at 9% 44%,  rgb(23 195 164 / 0.18), transparent 100%),
+    radial-gradient(1px 1px at 76% 58%, rgb(110 147 142 / 0.11), transparent 100%),
+    radial-gradient(1.5px 1.5px at 28% 74%, rgb(233 245 240 / 0.14), transparent 100%),
+    radial-gradient(1.2px 1.2px at 58% 88%,  rgb(198 242 78 / 0.14), transparent 100%);
   background-repeat: no-repeat;
 }
 html.light .mdrk-night-sky, .light .mdrk-night-sky { background: var(--card); }
@@ -1429,3 +1493,130 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
   border-radius: 0 0 3px 3px;
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PHASE 5 · r152 — CIRCUIT PETROL SIGNATURE MOTIFS
+   The two SmartBot-only motifs (everything above is the shared token
+   fabric). Both are paint-only, token-driven, and reduced-motion safe.
+
+   1. CIRCUIT TRACE — thin trace lines with node dots. Consumed as
+      section dividers (.sb-trace), card accents (.sb-trace-card) and
+      background texture (.sb-trace-field). Trace color = primary at
+      30%; node = primary; the LIVE node (automation/AI pulse) = lime.
+   2. TYPING DOTS — three lime dots for the "thinking" register (demo
+      simulator, messages, AI suggest). Loop is linear+staggered, dies
+      under reduced motion via the universal belt + its own guard.
+   3. NUMERALS — latin-only display numerics ride Space Grotesk
+      (Arabic-Indic digits fall through per-glyph to Plex Sans Arabic).
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sb-trace {
+  --trace: color-mix(in srgb, var(--primary) 34%, transparent);
+  --trace-node: var(--primary);
+  --trace-live: var(--c-lime-ink);
+  display: block;
+  inline-size: 100%;
+  block-size: 2px;
+  border: 0;
+  background:
+    radial-gradient(2.5px 2.5px at 0% 50%, var(--trace-node), transparent 100%),
+    radial-gradient(2.5px 2.5px at 100% 50%, var(--trace-node), transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 50%, var(--trace), transparent 100%);
+  background-repeat: no-repeat;
+  position: relative;
+}
+.sb-trace::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline: 5px;
+  block-size: 1px;
+  background: linear-gradient(90deg, transparent, var(--trace) 18%, var(--trace) 82%, transparent);
+}
+[dir="rtl"] .sb-trace::before {
+  background: linear-gradient(-90deg, transparent, var(--trace) 18%, var(--trace) 82%, transparent);
+}
+/* the LIVE variant — a lime node at the inline-end: automation-active,
+   AI thinking, live metrics. THE lime consumer next to the dots/LED. */
+.sb-trace[data-live="true"] {
+  background:
+    radial-gradient(2.5px 2.5px at 0% 50%, var(--trace-node), transparent 100%),
+    radial-gradient(2.5px 2.5px at 100% 50%, var(--trace-live), transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 50%, var(--trace), transparent 100%);
+  background-repeat: no-repeat;
+}
+/* trace-field — the quiet circuit-board texture for hero/empty stages:
+   a faint trace grid painted once, no motion, 3-4% signal. */
+.sb-trace-field {
+  position: relative;
+}
+.sb-trace-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(0deg, color-mix(in srgb, var(--primary) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 5%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(75% 65% at 50% 40%, #000 0%, transparent 100%);
+  -webkit-mask-image: radial-gradient(75% 65% at 50% 40%, #000 0%, transparent 100%);
+}
+html.light .sb-trace-field::before { opacity: 0.6; }
+@media (prefers-contrast: more) {
+  .sb-trace-field::before { content: none; }
+}
+
+/* typing dots — the machine's thinking register (THREE lime dots). */
+.sb-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: var(--r-lg);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+}
+.sb-typing i {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--r-full);
+  background: var(--c-lime-ink);
+  opacity: 0.35;
+  animation: sb-dot-pulse 1.2s linear infinite;
+}
+.sb-typing i:nth-child(2) { animation-delay: 0.18s; }
+.sb-typing i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes sb-dot-pulse {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+  60% { opacity: 1; transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-typing i { animation: none; opacity: 0.7; }
+}
+
+/* numerals — latin-only display numerics (Space Grotesk first; Arabic
+   digits continue per-glyph in Plex Sans Arabic). KPIs, counters, prices. */
+.sb-numerals {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: var(--ls-normal);
+}
+
+/* AI/automation badge grammar — lime ink on the deep olive wash, mono
+   voice. For «رد مقترح بالذكاء» indicators, automation-active chips. */
+.sb-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  background: var(--c-lime-bg);
+  color: var(--c-lime-ink);
+  border: 1px solid color-mix(in srgb, var(--c-lime-ink) 32%, transparent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+}
+html.light .sb-ai-chip { color: var(--c-lime-deep); }

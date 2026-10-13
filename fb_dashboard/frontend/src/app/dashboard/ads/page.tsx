@@ -38,6 +38,9 @@ export default function AdsPage() {
         title="الإعلانات"
         subtitle="إدارة الإعلانات"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — الإعلانات «قريبًا» ليست دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -88,7 +91,9 @@ export default function AdsPage() {
           </div>
         ) : accounts.length === 0 ? (
           <Card><CardContent className="p-0">
-              <EmptyState icon={Target} size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
+              {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
+                  ينتظر ربط أول حساب إعلاني؛ أيقونة Target تتقاعد هنا). */}
+              <EmptyState robot size="sm" title="لا توجد حسابات إعلانية مرتبطة" description="اربط حسابك الإعلاني بفيسبوك وستظهر حملاتك وأرصدتها هنا." />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">
@@ -124,8 +129,11 @@ export default function AdsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {a.currency && <p>العملة: {a.currency}</p>}
-                    {a.amount_spent != null && <p>المصروف: {formatNumber(a.amount_spent)}</p>}
-                    {a.balance != null && <p>الرصيد: {formatNumber(a.balance)}</p>}
+                    {/* phase6 r154 — أرقام الحساب الإعلاني (المصروف/الرصيد)
+                        تركب سجل sb-numerals — صفوف الحسابات هادئة كما هي
+                        (رقم المال على مسار العرض، بلا زخرفة إضافية). */}
+                    {a.amount_spent != null && <p>المصروف: <span className="sb-numerals">{formatNumber(a.amount_spent)}</span></p>}
+                    {a.balance != null && <p>الرصيد: <span className="sb-numerals">{formatNumber(a.balance)}</span></p>}
                   </div>
                 </CardContent>
               </Card>

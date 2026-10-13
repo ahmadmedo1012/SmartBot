@@ -13,16 +13,32 @@ import type { LogEntry } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 /* v8-B13: the level dot was color-only — render a small text chip next to it
- * so the level isn't lost to color-blind users / forced-colors modes. */
+ * so the level isn't lost to color-blind users / forced-colors modes.
+ * phase6 r154: the chip's old plain-text -ink tint map (LOG_LEVEL_TEXT)
+ * retired onto the petrol chip map below (A5 dead-export doctrine). */
 const LOG_LEVEL_LABEL: Record<string, string> = {
   error: "خطأ",
   warning: "تحذير",
   info: "معلومات",
 }
-const LOG_LEVEL_TEXT: Record<string, string> = {
-  error: "text-destructive-ink",
-  warning: "text-warning-ink",
-  info: "text-info-ink",
+
+/* phase6 r154 — رقاقات مستوى السجل بألوان البترول (سجل KpiCard):
+ * info = إشارة التيل (copper)، warning = عائلة الكهرمان (warning)،
+ * error = الوردة (rose). تُركّب كرقاقة مصمتة rounded-full بجانب عقدة
+ * المستوى — النقطة الملونة تبقى (B13) والرقاقة تحمل النص نفسه. */
+const LOG_LEVEL_CHIP: Record<string, string> = {
+  error: "bg-(--c-rose-bg) text-(--c-rose-ink)",
+  warning: "bg-warning-soft text-warning-ink",
+  info: "bg-(--c-copper-bg) text-(--c-copper-ink)",
+}
+
+/* phase6 r154 — سجل ختم السجل (توأم الإشعارات): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
 }
 
 /* v24-R2 (A2 #6/#7): مفتاح مستقر للاستطلاع المرئي — نفس مفتاح useQuery. */
@@ -51,6 +67,9 @@ export default function ActivityPage() {
         title="سجل النشاطات"
         subtitle="سجل أحداث النظام"
         compact
+        /* phase6 r154 — فاصل الأثر الحي تحت الشريط (توقيع غرفة الآلة؛
+            عقدة اللايم = السجل يستطلع كل 15 ثانية — دفق حي فعلًا). */
+        trace
       />
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
           1200 token (was max-w-5xl 1024). */}
@@ -88,15 +107,26 @@ export default function ActivityPage() {
                       {/* r127-F5a: log.level is optional (LogEntry) — `?? ""`
                           indexes safely and falls through to the same || 
                           fallbacks (the support-page `t.status ?? ""` idiom). */}
-                      <span className={`text-xs font-medium ${LOG_LEVEL_TEXT[log.level ?? ""] || "text-muted-foreground"}`}>
+                      <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${LOG_LEVEL_CHIP[log.level ?? ""] || "bg-muted text-muted-foreground"}`}>
                         {LOG_LEVEL_LABEL[log.level ?? ""] || log.level}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm">{log.message}</p>
-                      {/* v24-R2 (B4 floor): text-2xs (11px) → text-xs — حده أدنى 12px */}
+                      {/* v24-R2 (B4 floor): text-2xs (11px) → text-xs — حده أدنى 12px
+                          phase6 r154 — ختم HH:MM مونو (dir=ltr) + التاريخ
+                          العربي الكامل في الـtitle (سجل الإشعارات نفسه). */}
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {log.created_at ? formatDate(log.created_at) : ""}
+                        {log.created_at && timeStamp(log.created_at) && (
+                          <span
+                            dir="ltr"
+                            className="font-mono tabular-nums"
+                            title={formatDate(log.created_at) || undefined}
+                          >
+                            {" · "}{timeStamp(log.created_at)}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>

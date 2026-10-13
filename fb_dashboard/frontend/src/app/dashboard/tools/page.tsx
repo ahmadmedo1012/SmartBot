@@ -135,6 +135,9 @@ export default function ToolsPage() {
         title="الأدوات"
         subtitle="قوالب الرد والعروض"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — مكتبة القوالب/العروض ليست دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -354,8 +357,16 @@ export default function ToolsPage() {
                 <Card key={o.id}>
                   <CardContent className="p-4 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      {/* v4 §2.3 — offers_routes returns title/is_active */}
-                      <p className="text-sm font-bold">{o.title}</p>
+                      {/* v4 §2.3 — offers_routes returns title/is_active.
+                          phase6 r154 — عقدة اللايم الحية على الصف المفعّل:
+                          العرض المفعّل حيّ في الجو (البوت يقدّمه للعملاء) —
+                          زخرفة فقط بجانب العنوان، منطق السويتش كما هو. */}
+                      <p className="text-sm font-bold flex items-center gap-1.5">
+                        {o.title}
+                        {!!o.is_active && (
+                          <span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />
+                        )}
+                      </p>
                       <p className="text-xs text-muted-foreground truncate">{o.description}</p>
                     </div>
                     {/* v15-E6 (D5-M2) + v17-E-F8 (D6 #10): التبديل عبر مكون

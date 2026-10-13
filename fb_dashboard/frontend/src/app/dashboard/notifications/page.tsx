@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState, useCallback, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { brandedToast } from "@/lib/premium-toast"
-import { countPhrase, timeAgo } from "@/lib/format"
+import { countPhrase, timeAgo, formatDate } from "@/lib/format"
 import {
   Bell,
   MessageSquare,
@@ -34,6 +34,15 @@ import { formatNumber } from "@/lib/format"
 const NOTIFICATIONS_INITIAL = 50
 const NOTIFICATIONS_STEP = 50
 const NOTIFICATIONS_MAX = 200
+
+/* phase6 r154 — سجل ختم الخلاصة (توأم البث/المنشورات): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 interface NotificationItem {
   id: number
@@ -211,6 +220,9 @@ export default function NotificationsPage() {
            of the raw «N غير مقروء» interpolation. */
         subtitle={`آخر التحديثات${unread > 0 ? ` — ${countPhrase(unread, "إشعار غير مقروء", "إشعاران غير مقروءان", "إشعارات غير مقروءة")}` : ""}`}
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — الخلاصة بلا استطلاع حي). */
+        trace="static"
       />
 
       <div className="flex-1 overflow-y-auto p-6">
@@ -317,8 +329,22 @@ export default function NotificationsPage() {
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                             {/* v14-E5 (D4 H-05): /70 timestamp measured 3.2:1 —
-                                full muted passes (5.59/6.54:1) */}
-                            <p className="text-xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
+                                full muted passes (5.59/6.54:1)
+                                phase6 r154 — ختم HH:MM مونو (dir=ltr) +
+                                التاريخ العربي الكامل في الـtitle (سجل
+                                البث نفسه — timeAgo يبقى نصيًا كما هو). */}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {timeAgo(n.created_at)}
+                              {timeStamp(n.created_at) && (
+                                <span
+                                  dir="ltr"
+                                  className="font-mono tabular-nums"
+                                  title={formatDate(n.created_at) || undefined}
+                                >
+                                  {" · "}{timeStamp(n.created_at)}
+                                </span>
+                              )}
+                            </p>
                           </div>
                         </CardContent>
                       </Card>

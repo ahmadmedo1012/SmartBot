@@ -80,6 +80,9 @@ export default function LeadsPage() {
         title="العملاء المتوقعون"
         subtitle="إدارة العملاء المحتملين"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — جدول العملاء ليس دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* v26-F4: مرشّح المرحلة — نفس نمط أزرار admin/support (aria-pressed +
@@ -125,7 +128,9 @@ export default function LeadsPage() {
           </div>
         ) : customers.length === 0 ? (
           <Card><CardContent className="p-0">
-              <EmptyState icon={UserPlus} size="sm" title="لا يوجد عملاء متوقعون بعد" description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه." />
+              {/* phase6 r154 — الروبوت يستضيف البئر الفارغ (خامل: الرقيب
+                  ينتظر أول عميل محتمل؛ أيقونة UserPlus تتقاعد هنا). */}
+              <EmptyState robot size="sm" title="لا يوجد عملاء متوقعون بعد" description="عند إضافة أول عميل محتمل ستظهر بياناته هنا مع سجل تواصلك معه." />
             </CardContent></Card>
         ) : (
           <div className="space-y-2">
@@ -144,8 +149,10 @@ export default function LeadsPage() {
                   </div>
                   <div className="text-xs text-muted-foreground space-y-0.5">
                     {/* v4 §2.3 — backend crm_routes returns notes/first_seen_at/
-                        last_contacted_at; email was never in the serializer */}
-                    {c.phone && <p>الهاتف: {c.phone}</p>}
+                        last_contacted_at; email was never in the serializer.
+                        phase6 r154 — هاتف العميل (قيمة آلة لاتينية) يركب
+                        السجل المونو dir=ltr. */}
+                    {c.phone && <p>الهاتف: <span className="font-mono" dir="ltr">{c.phone}</span></p>}
                     {c.notes && <p dir="auto">{c.notes}</p>}
                     {c.first_seen_at && (
                       <p className="text-xs">أول ظهور: {formatDateOnly(c.first_seen_at)}</p>

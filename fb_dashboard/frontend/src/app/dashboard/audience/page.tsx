@@ -63,6 +63,9 @@ export default function AudiencePage() {
         title="الجمهور"
         subtitle="تحليل الجمهور ومتابعي الصفحة"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — جدول البيانات ليس دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* r131-F8 (A12 SB#3 + task #12): max-w-5xl (1024) → the canonical
@@ -116,7 +119,9 @@ export default function AudiencePage() {
                       diffing when the ranking shifts; commenter_id is stable */
                   <div key={c.commenter_id ?? c.name ?? i} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                     <span>{c.name || `معلق #${c.commenter_id}`}</span>
-                    <span className="text-muted-foreground">{countPhrase(c.count, "تعليق", "تعليقين", "تعليقات")}</span>
+                    {/* phase6 r154 — عدّاد التعليقات يركب سجل sb-numerals
+                        (رقم العرض + tabular — أرقام الجدول على مسار البترول). */}
+                    <span className="text-muted-foreground sb-numerals">{countPhrase(c.count, "تعليق", "تعليقين", "تعليقات")}</span>
                   </div>
                 ))}
               </div>
@@ -134,7 +139,9 @@ export default function AudiencePage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="sb-section-title">
-                المشتركون ({subsQuery.data?.total ?? 0})
+                {/* phase6 r154 — عدّاد المشتركين يركب سجل sb-numerals
+                    (رقم العرض + tabular — توأم عدّادات KpiCard أعلاه). */}
+                المشتركون (<span className="sb-numerals tabular-nums">{subsQuery.data?.total ?? 0}</span>)
               </h3>
               <span className="text-xs text-muted-foreground">
                 يتغذّى تلقائياً من محادثات الماسنجر

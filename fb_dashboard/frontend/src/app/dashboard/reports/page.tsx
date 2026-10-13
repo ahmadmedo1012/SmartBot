@@ -113,6 +113,9 @@ export default function ReportsPage() {
         title="التقارير"
         subtitle="التقارير والإحصائيات"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — التقارير ليست دفق أتمتة حيًا). */
+        trace="static"
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -157,7 +160,7 @@ export default function ReportsPage() {
                       <p className="text-xs text-muted-foreground">
                         {pdfAvailable
                           ? "تقرير PDF جاهز للتنزيل — يعتمد على بياناتك في الفترة المحددة"
-                          : `محرك التقارير غير متاح حالياً على الخادم${pdfStatus?.engine ? ` (${pdfStatus.engine})` : ""} — تواصل مع الدعم`}
+                          : <>محرك التقارير غير متاح حالياً على الخادم{pdfStatus?.engine ? <> (<span className="font-mono" dir="ltr">{pdfStatus.engine}</span>)</> : ""} — تواصل مع الدعم</>}
                       </p>
                     </div>
                   </div>
@@ -211,8 +214,10 @@ export default function ReportsPage() {
                 <div className="flex items-center gap-3">
                   <div className="size-9 rounded-lg bg-muted/50 flex items-center justify-center"><TrendingUp className="size-4 text-muted-foreground" /></div>
                   <div>
+                    {/* phase6 r154 — رقم اليوم يركب سجل sb-numerals (رقم
+                        العرض + tabular — توأم بطاقات KpiCard أعلاه). */}
                     <p className="text-sm font-bold">
-                      {formatNumber(dashboard?.today_replies ?? 0)}
+                      <span className="sb-numerals">{formatNumber(dashboard?.today_replies ?? 0)}</span>
                       <span className="text-xs text-muted-foreground font-normal"> رد اليوم</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -220,8 +225,10 @@ export default function ReportsPage() {
                     </p>
                   </div>
                 </div>
-                {/* r131-F8 (A4 P2-3): hand-rolled trend chip → Badge. */}
-                <Badge variant={(dashboard?.change_pct ?? 0) >= 0 ? "success" : "danger"} className="px-2.5 py-1 tabular-nums">
+                {/* r131-F8 (A4 P2-3): hand-rolled trend chip → Badge.
+                    phase6 r154 — شريحة الاتجاه مونو (كود نسبة الآلة،
+                    tabular أصلًا — سجل الأرقام الموحّد). */}
+                <Badge variant={(dashboard?.change_pct ?? 0) >= 0 ? "success" : "danger"} className="px-2.5 py-1 tabular-nums font-mono">
                   {(dashboard?.change_pct ?? 0) >= 0 ? "↑" : "↓"} {Math.abs(dashboard?.change_pct ?? 0)}%
                 </Badge>
               </CardContent>

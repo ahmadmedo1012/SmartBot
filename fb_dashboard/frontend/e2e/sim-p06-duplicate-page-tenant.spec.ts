@@ -14,18 +14,31 @@ import { personas, tsSuffix } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { browserFetch } from './sim/helpers/api'
-import { registerViaUI, getToken, loadPersonaUsername } from './sim/helpers/session'
+import { registerViaUI, getToken, loadPersonaUsername, loadPersonaState, savePersonaState, ensureSession } from './sim/helpers/session'
 import { checkClaim, queryOne, queryScalar } from './sim/helpers/db-claims.mjs'
 
 const P = 'p06'
 const p = personas.p06
-const uname = `p06_${tsSuffix()}`
-const email = `${uname}@sim.ly`
+// phase8 (إعادة 3b83f76): الاسم من القرص أولًا (حصانة إعادة تشغيل العامل)
+let uname = loadPersonaState(P).username || `p06_${tsSuffix()}`
+let email = `${uname}@sim.ly`
 const STRICT_409 = process.env.SIM_STRICT_409 === '1'
 
 let page: Page
 let token = ''
 let p02TenantId = 0
+
+/** إعادة امتلاء الحالة من القرص + تثبيت الجلسة. */
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  if (st.email) email = st.email
+  token = String(st.token || token || '')
+  if (token) {
+    const live = await ensureSession(page, P, { username: uname, password: p.password! })
+    if (live) token = live
+  }
+}
 
 test.describe('P06 — مستأجر ثانٍ يربط صفحة مربوطة', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -36,6 +49,11 @@ test.describe('P06 — مستأجر ثانٍ يربط صفحة مربوطة', ()
     p02TenantId = Number(queryScalar('SELECT tenant_id FROM users WHERE username=?', [p02name]) || 0)
   })
 
+  // phase8: إعادة امتلاء قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrate()
+  })
+
   test.afterAll(async () => {
     await page.context().close().catch(() => {})
   })
@@ -44,6 +62,7 @@ test.describe('P06 — مستأجر ثانٍ يربط صفحة مربوطة', ()
     const url = await registerViaUI(page, uname, email, p.password!)
     expect(url).toMatch(/dashboard|onboarding/)
     token = await getToken(page.context())
+    savePersonaState(P, { username: uname, email, token })
     await page.request.post('/api/onboarding/complete', {
       headers: { cookie: `token=${token}` },
     })

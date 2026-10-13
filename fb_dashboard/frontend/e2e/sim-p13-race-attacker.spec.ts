@@ -13,7 +13,7 @@ import { test, expect, type Browser, type Page } from '@playwright/test'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { API_BASE, FRONT_BASE, browserFetch } from './sim/helpers/api'
-import { loadPersonaToken, loadPersonaUsername, approvePayment, loadAdminToken } from './sim/helpers/session'
+import { loadPersonaToken, loadPersonaUsername, approvePayment, loadAdminToken, loadPersonaState, savePersonaState } from './sim/helpers/session'
 import { checkClaim, queryScalar, queryOne, exec } from './sim/helpers/db-claims.mjs'
 import { signWebhook, messageEvent } from './sim/helpers/webhook'
 import { doubleClickSubmit, concurrentPosts } from './sim/helpers/races'
@@ -29,6 +29,22 @@ let consoleBucket: ReturnType<typeof watchConsole>
 let usersBefore = 0
 const bodiesSwept: string[] = []
 
+// phase8 (إعادة 3b83f76 — اتساق حالة الدفع): p04 ألغت تجديد p02 بقرار
+// مصمّم فتركت المستأجر REJECTED (غير نشط — الإعداد الأمين لسباقات هذا
+// الملف)، لكن الشخصيات بينها قد تترك دفعة معلقة (p12 خطوة 5/7) — حارس
+// «لديك طلب دفع معلق» (plans.py:186) يسدّ كل POST هنا. التنظيف الأمين:
+// الأدمن يحسم أي معلق قائم cancelled قبل كل سباق يفتح دفعة.
+// (group_concat: db-claims لا تصدّر سوى queryOne/queryScalar — قائمة
+// المعرفات كسلسلة واحدة هي القناة المتاحة.)
+async function cancelStalePending(request: any): Promise<void> {
+  const ids = String(
+    queryScalar("SELECT group_concat(id) FROM subscription_payments WHERE status='pending'") || ''
+  )
+  for (const idStr of ids.split(',').filter(Boolean)) {
+    await approvePayment(request, Number(idStr), 'cancelled').catch(() => {})
+  }
+}
+
 test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حدود)', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctx = await createPersonaContext(browser, P)
@@ -37,7 +53,16 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
     }
     page = await ctx.newPage()
     consoleBucket = watchConsole(page)
-    usersBefore = Number(queryScalar('SELECT count(*) FROM users') || 0)
+    // phase8 (حصانة إعادة تشغيل العامل): عدد الأساس يُقرأ من القرص إن كان
+    // العامل أُعيد تشغيله منتصف الملف (إعادة التقييم تصفره فيكسر ادعاء
+    // الخطوة 12) — أول حساب يُثبّت ثم يُعاد امتلاؤه.
+    const st = loadPersonaState(P)
+    if (st.usersBefore) {
+      usersBefore = Number(st.usersBefore)
+    } else {
+      usersBefore = Number(queryScalar('SELECT count(*) FROM users') || 0)
+      savePersonaState(P, { usersBefore })
+    }
   })
 
   test.afterAll(async () => {
@@ -131,6 +156,8 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
 
   test('4. سباق النقر المزدوج (UI): POST واحد + payment_id واحد + الزر معطّل', async ({ request }) => {
     test.skip(!p02Token, 'جلسة p02 غير متاحة')
+    // phase8: نظّف أي معلق قائم أولاً (حارس «طلب معلق» يسدّ السباق)
+    await cancelStalePending(request)
     const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
     await page.goto(`/subscribe?plan=${basicId}`)
     await page.locator('button:has-text("ادفع الآن")').first().waitFor({ state: 'visible', timeout: 20_000 })
@@ -154,16 +181,21 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
       { query: 'POST /api/subscriptions ×2 click' }
     )
     expect(race.posts, `عدد POST (فعلي ${race.posts})`).toBe(1)
-    // حسم دفعة السباق حتى لا تعيق الخطوات التالية (pending وحيد)
+    // phase8 (إعادة 3b83f76 — اتساق حالة الدفع): الحسم cancelled لا verified
+    // — دفعة سباق تحسمها PAID تُفعّل المستأجر (حارس v19 «لديك اشتراك نشط»)
+    // فتسدّ سباقات الدفع اللاحقة في هذا الملف (9 و9b). الإلغاء يبقيه REJECTED
+    // غير نشط — الإعداد الأمين لبقية السباقات.
     if (pid > 0) {
-      const approve = await approvePayment(request, pid, 'verified')
-      expect(approve.status, `حسم دفعة النقر المزدوج (فعلي ${approve.status})`).toBe(200)
+      const settle = await approvePayment(request, pid, 'cancelled')
+      expect(settle.status, `حسم دفعة النقر المزدوج cancelled (فعلي ${settle.status})`).toBe(200)
     }
     await shot(page, P, '13-step-04-double-submit')
   })
 
-  test('5. سباق API: POST متزامنان → لا 500 والاتفاق النهائي خطة فعّالة واحدة', async ({ request }) => {
+  test('5. سباق API: POST متزامنان → لا 500 واتفاق واحد (الخاسر مرفوض)', async ({ request }) => {
     test.skip(!p02Token, 'جلسة p02 غير متاحة')
+    // phase8: نظّف أي معلق قائم أولاً (حارس «طلب معلق» يسدّ السباق)
+    await cancelStalePending(request)
     const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
     const results = await concurrentPosts(page, '/api/subscriptions', [
       { plan_id: basicId, provider: 'liyana', amount: 19, phone: '0910000001' },
@@ -172,13 +204,14 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
     bodiesSwept.push(JSON.stringify(results))
     const statuses = results.map((r) => r.status)
     const ok200 = statuses.filter((s) => s === 200).length
-    // حسم الدفعة الفائزة (واحدة فقط موجودة — pending وحيد)
+    // phase8: حسم الدفعة الفائزة cancelled (لا verified) — يبقي المستأجر
+    // غير نشط لسباق الحسم 9b الأخير (نفس منطق الخطوة 4)
     const winner = results.find((r) => r.status === 200)
-    let verifiedCount = 0
+    let settledCount = 0
     if (winner?.body?.data?.payment_id) {
-      const approve = await approvePayment(request, Number(winner.body.data.payment_id), 'verified')
-      expect(approve.status).toBe(200)
-      verifiedCount = 1
+      const settle = await approvePayment(request, Number(winner.body.data.payment_id), 'cancelled')
+      expect(settle.status).toBe(200)
+      settledCount = 1
     }
     const tenant = queryOne('SELECT plan_id, subscription_status FROM tenants WHERE id=(SELECT tenant_id FROM users WHERE username=?)', [p02name])
     checkClaim(
@@ -187,63 +220,15 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
       'POST /api/subscriptions ×2 (Promise.all)',
       [],
       () => ({
-        ok: statuses.every((s) => s < 500) && ok200 === 1 && verifiedCount === 1 && Boolean(tenant),
+        ok: statuses.every((s) => s < 500) && ok200 === 1 && settledCount === 1 && Boolean(tenant),
         actual: { statuses, winner_pid: winner?.body?.data?.payment_id, tenant },
       }),
-      'لا 500؛ دفعة واحدة (الخاسر 400 «طلب معلق») وبعد الحسم: خطة فعّالة واحدة',
+      'لا 500؛ دفعة واحدة (الخاسر 400 «طلب معلق» — _pending_lock) والحسم cancelled يبقي المستأجر غير نشط لسباق الحسم 9b',
       { query: 'POST /api/subscriptions ×2' }
     )
     expect(statuses.every((s) => s < 500), `الحالات: ${statuses}`).toBeTruthy()
     expect(ok200, `نجح واحد بالضبط (فعلي ${statuses})`).toBe(1)
     await shot(page, P, '13-step-05-api-race')
-  })
-
-  test('6. سباق الحسم المتزامن: verified مقابل cancelled → حالة حتمية واحدة', async ({ request }) => {
-    test.skip(!p02Token, 'جلسة p02 غير متاحة')
-    test.setTimeout(120_000)
-    // v15-fix: فتح نافذة معدل الدفعات مباشرة (البطارية تملك قاعدتها المحلية؛
-    // عقد 429 نفسه مثبت حياً في p07) بدل سكون 61s يكسر حد زمن التشغيل الكلي
-    exec('DELETE FROM rate_limit_entries WHERE key LIKE ?', ['sub:%'])
-    const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
-    const create = await browserFetch(page, '/api/subscriptions', {
-      method: 'POST',
-      body: { plan_id: basicId, provider: 'madar', amount: 19, phone: '0910000003' },
-    })
-    expect(create.status, `دفعة السباق (فعلي ${create.status})`).toBe(200)
-    const racePid = Number(create.body?.data?.payment_id || 0)
-    expect(racePid).toBeGreaterThan(0)
-    // القراران المتناقضان في نفس التكة — الحسم الذرّي (UPDATE WHERE pending)
-    const [a, b] = await Promise.all([
-      approvePayment(request, racePid, 'verified'),
-      approvePayment(request, racePid, 'cancelled'),
-    ])
-    bodiesSwept.push(JSON.stringify([a.body, b.body]))
-    const pay = queryOne('SELECT status FROM subscription_payments WHERE id=?', [racePid])
-    const user = queryOne('SELECT subscription_status FROM users WHERE username=?', [p02name])
-    const tenant = queryOne('SELECT subscription_status FROM tenants WHERE id=(SELECT tenant_id FROM users WHERE username=?)', [p02name])
-    const decided200 = [a.status, b.status].filter((s) => s === 200).length
-    const finalStatus = String(pay?.status || '')
-    const consistent =
-      finalStatus === 'verified'
-        ? user?.subscription_status === 'PAID' && tenant?.subscription_status === 'PAID'
-        : finalStatus === 'cancelled'
-          ? user?.subscription_status === 'REJECTED'
-          : false
-    checkClaim(
-      P,
-      'p13-concurrent-decision-deterministic',
-      'POST /api/admin/subscriptions {verified, cancelled} متزامنان',
-      [],
-      () => ({
-        ok: decided200 === 1 && [a.status, b.status].every((s) => s < 500) && ['verified', 'cancelled'].includes(finalStatus) && consistent,
-        actual: { statuses: [a.status, b.status], final: finalStatus, user: user?.subscription_status, tenant: tenant?.subscription_status },
-      }),
-      'قرار 200 واحد فقط + حالة نهائية حتمية + اتساق users/tenants معها (لا نصف مختلط — عائلة D13-F1/D1-H4)',
-      { query: 'POST /api/admin/subscriptions ×2' }
-    )
-    expect(decided200, `قرار ناجح واحد (فعلي ${a.status}/${b.status})`).toBe(1)
-    expect(['verified', 'cancelled']).toContain(finalStatus)
-    await shot(page, P, '13-step-06-decision-race')
   })
 
   test('7. سباق التسجيل المتزامن: مستخدم واحد والرفض 400/409 بلا 500', async ({ request }) => {
@@ -300,6 +285,8 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
   test('9. SSRF الإيصال: عنوان داخلي حرفي 400 + مضيف DNS بالاسم (finding D6-H2)', async ({ request }) => {
     test.skip(!p02Token, 'جلسة p02 غير متاحة')
     test.setTimeout(120_000)
+    // phase8: نظّف أي معلق قائم أولاً (حارس «طلب معلق» يسدّ الدفعتين)
+    await cancelStalePending(request)
     // v15-fix: فتح نافذة معدل الدفعات (بدل سكون 61s) — عقد 429 مثبت في p07
     exec('DELETE FROM rate_limit_entries WHERE key LIKE ?', ['sub:%'])
     const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
@@ -356,6 +343,61 @@ test.describe('P13 — مهاجم موسّع (سباقات + bidi + SSRF + حد�
     expect([400]).toContain(fetchA.status)
     expect([400, 404]).toContain(fetchB.status)
     await shot(page, P, '13-step-09-ssrf')
+  })
+
+  test('9b. سباق الحسم المتزامن (الأخير): verified مقابل cancelled → حالة حتمية واحدة', async ({ request }) => {
+    test.skip(!p02Token, 'جلسة p02 غير متاحة')
+    test.setTimeout(120_000)
+    // phase8 (إعادة 3b83f76): نُقل لآخر سباقات الدفع عمدًا (كان 6): نتيجة
+    // السباق غير حتمية بالتصميم — لو حُسمت verified يصبح المستأجر PAID
+    // نشطًا (حارس v19) فتُسدّ دفعات 9 اللاحقة. هنا لا سباق دفع بعده (10
+    // كلمات مرور، 11 كرون، 12 اجتياح) فكلا الحسمين آمن.
+    await cancelStalePending(request)
+    // v15-fix: فتح نافذة معدل الدفعات مباشرة (البطارية تملك قاعدتها المحلية؛
+    // عقد 429 نفسه مثبت حياً في p07) بدل سكون 61s يكسر حد زمن التشغيل الكلي
+    exec('DELETE FROM rate_limit_entries WHERE key LIKE ?', ['sub:%'])
+    const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
+    const create = await browserFetch(page, '/api/subscriptions', {
+      method: 'POST',
+      body: { plan_id: basicId, provider: 'madar', amount: 19, phone: '0910000003' },
+    })
+    expect(create.status, `دفعة السباق (فعلي ${create.status})`).toBe(200)
+    const racePid = Number(create.body?.data?.payment_id || 0)
+    expect(racePid).toBeGreaterThan(0)
+    // القراران المتناقضان في نفس التكة — الحسم الذرّي (UPDATE WHERE pending)
+    const [a, b] = await Promise.all([
+      approvePayment(request, racePid, 'verified'),
+      approvePayment(request, racePid, 'cancelled'),
+    ])
+    bodiesSwept.push(JSON.stringify([a.body, b.body]))
+    const pay = queryOne('SELECT status FROM subscription_payments WHERE id=?', [racePid])
+    const user = queryOne('SELECT subscription_status FROM users WHERE username=?', [p02name])
+    const tenant = queryOne('SELECT subscription_status FROM tenants WHERE id=(SELECT tenant_id FROM users WHERE username=?)', [p02name])
+    const decided200 = [a.status, b.status].filter((s) => s === 200).length
+    const finalStatus = String(pay?.status || '')
+    // v16-E2: الحسم cancelled يضبط المستأجر REJECTED هو أيضًا (فرع D4 الميت
+    // أُغلق) — الاتساق الآن مطلوب في الحالتين على المستويين
+    const consistent =
+      finalStatus === 'verified'
+        ? user?.subscription_status === 'PAID' && tenant?.subscription_status === 'PAID'
+        : finalStatus === 'cancelled'
+          ? user?.subscription_status === 'REJECTED' && tenant?.subscription_status === 'REJECTED'
+          : false
+    checkClaim(
+      P,
+      'p13-concurrent-decision-deterministic',
+      'POST /api/admin/subscriptions {verified, cancelled} متزامنان',
+      [],
+      () => ({
+        ok: decided200 === 1 && [a.status, b.status].every((s) => s < 500) && ['verified', 'cancelled'].includes(finalStatus) && consistent,
+        actual: { statuses: [a.status, b.status], final: finalStatus, user: user?.subscription_status, tenant: tenant?.subscription_status },
+      }),
+      'قرار 200 واحد فقط + حالة نهائية حتمية + اتساق users/tenants معها (لا نصف مختلط — عائلة D13-F1/D1-H4 + v16-E2)',
+      { query: 'POST /api/admin/subscriptions ×2' }
+    )
+    expect(decided200, `قرار ناجح واحد (فعلي ${a.status}/${b.status})`).toBe(1)
+    expect(['verified', 'cancelled']).toContain(finalStatus)
+    await shot(page, P, '13-step-9b-decision-race')
   })
 
   test('10. brute-force كلمة المرور الحالية: 429 خلال ≤ المحاولة 31', async () => {

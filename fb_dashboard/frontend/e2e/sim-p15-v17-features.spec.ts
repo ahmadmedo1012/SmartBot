@@ -17,17 +17,31 @@ import { test, expect, type Browser, type Page } from '@playwright/test'
  *
  * الادعاءات كلها عبر checkClaim (إثبات DB) + لقطات لكل خطوة.
  */
-import { loadPersonaUsername, savePersonaToken } from './sim/helpers/session'
+import {
+  loadPersonaUsername, savePersonaToken, loadPersonaState, savePersonaState, ensureSession,
+  approvePayment, loginViaUI,
+} from './sim/helpers/session'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot, runId } from './sim/helpers/shots'
-import { loginViaUI } from './sim/helpers/session'
+import { browserFetch } from './sim/helpers/api'
 import { checkClaim, queryScalar, queryOne } from './sim/helpers/db-claims.mjs'
 
 const P = 'p15'
-const uname = loadPersonaUsername('p02')
+let uname = loadPersonaUsername('p02')
 const password = 'Sim#P02pass' // نفس كلمة سر شخصية p02 (personas.ts)
 
 let page: Page
+
+// phase8 (إعادة 3b83f76): إعادة امتلاء من القرص بعد أي إعادة تشغيل عامل —
+// p15 يفتح نموذج الدخول في الخطوة 1 فلا حقن في beforeAll (لا ارتداد /login)؛
+// الامتلاء شرطي على حالة مخزنة.
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  if (st.token && uname) {
+    await ensureSession(page, P, { username: uname, password })
+  }
+}
 
 test.describe('P15 — مستخدم ميزات v17', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -38,6 +52,11 @@ test.describe('P15 — مستخدم ميزات v17', () => {
 
   test.afterAll(async () => {
     await page.context().close().catch(() => {})
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test('0. /subscribe متاح للمجهول (لا طرد لـ/login)', async () => {
@@ -54,7 +73,11 @@ test.describe('P15 — مستخدم ميزات v17', () => {
     const landing = await loginViaUI(page, uname, password)
     expect(landing, `هبوط ${landing}`).toMatch(/dashboard|onboarding/)
     const token = await page.context().cookies().then((cs) => cs.find((c) => c.name === 'token')?.value || '')
-    if (token) savePersonaToken('p15', token)
+    if (token) {
+      savePersonaToken('p15', token)
+      // phase8: الحالة على القرص — إعادة تشغيل العامل تعيد امتلاء الجلسة
+      savePersonaState(P, { username: uname, token })
+    }
     await shot(page, P, '15-step-01-login')
   })
 
@@ -104,8 +127,75 @@ test.describe('P15 — مستخدم ميزات v17', () => {
     await shot(page, P, '15-step-03-offer-created')
   })
 
-  test('4. إنشاء حملة تسلسلية بخطوة (وعد Pro — الصفحة الجديدة)', async () => {
+  test('4. إنشاء حملة تسلسلية بخطوة (وعد Pro — رقِّ خطتك أولاً)', async ({ request }) => {
     test.skip(!uname, 'الدخول لم ينجح')
+    // phase8 (إعادة 3b83f76 — رحلة الترقية الأمينة): بوابة الخطة حقيقية
+    // (v22-D4: has_sequences على Pro/Enterprise فقط — sequences.py:18) —
+    // مستأجر p02 على أساسي/غير نشط، فالإنشاء المباشر يُرفض 403 «رقِّ
+    // خطتك» (رحلة الجولة 6 كانت تفترض الإنشاء المباشر فبقيت الصفوف صفرًا).
+    // الرحلة الكاملة الصادقة: (أ) البوابة تُقاس أولاً، (ب) ترقية فعلية
+    // (دفعة Pro — تحويل بنكي: 129 فوق سقف المحفظة فيُجبر المنتج عليه) →
+    // موافقة الأدمن → (ج) الإنشاء من الواجهة يمر والصفوف تُنشأ.
+    const pro = queryOne('SELECT id, price FROM subscription_plans WHERE name=?', ['Pro']) as
+      | { id: number; price: number }
+      | undefined
+    expect(pro, 'خطة Pro موجودة').toBeTruthy()
+
+    // (أ) البوابة — تُقاس قبل الترقية (لا تُخفى)
+    const gate = await browserFetch(page, '/api/sequences', {
+      method: 'POST',
+      body: { name: `بوابة p15 ${runId(P)}` },
+    })
+    checkClaim(
+      P,
+      'p15-sequence-plan-gate',
+      'POST /api/sequences (خطة بلا has_sequences)',
+      [],
+      () => ({ ok: gate.status === 403, actual: { status: gate.status, detail: gate.body?.detail } }),
+      '403 «الحملات التسلسلية متاحة في خطة احترافي أو أعلى — رقِّ خطتك» (بوابة v22-D4 حية)'
+    )
+    expect(gate.status, `بوابة خطة التسلسلات (فعلي ${gate.status})`).toBe(403)
+
+    // (ب) الترقية: المسار حسب حالة المستأجر — نشط → /upgrade (خطة أعلى)،
+    // غير نشط (إلغاء p04/حسم p13-9b cancelled) → اشتراك جديد. كلاهما دفعة
+    // Pro بنكية (129 > سقف المحفظة) تُحسم verified فيفعّل has_sequences.
+    const tenantRow = queryOne(
+      'SELECT subscription_status, plan_end FROM tenants WHERE id=(SELECT tenant_id FROM users WHERE username=?)',
+      [uname]
+    ) as { subscription_status?: string; plan_end?: string | null } | undefined
+    const status = String(tenantRow?.subscription_status || '').toUpperCase()
+    const planEnd = tenantRow?.plan_end ? new Date(tenantRow.plan_end) : null
+    const active = (status === 'PAID' || status === 'TRIAL') && (!planEnd || planEnd.getTime() > Date.now())
+    const bankBody = {
+      plan_id: pro!.id,
+      provider: 'bank',
+      amount: Number(pro!.price),
+      senderAccountName: 'منال p15',
+      senderAccountNumber: '000915',
+    }
+    const upgradeResp = active
+      ? await browserFetch(page, '/api/subscriptions/upgrade', { method: 'POST', body: bankBody })
+      : await browserFetch(page, '/api/subscriptions', { method: 'POST', body: bankBody })
+    expect(upgradeResp.status, `ترقية Pro (${active ? 'upgrade' : 'اشتراك جديد'} — فعلي ${upgradeResp.status}: ${JSON.stringify(upgradeResp.body).slice(0, 140)})`).toBe(200)
+    const pid = Number(upgradeResp.body?.data?.payment_id || 0)
+    expect(pid, 'payment_id للترقية').toBeGreaterThan(0)
+    const settle = await approvePayment(request, pid, 'verified')
+    expect(settle.status, `موافقة الأدمن على Pro (فعلي ${settle.status})`).toBe(200)
+    const proNow = queryOne(
+      'SELECT p.name AS plan, t.subscription_status FROM tenants t JOIN subscription_plans p ON p.id=t.plan_id WHERE t.id=(SELECT tenant_id FROM users WHERE username=?)',
+      [uname]
+    ) as { plan?: string; subscription_status?: string } | undefined
+    checkClaim(
+      P,
+      'p15-pro-upgrade-verified',
+      'POST /api/subscriptions{,/upgrade} (Pro بنكي) + موافقة الأدمن',
+      [],
+      () => ({ ok: proNow?.plan === 'Pro' && proNow?.subscription_status === 'PAID', actual: proNow }),
+      'المستأجر على Pro PAID بعد الترقية والموافقة (has_sequences=true)'
+    )
+    expect(proNow?.plan, 'المستأجر على Pro').toBe('Pro')
+
+    // (ج) الإنشاء من الواجهة (السطح الحقيقي للميزة — نفس رحلة الجولة 6)
     await page.goto('/dashboard/sequences')
     // الصفحة نفسها يجب أن تعمل (nav عنصر جديد في AdminSidebar)
     await page.getByRole('button', { name: /حملة جديدة/ }).first().click()
@@ -120,11 +210,13 @@ test.describe('P15 — مستخدم ميزات v17', () => {
     checkClaim(
       P,
       'p15-sequence-create',
-      'إنشاء حملة تسلسلية + خطوتها الأولى من الواجهة (كانت الميزة بلا سطح)',
+      'إنشاء حملة تسلسلية + خطوتها الأولى من الواجهة بعد ترقية Pro (كانت الميزة بلا سطح)',
       [stamp],
       () => ({ ok: after === before + 1 && steps >= 1, actual: { before, after, steps } }),
       'الحملة والخطوة أُنشئتا في القاعدة'
     )
+    expect(after, 'صف sequences نما 1').toBe(before + 1)
+    expect(steps, 'خطوة واحدة على الأقل').toBeGreaterThanOrEqual(1)
     await shot(page, P, '15-step-04-sequence-created')
   })
 
@@ -139,9 +231,11 @@ test.describe('P15 — مستخدم ميزات v17', () => {
     test.skip(!row, 'لا محادثة غير مقروءة (شخصيات p08/p09 لم تترك واحدة)')
     await page.goto('/dashboard/messages')
     await page.waitForTimeout(1500)
-    // زر المحادثة يعرض اسم صاحبها (ConvItem: subject || senders[0].name)
+    // phase8 (v24-C2): دلالات القائمة على <li> حقيقية (ul role=list) —
+    // role="listitem" على الزر أُزيل. getByRole('listitem') يلتقط <li> الفعلي
+    // والنص داخله (الاسم نفسه الذي كان على الزر).
     const name = (row.user_name || '').trim()
-    const convBtn = page.locator('button[role="listitem"]').filter({ hasText: name }).first()
+    const convBtn = page.getByRole('listitem').filter({ hasText: name }).first()
     await convBtn.waitFor({ state: 'visible', timeout: 15_000 })
     await convBtn.click()
     await page.waitForTimeout(2000)

@@ -57,17 +57,29 @@ else PY="/home/z/.venv/bin/python3"; fi
 # phase7 (إعادة 7a98a52 — فقدت بإعادة تعيين الصندوق): القتل محصور بالمنافذ.
 # pkill -f "next-server" كان يقتل أي خادم next في الجهاز كله — لوحة المنسق
 # على :3000 وأرصات المنتجات الشقيقة تعمل في نفس الصندوق ولا يجوز لمسها.
-# lsof على منافذ البطارية (3200/8000) فقط: يقتل ما نملكه نحن وحده.
+# phase8-fix: lsof يُرجع فراغًا في هذا الصندوق (ويفوّت *:PORT) — ss بدله
+# (مطابقة لاحقة العمود الرابع + قتل المجموعة TERM→KILL). لا يلمس 3000 أبدًا.
 kill_stack() {
-  local p pids
+  local p pid pgid mypgid
+  mypgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')
   for p in "$FRONT_PORT" "$API_PORT"; do
-    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
-    [ -n "$pids" ] && kill $pids 2>/dev/null || true
+    for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$p" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+        kill -TERM -- "-$pgid" 2>/dev/null || true
+      fi
+      kill -TERM "$pid" 2>/dev/null || true
+    done
   done
-  sleep 1
+  sleep 2
   for p in "$FRONT_PORT" "$API_PORT"; do
-    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
-    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+    for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$p" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+        kill -KILL -- "-$pgid" 2>/dev/null || true
+      fi
+      kill -KILL "$pid" 2>/dev/null || true
+    done
   done
   return 0
 }
@@ -89,8 +101,13 @@ kill_stack
 mkdir -p "$DB_DIR" "$EVID"
 rm -f "$SIM_DB" "$SIM_DB"-wal "$SIM_DB"-shm
 rm -rf "$ROOT/fb_dashboard/static/uploads/receipts" 2>/dev/null
+# phase8 (إعادة 3b83f76): دليل الإيصالات الخاص (v24-R3) + حالة الشخصيات
+# الدائمة (إعادة تشغيل العامل) + توكنات/أسماء p10-p15 (كانت البطارية الكاملة
+# تنظف p0* فقط — توكن p12/p15 من جولة سابقة كان يبقى)
+rm -rf "$ROOT/fb_dashboard/data/uploads/receipts" 2>/dev/null
 SIM_ART="$FRONT/e2e_artifacts/sim"
-rm -f "$SIM_ART/.current-run" "$SIM_ART/.admin_token" "$SIM_ART"/.p0*_token "$SIM_ART"/.p0*_username 2>/dev/null
+rm -f "$SIM_ART/.current-run" "$SIM_ART/.admin_token" "$SIM_ART"/.p0*_token "$SIM_ART"/.p0*_username "$SIM_ART"/.p1*_token "$SIM_ART"/.p1*_username \
+      "$SIM_ART"/.p0*_state.json "$SIM_ART"/.p1*_state.json 2>/dev/null
 rm -f /tmp/v17-uvicorn.log /tmp/v17-uvicorn-rotated.log /tmp/v17-playwright.log
 
 # ── 2) أسرار الجلسة (SK/FK/CS → /tmp/v17-backend.env) ─────────────────────

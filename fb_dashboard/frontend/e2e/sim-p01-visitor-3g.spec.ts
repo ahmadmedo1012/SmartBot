@@ -84,10 +84,16 @@ test.describe('P01 — زائر ليبي موبايل 3G', () => {
   })
 
   test('6-8. CTA البطل → التسعير → العملة الليبية', async () => {
-    // الخطوة 6 — CTA «ابدأ الآن» (page.tsx:154 → /subscribe)
+    // الخطوة 6 — CTA «ابدأ الآن»: رابط المغناطة الذهبي في البطل
+    // (page.tsx → MagneticGoldLink → /subscribe). phase8 (إعادة 3b83f76 —
+    // سباق الجولة 6): على 375px يطوى CTA الترويسة في برغر الجوال
+    // (landing.css:1204: .landing-header-cta{display:none}) فيصبح أول
+    // a[href="/subscribe"] في main عنصرًا صفري الأبعاد (display:none) —
+    // .first() القديمة كانت تلتقطه فتفشل الرؤية. محدد CTA البطل الفعلي:
+    // رابط .ln-hero-actions (فوق الثنية؛ useReveal يكشفه عند الجبل).
     await page.goto('/', { waitUntil: 'load', timeout: 60_000 })
-    const cta = page.locator('main a[href="/subscribe"]').first()  // v14: CTA البطل — مرئي على الموبايل
-    await expect(cta).toBeVisible()
+    const cta = page.locator('main .ln-hero-actions a[href="/subscribe"]').first()
+    await expect(cta, 'CTA البطل الذهبي مرئي على الموبايل').toBeVisible()
     const href = (await cta.getAttribute('href')) || ''
     await shot(page, P, '01-step-06-cta')
     expect(href, `CTA يقود للقمع: ${href}`).toMatch(/\/(subscribe|register|pricing)/)

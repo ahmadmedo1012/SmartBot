@@ -7,11 +7,13 @@ import { test, expect, type Browser, type Page } from '@playwright/test'
  * التاريخية (بوابة a11y معطلة منذ v6 — الآن داخل بطارية المستخدم نفسها).
  * يعيد استخدام p02 + أدمن البذرة (طابور المدفوعات).
  */
-import { createPersonaContext, watchConsole, slow3g } from './sim/helpers/net'
+import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
-import { ADMIN_USER, ADMIN_PASS } from './sim/helpers/api'
-import { loadPersonaUsername, savePersonaToken } from './sim/helpers/session'
-import { checkClaim, queryOne, queryScalar, exec } from './sim/helpers/db-claims.mjs'
+import { ADMIN_USER, ADMIN_PASS, browserFetch } from './sim/helpers/api'
+import {
+  loadPersonaUsername, savePersonaToken, loadPersonaState, savePersonaState, ensureSession,
+} from './sim/helpers/session'
+import { checkClaim, queryScalar, exec } from './sim/helpers/db-claims.mjs'
 import {
   axeSweep,
   axeJourneyOk,
@@ -23,13 +25,26 @@ import {
 } from './sim/helpers/a11y'
 
 const P = 'p12'
-const uname = loadPersonaUsername('p02')
+let uname = loadPersonaUsername('p02')
 const password = 'Sim#P02pass'
 
 let page: Page
 let consoleBucket: ReturnType<typeof watchConsole>
 const sweeps: AxeSweepResult[] = []
 let tenantId = 0
+
+// phase8 (إعادة 3b83f76): إعادة امتلاء من القرص بعد أي إعادة تشغيل عامل —
+// السياق يُبنى بلا كوكيز فتسقط الاختبارات اللاحقة. الجلسة تُنشأ في الخطوة 2
+// (نموذج دخول) — لا حقن في beforeAll كي لا يرتد /login المصادَق (p12
+// يفتح النموذج في الخطوة 1)؛ الامتلاء هنا شرطي على وجود حالة مخزنة.
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  tenantId = Number(st.tenantId || tenantId || 0)
+  if (st.token && tenantId && uname) {
+    await ensureSession(page, P, { username: uname, password })
+  }
+}
 
 test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كيبورد فقط)', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -40,6 +55,11 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
 
   test.afterAll(async () => {
     await page.context().close().catch(() => {})
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test('1. axe على /login و /register: صفر serious/critical', async () => {
@@ -71,6 +91,9 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
     tenantId = Number(queryScalar('SELECT tenant_id FROM users WHERE username=?', [uname]) || 0)
     const token = await page.context().cookies().then((cs) => cs.find((c) => c.name === 'token')?.value || '')
     if (token) savePersonaToken('p12', token)
+    // phase8: الحالة على القرص — إعادة تشغيل العامل تعيد امتلاء الجلسة
+    // وtenantId من هنا (الخطوات 3+ كلها مشروطة بهما)
+    if (token) savePersonaState(P, { username: uname, token, tenantId })
     checkClaim(
       P,
       'p12-keyboard-journey',
@@ -201,7 +224,9 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
     )
     expect(waitingSeen, `إعلانات: ${announcements.join(' | ')}`).toBeTruthy()
     await shot(page, P, '12-step-05-payment-dialog')
-    // الدفعة تبقى pending — تُحسم في الخطوة 7 (رفض الأدمن عبر الواجهة)
+    // الدفعة تبقى pending — الخطوة 6 قد تلغيها عبر مسار المنتج («إلغاء
+    // الطلب المعلق») لفتح النموذج؛ الخطوة 7 تضمن وجود صف معلق للطابور
+    // (تنشئ واحدًا عبر API الحقيقي إن لم يبق شيء) ثم تحسمه «رفض» بالكيبورد
   })
 
   test('6. رفع الإيصال: زر sr-only يصل بـ Tab + label مرتبط (C-A11Y1)', async () => {
@@ -213,6 +238,22 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
     await page.locator('button:has-text("ادفع الآن")').first().waitFor({ state: 'visible', timeout: 20_000 })
     await page.locator('button:has-text("ادفع الآن")').first().focus()
     await page.keyboard.press('Enter')
+    // phase8 (إعادة 3b83f76 + بقايا p12#6): دفعة الخطوة 5 ما زالت معلقة —
+    // مسبار الفتح (v18-1-b: GET /api/subscriptions/pending عند فتح الحوار)
+    // يقلب الحوار لشاشة «طلب معلق» بدل النموذج. سباق الجولة 7: النموذج
+    // يُرسم أولًا ثم يُستبدل فتموت مهلة focus زر التبويب. رحلة المنتج
+    // الحقيقية التي يعِد بها الزر نفسه: «إلغاء الطلب المعلق وإعادة المحاولة»
+    // بالكيبورد → الحوار يعيد النموذج (payments/plans.py:553 إعادة فحص).
+    const cancelPending = page.getByRole('button', { name: /إلغاء الطلب المعلق/ })
+    // phase8-fix (p12#6): isVisible() لا تنتظر أصلًا (مهلة الخيار تُهمَل
+    // داخليًا — التتبع أثبته: الاستدعاء أُرسل بلا مهلة) فقاضى زر الإلغاء
+    // قبل أن يرسم الحوار شاشة «طلب معلق» بعد الجلب (probe غير متزامن)
+    // → تخطي الإلغاء → النموذج لا يظهر أبدًا. الانتظار الحقيقي بـ waitFor.
+    if (await cancelPending.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+      await cancelPending.first().focus()
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(1200)
+    }
     await page.locator('#payment-phone').waitFor({ state: 'visible', timeout: 15_000 })
     // تبويب «تحويل بنكي» (زر aria-pressed) بالكيبورد
     const bankTab = page.locator('button[aria-pressed]:has-text("تحويل بنكي")').first()
@@ -245,6 +286,19 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
 
   test('7. طابور الأدمن: th بـ scope + أزرار بأسماء + حسم «رفض» بالكيبورد', async ({ browser }) => {
     test.skip(!tenantId, 'الخطوة 2 لم تنجح')
+    // phase8: ضمان وجود صف معلق في الطابور — جدول الطابور لا يُرسم أصلًا
+    // بلا صفوف (EmptyState) فتسقط ادعاءات th[scope]. الخطوة 6 قد ألغت دفعة
+    // الخطوة 5 بمسار المنتج؛ ننشئ بديلًا عبر القناة الحقيقية نفسها
+    // (POST /api/subscriptions من مستخدمة p12) ثم يرفضها الأدمن لاحقًا.
+    const pendingCount = Number(queryScalar('SELECT COUNT(*) FROM subscription_payments WHERE status=?', ['pending']) || 0)
+    if (pendingCount === 0) {
+      const basicId = Number(queryScalar('SELECT id FROM subscription_plans WHERE name=?', ['Basic']) || 0)
+      const created = await browserFetch(page, '/api/subscriptions', {
+        method: 'POST',
+        body: { plan_id: basicId, provider: 'liyana', amount: 19, phone: '0910000001' },
+      })
+      expect(created.status, `إنشاء دفعة للطابور (فعلي ${created.status})`).toBe(200)
+    }
     // سياق الأدمن (جلسة مستقلة) — دخول UI
     const ctx = await createPersonaContext(browser, 'p12-admin', { recordHar: false })
     const admin = await ctx.newPage()
@@ -284,7 +338,7 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
 
     // حسم دفعة p12 الخطوة 5: «رفض» بالكيبورد (زر رفض أول صف pending)
     const rejectBtn = admin.locator('table button:has-text("رفض")').first()
-    if (await rejectBtn.isVisible({ timeout: 6000 }).catch(() => false)) {
+    if (await rejectBtn.waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false)) {
       await rejectBtn.focus()
       await admin.keyboard.press('Enter')
       await admin.waitForTimeout(2500)
@@ -335,19 +389,23 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
     expect(restored, 'أُعيد onboarding_completed=1').toBeTruthy()
   })
 
-  test('9. صفحات الفراغ/التحميل تعلن حالتها (عينة 3 من عائلة الحدود)', async ({ browser }) => {
+  test('9. صفحات الحدود تعلن حالتها (فشل الخطط + أسطح اللوحة — عينة 3)', async ({ browser }) => {
     test.skip(!tenantId, 'الخطوة 2 لم تنجح')
-    // (أ) حالة تحميل فعلية: role=status أثناء تحميل الخطط على شبكة بطيئة
+    // (أ) فشل تحميل الخطط — حتميًا: إجهاض /api/plans من السياق نفسه.
+    // phase8 (إعادة 3b83f76): التوقع القديم (role=status أثناء تحميل بطيء)
+    // كان متقادمًا — /pricing يرسم البطاقات فورًا من الافتراضية (v18-1-c:
+    // لا حالة تحميل على المسار البارد) فلا يُرى loading أبدًا. السطح
+    // الحقيقي القابل للقياس: فشل الجلب النهائي → لافتة role=status
+    // «تُعرض الباقات الافتراضية — أعد المحاولة» (pricing/page.tsx:158) —
+    // نفس عائلة الحدود المعلنة، حتمية بلا سباقات شبكة.
     const ctx = await createPersonaContext(browser, 'p12-slow', { recordHar: false })
     const slow = await ctx.newPage()
-    await slow3g(slow)
+    await slow.route('**/api/plans', (route) => route.abort('failed'))
     await slow.goto('/pricing')
-    const loadingRole = await slow
-      .locator('[role="status"]')
-      .first()
-      .isVisible({ timeout: 5000 })
-      .catch(() => false)
-    await slow.locator('button:has-text("ابدأ مجاناً")').first().waitFor({ state: 'visible', timeout: 25_000 }).catch(() => {})
+    const failedBanner = slow.locator('[role="status"]').filter({ hasText: 'الباقات الافتراضية' })
+    const loadingRole = await failedBanner.first().waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
+    // phase8-fix (p12#9): isVisible لا تنتظر (المهلة تُهمَل داخليًا) فقاضت
+    // اللافتة قبل رسمها مرة وفازت السباق مرة — waitFor يحسمها حتميًا.
     await ctx.close().catch(() => {})
     // (ب) سطح الحدود الثاني: تنبيهات الإعداد على اللوحة (role=alert —
     // SetupWarnings v3 §4.1) — عدّ وصفي لصفحة p02
@@ -366,15 +424,15 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
       () => ({
         ok: loadingRole,
         actual: {
-          pricing_loading_role: loadingRole,
+          pricing_plans_failed_banner: loadingRole,
           dashboard_alert_roles: dashboardRoles,
           payment_live: 'أثبته p12-payment-aria-live (خطوة 5)',
         },
       }),
-      'حالة التحميل معلنة (role=status) أثناء البطء + تنبيهات اللوحة (role=alert) موثقة + إعلان الحوار (خطوة 5) — عينة 3 أسطح',
+      'فشل الخطط معلن (role=status «الباقات الافتراضية» — v18-1-c) + تنبيهات اللوحة (role=alert) موثقة + إعلان الحوار (خطوة 5) — عينة 3 أسطح',
       { query: 'UI [role=status]/[role=alert]' }
     )
-    expect(loadingRole, 'حالة تحميل معلنة أثناء البطء').toBeTruthy()
+    expect(loadingRole, 'حالة فشل الخطط معلنة (role=status)').toBeTruthy()
     await shot(page, P, '12-step-09-boundary')
   })
 
@@ -382,16 +440,21 @@ test.describe('P12 — قارئ الشاشة (axe مسارات كاملة + كي
     test.skip(!tenantId, 'الخطوة 2 لم تنجح')
     await page.goto('/dashboard/messages')
     await page.waitForTimeout(2500)
-    const conv = page.locator('[role="listitem"]').first()
-    const hasConv = await conv.isVisible({ timeout: 10_000 }).catch(() => false)
+    // phase8 (v24-C2): دلالات القائمة على <li> حقيقية (ul role=list) —
+    // role="listitem" على الزر أُزيل. getByRole('listitem') يلتقط <li> الفعلي.
+    const conv = page.getByRole('listitem').first()
+    const hasConv = await conv.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
     let opened = false
     let replyLabelOk = false
     let enterSent = false
     if (hasConv) {
-      await conv.focus()
+      // phase8-fix (p12#10): العنصر التفاعلي هو زر ConvItem داخل <li> —
+      // <li> نفسه غير قابل للتركيز (لا tabindex) فتركيزه no-op وEnter
+      // يضيع. الكيبورد الحقيقي يصل الزر بـ Tab — نفس ما نحاكيه هنا.
+      await conv.getByRole('button').focus()
       await page.keyboard.press('Enter')
       await page.waitForTimeout(1500)
-      opened = await page.locator('textarea[aria-label="نص الرد"]').isVisible({ timeout: 8000 }).catch(() => false)
+      opened = await page.locator('textarea[aria-label="نص الرد"]').waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)
       if (opened) {
         replyLabelOk = true // aria-label="نص الرد" (label مرتبط دلالياً)
         await page.locator('textarea[aria-label="نص الرد"]').focus()

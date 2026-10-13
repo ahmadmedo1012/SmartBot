@@ -14,7 +14,7 @@ import { test, expect, type Browser, type Page } from '@playwright/test'
 import { personas } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole, slow3g, dclMs, fcpMs } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
-import { loadPersonaUsername } from './sim/helpers/session'
+import { loadPersonaUsername, loadPersonaState, savePersonaState, ensureSession } from './sim/helpers/session'
 import { checkClaim } from './sim/helpers/db-claims.mjs'
 
 const P = 'p11'
@@ -24,6 +24,14 @@ const password = personas.p02.password!
 
 let page: Page
 let consoleBucket: ReturnType<typeof watchConsole>
+
+// phase8 (إعادة 3b83f76): إعادة امتلاء جلسة p11 من القرص بعد أي إعادة
+// تشغيل عامل (السياق يُبنى بلا كوكيز فيقع الاختبارات اللاحقة على /login)
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (!st.token || !uname) return
+  await ensureSession(page, P, { username: uname, password })
+}
 
 test.describe('P11 — متصفح عربي حقيقي (RTL هندسي + 3G بطيء)', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -39,6 +47,11 @@ test.describe('P11 — متصفح عربي حقيقي (RTL هندسي + 3G بط�
 
   test.afterAll(async () => {
     await page.context().close().catch(() => {})
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test('1. الهبوط بمتصفح عربي: dir=rtl وlang=ar فعليان', async () => {
@@ -132,6 +145,9 @@ test.describe('P11 — متصفح عربي حقيقي (RTL هندسي + 3G بط�
       { query: 'UI /login' }
     )
     await shot(page, P, '11-step-04-login-typed')
+    // phase8: خزّن الجلسة — الاختبارات اللاحقة تعيد امتلاءها من القرص
+    const tok = await page.context().cookies().then((cs) => cs.find((c) => c.name === 'token')?.value || '')
+    if (tok) savePersonaState(P, { username: uname, token: tok })
   })
 
   test('5. RTL هندسي: الشريط الجانبي يمين الشاشة والبطاقات من اليمين', async () => {

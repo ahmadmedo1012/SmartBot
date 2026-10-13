@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
 import { brandedToast } from "@/lib/premium-toast"
@@ -157,6 +157,16 @@ export default function BillingPage() {
      وتعطيل تبويبات المحافظ (الخادم يرفضها بنفس الشرط). */
   const effectiveProvider: UpgradeProvider = requiresBank && provider !== "bank" ? "bank" : provider
 
+  /* phase8 (P8-A — بقايا p10#6-7): حارس التقديم المتزامن (sentRef) — نفس
+   * عقد PaymentDialog (payment/index.tsx:309) الذي تثبته سباقات البطارية
+   * (doubleClickSubmit). useMutation لا يمنع نداء mutate() الثاني قبل
+   * إعادة الرسم (react-query يجدول عبر microtask — النقرة الثانية في نفس
+   * التكة تمر)، فتصل POSTان للخلفية والثاني يرتد 400 «طلب ترقية معلق».
+   * الحارس المرجعي المتزامن يبتلع النقرة الثانية قبل أي رحلة شبكة.
+   * (أُعلن قبل useMutation لأن ردود onSuccess/onError تعيده للسماح
+   * بإعادة المحاولة/الفتح الجديد.) */
+  const upgradeSentRef = useRef(false)
+
   const upgradeMut = useMutation({
     mutationFn: async () => {
       if (!selectedPlan) throw new Error("اختر خطة أولًا")
@@ -184,6 +194,7 @@ export default function BillingPage() {
       return unwrapApi<{ payment_id: number; status: string }>(res)
     },
     onSuccess: () => {
+      upgradeSentRef.current = false
       brandedToast.success("تم إرسال طلب الترقية", "سيتم تفعيل الخطة الجديدة بعد موافقة الإدارة")
       setUpgradeOpen(false)
       setSelectedPlanId(null)
@@ -191,13 +202,17 @@ export default function BillingPage() {
       setFieldErrors({})
       queryClient.invalidateQueries({ queryKey: ["payment-history"] })
     },
-    onError: (e: Error) => brandedToast.error(e.message || "تعذّر إرسال طلب الترقية"),
+    onError: (e: Error) => {
+      upgradeSentRef.current = false // allow retry on failure (نفس عقد PaymentDialog)
+      brandedToast.error(e.message || "تعذّر إرسال طلب الترقية")
+    },
   })
 
   /* r133 (A5 S2): inline per-field verdicts (support:338-348 recipe) —
    * the toast-only grammar forced a read-locate-fix-resubmit loop on the
    * money path. Focus lands on the FIRST invalid field (rAF). */
   const submitUpgrade = () => {
+    if (upgradeSentRef.current) return // block double-click double-payment (نفس عقد sentRef)
     if (!selectedPlan) {
       brandedToast.error("اختر خطة للترقية أولاً")
       return
@@ -227,6 +242,7 @@ export default function BillingPage() {
         return
       }
     }
+    upgradeSentRef.current = true
     upgradeMut.mutate()
   }
 
@@ -282,7 +298,7 @@ export default function BillingPage() {
               /* r131-F8 (A4 P2-3): hand-rolled chip → Badge. */
               <Badge variant="success" className="px-3 py-1.5">أنت على أعلى خطة متاحة</Badge>
             ) : (
-              <Button size="sm" onClick={() => { setUpgradeOpen(true); setSelectedPlanId(null) }}>
+              <Button size="sm" onClick={() => { setUpgradeOpen(true); setSelectedPlanId(null); upgradeSentRef.current = false }}>
                 <Zap className="size-3.5" /> ترقية خطتك
               </Button>
             )}

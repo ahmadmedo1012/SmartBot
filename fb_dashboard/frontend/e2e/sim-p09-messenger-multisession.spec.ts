@@ -13,7 +13,7 @@ import { personas } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole, setOfflineOnline } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { API_BASE, FRONT_BASE } from './sim/helpers/api'
-import { loginViaUI, loadPersonaUsername, skipJoyride } from './sim/helpers/session'
+import { loginViaUI, loadPersonaUsername, loadPersonaState, savePersonaState, skipJoyride, ensureSession } from './sim/helpers/session'
 import { checkClaim, queryScalar, queryOne, exec } from './sim/helpers/db-claims.mjs'
 import { signWebhook, messageEvent, commentEvent } from './sim/helpers/webhook'
 
@@ -31,6 +31,24 @@ let consolePhone: ReturnType<typeof watchConsole>
 let tenantId = 0
 let bidiText = ''
 
+// phase8 (إعادة 3b83f76 — بقايا p09#6): إعادة تشغيل العامل تبني السياقين
+// (الحاسوب + الهاتف) بلا كوكيز فيصبح صندوق الهاتف فارغًا (قائمة المحادثات
+// تقاضى 401) وينهار 7-8 وراءه. إعادة الامتلاء يجب أن تغطي السياقين معًا
+// — كلا الجهازين يستعيد جلسته من القرص قبل أي خطوة تعتمد عليها.
+async function rehydrateBoth(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.tenantId) tenantId = Number(st.tenantId)
+  if (!st.token) return
+  for (const pg of [desktop, phone]) {
+    if (!pg) continue
+    await ensureSession(pg, P, { username: uname, password })
+  }
+}
+
+function persist(): void {
+  savePersonaState(P, { username: uname, tenantId })
+}
+
 test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctxD = await createPersonaContext(browser, P) // حاسوب 1280×800
@@ -46,6 +64,11 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
   test.afterAll(async () => {
     await desktop.context().close().catch(() => {})
     await phone.context().close().catch(() => {})
+  })
+
+  // phase8: إعادة امتلاء السياقين قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrateBoth()
   })
 
   /** إرسال حدث ماسنجر موقّع من جهاز (نفس القناة التي يستعملها فيسبوك). */
@@ -75,7 +98,12 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
     const land2 = await loginViaUI(phone, uname, password)
     expect(land2, `هبوط الهاتف ${land2}`).toMatch(/dashboard/)
     await skipJoyride(phone)
+    // phase8: خزّن جلستي الجهازين — التوكن الأخير (الهاتف) هو المرجع؛
+    // إعادة التشغيل تعيد امتلاء الجهازين منه
+    const tok = await phone.context().cookies().then((cs) => cs.find((c) => c.name === 'token')?.value || '')
+    if (tok) savePersonaState(P, { username: uname, token: tok })
     tenantId = Number(queryScalar('SELECT tenant_id FROM users WHERE username=?', [uname]) || 0)
+    persist()
     expect(tenantId, 'مستأجر p02').toBeGreaterThan(0)
     await shot(desktop, P, '09-step-01-desktop')
     await shot(phone, P, '09-step-01-phone')
@@ -212,13 +240,21 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
     ] as [Page, string][]) {
       await pg.goto('/dashboard/messages')
       await pg.waitForTimeout(3000)
-      // عنوان المحادثة = المرسل الأول (هادي) — نفس العنوان في الجهازين
-      const conv = pg.locator('[role="listitem"], [class*="conversation"]').filter({ hasText: 'هادي' }).first()
-      const visible = await conv.isVisible({ timeout: 10_000 }).catch(() => false)
+      // phase8 (v24-C2): دلالات القائمة على <li> حقيقية (ul role=list +
+      // li) — role="listitem" على الزر أُزيل (كان يكبت دلالة الزر).
+      // getByRole('listitem') يلتقط <li> الفعلي؛ النص داخله.
+      const conv = pg.getByRole('listitem').filter({ hasText: 'هادي' }).first()
+      // phase8-fix (p12#9 نفسه): waitFor بدل isVisible — الأخيرة لا تنتظر.
+      const visible = await conv.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)
       if (visible) {
+        // phase8-fix (p09#6): التقط نص عنصر القائمة قبل النقر — تخطيط
+        // الموبايل يستبدل القائمة بعرض المحادثة عند النقر (unmount) فيصير
+        // innerText بعد النقر فارغًا على الهاتف بينما الحاسوب المصقول
+        // (split-view) يبقي القائمة. النص قبل النقر هو الدليل الأمين نفسه
+        // (المحادثة ظاهرة بعنوان المرسل في الجهازين) بلا اعتماد على تخطيط.
+        titles.push(await conv.innerText().catch(() => ''))
         await conv.click().catch(() => {})
         await pg.waitForTimeout(800)
-        titles.push(await conv.innerText().catch(() => ''))
       }
       await shot(pg, P, `09-step-06-messages-${tag}`)
     }
@@ -244,7 +280,8 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
     // يمكن أن تظهر فيه الرسالة الجديدة)
     await phone.goto('/dashboard/messages')
     await phone.waitForTimeout(2500)
-    const convBtn = phone.locator('[role="listitem"], [class*="conversation"]').filter({ hasText: 'هادي' }).first()
+    // phase8 (v24-C2): الدلالة على <li> الحقيقي (getByRole)
+    const convBtn = phone.getByRole('listitem').filter({ hasText: 'هادي' }).first()
     await convBtn.isVisible({ timeout: 10_000 }).then(async () => convBtn.click().catch(() => {}))
     await phone.waitForTimeout(1500)
     const errorsBeforeOffline = consolePhone.errors.length + consolePhone.pageErrors.length
@@ -298,7 +335,8 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
     if (!shown) {
       channel = 'navigation'
       await phone.goto('/dashboard/messages')
-      const again = phone.locator('[role="listitem"], [class*="conversation"]').filter({ hasText: 'هادي' }).first()
+      // phase8 (v24-C2): الدلالة على <li> الحقيقي (getByRole)
+      const again = phone.getByRole('listitem').filter({ hasText: 'هادي' }).first()
       await again.isVisible({ timeout: 10_000 }).then(async () => again.click().catch(() => {}))
       await phone.waitForTimeout(3000)
       shown = await phone
@@ -334,7 +372,8 @@ test.describe('P09 — زبون ماسنجر متعدد الأجهزة', () => {
     // عرض آمن: الصفحة ما زالت rtl ولا انقلاب بنية
     await desktop.goto('/dashboard/messages')
     await desktop.waitForTimeout(3000)
-    const convB = desktop.locator('[role="listitem"], [class*="conversation"]').filter({ hasText: 'هادي' }).first()
+    // phase8 (v24-C2): الدلالة على <li> الحقيقي (getByRole)
+    const convB = desktop.getByRole('listitem').filter({ hasText: 'هادي' }).first()
     await convB.isVisible({ timeout: 10_000 }).then(() => convB.click().catch(() => {}))
     await desktop.waitForTimeout(1200)
     const dir = await desktop.evaluate(() => document.documentElement.getAttribute('dir') || '')

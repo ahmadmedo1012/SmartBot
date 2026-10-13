@@ -14,13 +14,20 @@ import { personas, tsSuffix } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { FRONT_BASE, apiGet } from './sim/helpers/api'
-import { registerViaUI, loginViaUI, savePersonaToken, savePersonaUsername, approvePayment, getToken, skipJoyride } from './sim/helpers/session'
+import {
+  registerViaUI, loginViaUI, savePersonaToken, savePersonaUsername, loadPersonaUsername,
+  savePersonaState, loadPersonaState,
+  approvePayment, getToken, skipJoyride, ensureSession,
+} from './sim/helpers/session'
 import { checkClaim, queryOne } from './sim/helpers/db-claims.mjs'
 
 const P = 'p02'
 const p = personas.p02
-const uname = `p02_${tsSuffix()}`
-const email = `${uname}@sim.ly`
+// phase8 (إعادة 3b83f76): الاسم يُشتق من القرص أولًا — إعادة تشغيل العامل
+// تعيد تقييم الوحدة فتولّد اسمًا جديدًا (الدليل: p02_6wgniw مقابل المسجل
+// p02_6wfk3b) فيسقط كل ما بعدها. القرص هو المصدر بعد التسجيل الأول.
+let uname = loadPersonaState(P).username || loadPersonaUsername(P) || `p02_${tsSuffix()}`
+let email = `${uname}@sim.ly`
 
 let page: Page
 let consoleBucket: ReturnType<typeof watchConsole>
@@ -28,11 +35,35 @@ let paymentId = 0
 let tenantId = 0
 let token = ''
 
+/** إعادة امتلاء الحالة من القرص (بعد أي إعادة تشغيل عامل) + تثبيت الجلسة. */
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  if (st.email) email = st.email
+  tenantId = Number(st.tenantId || tenantId || 0)
+  paymentId = Number(st.paymentId || paymentId || 0)
+  token = String(st.token || token || '')
+  if (token) {
+    const live = await ensureSession(page, P, { username: uname, password: p.password! })
+    if (live) token = live
+  }
+}
+
+function persist(): void {
+  savePersonaState(P, { username: uname, email, token, paymentId, tenantId })
+}
+
 test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبيانا USSD)', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctx = await createPersonaContext(browser, P)
     page = await ctx.newPage()
     consoleBucket = watchConsole(page)
+  })
+
+  // phase8: كل اختبار يبدأ بإعادة الامتلاء من القرص — إعادة تشغيل العامل
+  // لا تكسر ما بعدها (401s الجماعية كانت هذا بالضبط)
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test.afterAll(async () => {
@@ -51,6 +82,7 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
     const regBody = await regResp!.json().catch(() => null)
     expect(regBody?.success).toBe(true)
     tenantId = regBody?.data?.user?.tenant_id || 0
+    persist()
     await shot(page, P, '02-step-01-register')
 
     // الخطوة 2 — بعد التسجيل: اللوحة، والمعالج يفتح تلقائياً فوقها (AuthGuard:
@@ -86,6 +118,7 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
     expect(token, 'كوكي token صادر بعد التسجيل').not.toBe('')
     savePersonaToken(P, token)
     savePersonaUsername(P, uname)
+    persist()
     const me = await apiGet(page.request, '/api/me', { headers: { cookie: `token=${token}` } })
     expect(me.status, 'GET /api/me = 200').toBe(200)
     expect(me.body?.success).toBe(true)
@@ -134,7 +167,10 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
     expect(conn?.status(), 'POST connect-page = 200').toBe(200)
     await shot(page, P, '02-step-05-connect')
 
-    // الخطوة 7 — ادعاء DB: 3 صفوف fb_* والتوكن مشفّر Fernet (لا نص صريح)
+    // الخطوة 7 — ادعاء DB: 4 صفوف fb_* والتوكن مشفّر Fernet (لا نص صريح).
+    // phase8 (إعادة 3b83f76): العقد الفعلي 4 صفوف — المعالج يكتب أيضًا
+    // fb_token_check (r133: حكم اتصال الصفحة الدائم في BotState —
+    // _services.py:459 يكتب الصف عند أول فحص اتصال). المتقادم كان 3.
     const tokValue = String(
       queryOne('SELECT value FROM bot_state WHERE tenant_id=? AND key=?', [tenantId, 'fb_access_token'])?.value || ''
     )
@@ -146,9 +182,18 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
       (rows) => {
         const keys = rows.map((r: any) => r.key).sort()
         const encrypted = tokValue.length > 60 && !tokValue.includes(p.accessToken!)
-        return { ok: keys.length === 3 && encrypted, actual: rows }
+        return {
+          ok:
+            keys.length === 4 &&
+            encrypted &&
+            keys.includes('fb_page_id') &&
+            keys.includes('fb_page_name') &&
+            keys.includes('fb_access_token') &&
+            keys.includes('fb_token_check'),
+          actual: rows,
+        }
       },
-      '3 صفوف fb_page_id/fb_page_name/fb_access_token والتوكن مشفّر'
+      '4 صفوف fb_page_id/fb_page_name/fb_access_token/fb_token_check والتوكن مشفّر'
     )
 
     // الخطوة 8 — القاعدة الأولى
@@ -226,8 +271,11 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
     expect(subBody?.success).toBe(true)
     paymentId = subBody?.data?.payment_id || 0
     expect(paymentId, 'payment_id صادر').toBeGreaterThan(0)
+    persist()
 
-    // الخطوة 13 — ادعاء DB: pending/liyana
+    // الخطوة 13 — ادعاء DB: pending/libyana
+    // phase8 (r137): المفتاح القانوني «libyana» — الخادم يقبل المرادف
+    // القديم liyana في الإدخال ويكتب القانوني في المخزون (models.py:868)
     checkClaim(
       P,
       'p02-payment-pending',
@@ -235,9 +283,9 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
       [paymentId],
       (rows) => {
         const r = rows[0]
-        return { ok: r?.status === 'pending' && r?.provider === 'liyana' && Number(r?.amount) > 0, actual: r }
+        return { ok: r?.status === 'pending' && r?.provider === 'libyana' && Number(r?.amount) > 0, actual: r }
       },
-      'status=pending + provider=liyana'
+      'status=pending + provider=libyana (القانوني r137)'
     )
 
     // الخطوة 14 — قناة SSE متصلة (خطة R6: مسار مزدوج — SSE أو poll 5s)
@@ -330,8 +378,10 @@ test.describe('P02 — مشتركة جديدة كاملة الرحلة (ليبي
     await expect(bar, 'الشريط السفلي ظاهر على الموبايل').toBeVisible({ timeout: 15_000 })
     // v14-fix: أزرار الشريط تبدّل تبويب /demo الداخلي (onNavigate) — لا تغيير URL؛
     // الدليل الأمين: تغيّر العنوان/المحتوى بعد النقر
+    // phase8-fix: عناصر الشريط صارت <Link>/«a» في مرحلة 6 (سابقة mobile-nav.spec:69)
+    // — المحدّد القديم button:has-text كان ينتظر عنصرًا غير موجود أبدًا.
     const hBefore = await m.locator('h1').first().innerText().catch(() => '')
-    await m.locator('nav[aria-label="التنقل الرئيسي"] button:has-text("الرسائل")').first().click()
+    await m.locator('nav[aria-label="التنقل الرئيسي"] a:has-text("الرسائل")').first().click()
     await m.waitForTimeout(900)
     const hAfter = await m.locator('h1').first().innerText().catch(() => '')
     expect(hAfter !== hBefore, `الشريط بدّل التبويب: «${hBefore}» → «${hAfter}»`).toBeTruthy()

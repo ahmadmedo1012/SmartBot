@@ -10,20 +10,24 @@ import { test, expect, type Browser, type Page } from '@playwright/test'
  *  - «سجل الدفع يحوي دفعة P02»: /api/payments/history يعرض جدول
  *    payment_requests (الشحنات) لا subscription_payments — لذا الدفعة
  *    الظاهرة فيه هي شحنة هذه الشخصية نفسها (خطوة 4).
- *  - «حالة المستأجر تراجعت»: قرار cancelled يضبط users.subscription_status
- *    = REJECTED فقط (approvals.py L87-91) — tenants.subscription_status يبقى
- *    PAID. البطارية توثق المتاح (ملاحظة التصميم §P04 نفسها).
+ *  - phase8 (تحديث v16-E2): الإلغاء الآن يضبط users.subscription_status
+ *    = REJECTED وأيضًا tenants.subscription_status = REJECTED (إغلاق الفرع
+ *    الميت D4 — approvals.py:153-155) — ما يترك المستأجر غير نشط (مناسب
+ *    لسباقات p13 اللاحقة التي تحتاج non-active + no-pending).
  */
 import { personas } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { browserFetch } from './sim/helpers/api'
-import { loginViaUI, loadPersonaUsername, savePersonaToken, getToken, approvePayment, skipJoyride } from './sim/helpers/session'
-import { checkClaim, queryOne, queryScalar } from './sim/helpers/db-claims.mjs'
+import {
+  loginViaUI, loadPersonaUsername, loadPersonaState, savePersonaState, savePersonaToken, getToken,
+  approvePayment, skipJoyride, ensureSession,
+} from './sim/helpers/session'
+import { checkClaim, queryOne, queryScalar, exec } from './sim/helpers/db-claims.mjs'
 
 const P = 'p04'
 const p = personas.p04
-const uname = loadPersonaUsername('p02')
+let uname = loadPersonaUsername('p02')
 const password = personas.p02.password!
 
 let page: Page
@@ -34,11 +38,36 @@ let topupId = 0
 let renewId = 0
 let cancelId = 0
 
+/** إعادة امتلاء الحالة من القرص + تثبيت الجلسة (حصانة إعادة تشغيل العامل). */
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  userId = Number(st.userId || userId || 0)
+  tenantId = Number(st.tenantId || tenantId || 0)
+  topupId = Number(st.topupId || topupId || 0)
+  renewId = Number(st.renewId || renewId || 0)
+  cancelId = Number(st.cancelId || cancelId || 0)
+  token = String(st.token || token || '')
+  if (token && uname) {
+    const live = await ensureSession(page, P, { username: uname, password })
+    if (live) token = live
+  }
+}
+
+function persist(): void {
+  savePersonaState(P, { username: uname, token, userId, tenantId, topupId, renewId, cancelId })
+}
+
 test.describe('P04 — مشتركة عائدة', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctx = await createPersonaContext(browser, P)
     page = await ctx.newPage()
     watchConsole(page)
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار — إعادة تشغيل العامل لا تكسر ما بعدها
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test.afterAll(async () => {
@@ -52,6 +81,7 @@ test.describe('P04 — مشتركة عائدة', () => {
     expect(landing, `هبوط ${landing}`).toMatch(/dashboard/)
     token = await getToken(page.context())
     savePersonaToken('p02', token) // التوكن الجديد هو ما تستخدمه P08
+    persist()
     await page.waitForTimeout(2000)
     await skipJoyride(page)
     await shot(page, P, '04-step-01-login')
@@ -60,6 +90,7 @@ test.describe('P04 — مشتركة عائدة', () => {
     const u = queryOne('SELECT id, tenant_id FROM users WHERE username=?', [uname])
     userId = Number(u?.id || 0)
     tenantId = Number(u?.tenant_id || 0)
+    persist()
     expect(userId, 'مستخدمة p02 موجودة').toBeGreaterThan(0)
 
     // الخطوة 2-3 — صفحة الفواتير تجلب الرصيد والسجل (الاستعلامان الفعليان)
@@ -95,9 +126,12 @@ test.describe('P04 — مشتركة عائدة', () => {
     expect(topup.status, `شحن الرصيد 200 (فعلي ${topup.status}: ${JSON.stringify(topup.body).slice(0, 140)})`).toBe(200)
     topupId = Number(topup.body?.data?.payment_id || 0)
     expect(topupId).toBeGreaterThan(0)
+    persist()
     await page.goto('/dashboard/billing')
     await page.waitForTimeout(2000)
     await shot(page, P, '04-step-04-topup')
+    // ادعاء DB: pending/libyana — r137: الخادم يكتب المفتاح القانوني
+    // «libyana» ويقبل المرادف القديم في الإدخال (models.py:868)
     checkClaim(
       P,
       'p04-topup-pending',
@@ -105,9 +139,9 @@ test.describe('P04 — مشتركة عائدة', () => {
       [topupId],
       (rows) => {
         const r = rows[0]
-        return { ok: r?.status === 'pending' && Number(r?.amount) === 50 && r?.provider === 'liyana', actual: r }
+        return { ok: r?.status === 'pending' && Number(r?.amount) === 50 && r?.provider === 'libyana', actual: r }
       },
-      'pending + 50 + liyana'
+      'pending + 50 + libyana (القانوني r137)'
     )
 
     // الخطوة 5 — فوق سقف المحفظة (500 > 99 افتراضياً) → تحويل بنكي إجباري.
@@ -140,14 +174,38 @@ test.describe('P04 — مشتركة عائدة', () => {
     )
   })
 
-  test('7-8. التجديد: دفعة جديدة (madar) + موافقة → verified', async ({ request }) => {
+  test('7-8. التجديد: قفل v19 للنشط → تقادم → دفعة جديدة (madar) + موافقة → verified', async ({ request }) => {
     test.skip(!userId, 'الخطوة 1 لم تنجح')
     // جلب الخطط واختيار خطة مدفوعة (المبلغ يجب أن يطابق سعرها)
     const plans = await browserFetch(page, '/api/plans')
     const paid = (plans.body?.data || []).find((pl: any) => Number(pl.price) > 0 && Number(pl.price) < 90)
     expect(paid, 'خطة مدفوعة تحت سقف المحفظة').toBeTruthy()
 
-    // الخطوة 7 — تجديد بمزود مدار
+    // phase8 (إعادة 3b83f76 — «لديك اشتراك نشط» v19): موافقة p02-15 جعلت
+    // المستأجر PAID (نشطًا) — حارس الخطوة الأولى في plans.py:155 يرفض أي
+    // طلب اشتراك جديد قبل انتهاء الحالي. هذا عقد المنتج الصادق يُقاس
+    // أولاً (لا يُخفى)، ثم تُنمذج رحلة «العائدة» الحقيقية: اشتراك منقضي
+    // (plan_end بالماضي — نفس سابقة بذر البطارية في p10/p12) فيفتح مسار
+    // التجديد الذي وثّقته الوحدة نفسها (plans.py:199-204: الخطة المنتهية
+    // «ليست نشطة» وتعبر كتجديد).
+    const blocked = await browserFetch(page, '/api/subscriptions', {
+      method: 'POST',
+      body: { plan_id: paid.id, provider: 'madar', amount: Number(paid.price), phone: '0910000001' },
+    })
+    expect(blocked.status, `قفل الاشتراك النشط (فعلي ${blocked.status})`).toBe(400)
+    expect(String(blocked.body?.detail || ''), 'رسالة v19 العربية').toContain('اشتراك نشط')
+    checkClaim(
+      P,
+      'p04-active-guard-v19',
+      'POST /api/subscriptions (مستأجر نشط)',
+      [],
+      () => ({ ok: blocked.status === 400, actual: { status: blocked.status, detail: blocked.body?.detail } }),
+      '400 «لديك اشتراك نشط بالفعل» — حارس الاشتراك المزدوج v19 حي'
+    )
+    // تقادم خطة p02 (البطارية تملك قاعدتها المحلية — سابقة exec الموثقة)
+    exec("UPDATE tenants SET plan_end = datetime('now', '-1 day') WHERE id=?", [tenantId])
+
+    // الخطوة 7 — تجديد بمزود مدار (الآن مسار التجديد مفتوح законًا)
     const renew = await browserFetch(page, '/api/subscriptions', {
       method: 'POST',
       body: {
@@ -160,6 +218,7 @@ test.describe('P04 — مشتركة عائدة', () => {
     expect(renew.status, `تجديد 200 (فعلي ${renew.status}: ${JSON.stringify(renew.body).slice(0, 140)})`).toBe(200)
     renewId = Number(renew.body?.data?.payment_id || 0)
     expect(renewId).toBeGreaterThan(0)
+    persist()
     await shot(page, P, '04-step-07-renew')
 
     // موافقة الأدمن
@@ -195,6 +254,10 @@ test.describe('P04 — مشتركة عائدة', () => {
     // الخطوة 9 — v14-fix: الحسم الذرّي يشترط status='pending' — دفعة التجديد
     // صارت verified في الاختبار السابق، فالإلغاء يستهدف دفعة pending جديدة
     // (نفس مسار الخلق) — هذا عقد approvals.py الفعلي (UPDATE WHERE pending)
+    // phase8-fix: موافقة t7-8 أعادت المستأجر PAID (نشطًا) — حارس plans.py:155
+    // يرفض أي خلق جديد. نفس سابقة t7-8 (تقادم plan_end — plans.py:151-154:
+    // المنتهي «ليس نشطًا») يفتح مسار الخلق قانونًا قبل استهداف دفعة الإلغاء.
+    exec("UPDATE tenants SET plan_end = datetime('now', '-1 day') WHERE id=?", [tenantId])
     const plans = await browserFetch(page, '/api/plans')
     const paid = (plans.body?.data || []).find((pl: any) => Number(pl.price) > 0 && Number(pl.price) < 90)
     const pending = await browserFetch(page, '/api/subscriptions', {
@@ -203,6 +266,7 @@ test.describe('P04 — مشتركة عائدة', () => {
     })
     cancelId = Number(pending.body?.data?.payment_id || 0)
     expect(cancelId, 'دفعة pending للإلغاء').toBeGreaterThan(0)
+    persist()
     const cancel = await approvePayment(request, cancelId, 'cancelled')
     expect(cancel.status, `إلغاء الأدمن (فعلي ${cancel.status})`).toBe(200)
     checkClaim(P, 'p04-cancelled', 'POST /api/admin/subscriptions {cancelled}', [], (rows) => ({ ok: true, actual: cancel.status }), '200', {
@@ -210,7 +274,7 @@ test.describe('P04 — مشتركة عائدة', () => {
     })
 
     // الخطوة 10 — ادعاء DB: الدفعة cancelled + حالة المستخدم REJECTED
-    // (المستأجر يبقى PAID — عقد approvals.py الفعلي، مذكّر أعلاه)
+    // (phase8 v16-E2: المستأجر يصبح REJECTED هو أيضًا — إغلاق الفرع الميت)
     const pay = queryOne('SELECT status FROM subscription_payments WHERE id=?', [cancelId])
     const user = queryOne('SELECT subscription_status FROM users WHERE id=?', [userId])
     const tenant = queryOne('SELECT subscription_status FROM tenants WHERE id=?', [tenantId])
@@ -220,10 +284,10 @@ test.describe('P04 — مشتركة عائدة', () => {
       'SELECT status FROM subscription_payments WHERE id=?',
       [cancelId],
       () => ({
-        ok: pay?.status === 'cancelled' && user?.subscription_status === 'REJECTED',
+        ok: pay?.status === 'cancelled' && user?.subscription_status === 'REJECTED' && tenant?.subscription_status === 'REJECTED',
         actual: { payment: pay?.status, user: user?.subscription_status, tenant: tenant?.subscription_status },
       }),
-      'payment=cancelled + user=REJECTED (المستأجر يبقى PAID بعقد الكود)',
+      'payment=cancelled + user=REJECTED + tenant=REJECTED (v16-E2 — يترك المستأجر غير نشط لسباقات p13)',
       { query: 'SELECT … subscription_payments/users/tenants' }
     )
     expect(pay?.status).toBe('cancelled')

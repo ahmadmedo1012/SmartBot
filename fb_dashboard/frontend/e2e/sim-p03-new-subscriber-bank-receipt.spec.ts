@@ -15,21 +15,45 @@ import { fileURLToPath } from 'url'
 import { personas, tsSuffix } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
-import { browserFetch, apiGet } from './sim/helpers/api'
-import { registerViaUI, savePersonaToken, getToken, approvePayment } from './sim/helpers/session'
+import { browserFetch, apiGet, FRONT_BASE } from './sim/helpers/api'
+import {
+  registerViaUI, savePersonaToken, savePersonaState, loadPersonaState, getToken, approvePayment, ensureSession,
+} from './sim/helpers/session'
 import { checkClaim } from './sim/helpers/db-claims.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const P = 'p03'
 const p = personas.p03
-const uname = `p03_${tsSuffix()}`
-const email = `${uname}@sim.ly`
+// phase8 (إعادة 3b83f76): الاسم من القرص أولًا — إعادة تشغيل العامل تعيد
+// تقييم الوحدة فتتولّد هوية جديدة والمسجل يفقد. القرص هو المصدر بعدها.
+let uname = loadPersonaState(P).username || `p03_${tsSuffix()}`
+let email = `${uname}@sim.ly`
 const FIXTURES = path.resolve(__dirname, 'sim/fixtures')
-const UPLOADS_DIR = path.resolve(__dirname, '../../../fb_dashboard/static/uploads/receipts')
+// phase8 (v24-R3): الإيصالات تُخزَّن في الجذر الخاص (خارج /static العام)
+// — fb_dashboard/data/uploads/receipts (bank.py:40 private_upload_dir).
+// المسار القديم static/uploads/receipts متقادم (ENOENT دائمًا الآن).
+const UPLOADS_DIR = path.resolve(__dirname, '../../../fb_dashboard/data/uploads/receipts')
 
 let page: Page
 let token = ''
 let paymentId = 0
+
+/** إعادة امتلاء الحالة من القرص + تثبيت الجلسة (حصانة إعادة تشغيل العامل). */
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  if (st.email) email = st.email
+  paymentId = Number(st.paymentId || paymentId || 0)
+  token = String(st.token || token || '')
+  if (token) {
+    const live = await ensureSession(page, P, { username: uname, password: p.password! })
+    if (live) token = live
+  }
+}
+
+function persist(): void {
+  savePersonaState(P, { username: uname, email, token, paymentId })
+}
 
 /** رفع خام عبر قناة المتصفح (يصك CSRF من document.cookie) — File بصيغة مُتحكَّم بها. */
 async function rawUpload(
@@ -38,13 +62,19 @@ async function rawUpload(
   mimeType: string,
   buffer: Buffer
 ): Promise<{ status: number; body: any }> {
+  // phase8 (إعادة 3b83f76): الكوكيز من السياق لا document.cookie — القراءة
+  // من المستند الفارغ (about:blank بعد فشل سابق) ترمي SecurityError؛ نفس
+  // درس browserFetch (v15-fix). والقيمة تعبر إلى الصفحة كوسيط تقييم.
+  if (!page.url().startsWith(FRONT_BASE)) {
+    await page.goto(`${FRONT_BASE}/`, { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
+  }
+  const csrf = (await page.context().cookies(FRONT_BASE)).find((c) => c.name === 'csrf_token')?.value || ''
   const b64 = buffer.toString('base64')
   return page.evaluate(
-    async ({ b64, fileName, mimeType }) => {
+    async ({ b64, fileName, mimeType, csrf }) => {
       const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
       const fd = new FormData()
       fd.append('file', new File([bytes], fileName, { type: mimeType }))
-      const csrf = (document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/) || [])[1] || ''
       const r = await fetch('/api/upload', {
         method: 'POST',
         headers: csrf ? { 'X-CSRF-Token': csrf } : {},
@@ -59,7 +89,7 @@ async function rawUpload(
       }
       return { status: r.status, body }
     },
-    { b64, fileName, mimeType }
+    { b64, fileName, mimeType, csrf }
   )
 }
 
@@ -68,6 +98,11 @@ test.describe('P03 — تحويل بنكي بإيصال', () => {
     const ctx = await createPersonaContext(browser, P)
     page = await ctx.newPage()
     watchConsole(page)
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار — إعادة تشغيل العامل لا تكسر ما بعدها
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test.afterAll(async () => {
@@ -80,6 +115,7 @@ test.describe('P03 — تحويل بنكي بإيصال', () => {
     expect(url).toMatch(/dashboard|onboarding/)
     token = await getToken(page.context())
     savePersonaToken(P, token)
+    persist()
     await page.request.post('/api/onboarding/complete', {
       headers: { cookie: `token=${token}` },
     })
@@ -147,6 +183,7 @@ test.describe('P03 — تحويل بنكي بإيصال', () => {
     const subBody = await sub!.json().catch(() => null)
     paymentId = subBody?.data?.payment_id || 0
     expect(paymentId).toBeGreaterThan(0)
+    persist()
     await page.locator('text=في انتظار تأكيد الدفع').first().waitFor({ state: 'visible', timeout: 15_000 })
 
     // ادعاء DB: pending/bank + الإيصال في extra_data

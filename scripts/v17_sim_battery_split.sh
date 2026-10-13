@@ -32,17 +32,33 @@ if [ -x "$ROOT/.venv/bin/python" ]; then PY="$ROOT/.venv/bin/python"; else PY=py
 # phase7 (إعادة 7a98a52 — فقدت بإعادة تعيين الصندوق): القتل محصور بالمنافذ.
 # pkill -f "next-server" كان يقتل أي خادم next في الجهاز كله — لوحة المنسق
 # على :3000 وأرصات المنتجات الشقيقة تعمل في نفس الصندوق ولا يجوز لمسها.
-# lsof على منافذ البطارية (3200/8000) فقط: يقتل ما نملكه نحن وحده.
+# phase8-fix (P8- مباشر): lsof -t -TCP -sTCP:LISTEN -i :PORT يُرجع فراغًا في
+# هذا الصندوق، وlsof الأعجاز يفوّت مستمعي *:PORT أصلًا — فبقيت رصّة عتيقة
+# حيّة ماسّة المنفذ ففشل الربط الجديد وقاضت المواصفات قاعدة محذوفة inode.
+# البديل: ss يرى كلًا (IPv4/IPv6/البدل) — مطابقة لاحقة العمود الرابع
+# (substring suffix — لا regex يلتقط منافذ أطول) ثم قتل المجموعة (setsid)
+# TERM→KILL. لا يلمس مجموعتنا ومجموعة init أبدًا.
 kill_stack() {
-  local p pids
+  local p pid pgid mypgid
+  mypgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')
   for p in "$FRONT_PORT" "$API_PORT"; do
-    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
-    [ -n "$pids" ] && kill $pids 2>/dev/null || true
+    for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$p" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+        kill -TERM -- "-$pgid" 2>/dev/null || true
+      fi
+      kill -TERM "$pid" 2>/dev/null || true
+    done
   done
-  sleep 1
+  sleep 2
   for p in "$FRONT_PORT" "$API_PORT"; do
-    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
-    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+    for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$p" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+      pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+      if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+        kill -KILL -- "-$pgid" 2>/dev/null || true
+      fi
+      kill -KILL "$pid" 2>/dev/null || true
+    done
   done
   return 0
 }
@@ -59,7 +75,12 @@ SIM_ART="$FRONT/e2e_artifacts/sim"
 if [ "$PART" = "1" ]; then
   rm -f "$SIM_DB" "$SIM_DB"-wal "$SIM_DB"-shm
   rm -rf "$ROOT/fb_dashboard/static/uploads/receipts" 2>/dev/null
-  rm -f "$SIM_ART/.current-run" "$SIM_ART/.admin_token" "$SIM_ART"/.p0*_token "$SIM_ART"/.p0*_username "$SIM_ART"/.p1*_token "$SIM_ART"/.p1*_username 2>/dev/null
+  # phase8 (إعادة 3b83f76): ملفات حالة الشخصيات الدائمة (إعادة تشغيل العامل)
+  # + دليل الإيصالات الخاص (v24-R3: fb_dashboard/data/uploads/receipts) —
+  # جزء نظافة الجولة الجديدة: الاسم المخزن من جولة سابقة يفشل التسجيل فورًا.
+  rm -rf "$ROOT/fb_dashboard/data/uploads/receipts" 2>/dev/null
+  rm -f "$SIM_ART/.current-run" "$SIM_ART/.admin_token" "$SIM_ART"/.p0*_token "$SIM_ART"/.p0*_username "$SIM_ART"/.p1*_token "$SIM_ART"/.p1*_username \
+        "$SIM_ART"/.p0*_state.json "$SIM_ART"/.p1*_state.json 2>/dev/null
   rm -f /tmp/v17-uvicorn.log /tmp/v17-uvicorn-rotated.log /tmp/v17-playwright.log
   SK=$("$PY" -c "import secrets;print(secrets.token_urlsafe(48))")
   FK=$("$PY" -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())")

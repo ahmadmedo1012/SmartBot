@@ -1495,7 +1495,13 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
    Consumed by ui/dialog.tsx (.mdrk-modal-card). Token-driven (primary /
    c-lime-ink); light theme inherits the same tokens at their petrol
    grades. ═══ */
-.mdrk-modal-card { position: relative; }
+/* phase8-fix (p10#6-7 root cause): `.mdrk-modal-card { position: relative; }`
+   حُذف — كان يهزم أداة `fixed` في DialogContent لأن CSS غير الطبقي يغلب
+   طبقة utilities في Tailwind v4، فيهبط الحوار إلى عنصر تدفق: قيس حيًا
+   dialog rect x=1080 y=-13 عند scrollY=542 في إطار 1280×800 — الحوار
+   خارج الشاشة (النقر/الكيبورد/القارئ كلها تفشل) في كل صفحة مُمرَّرة،
+   منذ مرحلة 6. الزخارف ::before/::after المطلقة ترتكز على الحوار
+   `fixed` ذاته — أصل إحالة مُوضَّع شرعي — فلا تحتاج relative أبدًا. */
 .mdrk-modal-card::before {
   content: '';
   position: absolute;

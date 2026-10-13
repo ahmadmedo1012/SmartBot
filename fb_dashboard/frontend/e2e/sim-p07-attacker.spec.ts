@@ -247,18 +247,21 @@ test.describe('P07 — مهاجم صغير', () => {
     }
   })
 
-  test('16. لا تسريب stack-trace في أي 500 مرصود', async ({ request }) => {
-    // 500 مصمّم: توقيع صالح + جسم ليس JSON → json.loads يرمي → المُعالج
-    // العام يرد رسالة عربية عامة (app/errors.py) بلا traceback
-    // v14-fix: نوقّع النص الخام نفسه (وليس JSON آخر) — التوقيع يصح فيمر فحص
-    // الويبهوك ثم يفشل json.loads → 500 عربية نظيفة بلا traceback
+  test('16. لا تسريب stack-trace في أي خطأ مرصود (webhook غير JSON → 400 v24-C4)', async ({ request }) => {
+    // جسم غير JSON: توقيع صالح يمر فحص الويبهوك ثم يفشل التحقق — v24-C4:
+    // التحقق المسبق من نوع المحتوى يرد 400 نظيفًا (كان يصل json.loads فيعم
+    // 500). v14-fix محفوظ: نوقّع النص الخام نفسه — التوقيع يصح.
+    // العقد المحفوظ حرفيًا: لا Traceback ولا تسريب داخلي في الجسم أياً كان
+    // رمز الحالة.
     const rawBody = 'this-is-not-json'
     const goodSig = signRaw(rawBody)
     const broken = await request.post(`${API_BASE}/webhook`, {
       headers: { ...goodSig.headers, 'content-type': 'text/plain' },
       data: Buffer.from(rawBody, 'utf8'),
     })
-    expect(broken.status(), `webhook بجسم غير JSON (فعلي ${broken.status()})`).toBe(500)
+    // phase8 (إعادة 3b83f76 — v24-C4): 500 المتوقع سابقًا تقادم — التحقق
+    // من JSON صار صريحًا برمز 400 (e2e/README.md السادس من فرز المرحلة 6)
+    expect([400, 422], `webhook بجسم غير JSON (فعلي ${broken.status()})`).toContain(broken.status())
     const body = await broken.text()
     expect(body).not.toContain('Traceback')
     expect(body.toLowerCase()).not.toContain('sqlalchemy')
@@ -266,10 +269,10 @@ test.describe('P07 — مهاجم صغير', () => {
     checkClaim(
       P,
       'p07-no-stacktrace',
-      'POST /webhook (جسم غير JSON → 500)',
+      'POST /webhook (جسم غير JSON → 400 v24-C4)',
       [],
-      () => ({ ok: !body.includes('Traceback') && !body.toLowerCase().includes('sqlalchemy'), actual: body.slice(0, 120) }),
-      '500 نظيف بلا كشف داخلي'
+      () => ({ ok: [400, 422].includes(broken.status()) && !body.includes('Traceback') && !body.toLowerCase().includes('sqlalchemy'), actual: { status: broken.status(), body: body.slice(0, 120) } }),
+      '400/422 نظيف بلا كشف داخلي (v24-C4: فحص نوع المحتوى قبل json.loads)'
     )
   })
 

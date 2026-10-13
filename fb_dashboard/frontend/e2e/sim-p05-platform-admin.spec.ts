@@ -22,19 +22,41 @@ import { operatorPersona, tsSuffix } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot, runId } from './sim/helpers/shots'
 import { ADMIN_USER, ADMIN_PASS, browserFetch } from './sim/helpers/api'
-import { registerViaUI, loginViaUI, skipJoyride, getToken, savePersonaToken } from './sim/helpers/session'
+import {
+  registerViaUI, loginViaUI, skipJoyride, getToken, savePersonaToken,
+  savePersonaState, loadPersonaState, ensureSession,
+} from './sim/helpers/session'
 import { checkClaim, queryScalar } from './sim/helpers/db-claims.mjs'
 
 const P = 'p05'
 const CRON_SECRET = process.env.SIM_CRON_SECRET || ''
 
 let page: Page
+let opName = ''
+
+// phase8 (إعادة 3b83f76): حالة الأدمن/المشغل على القرص — إعادة تشغيل العامل
+// تعيد تقييم الوحدة وتبني سياقًا بلا كوكيز فيعم 401 الأدمن الستة الموثقة.
+async function rehydrateAdmin(): Promise<void> {
+  await ensureSession(page, P, { username: ADMIN_USER, password: ADMIN_PASS })
+}
+
+async function rehydrateOperator(opPage: Page | undefined): Promise<void> {
+  if (!opPage || !opName) return
+  const st = loadPersonaState('p05op')
+  if (st.username) opName = st.username
+  await ensureSession(opPage, 'p05op', { username: opName, password: operatorPersona.password! })
+}
 
 test.describe('P05 — أدمن المنصة', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctx = await createPersonaContext(browser, P)
     page = await ctx.newPage()
     watchConsole(page)
+  })
+
+  // phase8: إعادة امتلاء الجلسة قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrateAdmin()
   })
 
   test.afterAll(async () => {
@@ -45,6 +67,10 @@ test.describe('P05 — أدمن المنصة', () => {
     // الخطوة 1 — دخول UI بحساب أدمن البذرة → /admin (v10-B5)
     const landing = await loginViaUI(page, ADMIN_USER, ADMIN_PASS)
     expect(landing, `هبوط الأدمن: ${landing}`).toMatch(/admin|dashboard/)
+    // phase8: تخزين جلسة الأدمن (توكن + اسم) — إعادة تشغيل العامل تعيد
+    // امتلاءها من القرص في rehydrateAdmin أعلاه
+    const adminToken = await getToken(page.context())
+    if (adminToken) savePersonaState(P, { username: ADMIN_USER, token: adminToken })
     await page.waitForTimeout(2000)
     await shot(page, P, '05-step-01-admin-login')
 
@@ -247,12 +273,19 @@ test.describe('P05 — أدمن المنصة', () => {
       opPage = await page.context().newPage()
     })
 
+    // phase8: إعادة امتلاء جلسة المشغل قبل اختباراته اللاحقة
+    test.beforeEach(async () => {
+      await rehydrateOperator(opPage)
+    })
+
     test('B1-B2. leads: القائمة + إنشاء عميل متوقع يدوياً', async () => {
-      const opname = `p05op_${tsSuffix()}`
+      const opname = loadPersonaState('p05op').username || `p05op_${tsSuffix()}`
+      opName = opname
       const url = await registerViaUI(opPage, opname, `${opname}@sim.ly`, operatorPersona.password!)
       expect(url).toMatch(/dashboard|onboarding/)
       const opToken = await getToken(opPage.context())
       savePersonaToken('p05op', opToken)
+      savePersonaState('p05op', { username: opname, token: opToken })
       await opPage.request.post('/api/onboarding/complete', {
         headers: { cookie: `token=${opToken}` },
       })

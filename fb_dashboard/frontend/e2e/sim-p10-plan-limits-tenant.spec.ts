@@ -25,15 +25,19 @@ import { personas, tsSuffix } from './sim/helpers/personas'
 import { createPersonaContext, watchConsole } from './sim/helpers/net'
 import { shot } from './sim/helpers/shots'
 import { browserFetch, API_BASE } from './sim/helpers/api'
-import { registerViaUI, approvePayment, getToken, savePersonaToken, savePersonaUsername, skipJoyride } from './sim/helpers/session'
+import {
+  registerViaUI, approvePayment, getToken, savePersonaToken, savePersonaUsername,
+  savePersonaState, loadPersonaState, skipJoyride, ensureSession,
+} from './sim/helpers/session'
 import { checkClaim, queryOne, queryScalar, exec } from './sim/helpers/db-claims.mjs'
 import { signWebhook, commentEvent } from './sim/helpers/webhook'
 import { doubleClickSubmit } from './sim/helpers/races'
 
 const P = 'p10'
 const p = personas.p10
-const uname = `p10_${tsSuffix()}`
-const email = `${uname}@sim.ly`
+// phase8 (إعادة 3b83f76): الاسم من القرص أولًا (حصانة إعادة تشغيل العامل)
+let uname = loadPersonaState(P).username || `p10_${tsSuffix()}`
+let email = `${uname}@sim.ly`
 
 let page: Page
 let consoleBucket: ReturnType<typeof watchConsole>
@@ -45,11 +49,38 @@ let basicPlanId = 0
 let premiumPlanId = 0
 let paidPaymentId = 0
 
+/** إعادة امتلاء الحالة من القرص + تثبيت الجلسة. */
+async function rehydrate(): Promise<void> {
+  const st = loadPersonaState(P)
+  if (st.username) uname = st.username
+  if (st.email) email = st.email
+  tenantId = Number(st.tenantId || tenantId || 0)
+  userId = Number(st.userId || userId || 0)
+  freePlanId = Number(st.freePlanId || freePlanId || 0)
+  basicPlanId = Number(st.basicPlanId || basicPlanId || 0)
+  premiumPlanId = Number(st.premiumPlanId || premiumPlanId || 0)
+  paidPaymentId = Number(st.paidPaymentId || paidPaymentId || 0)
+  token = String(st.token || token || '')
+  if (token) {
+    const live = await ensureSession(page, P, { username: uname, password: p.password! })
+    if (live) token = live
+  }
+}
+
+function persist(): void {
+  savePersonaState(P, { username: uname, email, token, tenantId, userId, freePlanId, basicPlanId, premiumPlanId, paidPaymentId })
+}
+
 test.describe('P10 — مدير الخطة: حدود المال المدفوعة', () => {
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
     const ctx = await createPersonaContext(browser, P)
     page = await ctx.newPage()
     consoleBucket = watchConsole(page)
+  })
+
+  // phase8: إعادة امتلاء قبل كل اختبار (حصانة إعادة تشغيل العامل)
+  test.beforeEach(async () => {
+    await rehydrate()
   })
 
   test.afterAll(async () => {
@@ -70,6 +101,7 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
     token = await getToken(page.context())
     savePersonaToken(P, token)
     savePersonaUsername(P, uname)
+    persist()
     const u = queryOne('SELECT id FROM users WHERE username=?', [uname])
     userId = Number(u?.id || 0)
 
@@ -108,6 +140,7 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
     expect(freePlanId, 'خطة مجانية موجودة').toBeGreaterThan(0)
     expect(basicPlanId, 'خطة أساسية موجودة').toBeGreaterThan(0)
     expect(premiumPlanId, 'خطة مميزة موجودة').toBeGreaterThan(0)
+    persist()
     checkClaim(
       P,
       'p10-plans-expose-limits',
@@ -294,25 +327,35 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
     await shot(page, P, '10-step-05-broadcast-gate')
   })
 
-  test('6-7. الاشتراك المدفوع (أساسي): نقر مزدوج → POST واحد + موافقة', async ({ request }) => {
+  test('6-7. الاشتراك المدفوع (أساسي): رحلة الترقية الصادقة + نقر مزدوج → POST واحد + موافقة', async ({ request }) => {
     test.skip(!tenantId, 'الخطوة 1 لم تنجح')
     test.setTimeout(150_000)
-    // /subscribe?plan=<Basic> → مراجعة → نافذة الدفع (محفظة ليبيانا)
-    await page.goto(`/subscribe?plan=${basicPlanId}`)
-    await page.locator('button:has-text("ادفع الآن")').first().waitFor({ state: 'visible', timeout: 20_000 })
-    await shot(page, P, '10-step-06-review-basic')
-    await page.locator('button:has-text("ادفع الآن")').first().click()
-    await page.locator('#payment-phone').waitFor({ state: 'visible', timeout: 15_000 })
-    await page.locator('#payment-phone').fill(p.phone!)
-    // نقر مزدوج حقيقي (dispatch ×2) — الزر disabled أثناء التقديم + POST واحد
-    const race = await doubleClickSubmit(page, 'إرسال طلب الدفع', (r) =>
-      r.url().endsWith('/api/subscriptions') && r.request().method() === 'POST'
+    // phase8 (إعادة 3b83f76 — بقايا p10#6-7): تفعيل الخطة المجانية (خطوة 2)
+    // جعلت المستأجر نشطًا — حارس v19 «لديك اشتراك نشط» يرفض POST
+    // /api/subscriptions لأي خطة (كان يفشل السباق 400×2). المسار المنتج
+    // الصادق لمستأجر نشط يريد خطة أعلى هو نافذة الترقية في الفواتير
+    // (POST /api/subscriptions/upgrade — plans.py:325: يشرط plan_id أعلى).
+    // النقر المزدوج يقيس نفس عقد sentRef الآن (الحارس المنتج مضاف
+    // phase8 — billing/page.tsx: upgradeSentRef مثل PaymentDialog).
+    await page.goto('/dashboard/billing')
+    await page.locator('button:has-text("ترقية خطتك")').first().waitFor({ state: 'visible', timeout: 20_000 })
+    await shot(page, P, '10-step-06-billing-upgrade')
+    await page.locator('button:has-text("ترقية خطتك")').first().click()
+    // اختيار الخطة الأساسية (radio باسم الخطة) + مزود المحفظة + الهاتف
+    await page.locator('[role="dialog"] [role="radio"]').filter({ hasText: 'أساسي' }).first().waitFor({ state: 'visible', timeout: 15_000 })
+    await page.locator('[role="dialog"] [role="radio"]').filter({ hasText: 'أساسي' }).first().click()
+    await page.locator('[role="dialog"] [role="radio"]').filter({ hasText: 'ليبيانا' }).first().click()
+    await page.locator('#upgrade-phone').waitFor({ state: 'visible', timeout: 15_000 })
+    await page.locator('#upgrade-phone').fill(p.phone!)
+    // نقر مزدوج حقيقي (dispatch ×2) — الحارس + الزر disabled → POST واحد
+    const race = await doubleClickSubmit(page, 'إرسال طلب الترقية', (r) =>
+      r.url().endsWith('/api/subscriptions/upgrade') && r.request().method() === 'POST'
     )
     paidPaymentId = race.paymentIds[0] || 0
     checkClaim(
       P,
       'p10-pay-single-submit',
-      'POST /api/subscriptions (نقر مزدوج)',
+      'POST /api/subscriptions/upgrade (نقر مزدوج)',
       [],
       () => ({
         ok: race.posts === 1 && race.paymentIds.length <= 1 && paidPaymentId > 0,
@@ -324,11 +367,12 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
           label_during: race.labelDuring,
         },
       }),
-      'POST واحد + payment_id واحد (sentRef + _pending_lock) والزر معطّل لحظة التقديم',
-      { query: 'POST /api/subscriptions × double-click' }
+      'POST واحد + payment_id واحد (upgradeSentRef + _pending_lock) والزر معطّل لحظة التقديم',
+      { query: 'POST /api/subscriptions/upgrade × double-click' }
     )
     expect(race.posts, `عدد استجابات POST (فعلي ${race.posts})`).toBe(1)
     expect(paidPaymentId, 'payment_id صادر').toBeGreaterThan(0)
+    persist()
 
     // موافقة الأدمن → أساسي PAID + مرساة الدفعة (D7-F5/F8/F9)
     const approve = await approvePayment(request, paidPaymentId, 'verified')
@@ -342,10 +386,11 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
       'SELECT status, amount, provider, plan_name FROM subscription_payments WHERE id=?',
       [paidPaymentId],
       () => ({
-        ok: pay?.status === 'verified' && Number(pay?.amount) === 19 && pay?.provider === 'liyana' && Number(t?.plan_id) === basicPlanId,
+        // r137: القانوني «libyana» — الخادم يكتبه في المخزون
+        ok: pay?.status === 'verified' && Number(pay?.amount) === 19 && pay?.provider === 'libyana' && Number(t?.plan_id) === basicPlanId,
         actual: { payment: pay, tenant: t },
       }),
-      'verified + 19 + liyana + المستأجر على الأساسي PAID'
+      'verified + 19 + libyana + المستأجر على الأساسي PAID (رحلة الترقية الحقيقية)'
     )
     await shot(page, P, '10-step-07-basic-activated')
   })
@@ -403,15 +448,25 @@ test.describe('P10 — مدير الخطة: حدود المال المدفوعة
     await page.goto('/dashboard/broadcast')
     await page.waitForTimeout(2500)
     const newBtn = page.locator('button:has-text("بث جديد")').first()
-    if (await newBtn.isVisible({ timeout: 8000 }).catch(() => false)) {
+    if (await newBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+      // phase8-fix (p10#9): isVisible لا تنتظر — react-query يحمّل الزر
+      // غير متزامن فالسباق حقيقي؛ waitFor يحسمه.
       await newBtn.click()
       await page.locator('#broadcast-name').fill('بث مميز')
       await page.locator('textarea[aria-label="نص الرسالة"]').fill('عرض نهاية الأسبوع لمشتركي متجر وسام')
       await page.locator('button:has-text("إنشاء البث")').first().click()
       await page.waitForTimeout(2500)
       const sendBtn = page.locator('button:has-text("إرسال")').first()
-      if (await sendBtn.isVisible({ timeout: 8000 }).catch(() => false)) {
+      if (await sendBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
         await sendBtn.click().catch(() => {})
+        // phase8-fix (p10#9): الإرسال يفتح حوار تأكيد «تأكيد الإرسال الجماعي»
+        // (تحذير الدفعة الجماعية بلا تراجع) — البث لا يغادر draft إلا بعد
+        // تأكيده. هذه أول جولة تصل الخطوة فعلًا (كانت تُتخطى بسباق p10#6-7
+        // المتتالي) فحوار التأكيد لم يُختبر قط.
+        const confirmBtn = page.getByRole('button', { name: 'تأكيد الإرسال' })
+        if (await confirmBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) {
+          await confirmBtn.click().catch(() => {})
+        }
         await page.waitForTimeout(3500)
       }
       await shot(page, P, '10-step-09-broadcast-sent')

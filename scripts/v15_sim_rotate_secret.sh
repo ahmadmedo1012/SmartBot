@@ -31,18 +31,27 @@ SK_NEW=$("$PY" -c "import secrets;print(secrets.token_urlsafe(48))")
 CS_NEW=$("$PY" -c "import secrets;print(secrets.token_urlsafe(32))")
 
 # أوقف الخلفية الحالية (تواقيعها كلها بالسر القديم)
-# phase8 (إعادة 7a98a52): قتل محصور بالمنفذ (lsof :8000) — pkill -f كان
-# يقتل أي uvicorn runner:app في الجهاز كله (أرصات الآخرين في الصناديق
-# المشتركة). هنا الخلفية فقط: هذا السكربت لا يلمس الواجهة أصلًا.
-pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
-[ -n "$pids" ] && kill $pids 2>/dev/null || true
-for i in $(seq 1 20); do
-  pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
-  [ -z "$pids" ] && break
-  sleep 0.5
+# phase8 (إعادة 7a98a52): قتل محصور بالمنفذ — pkill -f كان يقتل أي uvicorn
+# runner:app في الجهاز كله (أرصات الآخرين في الصناديق المشتركة). هنا الخلفية
+# فقط: هذا السكربت لا يلمس الواجهة أصلًا.
+# phase8-fix: lsof -t -TCP -sTCP:LISTEN يُرجع فراغًا في هذا الصندوق — ss
+# بدله (لاحقة العمود الرابع + قتل المجموعة setsid TERM→KILL).
+mypgid=$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')
+for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$API_PORT" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+  pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+  if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+    kill -TERM -- "-$pgid" 2>/dev/null || true
+  fi
+  kill -TERM "$pid" 2>/dev/null || true
 done
-pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
-[ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+sleep 2
+for pid in $(ss -tlnp 2>/dev/null | awk -v port=":$API_PORT" 'substr($4, length($4)-length(port)+1) == port {print}' | grep -oP 'pid=\K[0-9]+' | sort -u); do
+  pgid=$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')
+  if [ -n "$pgid" ] && [ "$pgid" != "$mypgid" ] && [ "$pgid" != "1" ]; then
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+  fi
+  kill -KILL "$pid" 2>/dev/null || true
+done
 sleep 1
 
 # أعد الإقلاع بنفس القاعدة ونفس FERNet وسر الويبهوك — بأسرار جلسة/كرون مدورة

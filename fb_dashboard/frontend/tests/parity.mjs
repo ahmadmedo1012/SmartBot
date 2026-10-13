@@ -1730,6 +1730,124 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('r154b chart live node: CircuitTrace live + lime newest-edge dot + mono date range on the home activity chart');
 }
 
+// ── §r154c — phase6 package 3 (P6-2-d2): the AUTOMATION screens speak the ────
+//    machine ─────────────────────────────────────────────────────────────────
+{
+  /* Self-contained block (own raw readers): pins the P6-2-d2 automation-screens
+     grammar — the PageHeader trace across the six automation surfaces, the
+     lime live nodes on in-flight broadcasts/campaigns/steps/days, the mono
+     HH:MM schedule stamps (full Arabic date in the title), the sequence
+     editor's circuit rail + machine delay codes, the petrol status chips,
+     the traceField composer, the calendar month-grid route and the robot
+     empty states. Business logic / API contracts untouched. */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const rawBroadcast = readRaw('../src/app/dashboard/broadcast/page.tsx');
+  const rawSequences = readRaw('../src/app/dashboard/sequences/page.tsx');
+  const rawScheduled = readRaw('../src/app/dashboard/scheduled/page.tsx');
+  const rawPosts = readRaw('../src/app/dashboard/posts/page.tsx');
+  const rawCalendar = readRaw('../src/app/dashboard/calendar/page.tsx');
+  const rawMarketing = readRaw('../src/app/dashboard/marketing/page.tsx');
+  const rawComments = readRaw('../src/app/dashboard/comments/page.tsx');
+
+  // (1) the six automation surfaces ride the PageHeader trace option (the
+  //     machine-room signature; the manual per-page <hr> appends stay dead).
+  const tracePagesOk = [
+    rawBroadcast, rawSequences, rawScheduled, rawPosts, rawMarketing, rawComments,
+  ].every((raw) => /(^|\n)[ \t]*trace[ \t]*(\n|$)/.test(raw) && !raw.includes('<hr className="sb-trace"'));
+  if (tracePagesOk) pass += 1;
+  else fails.push('r154c trace: the PageHeader trace option rides broadcast/sequences/scheduled/posts/marketing/comments (no manual <hr> appends)');
+
+  // (2) the lime live node (automation-active) lights the in-flight rows:
+  //     pending/scheduled/sending broadcasts, active sequences, the pending
+  //     scheduled-posts, scheduled/sending campaigns and calendar days.
+  const limeNodesOk = rawBroadcast.includes('LIVE_STATUSES.has(b.status ?? "")')
+    && rawBroadcast.includes('rounded-full bg-lime me-1.5')
+    && rawSequences.includes('s.status === "active" && (')
+    && rawSequences.includes('rounded-full bg-lime shrink-0')
+    && rawScheduled.includes('rounded-full bg-lime shrink-0')
+    && rawMarketing.includes('(c.status === "scheduled" || c.status === "sending")')
+    && rawCalendar.includes('rounded-full bg-lime shrink-0');
+  if (limeNodesOk) pass += 1;
+  else fails.push('r154c lime nodes: the live lime dot marks in-flight broadcasts/sequences/scheduled posts/campaigns and calendar days');
+
+  // (3) the schedule stamps ride the chat register: local timeStamp helpers +
+  //     mono HH:MM spans (dir=ltr, tabular) with the full Arabic date in the
+  //     title tooltip on broadcast/scheduled/posts/comments.
+  const stampsOk = rawBroadcast.includes('function timeStamp(')
+    && rawScheduled.includes('function timeStamp(')
+    && rawPosts.includes('function timeStamp(')
+    && rawComments.includes('function timeStamp(')
+    && [rawBroadcast, rawScheduled, rawPosts, rawComments].every((raw) =>
+      raw.includes('className="font-mono tabular-nums"'));
+  if (stampsOk) pass += 1;
+  else fails.push('r154c mono stamps: HH:MM mono dir=ltr + Arabic date title on broadcast/scheduled/posts/comments rows');
+
+  // (4) the sequence editor rides the CIRCUIT RAIL: a quiet teal hairline
+  //     (primary/20) connects the step nodes (lime = automation-active,
+  //     ring-punched off the card ground) — reorder/delete logic untouched.
+  const railOk = rawSequences.includes('absolute start-[9px] top-8 bottom-8 w-px bg-primary/20')
+    && rawSequences.includes('absolute start-[4px] top-[27px] size-2.5 rounded-full bg-lime ring-2 ring-background')
+    && rawSequences.includes('p-3 ps-6 space-y-2');
+  if (railOk) pass += 1;
+  else fails.push('r154c sequence rail: teal hairline rail + lime step nodes on the sequences editor (reorder logic intact)');
+
+  // (5) the step delays speak the machine voice: delayCode «+2d 06h» mono
+  //     dir=ltr with the full Arabic delayLabel in the title, and the
+  //     days/hours number inputs ride mono/tabular digits.
+  const delayCodesOk = rawSequences.includes('function delayCode(')
+    && rawSequences.includes('className="font-mono tabular-nums" title={delayLabel(st.days, st.hours)}')
+    && (rawSequences.match(/className="font-mono tabular-nums"/g) || []).length >= 3;
+  if (delayCodesOk) pass += 1;
+  else fails.push('r154c delay codes: mono «+Nd NNh» step codes + mono delay inputs on the sequences editor');
+
+  // (6) the sequence subscriber/sent counts ride the mono/tabular register
+  //     (Arabic words fall per-glyph to the text face — presentation only).
+  const seqCountsOk = rawSequences.includes('<span className="font-mono tabular-nums">')
+    && rawSequences.includes('countPhrase(s.subscriber_count ?? 0');
+  if (seqCountsOk) pass += 1;
+  else fails.push('r154c sequence counts: subscriber/sent/step counters mono+tabular on the sequence cards');
+
+  // (7) the status chips ride the PETROL register (KpiCard vocabulary):
+  //     posts + marketing map published/sent = copper signal, scheduled/
+  //     sending = lime automation, draft = foam grey.
+  const petrolChipsOk = rawPosts.includes('bg-(--c-copper-bg) text-(--c-copper-ink)')
+    && rawPosts.includes('bg-(--c-lime-bg) text-(--c-lime-ink)')
+    && rawPosts.includes('bg-(--c-grey-bg) text-(--c-grey-ink)')
+    && rawMarketing.includes('sent: "bg-(--c-copper-bg) text-(--c-copper-ink)"')
+    && rawMarketing.includes('scheduled: "bg-(--c-lime-bg) text-(--c-lime-ink)"')
+    && rawMarketing.includes('draft: "bg-(--c-grey-bg) text-(--c-grey-ink)"');
+  if (petrolChipsOk) pass += 1;
+  else fails.push('r154c petrol chips: posts/marketing status badges ride the KpiCard petrol tones (copper/lime/foam)');
+
+  // (8) the scheduled composer rides the opt-in .sb-trace-field circuit
+  //     ground (textarea + datetime input) and the audience estimates ride
+  //     the .sb-numerals display register (broadcast confirm + marketing).
+  const composerNumeralsOk = rawScheduled.includes('traceField')
+    && rawBroadcast.includes('sb-numerals font-heading text-sm font-bold tabular-nums')
+    && rawMarketing.includes('sb-numerals font-heading tabular-nums');
+  if (composerNumeralsOk) pass += 1;
+  else fails.push('r154c composer + estimates: traceField on the scheduled composer; .sb-numerals on the broadcast/marketing audience estimates');
+
+  // (9) the calendar speaks the month-grid route: 7-column grid + weekday
+  //     header, mono day codes (dir=ltr), teal today ring, lime node on
+  //     scheduled days — the API/month navigation contract unchanged.
+  const gridOk = rawCalendar.includes('buildMonthGrid(')
+    && rawCalendar.includes('WEEKDAY_LABELS')
+    && rawCalendar.includes('grid grid-cols-7')
+    && rawCalendar.includes('border-primary/50 ring-1 ring-primary/30')
+    && rawCalendar.includes('font-mono tabular-nums text-xs');
+  if (gridOk) pass += 1;
+  else fails.push('r154c calendar grid: month grid route — mono day codes, teal today ring, lime scheduled-day nodes');
+
+  // (10) the automation empty states host the ONE robot (idle — on duty,
+  //      waiting); the comments AI suggest glyph keeps the reserved lime.
+  const robotsOk = [rawBroadcast, rawSequences, rawScheduled, rawCalendar, rawComments]
+    .every((raw) => /(^|\n)[ \t]*robot[ \t]*(\n|$)/.test(raw))
+    && rawComments.includes('text-lime');
+  if (robotsOk) pass += 1;
+  else fails.push('r154c robot empties: RobotMark hosts the empty wells on broadcast/sequences/scheduled/calendar/comments; comments AI glyph lime');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

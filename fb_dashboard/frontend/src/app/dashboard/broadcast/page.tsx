@@ -15,9 +15,8 @@ import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { unwrapApi } from "@/lib/api"
 import { usePollingWhenVisible } from "@/hooks/usePollingWhenVisible"
-import { countPhrase } from "@/lib/format"
+import { countPhrase, formatDate, formatDateOnly } from "@/lib/format"
 import type { BroadcastRow } from "@/lib/types"
-import { formatDate } from "@/lib/format"
 
 /* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر السارية على الأسطول —
  * البث مذكر فأخذ تعذّر (التسويق حملة مؤنثة فتأخذ تعذّرت في صفحتها). */
@@ -54,6 +53,21 @@ const CANCELLABLE_STATUSES = new Set(["draft", "pending", "sending"])
 /* v25 (W-14): مفتاح استعلام البث — مرفوع لثبات المرجع لخطاف
  * الاستطلاع المرئي (نفس عقد activity/analytics). */
 const BROADCASTS_KEY = ["broadcasts"] as const
+
+/* phase6 r154 (P6-2-d2) — الحالات الحيّة (الأتمتة في الجو): قيد الإرسال /
+ * مجدول / جارٍ الإرسال — عقدة اللايم على صف البث (توأم عقدة الأثر
+ * الحية في رأس الصفحة). */
+const LIVE_STATUSES = new Set(["pending", "scheduled", "sending"])
+
+/* phase6 r154 — سجل ختم الجدولة (توأم صفحة الرسائل/البيت): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle
+ * (tooltip) — لا معلومة تسقط. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 export default function BroadcastPage() {
   const queryClient = useQueryClient()
@@ -181,6 +195,10 @@ export default function BroadcastPage() {
         title="البث الجماعي"
         subtitle="إرسال رسائل جماعية"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة نفسه — إرسال آلي للمشتركين)،
+            عبر خيار PageHeader المدمج (r154). */
+        trace
         actions={
           /* r131-F7b (A4 P2-4): the gold-tinted shadow override is retired. */
           <Button size="sm" onClick={() => setShowForm(v => !v)}>
@@ -250,7 +268,9 @@ export default function BroadcastPage() {
           <div className="space-y-2">{[1,2,3].map(i => <Card key={i}><CardContent className="p-4"><div className="skeleton h-14 rounded" /></CardContent></Card>)}</div>
         ) : broadcasts.length === 0 ? (
           <EmptyState
-            icon={Radio}
+            /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في حالة
+               idle (البوت في الخدمة، ينتظر أول بث) — بديل أيقونة الراديو. */
+            robot
             title="لا توجد رسائل بث جماعي"
             description="أنشئ أول بث جماعي لإرسال رسالة لمشتركي صفحتك دفعة واحدة."
             action={{ label: "بث جديد", icon: Plus, onClick: () => setShowForm(true) }}
@@ -262,7 +282,28 @@ export default function BroadcastPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium mb-1">{b.name || `بث #${b.id}`}</p>
-                    <p className="text-xs text-muted-foreground">{BROADCAST_STATUS_LABELS[b.status ?? ""] || b.status} · {formatDate(b.scheduled_at || b.created_at)}</p>
+                    {/* phase6 r154 — رمز الجدولة بصوت الآلة: التاريخ العربي
+                        (اليوم) + ختم HH:MM مونو dir=ltr مع التاريخ الكامل
+                        في الـtitle؛ وعقدة اللايم تضيء للحالات الحيّة
+                        (قيد الإرسال/مجدول/جارٍ) — نفس سجل لوحة البيت. */}
+                    <p className="text-xs text-muted-foreground">
+                      {LIVE_STATUSES.has(b.status ?? "") && (
+                        <span className="inline-block size-1.5 rounded-full bg-lime me-1.5 align-middle" aria-hidden="true" />
+                      )}
+                      {BROADCAST_STATUS_LABELS[b.status ?? ""] || b.status} · {formatDateOnly(b.scheduled_at || b.created_at)}
+                      {timeStamp(b.scheduled_at || b.created_at) && (
+                        <>
+                          {" · "}
+                          <span
+                            dir="ltr"
+                            className="font-mono tabular-nums"
+                            title={formatDate(b.scheduled_at || b.created_at) || undefined}
+                          >
+                            {timeStamp(b.scheduled_at || b.created_at)}
+                          </span>
+                        </>
+                      )}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {/* الإرسال للمسودة فقط (عقد send: draft→pending ذرّيًا) —
@@ -307,7 +348,9 @@ export default function BroadcastPage() {
           تدميري + إلغاء. لا إرسال جماعي بدون هذه الخطوة. */}
       <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
         {/* r131-F8 (A4 P2-7): the sm:max-w-md override drops — the dialog rides
-            F7's canonical 560px default. */}
+            F7's canonical 560px default. phase6 r154: يركب حوار التأكيد زوايا
+            الدارة البترولية المشتركة (.mdrk-modal-card في DialogContent) —
+            بلا تجاوزات محلية. */}
         <DialogContent>
           <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
           <DialogDescription>
@@ -325,7 +368,10 @@ export default function BroadcastPage() {
               ) : confirmError ? (
                 <span className="text-xs text-destructive-ink">تعذّر تحديد العدد</span>
               ) : (
-                <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmData?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
+                /* phase6 r154 — رقم التقدير يركب سجل .sb-numerals (Grotesk
+                   + tabular — عقد KpiCard نفسه؛ الكلمات العربية تسقط
+                   محرفًا-محرفًا إلى Plex Sans Arabic). */
+                <span className="sb-numerals font-heading text-sm font-bold tabular-nums" dir="ltr">{countPhrase(confirmData?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
             </div>
 

@@ -116,6 +116,13 @@ function delayLabel(days: number, hours: number): string {
   return d && h ? `${d} و${h}` : d || h
 }
 
+/* phase6 r154 (P6-2-d2) — رمز التأخير بصوت الآلة (مونو، dir=ltr):
+ * «+2d 06h»؛ النص العربي الكامل (delayLabel) يبقى في الـtitle — نفس
+ * عقد أختام HH:MM (ختم مونو + تلميح عربي كامل، لا معلومة تسقط). */
+function delayCode(days: number, hours: number): string {
+  return `+${days}d ${String(hours).padStart(2, "0")}h`
+}
+
 /* v24-C1: tolerant step-count read for the list cards — the enrichment
  * (parallel detail fetch) owns step_count today (-1 = fetch failed → «—»),
  * but the list contract may later ship step_count or inline steps straight
@@ -449,15 +456,25 @@ function SequenceEditor({
             كل خطوة تُرسل بعد انقضاء تأخيرها من إرسال الخطوة السابقة (الأولى من
             إضافة المشترك). متغيرات متاحة: {"{name}"} {"{full_name}"} {"{mention}"} {"{date}"}
           </p>
-          {steps.map((st, i) => (
+          {/* phase6 r154 — سكة الدارة: خصلة تيل هادئة (primary/20) تصل
+              عقد الخطوات — مسار المشترك عبر السلسلة؛ عقدة كل خطوة لايم
+              (علامة الأتمتة النشطة: الخطوة تنطلق بمؤقّتها بلا تدخل بشري).
+              أزرار النقل/الحذف ومنطق المحرر كما هي — طلاء فقط. */}
+          <div className="relative space-y-2">
+            <span aria-hidden="true" className="absolute start-[9px] top-8 bottom-8 w-px bg-primary/20" />
+            {steps.map((st, i) => (
             /* r133 (A13 S-01): مفتاح محلي ثابت — الفهرس كان يعيد استخدام
                 DOM الخطوة الخاطئة عند النقل/الحذف أثناء التحرير. */
-            <div key={st.key} className="rounded-xl border border-border/60 p-3 space-y-2 bg-background/40">
+            <div key={st.key} className="relative rounded-xl border border-border/60 p-3 ps-6 space-y-2 bg-background/40">
+              <span aria-hidden="true" className="absolute start-[4px] top-[27px] size-2.5 rounded-full bg-lime ring-2 ring-background" />
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge variant="gold" className="shrink-0">الخطوة {i + 1}</Badge>
                   <span className="text-xs text-muted-foreground truncate">
-                    {i === 0 ? "بعد إضافة المشترك" : "بعد الخطوة السابقة"} · {delayLabel(st.days, st.hours)}
+                    {i === 0 ? "بعد إضافة المشترك" : "بعد الخطوة السابقة"} ·{" "}
+                    <span dir="ltr" className="font-mono tabular-nums" title={delayLabel(st.days, st.hours)}>
+                      {delayCode(st.days, st.hours)}
+                    </span>
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -505,6 +522,8 @@ function SequenceEditor({
                   type="number"
                   min={0}
                   label="التأخير (أيام)"
+                  /* phase6 r154 — حقل رقمي بصوت الآلة: مونو + tabular */
+                  className="font-mono tabular-nums"
                   value={st.days}
                   onChange={(e) => patchStep(i, { days: Math.max(0, Number(e.target.value) || 0) })}
                 />
@@ -513,12 +532,14 @@ function SequenceEditor({
                   type="number"
                   min={0}
                   label="التأخير (ساعات)"
+                  className="font-mono tabular-nums"
                   value={st.hours}
                   onChange={(e) => patchStep(i, { hours: Math.max(0, Number(e.target.value) || 0) })}
                 />
               </div>
             </div>
           ))}
+          </div>
           <Button size="sm" variant="outline" onClick={() => setSteps((p) => [...p, stepDraft()])} className="gap-1.5">
             <Plus className="size-3.5" /> إضافة خطوة
           </Button>
@@ -534,8 +555,10 @@ function SequenceEditor({
                 <Users className="size-4 text-muted-foreground" /> الجمهور المستهدف
               </p>
               <span className="text-xs text-muted-foreground">
-                {countPhrase(row?.total_subscribers ?? 0, "مشترك", "مشتركين", "مشتركين")} · أُرسلت{" "}
-                {countPhrase(row?.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}
+                {/* phase6 r154 — العدّادات مونو (tabular — سجل الآلة؛
+                    الكلمات العربية تسقط محرفًا-محرفًا لخط النص). */}
+                <span className="font-mono tabular-nums">{countPhrase(row?.total_subscribers ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>{" · "}أُرسلت{" "}
+                <span className="font-mono tabular-nums">{countPhrase(row?.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -704,6 +727,10 @@ export default function SequencesPage() {
         title="الحملات التسلسلية"
         subtitle="سلاسل رسائل تُرسل تلقائيًا بمرور الوقت"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة — المحرك يوزّع الرسائل على
+            المؤقّتات)، عبر خيار PageHeader المدمج (r154). */
+        trace
         actions={
           !editor && (
             <Button size="sm" onClick={() => setEditor({ mode: "create" })} className="gap-1.5">
@@ -755,7 +782,9 @@ export default function SequencesPage() {
             <Card>
               <CardContent className="p-0">
                 <EmptyState
-                  icon={Workflow}
+                  /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في
+                     حالة idle (البوت في الخدمة، ينتظر أول سلسلة). */
+                  robot
                   size="sm"
                   title="لا توجد حملات تسلسلية"
                   description="أنشئ أول سلسلة رسائل مؤقتة — كل مشترك يستلم الخطوات تباعًا حسب التوقيت الذي تحدده."
@@ -785,18 +814,26 @@ export default function SequencesPage() {
                           <Badge variant={STATUS_VARIANT[s.status] ?? "secondary"} className="shrink-0">
                             {STATUS_LABEL[s.status] ?? s.status}
                           </Badge>
+                          {/* phase6 r154 — عقدة اللايم الحية على الحملة
+                              النشطة (المحرك يوزّع الآن — توأم عقدة البث). */}
+                          {s.status === "active" && (
+                            <span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />
+                          )}
                         </div>
                         {s.description && (
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{s.description}</p>
                         )}
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {/* v24-C1: tolerant step count (stepCountOf above) —
-                              -1 (detail fetch failed) still renders «—». */}
-                          {stepCountOf(s) >= 0
-                            ? countPhrase(stepCountOf(s), "خطوة", "خطوتين", "خطوات")
-                            : "—"}{" "}
-                          · {countPhrase(s.subscriber_count ?? 0, "مشترك نشط", "مشتركان نشطان", "مشتركين نشطين")} ·
-                          أُرسلت {countPhrase(s.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}
+                              -1 (detail fetch failed) still renders «—».
+                              phase6 r154: عدّادات مونو/tabular (سجل الآلة). */}
+                          <span className="font-mono tabular-nums">
+                            {stepCountOf(s) >= 0
+                              ? countPhrase(stepCountOf(s), "خطوة", "خطوتين", "خطوات")
+                              : "—"}
+                          </span>{" "}
+                          · <span className="font-mono tabular-nums">{countPhrase(s.subscriber_count ?? 0, "مشترك نشط", "مشتركان نشطان", "مشتركين نشطين")}</span> ·
+                          أُرسلت <span className="font-mono tabular-nums">{countPhrase(s.total_sent ?? 0, "رسالة", "رسالتين", "رسائل")}</span>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           أُنشئت {formatDateOnly(s.created_at) || "—"} · آخر تحديث{" "}

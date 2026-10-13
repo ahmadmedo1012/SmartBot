@@ -41,7 +41,7 @@ os.environ.setdefault("FB_PAGE_ID", "0")
 os.environ.setdefault("DEBUG", "True")
 
 import pytest  # noqa: E402
-from _dayseed import seed_day, utc_day_start  # noqa: E402
+from _dayseed import day_start, seed_day  # noqa: E402
 from _utils import app_version, utcnow  # noqa: E402
 from models import BotState, Reply  # noqa: E402
 
@@ -327,10 +327,10 @@ async def test_b3_trend_matches_get_trend_data(v10_seed, monkeypatch):
     monkeypatch.setattr(ds_mod, "get_tenant_fb_client", no_fb)
 
     uname, tid, _uid = await v10_seed.tenant_user(tenant_name="B3trend")
-    # نوافذ واضحة مثبتة على حدود اليوم UTC: اليوم / أمس / هذا الأسبوع /
-    # الأسبوع الماضي — حدود الجرّات: today_start=00:00 · yesterday=أمس ·
-    # week=now-7d · prior_week=now-14d
-    seeded_today = seed_day(0).date()
+    # phase8 (r137-follow-through): نوافذ مثبتة على حدود اليوم الطرابلسي
+    # (حد التطبيق الفعلي منذ r137 — tripoli_day_start) — اليوم/أمس/الأسبوع
+    # داخل أيامها الطرابلسية لأي ساعة جدار (انظر tests/_dayseed.py).
+    seeded_day = day_start(seed_day(0))
     await _seed_reply(v10_seed.world.sf, tid, name="اليوم", at=seed_day(0))
     await _seed_reply(v10_seed.world.sf, tid, name="أمس1", at=seed_day(-1))
     await _seed_reply(v10_seed.world.sf, tid, name="أمس2", at=seed_day(-1, hour=11))
@@ -344,10 +344,10 @@ async def test_b3_trend_matches_get_trend_data(v10_seed, monkeypatch):
         expected = await _get_trend_data(db, tid)
 
     # v16-E6: حارس منتصف الليل الصادق (احتمال مُهمل — D3) — إن عبر
-    # الاختبار منتصف ليل UTC بين البذر والقياس صارت بذور «اليوم» بالأمس
-    # فنتخطى بدل فشل زائف يكسر CI الليلي
-    if utcnow().date() != seeded_today:
-        pytest.skip("midnight crossed mid-test — day-anchored seed windows invalid")
+    # الاختبار حدّ اليوم الطرابلسي بين البذر والقياس صارت بذور «اليوم»
+    # بالأمس فنتخطى بدل فشل زائف يكسر CI الليلي
+    if day_start(utcnow()) != seeded_day:
+        pytest.skip("tripoli midnight crossed mid-test — day-anchored seed windows invalid")
 
     assert got == expected, f"trend math drifted: {got} != {expected}"
     assert got["today"] == -50.0  # 1 اليوم مقابل 2 أمس
@@ -355,36 +355,37 @@ async def test_b3_trend_matches_get_trend_data(v10_seed, monkeypatch):
 
 def test_dayseed_deterministic():
     """v16-E6 (F1) — عصامية _dayseed: الإزاحات تهبط دائماً داخل اليوم
-    التقويمي المقصود لأي ساعة جدار. اجتياح 24 ساعة كاملة (خطوة 30
-    دقيقة) + حدا منتصف الليل + ساعات غريبة + رفض البذور المستقبلية."""
+    الطرابلسي المقصود (حد التطبيق r137) لأي ساعة جدار. اجتياح 24 ساعة
+    كاملة (خطوة 30 دقيقة) + حدا منتصف الليل + ساعات غريبة + رفض البذور
+    المستقبلية."""
     from datetime import datetime as _dt
 
-    # اللحظة الحية أولاً: بذرة اليوم داخل اليوم الجاري، والحد مرآة
-    # تقسيم التطبيق نفسه
+    # اللحظة الحية أولاً: بذرة اليوم داخل اليوم الطرابلسي الجاري، والحد
+    # مرآة تقسيم التطبيق نفسه
     now = utcnow()
-    assert utc_day_start() == utc_day_start(now)
-    assert seed_day(0).date() == now.date()
+    assert day_start() == day_start(now)
+    assert day_start(seed_day(0)) == day_start(now)
     assert seed_day(0) <= utcnow()  # midpoint of elapsed ≤ أي لحظة لاحقة
-    assert seed_day(-1).date() == now.date() - timedelta(days=1)
+    assert day_start(seed_day(-1)) == day_start(now) - timedelta(days=1)
 
     minutes = sorted({0, 1, 59, 719, 1439} | set(range(0, 24 * 60, 30)))
     for m in minutes:
         wall = _dt(2026, 9, 9) + timedelta(minutes=m)
-        start = utc_day_start(wall)
+        start = day_start(wall)
         # day 0: منتصف الجزء المنقضي — دائماً اليوم ودائماً في الماضي
         d0 = seed_day(0, ref=wall)
         assert start <= d0 <= wall, f"{wall:%H:%M}: day-0 midpoint escaped today/past"
         for off in (-1, -2, -3, -9, -30):
             d = seed_day(off, ref=wall)
             day = start + timedelta(days=off)
-            assert utc_day_start(d) == day, (
+            assert day_start(d) == day, (
                 f"{wall:%H:%M}: seed_day({off}) landed outside its calendar day")
             assert day <= d < start, (
                 f"{wall:%H:%M}: seed_day({off}) must stay inside its PAST day")
             assert d <= wall
         # ساعات غريبة على الإزاحات السالبة تبقى داخل اليوم المقصود
-        assert utc_day_start(seed_day(-2, hour=0, ref=wall)) == start - timedelta(days=2)
-        assert utc_day_start(seed_day(-2, hour=23.75, ref=wall)) == start - timedelta(days=2)
+        assert day_start(seed_day(-2, hour=0, ref=wall)) == start - timedelta(days=2)
+        assert day_start(seed_day(-2, hour=23.75, ref=wall)) == start - timedelta(days=2)
 
     # البذور غير الحتمية تُرفض صريحة: المستقبل، hour مع اليوم الجاري،
     # وhour خارج [0,24)

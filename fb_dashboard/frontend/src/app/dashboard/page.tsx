@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import {
-  TrendingUp, Activity, AlertCircle, AlertTriangle, CheckCircle2, RefreshCw, MessageCircle,
+  TrendingUp, Activity, AlertCircle, RefreshCw, MessageCircle,
   Users, Inbox, Bot, Link2, Zap,
 } from "lucide-react"
 
@@ -14,6 +14,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { KpiCard } from "@/components/shared/KpiCard"
 import { ChartCard } from "@/components/shared/ChartCard"
+import { CircuitTrace } from "@/components/shared/CircuitTrace"
+import { RobotMark, type RobotState } from "@/components/shared/RobotMark"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SortableTh, useTableSort } from "@/components/ui/SortableTh"
@@ -38,11 +40,24 @@ import type {
   DashboardStats,
   RecentReply,
 } from "@/lib/types"
-import { countPhrase, timeAgo } from "@/lib/format"
+import { countPhrase, formatDate, timeAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 /* World-class launch plan v3 §7b: honest connection state, persisted-message
- * KPIs, Smart-Menu KpiCard/ChartCard components, token-only colors. */
+ * KPIs, Smart-Menu KpiCard/ChartCard components, token-only colors.
+ * phase6 r154 (P6-2-d1): the home screen joins the machine grammar — the
+ * topbar trace, the health robot, mono HH:MM stamps, mono table numerals
+ * and the chart's lime live node. Data fetching/polling/KPI logic UNTOUCHED. */
+
+/* phase6 r154 — the chat timestamp register (the messages-page twin): mono
+ * HH:MM (dir="ltr", tabular-nums); the full Arabic date rides the title
+ * tooltip so no information is lost. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 // ── Skeleton ──
 function LoadingSkeleton() {
@@ -96,10 +111,21 @@ function ChartBars({ data }: { data: Record<string, number> }) {
         height={128}
         data={entries.map(([d, v]) => ({ label: d.slice(5), value: v, hint: d }))}
       />
+      {/* phase6 r154 — the live node grammar on the series: the bars stay
+          teal (the chart lib is untouched), and the series' newest edge is
+          marked by the LIME live node (CircuitTrace live — the 60s bundle
+          poll = the live stream; the messages topbar trace twin). */}
+      {entries.length > 0 && <CircuitTrace variant="live" className="mt-1.5 block h-1.5 w-full" />}
       {entries.length > 1 && (
-        <div className="flex justify-between mt-2.5 text-xs text-muted-foreground tabular-nums">
+        /* phase6 r154 — the date range rides the mono/tabular register
+           (dir=ltr: operational codes, the machine voice). The newest
+           date carries its lime node dot. */
+        <div dir="ltr" className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground font-mono tabular-nums">
           <span>{entries[0]?.[0]?.slice(5) || ""}</span>
-          <span>{entries[entries.length - 1]?.[0]?.slice(5) || ""}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />
+            {entries[entries.length - 1]?.[0]?.slice(5) || ""}
+          </span>
         </div>
       )}
     </div>
@@ -186,11 +212,16 @@ function BotHealthCard() {
   }
 
   // Loading — skeleton mirroring the card's shape
+  /* phase6 r154 — the health robot: the ONE machine reports its own state
+     (thinking while the live check is in flight — lime scan bar; error
+     register on failure; responding when healthy). The skeleton keeps the
+     exact row shape (icon-slot + two bars, CLS=0) with the thinking robot
+     standing in the icon slot. */
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-4 flex items-center gap-3">
-          <Skeleton className="size-9 rounded-lg shrink-0" />
+          <RobotMark state="thinking" className="size-9 shrink-0" aria-hidden={true} />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-3 w-48" />
@@ -206,9 +237,7 @@ function BotHealthCard() {
       <Card className="border-destructive/40">
         <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="size-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <AlertCircle className="size-4 text-destructive-ink" aria-hidden="true" />
-            </div>
+            <RobotMark state="error" className="size-9 shrink-0" aria-hidden={true} />
             <div className="min-w-0">
               <p className="text-sm font-medium">صحة البوت</p>
               <p className="text-xs text-muted-foreground truncate">تعذّر جلب حالة البوت</p>
@@ -234,17 +263,25 @@ function BotHealthCard() {
       ].filter(Boolean).join(" ")
     : `يعمل بشكل طبيعي · ${countPhrase(data.replies_last_hour, "رد", "ردين", "ردود")} خلال الساعة الأخيرة`
 
+  /* phase6 r154 — the health state machine: thinking while the live check
+     re-runs («فحص فوري»/refetch — the isFetching flag), error on critical,
+     responding when healthy, idle on advisory warnings. */
+  const robotState: RobotState = isFetching
+    ? "thinking"
+    : critical
+      ? "error"
+      : warning
+        ? "idle"
+        : "responding"
+
   return (
     <Card className={critical ? "border-destructive/40" : warning ? "border-warning/40" : undefined}>
       <CardContent className="p-4 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", critical ? "bg-destructive/10" : warning ? "bg-warning/10" : "bg-success/10")}>
-            {critical || warning ? (
-              <AlertTriangle className={cn("size-4", critical ? "text-destructive-ink" : "text-warning-ink")} aria-hidden="true" />
-            ) : (
-              <CheckCircle2 className="size-4 text-success-ink" aria-hidden="true" />
-            )}
-          </div>
+          {/* the health robot — the machine reports its own state; the card
+              border + status line carry the severity for AT (the robot is
+              decorative, aria-hidden). */}
+          <RobotMark state={robotState} className="size-9 shrink-0" aria-hidden={true} />
           <div className="min-w-0">
             <p className="text-sm font-medium">صحة البوت</p>
             <p className="text-xs text-muted-foreground truncate">{statusLine}</p>
@@ -297,7 +334,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-        {/* Header — REAL connection state (was hardcoded "متصل") */}
+        {/* Header — REAL connection state (was hardcoded "متصل")
+            phase6 r154: the topbar trace (the machine-room signature, live
+            lime node = the 60s bundle poll) via the PageHeader option. */}
         <PageHeader
           icon={<TrendingUp className="size-4" />}
           title="لوحة التحكم"
@@ -306,6 +345,7 @@ export default function DashboardPage() {
             ? { label: "متصل", tone: "success" }
             : { label: "غير متصل", tone: "warning" }}
           compact
+          trace
         />
 
         <SectionContainer className="py-6">
@@ -328,7 +368,7 @@ export default function DashboardPage() {
                 (tone=…) — the old bg-accent/bg-success/10 washes retired. */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
               <KpiCard icon={TrendingUp} label="جميع الردود" value={stats?.total_replies || 0}
-                trend={stats?.trend?.week} tone="copper" index={0}
+                trend={stats?.trend?.week} tone="signal" index={0}
                 href="/dashboard/activity" />
               <KpiCard icon={Activity} label="ردود اليوم" value={stats?.today_replies || 0}
                 trend={stats?.trend?.today} tone="mint" index={1} />
@@ -340,19 +380,19 @@ export default function DashboardPage() {
                 href="/dashboard/messages" />
               <KpiCard icon={Bot} label="القواعد النشطة" value={rulesList.filter((r) => r.enabled !== false).length}
                 subtitle={`من ${countPhrase(rulesList.length, "قاعدة", "قاعدتين", "قواعد")}`}
-                tone="sand" index={3}
+                tone="petrol" index={3}
                 href="/dashboard/autoreply" />
             </div>
 
             {/* Secondary row — audience + persisted messages */}
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 mb-6">
               <KpiCard icon={Users} label="متابعو الصفحة" value={stats?.fan_count || 0}
-                tone="copper" index={4} />
+                tone="signal" index={4} />
               <KpiCard icon={MessageCircle} label="الرسائل المخزنة" value={messages.total_messages || 0}
                 subtitle="تصل لحظياً عبر الويبهوك" tone="sky" index={5}
                 href="/dashboard/messages" />
               <KpiCard icon={Zap} label="ردود البوت على الرسائل" value={messages.bot_replies || 0}
-                tone="mint" index={6} />
+                tone="lime" index={6} />
             </div>
 
             {/* Activity chart — r130 (W1-G SB-P2-6): fadeUp stagger 50 → 60ms
@@ -381,18 +421,35 @@ export default function DashboardPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r) => (
-                      <div key={r.id} className="flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-                        <div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0">
+                    {recentReplies.length > 0 ? recentReplies.slice(0, 5).map((r) => {
+                      const stamp = timeStamp(r.created_at)
+                      return (
+                      /* phase6 r154 — the reply rows join the circuit grammar:
+                         hover wash + the 2px teal first-cell node (the rules-
+                         table twin), and the row meta carries the mono HH:MM
+                         stamp (dir=ltr; the full Arabic date rides the title
+                         tooltip — the messages-thread twin, zero info lost). */
+                      <div key={r.id} className="group/row flex items-start gap-3 px-(--card-spacing) py-3 border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
+                        <div className="relative size-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0 before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">
                           {(r.commenter_name || r.commenter || "?")[0]}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{r.commenter_name || r.commenter}</p>
                           <p className="text-xs text-muted-foreground truncate">{r.comment_text || r.text}</p>
                           <p className="text-xs text-accent-foreground truncate">{r.reply_text || r.reply}</p>
+                          {stamp && (
+                            <p
+                              className="font-mono text-[11px] mt-0.5 tabular-nums text-muted-foreground"
+                              dir="ltr"
+                              title={r.created_at ? formatDate(r.created_at) : undefined}
+                            >
+                              {stamp}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    )) : (
+                      )
+                    }) : (
                       <EmptyState
                         icon={MessageCircle}
                         size="sm"
@@ -425,13 +482,19 @@ export default function DashboardPage() {
                         <table aria-labelledby="dashboard-rules-title" className="tbl-stack w-full text-(length:--fs-sm)">
                           <thead>
                             <tr className="border-b border-border bg-muted text-muted-foreground text-[11px] font-semibold uppercase">
+                              {/* phase6 r154 — the mono index column (machine
+                                  register: zero-padded operational codes,
+                                  dir=ltr) — presentation only, no data
+                                  change. */}
+                              <th scope="col" aria-label="رقم القاعدة" className="w-10 px-2 py-3 font-semibold" />
                               <SortableTh label="القاعدة" column="name" sort={rulesSort} onToggle={toggleSort} className="px-4 py-3 font-semibold" />
                               <SortableTh label="الحالة" column="status" sort={rulesSort} onToggle={toggleSort} align="center" className="px-4 py-3 font-semibold" />
                             </tr>
                           </thead>
                           <tbody>
-                            {sortedRules.slice(0, 5).map((r) => (
+                            {sortedRules.slice(0, 5).map((r, i) => (
                               <tr key={r.id} className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40">
+                                <td data-label="رقم" dir="ltr" className="p-3 px-2 font-mono text-xs tabular-nums text-muted-foreground select-none">{String(i + 1).padStart(2, "0")}</td>
                                 <td data-label="القاعدة" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{r.name}</td>
                                 <td data-label="الحالة" className="p-3 px-4 text-center">
                                   <span className={cn("inline-flex items-center gap-1 text-xs", r.enabled !== false ? "text-success-ink" : "text-muted-foreground")}>

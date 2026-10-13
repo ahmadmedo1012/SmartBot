@@ -1675,6 +1675,61 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('r154 toast accent: the gift hairline = var(--c-copper-ink) (the visible signal teal)');
 }
 
+// ── §r154b — phase6 package 2: the dashboard HOME speaks the machine ───────
+{
+  /* Self-contained block: pins the P6-2-d1 dashboard-home grammar — the
+     topbar trace via the component option, the BotHealthCard robot state
+     machine, the mono HH:MM reply stamps, the rules-table mono index
+     register, and the chart's lime live node (chart lib untouched). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const rawHome = readRaw('../src/app/dashboard/page.tsx');
+
+  // (1) the topbar trace rides the PageHeader option (the messages twin).
+  const homeTraceOk = rawHome.includes('          compact\n          trace\n        />')
+    && !rawHome.includes('<hr className="sb-trace"');
+  if (homeTraceOk) pass += 1;
+  else fails.push('r154b home trace: the topbar .sb-trace rides the PageHeader trace option on /dashboard');
+
+  // (2) BotHealthCard: the ONE robot reports its own state — thinking while
+  //     the live check is in flight, error on failure/critical, responding
+  //     when healthy (the severity border + status line stay for AT).
+  const botHealthOk = rawHome.includes('const robotState: RobotState = isFetching')
+    && rawHome.includes('? "thinking"')
+    && rawHome.includes('? "error"')
+    && rawHome.includes(': "responding"')
+    && rawHome.includes('<RobotMark state={robotState} className="size-9 shrink-0" aria-hidden={true} />')
+    && rawHome.includes('<RobotMark state="thinking" className="size-9 shrink-0" aria-hidden={true} />')
+    && rawHome.includes('<RobotMark state="error" className="size-9 shrink-0" aria-hidden={true} />');
+  if (botHealthOk) pass += 1;
+  else fails.push('r154b bot health: RobotMark state machine (thinking in flight / error / responding healthy) on the home card');
+
+  // (3) the recent replies ride the chat register: mono HH:MM stamps
+  //     (dir=ltr + tabular) with the full Arabic date in the title tooltip.
+  const stampsOk = rawHome.includes('function timeStamp(')
+    && rawHome.includes('className="font-mono text-[11px] mt-0.5 tabular-nums text-muted-foreground"')
+    && rawHome.includes('title={r.created_at ? formatDate(r.created_at) : undefined}')
+    && rawHome.includes('{stamp}');
+  if (stampsOk) pass += 1;
+  else fails.push('r154b reply stamps: mono HH:MM (dir=ltr) + Arabic date title tooltip on the home recent-replies list');
+
+  // (4) the rules table rides the mono/tabular register: zero-padded index
+  //     codes (presentation only — the data/logic untouched).
+  const rulesNumeralsOk = rawHome.includes('dir="ltr" className="p-3 px-2 font-mono text-xs tabular-nums text-muted-foreground select-none"')
+    && rawHome.includes('String(i + 1).padStart(2, "0")')
+    && rawHome.includes('aria-label="رقم القاعدة"');
+  if (rulesNumeralsOk) pass += 1;
+  else fails.push('r154b rules table: mono zero-padded index column (the machine register)');
+
+  // (5) the activity chart: the lime live node marks the series' newest edge
+  //     (CircuitTrace live + the lime dot beside the newest date); the bars
+  //     stay teal (the chart lib is untouched) and the date range is mono.
+  const chartLiveOk = rawHome.includes('<CircuitTrace variant="live" className="mt-1.5 block h-1.5 w-full" />')
+    && rawHome.includes('<span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />')
+    && rawHome.includes('text-xs text-muted-foreground font-mono tabular-nums');
+  if (chartLiveOk) pass += 1;
+  else fails.push('r154b chart live node: CircuitTrace live + lime newest-edge dot + mono date range on the home activity chart');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

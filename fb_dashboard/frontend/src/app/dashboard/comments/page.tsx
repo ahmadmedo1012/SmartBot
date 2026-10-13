@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { AiSuggestDialog, type AiSuggestResult } from "@/components/ai/AiSuggestDialog"
-import { countPhrase, formatNumber, timeAgo } from "@/lib/format"
+import { countPhrase, formatDate, formatNumber, timeAgo } from "@/lib/format"
 import type { CommentRow } from "@/lib/types"
 
 /* v25 (W-06): عقد /api/comments (routers/replies.py:139) — حد فقط
@@ -25,6 +25,16 @@ import type { CommentRow } from "@/lib/types"
 const COMMENTS_INITIAL = 30
 const COMMENTS_STEP = 30
 const COMMENTS_MAX = 200
+
+/* phase6 r154 (P6-2-d2) — سجل ختم التعليق (توأم الرسائل/البيت): HH:MM
+ * مونو (dir="ltr"، tabular-nums)؛ الوقت النسبي العربي يبقى نصًا والقيمة
+ * الكاملة في الـtitle — لا معلومة تسقط. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 
 export default function CommentsPage() {
@@ -158,6 +168,10 @@ export default function CommentsPage() {
         title="التعليقات"
         subtitle="جميع التعليقات على المنشورات"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة — الردود والاقتراحات)، عبر
+            خيار PageHeader المدمج (r154). */
+        trace
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -189,7 +203,9 @@ export default function CommentsPage() {
           </div>
         ) : comments.length === 0 ? (
           <EmptyState
-            icon={MessageSquare}
+            /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في حالة idle
+               (البوت في الخدمة، ينتظر أول تعليق). */
+            robot
             title="لا توجد تعليقات بعد"
             description="ستظهر تعليقات متابعيك على منشوراتك هنا فور وصولها — ويمكنك الرد عليها بضغطة واحدة."
           />
@@ -205,9 +221,25 @@ export default function CommentsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         {/* v14-E5 (D3-ج): from_name is a live Facebook value —
-                            dir="auto" isolates Latin/mixed commenter names. */}
+                            dir="auto" isolates Latin/mixed commenter names.
+                            phase6 r154: الوقت النسبي + ختم HH:MM مونو
+                            dir=ltr (التاريخ الكامل في الـtitle). */}
                         <span className="text-sm font-medium" dir="auto">{c.from_name}</span>
-                        <span className="text-xs text-muted-foreground">{timeAgo(c.created_time)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {timeAgo(c.created_time)}
+                          {timeStamp(c.created_time) && (
+                            <>
+                              {" · "}
+                              <span
+                                dir="ltr"
+                                className="font-mono tabular-nums"
+                                title={formatDate(c.created_time) || undefined}
+                              >
+                                {timeStamp(c.created_time)}
+                              </span>
+                            </>
+                          )}
+                        </span>
                         {c.reply_text && (
                           <Badge variant="info" className="text-xs">تم الرد</Badge>
                         )}

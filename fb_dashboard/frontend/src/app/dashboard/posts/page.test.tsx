@@ -137,7 +137,11 @@ describe("posts page v21 sync-failure banner states", () => {
 
     // the stored row serves (with its formatted date)
     expect(await screen.findByText("عرض الصيف على الأجهزة")).toBeInTheDocument()
-    expect(screen.getByText("10 سبتمبر 2026 12:00")).toBeInTheDocument()
+    // phase6 r154 — the date row rides the machine grammar: Arabic date +
+    // mono HH:MM stamp (dir=ltr); the full date moves to the stamp's title.
+    expect(screen.getByText("10 سبتمبر 2026")).toBeInTheDocument()
+    expect(screen.getByText("12:00")).toBeInTheDocument()
+    expect(screen.getByTitle("10 سبتمبر 2026 12:00")).toBeInTheDocument()
     // the honest amber banner (ads-page copy verbatim)
     expect(screen.getByText(BANNER_TEXT)).toBeInTheDocument()
     // the English diagnostic rides as the banner's title tooltip…

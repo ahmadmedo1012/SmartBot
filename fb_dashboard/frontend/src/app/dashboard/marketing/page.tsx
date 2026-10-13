@@ -52,13 +52,17 @@ const AUDIENCES: { value: string; label: string; desc: string }[] = [
 ]
 
 /* r131-F8 (A4 P2-3): the hand-rolled chip style map → a Badge variant map
- * (solid pastel grounds + -ink text after the F7 re-base). */
-const STATUS_BADGE: Record<string, "secondary" | "info" | "success" | "gold" | "danger"> = {
-  draft: "secondary",
-  scheduled: "info",
-  sent: "success",
-  sending: "gold",
-  failed: "danger",
+ * (solid pastel grounds + -ink text after the F7 re-base).
+ * phase6 r154 (P6-2-d2): الخريطة الآن سجل البترول (مفردات KpiCard):
+ * scheduled/sending = لايم الأتمتة (معلّقة/في الجو)، sent = إشارة التيل
+ * (copper)، draft = الرغوة، failed تبقى الوردة التدميرية — نفس عائلة
+ * posts/scheduled. قيم طلائية فقط (تُركّب فوق variant=secondary). */
+const STATUS_BADGE: Record<string, string> = {
+  draft: "bg-(--c-grey-bg) text-(--c-grey-ink)",
+  scheduled: "bg-(--c-lime-bg) text-(--c-lime-ink)",
+  sending: "bg-(--c-lime-bg) text-(--c-lime-ink)",
+  sent: "bg-(--c-copper-bg) text-(--c-copper-ink)",
+  failed: "bg-destructive-soft text-destructive-ink",
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -198,6 +202,10 @@ export default function MarketingPage() {
         title="التسويق"
         subtitle="حملات المراسلة الجماعية"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة — التوزيع الجماعي للحملات)،
+            عبر خيار PageHeader المدمج (r154). */
+        trace
       />
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -259,9 +267,16 @@ export default function MarketingPage() {
                     ))}
                   </div>
                   <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
-                    {audienceQuery.isLoading
-                      ? "جارٍ حساب حجم الجمهور…"
-                      : `ستصل الحملة إلى ${countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}`}
+                    {audienceQuery.isLoading ? "جارٍ حساب حجم الجمهور…" : (
+                      <>
+                        ستصل الحملة إلى{" "}
+                        {/* phase6 r154 — رقم تقدير الجمهور في سجل .sb-numerals
+                            (Grotesk + tabular — عقد KpiCard). */}
+                        <span className="sb-numerals font-heading tabular-nums">
+                          {countPhrase(audienceCount, "مشترك", "مشتركين", "مشتركين")}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -326,9 +341,17 @@ export default function MarketingPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold truncate">{c.name}</p>
-                          <Badge variant={STATUS_BADGE[c.status] ?? "secondary"} className="shrink-0">
+                          <Badge
+                            variant="secondary"
+                            className={`${STATUS_BADGE[c.status] ?? STATUS_BADGE.draft} shrink-0`}
+                          >
                             {STATUS_LABEL[c.status] || c.status}
                           </Badge>
+                          {/* phase6 r154 — عقدة اللايم الحية على الحملة المعلّقة
+                              أو قيد الإرسال (توأم صف البث/المجدول). */}
+                          {(c.status === "scheduled" || c.status === "sending") && (
+                            <span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                           {c.message}
@@ -390,7 +413,7 @@ export default function MarketingPage() {
 
                     {/* stats */}
                     {c.status === "sent" && (
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground border-t border-border/40 pt-2.5">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground tabular-nums border-t border-border/40 pt-2.5">
                         <span className="flex items-center gap-1">
                           <Send className="size-3 rtl:-scale-x-100" />
                           أُرسلت إلى {c.sent_count}
@@ -417,7 +440,9 @@ export default function MarketingPage() {
           قابلية التراجع، وزر تدميري + إلغاء. لا إرسال جماعي بدونه. */}
       <Dialog open={confirmSendId !== null} onOpenChange={(open) => { if (!open) setConfirmSendId(null) }}>
         {/* r131-F8 (A4 P2-7): the sm:max-w-md override drops — the dialog rides
-            F7's canonical 560px default. */}
+            F7's canonical 560px default. phase6 r154: حوار التأكيد يركب زوايا
+            الدارة البترولية المشتركة (.mdrk-modal-card في DialogContent) —
+            بلا تجاوزات محلية. */}
         <DialogContent>
           <DialogTitle>تأكيد الإرسال الجماعي</DialogTitle>
           <DialogDescription>
@@ -435,7 +460,9 @@ export default function MarketingPage() {
               ) : estimateError ? (
                 <span className="text-xs text-destructive-ink">تعذّر تحديد العدد</span>
               ) : (
-                <span className="text-sm font-bold" dir="ltr">{countPhrase(confirmEstimate?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
+                /* phase6 r154 — رقم التقدير في سجل .sb-numerals (عقد البث
+                   نفسه — Grotesk + tabular). */
+                <span className="sb-numerals font-heading text-sm font-bold tabular-nums" dir="ltr">{countPhrase(confirmEstimate?.count ?? 0, "مشترك", "مشتركين", "مشتركين")}</span>
               )}
             </div>
 

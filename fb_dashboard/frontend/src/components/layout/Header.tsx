@@ -179,6 +179,26 @@ export function Header({ className }: HeaderProps) {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
+  /* r151 (LIVE-AUDIT-SB2): Escape closes the open sheet from ANYWHERE on the
+     document. The in-panel focus-trap handler (MobileMenu) only sees keys
+     that bubble THROUGH the panel — with focus parked outside it (e.g. right
+     after clicking the burger: the sheet covers the header, so the click
+     lands on the panel body and blurs focus to <body>) Escape was a dead
+     key. This document-level listener is the standard dialog escape hatch;
+     the cleanup detaches it the moment the sheet closes. Focus restore to
+     the opener (the burger) stays MobileMenu's existing [open] effect. */
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        closeMobileMenu()
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [mobileMenuOpen, closeMobileMenu])
+
   const isActive = (href: string) =>
     href === "/login" ? pathname === "/login" : pathname.startsWith(href.replace(/:.*/, ""))
 
@@ -208,7 +228,11 @@ export function Header({ className }: HeaderProps) {
         <nav className="max-w-(--marketing-max-w) mx-auto px-4 sm:px-6 lg:px-10 h-full flex items-center justify-between" aria-label="الرئيسية">
           {/* Logo & Hamburger */}
           <div className="flex items-center gap-3 flex-1">
-            <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
+            {/* r151 (LIVE-AUDIT-SB2): true toggle — when open the label says
+                «إغلاق القائمة», so the click must CLOSE (was
+                setMobileMenuOpen(true): a dead no-op while the sheet was
+                open — the live-audit label/behavior mismatch). */}
+            <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(v => !v)} />
             {/* r151 (LIVE-AUDIT-SB1 P3-6): the documented h-9 visual slot
                 stays, but the link is the HOME tap target on mobile —
                 min-h-11 lifts its touch area to the 44px floor (the 60px

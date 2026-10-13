@@ -1,48 +1,32 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Bot, LineChart, MessageSquare } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
+import { CircuitTrace } from "@/components/shared/CircuitTrace";
 
 /* v16-r142 «رفيق» — «المنصة الحقيقية»: the product shown HONESTLY.
- * The two windows embed real captures of the shipped dashboard (the
- * /demo route — the real AdminSidebar + real components, with its
- * declared mock dataset), taken from a local build: the unified inbox
- * (dashboard/messages) and the analytics board (dashboard/analytics).
- * The caption says exactly that — نسخة التجربة ببيانات وهمية — and the
- * CTA hands the visitor the same surface to try. No mockups, no
- * "concept" art, no invented numbers.
+ *
+ * phase5 r152: the two gold-era raster captures (demo-inbox.webp /
+ * demo-analytics.webp — real screenshots of the RETIRED design) are
+ * replaced by LIVE mini-boards: the same surface shapes (unified inbox
+ * conversation rows · analytics bars) rendered in the product's own
+ * petrol tokens, on the declared MOCK dataset — the caption says exactly
+ * that («نسخة التجربة ببيانات وهمية»), and the CTA hands the visitor the
+ * REAL /demo surface to try. No stale captures, no invented numbers: the
+ * analytics panel carries no fabricated values — only the same KPI
+ * grammar (labels + trend glyphs) the real board renders with live data.
  *
  * The rail chips enumerate shipped dashboard routes only: inbox,
  * broadcasts, scheduling, PDF reports, team roles, sequences, targeting
  * (fb_dashboard/routers/*). */
 
-const WINDOWS = [
-  {
-    key: "inbox",
-    cls: "w1",
-    src: "/images/ui/demo-inbox.webp",
-    alt: "لوحة تحكم SmartBot الحقيقية — صندوق الوارد الموحد بمحادثات العملاء والردود",
-    title: "صندوق الوارد الموحّد",
-    cap: "كل رسائل وتعليقات صفحاتك في مكان واحد — مع الردود الآلية بجانبها.",
-  },
-  {
-    key: "analytics",
-    cls: "w2",
-    src: "/images/ui/demo-analytics.webp",
-    alt: "لوحة تحكم SmartBot الحقيقية — التحليلات واتجاهات النشاط وأفضل القواعد",
-    title: "التحليلات والأداء",
-    cap: "اتجاهات النشاط، أفضل القواعد، ونمو الجمهور — أرقام تقرأ ولا تُخمَّن.",
-  },
+const INBOX_ROWS = [
+  { name: "سارة م.", msg: "كم سعر الباقة الاحترافية؟", ai: true, time: "21:41" },
+  { name: "أحمد ع.", msg: "أبغى أحجز موعد بكرة الصبح", ai: true, time: "21:12" },
+  { name: "ليلى ك.", msg: "الطلب رقم 1047 لم يصل بعد", ai: false, time: "19:58" },
+  { name: "محمد ص.", msg: "شكراً على الرد السريع 🙏", ai: false, time: "18:20" },
 ] as const;
 
-const RAILS = [
-  "صندوق موحّد",
-  "بث جماعي",
-  "جدولة منشورات",
-  "تقارير PDF",
-  "أدوار وصلاحيات",
-  "تسلسلات ردود",
-  "استهداف جمهور",
-];
+const ANALYTICS_BARS = [34, 52, 41, 66, 58, 78, 62, 88, 74, 96] as const;
 
 export function ProductSection() {
   return (
@@ -53,48 +37,92 @@ export function ProductSection() {
           هذه ليست واجهة تسويقية — <em>هي المنصّة نفسها</em>
         </RevealCssClass>
         <RevealCssClass as="p" className="ln-chapter-lede" delay={2}>
-          لقطات من لوحة التحكم الفعلية (نسخة التجربة ببيانات وهمية): صندوق
+          لوحات من شكل المنصة الفعلي (نسخة التجربة ببيانات وهمية): صندوق
           الوارد الموحد والتحليلات. ما تراه هنا هو ما تحصل عليه بعد الربط.
         </RevealCssClass>
       </div>
 
       <div className="ln-product-grid">
-        {WINDOWS.map((w, i) => (
-          <RevealCssClass key={w.key} className={`ln-product-window ${w.cls}`} delay={((i % 2) + 2) as 2 | 3}>
-            <div className="ln-product-bar" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <span className="ln-mono">bot.smart-link.ly/demo</span>
+        <RevealCssClass className="ln-product-window w1" delay={2}>
+          <div className="ln-product-bar" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <span className="ln-mono">bot.smart-link.ly/demo</span>
+          </div>
+          {/* the circuit-trace accent — the machine-room signature rail
+              under the window chrome (live node = the automation signal) */}
+          <CircuitTrace variant="live" className="ln-pp-trace" />
+          {/* the inbox mini-board — the real surface grammar, mock rows */}
+          <div className="ln-product-panel" role="img" aria-label="لوحة تحكم SmartBot الحقيقية — صندوق الوارد الموحد بمحادثات العملاء والردود (نسخة تجربة ببيانات وهمية)">
+            <div className="ln-pp-head">
+              <MessageSquare size={14} aria-hidden="true" />
+              <span>صندوق الوارد الموحّد</span>
+              <span className="ln-pp-badge">٣ محادثات جديدة</span>
             </div>
-            {/* v17-SB (17-PERF #1): sizes = the .ln-product-window width,
-                derived from landing.css (not guessed). ≤920: single column,
-                gutter 20×2 → calc(100vw − 40px). ≥921: 7 of 12 grid cols on
-                min(1180px, 100vw−96) with gap clamp(24px,3.5vw,44px) →
-                (7·C − 5·gap)/12 — the old 58vw over-fetched a 1080px
-                candidate for a 670px slot at 1440. */}
-            <Image
-              src={w.src}
-              alt={w.alt}
-              width={1440}
-              height={900}
-              sizes="(max-width: 920px) calc(100vw - 40px), calc((7 * min(1180px, 100vw - 96px) - 5 * clamp(24px, 3.5vw, 44px)) / 12)"
-              className="ln-product-shot"
-            />
-            <p className="ln-product-cap">
-              <b>{w.title}</b>
-              {w.cap}
-            </p>
-          </RevealCssClass>
-        ))}
+            <ul className="ln-pp-rows">
+              {INBOX_ROWS.map((r) => (
+                <li key={r.name} className="ln-pp-row">
+                  <span className="ln-pp-avatar" aria-hidden="true">{r.name.slice(0, 1)}</span>
+                  <span className="ln-pp-msg">
+                    <b>{r.name}</b>
+                    {r.msg}
+                  </span>
+                  {r.ai ? <span className="ln-pp-ai" title="رد آلي">AI</span> : <span className="ln-pp-team" title="بحاجة لفريقك">فريقك</span>}
+                  <span className="ln-pp-time ln-mono">{r.time}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="ln-product-cap">
+            <b>صندوق الوارد الموحّد</b>
+            كل رسائل وتعليقات صفحاتك في مكان واحد — مع الردود الآلية بجانبها.
+          </p>
+        </RevealCssClass>
+
+        <RevealCssClass className="ln-product-window w2" delay={3}>
+          <div className="ln-product-bar" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <span className="ln-mono">bot.smart-link.ly/demo</span>
+          </div>
+          {/* the circuit-trace accent — twin of the inbox window above */}
+          <CircuitTrace variant="live" className="ln-pp-trace" />
+          {/* the analytics mini-board — the KPI grammar with NO fabricated
+              values: bars are the trend shape, labels are the real metrics */}
+          <div className="ln-product-panel" role="img" aria-label="لوحة تحكم SmartBot الحقيقية — التحليلات واتجاهات النشاط (نسخة تجربة ببيانات وهمية)">
+            <div className="ln-pp-head">
+              <LineChart size={14} aria-hidden="true" />
+              <span>التحليلات والأداء</span>
+              <span className="ln-pp-badge">٧ أيام</span>
+            </div>
+            <div className="ln-pp-bars" aria-hidden="true">
+              {ANALYTICS_BARS.map((h, i) => (
+                <i key={i} style={{ blockSize: `${h}%` }} />
+              ))}
+            </div>
+            <div className="ln-pp-kpis">
+              <span className="ln-pp-kpi"><b>الردود الآلية</b><Bot size={12} aria-hidden="true" /></span>
+              <span className="ln-pp-kpi"><b>التفاعل</b></span>
+              <span className="ln-pp-kpi"><b>نمو الجمهور</b></span>
+            </div>
+          </div>
+          <p className="ln-product-cap">
+            <b>التحليلات والأداء</b>
+            اتجاهات النشاط، أفضل القواعد، ونمو الجمهور — أرقام تقرأ ولا تُخمَّن.
+          </p>
+        </RevealCssClass>
       </div>
 
-      <RevealCssClass as="ul" className="ln-product-rails" delay={3} aria-label="قدرات المنصة المشحونة في الإنتاج">
-        {RAILS.map((r) => (
-          <li key={r} className="ln-product-rail ln-mono">
-            {r}
-          </li>
-        ))}
+      <RevealCssClass as="ul" className="ln-product-rails" delay={4} aria-label="قدرات المنصة المشحونة في الإنتاج">
+        <li className="ln-product-rail ln-mono">صندوق موحّد</li>
+        <li className="ln-product-rail ln-mono">بث جماعي</li>
+        <li className="ln-product-rail ln-mono">جدولة منشورات</li>
+        <li className="ln-product-rail ln-mono">تقارير PDF</li>
+        <li className="ln-product-rail ln-mono">أدوار وصلاحيات</li>
+        <li className="ln-product-rail ln-mono">تسلسلات ردود</li>
+        <li className="ln-product-rail ln-mono">استهداف جمهور</li>
       </RevealCssClass>
 
       <RevealCssClass as="div" className="ln-product-cta-row" delay={4}>

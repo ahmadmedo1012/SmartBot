@@ -5,13 +5,15 @@
    press, and the SAME playback that streams the integrated chat
    simulator).
 
-   The narrative (RTL reading order):
+   The narrative (RTL reading order), stitched together by the circuit-trace
+   chapter separators (TraceSep — the Circuit Petrol signature divider,
+   live lime node on the two live-product beats):
    ٠ الهيرو «تعرّف على رفيقك» — stage + live simulator (one state machine)
    ٠ شريط القدرات (marquee) — the real capability names
    ٠ لغة العقل (#mind) — capabilities as chat threads + intent chips
    ٠ يوم في الحياة (#day) — the 4-state storyboard, --sp-lit rail
-   ٠ المنصة الحقيقية (#platform) — real dashboard captures (inbox +
-     analytics), honestly captioned
+   ٠ المنصة الحقيقية (#platform) — live mini-boards in the product's own
+     tokens (inbox + analytics), honestly captioned «بيانات وهمية»
    ٠ الأرقام (#trust) — the mono cockpit band (public stats, CountUp)
    ٠ الختام «وظّف رفيقك الرقمي» — finale CTA + compact FAQ
 
@@ -129,6 +131,19 @@ const faqSchema = {
    the Libyan dialect IS engine-backed (enhanced_intent.py Libyan keyword
    catalogs; ai_service.py «الردود باللهجة الليبية العامية» prompt) — the
    old multi-language claim had zero backing (QA r144 P3). */
+/* Circuit Petrol section separators (phase5 r152) — the signature trace
+   (globals.css .sb-trace: thin signal line + node dots) stitches the
+   narrative chapters together. data-live lights the inline-end node LIME
+   (the reserved AI/automation register) on the two beats where the story
+   crosses live product territory: the automation proof (day→platform) and
+   the public live metrics (platform→trust). Decorative by role: aria-hidden
+   — every chapter carries its own real heading. */
+function TraceSep({ live = false }: { live?: boolean }) {
+  return (
+    <hr className="sb-trace" aria-hidden="true" data-live={live ? "true" : undefined} />
+  );
+}
+
 const MARQUEE_ITEMS = [
   "ردود تلقائية ذكية",
   "صندوق وارد موحد",
@@ -229,14 +244,25 @@ export default function HomePage() {
         {/* ═══ شريط القدرات — مدار واحد تنتظم فيه الأسماء (marquee) ═══ */}
         <LandingMarquee items={MARQUEE_ITEMS} />
 
+        {/* ═══ circuit trace — الفاصل الأول (marquee → لغة العقل) ═══ */}
+        <TraceSep />
+
         {/* ═══ ٠١ — لغة العقل: القدرات كخيوط محادثة حقيقية ═══ */}
         <MindSection />
+
+        <TraceSep />
 
         {/* ═══ ٠٢ — يوم في الحياة: قصة لوحات متتابعة بالحالات الأربع ═══ */}
         <BotDayStoryboard />
 
-        {/* ═══ ٠٣ — المنصة الحقيقية: لقطات من لوحة التحكم الفعلية ═══ */}
+        {/* live node — القصة تعبر إلى إثبات الأتمتة الحيّ */}
+        <TraceSep live />
+
+        {/* ═══ ٠٣ — المنصة الحقيقية: لوحات من شكل المنصة الفعلي ═══ */}
         <ProductSection />
+
+        {/* live node — بعدها الأرقام العمومية الحيّة */}
+        <TraceSep live />
 
         {/* ═══ ٠٤ — الأرقام: قمرة المنصّة (بيانات عمومية حقيقية) ═══ */}
         <TrustBand />

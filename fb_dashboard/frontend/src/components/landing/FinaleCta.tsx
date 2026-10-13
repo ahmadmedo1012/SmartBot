@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { RobotMark } from "@/components/shared/RobotMark";
 import { Bot } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
@@ -35,14 +35,7 @@ export function FinaleCta() {
         <RevealCssClass as="div" className="ln-cta-actions" delay={3}>
           <span className="ln-cta-bot" aria-hidden="true">
             <span className="ln-cta-bot-say">رفيقك جاهز!</span>
-            <Image
-              src="/images/robot/robot-wave.webp"
-              alt=""
-              width={148}
-              height={148}
-              sizes="74px"
-              className="ln-cta-bot-img"
-            />
+            <RobotMark state="greeting" className="ln-cta-bot-img" />
           </span>
           <MagneticGoldLink href="/subscribe" xl withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
             ابدأ الآن مجاناً

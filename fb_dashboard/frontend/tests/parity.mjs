@@ -19,6 +19,9 @@
  * The consumption gates (structure bans, z-ladder, RM belt, component
  * source pins) are UNCHANGED — they are product-neutral contracts. The
  * pin count is unchanged (421): every pin re-anchored, none deleted.
+ * r152b (continuation wave, Task 2-c): +9 pins for the robot/motif
+ * system — RobotMark states, the rb-* motion layer, the circuit-trace
+ * separators, and the retired-raster-robot zero-reference gate.
  *
  * History: r127 Madarek parity rewrite (82→180+ pins), r131/r133/r134
  * wave pins — superseded value-wise by r152, kept structurally.
@@ -1311,6 +1314,106 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && !rawDialogDoc.includes('spring-eased scale-in') && rawDialogDoc.includes('ease-smooth @ 240ms');
   if (docOk) pass += 1;
   else fails.push('r134 stale docs: input.tsx must document h-11/rounded-md and dialog.tsx ease-smooth @ 240ms (reality)');
+}
+
+// ── §r152b — the Circuit Petrol robot & motif system (Task 2-c) ─────────────
+{
+  /* Self-contained block: own comment-stripper + raw readers. Pins the ONE
+     robot art direction (RobotMark SVG states + the shared rb-* motion
+     layer), the circuit-trace chapter separators, and the retirement of the
+     old raster robot/demo webp assets (zero live references). */
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const read = (p) => nc(readRaw(p));
+
+  const rawRobot = readRaw('../src/components/shared/RobotMark.tsx');
+  const rawTrace = readRaw('../src/components/shared/CircuitTrace.tsx');
+  const rawGlobals2 = readRaw('../src/app/globals.css');
+  const rawLanding2 = readRaw('../src/app/landing.css');
+  const rawHome = read('../src/app/page.tsx');
+  const rawSim = read('../src/components/landing/BotChatSimulator.tsx');
+  const rawProduct = read('../src/components/landing/ProductSection.tsx');
+
+  // (1) the ONE robot: five states + the title/aria contract.
+  const statesOk = rawRobot.includes('export type RobotState = "idle" | "greeting" | "thinking" | "responding" | "error"')
+    && rawRobot.includes('role={title ? "img" : undefined}')
+    && rawRobot.includes('aria-hidden={title ? undefined : true}')
+    && rawRobot.includes('focusable="false"');
+  if (statesOk) pass += 1;
+  else fails.push('r152b robot: RobotMark exports the 5 states and the title/aria-hidden/focusable contract');
+
+  // (2) motion lives in globals (rb-* layer) — NO per-instance <style>:
+  //     every mount shares one definition (RSC-safe, zero duplication).
+  const robotCssOk = !rawRobot.includes('dangerouslySetInnerHTML')
+    && rawGlobals2.includes('.rb-led { animation: rb-led-breathe')
+    && rawGlobals2.includes('@keyframes rb-scan')
+    && rawGlobals2.includes('@keyframes rb-say')
+    && rawGlobals2.includes('.rb-say { transform-box: fill-box')
+    && rawGlobals2.includes('@media (prefers-reduced-motion: reduce) {\n  .rb-led, .rb-scan, .rb-wave, .rb-say, .rb-glitch { animation: none; }');
+  if (robotCssOk) pass += 1;
+  else fails.push('r152b robot motion: rb-* keyframes live in globals.css (fill-box say-verbs + own RM off-switch), zero inline <style> in RobotMark');
+
+  // (3) the robot themes through semantic tokens (no raw hex in the SVG).
+  const robotTokensOk = rawRobot.includes('var(--c-lime-ink)') && rawRobot.includes('var(--primary)')
+    && rawRobot.includes('var(--secondary)') && rawRobot.includes('var(--surface-sunken)')
+    && !/#([0-9A-Fa-f]{6})\b/.test(rawRobot.replace(/robot LED|visor/g, ''));
+  if (robotTokensOk) pass += 1;
+  else fails.push('r152b robot tokens: shell/visor/LED resolve var(--secondary/--primary/--c-lime-ink…), zero raw hexes');
+
+  // (4) the circuit-trace component grammar (divider/live/corner variants).
+  const traceOk = rawTrace.includes('variant?: "divider" | "live" | "corner"')
+    && rawTrace.includes('var(--c-lime-ink)') && rawTrace.includes('vectorEffect="non-scaling-stroke"');
+  if (traceOk) pass += 1;
+  else fails.push('r152b CircuitTrace: divider/live/corner variants, lime live node, non-scaling strokes');
+
+  // (5) the landing chapter separators: TraceSep <hr class="sb-trace"> ×4
+  //     (2 live) + the landing geometry rule.
+  const sepOk = (rawHome.match(/<TraceSep/g) ?? []).length >= 4
+    && rawHome.includes('<TraceSep live />') && rawHome.includes('className="sb-trace" aria-hidden="true"')
+    && rawLanding2.includes('.landing hr.sb-trace { margin: 0; }');
+  if (sepOk) pass += 1;
+  else fails.push('r152b separators: 4+ circuit-trace chapter <hr>s on the landing (2 live), margins zeroed in landing.css');
+
+  // (6) the product windows ride the trace accent (not raster captures).
+  const productOk = (rawProduct.match(/<CircuitTrace/g) ?? []).length >= 2
+    && rawProduct.includes('variant="live"')
+    && !rawProduct.includes('next/image') && !rawProduct.includes('<Image');
+  if (productOk) pass += 1;
+  else fails.push('r152b product windows: CircuitTrace live accents under both window bars, zero <Image>');
+
+  // (7) the simulator avatar robot rides the playback state machine.
+  const simOk = rawSim.includes('let robotState: RobotState = "idle"')
+    && rawSim.includes('if (typing === "bot") robotState = "thinking"')
+    && rawSim.includes('lastMsg?.from === "bot") robotState = "responding"')
+    && rawSim.includes('<RobotMark state={robotState} className="ln-botchat-avatar-robot" />');
+  if (simOk) pass += 1;
+  else fails.push('r152b simulator: the header avatar RobotMark follows the transcript (thinking/responding/idle)');
+
+  // (8) RETIRED RASTER ROBOTS: zero live references to the deleted webp
+  //     assets anywhere under src (comment mentions are fine — the code
+  //     surfaces must stay SVG). The landing hero poses + demo captures
+  //     are RobotMark/live mini-boards now.
+  const srcFiles = readdirSync(new URL('../src', import.meta.url), { recursive: true })
+    .filter((f) => typeof f === 'string' && /\.(tsx?|css)$/.test(f));
+  const rasterRefs = [];
+  for (const f of srcFiles) {
+    const text = nc(readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8'));
+    if (text.includes('/images/robot/') || text.includes('demo-inbox.webp') || text.includes('demo-analytics.webp')
+      || text.includes('robot-hero.webp') || text.includes('robot-wave.webp') || text.includes('robot-think.webp') || text.includes('robot-chat.webp')) {
+      rasterRefs.push(String(f));
+    }
+  }
+  if (rasterRefs.length === 0) pass += 1;
+  else fails.push(`r152b raster retirement: src must carry ZERO live references to the retired webp robots/captures (found in: ${rasterRefs.join(', ')})`);
+
+  // (9) the lime reserve holds on the landing: the AI chip + typing beads
+  //     ride the lime register, the general UI rides teal.
+  const limeOk = rawLanding2.includes('.landing .ln-pp-ai')
+    && rawLanding2.includes('color-mix(in srgb, var(--ln-violet) 14%, transparent)')
+    && rawLanding2.includes('.landing .ln-botchat-msg.bot')
+    && !rawLanding2.includes('.landing .ln-cta-bot-img {\n  inline-size: 74px;\n  block-size: 74px;\n  border-radius: var(--ln-radius-pill);\n  overflow: hidden;\n  border: 1px solid var(--ln-line);\n  /* phase5: the plate now hosts the RobotMark SVG — petrol wash ground */\n  background: rgb(');
+  if (limeOk) pass += 1;
+  else fails.push('r152b lime reserve: the AI chip/panel washes ride token color-mix (no raw rgb hex washes on the new §17e layer)');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

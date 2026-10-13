@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { RobotMark, type RobotState } from "@/components/shared/RobotMark";
 import { BotChatSimulator } from "@/components/landing/BotChatSimulator";
 
 /* v16-r142 — «رفيق» — THE COMPANION STAGE.
@@ -24,8 +24,13 @@ import { BotChatSimulator } from "@/components/landing/BotChatSimulator";
  * Pointer tilt: imperative rAF writes of --rx/--ry (zero setState),
  * fine pointers only, killed under reduced motion. Every looping verb
  * (rings, LEDs) has an explicit reduced-motion off-switch in §17.
- * Decorative by role: images/hud/greeting are aria-hidden; the stage is
+ * Decorative by role: figures/hud/greeting are aria-hidden; the stage is
  * a real button with an Arabic label; pose changes announce politely.
+ *
+ * phase5 r152: the four raster webp poses (60-100KB each, gold-era
+ * renders) are retired — the stage now crossfades the ONE RobotMark
+ * SVG (matte petrol shell · teal visor · lime LED) in its four states.
+ * Zero network, zero LCP image preload: the robot ships in the HTML.
  */
 
 type Pose = "hero" | "wave" | "think" | "chat";
@@ -37,20 +42,15 @@ const POSE_COPY: Record<Pose, string> = {
   chat: "REPLYING · يردّ لحظة بلحظة",
 };
 
-/* v17-SB (17-PERF #1): sizes derived from landing.css, not guessed — the
- * scene is min(100%,460px) of the hero-grid companion track, so the rendered
- * slot is: ≤640 min(86vw,340px) (scene cap 340, content = 100vw−2·max(7vw,16));
- * 641–1024 exactly 420px (min(86vw,420px) with 86vw≥551 in that range);
- * ≥1025 min(44vw,460px) (track = (86vw − clamp(32px,4.5vw,56px))·0.49 —
- * .ln-hero-grid has no max-width of its own, it spans the 86vw hero content;
- * the 460px scene cap dominates from ~1046px up, and below that 44vw
- * overstates only inside the same 480px candidate window — same URL).
- * The hero pose is the desktop LCP element (17-PERF) → priority below. */
-const FIGURES: Array<{ pose: Pose; src: string; sizes: string; priority?: boolean }> = [
-  { pose: "hero", src: "/images/robot/robot-hero.webp", sizes: "(max-width: 640px) min(86vw, 340px), (max-width: 1024px) 420px, min(44vw, 460px)", priority: true },
-  { pose: "wave", src: "/images/robot/robot-wave.webp", sizes: "(max-width: 640px) min(86vw, 340px), (max-width: 1024px) 420px, min(44vw, 460px)" },
-  { pose: "think", src: "/images/robot/robot-think.webp", sizes: "(max-width: 640px) min(86vw, 340px), (max-width: 1024px) 420px, min(44vw, 460px)" },
-  { pose: "chat", src: "/images/robot/robot-chat.webp", sizes: "(max-width: 640px) min(86vw, 340px), (max-width: 1024px) 420px, min(44vw, 460px)" },
+/* The pose state machine, mapped onto the RobotMark states (phase5):
+ * hero → idle · wave → greeting · think → thinking · chat → responding.
+ * ONE inline SVG × four crossfading layers — the same .f-* grammar the
+ * webp stack used, so the CSS crossfade contract is untouched. */
+const POSE_STATES: Array<{ pose: Pose; state: RobotState }> = [
+  { pose: "hero", state: "idle" },
+  { pose: "wave", state: "greeting" },
+  { pose: "think", state: "thinking" },
+  { pose: "chat", state: "responding" },
 ];
 
 const GREET_MS = 2600;
@@ -183,21 +183,11 @@ export function HeroCompanion() {
             aria-label="رفيقك SmartBot على المنصة — اضغط لتحيّته"
           >
             <span className="ln-companion-figures" aria-hidden="true">
-              {FIGURES.map((f) => (
-                <Image
-                  key={f.pose}
-                  src={f.src}
-                  alt=""
-                  width={1024}
-                  height={1024}
-                  sizes={f.sizes}
-                  priority={f.priority}
-                  /* v17-SB (17-PERF #1): the hero pose IS the desktop LCP
-                     element (17-PERF) — priority preloads it in the head and
-                     fetchPriority marks the <img> request high explicitly. */
-                  fetchPriority={f.priority ? "high" : undefined}
-                  loading={f.priority ? undefined : "lazy"}
-                  className={`ln-companion-fig f-${f.pose}`}
+              {POSE_STATES.map(({ pose: p, state }) => (
+                <RobotMark
+                  key={p}
+                  state={state}
+                  className={`ln-companion-fig f-${p}`}
                 />
               ))}
             </span>

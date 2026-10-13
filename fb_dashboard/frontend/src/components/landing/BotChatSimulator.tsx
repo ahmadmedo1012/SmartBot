@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { RotateCcw, UserRound, Zap } from "lucide-react";
+import { RobotMark, type RobotState } from "@/components/shared/RobotMark";
 
 /* v16-r142 «رفيق» — the live conversation simulator, now mounted INSIDE
  * the hero beside the companion stage. Three honest scenarios drawn from
@@ -207,12 +207,24 @@ export function BotChatSimulator({
 
   const finished = step >= scenario.msgs.length;
 
+  /* phase5 r152 — the bot's live presence in the window chrome: the avatar
+   * robot rides the SAME playback (it can never disagree with the
+   * transcript): thinking while SmartBot types, responding right after a
+   * bot message lands, idle while the customer types or the log rests.
+   * Reduced motion → the calm idle robot (the transcript paints whole). */
+  const lastMsg = step > 0 ? scenario.msgs[step - 1] : undefined;
+  let robotState: RobotState = "idle";
+  if (!reduced) {
+    if (typing === "bot") robotState = "thinking";
+    else if (typing === null && lastMsg?.from === "bot") robotState = "responding";
+  }
+
   return (
     <div ref={rootRef} className={`ln-botchat${compact ? " compact" : ""}`} data-testid="bot-chat-simulator">
       {/* window chrome — the page's bot on duty */}
       <div className="ln-botchat-head">
         <span className="ln-botchat-avatar" aria-hidden="true">
-          <Image src="/images/robot/robot-chat.webp" alt="" width={76} height={76} sizes="38px" style={{ inlineSize: "100%", blockSize: "100%", objectFit: "cover" }} />
+          <RobotMark state={robotState} className="ln-botchat-avatar-robot" />
         </span>
         <span>
           <span className="ln-botchat-name">SmartBot</span>

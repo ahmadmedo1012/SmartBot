@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { RobotMark } from "@/components/shared/RobotMark";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
 
@@ -31,44 +31,40 @@ const PANELS = [
     n: "01",
     clock: "06:00",
     pose: "يلوّح",
-    img: "/images/robot/robot-wave.webp",
+    robot: "greeting",
     alt: "روبوت SmartBot يلوّح بترحيب",
     title: "يفتح يومه بترحيب كل تعليق",
     desc: "أول تعليق على منشورك يحصل على ردّ ترحيبي فوري — بلهجة صفحتك، قبل أن تفتح أنت عينيك.",
-    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p2",
     n: "02",
     clock: "13:20",
     pose: "يفهم",
-    img: "/images/robot/robot-think.webp",
+    robot: "thinking",
     alt: "روبوت SmartBot يفكّر ويد على ذقنه",
     title: "يصنّف كل رسالة قبل أن يرد",
     desc: "استفسار، طلب، شكوى تحتاج فريقك — النية تُحدَّد لحظة الوصول فكل رد يأتي في سياقه الصحيح.",
-    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p3",
     n: "03",
     clock: "21:45",
     pose: "يردّ",
-    img: "/images/robot/robot-chat.webp",
+    robot: "responding",
     alt: "روبوت SmartBot يحمل فقاعة محادثة",
     title: "يردّ فوراً — وينقل المهم لفريقك",
     desc: "بلغة العميل وفي أي ساعة، على الرسائل والتعليقات — واللي يحتاج قراراً بشرياً يوصل جاهزاً لصندوقك الموحد.",
-    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
   {
     key: "p4",
     n: "04",
     clock: "00:00",
     pose: "يقف جاهزاً",
-    img: "/images/robot/robot-hero.webp",
+    robot: "idle",
     alt: "روبوت SmartBot يقف واثقاً على منصته",
     title: "يقرأ لك أرقام اليوم… ويستعد للغد",
     desc: "تحليلات الأداء والتفاعل تصل واضحة — تعرف بالأرقام أين تزيد خطوتك القادمة، ورفيقك يبقى على منصته.",
-    sizes: "(max-width: 640px) calc(100vw - 94px), (max-width: 760px) calc(100vw - 104px), (max-width: 920px) calc(0.45 * (100vw - 104px)), calc(0.45 * (min(1080px, 100vw - 96px) - 64px))",
   },
 ] as const;
 
@@ -109,13 +105,10 @@ export function BotDayStoryboard() {
               </div>
               <div className="ln-day-card">
                 <div className="ln-day-media">
-                  <Image
-                    src={p.img}
-                    alt={p.alt}
-                    width={1024}
-                    height={1024}
-                    sizes={p.sizes}
-                    style={{ inlineSize: "100%", blockSize: "100%", objectFit: "cover", objectPosition: "50% 28%" }}
+                  <RobotMark
+                    state={p.robot}
+                    title={p.alt}
+                    className="ln-day-robot"
                   />
                   <span className="ln-day-media-glow" aria-hidden="true" />
                 </div>

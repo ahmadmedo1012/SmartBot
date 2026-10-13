@@ -1437,7 +1437,12 @@
   border: 1px solid var(--ln-line);
   flex-shrink: 0;
   position: relative;
+  /* phase5 r152: the plate hosts the RobotMark SVG on a petrol wash —
+     the tiny robot head is the bot's live presence (state follows the
+     conversation: thinking while it types, responding when it lands). */
+  background: color-mix(in srgb, var(--ln-ink-2) 88%, transparent);
 }
+.landing .ln-botchat-avatar-robot { display: block; inline-size: 100%; block-size: 100%; }
 .landing .ln-botchat-name { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); line-height: 1.3; }
 .landing .ln-botchat-status { display: inline-flex; align-items: center; gap: 6px; color: var(--ln-cream-dim); font-size: 11.5px; }
 .landing .ln-botchat-status::before {
@@ -1652,7 +1657,10 @@
   border-radius: var(--ln-radius-pill);
   overflow: hidden;
   border: 1px solid var(--ln-line);
-  box-shadow: 0 0 0 4px rgb(23 195 164 / 0.10), 0 4px 14px rgba(0,0,0,0.24);
+  /* phase5: the plate now hosts the RobotMark SVG — petrol wash ground */
+  background: color-mix(in srgb, var(--ln-cream) 4%, transparent);
+  padding: 7px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ln-lime) 10%, transparent), 0 4px 14px rgba(0,0,0,0.24);
   transform-origin: 30% 80%;
   animation: ln-bot-wave 2.8s var(--ln-ease-soft) infinite;
 }
@@ -1771,8 +1779,10 @@
   inset: 0;
   inline-size: 100%;
   block-size: 100%;
-  object-fit: cover;
-  object-position: 50% 26%;
+  display: block;
+  /* phase5 r152: RobotMark SVG replaces the webp poses — the square
+     viewBox centers itself (default preserveAspectRatio meet); the old
+     object-fit crop was a raster concern. */
   opacity: 0;
   transition: opacity var(--sb-dur-crossfade) var(--ln-ease-out);
 }
@@ -2107,7 +2117,16 @@
   aspect-ratio: 16 / 10;
   transition: border-color var(--ln-t-base) var(--ln-ease);
 }
-.landing .ln-day-media img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+/* phase5 r152: the panel renders RobotMark (inline SVG) — centered on the
+   frame wash with breathing room; the glow wash stays above it. */
+.landing .ln-day-media .ln-day-robot {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  inline-size: min(62%, 240px);
+  block-size: auto;
+  aspect-ratio: 1;
+}
 .landing .ln-day-media-glow {
   position: absolute;
   inset: 0;
@@ -2171,6 +2190,107 @@
 }
 .landing .ln-product-bar .ln-mono { font-size: 10.5px; margin-inline-start: 6px; letter-spacing: 0.06em; }
 .landing .ln-product-shot { display: block; inline-size: 100%; block-size: auto; }
+/* ── phase5 r152: the live mini-boards (the retired gold-era captures
+   replaced by token-rendered mock panels — «بيانات وهمية» declared).
+   All washes ride the --ln-* tokens via color-mix (no raw hexes). ── */
+.landing .ln-product-panel {
+  padding: 14px 16px 16px;
+  background: color-mix(in srgb, var(--ln-ink-2) 55%, transparent);
+  border-block-end: 1px solid var(--ln-line-soft);
+  font-size: 12.5px;
+}
+/* the circuit-trace accent under each window bar — the machine-room
+   signature (components/shared/CircuitTrace.tsx, aria-hidden by role) */
+.landing .ln-pp-trace { display: block; inline-size: 100%; block-size: 8px; }
+.landing .ln-pp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ln-cream);
+  font-weight: var(--fw-semibold);
+  padding-block-end: 10px;
+}
+.landing .ln-pp-badge {
+  margin-inline-start: auto;
+  padding: 2px 9px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+}
+.landing .ln-pp-rows { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.landing .ln-pp-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: rgb(233 245 240 / 0.03);
+  border: 1px solid var(--ln-line-soft);
+}
+.landing .ln-pp-avatar {
+  inline-size: 26px;
+  block-size: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--ln-radius-pill);
+  background: color-mix(in srgb, var(--ln-lime) 16%, transparent);
+  color: var(--ln-lime);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+}
+.landing .ln-pp-msg { min-inline-size: 0; color: var(--ln-cream-dim); line-height: 1.45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing .ln-pp-msg b { color: var(--ln-cream); font-weight: var(--fw-semibold); margin-inline-end: 6px; }
+/* the AI chip — the lime reserved register (automated reply) */
+.landing .ln-pp-ai {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: var(--ln-radius-pill);
+  background: color-mix(in srgb, var(--ln-violet) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ln-violet) 34%, transparent);
+  color: var(--ln-violet);
+  font-family: var(--ln-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.landing .ln-pp-team {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: var(--ln-radius-pill);
+  border: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+  font-size: 9px;
+}
+.landing .ln-pp-time { margin-inline-start: auto; flex-shrink: 0; color: var(--ln-cream-dim); font-size: 10px; }
+.landing .ln-pp-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  block-size: 96px;
+  margin-block: 4px 10px;
+}
+.landing .ln-pp-bars i {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--ln-lime), color-mix(in srgb, var(--ln-lime) 25%, transparent));
+  min-block-size: 8%;
+}
+.landing .ln-pp-kpis { display: flex; gap: 8px; }
+.landing .ln-pp-kpi {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 4px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ln-line-soft);
+  color: var(--ln-cream-dim);
+  font-size: 10.5px;
+}
+.landing .ln-pp-kpi b { color: var(--ln-cream); font-weight: var(--fw-semibold); }
 .landing .ln-product-cap {
   margin: 0;
   padding: 12px 16px 14px;
@@ -2209,6 +2329,15 @@
   color: var(--ln-cream-dim);
   font-size: 13.5px;
 }
+
+/* ── 17e2 · the circuit-trace chapter separators (phase5 r152) — the
+   signature motif as a full-bleed <hr class="sb-trace"> between the
+   narrative sections (page.tsx TraceSep). Decorative (aria-hidden —
+   the chapters own their headings); data-live lights the inline-end
+   node lime (automation proof / live metrics beats). The .sb-trace
+   grammar lives in globals.css §signature-motifs — only the landing
+   geometry is declared here (kill the UA hr margins + borders). ── */
+.landing hr.sb-trace { margin: 0; }
 
 /* ── 17f · mobile demotion — 320px+ compromise, no overflow ─────────── */
 @media (max-width: 1024px) {

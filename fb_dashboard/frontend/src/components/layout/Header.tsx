@@ -105,8 +105,19 @@ function MobileMenu({ open, onClose, pathname }: { open: boolean; onClose: () =>
         aria-hidden={!open}
         className={cn(
           "fixed inset-x-0 top-0 z-(--z-sheet) mx-4 mt-4 rounded-2xl bg-background border border-border/10 shadow-2xl overflow-hidden",
-          "transition-[opacity,transform] duration-(--t-base) ease-out",
-          open ? "opacity-100 translate-y-0 scale-100" : "opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
+          /* r151 (LIVE-AUDIT-SB1 P1-1): the closed sheet stayed in the tab
+             order (audit: Tab #3–5 landed on its hidden links — WCAG
+             2.4.3/2.4.7). `invisible` (visibility:hidden) removes the whole
+             subtree from the tab order AND the a11y tree, closing the gap
+             even for tools that ignore the per-link tabIndex={open?0:-1}
+             guard. visibility rides the SAME transition list as a discrete
+             property: it flips visible instantly on open and only at the
+             END of the fade-out on close — the slide/scale animation is
+             untouched (transform stays in the list; dropping it would kill
+             the motion). The backdrop needs nothing: zero focusables,
+             pointer-events-none + aria-hidden already cover it. */
+          "transition-[opacity,transform,visibility] duration-(--t-base) ease-out",
+          open ? "visible opacity-100 translate-y-0 scale-100" : "invisible opacity-0 -translate-y-2 scale-[0.98] pointer-events-none"
         )}
         style={{ transformOrigin: "top center" }}
       >
@@ -198,7 +209,11 @@ export function Header({ className }: HeaderProps) {
           {/* Logo & Hamburger */}
           <div className="flex items-center gap-3 flex-1">
             <HamburgerButton open={mobileMenuOpen} onClick={() => setMobileMenuOpen(true)} />
-            <Link href="/" className="flex items-center gap-2 shrink-0 group">
+            {/* r151 (LIVE-AUDIT-SB1 P3-6): the documented h-9 visual slot
+                stays, but the link is the HOME tap target on mobile —
+                min-h-11 lifts its touch area to the 44px floor (the 60px
+                topbar centers it; the 36px glyph is untouched). */}
+            <Link href="/" className="flex min-h-11 items-center gap-2 shrink-0 group">
               {/* v9-D4: alt="" — the adjacent <span>SmartBot</span> is the accessible
                   text; a duplicated alt tripped axe image-redundant-alt. */}
               {/* v17-SB (17-PERF #1): sizes = the real slot (h-9 = 36px). */}

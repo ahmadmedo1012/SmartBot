@@ -149,12 +149,15 @@ export default function SubscribeContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/20 to-background dark:via-accent/10">
       <SectionContainer className="py-12">
+        {/* r151 (LIVE-AUDIT-SB1 P2): back nav on a public touch surface rides
+            the default 44px rung (sm=32 is licensed only for dense in-app
+            rows — demo twin). */}
         {authed ? (
-          <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/dashboard")}>
+          <Button variant="ghost" className="mb-6" onClick={() => router.push("/dashboard")}>
             <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للوحة التحكم
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.push("/")}>
+          <Button variant="ghost" className="mb-6" onClick={() => router.push("/")}>
             <DirectionalIcon semanticDirection="back" className="size-4" /> العودة للرئيسية
           </Button>
         )}
@@ -165,7 +168,10 @@ export default function SubscribeContent() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm mb-4">
               <Bot className="size-4" /> اشترك الآن
             </div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-3">
+            {/* r151 (LIVE-AUDIT-SB1 P2): display leading 1.12 — the landing
+                Arabic display identity (text-5xl bakes line-height:1; live
+                measurement 48px/1.00). */}
+            <h1 className="text-3xl md:text-5xl leading-[1.12] font-bold mb-3">
               <span>فعّل اشتراك بوتك الذكي</span>
             </h1>
             <p className="text-muted-foreground text-lg">اختر الخطة المناسبة لأعمالك على فيسبوك وماسنجر</p>

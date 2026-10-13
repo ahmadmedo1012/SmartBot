@@ -1450,7 +1450,9 @@
   color: var(--ln-bot-amber);
   font-family: var(--ln-mono);
   font-size: 10.5px;
-  letter-spacing: 0.04em;
+  /* r151 (LIVE-AUDIT-SB1 P1-2): the intent chip is Arabic («النية: …») —
+     tracking law wins; 0.04em broke the joined glyphs at 10.5px. */
+  letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1537,7 +1539,9 @@
   color: var(--ln-cream-dim);
   font-family: var(--ln-mono);
   font-size: 11px;
-  letter-spacing: 0.05em;
+  /* r151 (LIVE-AUDIT-SB1 P1-2): sys lines are Arabic («تم تحويل المحادثة…») —
+     tracking law wins (was 0.05em). */
+  letter-spacing: 0;
   padding-block: 2px;
   text-align: center;
 }
@@ -1555,7 +1559,9 @@
   border-radius: var(--ln-radius-pill);
   font-family: var(--ln-mono);
   font-size: 10px;
-  letter-spacing: 0.05em;
+  /* r151 (LIVE-AUDIT-SB1 P1-2): the badges are Arabic («رد آلي») — tracking
+     law wins (was 0.05em). */
+  letter-spacing: 0;
 }
 .landing .ln-botchat-badge.auto {
   background: rgb(28 32 50 / 0.14);
@@ -1896,7 +1902,7 @@
   background: var(--sb-led);
   animation: ln-stage-led var(--sb-dur-breathe) var(--ln-ease-soft) infinite;
 }
-.landing .ln-companion-hud .ln-mono { font-size: 10px; letter-spacing: 0.12em; }
+.landing .ln-companion-hud .ln-mono { font-size: 10px; letter-spacing: 0; } /* r151: POSE_COPY is Arabic — desktop twin of the r150 mobile zeroing (was 0.12em) */
 
 /* ── 17b · hero dock — the simulator under the stage ─────────────────── */
 .landing .ln-botchat.compact {
@@ -1984,7 +1990,10 @@
   border: 1px solid var(--ln-bot-bubble-in-line);
   color: var(--ln-bot-amber);
   font-size: 10.5px;
-  letter-spacing: 0.04em;
+  /* r151 (LIVE-AUDIT-SB1 P1-2): the mind intents are Arabic («النية: …») —
+     tracking law wins (was 0.04em). ln-mind-n keeps its tracking: digits
+     «01…» are pure Latin. */
+  letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 .landing .ln-mind-main { min-inline-size: 0; display: grid; gap: var(--sp-4); }

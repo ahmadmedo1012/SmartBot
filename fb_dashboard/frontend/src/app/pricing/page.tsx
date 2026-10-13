@@ -107,7 +107,10 @@ export default function PricingPage() {
             kinetic-unit-lead first-paint fix. The kinetic words themselves
             still animate; only the redundant outer fade is gone. */}
         <h1
-          className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold mb-5 text-balance"
+          /* r151 (LIVE-AUDIT-SB1 P2): display leading 1.12 — the landing
+             Arabic display identity (the text-5xl baked line-height:1 was
+             measured live at ratio 1.00, exposing the جيم/ح descenders). */
+          className="text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.12] font-bold mb-5 text-balance"
         >
           <KineticText mode="words" duration={720} delay={100}>خطط تناسب كل الأحجام</KineticText>
         </h1>

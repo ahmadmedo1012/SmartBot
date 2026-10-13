@@ -128,7 +128,10 @@ function DemoHeader({ tab }: { tab: TabKey }) {
     <header className="sticky top-0 z-(--z-dropdown) border-b border-border bg-background/80 backdrop-blur-sm">
       <div className="flex items-center justify-between px-4 md:px-6 h-14">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/")}>
+          {/* r151 (LIVE-AUDIT-SB1 P2): primary back nav on a public touch
+              surface rides the default 44px rung (sm=32 is licensed only for
+              dense in-app rows — subscribe twin). */}
+          <Button variant="ghost" onClick={() => router.push("/")}>
             <DirectionalIcon semanticDirection="back" className="size-4" /> العودة
           </Button>
           <div>

@@ -100,7 +100,11 @@ export default function TermsPage() {
           </ScrollReveal>
 
           <ScrollReveal y={12} duration={0.52} delay={480}>
-          <p className="text-sm mt-12 text-muted-foreground">آخر تحديث: سبتمبر 2026</p>
+          {/* r151 (LIVE-AUDIT-SB1 P3): the text-sm rung bakes line-height
+              1.43 — under the 1.6 Arabic prose floor; leading-relaxed lifts
+              it onto the page's own 1.625 (the ul/li rows already ride the
+              base-layer --lh-base 1.65 canon). */}
+          <p className="text-sm leading-relaxed mt-12 text-muted-foreground">آخر تحديث: سبتمبر 2026</p>
           </ScrollReveal>
         </div>
       </div>

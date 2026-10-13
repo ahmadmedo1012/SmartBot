@@ -310,7 +310,11 @@ function LoginForm() {
             {/* v15-E6 (D5-H5): /80 on accent-foreground measured 3.76:1 dark
                 (light passed by a 0.03 margin) — the full token measures
                 5.41:1 dark / 6.47:1 light. */}
-            <Link href="/register" className="text-xs text-accent-foreground hover:underline transition-colors">
+            {/* r151 (LIVE-AUDIT-SB1 P2): the switch link was an 18px tap
+                target — the fleet 44px floor (WCAG 2.5.8) via the flex+min-h
+                pad (footer-link recipe); the visual stays a text-xs link.
+                RegisterForm twin. */}
+            <Link href="/register" className="inline-flex min-h-11 items-center justify-center px-3 text-xs text-accent-foreground hover:underline transition-colors">
               ليس لديك حساب؟ إنشاء حساب جديد
             </Link>
           </div>

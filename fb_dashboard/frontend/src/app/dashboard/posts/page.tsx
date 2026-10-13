@@ -18,7 +18,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { TablePagination } from "@/components/shared/TablePagination"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost, PostsResponse } from "@/lib/types"
-import { formatDate, formatNumber } from "@/lib/format"
+import { formatDate, formatDateOnly, formatNumber } from "@/lib/format"
 
 /* r134 (فشل→تعذّر policy): «فاشل» خارج عائلة تعذّر — المنشور مذكر
  * (الموقع السابع الذي فات مسح التدقيق، نفس صنف broadcast:23/billing:24). */
@@ -29,6 +29,16 @@ const POST_STATUS_LABELS: Record<string, string> = {
 /* v25 (W-14): مفتاح استعلام المسودات — مرفوع لثبات المرجع لخطاف
  * الاستطلاع المرئي (نفس عقد activity/analytics). */
 const DRAFTS_KEY = ["scheduled-posts"] as const
+
+/* phase6 r154 (P6-2-d2) — سجل ختم تاريخ المنشور (توأم الرسائل/البيت):
+ * HH:MM مونو (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى
+ * في الـtitle — لا معلومة تسقط. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 export default function PostsPage() {
   const [newMessage, setNewMessage] = useState("")
@@ -141,6 +151,10 @@ export default function PostsPage() {
         title="المنشورات"
         subtitle="إدارة ونشر المنشورات"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة — النشر والجدولة)، عبر
+            خيار PageHeader المدمج (r154). */
+        trace
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -230,15 +244,29 @@ export default function PostsPage() {
                           Arabic/Latin post bodies (v14-E5 pattern). */}
                       <p className="text-sm mb-3" dir="auto">{p.message || "—"}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">{formatDate(p.created_time)}</span>
+                        {/* phase6 r154 — تاريخ المنشور: التاريخ العربي + ختم
+                            HH:MM مونو dir=ltr مع التاريخ الكامل في الـtitle
+                            (سجل لوحة البيت)؛ المؤشرات أرقام tabular. */}
+                        <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          {formatDateOnly(p.created_time)}
+                          {timeStamp(p.created_time) && (
+                            <span
+                              dir="ltr"
+                              className="font-mono tabular-nums"
+                              title={formatDate(p.created_time) || undefined}
+                            >
+                              {timeStamp(p.created_time)}
+                            </span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1" title="إعجابات">
+                          <span className="flex items-center gap-1 tabular-nums" title="إعجابات">
                             <ThumbsUp className="size-3" aria-hidden="true" />{formatNumber(p.likes ?? 0)}
                           </span>
-                          <span className="flex items-center gap-1" title="تعليقات">
+                          <span className="flex items-center gap-1 tabular-nums" title="تعليقات">
                             <MessageSquare className="size-3" aria-hidden="true" />{formatNumber(p.comments ?? 0)}
                           </span>
-                          <span className="flex items-center gap-1" title="مشاركات">
+                          <span className="flex items-center gap-1 tabular-nums" title="مشاركات">
                             <Share2 className="size-3" aria-hidden="true" />{formatNumber(p.shares ?? 0)}
                           </span>
                         </div>
@@ -312,13 +340,32 @@ export default function PostsPage() {
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       {/* r131-F8 (A4 P2-3): hand-rolled status chip → Badge.
                           r127-F5a: status is optional on ScheduledPost — `?? ""`
-                          indexes safely; the `|| p.status` fallback is unchanged. */}
-                      <Badge variant={
-                        p.status === "published" ? "success" :
-                        p.status === "scheduled" ? "info" :
-                        "secondary"
-                      }>{POST_STATUS_LABELS[p.status ?? ""] || p.status}</Badge>
-                      {p.scheduled_at && <span>{formatDate(p.scheduled_at)}</span>}
+                          indexes safely; the `|| p.status` fallback is unchanged.
+                          phase6 r154: الحالات بألوان البترول (سجل KpiCard):
+                          published = إشارة التيل (copper)، scheduled = لايم
+                          الأتمتة المعلّقة (توأم عقد المجدول)، draft = الرغوة. */}
+                      <Badge
+                        variant="secondary"
+                        className={
+                          p.status === "published" ? "bg-(--c-copper-bg) text-(--c-copper-ink)" :
+                          p.status === "scheduled" ? "bg-(--c-lime-bg) text-(--c-lime-ink)" :
+                          "bg-(--c-grey-bg) text-(--c-grey-ink)"
+                        }
+                      >{POST_STATUS_LABELS[p.status ?? ""] || p.status}</Badge>
+                      {/* phase6 r154 — ختم الجدولة مونو + التاريخ العربي
+                          (التاريخ الكامل في الـtitle — سجل المجدول نفسه). */}
+                      {p.scheduled_at && (
+                        <span className="flex items-center gap-1.5">
+                          {formatDateOnly(p.scheduled_at)}
+                          <span
+                            dir="ltr"
+                            className="font-mono tabular-nums"
+                            title={formatDate(p.scheduled_at) || undefined}
+                          >
+                            {timeStamp(p.scheduled_at)}
+                          </span>
+                        </span>
+                      )}
                     </div>
                     {/* v24-C2 (task 3 / A3-P2): أثناء التأكيد يستبدل العنقود
                         كاملاً بأزرار «تأكيد … / إلغاء» (44px، بلا ازدحام على

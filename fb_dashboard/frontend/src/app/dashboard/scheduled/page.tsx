@@ -14,11 +14,21 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
-import { formatDate } from "@/lib/format"
+import { formatDate, formatDateOnly } from "@/lib/format"
 
 /* v25 (W-14): مفتاح استعلام المجدولة — مرفوع لثبات المرجع لخطاف
  * الاستطلاع المرئي (نفس عقد activity/analytics). */
 const SCHEDULED_KEY = ["scheduled-posts", "scheduled"] as const
+
+/* phase6 r154 (P6-2-d2) — سجل ختم الوقت المجدول (توأم الرسائل/البيت):
+ * HH:MM مونو (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى
+ * في الـtitle — لا معلومة تسقط. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
 
 export default function ScheduledPage() {
   const [message, setMessage] = useState("")
@@ -106,6 +116,10 @@ export default function ScheduledPage() {
         title="المجدول"
         subtitle="المنشورات المجدولة"
         compact
+        /* phase6 r154 — أثر الدارة تحت الشريط العلوي (بصمة غرفة الآلة؛
+            عقدة اللايم الحية = سطح الأتمتة — النشر التلقائي في وقته)،
+            عبر خيار PageHeader المدمج (r154). */
+        trace
       />
 
       {/* D4-بند2 → r131-F8 (task #12): the content column rides the canonical
@@ -114,8 +128,11 @@ export default function ScheduledPage() {
         <Card>
           <CardContent className="p-4 space-y-3">
             {/* r131-F8 (A4 P1-1c): the raw composer textarea rides the shared
-                Textarea recipe — 16px floor, r-md, halo; dir=auto built in. */}
+                Textarea recipe — 16px floor, r-md, halo; dir=auto built in.
+                phase6 r154: المؤلّف يركب أرض الدارة traceField (اختياري —
+                سطح كثيف النماذج، عقد صفحات الدخول نفسه). */}
             <Textarea
+              traceField
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder="محتوى المنشور…"
@@ -129,12 +146,15 @@ export default function ScheduledPage() {
               <div className="flex-1">
                 <Input
                   type="datetime-local"
+                  traceField
                   value={scheduledAt}
                   onChange={e => setScheduledAt(e.target.value)}
                   aria-label="وقت النشر"
                   min={minDateTime}
                   /* v24-C1: text-sm override dropped — the shared Input base
-                      already ships text-base md:text-sm (iOS no-zoom). */
+                      already ships text-base md:text-sm (iOS no-zoom).
+                      phase6 r154: قيمة الحقل رمز وقت آلة — مونو/tabular. */
+                  className="font-mono tabular-nums"
                 />
               </div>
               {/* v17-E-F3 (D1 §5.6): loading prop + «جارٍ الجدولة…» (mirror:
@@ -170,7 +190,9 @@ export default function ScheduledPage() {
           </div>
         ) : posts.length === 0 ? (
           <EmptyState
-            icon={Clock}
+            /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في حالة idle
+               (البوت في الخدمة، ينتظر أول جدولة). */
+            robot
             title="لا توجد منشورات مجدولة"
             description="جدّول أول منشور من النموذج أعلاه وستظهر منشوراتك المجدولة هنا — يُنشر كل منشور تلقائياً في وقته."
           />
@@ -183,7 +205,25 @@ export default function ScheduledPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CalendarDays className="size-3" />
-                      <span>{p.scheduled_at ? formatDate(p.scheduled_at) : "بدون تاريخ"}</span>
+                      {/* phase6 r154 — عقدة لايم على كل عنصر معلّق (كلها
+                          status=scheduled — الأتمتة بانتظار مؤقّتها) +
+                          التاريخ العربي + ختم HH:MM مونو مع التاريخ
+                          الكامل في الـtitle — منطق النشر/الحذف غير ممسوس. */}
+                      {p.scheduled_at ? (
+                        <span className="flex items-center gap-1.5">
+                          <span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />
+                          {formatDateOnly(p.scheduled_at)}
+                          <span
+                            dir="ltr"
+                            className="font-mono tabular-nums"
+                            title={formatDate(p.scheduled_at) || undefined}
+                          >
+                            {timeStamp(p.scheduled_at)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span>بدون تاريخ</span>
+                      )}
                     </div>
                     {/* v25 (W-03 — مرآة حرفية لعنقود posts): أثناء التأكيد
                         يستبدل العنقود كاملاً بأزرار «تأكيد … / إلغاء» (44px)،

@@ -11,7 +11,61 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { Button } from "@/components/ui/button"
 import { unwrapApi } from "@/lib/api"
 import type { ScheduledPost } from "@/lib/types"
-import { formatDateOnly, formatMonth } from "@/lib/format"
+import { formatMonth } from "@/lib/format"
+
+/* phase6 r154 (P6-2-d2) — شبكة الشهر (معالجة المسار الهادئ): الأسبوع
+ * يبدأ الأحد (عطلة ليبيا الجمعة/السبت)؛ رقم اليوم مونو dir=ltr؛ اليوم
+ * الحالي حلقة تيل (primary)؛ الأيام ذات منشورات مجدولة تحمل عقدة لايم
+ * + مقتطفات محذوفة (النص الكامل في الـtitle). عقد الـAPI/الاستعلام/
+ * التنقل بين الأشهر كما هي — هذا إعادة عرض فقط (كانت قائمة صفوف). */
+const WEEKDAY_LABELS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"] as const
+
+interface MonthCell {
+  key: string
+  day: number
+  inMonth: boolean
+  today: boolean
+  items: ScheduledPost[]
+}
+
+function buildMonthGrid(month: Date, posts: ScheduledPost[], markToday: boolean): MonthCell[] {
+  const year = month.getFullYear()
+  const monthIdx = month.getMonth()
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate()
+  const lead = new Date(year, monthIdx, 1).getDay() /* 0 = الأحد (العمود الأول) */
+  const prevTail = new Date(year, monthIdx, 0).getDate()
+  const today = new Date()
+  /* تجميع المنشورات على أيام الشهر بالتوقيت المحلي (نفس عقد
+   * formatDateOnly في القائمة القديمة). */
+  const byDay = new Map<number, ScheduledPost[]>()
+  for (const p of posts) {
+    if (!p.scheduled_at) continue
+    const d = new Date(p.scheduled_at)
+    if (Number.isNaN(d.getTime())) continue
+    if (d.getFullYear() !== year || d.getMonth() !== monthIdx) continue
+    const list = byDay.get(d.getDate())
+    if (list) list.push(p)
+    else byDay.set(d.getDate(), [p])
+  }
+  const cells: MonthCell[] = []
+  for (let i = 0; i < lead; i++) {
+    cells.push({ key: `lead-${i}`, day: prevTail - lead + 1 + i, inMonth: false, today: false, items: [] })
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push({
+      key: `day-${day}`,
+      day,
+      inMonth: true,
+      today: markToday && day === today.getDate(),
+      items: byDay.get(day) ?? [],
+    })
+  }
+  let tail = 1
+  while (cells.length % 7 !== 0) {
+    cells.push({ key: `tail-${tail}`, day: tail++, inMonth: false, today: false, items: [] })
+  }
+  return cells
+}
 
 export default function CalendarPage() {
   // v9-B6 — `new Date()` used to run during render (server UTC vs client +02
@@ -102,17 +156,63 @@ export default function CalendarPage() {
                  r131-F7b syntax repair) */
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="skeleton h-10 rounded" />)}</div>
             ) : posts.length === 0 ? (
-              <EmptyState icon={CalendarDays} size="sm" title="لا توجد منشورات في هذا الشهر" description="جدّول منشورات هذا الشهر من صفحة المنشورات وستظهر هنا فور جدولتها." />
+              <EmptyState
+                /* phase6 r154 — الروبوت يستضيف البئر: RobotMark في حالة
+                   idle (البوت في الخدمة، تقويم الشهر بانتظار الجدولة). */
+                robot
+                size="sm"
+                title="لا توجد منشورات في هذا الشهر"
+                description="جدّول منشورات هذا الشهر من صفحة المنشورات وستظهر هنا فور جدولتها."
+              />
             ) : (
-              <div className="space-y-2">
-                {posts.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between text-sm border-b border-border pb-2">
-                    <span className="truncate">{p.message ? (p.message.length > 50 ? p.message.slice(0, 50) + "…" : p.message) : ""}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {p.scheduled_at ? formatDateOnly(p.scheduled_at) : ""}
-                    </span>
-                  </div>
-                ))}
+              <div>
+                <div className="grid grid-cols-7 gap-1 mb-1" aria-hidden="true">
+                  {WEEKDAY_LABELS.map((d) => (
+                    <div key={d} className="text-2xs text-muted-foreground text-center font-medium py-0.5">{d}</div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {buildMonthGrid(month, posts, isCurrentMonth).map((c) => (
+                    <div
+                      key={c.key}
+                      className={`min-h-16 rounded-lg border p-1.5 space-y-0.5 ${
+                        c.today
+                          ? "border-primary/50 ring-1 ring-primary/30"
+                          : c.inMonth
+                            ? "border-border/50"
+                            : "border-border/50 opacity-45"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          dir="ltr"
+                          className={`font-mono tabular-nums text-xs ${
+                            c.today ? "text-primary font-bold" : c.inMonth ? "text-muted-foreground" : ""
+                          }`}
+                        >
+                          {String(c.day).padStart(2, "0")}
+                        </span>
+                        {c.items.length > 0 && (
+                          <span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />
+                        )}
+                      </div>
+                      {c.items.slice(0, 2).map((p) => (
+                        <p
+                          key={p.id}
+                          className="truncate text-2xs leading-4 text-foreground/80"
+                          title={p.message ?? undefined}
+                        >
+                          {p.message}
+                        </p>
+                      ))}
+                      {c.items.length > 2 && (
+                        <p dir="ltr" className="text-2xs leading-4 text-muted-foreground font-mono tabular-nums">
+                          +{c.items.length - 2}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>

@@ -2,6 +2,14 @@
  * شاشة الرئيسية (لوحة التحكم) — نفس بيانات الويب:
  * GET /api/dashboard/bundle (تحديث كل 60 ثانية — إيقاع الويب نفسه).
  * KPIs + رسم 7 أيام + حالة الاتصال + آخر الردود.
+ *
+ * r154 (P6-2-e2 — قواعد غرفة الآلة): روبوت الصحة — الروبوت الواحد
+ * بجوار سطر حالة البوت يقرأ حالته بنفسه (thinking أثناء جلب الحزمة
+ * (isFetching — مرآة فحص الويب الحي)، error عند توقف البوت، responding
+ * عند التشغيل — نفس آلة الحالة في BotHealthCard الويب بلا نداء جديد).
+ * طوابع آخر الردود mono HH:MM (LTR مثبت) والتاريخ العربي الكامل في
+ * تسمية الوصول (مرآة سجل الرسائل). قيم KPI سبقت ترتكب Grotesk/tnum
+ * (1039630: العنوان اللاتيني يحلّ Space Grotesk + tabular-nums).
  */
 import { useCallback, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -12,14 +20,15 @@ import Svg, { Path, Circle } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
 import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
-import { Badge, Card, KpiCard, Row } from '@/components/ui'
+import { Badge, Card, KpiCard, MonoStamp, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { DirectionalIcon } from '@/components/directional-icon'
 import { PressableScale } from '@/components/pressable-scale'
+import { RobotMark, type RobotState } from '@/components/robot-mark'
 import { DashboardSkeleton } from '@/components/skeleton'
 import { apiGet } from '@/services/api'
 import { describeError, ErrorState, PullToRefresh } from '@/components/state-views'
-import { formatNumber, formatTrend, timeAgo } from '@/lib/format'
+import { formatDate, formatNumber, formatTime, formatTrend } from '@/lib/format'
 import { useAuth } from '@/state/auth'
 
 interface Bundle {
@@ -66,11 +75,23 @@ export default function DashboardScreen() {
   const { user } = useAuth()
   const [refreshing, setRefreshing] = useState(false)
 
-  const { data, isLoading, isError, error, refetch } = useQuery<Bundle>({
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<Bundle>({
     queryKey: ['dashboard-bundle'],
     queryFn: () => apiGet<Bundle>('/api/dashboard/bundle'),
     refetchInterval: 60_000, // نفس إيقاع الويب
   })
+
+  /* r154: آلة حالة روبوت الصحة — مرآة BotHealthCard الويب: thinking
+   * أثناء الجلب/التحديث الحي (isFetching — النظير الجوالي لفحص فوري)،
+   * error عند توقف البوت، responding وهو يعمل. لا نداءات جديدة — أعلام
+   * موجودة أصلًا في حزمة اللوحة. */
+  const healthState: RobotState = isFetching
+    ? 'thinking'
+    : data?.bot_status.running === false
+      ? 'error'
+      : data
+        ? 'responding'
+        : 'idle'
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -149,10 +170,15 @@ export default function DashboardScreen() {
                 color={colors.accentFg}
               />
             </View>
-            <AppText variant="caption" color="mutedFg" style={{ marginTop: spacing.sm }}>
-              حالة البوت: {data?.bot_status.running ? 'يعمل' : 'متوقف'} · الذكاء الاصطناعي:{' '}
-              {data?.ai_status.available ? `متاح (${data.ai_status.provider})` : 'غير مفعّل'}
-            </AppText>
+            {/* r154: سطر صحة البوت — الروبوت يقرأ حالته بنفسه (زخرفي؛
+                السطر النصي يحمل الدلالة كاملة) */}
+            <Row style={{ marginTop: spacing.sm, gap: 8 }}>
+              <RobotMark state={healthState} size={26} />
+              <AppText variant="caption" color="mutedFg" style={{ flex: 1 }}>
+                حالة البوت: {data?.bot_status.running ? 'يعمل' : 'متوقف'} · الذكاء الاصطناعي:{' '}
+                {data?.ai_status.available ? `متاح (${data.ai_status.provider})` : 'غير مفعّل'}
+              </AppText>
+            </Row>
           </Card>
 
           {/* آخر الردود */}
@@ -176,12 +202,18 @@ export default function DashboardScreen() {
                 {data?.recent_replies.map((r) => (
                   <View key={r.id}>
                     <Row style={{ justifyContent: 'space-between' }}>
-                      <AppText variant="smallBold" numberOfLines={1}>
+                      <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
                         {r.commenter_name ?? 'مستخدم'}
                       </AppText>
-                      <AppText variant="caption" color="mutedFg">
-                        {timeAgo(r.created_at)}
-                      </AppText>
+                      {/* r154: ختم الدارة — HH:MM mono (LTR) والعبارة
+                          العربية الكاملة في تسمية الوصول (مرآة سطر آخر
+                          رد في الويب: mono + title التاريخ) */}
+                      <MonoStamp
+                        value={formatTime(r.created_at)}
+                        size={11}
+                        weight={400}
+                        accessibilityLabel={formatDate(r.created_at)}
+                      />
                     </Row>
                     {r.comment_text ? (
                       <AppText variant="small" color="mutedFg" numberOfLines={1} style={{ marginTop: 2 }}>

@@ -2,6 +2,11 @@
  * شاشة الردود التلقائية — قواعد البوت (نفس الويب /dashboard/autoreply):
  * GET /api/rules · POST /api/rules · PUT /api/rules/{id} · toggle · DELETE.
  * العقد الحقيقي: name · keywords (سلسلة مفصولة بفواصل عند الكتابة) · reply_template · enabled.
+ *
+ * r154 (P6-2-e2 — سجل لايم لعلامات AI/الأتمتة، مرآة الويب): شارة «رد آلي»
+ * على سطر الرد (عائلة sb-ai-chip: غسيل لايم + حبر لايم + حد 32%)، وسطر
+ * العد «أطلقت N ردًا» بنقطة لايم + نص لايم (مرآة شريط حالة المزود —
+ * النبض النشط للأتمتة). شارة الحالة تبقى success (الويب نفسه).
  */
 import { useState } from 'react'
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
@@ -148,16 +153,32 @@ export default function AutoreplyScreen() {
                   </AppText>
                 </Row>
                 <Row style={{ gap: spacing.sm }}>
-                  <Badge tone="info" text="رد" />
+                  {/* r154: شارة «رد آلي» — السجل المحجوز لعلامة الآلة
+                      (عائلة sb-ai-chip الويب: غسيل لايم + حبر لايم + حد 32%) */}
+                  <View
+                    style={[
+                      styles.aiChip,
+                      { backgroundColor: `${colors.lime}1f`, borderColor: `${colors.lime}52` },
+                    ]}
+                  >
+                    <AppText variant="caption" style={{ color: colors.lime, fontWeight: '700' }}>
+                      رد آلي
+                    </AppText>
+                  </View>
                   <AppText variant="small" color="mutedFg" style={{ flex: 1 }} numberOfLines={2}>
                     {item.reply_template ?? ''}
                   </AppText>
                 </Row>
               </View>
               {typeof item.replies_count === 'number' && item.replies_count > 0 ? (
-                <AppText variant="caption" color="mutedFg" style={{ marginTop: spacing.xs }}>
-                  أطلقت {item.replies_count} ردًا
-                </AppText>
+                /* r154: سطر الحالة — نقطة لايم + نص لايم (مرآة شريط
+                    جاهزية المزود في الويب: النبض النشط للأتمتة) */
+                <Row style={{ marginTop: spacing.xs, gap: 6 }}>
+                  <View style={[styles.statusDot, { backgroundColor: colors.lime }]} />
+                  <AppText variant="caption" style={{ color: colors.lime }}>
+                    أطلقت {item.replies_count} ردًا
+                  </AppText>
+                </Row>
               ) : null}
               <Row style={{ marginTop: spacing.md }}>
                 <Button title={item.enabled ? 'إيقاف' : 'تنشيط'} size="sm" variant="secondary" onPress={() => toggleMutation.mutate(item)} />
@@ -214,4 +235,13 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
   handle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },
+  /* r154: كبسولة لايم (عائلة sb-ai-chip) — الألوان من الثيم في التصيير */
+  aiChip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  /* r154: نقطة الحالة — 8px (size-2 الويب) */
+  statusDot: { width: 8, height: 8, borderRadius: 999 },
 })

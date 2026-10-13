@@ -1,12 +1,19 @@
 /**
  * SmartBot Mobile — حالات الشاشة الموحدة (قاعدة المرحلة P4):
  * loading / error (+retry) / empty / unauthorized — لا شاشة بيضاء أبدًا.
+ *
+ * r154 (P6-2-e2): الفراغ والخطأ يستضيفان الروبوت الواحد (RobotMark) —
+ * idle للفراغ (الآلة في الخدمة، تنتظر — مرآة EmptyState الويب) وerror
+ * (زجاج rose + رجّة) للخطأ — مرآة DefaultError الويب. الدلالات كما هي:
+ * العناوين والأوصاف وأزرار إعادة المحاولة لم تُمَس؛ الروبوت زخرفي
+ * (accessibilityLabel للبلاطة يحمل المعنى).
  */
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { useTheme } from '@/hooks/use-theme'
-import { spacing } from '@/constants/theme'
+import { radius, spacing } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
 import { Button } from '@/components/ui'
+import { RobotMark } from '@/components/robot-mark'
 import { Spinner } from '@/components/spinner'
 import { useAuth } from '@/state/auth'
 import type { ApiError } from '@/services/api'
@@ -40,10 +47,10 @@ export function ErrorState({
   const { colors } = useTheme()
   return (
     <View style={styles.center} accessibilityLabel={`خطأ: ${message ?? 'تعذر تحميل البيانات'}`}>
+      {/* r154: بلاطة الخطأ = الروبوت في سجل rose (الزجاج والـLED)
+          على أرضية destructiveSoft — العنوان/الوصف/الزر يحملون الدلالة */}
       <View style={[styles.iconWrap, { backgroundColor: colors.destructiveSoft }]}>
-        <AppText variant="title" style={{ color: colors.destructive }}>
-          !
-        </AppText>
+        <RobotMark state="error" size={56} accessibilityLabel="الروبوت في حالة خطأ" />
       </View>
       <AppText variant="subtitle" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
         {message || 'تعذر تحميل البيانات'}
@@ -61,10 +68,10 @@ export function EmptyState({ message, hint }: { message: string; hint?: string }
   const { colors } = useTheme()
   return (
     <View style={styles.center}>
+      {/* r154: الروبوت idle — الآلة في الخدمة تنتظر (مرآة الويب: كل حالة
+          فراغ بلا أيقونة تحصل على الآلة مجانًا) */}
       <View style={[styles.iconWrap, { backgroundColor: colors.muted }]}>
-        <AppText variant="title" color="mutedFg">
-          ∅
-        </AppText>
+        <RobotMark state="idle" size={56} accessibilityLabel="الروبوت في الخدمة" />
       </View>
       <AppText variant="subtitle" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
         {message}
@@ -134,10 +141,11 @@ export function PullToRefresh({
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxxl * 2 },
+  /* r154: بلاطة r-xl مربعة الشكل (مرآة .state-icon الويب — كانت دائرة) */
   iconWrap: {
     width: 64,
     height: 64,
-    borderRadius: 999,
+    borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

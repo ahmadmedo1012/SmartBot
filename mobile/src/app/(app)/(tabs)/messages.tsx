@@ -2,6 +2,14 @@
  * تاب الرسائل — صندوق الوارد (نفس مصدر الويب):
  * GET /api/inbox/conversations — قائمة محادثات DB-first مع مزامنة حية.
  * قائمة FlatList مع بحث + فلتر غير المقروء، والدخول لمحادثة عبر stack.
+ *
+ * r154 (P6-2-e2 — قواعد غرفة الآلة): كل صف غير مقروء يحمل عقدة إشارية
+ * (خط عمودي 2px على حافة البداية — مرآة نبض غير المقروء في الويب)،
+ * والطابع الزمني: محدّث اليوم = ختم mono HH:MM (LTR مثبت — سجل الدارة)،
+ * وقديم = العبارة العربية (timeAgo بجمعها الصحيح) كما هي.
+ * NOTE: عقدة لايم «غير مقروء + رد آلي» غير قابلة للاشتقاق من عقد قائمة
+ * المحادثات الحالي (لا علم آلي لكل محادثة فيه — الشارة تعيش في الخيط
+ * حيث from.name="SmartBot")؛ إضافة العلم للـAPI = وكلاء لاحقون.
  */
 import { useCallback, useMemo, useState } from 'react'
 import { router } from 'expo-router'
@@ -12,13 +20,13 @@ import { useTheme } from '@/hooks/use-theme'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import { press, radius, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
-import { Badge, Row } from '@/components/ui'
+import { Badge, MonoStamp, Row } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { PressableScale } from '@/components/pressable-scale'
 import { ListSkeleton } from '@/components/skeleton'
 import { apiGet } from '@/services/api'
 import { describeError, EmptyState, ErrorState } from '@/components/state-views'
-import { timeAgo } from '@/lib/format'
+import { formatTime, timeAgo } from '@/lib/format'
 
 interface InboxItem {
   id: string
@@ -57,6 +65,20 @@ export default function MessagesScreen() {
 
   const items = useMemo(() => data?.items ?? [], [data])
 
+  /* r154: سجل الختم — محادثة مُحدّثة اليوم = ختم mono HH:MM (LTR)؛
+   * الأقدم تبقى عبارة timeAgo العربية (لا نحرف دلالة الجمع الصحيح). */
+  const isToday = useCallback((t: string | null) => {
+    if (!t) return false
+    const d = new Date(t)
+    if (Number.isNaN(d.getTime())) return false
+    const now = new Date()
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    )
+  }, [])
+
   const renderItem = useCallback(
     ({ item }: { item: InboxItem }) => (
       /* r131: سجل الضغط للصفوف = بطاقة 0.99 (كان opacity 0.7 فقط) */
@@ -66,6 +88,13 @@ export default function MessagesScreen() {
         style={styles.row}
         scaleTo={press.card}
       >
+        {/* r154: عقدة غير المقروء — خط إشاري 2×20 على حافة البداية
+            (النظير الجوالي لعلامة النبض في الويب؛ الصف يُبقي البطاقة) */}
+        {item.unread_count > 0 ? (
+          <View style={[styles.unreadNode, { backgroundColor: colors.primary }]} />
+        ) : (
+          <View style={styles.readSpacer} />
+        )}
         {/* صورة رمزية بالحرف الأول */}
         <View style={[styles.avatar, { backgroundColor: colors.muted }]}>
           <AppText variant="subtitle" style={{ color: colors.accentFg }}>
@@ -77,9 +106,19 @@ export default function MessagesScreen() {
             <AppText variant="smallBold" numberOfLines={1} style={{ flex: 1 }}>
               {item.senders[0]?.name ?? 'مستخدم غير معروف'}
             </AppText>
-            <AppText variant="caption" color="mutedFg">
-              {timeAgo(item.updated_time)}
-            </AppText>
+            {/* r154: ختم الدارة — HH:MM mono لليوم، وعبارة عربية للأقدم */}
+            {isToday(item.updated_time) ? (
+              <MonoStamp
+                value={formatTime(item.updated_time)}
+                size={11}
+                weight={400}
+                accessibilityLabel={timeAgo(item.updated_time)}
+              />
+            ) : (
+              <AppText variant="caption" color="mutedFg">
+                {timeAgo(item.updated_time)}
+              </AppText>
+            )}
           </Row>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="small" color="mutedFg" numberOfLines={1} style={{ flex: 1 }}>
@@ -90,7 +129,7 @@ export default function MessagesScreen() {
         </View>
       </PressableScale>
     ),
-    [colors],
+    [colors, isToday],
   )
 
   return (
@@ -181,7 +220,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 46,
   },
-  row: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.md, minHeight: TOUCH_TARGET + 16 },
+  row: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.md, minHeight: TOUCH_TARGET + 16, alignItems: 'center' },
+  /* r154: العقدة الإشارية لغير المقروء — 2×20 بحافة البداية (اللون من
+      الثيم في التصيير)؛ المقروء يحتفظ بعمود 2px فارغًا حتى لا يقفز
+      التخطيط عند وصول رسالة */
+  unreadNode: { width: 2, height: 20, borderRadius: 999 },
+  readSpacer: { width: 2, height: 20 },
   avatar: {
     width: 48,
     height: 48,

@@ -173,7 +173,15 @@ export default function CommentsScreen() {
                   {text}
                 </AppText>
                 {replied && item.reply_text ? (
-                  <View style={[styles.replyPreview, { backgroundColor: colors.muted }]}>
+                  /* r154: بئر رد البوت — حافة بداية إشارية 2px (مرآة
+                      border-s-2 border-accent-foreground في الويب؛
+                      borderStart = منطقية فتنعكس تلقائيًا في RTL) */
+                  <View
+                    style={[
+                      styles.replyPreview,
+                      { backgroundColor: colors.muted, borderStartColor: colors.accentFg },
+                    ]}
+                  >
                     <AppText variant="small" numberOfLines={2} style={{ color: colors.accentFg }}>
                       ↩ {item.reply_text}
                     </AppText>
@@ -243,7 +251,13 @@ const styles = StyleSheet.create({
   /* r131: أرضية اللمس 44px (كانت ~32 بـpaddingVertical 6) */
   filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: spacing.md, minHeight: TOUCH_TARGET - 4, justifyContent: 'center', alignItems: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  replyPreview: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
+  replyPreview: {
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    /* r154: حافة البداية المنطقية — 2px (RTL-aware) */
+    borderStartWidth: 2,
+  },
   sheetBackdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   sheetHandle: { alignSelf: 'center', width: 44, height: 5, borderRadius: 999, marginTop: spacing.sm },

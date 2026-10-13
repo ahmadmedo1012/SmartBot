@@ -13,7 +13,7 @@ import Svg, { Line, Rect } from 'react-native-svg'
 import { useTheme } from '@/hooks/use-theme'
 import { press, spacing, TOUCH_TARGET } from '@/constants/theme'
 import { AppText } from '@/components/themed-text'
-import { Badge, Card, KpiCard, Row } from '@/components/ui'
+import { Badge, Card, KpiCard, MonoStamp, Row } from '@/components/ui'
 import { PressableScale } from '@/components/pressable-scale'
 import { apiGet } from '@/services/api'
 import { describeError, ErrorState, LoadingState, PullToRefresh } from '@/components/state-views'
@@ -195,9 +195,14 @@ export default function AnalyticsScreen() {
                         {c.name ?? 'مستخدم'}
                       </AppText>
                     </Row>
-                    <AppText variant="small" color="mutedFg">
-                      {formatNumber(c.count ?? 0)} تعليق
-                    </AppText>
+                    <Row style={{ gap: 4 }}>
+                      {/* r154: رقم الدارة — العدّاد ختم mono (tnum/LTR)
+                          والوحدة عربية خارجه (مرآة خانة العدد في الويب) */}
+                      <MonoStamp value={formatNumber(c.count ?? 0)} size={12} accessibilityLabel={`${formatNumber(c.count ?? 0)} تعليق`} />
+                      <AppText variant="caption" color="mutedFg">
+                        تعليق
+                      </AppText>
+                    </Row>
                   </Row>
                 ))}
               </View>

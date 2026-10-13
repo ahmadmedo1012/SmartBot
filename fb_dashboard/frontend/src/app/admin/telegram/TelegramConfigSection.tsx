@@ -98,9 +98,11 @@ export function TelegramConfigSection({
           </div>
           <div>
             <Label htmlFor="tg-chat-id">معرف المحادثة (Chat ID)</Label>
+            {/* phase6 r154 — معرف المحادثة (رمز مرجعي للآلة) يركب أرض
+                الدارة traceField (اختياري — رمز البوت السِرّ يبقى نظيفًا). */}
             <Input id="tg-chat-id" value={config.chatId}
               onChange={(e) => onConfigChange({ ...config, chatId: e.target.value })}
-              placeholder="-1001234567890" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
+              placeholder="-1001234567890" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" traceField />
             <p className="text-xs text-muted-foreground mt-1">
               أرسل <span className="font-mono" dir="ltr">/start</span> إلى{" "}
               <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" aria-label="@userinfobot — يفتح في تبويب جديد" className="underline">@userinfobot</a> لمعرفة المعرف
@@ -108,8 +110,10 @@ export function TelegramConfigSection({
           </div>
           <div>
             <Label htmlFor="tg-events">الأحداث المرسلة (مفصولة بفاصلة)</Label>
+            {/* phase6 r154 — أسماء أحداث الآلة تركب أرض الدارة traceField
+                (اختياري — سجل الأحداث المونو نفسه). */}
             <Input id="tg-events" value={eventsInput} onChange={(e) => onEventsChange(e.target.value)}
-              placeholder="payment_received, subscription_approved, system_alert" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
+              placeholder="payment_received, subscription_approved, system_alert" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" traceField />
             <p className="text-xs text-muted-foreground mt-1">أمثلة: user_signup, restaurant_created, system_alert</p>
           </div>
           <div className="flex gap-2 pt-2">

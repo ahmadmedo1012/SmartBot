@@ -61,6 +61,25 @@ const statusConfig: Record<string, { label: string; variant: "warning" | "succes
   cancelled: { label: "ملغي", variant: "destructive" },
 }
 
+/* phase6 r154 — رقاقات طابور الموافقات بألوان البترول (سجل KpiCard):
+ * pending = لايم الطلب في الجو (بانتظار المراجعة — توأم المجدول)،
+ * verified = إشارة التيل (مقبول)، cancelled = الوردة (مرفوض).
+ * تُركّب كـ Badge secondary + className البترول (نمط المنشورات). */
+const STATUS_PETROL: Record<string, string> = {
+  pending: "bg-(--c-lime-bg) text-(--c-lime-ink)",
+  verified: "bg-(--c-copper-bg) text-(--c-copper-ink)",
+  cancelled: "bg-(--c-rose-bg) text-(--c-rose-ink)",
+}
+
+/* phase6 r154 — سجل ختم طابور الموافقات (توأم الإشعارات): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
 export default function AdminPage() {
   const router = useRouter()
   /* v25 (W-10): useMe() بدل useEffect خام — نفس دور "جارٍ التحميل" أثناء
@@ -196,6 +215,9 @@ export default function AdminPage() {
         title="إدارة الاشتراكات"
         subtitle="مراجعة وإدارة طلبات الاشتراك"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — عقدة النبض الحية تخص بطاقة الكرون أدناه). */
+        trace="static"
         actions={
           <Link
             href="/dashboard"
@@ -320,13 +342,31 @@ export default function AdminPage() {
                           RTL-flipped radius) on the first cell. */}
                       <td data-label="المستخدم" dir="auto" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">{p.username}</td>
                       <td className="p-3 px-4" data-label="الخطة">{p.plan}</td>
-                      <td className="p-3 px-4 tabular-nums" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
-                      <td className="p-3 px-4 text-muted-foreground" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
+                      {/* phase6 r154 — مبلغ الطلب يركب سجل sb-numerals
+                          (أرقام المال على مسار العرض — سجل الفواتير نفسه). */}
+                      <td className="p-3 px-4 sb-numerals" data-label="المبلغ">{formatNumber(p.amount)} د.ل</td>
+                      <td className="p-3 px-4 text-muted-foreground font-mono" data-label="رقم الهاتف" dir="ltr">{p.phone}</td>
                       <td className="p-3 px-4" data-label="الحالة">
-                        <Badge variant={statusConfig[p.status]?.variant}>{statusConfig[p.status]?.label}</Badge>
+                        {/* phase6 r154 — رقاقة الحالة بألوان البترول
+                            (pending=لايم، verified=تيل، cancelled=وردة). */}
+                        <Badge
+                          variant="secondary"
+                          className={STATUS_PETROL[p.status] || undefined}
+                        >
+                          {statusConfig[p.status]?.label ?? p.status}
+                        </Badge>
                       </td>
                       <td className="p-3 px-4 text-muted-foreground text-xs" data-label="التاريخ">
                         {p.created_at ? formatDateOnly(p.created_at) : "-"}
+                        {p.created_at && timeStamp(p.created_at) && (
+                          <span
+                            dir="ltr"
+                            className="font-mono tabular-nums"
+                            title={p.created_at}
+                          >
+                            {" · "}{timeStamp(p.created_at)}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 px-4 text-center" data-label="إجراءات">
                         <div className="flex items-center justify-center gap-2">

@@ -38,6 +38,10 @@ export default function TermsPage() {
         <ScrollReveal y={12} duration={0.52}>
           <Eyebrow>الإطار القانوني</Eyebrow>
           <h1 className="text-3xl font-bold">شروط الاستخدام</h1>
+          {/* phase6 r154 (P6-2-d3): هوية الكروم — فاصل الأثر تحت رأس العرض
+              يجلب الصفحة القانونية إلى لغة الدارة (نفس .sb-trace الذي
+              يخيط فصول الواجهة)؛ النص القانوني نفسه حرفيًا بلا تغيير. */}
+          <hr className="sb-trace mt-6 mb-8" aria-hidden="true" />
         </ScrollReveal>
         <div className="space-y-6 text-foreground/80 leading-relaxed">
           <ScrollReveal y={16} duration={0.52}>

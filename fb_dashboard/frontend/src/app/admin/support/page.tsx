@@ -108,6 +108,25 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "warning" | "info"
   closed: { label: "مغلقة", variant: "success" },
 }
 
+/* phase6 r154 — رقاقات طابور التذاكر بألوان البترول (سجل KpiCard):
+ * open = لايم التذكرة في الجو (توأم لوحة المستخدم)، pending = رملي
+ * (بانتظار العميل)، closed = رغوة هادئة. تُركّب كـ Badge secondary +
+ * className البترول (نمط المنشورات) — label من STATUS_CONFIG نفسه. */
+const STATUS_PETROL: Record<string, string> = {
+  open: "bg-(--c-lime-bg) text-(--c-lime-ink)",
+  pending: "bg-(--c-sand-bg) text-(--c-sand-ink)",
+  closed: "bg-(--c-grey-bg) text-(--c-grey-ink)",
+}
+
+/* phase6 r154 — سجل ختم طابور التذاكر (توأم لوحة المستخدم): HH:MM مونو
+ * (dir="ltr"، tabular-nums)؛ التاريخ العربي الكامل يبقى في الـtitle. */
+function timeStamp(t: string | null | undefined): string {
+  if (!t) return ""
+  const d = new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
 const PRIORITY_CONFIG: Record<
   string,
   { label: string; variant: "outline" | "info" | "warning" | "danger" }
@@ -218,6 +237,9 @@ export default function AdminSupportPage() {
         title="تذاكر الدعم"
         subtitle="كل تذاكر المستأجرين عبر المنصة في مكان واحد"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — الطابور ليس دفق أتمتة حيًا). */
+        trace="static"
         actions={
           <Link
             href="/dashboard"
@@ -342,7 +364,9 @@ export default function AdminSupportPage() {
                         {/* r131-F7b: 2px accent leading-edge dot (scaleY
                             spring, RTL-flipped radius) on the first cell. */}
                         <td data-label="الرقم" className="relative p-3 px-4 font-medium before:pointer-events-none before:absolute before:start-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:origin-center before:scale-y-0 before:rounded-e-sm before:bg-primary before:transition-transform before:duration-(--t-slow) before:ease-spring-soft group-hover/row:before:scale-y-100">
-                          #{formatNumber(t.id)}
+                          {/* phase6 r154 — رقم التذكرة (رمز مرجعي للآلة) يركب
+                              السجل المونو dir=ltr. */}
+                          <span className="font-mono tabular-nums" dir="ltr">#{formatNumber(t.id)}</span>
                         </td>
                         <td className="p-3 px-4 font-medium" data-label="الموضوع">
                           <button
@@ -375,7 +399,12 @@ export default function AdminSupportPage() {
                           </Badge>
                         </td>
                         <td className="p-3 px-4" data-label="الحالة">
-                          <Badge variant={STATUS_CONFIG[t.status]?.variant}>
+                          {/* phase6 r154 — شارة الحالة بألوان البترول
+                              (open=لايم، pending=رملي، closed=رغوة). */}
+                          <Badge
+                            variant="secondary"
+                            className={STATUS_PETROL[t.status] || undefined}
+                          >
                             {STATUS_CONFIG[t.status]?.label ?? t.status}
                           </Badge>
                         </td>
@@ -384,6 +413,17 @@ export default function AdminSupportPage() {
                         </td>
                         <td className="p-3 px-4 text-muted-foreground text-xs" data-label="التاريخ">
                           {t.created_at ? formatDateOnly(t.created_at) : "-"}
+                          {/* phase6 r154 — ختم HH:MM مونو (dir=ltr) + التاريخ
+                              العربي الكامل في الـtitle. */}
+                          {t.created_at && timeStamp(t.created_at) && (
+                            <span
+                              dir="ltr"
+                              className="font-mono tabular-nums"
+                              title={t.created_at}
+                            >
+                              {" · "}{timeStamp(t.created_at)}
+                            </span>
+                          )}
                         </td>
                         <td className="p-3 px-4" data-label="إجراء">
                           {/* v17-E-F8 (D6 #5): إغلاق التذكرة — يظهر للمفتوحة/
@@ -444,8 +484,19 @@ export default function AdminSupportPage() {
                                               : "bg-muted/50"
                                           }`}
                                         >
-                                          <p className="font-bold mb-1 text-xs">
+                                          <p className="font-bold mb-1 text-xs flex items-center gap-2">
                                             {r.is_admin ? "فريق الدعم" : "العميل"}
+                                            {/* phase6 r154 — ختم الرد مونو HH:MM
+                                                (dir=ltr) — خيط الردود كما هو
+                                                (المنطق بلا تغيير). */}
+                                            {r.created_at && timeStamp(r.created_at) && (
+                                              <span
+                                                dir="ltr"
+                                                className="font-mono tabular-nums font-normal text-muted-foreground"
+                                              >
+                                                {timeStamp(r.created_at)}
+                                              </span>
+                                            )}
                                           </p>
                                           <p dir="auto" className="text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                                             {r.message}

@@ -85,9 +85,11 @@ export function DiagnosticsSection({
             <div className="flex items-end gap-2">
               <div className="flex-1">
                 <Label htmlFor="appr-telegram-id">معرف تليجرام (User ID)</Label>
+                {/* phase6 r154 — معرف الموافق (رمز مرجعي للآلة) يركب أرض
+                    الدارة traceField (اختياري). */}
                 <Input id="appr-telegram-id" type="number" value={newApproverId}
                   onChange={(e) => setNewApproverId(e.target.value)} placeholder="123456789"
-                  className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
+                  className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" traceField />
               </div>
               <div className="flex-1">
                 <Label htmlFor="appr-label">تسمية</Label>

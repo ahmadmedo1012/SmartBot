@@ -265,6 +265,9 @@ export default function AdminTelegramPage() {
         title="إعدادات تليجرام"
         subtitle="توكن البوت، جهات الإرسال، وتشخيص الاتصال"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — إعداد البوت ليس دفق أتمتة حيًا). */
+        trace="static"
       />
       <div className="max-w-3xl space-y-8 p-6">
 

@@ -59,8 +59,10 @@ export function BroadcastTargetsSection({
             </div>
             <div className="flex-1">
               <Label htmlFor="tg-new-chatid">معرف المحادثة</Label>
+              {/* phase6 r154 — معرف جهة الإرسال (رمز مرجعي للآلة) يركب أرض
+                  الدارة traceField (اختياري). */}
               <Input id="tg-new-chatid" value={newChatId} onChange={(e) => setNewChatId(e.target.value)}
-                placeholder="-100xxxx" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" />
+                placeholder="-100xxxx" className="h-11 rounded-xl mt-1.5 text-left" dir="ltr" traceField />
             </div>
             <Button onClick={handleAdd} disabled={adding || !newChatId.trim()} className="rounded-xl gap-1 shrink-0">
               {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
@@ -74,7 +76,15 @@ export function BroadcastTargetsSection({
               {targets.map((t) => (
                 <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-background/50 border border-border/20">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{t.label || t.chatId}</p>
+                    {/* phase6 r154 — عقدة اللايم على الجهة المفعّلة: الإرسال
+                        حيّ في الجو — زخرفة فقط بجانب التسمية، منطق السويتش
+                        كما هو. */}
+                    <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                      {t.label || t.chatId}
+                      {t.isActive && (
+                        <span className="size-1.5 rounded-full bg-lime shrink-0" aria-hidden="true" />
+                      )}
+                    </p>
                     <p className="text-xs font-mono text-muted-foreground" dir="ltr">{maskChatId(t.chatId)}</p>
                   </div>
                   <Switch checked={t.isActive} onCheckedChange={(v) => onToggle(t.id, v)} aria-label={t.isActive ? "تعطيل الهدف" : "تفعيل الهدف"} />

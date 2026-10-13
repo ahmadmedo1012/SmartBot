@@ -71,7 +71,19 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium">نبض الجدولة (الكرون)</p>
+            <p className="text-sm font-medium flex items-center gap-2">
+              نبض الجدولة (الكرون)
+              {/* phase6 r154 — عقدة النبض الحية: اللايم النابض (animate-ping)
+                  عندما يكون الكرون حديثًا فعلاً — الآلة تعمل والجدولة في
+                  الجو؛ المتوقف/الفاشل لا يستحق عقدة حية. زخرفة aria-hidden
+                  (الحالة يحملها النص). */}
+              {!stale && !failed && status && !status.never_beaten && (
+                <span className="relative flex size-2 shrink-0" aria-hidden="true">
+                  <span className="absolute inset-0 rounded-full bg-lime animate-ping opacity-75" style={{ animationDuration: "2s" }} />
+                  <span className="relative rounded-full size-2 bg-lime" />
+                </span>
+              )}
+            </p>
             <p className="text-xs text-muted-foreground truncate">
               {failed
                 ? "تعذّر جلب الحالة"
@@ -86,7 +98,7 @@ export function CronHeartbeatCard({ enabled = true }: { enabled?: boolean }) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground" dir="auto">
-          {status?.last_heartbeat ? `آخر نبض: ${formatDate(status.last_heartbeat)}` : "—"}
+          {status?.last_heartbeat ? <>آخر نبض: {formatDate(status.last_heartbeat)}</> : "—"}
         </p>
       </CardContent>
     </Card>

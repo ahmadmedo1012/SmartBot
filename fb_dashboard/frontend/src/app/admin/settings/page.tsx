@@ -267,6 +267,9 @@ export default function AdminSettingsPage() {
   const fieldRow = (f: Field) => (
     <div key={f.key} className="space-y-1.5">
       <Label htmlFor={f.key}>{f.label}</Label>
+      {/* phase6 r154 — حقول الآلة (LTR غير السِرّية: هاتف/آيبان/بريد/معرف)
+          تركب أرض الدارة traceField اختياريًا — السرّ (password) يبقى
+          نظيفًا بلا ملمس الدارة. */}
       <Input
         id={f.key}
         type={f.type || "text"}
@@ -275,6 +278,7 @@ export default function AdminSettingsPage() {
         placeholder={f.placeholder}
         className="h-11 rounded-xl"
         dir={f.ltr ? "ltr" : undefined}
+        traceField={f.ltr && f.type !== "password"}
       />
       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
         <Info className="size-3 shrink-0" aria-hidden="true" />
@@ -328,6 +332,9 @@ export default function AdminSettingsPage() {
         title="إعدادات المنصة"
         subtitle="بيانات الدفع ومعلومات الدعم — تُحفظ فوراً وتظهر مباشرة للعملاء"
         compact
+        /* phase6 r154 — فاصل الأثر تحت الشريط (توقيع غرفة الآلة؛ الأثر
+            الساكن — نموذج الإعداد ليس دفق أتمتة حيًا). */
+        trace="static"
         actions={
           <>
             <Link

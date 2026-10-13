@@ -242,10 +242,10 @@ describe("r125 Madarek parity — grounds, inks & neutrals", () => {
 })
 
 describe("r125 Madarek parity — accent family", () => {
-  it("dark: gold #E9B44C set (Madarek --accent; accent-ink in oklch spelling)", () => {
+  it("dark: signal-teal #17C3A4 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the gold #E9B44C Madarek heritage)", () => {
     pinAll(dark, "dark", ACCENT_DARK)
   })
-  it("light: copper #B57438 set (Madarek --accent; accent-ink in oklch spelling)", () => {
+  it("light: deep petrol #0C7563 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the copper #B57438 Madarek heritage)", () => {
     pinAll(light, "light", ACCENT_LIGHT)
   })
 })
@@ -407,7 +407,7 @@ describe("r127-F5b Madarek parity — reduced-motion token zeroing (A6 f)", () =
 // ── r129-F3 pin groups (mirrors tests/parity.mjs 224 → 329) ──────────────────
 
 describe("r129 Madarek parity — the --accent-solid family (fleet six-token standard)", () => {
-  it("dark: gold #E9B44C / hover #F5D48A / soft #2C2312 / strong #C9962F / ink #E9B44C / fg #05070F", () => {
+  it("dark: signal-teal #17C3A4 / hover #1FD6B4 / soft #0A2E28 / strong #12A386 / ink #17C3A4 / fg #04231B (phase5 petrol — was the gold-era names)", () => {
     pinAll(dark, "accent-family-dark", {
       "--accent-solid": "#17C3A4",
       "--accent-hover": "#1FD6B4",
@@ -417,7 +417,7 @@ describe("r129 Madarek parity — the --accent-solid family (fleet six-token sta
       "--accent-fg": "#04231B",
     })
   })
-  it("light: copper #B57438 / hover #9A5F25 / soft #F4E4D2 / strong #5C3416 / ink #5C3416 / fg #1A0F06", () => {
+  it("light: deep petrol #0C7563 / hover #0A6656 / soft #D7F3EA (phase5 petrol — was the copper-era names)", () => {
     pinAll(light, "accent-family-light", {
       "--accent-solid": "#0C7563",
       "--accent-hover": "#0A6656",

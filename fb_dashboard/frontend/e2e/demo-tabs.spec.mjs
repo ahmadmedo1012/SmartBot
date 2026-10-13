@@ -1,8 +1,14 @@
 /**v4 plan §5 criterion #5 — demo tabs must actually switch content.
- * Clicks 4 sidebar tabs on /demo and asserts the header + content change. */
+ * Clicks 4 of /demo's 7 sidebar tabs (stats/replies/audience/analytics —
+ * phase5 kept all TAB_META titles) and asserts the header + content change.
+ *
+ * phase6 (P6-2-d5) — BASE default moved :3000 → :3200 (the established
+ * dual-stack frontend port; 3000 is BANNED by the port rule). Still
+ * env-overridable via BASE_URL. Plain node script (not @playwright/test):
+ * `node e2e/demo-tabs.spec.mjs` with the stack already up on :3200. */
 import { chromium } from "playwright";
 
-const BASE = process.env.BASE_URL || "http://localhost:3000";
+const BASE = process.env.BASE_URL || "http://localhost:3200";
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await page.goto(`${BASE}/demo`, { waitUntil: "networkidle" });

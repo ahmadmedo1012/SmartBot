@@ -6,8 +6,13 @@ import { fileURLToPath } from 'url';
  * latest_plan.md Track F.3 — mobile navigation proof at 375px.
  * Gate: navigate between 5 different sections via the bottom bar, and reach
  * a deep section (calendar) through the "المزيد" sheet — 2 taps max.
+ *
+ * phase6 (P6-2-d5) — retargeted off the dead :8000 SPA shell onto the dual
+ * stack's Next origin (same contract as playwright.config.ts baseURL):
+ * PLAYWRIGHT_BASE_URL, default http://localhost:3200 — /api/* rides the
+ * LOCAL_API_PROXY rewrites baked at `next build` time.
  */
-const BASE = 'http://localhost:8000';
+const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3200';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ART = path.resolve(__dirname, '../e2e_artifacts');
 const RUN = `mobile-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;

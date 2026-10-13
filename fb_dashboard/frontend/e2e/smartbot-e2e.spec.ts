@@ -4,7 +4,15 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const BASE = 'http://localhost:8000';
+// phase6 (P6-2-d5) — retargeted off the DEAD :8000 target. That origin was the
+// old FastAPI SPA shell (v14-E6 rot: it serves landing markup for every path,
+// so this suite could never pass there). The working architecture is the DUAL
+// stack: `next build` with LOCAL_API_PROXY=http://127.0.0.1:8000 (same-origin
+// /api/* + /webhook rewrites baked at build time) + `next start` on :3200 +
+// uvicorn on :8000. Same contract as playwright.config.ts baseURL:
+//   PLAYWRIGHT_BASE_URL (default http://localhost:3200); post-deploy runs
+//   set it to https://bot.smart-link.ly.
+const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3200';
 const ARTIFACTS = path.resolve(__dirname, '../e2e_artifacts');
 
 // ── Helpers ──────────────────────────────────────────────────────────

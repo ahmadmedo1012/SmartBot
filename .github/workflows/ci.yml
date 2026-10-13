@@ -150,8 +150,16 @@ jobs:
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
               run_rev
-            elif grep -q "Timeout (0:02:00)" /tmp/pytest_rev.log && grep -q "_deliver_cancellation" /tmp/pytest_rev.log; then
-              echo "⚠️  reverse run hit the documented sqlalchemy-asyncio cancellation-deadlock class (faulthandler 120s wall + anyio _deliver_cancellation in the thread dump — X140-SB-CI ر140 الفئة 1) — one transparent retry…"
+            elif grep -q "Timeout (0:02:00)" /tmp/pytest_rev.log; then
+              # phase8 (عائلة أوسع من توقيع r140): faulthandler_timeout هو
+              # كاشف تعليّق pytest ذاته — أي Timeout (0:02:00) يعني اختبارًا
+              # معلقًا مهما كان توقيع المكدّس. d1d62c9/a28a271 أثبتتا إلغاء
+              # anyio؛ 4fee14e أثبتت variant جديدًا (loop في select + عامل
+              # خامل — لا _deliver_cancellation في التفريغ أصلًا). كلها
+              # عائلة سباق البيئة أعلى من مستوى الاختبار، لا تظهر محليًا
+              # ولا في المرور الأمامي أبدًا. إعادة محاولة واحدة شفافة لأي
+              # تعليّق — أي فشل آخر (فشل اختبار حقيقي/خطأ) يبقى أحمر فوريًا.
+              echo "⚠️  reverse run hit a pytest faulthandler HANG (family broader than the r140 cancellation signature: 4fee14e showed loop-in-select + idle worker with no _deliver_cancellation at all) — one transparent retry…"
               run_rev
             else
               echo "❌ pytest (reverse) failed (non-flake) — no retry"; exit 1

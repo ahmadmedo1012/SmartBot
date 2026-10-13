@@ -177,6 +177,11 @@ export default function SubscribeContent() {
             <p className="text-muted-foreground text-lg">اختر الخطة المناسبة لأعمالك على فيسبوك وماسنجر</p>
           </div>
 
+          {/* phase5 r152 — the circuit-trace divider under the subscribe
+              header (the machine-room signature; the live node marks the
+              funnel where the automation gets switched on). */}
+          <hr className="sb-trace mb-10" aria-hidden="true" data-live="true" />
+
           {/* Step indicator */}
           <StepIndicator current={step} onNavigate={setStep} />
 

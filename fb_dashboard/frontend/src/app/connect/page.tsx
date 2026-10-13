@@ -189,6 +189,9 @@ export default function ConnectPage() {
             <CardTitle className="text-2xl">{existing.page_name || "الصفحة متصلة"}</CardTitle>
             <CardDescription>{allOk ? "الحساب مرتبط والويبهوك يعمل بكامل قدرته" : "الحساب مرتبط — أكمل خطوات الويبهوك لاستقبال الأحداث لحظياً"}</CardDescription>
           </CardHeader>
+          {/* phase5 r152 — the circuit-trace divider (the auth-card signature,
+              mirrored on the connect cards). */}
+          <hr className="sb-trace mx-8" aria-hidden="true" />
           <CardContent className="space-y-4">
             <span className="flex justify-center">
               {/* r131-F7b (A7 Cluster B): chip text on the /10 wash → the AA
@@ -326,6 +329,9 @@ export default function ConnectPage() {
                 أدخل بيانات صفحتك لتفعيل البوت التلقائي
               </CardDescription>
             </CardHeader>
+            {/* phase5 r152 — the circuit-trace divider (the auth-card signature,
+                mirrored on the connect cards). */}
+            <hr className="sb-trace mx-8" aria-hidden="true" />
             <CardContent className="space-y-6">
               {/* Info badges */}
               <div className="grid grid-cols-3 gap-2.5">

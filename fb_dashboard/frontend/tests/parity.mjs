@@ -739,7 +739,9 @@ pinDecl('press', '.landing .ln-btn-ghost:active', 'transition-duration', 'var(--
 // station shadows + the product-bar inset top-edge highlight.
 pinDeclLast('depth', '.landing .ln-mind-thread', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
 pinDeclLast('depth', '.landing .ln-product-window', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
-pinDecl('depth', '.landing .ln-product-bar', 'box-shadow', 'inset 0 1px 0 rgba(245,243,231,0.04)');
+/* phase5 r152: the product-bar top-edge highlight rides the petrol foam
+   rgba(233,245,240,…) (was the retired Orbit-Ink sand 245,243,231). */
+pinDecl('depth', '.landing .ln-product-bar', 'box-shadow', 'inset 0 1px 0 rgba(233,245,240,0.04)');
 pinDeclLast('depth', '.landing .ln-day-media', 'box-shadow', '0 1px 2px rgba(0,0,0,0.10)');
 
 // P1-2 universal cream focus ring on the ink stage (canonical
@@ -1487,6 +1489,19 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   const bareOk = rawGlobals3.includes('.sb-typing--bare { padding: 0; background: none; border: 0;');
   if (bareOk) pass += 1;
   else fails.push('r152c globals: .sb-typing--bare (the chrome-free dots variant) is defined');
+
+  // (8) the canvas twins paint the petrol world (phase5 lockstep — the
+  //     browser canvas cannot read CSS vars, so the literals MUST be
+  //     pinned: foam/teal/lime present, the retired Orbit-Ink sand/
+  //     pistachio/violet triplets absent, from the hero sky + starfield).
+  const rawOrbit = readRaw('../src/components/landing/OrbitScene.tsx');
+  const rawDepth = readRaw('../src/components/landing/HeroDepthLayer.tsx');
+  const canvasOk = rawOrbit.includes("'rgb(233,245,240)'") && rawOrbit.includes("'rgb(23,195,164)'")
+    && rawOrbit.includes("'rgb(198,242,78)'") && rawDepth.includes('rgba(233,245,240,0.6)')
+    && !rawOrbit.includes('245,243,231') && !rawOrbit.includes('223,237,178') && !rawOrbit.includes('122,107,242')
+    && !rawDepth.includes('245,243,231');
+  if (canvasOk) pass += 1;
+  else fails.push('r152c canvas lockstep: OrbitScene/HeroDepthLayer literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

@@ -73,28 +73,34 @@ export type OrbitSceneProps = {
   speed?: number;
 };
 
-/** Orbit Ink palette (round 3) — canvas-side of the --ln-* landing tokens. */
+/** Circuit Petrol palette (phase5 r152) — canvas-side of the --ln-* landing
+ *  tokens (the browser canvas cannot read CSS custom properties, so the
+ *  triplets + string constants mirror the petrol values and MUST move in
+ *  lockstep with landing.css §1): foam #E9F5F0 stars/hairlines, signal-teal
+ *  #17C3A4 the knowledge light, AI-lime #C6F24E the sparse depth accent. */
 const CREAM = [233, 245, 240] as const; // #E9F5F0 foam — stars / hairlines
 const LIME = [23, 195, 164] as const; // #17C3A4 signal teal — the knowledge light
 const VIOLET = [198, 242, 78] as const; // #C6F24E AI lime — depth accent
 
 type NodeColor = 'lime' | 'violet' | 'cream';
 
-/** Per-frame color strings — built once, referenced every frame. */
+/** Per-frame color strings — built once, referenced every frame. (phase5
+ *  r152: re-anchored in lockstep with the triplets above — the stars,
+ *  nodes, rings, links and trails all paint the petrol world now.) */
 const STAR_COLORS = {
-  cream: 'rgb(245,243,231)',
-  lime: 'rgb(223,237,178)',
-  violet: 'rgb(122,107,242)',
+  cream: 'rgb(233,245,240)',
+  lime: 'rgb(23,195,164)',
+  violet: 'rgb(198,242,78)',
 } as const;
 const NODE_FILL = {
-  lime: 'rgba(223,237,178,0.95)',
-  violet: 'rgba(122,107,242,0.95)',
-  cream: 'rgba(245,243,231,0.9)',
+  lime: 'rgba(23,195,164,0.95)',
+  violet: 'rgba(198,242,78,0.95)',
+  cream: 'rgba(233,245,240,0.9)',
 } as const;
-const RING_STROKE = 'rgb(245,243,231)';
-const LINK_STROKE = 'rgb(223,237,178)';
-const TRAIL_STROKE = 'rgb(223,237,178)';
-const HEAD_FILL = 'rgb(245,243,231)';
+const RING_STROKE = 'rgb(233,245,240)';
+const LINK_STROKE = 'rgb(23,195,164)';
+const TRAIL_STROKE = 'rgb(23,195,164)';
+const HEAD_FILL = 'rgb(233,245,240)';
 
 type Star = {
   x: number;

@@ -187,7 +187,10 @@ function LoginForm() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 sm:px-6">
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
+      {/* phase5 r152 — the Circuit Petrol auth ground: petrol gradient +
+          the faint circuit-board trace grid (.sb-trace-field — the
+          machine-room texture, masked + reduced under RM-free paint). */}
+      <div className="sb-trace-field fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
       <FloatingShapes />
 
       {/* r127-F5b: corner chrome chip = the --z-dropdown rung (100) — the
@@ -230,6 +233,11 @@ function LoginForm() {
           <CardTitle className="text-2xl font-bold tracking-tight">SmartBot</CardTitle>
           <CardDescription className="text-base text-muted-foreground">لوحة التحكم الذكية</CardDescription>
         </CardHeader>
+
+        {/* phase5 r152 — the circuit-trace divider: the auth card's
+            machine-room signature under the brand block (the .sb-trace CSS
+            twin — decorative). */}
+        <hr className="sb-trace mx-6" aria-hidden="true" />
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
           {/* v10-B6 (G2-03): noValidate — the browser's native bubbles are

@@ -1,13 +1,21 @@
 import type { SVGProps } from "react";
 
 /**
- * CircuitTrace — the SmartBot signature divider/accent (phase5 r152).
+ * CircuitTrace — the SmartBot signature trace accent (phase5 r152).
  *
- * A thin signal trace with node dots — the machine-room world's section
- * divider and card accent. Token-driven (trace = primary @ 34%, nodes =
+ * A thin signal trace with node ticks — the machine-room world's card
+ * accent and short divider. Token-driven (trace = primary @ 34%, nodes =
  * primary; the LIVE node = LIME — reserved for AI/automation beats).
- * Pure SVG geometry: performant, theme-aware, zero motion (the CSS twin
- * .sb-trace exists for full-bleed <hr> cases).
+ * Pure SVG geometry: performant, theme-aware, zero motion.
+ *
+ * GEOMETRY CONTRACT (stretch-safe): the svg is stretched freely
+ * (preserveAspectRatio="none") — the horizontal line carries
+ * vectorEffect="non-scaling-stroke" and the nodes are VERTICAL ticks
+ * (a vertical line is immune to horizontal stretching; non-scaling
+ * strokes keep their painted width at every scale). Circles were
+ * rejected deliberately: at wide stretches they shear into ellipses.
+ * For full-bleed <hr> chapter dividers prefer the CSS twin .sb-trace
+ * (globals.css) — same grammar, dot nodes, no aspect math.
  *
  * Variants:
  *   divider (default) — horizontal trace, terminal nodes + mid node.
@@ -38,9 +46,20 @@ export function CircuitTrace({ variant = "divider", title, ...svg }: CircuitTrac
       ) : (
         <g>
           <line x1="4" y1="4" x2="116" y2="4" stroke={trace} strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          <circle cx="2" cy="4" r="2.4" fill={node} />
-          <circle cx="60" cy="4" r="1.4" fill={node} opacity="0.75" />
-          <circle cx="118" cy="4" r="2.4" fill={variant === "live" ? liveNode : node} />
+          {/* terminal node ticks — vertical ⇒ stretch-immune; the painted
+              width stays fixed (non-scaling) at every container width */}
+          <line x1="2" y1="2.2" x2="2" y2="5.8" stroke={node} strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          <line x1="60" y1="3.1" x2="60" y2="4.9" stroke={node} strokeWidth="2" strokeLinecap="round" opacity="0.75" vectorEffect="non-scaling-stroke" />
+          <line
+            x1="118"
+            y1="2.2"
+            x2="118"
+            y2="5.8"
+            stroke={variant === "live" ? liveNode : node}
+            strokeWidth="3"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
         </g>
       )}
     </svg>

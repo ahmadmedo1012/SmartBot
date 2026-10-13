@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { Input } from "@/components/ui/input"
+import { RobotMark } from "@/components/shared/RobotMark"
 /* r131-F7b (A4 P1-1 family): the AI-reply raw <textarea> (rounded-sm +
  * hand-rolled ring + 14px) rides the shared Textarea recipe (min-h-24 /
  * r-md / 16px floor / halo token) — the F8 swap family completion. */
@@ -696,7 +697,15 @@ export default function OnboardingWizard({ onComplete, onSkip }: OnboardingWizar
                 family-ink glyph — the messages/autoreply/analytics .state
                 twin; messages:820 pattern). */}
             <div className="ob-icon-pop mx-auto mb-4 flex size-16 items-center justify-center rounded-xl bg-(--c-copper-bg)">
-              <Icon className="size-8 text-(--c-copper-ink)" />
+              {/* phase5 r152 — the done step's tile hosts the ONE robot in
+                  its GREETING state (the machine welcomes you in); every
+                  other step keeps its copper-family glyph. Decorative: the
+                  step title carries the meaning. */}
+              {current.id === "done" ? (
+                <RobotMark state="greeting" className="size-12" />
+              ) : (
+                <Icon className="size-8 text-(--c-copper-ink)" />
+              )}
             </div>
             <h2 id="onboarding-step-title" tabIndex={-1} className="text-xl font-bold mb-1 outline-none focus-visible:ring-2 focus-visible:ring-accent-foreground/40 rounded-md px-1">{current.title}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{current.description}</p>

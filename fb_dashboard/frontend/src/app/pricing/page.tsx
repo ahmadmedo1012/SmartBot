@@ -146,6 +146,10 @@ export default function PricingPage() {
             monthly pricing only, matching the money path. */}
       </SectionContainer>
 
+      {/* phase5 r152 — the circuit-trace divider between the pricing hero
+          and the plan grid (the machine-room signature). */}
+      <hr className="sb-trace" aria-hidden="true" />
+
       <SectionContainer className="pb-24">
         {/* v18-1-c: بطاقات تُرسم فوراً من الافتراضية؛ فشل الـAPI النهائي
             يُبقيها مع لافتة + زر إعادة المحاولة (بدل استبدال الشبكة بحالة

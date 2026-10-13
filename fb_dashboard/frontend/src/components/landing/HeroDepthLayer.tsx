@@ -90,7 +90,9 @@ export function HeroDepthLayer() {
           cx={s.cx}
           cy={s.cy}
           r={s.r}
-          fill="rgba(245,243,231,0.6)"
+          /* phase5 r152 — foam #E9F5F0 (was the retired Orbit-Ink sand
+             #F5F3E7): the depth-plane stars paint the petrol sky. */
+          fill="rgba(233,245,240,0.6)"
           opacity={s.op}
         />
       ))}

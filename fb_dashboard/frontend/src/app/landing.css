@@ -422,7 +422,7 @@
   box-shadow:
     0 1px 2px rgba(0,0,0,0.12),
     0 4px 12px rgba(0,0,0,0.16),
-    0 0 0 1px rgba(245,243,231,0.08);
+    0 0 0 1px rgba(233,245,240,0.08);
 }
 .landing .ln-btn-gold:hover {
   background: var(--ln-lime-deep);
@@ -430,7 +430,7 @@
   box-shadow:
     0 2px 4px rgba(0,0,0,0.16),
     0 8px 20px rgba(0,0,0,0.20),
-    0 0 0 1px rgba(245,243,231,0.10);
+    0 0 0 1px rgba(233,245,240,0.10);
   transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) - 1px));
 }
 /* r129 (P4-01, canonical landing.css:1849): the press register — the
@@ -613,7 +613,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(28,32,50,0.04) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(7,26,33,0.06) 50%, transparent 100%);
   pointer-events: none;
   opacity: calc(var(--sp, 0) * 0.5); /* fades in as section enters viewport */
 }
@@ -739,7 +739,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 70% 60%, rgba(245,243,231,0.02) 0%, transparent 60%);
+  background: radial-gradient(ellipse at 70% 60%, rgba(233,245,240,0.02) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -818,7 +818,7 @@
 .landing .ln-hero-title .ln-hero-gold {
   color: var(--ln-lime);
   /* P3-34 (canonical): subtle depth on the accent word */
-  text-shadow: 0 0 20px rgba(245,243,231,0.25), 0 0 40px rgba(245,243,231,0.08);
+  text-shadow: 0 0 20px rgba(233,245,240,0.25), 0 0 40px rgba(233,245,240,0.08);
 }
 
 .landing .ln-hero-sub {
@@ -916,7 +916,7 @@
   inset-block-end: 100%;
   inline-size: 100%;
   block-size: 40px;
-  background: linear-gradient(180deg, transparent 0%, rgba(245,243,231,0.03) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(233,245,240,0.03) 100%);
   pointer-events: none;
 }
 .landing .ln-trust-inner {
@@ -1121,7 +1121,7 @@
   inset-block-end: 100%;
   inline-size: 100%;
   block-size: 60px;
-  background: linear-gradient(180deg, transparent 0%, rgba(245,243,231,0.03) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(233,245,240,0.03) 100%);
   pointer-events: none;
 }
 .landing .landing-footer-grid {
@@ -2180,7 +2180,7 @@
   padding: 10px 14px;
   background: rgb(13 40 48 / 0.66);
   border-block-end: 1px solid var(--ln-line-soft);
-  box-shadow: inset 0 1px 0 rgba(245,243,231,0.04);
+  box-shadow: inset 0 1px 0 rgba(233,245,240,0.04);
 }
 .landing .ln-product-bar i {
   inline-size: 8px;
@@ -2200,7 +2200,8 @@
   font-size: 12.5px;
 }
 /* the circuit-trace accent under each window bar — the machine-room
-   signature (components/shared/CircuitTrace.tsx, aria-hidden by role) */
+   signature (components/shared/CircuitTrace.tsx: stretch-safe ticks, live
+   node = the automation signal; aria-hidden by role) */
 .landing .ln-pp-trace { display: block; inline-size: 100%; block-size: 8px; }
 .landing .ln-pp-head {
   display: flex;

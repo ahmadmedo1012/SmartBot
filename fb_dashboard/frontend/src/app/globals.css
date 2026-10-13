@@ -941,7 +941,7 @@
    :has() keeps it to the landing pages; every other surface keeps the
    product ring. */
 main:has(> .landing) > a[href="#page-content"]:focus-visible {
-  outline-color: var(--ln-cream, #F5F3E7);
+  outline-color: var(--ln-cream, #E9F5F0);
 }
 
 /* ─── browser surfaces (r133, A10 Must#2 — SO twin of madarek base.css:104-125) ──
@@ -1500,9 +1500,10 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
    fabric). All paint-only, token-driven, and reduced-motion safe.
 
    1. CIRCUIT TRACE — thin trace lines with node dots. Consumed as
-      section dividers (.sb-trace), card accents (.sb-trace-card) and
-      background texture (.sb-trace-field). Trace color = primary at
-      30%; node = primary; the LIVE node (automation/AI pulse) = lime.
+      section dividers (.sb-trace <hr>) and background texture
+      (.sb-trace-field); card accents ride the CircuitTrace SVG component
+      (components/shared/CircuitTrace.tsx). Trace color = primary at
+      34%; node = primary; the LIVE node (automation/AI pulse) = lime.
    2. TYPING DOTS — three lime dots for the "thinking" register (demo
       simulator, messages, AI suggest). Loop is linear+staggered, dies
       under reduced motion via the universal belt + its own guard.
@@ -1550,10 +1551,10 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
   background-repeat: no-repeat;
 }
 /* trace-field — the quiet circuit-board texture for hero/empty stages:
-   a faint trace grid painted once, no motion, 3-4% signal. */
-.sb-trace-field {
-  position: relative;
-}
+   a faint trace grid painted once, no motion, 3-4% signal. The HOST
+   supplies its own positioning (fixed/absolute/relative — the ::before
+   anchors to inset:0 of the nearest positioned ancestor; the class
+   deliberately sets NO position so it can never outrank a utility). */
 .sb-trace-field::before {
   content: '';
   position: absolute;

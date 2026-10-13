@@ -29,13 +29,30 @@ ENVFILE="/tmp/v17-backend.env"
 
 if [ -x "$ROOT/.venv/bin/python" ]; then PY="$ROOT/.venv/bin/python"; else PY=python3; fi
 
+# phase7 (إعادة 7a98a52 — فقدت بإعادة تعيين الصندوق): القتل محصور بالمنافذ.
+# pkill -f "next-server" كان يقتل أي خادم next في الجهاز كله — لوحة المنسق
+# على :3000 وأرصات المنتجات الشقيقة تعمل في نفس الصندوق ولا يجوز لمسها.
+# lsof على منافذ البطارية (3200/8000) فقط: يقتل ما نملكه نحن وحده.
+kill_stack() {
+  local p pids
+  for p in "$FRONT_PORT" "$API_PORT"; do
+    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
+    [ -n "$pids" ] && kill $pids 2>/dev/null || true
+  done
+  sleep 1
+  for p in "$FRONT_PORT" "$API_PORT"; do
+    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+  done
+  return 0
+}
+
 if [ -f "$ROOT/scripts/round.env" ]; then . "$ROOT/scripts/round.env"; fi
 if [ -z "${SIM_ROUND:-}" ]; then SIM_ROUND="${ROUND:-v17}"; fi
 export SIM_ROUND
 
 # ── 1) نظافة البداية (الجزء 1 فقط: قاعدة وأسرار جديدة) ────────────────────
-pkill -f "next-server" 2>/dev/null; pkill -f "next start" 2>/dev/null; pkill -f "uvicorn runner:app" 2>/dev/null
-sleep 1
+kill_stack
 mkdir -p "$DB_DIR" "$EVID"
 SIM_ART="$FRONT/e2e_artifacts/sim"
 
@@ -82,13 +99,13 @@ echo "الخلفية جاهزة (جزء $PART): $(curl -s "http://127.0.0.1:$API
 cd "$FRONT"
 if [ ! -f .next/BUILD_ID ]; then
   LOCAL_API_PROXY="http://127.0.0.1:$API_PORT" npm run build > /tmp/v17-next-build.log 2>&1 || {
-    echo "فشل البناء:"; tail -25 /tmp/v17-next-build.log; pkill -f "uvicorn runner:app"; exit 2; }
+    echo "فشل البناء:"; tail -25 /tmp/v17-next-build.log; kill_stack; exit 2; }
 fi
 LOCAL_API_PROXY="http://127.0.0.1:$API_PORT" setsid nohup npx next start -p "$FRONT_PORT" > /tmp/v17-next.log 2>&1 < /dev/null &
 disown
 for i in $(seq 1 40); do curl -sf "http://localhost:$FRONT_PORT/" > /dev/null 2>&1 && break; sleep 1; done
 if ! curl -s -m 8 "http://localhost:$FRONT_PORT/api/plans" 2>/dev/null | head -c 1 | grep -q '{'; then
-  echo "الوكيل مكسور — أوقف"; pkill -f "next-server"; pkill -f "uvicorn runner:app"; exit 2
+  echo "الوكيل مكسور — أوقف"; kill_stack; exit 2
 fi
 echo "الواجهة جاهزة على :$FRONT_PORT (جزء $PART)"
 
@@ -124,7 +141,8 @@ npx playwright test -c playwright.sim.config.ts $SPECS 2>&1 | tee -a "$PW_LOG"
 PW_EXIT=${PIPESTATUS[0]}
 
 # ── 5) إطفاء نظيف (القاعدة والأدلة تبقى للجزء التالي/المنسّق) ──────────────
-pkill -f "next-server" 2>/dev/null; pkill -f "next start" 2>/dev/null; pkill -f "uvicorn runner:app" 2>/dev/null
+# محصور بالمنافذ (3200/8000) — لا يلمس :3000 ولا أرصات الآخرين أبدًا
+kill_stack
 
 CLAIMS="$SIM_ART/$RUN_STAMP/sim-claims.json"
 CLAIMS_EXIT=0

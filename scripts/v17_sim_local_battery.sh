@@ -54,6 +54,24 @@ ENVFILE="/tmp/v17-backend.env"
 if [ -x "$ROOT/.venv/bin/python" ]; then PY="$ROOT/.venv/bin/python"
 else PY="/home/z/.venv/bin/python3"; fi
 
+# phase7 (إعادة 7a98a52 — فقدت بإعادة تعيين الصندوق): القتل محصور بالمنافذ.
+# pkill -f "next-server" كان يقتل أي خادم next في الجهاز كله — لوحة المنسق
+# على :3000 وأرصات المنتجات الشقيقة تعمل في نفس الصندوق ولا يجوز لمسها.
+# lsof على منافذ البطارية (3200/8000) فقط: يقتل ما نملكه نحن وحده.
+kill_stack() {
+  local p pids
+  for p in "$FRONT_PORT" "$API_PORT"; do
+    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
+    [ -n "$pids" ] && kill $pids 2>/dev/null || true
+  done
+  sleep 1
+  for p in "$FRONT_PORT" "$API_PORT"; do
+    pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$p" 2>/dev/null || true)
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+  done
+  return 0
+}
+
 # ── 0) الجولة (SIM_ROUND — TTL قائمة السماح يعضّ بها) ─────────────────────
 # round.env (E7) هو المصدر الوحيد للجولة عند الدمج؛ قبل وجوده نثبت v17
 # صريحة. المتغير الخارجي SIM_ROUND إن وُجد يُحترم (تشخيص جولات أخرى).
@@ -67,8 +85,7 @@ fi
 export SIM_ROUND
 
 # ── 1) نظافة البداية ──────────────────────────────────────────────────────
-pkill -f "next-server" 2>/dev/null; pkill -f "next start" 2>/dev/null; pkill -f "uvicorn runner:app" 2>/dev/null
-sleep 1
+kill_stack
 mkdir -p "$DB_DIR" "$EVID"
 rm -f "$SIM_DB" "$SIM_DB"-wal "$SIM_DB"-shm
 rm -rf "$ROOT/fb_dashboard/static/uploads/receipts" 2>/dev/null
@@ -128,20 +145,20 @@ start_front() {
 if [ ! -f .next/BUILD_ID ]; then
   echo "── لا بناء موجود — next build (بالوكيل) ──"
   LOCAL_API_PROXY="http://127.0.0.1:$API_PORT" npm run build > /tmp/v17-next-build.log 2>&1 || {
-    echo "فشل البناء:"; tail -25 /tmp/v17-next-build.log; pkill -f "uvicorn runner:app"; exit 2; }
+    echo "فشل البناء:"; tail -25 /tmp/v17-next-build.log; kill_stack; exit 2; }
 fi
 start_front
 if ! probe_ok; then
   echo "── تحقيق الوكيل فشل (بناء قديم؟) — إعادة بناء ──"
-  pkill -f "next-server" 2>/dev/null; pkill -f "next start" 2>/dev/null; sleep 2
+  kill_stack
   if [ "${SKIP_FRONT_BUILD:-0}" != "1" ]; then
     LOCAL_API_PROXY="http://127.0.0.1:$API_PORT" npm run build > /tmp/v17-next-build.log 2>&1 || {
-      echo "فشل إعادة البناء:"; tail -25 /tmp/v17-next-build.log; pkill -f "uvicorn runner:app"; exit 2; }
+      echo "فشل إعادة البناء:"; tail -25 /tmp/v17-next-build.log; kill_stack; exit 2; }
   fi
   start_front
 fi
 if ! probe_ok; then
-  echo "الوكيل مكسور رغم إعادة البناء — أوقف"; pkill -f "next-server"; pkill -f "next start"; pkill -f "uvicorn runner:app"; exit 2
+  echo "الوكيل مكسور رغم إعادة البناء — أوقف"; kill_stack; exit 2
 fi
 echo "الواجهة جاهزة على :$FRONT_PORT"
 
@@ -255,7 +272,8 @@ fi
 } | tee "$REPORT"
 
 # ── 8) إطفاء نظيف ─────────────────────────────────────────────────────────
-pkill -f "next-server" 2>/dev/null; pkill -f "next start" 2>/dev/null; pkill -f "uvicorn runner:app" 2>/dev/null
+# محصور بالمنافذ (3200/8000) — لا يلمس :3000 ولا أرصات الآخرين أبدًا
+kill_stack
 
 FINAL_EXIT=$(( PW_EXIT | CLAIMS_EXIT ))
 echo "خروج السكربت: $FINAL_EXIT"

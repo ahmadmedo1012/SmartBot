@@ -31,9 +31,18 @@ SK_NEW=$("$PY" -c "import secrets;print(secrets.token_urlsafe(48))")
 CS_NEW=$("$PY" -c "import secrets;print(secrets.token_urlsafe(32))")
 
 # أوقف الخلفية الحالية (تواقيعها كلها بالسر القديم)
-pkill -f "uvicorn runner:app" 2>/dev/null
-for i in $(seq 1 20); do pgrep -f "uvicorn runner:app" >/dev/null 2>&1 || break; sleep 0.5; done
-pkill -9 -f "uvicorn runner:app" 2>/dev/null || true
+# phase8 (إعادة 7a98a52): قتل محصور بالمنفذ (lsof :8000) — pkill -f كان
+# يقتل أي uvicorn runner:app في الجهاز كله (أرصات الآخرين في الصناديق
+# المشتركة). هنا الخلفية فقط: هذا السكربت لا يلمس الواجهة أصلًا.
+pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
+[ -n "$pids" ] && kill $pids 2>/dev/null || true
+for i in $(seq 1 20); do
+  pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
+  [ -z "$pids" ] && break
+  sleep 0.5
+done
+pids=$(lsof -t -TCP -sTCP:LISTEN -i :"$API_PORT" 2>/dev/null || true)
+[ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
 sleep 1
 
 # أعد الإقلاع بنفس القاعدة ونفس FERNet وسر الويبهوك — بأسرار جلسة/كرون مدورة

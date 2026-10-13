@@ -1502,6 +1502,34 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && !rawDepth.includes('245,243,231');
   if (canvasOk) pass += 1;
   else fails.push('r152c canvas lockstep: OrbitScene/HeroDepthLayer literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
+
+  // (9) DASHBOARD CORE cascade (r152d): the thread itself speaks the chat
+  //     grammar — mono HH:MM stamps (timeStamp + title fallback), the ONE
+  //     robot as the page-side tail avatar (last-bubble-of-run), the lime
+  //     dispatch dots while the reply is in flight, and the machine-room
+  //     .sb-trace divider under the topbar on all three core pages.
+  const rawAnalytics = readRaw('../src/app/dashboard/analytics/page.tsx');
+  const msgsCoreOk = rawMsgs.includes('function timeStamp(')
+    && rawMsgs.includes('{timeStamp(msg.created_time)}')
+    && rawMsgs.includes('isLastPageRun')
+    && rawMsgs.includes('<RobotMark state="idle" className="size-5" />')
+    && rawMsgs.includes('sendMut.isPending && (\n                      <div className="flex justify-start">\n                        <span className="sb-typing" aria-hidden="true">')
+    && rawMsgs.includes('جارٍ إرسال الرد…');
+  if (msgsCoreOk) pass += 1;
+  else fails.push('r152d messages: mono HH:MM stamps + page-run robot avatar + lime dispatch dots (.sb-typing) while the reply is in flight');
+
+  const traceOk = rawMsgs.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />')
+    && rawAnalytics.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />')
+    && rawAuto.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />');
+  if (traceOk) pass += 1;
+  else fails.push('r152d topbar trace: the live .sb-trace divider rides under the PageHeader on messages/analytics/autoreply');
+
+  // (10) analytics: the pure-latin numeral displays ride .sb-numerals —
+  //      the peak-hour clock (r152c) + the period-comparison change %.
+  const analyticsNumOk = rawAnalytics.includes('sb-numerals font-heading text-[44px]')
+    && rawAnalytics.includes('sb-numerals font-heading text-2xl font-bold tabular-nums');
+  if (analyticsNumOk) pass += 1;
+  else fails.push('r152d analytics: peak-hour + change% ride the .sb-numerals Grotesk register');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

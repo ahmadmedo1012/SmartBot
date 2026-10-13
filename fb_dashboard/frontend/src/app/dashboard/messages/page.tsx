@@ -29,6 +29,15 @@ function initials(name: string | undefined) {
   return name.split(" ").slice(0, 2).map(s => s[0]).join("").toUpperCase()
 }
 
+/* phase5 r152 — the chat timestamp register: the bubble meta carries the
+ * mono HH:MM stamp (dir="ltr", tabular-nums — the /demo DemoThread twin);
+ * the full Arabic date rides the title tooltip so no information is lost. */
+function timeStamp(t: string | number | Date | null | undefined): string {
+  const d = t == null ? new Date(NaN) : t instanceof Date ? t : new Date(t)
+  if (Number.isNaN(d.getTime())) return ""
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`
+}
+
 
 const FILTERS = [
   { value: "all", label: "الكل" },
@@ -724,6 +733,10 @@ function MessagesView() {
         subtitle="صندوق الوارد الموحد"
         compact
       />
+      {/* phase5 r152 — the circuit-trace divider under the topbar (the
+          machine-room signature; the live lime node = the live 5s thread
+          stream). Static: the offline strip below owns stickiness. */}
+      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* v24-R1 (task 4): slim connectivity strip — sticky directly under the
           compact page header (h-12 = top-12) so it stays visible while the
@@ -1034,6 +1047,15 @@ function MessagesView() {
                       const isPage = msg.is_from_page === true
                       const hasImage = !!msg.attachment_url && msg.attachment_type === "image"
                       const isSticker = !!msg.attachment_url && msg.attachment_type === "sticker"
+                      /* phase5 r152 — the page-side (SmartBot) run carries the
+                         ONE robot avatar on its LAST bubble only (the
+                         messenger tail-avatar pattern: consecutive page
+                         messages group under a single identity mark — the
+                         customer side never gets one, its bubbles are the
+                         contrast). Decorative: aria-hidden, the side + wash
+                         already carry the AI-vs-user distinction. */
+                      const isLastPageRun =
+                        isPage && visibleMessages[i + 1]?.is_from_page !== true
                       /* v23: optimistic rows are stamped with id "optimistic-*";
                          they dim while their POST is in flight so pending vs
                          delivered is distinguishable at a glance. opacity-70 on
@@ -1043,7 +1065,15 @@ function MessagesView() {
                       const isOptimistic =
                         typeof msg.id === "string" && msg.id.startsWith("optimistic-")
                       return (
-                        <div key={msg.id || i} className={`flex ${isPage ? "justify-start" : "justify-end"}`}>
+                        <div key={msg.id || i} className={`flex items-end gap-2 ${isPage ? "justify-start" : "justify-end"}`}>
+                          {isLastPageRun && (
+                            <span
+                              aria-hidden="true"
+                              className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-secondary"
+                            >
+                              <RobotMark state="idle" className="size-5" />
+                            </span>
+                          )}
                           <div className={`max-w-[70%] rounded-xl px-4 py-2.5 text-sm ${
                             isPage ? "bg-muted rounded-ss-sm" : "bg-primary text-primary-foreground rounded-se-sm"
                           } ${isOptimistic && sendMut.isPending ? "opacity-70" : ""}`}>
@@ -1095,14 +1125,37 @@ function MessagesView() {
                             )}
                             {/* v14-E5 (D4 H-05): /70 on the primary bubble measured
                                 3.14:1 — full primary-foreground passes
-                                (4.94:1 dark / 9.02:1 light). */}
-                            <p className={`text-xs mt-1 ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}>
-                              {msg.created_time ? formatDate(msg.created_time) : ""}
+                                (4.94:1 dark / 9.02:1 light).
+                                phase5 r152: the chat register — mono HH:MM
+                                (tabular-nums, dir="ltr" — the /demo
+                                DemoThread twin); the full Arabic date moves
+                                to the title tooltip (zero info lost). */}
+                            <p
+                              className={`font-mono text-xs mt-1 tabular-nums ${isPage ? "text-muted-foreground" : "text-primary-foreground"}`}
+                              dir="ltr"
+                              title={msg.created_time ? formatDate(msg.created_time) : undefined}
+                            >
+                              {timeStamp(msg.created_time)}
                             </p>
                           </div>
                         </div>
                       )
                       })}
+                    {/* phase5 r152 — the dispatch register: while the agent's
+                        reply is in flight (the optimistic bubble dimmed
+                        above), the machine shows the lime thinking dots on
+                        the PAGE side — the same .sb-typing grammar as /demo's
+                        DemoThread and AiSuggestDialog. sr-only text keeps the
+                        live log honest for AT (the bubble itself is already
+                        announced). */}
+                    {sendMut.isPending && (
+                      <div className="flex justify-start">
+                        <span className="sb-typing" aria-hidden="true">
+                          <i /><i /><i />
+                        </span>
+                      </div>
+                    )}
+                    {sendMut.isPending && <p className="sr-only">جارٍ إرسال الرد…</p>}
                   </>
                 )}
                 <div ref={messagesEndRef} />

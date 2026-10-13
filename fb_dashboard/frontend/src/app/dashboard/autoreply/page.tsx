@@ -271,6 +271,10 @@ export default function AutoReplyPage() {
         subtitle="قواعد الرد الآلي وسلوك البوت على التعليقات"
         compact
       />
+      {/* phase5 r152 — the circuit-trace divider under the topbar (the
+          machine-room signature; the live lime node = the automation
+          surface itself). */}
+      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* D4-بند2 (v17-S1) → r131-F8 (task #12): the content column rides the
           canonical 1200 token (was max-w-5xl 1024). */}

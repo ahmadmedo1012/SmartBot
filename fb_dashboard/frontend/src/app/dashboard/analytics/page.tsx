@@ -374,7 +374,11 @@ function PeriodComparisonSection() {
               </p>
             ) : (
               <p
-                className={`text-2xl font-bold tabular-nums flex items-center justify-center gap-1 ${pct > 0 ? "text-success-ink" : pct < 0 ? "text-destructive-ink" : "text-muted-foreground"}`}
+                /* phase5 r152: the change % joins the .sb-numerals register
+                   (pure latin digits — the KpiCard/peak-hour twin on the
+                   petrol cockpit board; the countPhrase cells stay body
+                   font: mixed Arabic text). */
+                className={`sb-numerals font-heading text-2xl font-bold tabular-nums flex items-center justify-center gap-1 ${pct > 0 ? "text-success-ink" : pct < 0 ? "text-destructive-ink" : "text-muted-foreground"}`}
                 dir="ltr"
               >
                 <span aria-hidden="true">{pct > 0 ? "↑" : pct < 0 ? "↓" : "—"}</span>
@@ -420,6 +424,9 @@ export default function AnalyticsPage() {
         subtitle="إحصائيات الأداء"
         compact
       />
+      {/* phase5 r152 — the circuit-trace divider under the topbar (the
+          machine-room signature; the live node = the metrics stream). */}
+      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* r131-F8 (task #12): the full-bleed column → the canonical 1200
           content column (one content-width regime with the rest of the

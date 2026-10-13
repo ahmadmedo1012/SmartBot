@@ -20,7 +20,10 @@ const clicks = [
   { label: "الرسائل", expect: "الرسائل" },
   { label: "الجمهور", expect: "الجمهور" },
   { label: "التحليلات", expect: "التحليلات" },
-  { label: "لوحة البيانات", expect: "لوحة البيانات" },
+  // phase6: the SIDEBAR home label is «لوحة التحكم» (AdminSidebar nav),
+  // while the demo tab HEADER it activates is «لوحة البيانات» (TAB_META
+  // stats title) — label and header intentionally differ.
+  { label: "لوحة التحكم", expect: "لوحة البيانات" },
 ];
 
 let pass = 0;
@@ -41,7 +44,7 @@ for (const c of clicks) {
 await page.getByRole("link", { name: "الرسائل", exact: true }).first().click();
 await page.waitForTimeout(400);
 const hasThread = await page.locator("text=محادثة: أحمد سالم").count();
-await page.getByRole("link", { name: "لوحة البيانات", exact: true }).first().click();
+await page.getByRole("link", { name: "لوحة التحكم", exact: true }).first().click();
 await page.waitForTimeout(400);
 const hasKpis = await page.locator("text=ردود اليوم").count();
 results.push(`${hasThread > 0 ? "PASS" : "FAIL"} replies tab shows chat thread`);

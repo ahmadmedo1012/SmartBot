@@ -12,10 +12,12 @@
 # الخروج: 0 نجاح · 2 فشل إقلاع
 set -uo pipefail
 
-ROOT="/home/z/my-project/SmartBot"
+# phase6 (P6-2-d5): ROOT مشتق من موقع السكربت (كان صلبًا على تخطيط
+# صندوق v15 القديم /home/z/my-project/SmartBot — ميت في أي نسخة أخرى).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_PORT="${V15_SIM_API_PORT:-8000}"
 ENVFILE="${V15_BACKEND_ENV:-/tmp/v15-backend.env}"
-SIM_DB="${V15_SIM_DB:-/home/z/my-project/db/v15-sim.db}"
+SIM_DB="${V15_SIM_DB:-$ROOT/db/v15-sim.db}"
 
 if [ -x "$ROOT/.venv/bin/python" ]; then PY="$ROOT/.venv/bin/python"
 else PY="/home/z/.venv/bin/python3"; fi

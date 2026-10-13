@@ -37,9 +37,13 @@
 #   SKIP_FRONT_BUILD=1      — لا يبني الواجهة (تشخيص فقط)
 set -uo pipefail
 
-ROOT="/home/z/my-project/SmartBot"
+# phase6 (P6-2-d5): ROOT يُشتق من موقع هذا السكربت نفسه — المسار الصلب
+# القديم /home/z/my-project/SmartBot كان تخطيط صندوق v15 فقط؛ أي نسخة
+# مستودع في مكان آخر (مثل /home/z/repos/SmartBot) كانت تموت من السطر
+# الأول. التشغيل من أي مكان: bash scripts/v17_sim_local_battery.sh
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONT="$ROOT/fb_dashboard/frontend"
-DB_DIR="/home/z/my-project/db"
+DB_DIR="$ROOT/db"
 SIM_DB="$DB_DIR/v17-sim.db"
 FRONT_PORT="${V17_SIM_FRONT_PORT:-3200}"
 API_PORT="${V17_SIM_API_PORT:-8000}"

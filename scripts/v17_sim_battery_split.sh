@@ -15,9 +15,11 @@
 #     يُلحق لا يُمسح: PW_LOG_APPEND=1 في الجزء 2).
 set -uo pipefail
 
-ROOT="/home/z/my-project/SmartBot"
+# phase6 (P6-2-d5): ROOT مشتق من موقع السكربت (كان صلبًا على /home/z/
+# my-project/SmartBot — تخطيط صندوق v15 فقط، ميت في أي نسخة مستودع أخرى).
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONT="$ROOT/fb_dashboard/frontend"
-DB_DIR="/home/z/my-project/db"
+DB_DIR="$ROOT/db"
 SIM_DB="$DB_DIR/v17-sim.db"
 FRONT_PORT="${V17_SIM_FRONT_PORT:-3200}"
 API_PORT="${V17_SIM_API_PORT:-8000}"

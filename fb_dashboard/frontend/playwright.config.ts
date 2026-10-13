@@ -52,8 +52,27 @@ export default defineConfig({
     ? {
         webServer: [
           {
-            // canonical local backend (CLAUDE.md §local): repo root + app-dir
-            command: `python3 -m uvicorn runner:app --app-dir fb_dashboard --host 127.0.0.1 --port ${API_PORT}`,
+            // canonical local backend (CLAUDE.md §local): repo root + app-dir.
+            //
+            // phase6 (P6-2-d5) — the bare `python3 -m uvicorn …` command could
+            // NEVER boot in a clean sandbox, for three independent reasons
+            // (each observed live here):
+            //   1. Python deps: system python3 has no fastapi/sqlalchemy — the
+            //      repo venv (.venv/, created via `uv venv` + `uv pip install
+            //      -r requirements.txt`) is preferred when present.
+            //   2. DATABASE_URL hygiene: a leaked sandbox DATABASE_URL (a
+            //      Prisma-style `file:…` URL) is a NON-SQLAlchemy dialect →
+            //      create_async_engine dies at import (`env -u` drops it;
+            //      the app then defaults to sqlite+aiosqlite:///data.db at
+            //      the repo root — schema auto-created + seeded on boot).
+            //   3. config.py fail-fasts: without DEBUG=1 the boot is treated
+            //      as production and an empty SECRET_KEY/CRON_SECRET raises
+            //      at import. DEBUG=1 is the local-dev switch (also relaxes
+            //      the CSRF origin allowlist for localhost — required for
+            //      same-origin proxied /api/* form posts) and FERNET_KEY is
+            //      left empty on purpose: _crypto.py then derives the cipher
+            //      from SECRET_KEY (the documented dev fallback).
+            command: `if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi; exec env -u DATABASE_URL -u DATABASE_POOLED_URL DEBUG=1 SENTRY_DSN=off SENTRY_BOOT_CANARY=off SECRET_KEY=smartbot-e2e-dev-key CRON_SECRET=smartbot-e2e-cron "$PY" -m uvicorn runner:app --app-dir fb_dashboard --host 127.0.0.1 --port ${API_PORT} --timeout-keep-alive 120`,
             cwd: "../..",
             url: `http://127.0.0.1:${API_PORT}/healthz`,
             reuseExistingServer: true,

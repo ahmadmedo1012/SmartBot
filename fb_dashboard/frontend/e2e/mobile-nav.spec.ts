@@ -56,14 +56,17 @@ test('mobile 375px: bottom bar navigates 5 sections + sheet reaches deep section
   await expect(sidebarWrapper).toBeHidden();
 
   // ── 5 sections through the bar (each = 1 tap) ──
+  // phase6 (P6-2-d5): the bar items are now real <Link>s (labels لوحة
+  // التحكم/الرسائل/التحليلات/الإشعارات — the old «الرئيسية» button label
+  // is retired), so the selector targets `a` in the التنقل الرئيسي nav.
   const sections = [
-    { label: 'الرئيسية', url: /\/dashboard$/, name: '02-home' },
+    { label: 'لوحة التحكم', url: /\/dashboard$/, name: '02-home' },
     { label: 'الرسائل', url: /\/dashboard\/messages/, name: '03-messages' },
     { label: 'التحليلات', url: /\/dashboard\/analytics/, name: '04-analytics' },
     { label: 'الإشعارات', url: /\/dashboard\/notifications/, name: '05-notifications' },
   ];
   for (const s of sections) {
-    await page.locator(`nav[aria-label="التنقل الرئيسي"] button:has-text("${s.label}")`).first().click();
+    await page.locator(`nav[aria-label="التنقل الرئيسي"] a:has-text("${s.label}")`).first().click();
     await page.waitForURL(s.url, { timeout: 15_000 });
     await page.waitForTimeout(1200);
     await shot(page, s.name);
@@ -74,7 +77,7 @@ test('mobile 375px: bottom bar navigates 5 sections + sheet reaches deep section
   const sheet = page.locator('[role="dialog"][aria-label="كل الأقسام"]');
   await expect(sheet).toBeVisible({ timeout: 5_000 });
   await shot(page, '06-more-sheet');
-  await sheet.locator('button:has-text("تقويم المحتوى")').first().click();
+  await sheet.locator('a:has-text("تقويم المحتوى")').first().click();
   await page.waitForURL(/\/dashboard\/calendar/, { timeout: 15_000 });
   await page.waitForTimeout(1200);
   await shot(page, '07-calendar-via-sheet');
@@ -82,7 +85,7 @@ test('mobile 375px: bottom bar navigates 5 sections + sheet reaches deep section
   // ── every section label in the sheet matches a reachable route ──
   await page.locator('nav[aria-label="التنقل الرئيسي"] button:has-text("المزيد")').first().click();
   await expect(sheet).toBeVisible({ timeout: 5_000 });
-  const sheetButtons = await sheet.locator('div.grid button').count();
-  expect(sheetButtons, 'all 23 sections in the sheet').toBeGreaterThanOrEqual(22);
+  const sheetButtons = await sheet.locator('div.grid a').count();
+  expect(sheetButtons, 'all 23 sections in the sheet (grid items are Links now)').toBeGreaterThanOrEqual(22);
   await shot(page, '08-full-sheet');
 });

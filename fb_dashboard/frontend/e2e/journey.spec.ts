@@ -46,16 +46,22 @@ test('journey: landing → pricing → register (Arabic) → dashboard → logou
 
   // ── 1. landing ──────────────────────────────────────────────────────
   await page.goto('/');
+  // phase6 (P6-2-d5): the phase5 landing hero is «تعرّف على رفيقك الرقمي
+  // يرد، يفهم، ويشتغل دائماً» — the pre-phase5 h1 «إدارة تفاعل فيسبوك» is
+  // retired (checked live on the dual stack; a11y snapshot in run artifacts).
   await expect(
-    page.getByRole('heading', { level: 1, name: /إدارة تفاعل فيسبوك/ }),
+    page.getByRole('heading', { level: 1, name: /رفيقك الرقمي/ }),
     'landing hero h1 must render on the Next stack',
   ).toBeVisible({ timeout: 20_000 });
   await shot(page, '01-landing');
 
-  // ── 2. pricing via the header nav ───────────────────────────────────
+  // ── 2. pricing — phase5: the landing header nav is journey anchors
+  // (العقل/يومه/المنصّة); the «الخطط والأسعار» link lives in LandingFooter.
   await page.getByRole('link', { name: 'الخطط والأسعار' }).first().click();
+  // phase5: the pricing h1 is «خطط تناسب كل الأحجام» (KineticText);
+  // «خطط الأسعار» demoted to the eyebrow div above it.
   await expect(
-    page.getByRole('heading', { level: 1, name: 'خطط الأسعار' }),
+    page.getByRole('heading', { level: 1, name: 'خطط تناسب كل الأحجام' }),
     'pricing page heading',
   ).toBeVisible({ timeout: 20_000 });
   // plan cards with their subscribe CTAs (اشترك الآن for paid, ابدأ مجاناً for free)

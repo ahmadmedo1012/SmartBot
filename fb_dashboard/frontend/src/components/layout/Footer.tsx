@@ -69,12 +69,12 @@ export function Footer({ className }: FooterProps) {
           <div>
             <h3 className="text-sm font-medium mb-3">روابط سريعة</h3>
             {/* r148 (19-AUDIT-SB SB-D3 — WCAG 2.5.8): the links were bare 20px
-                rows (measured 37×20 at 390) — py-2.5 = the fleet product-footer
+                rows (measured 37×20 at 390) — py-3 = the fleet product-footer
                 link convention (SL footer.tsx) → ~40px targets, zero visual
                 cost beyond honest rhythm. */}
             <div className="space-y-2.5 text-sm text-muted-foreground">
               {QUICK_LINKS.map((link) => (
-                <Link key={link.label} href={link.href} className="flex w-fit items-center py-2.5 hover:text-foreground transition-colors">{link.label}</Link>
+                <Link key={link.label} href={link.href} className="flex w-fit items-center py-3 hover:text-foreground transition-colors">{link.label}</Link>
               ))}
             </div>
           </div>
@@ -83,8 +83,8 @@ export function Footer({ className }: FooterProps) {
             <h3 className="text-sm font-medium mb-3">الخدمات</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
               {SERVICES.map((svc, i) => (
-                svc.href ? <Link key={i} href={svc.href} className="flex w-fit items-center py-2.5 hover:text-foreground transition-colors">{svc.label}</Link>
-                  : <span key={i} className="flex w-fit items-center py-2.5 cursor-default">{svc.label}</span>
+                svc.href ? <Link key={i} href={svc.href} className="flex w-fit items-center py-3 hover:text-foreground transition-colors">{svc.label}</Link>
+                  : <span key={i} className="flex w-fit items-center py-3 cursor-default">{svc.label}</span>
               ))}
             </div>
           </div>
@@ -92,7 +92,7 @@ export function Footer({ className }: FooterProps) {
           <div>
             <h3 className="text-sm font-medium mb-3">تواصل معنا</h3>
             <div className="space-y-2.5 text-sm text-muted-foreground">
-              <a href={`https://wa.me/${waNumber}`} className="flex w-fit items-center gap-2 py-2.5 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
+              <a href={`https://wa.me/${waNumber}`} className="flex w-fit items-center gap-2 py-3 hover:text-foreground transition-colors"><MessageCircle className="size-4" /> واتساب</a>
               <span className="block">دعم فني 24/7</span>
             </div>
           </div>

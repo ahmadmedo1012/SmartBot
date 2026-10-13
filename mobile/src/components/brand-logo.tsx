@@ -15,7 +15,10 @@ import { radius, motion } from '@/constants/theme'
 
 // الملف نفسه المعروض على ويب bot.smart-link.ly في شاشات المصادقة —
 // نسخة بايت-ببايت من fb_dashboard/frontend/public/brand-icon.png.
-const BRAND_ICON = require('../../../assets/images/brand-icon.png')
+/* P6-2-e1R: كان المسار ../../../ (جذر المستودع) — درجة زائدة كسرت
+   حزمة إنتاج أندرويد بالكامل؛ الصحيح من src/components هو ../../
+   إلى mobile/assets. */
+const BRAND_ICON = require('../../assets/images/brand-icon.png')
 
 export interface BrandLogoProps extends Omit<ImageProps, 'source'> {
   /** البجانة المربعة بالبكسل — 64 = بصر الويب (size-16) في بطاقات المصادقة. */

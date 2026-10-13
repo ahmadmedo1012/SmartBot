@@ -19,6 +19,13 @@ These rules are globally active (see `/home/ahmed/.claude/CLAUDE.md`). Reinforce
 SmartBot: Facebook engagement automation platform (FastAPI + Next.js 16).
 Reference architecture: [Smart-Menu](https://github.com/ahmadmedo1012/Smart-Menu) — same cleanliness principles, different backend language.
 
+## Design Canon — «Circuit Petrol» (phase6 truth)
+The shipped identity is **Circuit Petrol**: dark = petrol `#071A21` ground + SIGNAL teal `#17C3A4` (`--primary`, solid only — no gold anywhere) + lime `#C6F24E` **reserved for AI/automation**; light = petrol mist `#EDF6F3` + deep teal `#0C7563`. Type: Space Grotesk (Latin display + `.sb-numerals`), IBM Plex Sans Arabic (body), IBM Plex Mono (machine stamps). Signature motifs: RobotMark (5 states), CircuitTrace, TypingDots, route spine, `.sb-trace-field`. Constitution: `design-system/smartbot/MASTER.md` (petrol, rewritten P6-2-d4); Arabic operational guide: `docs/design-system.md`. The old "Madarek night+gold wins" rule is RETIRED — **the shipped `globals.css` wins any contradiction**. Brand rasters regenerate ONLY via `fb_dashboard/frontend/scripts/p6-regen-brand.mjs` (pixel-verifies zero `#070B16`/gold); root `scripts/gen_icon_set.py` is retired.
+
+**Parity ledger (design-contract pins, `npm run test:parity` in `fb_dashboard/frontend/`):**
+- r127 Madarek rewrite 82→180+ · r152 petrol re-anchor (all 421 pins re-anchored, count unchanged) + r152b/c motif wave · phase6 screen-grammar waves → 465 → **P6-2-d4: 477 GREEN**.
+- Rule: every new grammar/pattern site lands WITH its parity pin in the same commit; zero existing pins weakened.
+
 ## Single Entry Points
 
 ### Backend (Python/FastAPI)

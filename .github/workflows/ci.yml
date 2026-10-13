@@ -111,6 +111,9 @@ jobs:
             timeout -s ABRT 480 pytest -q --cov=fb_dashboard --cov-fail-under=60 2>&1 | tee /tmp/pytest_run.log
           }
           if ! run_suite; then
+            # phase8-fix: نفس حاجز كتابة السباق الذي أدناه — tee قد يؤخر
+            # الأسطر الأخيرة عن لحظة grep.
+            sync; sleep 2
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_run.log; then
               echo "⚠️  pytest failed with the documented StaticPool stranded-transaction flake class — one transparent retry (v13 policy; same-order retry failed identically in the r133 run — if this retry also fails, the reverse-order pass below is the tiebreaker)…"
               run_suite
@@ -123,6 +126,12 @@ jobs:
             timeout -s ABRT 480 pytest -q $(ls tests/test_*.py | sort -r | tr '\n' ' ') 2>&1 | tee /tmp/pytest_rev.log
           }
           if ! run_rev; then
+            # phase8-fix (X140-SB-CI سباق قراءة): تفريغ faulthandler/pytest
+            # يمر عبر أنبوب tee — قُرئت أنماط الفحص قبل كتابة الأسطر الأخيرة
+            # في الملف (لوحظ حيًا في d1d62c9: ❌ بعد 28ms من Timeout بينما
+            # النمطان حاضران في دفّة الإخراج نفسها) فابتلع إعادة المحاولة
+            # الموثقة. حاجز كتابة قبل الفحص يحسم السباق نهائيًا.
+            sync; sleep 2
             if grep -qE "database is locked|cannot commit transaction" /tmp/pytest_rev.log; then
               echo "⚠️  reverse run hit the documented flake class — one transparent retry…"
               run_rev

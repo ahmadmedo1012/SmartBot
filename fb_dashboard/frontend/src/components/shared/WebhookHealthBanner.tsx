@@ -70,7 +70,10 @@ export function WebhookHealthBanner() {
     <div
       role="alert"
       aria-label="تنبيه حالة الويبهوك"
-      className="mx-4 mt-2 rounded-xl border bg-warning/10 border-warning/30 p-3 sm:p-4 md:mx-6"
+      /* phase6 r154 (P6-2-d1) — the warning well rides the SOLID status
+         pastel (r131-F7c fleet ruling; the messages offline strip twin —
+         was the translucent warning/10 wash). */
+      className="mx-4 mt-2 rounded-xl border bg-warning-soft border-warning/30 p-3 sm:p-4 md:mx-6"
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">

@@ -732,11 +732,13 @@ function MessagesView() {
         title="الرسائل"
         subtitle="صندوق الوارد الموحد"
         compact
+        /* phase6 r154 — the circuit-trace divider under the topbar (the
+            machine-room signature; the live lime node = the live 5s thread
+            stream), now the PageHeader's built-in option (was the manual
+            <hr> append of r152d — same DOM/output). Static trace: the
+            offline strip below owns stickiness. */
+        trace
       />
-      {/* phase5 r152 — the circuit-trace divider under the topbar (the
-          machine-room signature; the live lime node = the live 5s thread
-          stream). Static: the offline strip below owns stickiness. */}
-      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* v24-R1 (task 4): slim connectivity strip — sticky directly under the
           compact page header (h-12 = top-12) so it stays visible while the

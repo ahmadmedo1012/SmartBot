@@ -120,10 +120,18 @@ export function SortableTh({
         onClick={() => onToggle(column)}
         aria-label={`ترتيب حسب ${label}${active ? (dir === "asc" ? "، تصاعديًا" : "، تنازليًا") : ""}`}
         className={cn(
-          "inline-flex items-center gap-1 rounded-sm outline-none",
+          "relative inline-flex items-center gap-1 rounded-sm outline-none",
           "hover:text-foreground transition-colors duration-(--t-fast) ease-smooth",
           "focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-card",
-          active && "text-foreground",
+          /* phase6 r154 (P6-2-d1) — the circuit node treatment: a quiet 2px
+           * teal hairline node rides UNDER the sort control (the table
+           * first-cell accent twin: scaleY spring-in, never layout-shifting —
+           * the th's py-3 absorbs it). Hover pre-lights it at half height;
+           * the ACTIVE column lights it full + tints the chevron teal (the
+           * signal register: the sorted axis IS the live circuit). */
+          "after:absolute after:inset-x-1 after:-bottom-1 after:h-0.5 after:rounded-full after:origin-center after:scale-y-0 after:bg-primary/70 after:transition-transform after:duration-(--t-slow) after:ease-spring-soft",
+          "hover:after:scale-y-50",
+          active && "after:scale-y-100 after:bg-primary text-accent-foreground",
         )}
       >
         {label}

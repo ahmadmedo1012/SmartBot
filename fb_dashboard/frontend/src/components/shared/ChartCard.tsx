@@ -5,10 +5,17 @@ import type { LucideIcon } from 'lucide-react';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CircuitTrace } from '@/components/shared/CircuitTrace';
 import { cn } from '@/lib/utils';
 
 /* Ported from Smart-Menu (world-class launch plan v3 §6.2):
- * standard chart wrapper with loading/error/empty/retry states + summary. */
+ * standard chart wrapper with loading/error/empty/retry states + summary.
+ * phase6 r154 (P6-2-d1) — the petrol card grammar: the header title rides
+ * the canonical in-card section-heading rung (.sb-section-title — the
+ * analytics-page twin), the icon tints teal (the signal register — was
+ * generic muted), and the CircuitTrace component paints the card accent
+ * under the header (the machine-room card grammar per CircuitTrace's
+ * docblock: card accents ride the SVG component, quiet teal nodes). */
 
 interface ChartCardProps {
         title: string;
@@ -48,11 +55,11 @@ export function ChartCard({
                                 className
                         )}
                 >
-                        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                                {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" /> : null}
-                                                <h2 className="text-sm font-semibold">{title}</h2>
+                                                {Icon ? <Icon className="size-4 shrink-0 text-accent-foreground" aria-hidden="true" /> : null}
+                                                <h2 className="sb-section-title">{title}</h2>
                                         </div>
                                         {description ? (
                                                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
@@ -60,6 +67,10 @@ export function ChartCard({
                                 </div>
                                 {actions ? <div className="flex flex-wrap items-center gap-1.5">{actions}</div> : null}
                         </div>
+                        {/* phase6 r154 — the circuit-trace card accent (CircuitTrace
+                           divider): the machine-room signature under the header; aria-hidden
+                           decorative geometry. */}
+                        <CircuitTrace className="mb-4 block h-1.5 w-full" />
 
                         {loading ? (
                                 /* r131-F8 (A4 P1-2): the pulse blink → the canonical

@@ -59,10 +59,13 @@ function DialogContent({
         aria-modal="true"
         dir="rtl"
         className={cn(
-          /* Madarek modal-card: solid surface + 1px hairline ring + elev-4
-             (the --shadow-modal recipe) + the copper top hairline
-             (.mdrk-modal-card::before in globals.css — inset-inline 30%,
-             3px, transparent→accent→transparent — the SO recipe verbatim).
+          /* Petrol modal-card (phase6 r154): solid surface + 1px hairline
+             ring + elev-4 (the --shadow-modal recipe) + the CIRCUIT CORNER
+             grammar (.mdrk-modal-card::before/::after in globals.css — the
+             teal signal trace across the top edge with the lime live node
+             at its inline-end terminal, plus L-shaped circuit corner
+             brackets on both top corners; the gold-era copper top hairline
+             is retired).
              r130 (W1-E D-3): radius 20px → 16px (rounded-xl = --r-xl).
              r131-F7 (A4 P2-7, fleet ruling "dialog solid r16 + top hairline
              + 560"): width cap 384px → min(560px,100%) — the canonical

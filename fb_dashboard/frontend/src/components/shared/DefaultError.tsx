@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { RobotMark } from "@/components/shared/RobotMark"
 import { isSentryEnabled } from "@/lib/sentry-config"
-import { TriangleAlert } from "lucide-react"
 import { useEffect } from "react"
 
 /* r131-F7 (A4 P2-8 + A11): the ONE route-boundary error skin, re-based on
@@ -12,9 +12,12 @@ import { useEffect } from "react"
  * rounded-full destructive/10 circle), 18px/600 title, 13px/42ch desc,
  * retry on the sm outline rung. The per-page hand-rolled error blocks and
  * the admin/telegram glass skin retire onto this family (F8 sweep).
- * Behavioral contracts are UNCHANGED (pinned by DefaultError.test.tsx):
- * role=alert, h1 page heading, fixed Arabic copy, digest LTR for support,
- * console + Sentry reporting, #page-content skip-link target. */
+ * phase6 r154 (P6-2-d1): the glyph slot hosts the ONE robot in its error
+ * register (rose glitch visor + rose LED) at the 56px-equivalent footprint
+ * — the machine itself reports the failure. Behavioral contracts are
+ * UNCHANGED (pinned by DefaultError.test.tsx): role=alert, h1 page
+ * heading, fixed Arabic copy, digest LTR for support, console + Sentry
+ * reporting, #page-content skip-link target. */
 export function DefaultError({
   error,
   reset,
@@ -51,9 +54,13 @@ export function DefaultError({
       )}
     >
       <span id="page-content" className="sr-only" tabIndex={-1} />
-      <div className="state-icon" aria-hidden="true">
-        <TriangleAlert />
-      </div>
+      {/* phase6 r154 — the error robot: size-14 (56px) = the .state-icon
+          tile's exact footprint, bare (the rose glitch visor + rose LED
+          carry the destructive register — the machine itself reports the
+          failure). aria-hidden: role=alert + the h1/desc below carry the
+          semantics. The .state-icon svg 24px cap would unreadably shrink
+          the robot, so the tile retires onto the robot footprint. */}
+      <RobotMark state="error" className="size-14 shrink-0" aria-hidden={true} />
       {/* v8-B19: route error boundaries replace the whole page tree, so this
           heading IS the page's h1 (was h2 — no h1 on error screens) */}
       <h1 className="state-title">{title ?? "حدث خطأ غير متوقع"}</h1>

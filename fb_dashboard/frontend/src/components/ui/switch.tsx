@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  *  at 34px AND bled over neighbouring controls (A1 S3 / B4 touch). Visual
  *  track/thumb sizes and the RTL thumb-flip math (v7) are unchanged. */
 export function Switch({
-  checked, onCheckedChange, id, className, size = "default", disabled, ...props
+  checked, onCheckedChange, id, className, size = "default", disabled, traceField, ...props
 }: {
   checked: boolean
   onCheckedChange: (v: boolean) => void
@@ -21,6 +21,12 @@ export function Switch({
   className?: string
   disabled?: boolean
   size?: "sm" | "default"
+  /** phase6 r154 (P6-2-d1) — opt-in .sb-trace-field circuit-board ground on
+   *  the switch's 44px hit box (the field-block grammar, so a switch row can
+   * sit on the same circuit ground as its sibling inputs). OFF by default.
+   *  The button is already positioned (relative); isolate keeps the negative
+   * grid rung scoped to the control. */
+  traceField?: boolean
 }) {
   return (
     <button
@@ -32,6 +38,7 @@ export function Switch({
       disabled={disabled}
       className={cn(
         "peer group/switch relative inline-flex h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent outline-none",
+        traceField && "sb-trace-field isolate",
         "focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
         "aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20",
         "dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",

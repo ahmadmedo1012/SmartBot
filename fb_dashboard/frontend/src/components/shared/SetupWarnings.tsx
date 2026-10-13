@@ -120,10 +120,14 @@ export function SetupWarnings() {
     <div
       role="alert"
       aria-label="تنبيهات الإعداد الناقص"
+      /* phase6 r154 (P6-2-d1) — the warning wells ride the SOLID status
+         pastels (r131-F7c fleet ruling "status = solid pastel" — the last
+         translucent /8,/10 washes retire; the messages offline strip twin)
+         on the petrol ground. */
       className={`mx-4 mt-4 md:mx-6 md:mt-6 rounded-xl border p-3 sm:p-4 space-y-2.5 ${
         critical
-          ? "bg-destructive/8 border-destructive/30"
-          : "bg-warning/10 border-warning/30"
+          ? "bg-destructive-soft border-destructive/30"
+          : "bg-warning-soft border-warning/30"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -144,7 +148,7 @@ export function SetupWarnings() {
         </button>
       </div>
       {warnings.map((w) => (
-        <div key={w.key} className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-lg bg-card/60 border border-border/40 px-3 py-2.5">
+        <div key={w.key} className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-lg bg-card border border-border/40 px-3 py-2.5">
           <div className={`flex items-center gap-2.5 min-w-0 flex-1`}>
             {/* r131-F7c (fleet ruling "status = solid pastel"): the last two
                 /15 icon-well washes → the opaque -soft ground + the AA -ink

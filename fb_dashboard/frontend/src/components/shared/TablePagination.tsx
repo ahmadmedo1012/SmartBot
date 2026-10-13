@@ -10,6 +10,11 @@ import { cn } from "@/lib/utils"
  * audience:229-243, admin/support:478-492).
  *   · buttons 36px (44px touch floor below sm)
  *   · active page = accent-soft ground + primary border + accent-foreground ink
+ *     · phase6 r154 (P6-2-d1): the active page additionally carries the
+ *       circuit node — a 2px teal hairline under the button (scaleY
+ *       spring-in, the SortableTh twin) + the numerals ride the MONO/
+ *       tabular register (IBM Plex Mono — page indices are operational
+ *       codes, the machine-room register; was the sans face).
  *   · disabled step 0.45, ellipsis gap between windows
  */
 
@@ -30,7 +35,7 @@ function pageWindow(page: number, totalPages: number): Array<number | "gap"> {
 /* No explicit ring (double focus indicator) — the ONE global
    :focus-visible outline contract covers these (SO F3 twin). */
 const stepBtn =
-  "inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-[13px] font-semibold transition-[color,background-color,border-color,box-shadow,opacity] duration-(--t-fast) disabled:pointer-events-none disabled:opacity-45 sm:h-9 sm:min-w-9"
+  "relative inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-[13px] font-semibold transition-[color,background-color,border-color,box-shadow,opacity] duration-(--t-fast) disabled:pointer-events-none disabled:opacity-45 sm:h-9 sm:min-w-9"
 
 export function TablePagination({
   page,
@@ -52,7 +57,7 @@ export function TablePagination({
     <div
       className={cn("flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3", className)}
     >
-      <p className="text-xs text-muted-foreground tabular-nums">
+      <p className="text-xs text-muted-foreground font-mono tabular-nums">
         {total} {unitLabel}
       </p>
       <nav aria-label="تصفح الصفحات" className="flex items-center gap-1.5">
@@ -78,11 +83,17 @@ export function TablePagination({
               className={cn(
                 stepBtn,
                 p === page
-                  ? "border border-primary/50 bg-(--accent-soft) text-accent-foreground"
+                  ? cn(
+                      "border border-primary/50 bg-(--accent-soft) text-accent-foreground",
+                      /* phase6 r154 — the circuit node: the active page rides
+                       * the 2px teal hairline (scaleY spring-in; the h-11/h-9
+                       * box absorbs it — zero layout shift). */
+                      "after:absolute after:inset-x-1.5 after:-bottom-0.5 after:h-0.5 after:rounded-full after:origin-center after:scale-y-100 after:bg-primary after:transition-transform after:duration-(--t-slow) after:ease-spring-soft",
+                    )
                   : "border border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
               )}
             >
-              <span className="tabular-nums">{p}</span>
+              <span className="font-mono tabular-nums">{p}</span>
             </button>
           )
         )}

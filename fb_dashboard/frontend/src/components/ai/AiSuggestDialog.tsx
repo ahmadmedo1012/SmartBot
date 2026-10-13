@@ -135,25 +135,45 @@ export function AiSuggestDialog({
           </div>
         ) : (
           <>
+            {/* phase6 r154 — the AI metadata chips: the INTENT chip rides the
+                reserved lime AI register (mono .sb-ai-chip — the autoreply
+                d7704a4 twin: AI metadata = lime mono); sentiment stays the
+                quiet outline badge (text tone, not a machine signal). */}
             {(result?.intent || result?.sentiment) && (
               <div className="flex flex-wrap gap-1.5">
-                {result?.intent && <Badge variant="info" className="text-xs">النية: {result.intent}</Badge>}
+                {result?.intent && (
+                  <span className="sb-ai-chip">
+                    النية: {result.intent}
+                </span>
+                )}
                 {result?.sentiment && <Badge variant="outline" className="text-xs">النبرة: {result.sentiment}</Badge>}
               </div>
             )}
             <ul className="space-y-2" aria-label="الاقتراحات">
               {suggestions.map((s, i) => (
-                <li key={`${i}-${s.slice(0, 12)}`} className="rounded-lg border border-border/70 bg-background p-3 transition-colors hover:border-accent-foreground/40">
-                  <p dir="auto" className="text-sm leading-relaxed">{s}</p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => onInsert(s)}
-                    aria-label={`إدراج الاقتراح ${i + 1} في مسودة الرد`}
-                  >
-                    <TextCursorInput className="size-3" aria-hidden="true" /> إدراج
-                  </Button>
+                /* phase6 r154 — the suggestion rows ride the lime AI register:
+                   a lime circuit node at the reading-start edge (the AI output
+                   mark) + the lime hover hairline; the base surface stays the
+                   quiet petrol card (border-border/70 on background). */
+                <li
+                  key={`${i}-${s.slice(0, 12)}`}
+                  className="rounded-lg border border-border/70 border-s-2 border-s-transparent bg-background p-3 transition-colors hover:border-lime/40 hover:border-s-lime/60"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-lime" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <p dir="auto" className="text-sm leading-relaxed">{s}</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => onInsert(s)}
+                        aria-label={`إدراج الاقتراح ${i + 1} في مسودة الرد`}
+                      >
+                        <TextCursorInput className="size-3" aria-hidden="true" /> إدراج
+                      </Button>
+                    </div>
+                  </div>
                 </li>
               ))}
             </ul>

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { RobotMark, type RobotState } from "@/components/shared/RobotMark"
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
@@ -24,6 +25,15 @@ interface EmptyStateProps {
   iconClassName?: string
   iconBgClassName?: string
   size?: "sm" | "md" | "lg"
+  /* phase6 r154 (P6-2-d1) — the machine grammar: the ONE SmartBot robot
+     (RobotMark) hosts the icon well. `true` = idle (the bot is on duty,
+     waiting — the messages-page grammar); a RobotState pins a register
+     ("greeting" welcomes, "error" = the rose glitch). When neither icon,
+     iconNode nor robot is passed the robot defaults to idle — every
+     icon-less empty state gets the machine for free. Explicit icon /
+     iconNode still win (domain glyphs stay). Decorative by role: the robot
+     renders aria-hidden; title/description carry the semantics. */
+  robot?: boolean | RobotState
 }
 
 const SIZE_MAP = {
@@ -47,14 +57,29 @@ export function EmptyState({
   iconClassName = "text-(color:--c-grey-deep)",
   iconBgClassName = "bg-(--c-grey-bg)",
   size = "md",
+  robot,
 }: EmptyStateProps) {
   const s = SIZE_MAP[size]
+  /* phase6 r154 — the robot register: explicit `robot` wins when no lucide
+   * icon competes; icon-less + robot-less calls fall back to the idle
+   * machine (the default presence). iconNode keeps its precedence over the
+   * auto-robot (messages already passes RobotMark nodes explicitly). */
+  const robotState: RobotState | null =
+    robot === undefined
+      ? (Icon || iconNode) ? null : "idle"
+      : robot === false
+        ? null
+        : robot === true
+          ? "idle"
+          : robot
   return (
     <div className={cn("flex flex-col items-center justify-center text-center px-6", s.wrapper, className)}>
-      {Icon || iconNode ? (
+      {Icon || iconNode || robotState ? (
         <div className={cn("rounded-xl border border-transparent bg-(--c-grey-bg) flex items-center justify-center mb-4", s.iconBg, iconBgClassName)}>
           {Icon ? (
             <Icon className={cn(s.icon, iconClassName)} />
+          ) : robotState ? (
+            <RobotMark state={robotState} className={cn(s.icon, iconClassName)} />
           ) : (
             iconNode
           )}
@@ -100,14 +125,15 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <EmptyState
-      icon={undefined}
-      iconNode={<svg className="size-6 text-destructive-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+      /* phase6 r154 — the error register: the ONE robot in its rose glitch
+       * state (visor + LED go destructive) hosts the destructive-soft well
+       * — the hand-rolled alert-circle glyph retires onto the machine. */
+      robot="error"
       title={title}
       description={message}
       action={onRetry ? { label: "إعادة المحاولة", onClick: onRetry } : undefined}
       className={className}
       iconBgClassName="bg-destructive-soft"
-      iconClassName="text-destructive-ink"
       size={size}
     />
   )

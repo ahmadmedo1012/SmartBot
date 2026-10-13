@@ -178,3 +178,33 @@ describe("KpiCard stretched link (a11y)", () => {
     expect(screen.getByText("99")).toBeInTheDocument()
   })
 })
+
+/* phase6 r154 (P6-2-d1): the petrol tone register — signal/petrol/lime/
+ * foam are the documented vocabulary; the Madarek-era names stay honored
+ * as aliases (same wells, same values — backward compatible). */
+describe("KpiCard petrol tones", () => {
+  type TestTone = "signal" | "petrol" | "lime" | "foam" | "copper" | "sand" | "grey"
+  function wellClasses(tone: TestTone): string {
+    const { container } = render(<KpiCard label="أ" value={1} icon={MessageCircle} tone={tone} />)
+    const well = container.querySelector("div.size-11") as HTMLElement
+    return well.className
+  }
+
+  it("defaults to signal (the teal accent family = the copper slot)", () => {
+    const signal = wellClasses("signal")
+    expect(signal).toContain("bg-(--c-copper-bg)")
+    expect(signal).toContain("text-(--c-copper-ink)")
+  })
+
+  it("aliases the Madarek-era names to the same wells", () => {
+    expect(wellClasses("copper")).toBe(wellClasses("signal"))
+    expect(wellClasses("sand")).toBe(wellClasses("petrol"))
+    expect(wellClasses("grey")).toBe(wellClasses("foam"))
+  })
+
+  it("maps petrol/lime/foam to their petrol families", () => {
+    expect(wellClasses("petrol")).toContain("bg-(--c-sand-bg)")
+    expect(wellClasses("lime")).toContain("bg-(--c-lime-bg)")
+    expect(wellClasses("foam")).toContain("bg-(--c-grey-bg)")
+  })
+})

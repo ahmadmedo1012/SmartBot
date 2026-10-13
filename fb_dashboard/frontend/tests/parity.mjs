@@ -1518,11 +1518,22 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (msgsCoreOk) pass += 1;
   else fails.push('r152d messages: mono HH:MM stamps + page-run robot avatar + lime dispatch dots (.sb-typing) while the reply is in flight');
 
-  const traceOk = rawMsgs.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />')
-    && rawAnalytics.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />')
-    && rawAuto.includes('<hr className="sb-trace" aria-hidden="true" data-live="true" />');
+  /* phase6 r154 (P6-2-d1): the topbar trace moved from the manual per-page
+     <hr> appends to the PageHeader component's built-in `trace` option —
+     the pages pass `trace` and NO standalone .sb-trace <hr> follows the
+     header (the component renders it, output-identical). */
+  const rawHeader = readRaw('../src/components/ui/PageHeader.tsx');
+  const traceOk = rawHeader.includes('trace?: boolean | "static"')
+    && rawHeader.includes('className="sb-trace"')
+    && rawHeader.includes('data-live={trace === true ? "true" : undefined}')
+    && rawMsgs.includes('        trace\n      />')
+    && rawAnalytics.includes('        trace\n      />')
+    && rawAuto.includes('        trace\n      />')
+    && !rawMsgs.includes('<hr className="sb-trace"')
+    && !rawAnalytics.includes('<hr className="sb-trace"')
+    && !rawAuto.includes('<hr className="sb-trace"');
   if (traceOk) pass += 1;
-  else fails.push('r152d topbar trace: the live .sb-trace divider rides under the PageHeader on messages/analytics/autoreply');
+  else fails.push('r152d/r154 topbar trace: the live .sb-trace divider rides under the PageHeader on messages/analytics/autoreply via the component `trace` option (manual appends retired)');
 
   // (10) analytics: the pure-latin numeral displays ride .sb-numerals —
   //      the peak-hour clock (r152c) + the period-comparison change %.
@@ -1530,6 +1541,138 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     && rawAnalytics.includes('sb-numerals font-heading text-2xl font-bold tabular-nums');
   if (analyticsNumOk) pass += 1;
   else fails.push('r152d analytics: peak-hour + change% ride the .sb-numerals Grotesk register');
+}
+
+// ── §r154 — phase6 package 1: the SHARED PRIMITIVES speak the machine ──────
+{
+  /* Self-contained block (own raw readers): pins the P6-2-d1 primitive
+     grammar — the robot states on the shared empty/loading/error states,
+     the petrol circuit modal corners, the KpiCard petrol tone register,
+     the opt-in .sb-trace-field form fields, the circuit table accents,
+     the lime AI suggest register, the ChartCard trace accent and the
+     solid-pastel warning wells. All additive/backward-compatible APIs. */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+  const rawGlobals4 = readRaw('../src/app/globals.css');
+  const rawEmpty = readRaw('../src/components/ui/EmptyState.tsx');
+  const rawSkeleton = readRaw('../src/components/ui/PageSkeleton.tsx');
+  const rawDefError = readRaw('../src/components/shared/DefaultError.tsx');
+  const rawDefLoading = readRaw('../src/components/shared/DefaultLoading.tsx');
+  const rawKpi2 = readRaw('../src/components/shared/KpiCard.tsx');
+  const rawSuggest2 = readRaw('../src/components/ai/AiSuggestDialog.tsx');
+  const rawInput = readRaw('../src/components/ui/input.tsx');
+  const rawTextarea = readRaw('../src/components/ui/textarea.tsx');
+  const rawSelect = readRaw('../src/components/ui/select.tsx');
+  const rawSwitch = readRaw('../src/components/ui/switch.tsx');
+  const rawSortTh = readRaw('../src/components/ui/SortableTh.tsx');
+  const rawPagin = readRaw('../src/components/shared/TablePagination.tsx');
+  const rawChart2 = readRaw('../src/components/shared/ChartCard.tsx');
+  const rawSetup = readRaw('../src/components/shared/SetupWarnings.tsx');
+  const rawWebhook = readRaw('../src/components/shared/WebhookHealthBanner.tsx');
+  const rawToast = readRaw('../src/lib/premium-toast.tsx');
+
+  // (1) the shared state primitives host the ONE robot: EmptyState gains
+  //     the robot prop (idle default on icon-less calls), ErrorState rides
+  //     the error register, DefaultError keeps role=alert with the 56px
+  //     error robot, DefaultLoading/PageSkeleton paint the thinking
+  //     register (spinner retired).
+  const robotStatesOk = rawEmpty.includes('robot?: boolean | RobotState')
+    && rawEmpty.includes('<RobotMark state={robotState} className={cn(s.icon, iconClassName)} />')
+    && rawEmpty.includes('robot="error"')
+    && rawDefError.includes('<RobotMark state="error" className="size-14 shrink-0" aria-hidden={true} />')
+    && rawDefError.includes('role="alert"')
+    && rawDefLoading.includes('<RobotMark state="thinking" className="size-16" aria-hidden={true} />')
+    && rawDefLoading.includes('role="status"')
+    && rawSkeleton.includes('<RobotMark state="thinking" className="size-8 shrink-0" />')
+    && !rawDefLoading.includes('animate-spin');
+  if (robotStatesOk) pass += 1;
+  else fails.push('r154 robot states: EmptyState/DefaultError/DefaultLoading/PageSkeleton host RobotMark (idle/error/thinking), spinner retired');
+
+  // (2) the modal card wears the petrol circuit corners: teal signal trace
+  //     with the lime live node (::before) + L corner brackets (::after);
+  //     the gold-era copper gradient hairline is retired.
+  const modalCornersOk = rawGlobals4.includes('.mdrk-modal-card::before')
+    && rawGlobals4.includes('radial-gradient(2.5px 2.5px at 100% 50%, var(--c-lime-ink), transparent 100%)')
+    && rawGlobals4.includes('radial-gradient(2.5px 2.5px at 0% 50%, var(--primary), transparent 100%)')
+    && rawGlobals4.includes('.mdrk-modal-card::after')
+    && rawGlobals4.includes('--modal-corner: color-mix(in srgb, var(--primary) 55%, transparent)')
+    && rawGlobals4.includes('calc(100% - 18px) 0 / 12px 2px')
+    && !nc(rawGlobals4).includes('background: linear-gradient(90deg, transparent, var(--primary), transparent);\n  border-radius: 0 0 3px 3px;');
+  if (modalCornersOk) pass += 1;
+  else fails.push('r154 modal corners: .mdrk-modal-card = teal trace + lime live node + circuit corner brackets (copper hairline retired)');
+
+  // (3) KpiCard: the petrol tone register — signal/petrol/lime/foam ride
+  //     the petrol families (signal = the teal accent default); the
+  //     Madarek-era names stay honored as aliases (backward compatible).
+  const kpiTonesOk = rawKpi2.includes("| 'signal' | 'petrol' | 'lime' | 'foam'")
+    && rawKpi2.includes("signal:   'bg-(--c-copper-bg) text-(--c-copper-ink)")
+    && rawKpi2.includes("petrol:   'bg-(--c-sand-bg) text-(--c-sand-ink)")
+    && rawKpi2.includes("lime:     'bg-(--c-lime-bg) text-(--c-lime-ink)")
+    && rawKpi2.includes("foam:     'bg-(--c-grey-bg) text-(--c-grey-ink)")
+    && rawKpi2.includes("tone = 'signal'")
+    && rawKpi2.includes('tone?: KpiTone');
+  if (kpiTonesOk) pass += 1;
+  else fails.push('r154 KpiCard tones: petrol semantics (signal/petrol/lime/foam) documented + Madarek names aliased');
+
+  // (4) the opt-in circuit-board form ground: all four field primitives
+  //     expose traceField (input/textarea/select/switch); the CSS paints
+  //     the grid behind content (negative rung, isolated host).
+  const traceFieldOk = rawGlobals4.includes('z-index: -1;') && rawGlobals4.includes('/* z-index: -1')
+    && rawInput.includes('traceField?: boolean')
+    && rawInput.includes('"sb-trace-field relative isolate"')
+    && rawTextarea.includes('traceField?: boolean')
+    && rawTextarea.includes('"sb-trace-field relative isolate"')
+    && rawSelect.includes('traceField?: boolean')
+    && rawSelect.includes('"sb-trace-field isolate"')
+    && rawSwitch.includes('traceField?: boolean')
+    && rawSwitch.includes('"sb-trace-field isolate"');
+  if (traceFieldOk) pass += 1;
+  else fails.push('r154 trace-field: input/textarea/select/switch expose the opt-in .sb-trace-field ground (isolated host, grid behind content)');
+
+  // (5) circuit table accents: the ACTIVE sort column + the ACTIVE page
+  //     ride the 2px teal hairline node (scaleY spring, zero layout shift);
+  //     pagination numerals ride the mono/tabular register.
+  const tableAccentsOk = rawSortTh.includes('after:bg-primary/70 after:transition-transform after:duration-(--t-slow) after:ease-spring-soft')
+    && rawSortTh.includes('active && "after:scale-y-100 after:bg-primary text-accent-foreground"')
+    && rawPagin.includes('after:bg-primary after:transition-transform after:duration-(--t-slow)')
+    && rawPagin.includes('<span className="font-mono tabular-nums">{p}</span>')
+    && rawPagin.includes('text-xs text-muted-foreground font-mono tabular-nums');
+  if (tableAccentsOk) pass += 1;
+  else fails.push('r154 table accents: SortableTh/TablePagination active controls carry the teal circuit node; pagination numerals mono/tabular');
+
+  // (6) AI suggest: the lime register mirrors autoreply — sb-ai-chip on the
+  //     intent chip, lime circuit nodes on the suggestion rows, lime hover.
+  const suggestLimeOk = rawSuggest2.includes('<span className="sb-ai-chip">')
+    && rawSuggest2.includes('bg-lime')
+    && rawSuggest2.includes('hover:border-lime/40')
+    && rawSuggest2.includes('text-lime shrink-0');
+  if (suggestLimeOk) pass += 1;
+  else fails.push('r154 AI suggest: intent chip = sb-ai-chip + lime row nodes + lime hover (the autoreply lime register)');
+
+  // (7) ChartCard: the section-title rung + the CircuitTrace card accent.
+  const chartAccentOk = rawChart2.includes('<h2 className="sb-section-title">{title}</h2>')
+    && rawChart2.includes('<CircuitTrace className="mb-4 block h-1.5 w-full" />')
+    && rawChart2.includes('text-accent-foreground" aria-hidden="true"');
+  if (chartAccentOk) pass += 1;
+  else fails.push('r154 ChartCard: sb-section-title header + CircuitTrace accent + teal icon tint');
+
+  // (8) the warning wells ride the SOLID status pastels (the last
+  //     translucent /8,/10 washes retire — the messages offline strip twin).
+  const wellsOk = rawSetup.includes('"bg-destructive-soft border-destructive/30"')
+    && rawSetup.includes('"bg-warning-soft border-warning/30"')
+    && !rawSetup.includes('bg-destructive/8')
+    && rawWebhook.includes('bg-warning-soft border-warning/30')
+    && !rawWebhook.includes('bg-warning/10');
+  if (wellsOk) pass += 1;
+  else fails.push('r154 warning wells: SetupWarnings/WebhookHealthBanner ride the solid -soft grounds (translucent washes retired)');
+
+  // (9) toast accents: the gift hairline rides the visible signal-teal lit
+  //     grade (was the dark ink grade — near-invisible in dark mode).
+  const toastAccentOk = rawToast.includes('hairline: "var(--c-copper-ink)"')
+    && !rawToast.includes('hairline: "var(--accent-foreground)"');
+  if (toastAccentOk) pass += 1;
+  else fails.push('r154 toast accent: the gift hairline = var(--c-copper-ink) (the visible signal teal)');
 }
 
 // ── report ───────────────────────────────────────────────────────────────────

@@ -22,6 +22,14 @@ interface PageHeaderProps {
   status?: { label: string; tone?: "success" | "warning" | "danger" | "neutral" }
   className?: string
   compact?: boolean
+  /* phase6 r154 (P6-2-d1) — the machine-room topbar signature, built in:
+     the live .sb-trace divider painted UNDER the topbar (the same
+     `<hr class="sb-trace" aria-hidden data-live>` the messages/analytics/
+     autoreply pages appended by hand in r152d — now a component option so
+     every future screen gets the trace for free). `true` = the live node
+     (lime, automation-active); `"static"` = the plain teal trace. Visual
+     result is IDENTICAL to the manual appends it replaces. */
+  trace?: boolean | "static"
 }
 
 /* r131-F7b (A7 Cluster B): status-chip TEXT rides the AA -ink tier in
@@ -44,18 +52,25 @@ export function PageHeader({
   status,
   className,
   compact = false,
+  trace = false,
 }: PageHeaderProps) {
   return (
-    <header
-      className={cn(
-        /* Madarek topbar chrome (§5.6): flat surface + 1px hairline block-end
-           rule — the backdrop-blur glass is retired; elevation is reserved
-           for scrolled topbars (AppShell pattern). r127-F5b: sticky header =
-           the --z-dropdown rung (100) on the canonical ladder. */
-        "sticky top-0 z-(--z-dropdown) border-b border-border bg-background animate-fade-in",
-        className
-      )}
-    >
+    /* phase6 r154: the trace divider renders as the header's NEXT SIBLING
+     (fragment) — byte-identical DOM to the manual per-page appends it
+     replaces (messages/analytics/autoreply r152d): the sticky header keeps
+     its exact 48/56px box (the messages offline strip pins at top-12), and
+     the static trace scrolls with the page exactly as before. */
+    <>
+      <header
+        className={cn(
+          /* Madarek topbar chrome (§5.6): flat surface + 1px hairline block-end
+             rule — the backdrop-blur glass is retired; elevation is reserved
+             for scrolled topbars (AppShell pattern). r127-F5b: sticky header =
+             the --z-dropdown rung (100) on the canonical ladder. */
+          "sticky top-0 z-(--z-dropdown) border-b border-border bg-background animate-fade-in",
+          className
+        )}
+      >
       {/* v24-R2 (B4 P4): fixed h-12/h-14 → min-h on the flex row (the text
           container). The height:100% inner row relied on the fixed parent and
           broke once the parent grew via min-height — the row itself now owns
@@ -140,6 +155,17 @@ export function PageHeader({
           {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
         </div>
       </div>
-    </header>
+      </header>
+      {/* phase6 r154 — the circuit-trace divider under the topbar (the
+          machine-room signature; the live lime node = the live stream on
+          this surface). No data-live when `trace="static"`. */}
+      {trace && (
+        <hr
+          className="sb-trace"
+          aria-hidden="true"
+          data-live={trace === true ? "true" : undefined}
+        />
+      )}
+    </>
   )
 }

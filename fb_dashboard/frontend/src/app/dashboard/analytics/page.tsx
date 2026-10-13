@@ -423,10 +423,12 @@ export default function AnalyticsPage() {
         title="التحليلات"
         subtitle="إحصائيات الأداء"
         compact
+        /* phase6 r154 — the circuit-trace divider under the topbar (the
+            machine-room signature; the live node = the metrics stream),
+            now the PageHeader's built-in option (was the manual <hr>
+            append of r152d — same DOM/output). */
+        trace
       />
-      {/* phase5 r152 — the circuit-trace divider under the topbar (the
-          machine-room signature; the live node = the metrics stream). */}
-      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* r131-F8 (task #12): the full-bleed column → the canonical 1200
           content column (one content-width regime with the rest of the

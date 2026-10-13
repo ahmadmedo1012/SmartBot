@@ -1482,19 +1482,58 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
   .mdrk-night-sky::before { content: none; }
 }
 
-/* ═══ MADAREK MODAL GRAMMAR (§5.10) — the copper top hairline on dialog
-   cards: inset-inline 30%, 3px, transparent→accent→transparent, rounded
-   bottom corners. Consumed by ui/dialog.tsx (.mdrk-modal-card). ═══ */
+/* ═══ MODAL GRAMMAR — petrol circuit corners (phase6 r154, P6-2-d1): the
+   gold-era copper top hairline (inset-inline 30%, 3px,
+   transparent→accent→transparent — the SO recipe) is RETIRED. The modal
+   card now wears the Circuit Petrol signature:
+   · ::before — a teal signal trace across the top edge (inset-inline
+     16%, 2px) with a teal node at the inline-start terminal and the
+     LIME live node at the inline-end terminal (the machine is listening).
+   · ::after — L-shaped circuit corner brackets on BOTH top corners
+     (teal 55%, 12×2 / 2×12 arms hugging the r-xl curve, direction-
+     neutral — both physical corners painted).
+   Consumed by ui/dialog.tsx (.mdrk-modal-card). Token-driven (primary /
+   c-lime-ink); light theme inherits the same tokens at their petrol
+   grades. ═══ */
 .mdrk-modal-card { position: relative; }
 .mdrk-modal-card::before {
   content: '';
   position: absolute;
-  inset-inline: 30%;
+  inset-inline: 16%;
   inset-block-start: 0;
-  block-size: 3px;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-  border-radius: 0 0 3px 3px;
+  block-size: 2px;
+  background:
+    radial-gradient(2.5px 2.5px at 0% 50%, var(--primary), transparent 100%),
+    radial-gradient(2.5px 2.5px at 100% 50%, var(--c-lime-ink), transparent 100%),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 46%, transparent) 24%, color-mix(in srgb, var(--primary) 46%, transparent) 76%, transparent);
+  background-repeat: no-repeat;
   pointer-events: none;
+}
+.mdrk-modal-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  --modal-corner: color-mix(in srgb, var(--primary) 55%, transparent);
+  background:
+    linear-gradient(var(--modal-corner), var(--modal-corner)) 6px 0 / 12px 2px,
+    linear-gradient(var(--modal-corner), var(--modal-corner)) 0 6px / 2px 12px,
+    linear-gradient(var(--modal-corner), var(--modal-corner)) calc(100% - 18px) 0 / 12px 2px,
+    linear-gradient(var(--modal-corner), var(--modal-corner)) calc(100% - 2px) 6px / 2px 12px;
+  background-repeat: no-repeat;
+}
+/* increased OS contrast: the circuit furniture strengthens to solid teal
+   so the corners/trace stay unambiguous. */
+@media (prefers-contrast: more) {
+  .mdrk-modal-card::before {
+    background:
+      radial-gradient(2.5px 2.5px at 0% 50%, var(--primary), transparent 100%),
+      radial-gradient(2.5px 2.5px at 100% 50%, var(--c-lime-ink), transparent 100%),
+      linear-gradient(90deg, transparent, var(--primary) 24%, var(--primary) 76%, transparent);
+    background-repeat: no-repeat;
+  }
+  .mdrk-modal-card::after { --modal-corner: var(--primary); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -1562,6 +1601,11 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
   content: '';
   position: absolute;
   inset: 0;
+  /* z-index: -1 — the grid paints BEHIND the host's in-flow content (label
+     + field) but above the host's own ground; the host is expected to be a
+     stacking context (isolate — see the ui/input traceField contract) so
+     the negative rung never escapes past the field. */
+  z-index: -1;
   pointer-events: none;
   background-image:
     linear-gradient(0deg, color-mix(in srgb, var(--primary) 5%, transparent) 1px, transparent 1px),

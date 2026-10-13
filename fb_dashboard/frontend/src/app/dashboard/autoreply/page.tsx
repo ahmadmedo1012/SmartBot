@@ -270,11 +270,12 @@ export default function AutoReplyPage() {
         title="الردود التلقائية"
         subtitle="قواعد الرد الآلي وسلوك البوت على التعليقات"
         compact
+        /* phase6 r154 — the circuit-trace divider under the topbar (the
+            machine-room signature; the live lime node = the automation
+            surface itself), now the PageHeader's built-in option (was the
+            manual <hr> append of r152d — same DOM/output). */
+        trace
       />
-      {/* phase5 r152 — the circuit-trace divider under the topbar (the
-          machine-room signature; the live lime node = the automation
-          surface itself). */}
-      <hr className="sb-trace" aria-hidden="true" data-live="true" />
 
       {/* D4-بند2 (v17-S1) → r131-F8 (task #12): the content column rides the
           canonical 1200 token (was max-w-5xl 1024). */}

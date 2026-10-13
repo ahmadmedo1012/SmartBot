@@ -31,8 +31,8 @@ import { cn } from "@/lib/utils"
      · 28px pastel well (was 40px alpha wash): --*-soft ground + the
        r131 --*-ink glyph tier (WCAG-pinned both themes). Status channels
        map to their status pastels (mint/yellow/rose/sky — info leaves the
-       gold slab for the canonical sky family); gift keeps the brand gold
-       on the copper pastel pair; logout stays grey.
+       accent family for the canonical sky family); gift rides the
+       signal-teal family on the copper pastel pair; logout stays grey.
      · error/trash (ALERT_ICONS) = MANUAL DISMISS (duration Infinity) —
        madarek doctrine: failures must not vanish unread (A11 SB-4).
      · entrance = the canonical 12px slide+fade @ 240ms decelerate
@@ -73,9 +73,12 @@ const iconConfig: Record<ToastIcon, ToastIconConfig> = {
   warning: { icon: AlertTriangle, well: "bg-warning-soft", ink: "var(--warning-ink)", hairline: "var(--warning)" },
   login: { icon: LogIn, flip: true, well: "bg-success-soft", ink: "var(--success-ink)", hairline: "var(--success)" },
   logout: { icon: LogOut, flip: true, well: "bg-muted", ink: "var(--muted-foreground)", hairline: "var(--border)" },
-  /* gift keeps the brand gold — on the copper pastel pair (soft ground +
-     copper ink) instead of the old alpha slab. */
-  gift: { icon: Gift, well: "bg-(--c-copper-bg)", ink: "var(--c-copper-ink)", hairline: "var(--accent-foreground)" },
+  /* phase6 r154 — the gift hairline rides the SIGNAL TEAL lit grade
+     (--c-copper-ink — the petrol family's visible accent; the copper NAME
+     is Madarek heritage, the VALUE is the teal #17C3A4 family). Was
+     var(--accent-foreground) — the dark ink grade, a near-invisible
+     hairline on the dark toast card. */
+  gift: { icon: Gift, well: "bg-(--c-copper-bg)", ink: "var(--c-copper-ink)", hairline: "var(--c-copper-ink)" },
   refresh: { icon: RefreshCw, well: "bg-info-soft", ink: "var(--info-ink)", hairline: "var(--info)" },
   save: { icon: Save, well: "bg-success-soft", ink: "var(--success-ink)", hairline: "var(--success)" },
   trash: { icon: Trash2, well: "bg-destructive-soft", ink: "var(--destructive-ink)", hairline: "var(--destructive)" },

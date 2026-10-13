@@ -55,10 +55,27 @@ function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: strin
 /* ---------- Canonical pastel-family icon wells (r131-F8) ---------- */
 /* tone → the 9 canonical pastel families (globals.css "9 PASTEL SECTION
  * FAMILIES"); each well = 44px family -bg ground + 1.5px inset family-ink
- * 30% rim + family-ink glyph. Never invent a 10th family. */
-type KpiTone = 'copper' | 'mint' | 'sky' | 'yellow' | 'rose' | 'grey' | 'peach' | 'lavender' | 'sand';
+ * 30% rim + family-ink glyph. Never invent a 10th family.
+ * phase6 r154 (P6-2-d1) — PETROL SEMANTIC NAMES: the Madarek-era tone
+ * names (copper/mint/sky/sand…) stay honored as aliases (backward
+ * compatible), but the petrol register is the documented vocabulary —
+ * the family VALUES were already re-graded to the petrol hue world in
+ * r152, the names now follow:
+ *   signal → the copper slot (IS the signal-teal family #17C3A4 — the
+ *             default accent) · petrol → the sand slot (deep petrol tint)
+ *   lime   → the reserved AI/automation family · foam → the grey slot
+ *             (quiet petrol-grey — the neutral well). */
+type KpiTone =
+  | 'signal' | 'petrol' | 'lime' | 'foam'
+  | 'copper' | 'mint' | 'sky' | 'yellow' | 'rose' | 'grey' | 'peach' | 'lavender' | 'sand';
 
 const TONE_WELL: Record<KpiTone, string> = {
+        /* petrol semantics (r154) — the documented register */
+        signal:   'bg-(--c-copper-bg) text-(--c-copper-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-copper-ink)_30%,transparent)]',
+        petrol:   'bg-(--c-sand-bg) text-(--c-sand-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-sand-ink)_30%,transparent)]',
+        lime:     'bg-(--c-lime-bg) text-(--c-lime-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-lime-ink)_30%,transparent)]',
+        foam:     'bg-(--c-grey-bg) text-(--c-grey-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-grey-ink)_30%,transparent)]',
+        /* Madarek-era names (r131-F8) — aliased, same wells, same values */
         copper:   'bg-(--c-copper-bg) text-(--c-copper-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-copper-ink)_30%,transparent)]',
         mint:     'bg-(--c-mint-bg) text-(--c-mint-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-mint-ink)_30%,transparent)]',
         sky:      'bg-(--c-sky-bg) text-(--c-sky-ink) shadow-[inset_0_0_0_1.5px_color-mix(in_srgb,var(--c-sky-ink)_30%,transparent)]',
@@ -91,7 +108,12 @@ export interface KpiCardProps {
          *  null/undefined renders `fallback` ("—" default) — honest no-data. */
         value: number | string | null | undefined;
         icon: LucideIcon;
-        /** Canonical pastel family for the 44px icon well (r131-F8). Default 'copper' (the accent family). */
+        /** 44px icon-well tone (r131-F8 families). phase6 r154: the petrol
+         *  register is the documented vocabulary — `signal` (default, the
+         *  teal accent family), `petrol` (deep petrol tint), `lime` (the
+         *  reserved AI/automation family), `foam` (quiet petrol-grey).
+         *  The Madarek-era names (copper/mint/sky/…) still map to the same
+         *  wells (aliased, backward compatible). Default 'signal'. */
         tone?: KpiTone;
         /** @deprecated use `tone` — legacy wash override, still honored. */
         iconBg?: string;
@@ -119,7 +141,7 @@ export const KpiCard = memo(function KpiCard({
         label,
         value,
         icon: Icon,
-        tone = 'copper',
+        tone = 'signal',
         iconBg,
         iconColor,
         suffix = '',

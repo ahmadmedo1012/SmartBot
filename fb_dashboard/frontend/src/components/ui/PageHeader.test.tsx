@@ -134,4 +134,37 @@ describe("PageHeader", () => {
 
     expect(container.querySelector("header")).toHaveClass("test-header-extra")
   })
+
+  /* phase6 r154 (P6-2-d1): the built-in topbar trace — the machine-room
+   * signature the messages/analytics/autoreply pages appended by hand in
+   * r152d, now a component option (output-identical, sibling <hr>). */
+  describe("trace option", () => {
+    it("renders no trace divider by default", () => {
+      const { container } = render(<PageHeader title="أ" />)
+
+      expect(container.querySelector("hr.sb-trace")).toBeNull()
+    })
+
+    it("trace=true renders the live .sb-trace hr as the header's next sibling", () => {
+      const { container } = render(<PageHeader title="أ" trace />)
+
+      const trace = container.querySelector("hr.sb-trace") as HTMLElement
+      expect(trace).not.toBeNull()
+      expect(trace).toHaveAttribute("aria-hidden", "true")
+      expect(trace).toHaveAttribute("data-live", "true")
+      // sibling AFTER the sticky header (the r152d manual-append DOM, kept)
+      expect(trace.previousElementSibling?.tagName).toBe("HEADER")
+      // the sticky header itself keeps its exact box (no inner trace)
+      const header = container.querySelector("header") as HTMLElement
+      expect(header.querySelector("hr.sb-trace")).toBeNull()
+    })
+
+    it('trace="static" drops the live node (plain teal trace)', () => {
+      const { container } = render(<PageHeader title="أ" trace="static" />)
+
+      const trace = container.querySelector("hr.sb-trace") as HTMLElement
+      expect(trace).not.toBeNull()
+      expect(trace).not.toHaveAttribute("data-live")
+    })
+  })
 })

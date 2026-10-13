@@ -26,10 +26,15 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   state?: "error" | "success" | "warning"
   /** Icon rendered at the inline-start of the input */
   startIcon?: React.ReactNode
+  /** phase6 r154 (P6-2-d1) — opt-in .sb-trace-field circuit-board ground
+   *  behind the label+field block (the auth-page standalone-card grammar,
+   *  exposed per-field for form-heavy screens). OFF by default — never
+   * forced. The wrapper becomes the positioned isolated host. */
+  traceField?: boolean
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, hint, id, state, startIcon, ...props }, ref) => {
+  ({ className, type, label, error, hint, id, state, startIcon, traceField, ...props }, ref) => {
     const errorId = id ? `${id}-error` : undefined
     const hintId = id ? `${id}-hint` : undefined
     const effectiveState = state ?? (error ? "error" : undefined)
@@ -39,7 +44,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       : effectiveState === "error" ? AlertCircle
       : null
     return (
-      <div className="space-y-1">
+      <div className={cn("space-y-1", traceField && "sb-trace-field relative isolate")}>
         {label && <Label htmlFor={id}>{label}</Label>}
         <div className="relative">
           {startIcon && (

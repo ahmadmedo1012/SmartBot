@@ -22,10 +22,18 @@ import { cn } from "@/lib/utils"
  * value/onChange pass straight through). Option popup chrome is
  * OS-controlled; the option bg is pinned to the popover token where the
  * platform honors it. */
-const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
-  ({ className, children, ...props }, ref) => {
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  /** phase6 r154 (P6-2-d1) — opt-in .sb-trace-field circuit-board ground
+   *  behind the select (the auth-page standalone-card grammar, exposed
+   *  per-field for form-heavy screens). OFF by default — never forced.
+   *  The existing relative wrapper becomes the isolated host. */
+  traceField?: boolean
+}
+
+const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+  ({ className, children, traceField, ...props }, ref) => {
     return (
-      <div className="relative w-full">
+      <div className={cn("relative w-full", traceField && "sb-trace-field isolate")}>
         <select
           ref={ref}
           dir="auto"

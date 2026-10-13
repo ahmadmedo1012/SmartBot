@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { RobotMark } from "@/components/shared/RobotMark"
 
 /* r131-F7 (A4 P1-2 + A11 SB-2, canonical W1-I §3.13): the shape-matched
  * route-fallback skeleton. Every loading.tsx rendered DefaultLoading — an
@@ -42,10 +43,16 @@ export function PageSkeleton({
     >
       <span className="sr-only">جارٍ تحميل الصفحة…</span>
 
-      {/* header bar — the PageHeader anatomy: icon well + title + action chip */}
+      {/* header bar — the PageHeader anatomy: icon well + title + action chip.
+          phase6 r154 (P6-2-d1): the machine grammar — the icon well slot hosts
+          the ONE robot in its thinking register (lime AI scan bar sweeping the
+          visor) so every route fallback says "the machine is working" in the
+          product's own voice. Decorative (aria-hidden by RobotMark's default);
+          the region's sr-only sentence above carries the a11y meaning. The
+          rb-* loop dies under prefers-reduced-motion (globals belt). */}
       <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex items-center gap-3">
-          <Bar className="size-8 rounded-lg" />
+          <RobotMark state="thinking" className="size-8 shrink-0" />
           <Bar className="h-6 w-36 sm:w-48 rounded-md" />
           <Bar className="hidden sm:block h-4 w-24 rounded" />
         </div>

@@ -96,6 +96,51 @@ describe("EmptyState", () => {
     const lg = render(<EmptyState title="ج" size="lg" />)
     expect(lg.container.firstElementChild).toHaveClass("py-20")
   })
+
+  /* phase6 r154 (P6-2-d1): the machine grammar — the ONE robot (RobotMark)
+   * hosts the icon well: idle by default on icon-less calls, a pinned
+   * RobotState when asked, always decorative (aria-hidden) with the
+   * title/description carrying the semantics. */
+  describe("robot register", () => {
+    it("an icon-less call defaults to the idle robot in the well", () => {
+      const { container } = render(<EmptyState title="لا بيانات" />)
+
+      // RobotMark renders inside the petrol well tile at the md size
+      const well = container.querySelector("div.bg-\\(--c-grey-bg\\)") as HTMLElement
+      expect(well).not.toBeNull()
+      const robot = well?.querySelector("svg")
+      expect(robot).not.toBeNull()
+      // decorative: the title/desc carry the meaning
+      expect(robot).toHaveAttribute("aria-hidden", "true")
+      expect(screen.getByText("لا بيانات")).toBeInTheDocument()
+    })
+
+    it("robot=true pins the idle register; an explicit icon still wins", () => {
+      const { container, unmount } = render(<EmptyState title="أ" robot />)
+      // no lucide svg (Star) — the robot svg is the well glyph
+      expect(container.querySelectorAll("svg")).toHaveLength(1)
+      unmount()
+
+      // explicit icon beats the robot (domain glyphs stay)
+      const withIcon = render(<EmptyState icon={Star} title="ب" robot />)
+      const withIconWell = withIcon.container.querySelector("div.bg-\\(--c-grey-bg\\)") as HTMLElement
+      const lucide = withIconWell?.querySelector("svg")
+      expect(lucide).toBeInTheDocument()
+      // one svg in the well — the lucide glyph, not the robot
+      expect(withIconWell?.querySelectorAll("svg")).toHaveLength(1)
+    })
+
+    it('robot="greeting" pins the greeting register (state machine)', () => {
+      const { container } = render(<EmptyState title="أ" robot="greeting" />)
+
+      // the greeting state renders its wave path — presence of any svg
+      // with the state machine is pinned by parity; here we pin the wire:
+      // the robot renders at all and stays decorative
+      const robot = container.querySelector("svg")
+      expect(robot).not.toBeNull()
+      expect(robot).toHaveAttribute("aria-hidden", "true")
+    })
+  })
 })
 
 describe("ErrorState", () => {

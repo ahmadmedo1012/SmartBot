@@ -1,17 +1,20 @@
 /**
- * SmartBot Mobile — Design tokens (Madarek).
+ * SmartBot Mobile — Design tokens (Circuit Petrol).
  *
- * القيم منقولة حرفيًا من نظام تصميم مدارك (tokens.css) عبر نسخة الويب
- * المحوّلة (fb_dashboard/frontend/src/app/globals.css — SoT الشقيقة):
- * ليلي نيلي #070B16 مع ذهبي #E9B44C (dark الافتراضي، مطابق للويب)،
- * ونهاري كريمي #FBFAF9 مع نحاسي #B57438. الخط: IBM Plex Sans Arabic.
+ * القيم منقولة حرفيًا من نظام تصميم الويب (fb_dashboard/frontend/src/app/
+ * globals.css — SoT الشقيقة، سلسلة #071A21): ليلي بترولي #071A21 مع
+ * أزرق-أخضر إشاري #17C3A4 (dark الافتراضي، مطابق للويب)، ونهاري كريمي
+ * مخضرّ #EDF6F3 مع أزرق-أخضر عميق #0C7563. الخط: IBM Plex Sans Arabic
+ * متنًا + Space Grotesk عناوين لاتينية (انظر themed-text) وIBM Plex Mono
+ * للأختام الزمنية.
  *
- * سلّم الألوان dark (أرض < بطاقة < سطح < تعبئة):
- *   #070B16 < #0D1428 < #121A36 — نفس سلم Madarek neutral.
- *   (r130/W1-E M-1: التعديل muted كان #182142 — سطح-3 — درجة أدكن من
- *   الويب؛ صار #121A36 = سطح-2 مطابق للويب.)
- * حالة النصوص اللاتينية داخل الحروف الذهبية: espresso #05070F
- * (Madarek --accent-fg، 10.63:1 على الذهب) — وليس الأبيض.
+ * سلّم الألوان dark (أرض < بطاقة < سطح < خُطّة):
+ *   #071A21 < #0D2830 < #123039 — نفس سلم الويب البترولي
+ *   (الخُطّة/hairline #1D4450 = border).
+ * النص على التعبئة الإشارية: espresso #04231B (--accent-fg في الويب،
+ * ≈7.4:1 على الأزرق-أخضر) — وليس الأبيض.
+ * LIME #C6F24E محجوز لعلامات AI/الآلة فقط (dark) / #5A7A16 (light) —
+ * لا يُستخدم لونًا تفاعليًا أبدًا.
  */
 
 export interface ThemeColors {
@@ -31,89 +34,98 @@ export interface ThemeColors {
   warning: string
   info: string
   destructive: string
-  /** أرضيات الحالة العميقة المعتمة (opaque) — Madarek --c-*-bg */
+  /** أرضيات الحالة العميقة المعتمة (opaque) — الويب --c-*-bg */
   successSoft: string
   warningSoft: string
   infoSoft: string
   destructiveSoft: string
-  /** حجاب النوافذ المنبثقة — Madarek --overlay (داكن 0.62 / فاتح 0.40) */
+  /** حجاب النوافذ المنبثقة — الويب --overlay (داكن 0.62 / فاتح 0.40) */
   scrim: string
   flame: string
   ember: string
   saffron: string
   ash: string
+  /** درجة الضغط للأساسي (--accent-strong في الويب: hover #1FD6B4 ·
+   *  pressed #12A386 — الجوال يستهلك درجة الضغط). */
+  primaryPressed: string
+  /** LIME — علامات AI/الآلة فقط (thinking dots/LED/نبض حي).
+   *  dark #C6F24E (13.8:1 على الأرض البترولية) · light #5A7A16 (AA
+   *  على الكريمي). محجوز — ليس لونًا تفاعليًا أبدًا. */
+  lime: string
 }
 
 export const dark: ThemeColors = {
-  background: '#070B16',
-  surface: '#121A36',
-  card: '#0D1428',
-  foreground: '#F2EFE6',
-  /* r130 (W1-E M-1): #182142 (surface-3) → #121A36 (surface-2) — نفس
-     درجة الويب/Madarek --muted dark. */
-  muted: '#121A36',
-  mutedFg: '#C3C8DC',
-  primary: '#E9B44C',
-  primaryFg: '#05070F',
-  accentFg: '#E9B44C',
-  border: '#1B2444',
-  input: '#7A83A0',
-  placeholder: '#8E97B8',
-  success: '#7FD39A',
-  warning: '#ECC97D',
-  info: '#8FBBF2',
-  destructive: '#F0938F',
-  successSoft: '#0F241C',
-  warningSoft: '#2C2410',
-  infoSoft: '#14213A',
-  destructiveSoft: '#2C1620',
+  background: '#071A21',
+  surface: '#123039',
+  card: '#0D2830',
+  foreground: '#E9F5F0',
+  /* الويب dark --muted = surface-2 #123039 (نفس الدرج). */
+  muted: '#123039',
+  mutedFg: '#9FC3BC',
+  primary: '#17C3A4',
+  primaryFg: '#04231B',
+  accentFg: '#17C3A4',
+  border: '#1D4450',
+  input: '#64949E',
+  placeholder: '#6E938E',
+  success: '#45D6A0',
+  warning: '#F5C46B',
+  info: '#7CC4DE',
+  destructive: '#F2919B',
+  successSoft: '#0C2E24',
+  warningSoft: '#332708',
+  infoSoft: '#10303B',
+  destructiveSoft: '#331821',
   scrim: 'rgba(15, 15, 15, 0.62)',
-  flame: '#E9B44C',
-  ember: '#C9962F',
-  saffron: '#E9B44C',
-  ash: '#C3C8DC',
+  flame: '#17C3A4',
+  ember: '#12A386',
+  saffron: '#17C3A4',
+  ash: '#9FC3BC',
+  primaryPressed: '#12A386',
+  lime: '#C6F24E',
 }
 
 export const light: ThemeColors = {
-  background: '#FBFAF9',
-  surface: '#F7F6F3',
+  background: '#EDF6F3',
+  surface: '#E4F0ED',
   card: '#FFFFFF',
-  foreground: '#191918',
-  muted: '#F1EFEC',
-  mutedFg: '#4F4D48',
-  primary: '#B57438',
-  primaryFg: '#1A0F06',
-  accentFg: '#5C3416',
-  border: '#E9E7E2',
-  input: '#6E6C65',
-  placeholder: '#6E6C65',
-  success: '#4FA66D',
-  warning: '#D6A330',
-  info: '#5C8FCE',
-  destructive: '#DD6E78',
-  successSoft: '#DCF1E2',
-  warningSoft: '#FCF1CD',
-  infoSoft: '#DDEBF7',
-  destructiveSoft: '#FCE0E2',
+  foreground: '#0A242E',
+  muted: '#DAEAE6',
+  mutedFg: '#3A5450',
+  primary: '#0C7563',
+  primaryFg: '#F2FDFA',
+  accentFg: '#085B4C',
+  border: '#CCE0DB',
+  input: '#51736E',
+  placeholder: '#51736E',
+  success: '#2E9E6F',
+  warning: '#C29217',
+  info: '#3E96BC',
+  destructive: '#D95F6C',
+  successSoft: '#D9F3E6',
+  warningSoft: '#FBF1CF',
+  infoSoft: '#DDF0F7',
+  destructiveSoft: '#FCE3E6',
   scrim: 'rgba(15, 15, 15, 0.40)',
-  flame: '#B57438',
-  ember: '#B57438',
-  saffron: '#D6A330',
-  ash: '#4F4D48',
+  flame: '#0C7563',
+  ember: '#095C4C',
+  saffron: '#0B6B5A',
+  ash: '#3A5450',
+  primaryPressed: '#085B4C',
+  lime: '#5A7A16',
 }
 
-/** Radius scale من Madarek: 6/8/10/12/16/20/28 (--r-xs..--r-3xl) */
+/** Radius scale (Madarek): 6/8/10/12/16/20/28 (--r-xs..--r-3xl) */
 export const radius = { xs: 6, sm: 8, md: 10, lg: 12, xl: 16, xxl: 20, xxxl: 28 } as const
 
-/** سلّم المسافات من Madarek --sp (4px ladder: …20/24/32/40).
- *  r130 (W1-E M-2): كانت xxl: 28 و xxxl: 36 — درجتان مخترعتان لا
- *  وجود لهما في السلم المرجعي؛ صارتا 24/32 الكنسيتين. */
+/** سلّم المسافات من --sp (4px ladder: …20/24/32/40). */
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const
 
-/** r130 (W1-E M-3) — العائلات التسع (Madarek tokens.css §1.4 dark /
- *  §2.4 light): أرضية/حبر/غامق لكل عائلة، نفس قيم الويب حرفيًا.
+/** العائلات التسع (الويب globals.css — البلوك البترولي dark/.light):
+ *  أرضية/حبر/غامق لكل عائلة، نفس قيم الويب حرفيًا.
  *  القاعدة: الخلفية من -bg والنص من -deep (AA)؛ -ink للحشو والرسوم
- *  فقط — لا تُخترع عائلة عاشرة أبدًا (MASTER §2.4). */
+ *  فقط — لا تُخترع عائلة عاشرة أبدًا (MASTER §2.4).
+ *  copper = العائلة الإشارية في dark (bg #0A2E28 = accent-soft). */
 export interface PastelFamily {
   /** الأرضية العميقة (dark) / الباستيل (light) */
   bg: string
@@ -128,27 +140,27 @@ export type FamilyName =
   | 'rose' | 'sand' | 'grey' | 'copper'
 
 const DARK_FAMILIES: Record<FamilyName, PastelFamily> = {
-  peach:    { bg: '#2C1A16', ink: '#F2A07F', deep: '#FCD9C4' },
-  mint:     { bg: '#0F241C', ink: '#7FD39A', deep: '#C9EAD3' },
-  lavender: { bg: '#221B3A', ink: '#B7A0F4', deep: '#DCD2F9' },
-  sky:      { bg: '#14213A', ink: '#8FBBF2', deep: '#C9DCEE' },
-  yellow:   { bg: '#2C2410', ink: '#ECC97D', deep: '#F8E5B5' },
-  rose:     { bg: '#2C1620', ink: '#F0938F', deep: '#FACDD2' },
-  sand:     { bg: '#241F14', ink: '#D9C18C', deep: '#EFE2C5' },
-  grey:     { bg: '#161D33', ink: '#A9B0C8', deep: '#D5DAE8' },
-  copper:   { bg: '#2C2312', ink: '#E9B44C', deep: '#F5D48A' },
+  peach:    { bg: '#2A1E1A', ink: '#F2A887', deep: '#F8D9C8' },
+  mint:     { bg: '#0C2E24', ink: '#45D6A0', deep: '#C9EDDB' },
+  lavender: { bg: '#1E2740', ink: '#9FB2E8', deep: '#D8DEF8' },
+  sky:      { bg: '#10303B', ink: '#7CC4DE', deep: '#CDE9F3' },
+  yellow:   { bg: '#332708', ink: '#F5C46B', deep: '#F8E7B8' },
+  rose:     { bg: '#331821', ink: '#F2919B', deep: '#FAD3D7' },
+  sand:     { bg: '#1B3230', ink: '#B9D4C8', deep: '#DDEBE1' },
+  grey:     { bg: '#14262E', ink: '#A3B8BF', deep: '#D8E5E8' },
+  copper:   { bg: '#0A2E28', ink: '#17C3A4', deep: '#A9F0DF' },
 }
 
 const LIGHT_FAMILIES: Record<FamilyName, PastelFamily> = {
-  peach:    { bg: '#FFE9DC', ink: '#E07856', deep: '#6B2D1A' },
-  mint:     { bg: '#DCF1E2', ink: '#4FA66D', deep: '#1F4F30' },
-  lavender: { bg: '#ECE6FA', ink: '#8A6FE0', deep: '#3F2D7A' },
-  sky:      { bg: '#DDEBF7', ink: '#5C8FCE', deep: '#1F3D63' },
-  yellow:   { bg: '#FCF1CD', ink: '#D6A330', deep: '#6B4C0B' },
-  rose:     { bg: '#FCE0E2', ink: '#DD6E78', deep: '#6B2128' },
-  sand:     { bg: '#F1ECDF', ink: '#B59868', deep: '#5A4623' },
-  grey:     { bg: '#EFECE7', ink: '#6B665E', deep: '#2D2A24' },
-  copper:   { bg: '#F4E4D2', ink: '#B57438', deep: '#5C3416' },
+  peach:    { bg: '#FFEDE2', ink: '#DB7B57', deep: '#6B2D1A' },
+  mint:     { bg: '#D9F3E6', ink: '#2E9E6F', deep: '#0F4A33' },
+  lavender: { bg: '#E8ECF9', ink: '#7086D6', deep: '#2D3A7A' },
+  sky:      { bg: '#DDF0F7', ink: '#3E96BC', deep: '#0F3D52' },
+  yellow:   { bg: '#FBF1CF', ink: '#C29217', deep: '#6B4C0B' },
+  rose:     { bg: '#FCE3E6', ink: '#D95F6C', deep: '#6B2128' },
+  sand:     { bg: '#EBF2EC', ink: '#7FA089', deep: '#33523F' },
+  grey:     { bg: '#EAF0F1', ink: '#5F7377', deep: '#2A3A3E' },
+  copper:   { bg: '#D7F3EA', ink: '#0E8A75', deep: '#0A4A3C' },
 }
 
 /** عائلات الأقسام حسب الوضع — استهلاك:
@@ -158,7 +170,7 @@ export const families: Record<'dark' | 'light', Record<FamilyName, PastelFamily>
   light: LIGHT_FAMILIES,
 }
 
-/** سلّم الحركة من Madarek (motion ladder): micro 80 → cinema 720 */
+/** سلّم الحركة (motion ladder): micro 80 → cinema 720 */
 export const motion = {
   micro: 80,
   fast: 160,
@@ -166,34 +178,28 @@ export const motion = {
   slow: 380,
   slower: 520,
   cinema: 720,
-  /** r131 (A4 P2-9): حلقة الدوران القانونية — 700ms خطي
-   *  (Madarek --motion-duration-stat، نفس قيمة الويب). */
+  /** حلقة الدوران القانونية — 700ms خطي (--motion-duration-stat). */
   stat: 700,
-  /** r131: مسح الهيكل العظمي (skeleton shimmer) — 1200ms خطي
-   *  (Madarek/الويب --motion-duration-skeleton). */
+  /** مسح الهيكل العظمي (skeleton shimmer) — 1200ms خطي. */
   skeleton: 1200,
 } as const
 
-/** r131 (F11) — سجل الضغط القانوني (r130 web ruling + SM-mobile r130):
- *  الضغط = تحجيم لا شفافية: زر 0.97 · بطاقة/صف 0.99 · شريط سفلي 0.93،
- *  دخول 80ms (micro) وخروج 160ms (fast) على منحنى التباطؤ
- *  cubic-bezier(0.16,1,0.3,1) — نفس --press-scale/--ease-out في Madarek
- *  tokens.css:163/129. قبل r131 كان الزر opacity 0.85 فقط (سجل لم يهبط
- *  قط رغم ادعاء commit r130). */
+/** سجل الضغط القانوني: الضغط = تحجيم لا شفافية: زر 0.97 · بطاقة/صف
+ *  0.99 · شريط سفلي 0.93، دخول 80ms (micro) وخروج 160ms (fast) على
+ *  منحنى التباطؤ cubic-bezier(0.16,1,0.3,1). */
 export const press = {
   /** أدوات التحكم (أزرار/حبوب/روابط) — --press-scale 0.97 */
   button: 0.97,
-  /** البطاقات والصفوف القابلة للضغط — --state-card-pressed-scale 0.99 */
+  /** البطاقات والصفوف القابلة للضغط — 0.99 */
   card: 0.99,
-  /** الشريط السفلي (bottom-nav) — أعمق درجة، حكم الويب r130 */
+  /** الشريط السفلي (bottom-nav) — أعمق درجة */
   nav: 0.93,
   /** دخول الضغط بالمللي (micro 80) والخروج (fast 160) */
   inMs: motion.micro,
   outMs: motion.fast,
 } as const
 
-/** نقاط منحنى التباطؤ --ease-out (Madarek tokens.css:129) —
- *  يُستهلك Easing.bezier(...EASE_OUT_POINTS). */
+/** نقاط منحنى التباطؤ --ease-out — يُستهلك Easing.bezier(...EASE_OUT_POINTS). */
 export const EASE_OUT_POINTS = [0.16, 1, 0.3, 1] as const
 
 /** مسافات اللمس ≥44px (HIG/Material) */

@@ -86,7 +86,7 @@ export function WalletInstructions({
                   window.location.href = `tel:${encodedUSSD}`
                 }, 150)
               }}
-              className="h-9 px-3 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-medium flex items-center gap-1.5 transition-colors"
+              className="h-11 px-3 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-medium flex items-center gap-1.5 transition-colors"
               title="نسخ الرمز وفتح الاتصال"
             >
               <AnimatedCopy className="size-3.5" />

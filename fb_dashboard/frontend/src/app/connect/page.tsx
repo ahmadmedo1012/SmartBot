@@ -416,7 +416,7 @@ export default function ConnectPage() {
                 <Button
                   variant="outline"
                   /* r131-F7b (A4 P2-5): h-12/rounded-xl overrides → the
-                     canonical ladder (default h-10/13/r-md — was 48px/16px). */
+                     canonical ladder (default h-11/13/r-md — was 48px/16px). */
                   className="flex-1"
                   disabled={status === "testing" || status === "saving"}
                   onClick={handleTest}

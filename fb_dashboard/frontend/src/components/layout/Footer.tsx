@@ -70,7 +70,7 @@ export function Footer({ className }: FooterProps) {
             <h3 className="text-sm font-medium mb-3">روابط سريعة</h3>
             {/* r148 (19-AUDIT-SB SB-D3 — WCAG 2.5.8): the links were bare 20px
                 rows (measured 37×20 at 390) — py-3 = the fleet product-footer
-                link convention (SL footer.tsx) → ~40px targets, zero visual
+                link convention (SL footer.tsx) → ~44px targets, zero visual
                 cost beyond honest rhythm. */}
             <div className="space-y-2.5 text-sm text-muted-foreground">
               {QUICK_LINKS.map((link) => (

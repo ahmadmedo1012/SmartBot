@@ -8,10 +8,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  /* r131-F7 (fleet ruling, R131-W1 "buttons 40/13/600/r10" — A4 P2-5 +
-   * A9 P1-9): re-based on the SO r130 canonical ladder verbatim:
-   *   default 40px (h-10) / 13px / 600 · sm 32px (h-8) / 12px ·
-   *   lg 48px (h-12) / 14px · icon 40px · icon-sm 32px (NEW).
+  /* r150 (§8): default = the family 44px CTA rung (h-11) — the r131
+   * 40px rung retired in sync with SL parity C3 + SO parity r150 pin
+   * (ONE canonical definition, three repositories):
+   *   default 44px (h-11) / 13px / 600 · sm 32px (h-8) / 12px ·
+   *   lg 48px (h-12) / 14px · icon 40px · icon-sm 32px.
+   * History — r131-F7 re-based on the SO r130 ladder verbatim (was
+   * 48/40/56 + a base min-h-11 that overrode every rung).
    * The old 48/40/56 ladder (+ the base min-h-11 that overrode every rung)
    * is retired — one rung chunkier than the whole fleet. Label weight 600,
    * radius r-md 10px, press = scale(0.97) @ 80ms micro (unchanged).

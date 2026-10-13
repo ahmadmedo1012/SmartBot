@@ -985,19 +985,20 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   const rawToast131 = nc(readFileSync(new URL('../src/lib/premium-toast.tsx', import.meta.url), 'utf8'));
   const rawProviders131 = nc(readFileSync(new URL('../src/app/providers.tsx', import.meta.url), 'utf8'));
 
-  // button ladder (fleet ruling 40/13/600, sm 32/12, no base floor).
-  // r134: lg rung re-pinned 44px (h-11) → 48px (h-12) — the madarek canon
-  // (components.css:474 `.btn.lg { block-size: 48px }`); Smart-Menu ships it,
-  // Smart-Order aligned this round. The rung had drifted precisely because
-  // nothing pinned it.
+  // button ladder (family 44/48/52 canon, r150 §8 — the r131 40/13/600
+  // base rung is retired). r134: lg rung re-pinned 44px (h-11) → 48px
+  // (h-12) — the madarek canon (components.css:474 `.btn.lg { block-size:
+  // 48px }`). r150: default re-based h-10 → h-11 (44px) in sync with
+  // Smart-Link parity C3 + Smart-Order parity r150 pin — ONE canonical
+  // definition, three repositories.
   const btnLadder = rawButton131.includes('text-[13px] font-semibold')
     && rawButton131.includes('sm: "h-8 gap-1.5 px-3 text-xs"')
-    && rawButton131.includes('default: "h-10 gap-2 px-5"')
+    && rawButton131.includes('default: "h-11 gap-2 px-5"')
+    && !rawButton131.includes('default: "h-10')
     && rawButton131.includes('lg: "h-12 gap-2.5 px-6 text-sm"')
-    && rawButton131.includes('icon: "size-10"')
-    && !rawButton131.includes('min-h-11');
+    && rawButton131.includes('icon: "size-10"');
   if (btnLadder) pass += 1;
-  else fails.push('r131 button: ladder must be 40/13/600 (sm h-8/12, lg h-12/48px canon, icon size-10) with NO base min-h-11 floor');
+  else fails.push('r150 button: ladder must be 44/48/52 (default h-11/44px canon — the h-10 rung is retired; sm h-8/12, lg h-12/48px canon, icon size-10)');
   const btnHover = rawButton131.includes('hover:-translate-y-[2px]') && rawButton131.includes('hover:shadow-(--shadow-card-h)');
   if (btnHover) pass += 1;
   else fails.push('r131 button: filled-CTA hover must be -2px lift + the premium --shadow-card-h (was -1px + shadow-md)');

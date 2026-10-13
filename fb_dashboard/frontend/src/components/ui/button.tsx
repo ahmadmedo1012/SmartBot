@@ -52,7 +52,11 @@ const buttonVariants = cva(
       },
       size: {
         sm: "h-8 gap-1.5 px-3 text-xs",
-        default: "h-10 gap-2 px-5",
+        /* r150 (§8): default = the family 44px CTA rung (h-11) — the
+           r131 h-10 40px rung retired in sync with Smart-Link's
+           inner-page canon and Smart-Order's Button (SL parity C3 +
+           SO parity r150 pin the same 44/13/600/r10 contract). */
+        default: "h-11 gap-2 px-5",
         lg: "h-12 gap-2.5 px-6 text-sm",
         icon: "size-10",
         "icon-sm": "size-8",

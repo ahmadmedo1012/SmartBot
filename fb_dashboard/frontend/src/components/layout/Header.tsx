@@ -223,7 +223,7 @@ export function Header({ className }: HeaderProps) {
                       href={link.href}
                       aria-current={linkActive ? "page" : undefined}
                       className={cn(
-                        "relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-(--t-fast) rounded-full",
+                        "relative z-10 px-4 py-3 text-sm font-medium transition-colors duration-(--t-fast) rounded-full",
                         linkActive ? "text-primary-foreground" : "text-foreground/70 hover:text-foreground"
                       )}
                     >

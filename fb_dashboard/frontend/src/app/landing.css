@@ -139,7 +139,10 @@
 .landing .ln-mono {
   font-family: var(--ln-mono);
   font-size: 12px;
-  letter-spacing: 0.08em;
+  /* r150: the Arabic-tracking law («never track Arabic», globals) reaches
+     the landing sheet — the mono runs carry Arabic copy (hero tagline,
+     follow-the-companion). Tracking survives only on pure-Latin runs. */
+  letter-spacing: 0;
   color: var(--ln-cream-dim);
   font-variant-numeric: tabular-nums;
   direction: ltr;
@@ -154,7 +157,8 @@
   font-family: var(--ln-mono);
   font-size: 12px;
   font-weight: var(--fw-medium);
-  letter-spacing: 0.08em;
+  /* r150: chapter labels carry Arabic («01 — …») — tracking law wins. */
+  letter-spacing: 0;
   color: var(--ln-lime);
   font-variant-numeric: tabular-nums;
   direction: inherit;
@@ -454,7 +458,8 @@
   padding: 9.4px 24px;
   font-size: 15px;
   min-block-size: 48px;
-  letter-spacing: 0.01em;
+  /* r150: the ghost label is Arabic («جرّب البوت الآن») — 0 tracking. */
+  letter-spacing: 0;
   background: transparent;
   color: var(--ln-cream);
   /* GAP-3: the old 0.14 hairline read as a disabled field — the pill
@@ -867,7 +872,7 @@
   transition: color var(--ln-t-fast) var(--ln-ease-soft);
 }
 .landing .ln-hero-scroll:hover { color: var(--ln-cream); }
-.landing .ln-hero-scroll .ln-mono { font-size: 11.5px; letter-spacing: 0.22em; }
+.landing .ln-hero-scroll .ln-mono { font-size: 11.5px; letter-spacing: 0; } /* r150: pure Arabic content — tracking law */
 .landing .ln-hero-scroll-line {
   inline-size: 1px;
   block-size: 42px;
@@ -2095,7 +2100,7 @@
   pointer-events: none;
 }
 .landing .ln-day-body { min-inline-size: 0; }
-.landing .ln-day-pose { font-size: 11px; letter-spacing: 0.14em; color: var(--ln-bot-amber); }
+.landing .ln-day-pose { font-size: 11px; letter-spacing: 0; color: var(--ln-bot-amber); } /* r150: Arabic pose copy — tracking law */
 .landing .ln-day-title {
   margin: var(--sp-2) 0 0;
   font-size: clamp(19px, 2.1vw, 24px);
@@ -2207,7 +2212,7 @@
   .landing .ln-mind-chip { padding: 8px 12px; font-size: 12px; }
   .landing .ln-trust-value { font-size: 17px; }
   .landing .ln-product-window.w2 { margin-block-start: 0; }
-  .landing .ln-companion-hud .ln-mono { font-size: 9px; letter-spacing: 0.08em; }
+  .landing .ln-companion-hud .ln-mono { font-size: 9px; letter-spacing: 0; } /* r150: POSE_COPY is Arabic — tracking law */
 }
 
 /* ── 17g · reduced-motion off-switches — the §17 verbs, explicitly ─────

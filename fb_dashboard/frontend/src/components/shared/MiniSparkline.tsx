@@ -53,8 +53,14 @@ export function MiniSparkline({
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className={cn("shrink-0", className)} role="img" aria-label={isUp ? "اتجاه صاعد" : "اتجاه هابط"}>
       <defs>
+        {/* P6-2-d4 (gold-literal hunt): the area wash is a tint of the
+            TREND color itself (25% → 0). The top stop was a raw gold-hue
+            oklch literal (L 0.72, C 0.14, H 75) — a Madarek-gold value that
+            survived the hex greps because oklch spells it differently; an
+            amber wash under a petrol/teal card is off-canon. The gradient
+            id still flips with the trend direction (up: mint, down: rose). */}
         <linearGradient id={`spark-${width}-${isUp ? "up" : "dn"}`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="oklch(0.72 0.14 75)" stopOpacity={0.25} />
+          <stop offset="0%" stopColor={trendColor} stopOpacity={0.25} />
           <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
         </linearGradient>
       </defs>

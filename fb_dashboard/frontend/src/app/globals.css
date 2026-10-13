@@ -1614,7 +1614,16 @@ html.light .mdrk-night-sky::before, .light .mdrk-night-sky::before { content: no
   mask-image: radial-gradient(75% 65% at 50% 40%, #000 0%, transparent 100%);
   -webkit-mask-image: radial-gradient(75% 65% at 50% 40%, #000 0%, transparent 100%);
 }
-html.light .sb-trace-field::before { opacity: 0.6; }
+/* Light grade (P6-2-d4 light-leftover fix): the 5% teal mix that reads on
+   the petrol washes to near-nothing on white — the grid re-grades to a 12%
+   mix at 70% opacity so the trace chrome SURVIVES the mist ground (the
+   dark keeps the quiet 5%/0.6 register; both stay decorative-only). */
+html.light .sb-trace-field::before {
+  opacity: 0.7;
+  background-image:
+    linear-gradient(0deg, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px);
+}
 @media (prefers-contrast: more) {
   .sb-trace-field::before { content: none; }
 }
@@ -1657,6 +1666,30 @@ html.light .sb-trace-field::before { opacity: 0.6; }
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--ls-normal);
+}
+
+/* conversation initials avatar — the hue-identity tile (v15-E6 recipe),
+   re-graded per theme (P6-2-d4 light-leftover fix). The hue keeps the
+   per-conversation identity in BOTH grades; only the grade flips:
+   dark  = hsl(h 45% 32%) ground + white ink (v15-E6 measured: ≥4.75:1
+           for every hue, worst 60) — unchanged;
+   light = the petrol pastel grade of the SAME hue — hsl(h 42% 90%) wash
+           + hsl(h 45% 24%) deep ink (measured ≥6.36:1 for every hue,
+           worst 60) — the night-grade 32% circles were a dark-mode
+           artifact on the mist ground. Consumers set --sb-hue inline
+           (a hue angle, not a color) and keep their own sizing/ring. */
+.sb-initials {
+  background: hsl(var(--sb-hue) 45% 32%);
+  color: white;
+}
+html.light .sb-initials {
+  background: hsl(var(--sb-hue) 42% 90%);
+  color: hsl(var(--sb-hue) 45% 24%);
+}
+@media (prefers-contrast: more) {
+  /* high-contrast: solid neutral grades, hue de-emphasized for legibility */
+  .sb-initials { background: var(--foreground); color: var(--background); }
+  html.light .sb-initials { background: var(--foreground); color: var(--background); }
 }
 
 /* AI/automation badge grammar — lime ink on the deep olive wash, mono

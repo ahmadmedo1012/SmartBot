@@ -2017,6 +2017,73 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('r154d legal chrome: the sb-trace divider rides under the display header on /terms and /privacy (prose verbatim)');
 }
 
+// ── §p6d4 — phase6 (P6-2-d4): the identity CLOSES — petrol rasters, SSOT docs ──
+//    truth + the light-grade leftovers ─────────────────────────────────────────
+{
+  /* Self-contained block (own raw readers): pins the P6-2-d4 closure package —
+     the conversation initials avatar re-graded per theme (.sb-initials: dark =
+     the v15-E6 hue recipe, light = the petrol pastel of the SAME hue), the
+     «مباشر» live label on the status-as-text -ink tier, the trace-field light
+     grade that actually carries the circuit chrome on white, the sparkline
+     area wash as a trend-color tint (the gold-hue oklch literal retired), and
+     the SSOT docs telling the Circuit Petrol truth (MASTER + Arabic guide;
+     the "Madarek wins" ruling retired with them). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const rawMessages = readRaw('../src/app/dashboard/messages/page.tsx');
+  const rawSpark = readRaw('../src/components/shared/MiniSparkline.tsx');
+  const rawGlobals = readRaw('../src/app/globals.css');
+  const rawMaster = readRaw('../../../design-system/smartbot/MASTER.md');
+  const rawGuide = readRaw('../../../docs/design-system.md');
+
+  // (1) both messages avatar sites (conversation list + thread header) ride
+  //     .sb-initials via the --sb-hue angle — the inline background hsl pair
+  //     is gone; the globals class owns the dark grade (45%/32% + white,
+  //     v15-E6) AND the light pastel grade (42%/90% wash + 24% ink).
+  const initialsOk = (rawMessages.match(/sb-initials /g) || []).length >= 2
+    && rawMessages.includes('"--sb-hue": ((conv.senders?.[0]?.name || "").length * 37) % 360')
+    && rawMessages.includes('"--sb-hue": (threadIdentity.length * 37) % 360')
+    && !rawMessages.includes('style={{ background: `hsl(')
+    && rawGlobals.includes('.sb-initials {\n  background: hsl(var(--sb-hue) 45% 32%);\n  color: white;\n}')
+    && rawGlobals.includes('html.light .sb-initials {\n  background: hsl(var(--sb-hue) 42% 90%);\n  color: hsl(var(--sb-hue) 45% 24%);\n}');
+  if (initialsOk) pass += 1;
+  else fails.push('p6d4 initials: both messages avatars ride .sb-initials (--sb-hue) — dark keeps the v15-E6 grade, light gets the petrol pastel of the same hue');
+
+  // (2) the live «مباشر» label rides the status-as-text -ink tier (r131-F7
+  //     fleet law) instead of generic muted grey — mint in dark, mint-deep
+  //     (a petrol light grade) in light.
+  const liveOk = rawMessages.includes('text-xs text-success-ink">مباشر');
+  if (liveOk) pass += 1;
+  else fails.push('p6d4 live badge: the «مباشر» label rides text-success-ink');
+
+  // (3) the trace-field light grade actually carries the circuit chrome: the
+  //     5% teal mix washed to nothing on white — light re-grades to a 12% mix
+  //     at 70% opacity (dark keeps the quiet 5%/0.6 register).
+  const traceLightOk = rawGlobals.includes('html.light .sb-trace-field::before {')
+    && (rawGlobals.match(/color-mix\(in srgb, var\(--primary\) 12%, transparent\) 1px, transparent 1px\)/g) || []).length >= 2;
+  if (traceLightOk) pass += 1;
+  else fails.push('p6d4 trace-field light: the light grade re-mixes to 12% @ 0.7 so the trace chrome survives the mist ground');
+
+  // (4) the sparkline area wash is a tint of the TREND color itself — the
+  //     gold-hue oklch(0.72 0.14 75) top stop (a Madarek literal that
+  //     survived every hex grep) is retired.
+  const sparkOk = rawSpark.includes('<stop offset="0%" stopColor={trendColor} stopOpacity={0.25} />')
+    && !rawSpark.includes('stopColor="oklch(');
+  if (sparkOk) pass += 1;
+  else fails.push('p6d4 sparkline: the area gradient rides trendColor tints — no gold-hue oklch literals');
+
+  // (5) the SSOT docs tell the petrol truth: the MASTER constitution and the
+  //     Arabic operational guide declare Circuit Petrol + the ONE raster
+  //     generator; the "Madarek wins" ruling is retired.
+  const docsOk = rawMaster.includes('# Design System Master File — SmartBot (Circuit Petrol)')
+    && !rawMaster.includes('Madarek wins')
+    && rawMaster.includes('p6-regen-brand.mjs')
+    && rawGuide.includes('Circuit Petrol')
+    && rawGuide.includes('p6-regen-brand.mjs')
+    && !rawGuide.includes('مدارك (المرجع الكانوني');
+  if (docsOk) pass += 1;
+  else fails.push('p6d4 docs truth: MASTER.md + docs/design-system.md declare the Circuit Petrol SSOT (Madarek-wins ruling retired)');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

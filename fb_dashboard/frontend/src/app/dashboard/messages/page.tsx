@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
+import type { CSSProperties } from "react"
 import { useSearchParams } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, ApiError } from "@/lib/csrf-client"
@@ -120,10 +121,14 @@ function ConvItem({ conv, selectedId, onSelect }: {
               (computed hsl→sRGB→WCAG across all 360; worst case is hue 60,
               best 12.02:1 at hue 240) — AA for normal text while keeping the
               per-conversation hue identity. A fixed token gradient was
-              rejected: accent-foreground + white measures only 3.77:1 dark. */}
+              rejected: accent-foreground + white measures only 3.77:1 dark.
+              P6-2-d4 (light leftover): the tile now rides .sb-initials — the
+              dark grade is the exact same v15-E6 recipe, and light re-grades
+              to the petrol pastel of the SAME hue (hsl 42%/90% wash + 24% ink,
+              ≥6.36:1 all hues) instead of the night-grade circles. */}
           <div
-            className="size-11 rounded-full flex items-center justify-center text-white font-bold text-sm ring-2 ring-card transition-transform duration-(--t-fast) group-hover:scale-105"
-            style={{ background: `hsl(${((conv.senders?.[0]?.name || "").length * 37) % 360}, 45%, 32%)` }}
+            className="sb-initials size-11 rounded-full flex items-center justify-center font-bold text-sm ring-2 ring-card transition-transform duration-(--t-fast) group-hover:scale-105"
+            style={{ "--sb-hue": ((conv.senders?.[0]?.name || "").length * 37) % 360 } as CSSProperties}
           >
             {/* r127-F5a: senders?.[0]?.name is string | undefined — the
                 initials() param is widened to match (its !name guard already
@@ -775,14 +780,18 @@ function MessagesView() {
                   dot says so right beside the search. bg-success is the house
                   green token (PageHeader/badge family), animate-pulse-dot is
                   the existing globals keyframe (same cue as the unread dot),
-                  and RTL flex order puts it at the row start. */}
+                  and RTL flex order puts it at the row start.
+                  P6-2-d4 (light leftover): the label rides the status-as-text
+                  -ink tier (r131-F7 fleet law) — mint #45D6A0 in dark,
+                  mint-deep #0F4A33 in light (a petrol light grade) instead
+                  of generic muted grey. */}
               <span
                 role="status"
                 aria-label="تحديث لحظي كل ثوانٍ"
                 className="flex items-center gap-1.5 shrink-0"
               >
                 <span className="size-1.5 rounded-full bg-success animate-pulse-dot" aria-hidden="true" />
-                <span className="text-xs text-muted-foreground">مباشر</span>
+                <span className="text-xs text-success-ink">مباشر</span>
               </span>
               <div className="relative flex-1">
                 <Search className="absolute start-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -945,13 +954,15 @@ function MessagesView() {
                   <DirectionalIcon semanticDirection="back" variant="chevron" className="size-5" />
                 </Button>
                 {/* v24-R1 (task 3): avatar initials tile — the same 45%/32%
-                    hue recipe as ConvItem (contrast-pinned in v15-E6); 36px
-                    keeps the row compact; aria-hidden because the name sits
-                    right beside it (no double announcement). */}
+                    hue recipe as ConvItem (contrast-pinned in v15-E6; P6-2-d4:
+                    now rides .sb-initials so light gets the petrol pastel
+                    grade of the same hue); 36px keeps the row compact;
+                    aria-hidden because the name sits right beside it (no
+                    double announcement). */}
                 <div
                   aria-hidden="true"
-                  className="size-9 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
-                  style={{ background: `hsl(${(threadIdentity.length * 37) % 360}, 45%, 32%)` }}
+                  className="sb-initials size-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+                  style={{ "--sb-hue": (threadIdentity.length * 37) % 360 } as CSSProperties}
                 >
                   {initials(threadIdentity)}
                 </div>

@@ -271,7 +271,7 @@ const STATUS_DARK = {
 const STATUS_LIGHT = {
   '--success': '#2E9E6F', '--success-foreground': '#04231B',
   '--success-soft': '#D9F3E6',
-  '--warning': '#C29217', '--warning-soft': '#FBF1CF',
+  '--warning': '#B08210', '--warning-soft': '#FBF1CF',
   '--info': '#3E96BC', '--info-soft': '#DDF0F7',
   '--destructive': '#D95F6C', '--destructive-foreground': '#04231B',
   '--destructive-soft': '#FCE3E6',

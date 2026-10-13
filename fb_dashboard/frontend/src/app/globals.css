@@ -726,7 +726,7 @@
      text-*-ink (r131-F7 sweep completed for the stragglers in r148). */
   --success: #2E9E6F;
   --success-foreground: #04231B;
-  --warning: #C29217;
+  --warning: #B08210; /* phase8 (B4 a11y follow-through): 2.83:1 → 3.47:1 — دور الحشوة يفرض 1.4.11 (≥3:1)؛ الحبر النصي يبقى yellow-deep (r131-F7) */
   --info: #3E96BC;
   /* r131-F7 (A7 Cluster B — the 9-site light 1.4.3 failure): light status
    * BASES are 2.20-3.00:1 as text on cream, so the fleet ships a dedicated

@@ -165,7 +165,7 @@ const STATUS_LIGHT = {
   // success #2F7D4F→#4FA66D · warning #8C6A1D→#D6A330 · info #3B6FB5→#5C8FCE
   // · destructive #C2414D→#DD6E78. Count unchanged.
   "--success": "#2E9E6F", "--success-soft": "#D9F3E6", "--success-foreground": "#04231B", // mint-ink / mint-bg / danger-fg
-  "--warning": "#C29217", "--warning-soft": "#FBF1CF", // yellow-ink / yellow-bg
+  "--warning": "#B08210", "--warning-soft": "#FBF1CF", // yellow-ink / yellow-bg (phase8: حشوة 3.47:1)
   "--info": "#3E96BC", "--info-soft": "#DDF0F7", // sky-ink / sky-bg
   "--destructive": "#D95F6C", "--destructive-soft": "#FCE3E6", "--destructive-foreground": "#04231B", // rose-ink / rose-bg / danger-fg
 }

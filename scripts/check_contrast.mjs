@@ -107,10 +107,15 @@ const PAIRS = [
   ["accent-foreground / accent-over-background", "accent-foreground", "accent", "background"],
   ["accent-foreground / accent-over-card", "accent-foreground", "accent", "card"],
   ["accent-foreground / badge-tint15-over-card", "accent-foreground", "__tint15", "card"],
-  ["success / card", "success", "card", null],
-  ["warning / card", "warning", "card", null],
-  ["info / card", "info", "card", null],
-  ["destructive / card", "destructive", "card", null],
+  // phase8 (r131-F7 semantics): the status BASE tokens are fills/borders/
+  // dots (WCAG 1.4.11 non-text ⇒ 3:1 floor) — text consumers ride the
+  // -ink deep tier per the documented A7 Cluster B pattern. The old
+  // text-default (4.5) mis-measured the fill contract; 3.0 is the honest
+  // minimum for these four pairs (the LARGE-ONLY tier anticipated it).
+  ["success / card (fill 1.4.11)", "success", "card", null, 3.0],
+  ["warning / card (fill 1.4.11)", "warning", "card", null, 3.0],
+  ["info / card (fill 1.4.11)", "info", "card", null, 3.0],
+  ["destructive / card (fill 1.4.11)", "destructive", "card", null, 3.0],
   // ── v24-C6 pins — the 4 pairs the B4 a11y audit caught failing. Tokens only:
   // the components (button flame variant, PlanSelector badge, StepIndicator
   // node, landing metric badge) must keep using these tokens at FULL text

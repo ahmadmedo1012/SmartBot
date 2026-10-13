@@ -9,6 +9,10 @@ import { AppText } from '@/components/themed-text'
 import { PressableScale } from '@/components/pressable-scale'
 import { Spinner } from '@/components/spinner'
 
+// ختم زمني/رقمي (Plex Mono · tnum · LTR + عنوان عربي اختياري) —
+// وكلاء الشاشات يستوردونه من هنا أو من mono-stamp مباشرة.
+export { MonoStamp, type MonoStampProps } from '@/components/mono-stamp'
+
 // ── Card ────────────────────────────────────────────────────────────────
 export function Card({ style, ...rest }: ViewProps) {
   const { colors } = useTheme()

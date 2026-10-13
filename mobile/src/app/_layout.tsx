@@ -4,8 +4,10 @@
  * - RTL عربي أولًا: كتابة الإعداد الأصلي قبل أي رسم + بوابة ensureRTL
  *   (نمط المالك) تضمن اتجاه RTL صحيحًا من أول فتح بعد تثبيت نظيف —
  *   ليس من الفتح الثاني كما كان قبل الإصلاح.
- * - الخطوط: IBM Plex Sans Arabic 400/500/600/700 — نفس هوية الويب
- *   (Madarek: بلا 800 وبلا أوزان أخف من 400).
+ * - الخطوط (عقد البترول الدائري — مثل الويب بالضبط):
+ *   IBM Plex Sans Arabic 400/500/600/700 متنًا وعناوين عربية،
+ *   Space Grotesk 500/600/700 للعناوين اللاتينية (أرقام/أسماء)،
+ *   IBM Plex Mono 400/500 للأختام الزمنية والأرقام الجدولية.
  * - المزودات: QueryClient (نفس مكتبة الويب) + AuthProvider.
  */
 import { I18nManager } from 'react-native'
@@ -13,13 +15,22 @@ import { useEffect, useState } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { useFonts } from 'expo-font'
 import {
-  useFonts,
   IBMPlexSansArabic_400Regular,
   IBMPlexSansArabic_500Medium,
   IBMPlexSansArabic_600SemiBold,
   IBMPlexSansArabic_700Bold,
 } from '@expo-google-fonts/ibm-plex-sans-arabic'
+import {
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk'
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+} from '@expo-google-fonts/ibm-plex-mono'
 import * as SplashScreen from 'expo-splash-screen'
 import { dark } from '@/constants/theme'
 import { queryClient } from '@/lib/query-client'
@@ -42,6 +53,11 @@ function AppShell() {
     IBMPlexSansArabic_500Medium,
     IBMPlexSansArabic_600SemiBold,
     IBMPlexSansArabic_700Bold,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
   })
 
   // بوابة RTL: لا نرسم أي شاشة قبل حسم الاتجاه. إن قررت البوابة إعادة

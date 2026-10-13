@@ -2,6 +2,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* build-note(r153): intentional content bump to bust a stale Vercel/Turbopack
+ * persistent-cache chunk that served the pre-phase5 compiled globals. */
+
 /*
  * ═══════════════════════════════════════════════════════════════════
  * PHASE 5 · r152 — CIRCUIT PETROL: THE FRIENDLY MACHINE

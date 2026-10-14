@@ -58,7 +58,7 @@ export function ProductSection() {
             <div className="ln-pp-head">
               <MessageSquare size={14} aria-hidden="true" />
               <span>صندوق الوارد الموحّد</span>
-              <span className="ln-pp-badge">٣ محادثات جديدة</span>
+              <span className="ln-pp-badge">3 محادثات جديدة</span>
             </div>
             <ul className="ln-pp-rows">
               {INBOX_ROWS.map((r) => (
@@ -95,7 +95,7 @@ export function ProductSection() {
             <div className="ln-pp-head">
               <LineChart size={14} aria-hidden="true" />
               <span>التحليلات والأداء</span>
-              <span className="ln-pp-badge">٧ أيام</span>
+              <span className="ln-pp-badge">7 أيام</span>
             </div>
             <div className="ln-pp-bars" aria-hidden="true">
               {ANALYTICS_BARS.map((h, i) => (

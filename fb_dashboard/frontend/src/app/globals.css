@@ -445,37 +445,36 @@
   --neutral-800: #CFE5DF;  /* (was absent) */
   --neutral-900: #E9F5F0;  /* ink */
 
-  /* ── BRAND SOLID — the canonical Madarek --accent family (tokens.css
-       §1.5) under the fleet port names: solid #E9B44C on the مدارك
-       night; text on gold = --accent-fg #05070F (10.6:1, measured).
-       r129 (audit §4): SmartBot was the only Smart repo without the
-       named family — the values existed only as scattered carriers. ── */
+  /* ── BRAND SOLID — the --accent family, Circuit Petrol values (phase5
+       r152): solid #17C3A4 signal teal on the petrol night; text on teal
+       = --accent-fg #04231B (7.44:1, measured). r129 lineage (audit §4):
+       SmartBot was the only Smart repo without the named family — the
+       values existed only as scattered carriers; the r152 identity moved
+       the family from Madarek gold to signal teal. ── */
   --accent-solid: #17C3A4;
   --accent-hover: #1FD6B4;
-  --accent-soft: #0A2E28;      /* = the copper family ground (--c-copper-bg) */
-  --accent-strong: #12A386;    /* the strong gold — focus metal, 7.87:1 */
-  --accent-ink: #17C3A4;       /* accent as TEXT (10.39:1 on night) */
+  --accent-soft: #0A2E28;      /* deep teal wash — the soft-hover/tint ground (same value as the legacy-named --c-copper-bg) */
+  --accent-strong: #12A386;    /* the strong teal — focus metal, 5.61:1 on the night ground */
+  --accent-ink: #17C3A4;       /* accent as TEXT (7.96:1 on the petrol night) */
   --accent-fg: #04231B;        /* text ON an accent fill */
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
   /* r130 (W1-H FLEET-1 decision — true-parity option): dark --ring = the
-     CANONICAL cascade #E9B44C. Madarek's dark focus contract resolves
-     --state-focus-ring-color through var(--accent) — the SOLID gold —
-     (tokens.css:543, unified-smart-parity.css:226); only the LIGHT ring
-     is accent-strong #5C3416. The r129 "strong gold #C9962F" fleet fork
-     rendered every night-mode focus outline one shade darker than
-     madarek's own UI. #E9B44C measures 10.39:1 on the night ground —
-     the AA contract holds with margin. SmartBot spells the solid as
+     CANONICAL cascade var(--accent-solid) — SmartBot's dark focus
+     contract resolves through the SOLID accent, one vocabulary with
+     --primary. The signal-teal ring measures 7.96:1 on the petrol night
+     ground — the AA contract holds. SmartBot spells the solid as
      --accent-solid (product-semantics bridge). */
   --ring: var(--accent-solid);
 
-  /* ── ACCENT — faint 15% gold hint for soft hovers/tints (oklch of
-       #E9B44C so the measured-contrast gate can parse/composite it). ── */
+  /* ── ACCENT — faint 15% signal-teal hint for soft hovers/tints (oklch of
+       #17C3A4 so the measured-contrast gate can parse/composite it). ── */
   --accent: oklch(0.7314 0.1342 175.5 / 0.15);
-  /* --accent-foreground = Madarek --accent-ink dark (= --accent-solid
-     #E9B44C), oklch spelling: gold as TEXT (8.1-10.4:1 on every real
-     composite — accent tint, 15% tint, card, background). oklch form so
-     the measured-contrast gate can composite the badge-tint pairs. */
+  /* --accent-foreground = --accent-ink dark (= --accent-solid
+     #17C3A4), oklch spelling: signal teal as TEXT (7.96:1 on the petrol
+     night — AA with margin on every real composite: accent tint, 15%
+     tint, card, background). oklch form so the measured-contrast gate can
+     composite the badge-tint pairs. */
   --accent-foreground: oklch(0.7314 0.1342 175.5);
 
   --secondary: #123039;
@@ -565,12 +564,16 @@
   /* Madarek modal scrim (dark 0.62) — §5.10. */
   --overlay: rgba(15, 15, 15, 0.62);
 
-  /* Gold/copper heat ramp (dark) — Madarek accent CTA metal. r129: the
-     ramp's roles are the --accent family members: ember = --accent-strong
-     #C9962F, saffron/flame = --accent-solid #E9B44C, espresso =
-     --accent-fg #05070F (kept as literals — the measured-contrast gate
-     parses this block). MEASURED (WCAG 1.4.3): espresso on ember 7.56:1,
-     on saffron 10.63:1 — AA on every gradient stop. */
+  /* Signal-teal heat ramp (dark) — the Circuit Petrol accent metal
+     (phase5 r152; the r129 lineage built this ramp as the Madarek
+     gold/copper CTA gradient before the identity flip). The ramp's roles
+     are the --accent family members: ember = --accent-strong #12A386,
+     saffron/flame = --accent-solid #17C3A4, espresso = --accent-fg
+     #04231B (kept as literals — the measured-contrast gate parses this
+     block). MEASURED (WCAG 1.4.3): espresso on ember 5.24:1, on
+     saffron 7.44:1 — AA on every gradient stop. The mist rungs
+     (ash/ash-dim/ash-pale) and the night ground carry the quiet
+     surfaces; basil is the mint sibling, bloom the rose alert. */
   --c-ember: #12A386;
   --c-flame: #17C3A4;
   --c-ash: #9FC3BC;
@@ -583,14 +586,13 @@
   --c-bloom: #F2919B;
   --image-shimmer: rgba(0, 0, 0, 0.30);
 
-  /* r129 (token-matrix SB fixes) — canonical brand aliases, Madarek
-     values: --gold = the canonical gold rung (dark: the accent-solid
-     gold; light: the yellow-ink gold #D6A330 — see the .light override);
-     --gold-soft = the yellow family ground; --brand-purple = the
-     lavender-ink chain; --text-on-accent = the fleet product bridge to
-     --accent-fg (canonical #FFFFFF applies only when the light primary
-     is the night ink — the products' light primary is copper, so text
-     on it is the deep accent-fg #1A0F06, documented intentional). */
+  /* r129 (token-matrix SB fixes) — canonical brand aliases, Circuit
+     Petrol values: --gold = the accent-solid signal teal (the NAME is
+     the fleet legacy spelling; the VALUE is teal — see the .light
+     override, which points at the light teal rung #0E8A75);
+     --gold-soft = the soft teal wash (--c-copper-bg — legacy family
+     name, deep teal value); --brand-purple = the lavender-ink chain;
+     --text-on-accent = the fleet product bridge to --accent-fg. */
   --gold: var(--accent-solid);
   --gold-soft: var(--c-copper-bg);
   --brand-purple: var(--c-lavender-ink);
@@ -675,29 +677,30 @@
   --neutral-800: #243634;
   --neutral-900: #0A242E;
 
-  /* ── BRAND SOLID — the light half of the canonical --accent family
-       (Madarek tokens.css §1.5 light): solid = copper #B57438; hover =
-       the deep hover copper #9A5F25 (was absent from the entire sheet —
-       r129); text on copper = --accent-fg #1A0F06 (4.95:1, measured —
-       Madarek's own .btn.accent light pairing). ── */
+  /* ── BRAND SOLID — the light half of the --accent family, Circuit
+       Petrol values (phase5 r152): solid = deep teal #0C7563 (5.10:1 on
+       the mint ground, 5.61:1 on card — measured); hover = the deeper
+       teal #0A6656; text on teal = --accent-fg #F2FDFA (5.40:1,
+       measured). ── */
   --accent-solid: #0C7563;
   --accent-hover: #0A6656;
-  --accent-soft: #D7F3EA;      /* = the copper family ground (--c-copper-bg) */
-  --accent-strong: #085B4C;    /* copper-deep — focus metal, 10.29:1 */
-  --accent-ink: #085B4C;       /* accent as TEXT on cream (10.29:1) */
+  --accent-soft: #D7F3EA;      /* mint wash — the soft-hover/tint ground (same value as the legacy-named --c-copper-bg) */
+  --accent-strong: #085B4C;    /* deep teal ink — focus metal, 7.31:1 on the mint ground */
+  --accent-ink: #085B4C;       /* accent as TEXT on mint (7.31:1 ground / 8.04:1 card) */
   --accent-fg: #F2FDFA;
   --primary: var(--accent-solid);
   --primary-foreground: var(--accent-fg);
-  /* Madarek light focus ring: accent-strong #5C3416 (10.29:1) — r129:
-     points at the named family member. (r130 FLEET-1: only the DARK ring
-     moved to the solid accent; the light cascade was already canonical.) */
+  /* Light focus ring: accent-strong #085B4C (7.31:1 on the mint ground) —
+     r129: points at the named family member. (r130 FLEET-1: only the DARK
+     ring moved to the solid accent; the light cascade was already
+     canonical.) */
   --ring: var(--accent-strong);
 
-  /* ── ACCENT — faint 12% copper hint (oklch of #B57438). ── */
+  /* ── ACCENT — faint 12% deep-teal hint (oklch of #0C7563). ── */
   --accent: oklch(0.5041 0.0909 176.6 / 0.12);
-  /* Madarek --accent-ink light = copper-deep #5C3416 (oklch form — the
+  /* --accent-ink light = the deep teal #085B4C (oklch form — the
      contrast gate composites the badge tints from these channels):
-     10.29:1 on cream, ≥8.2:1 on every tint composite — AA with margin. */
+     7.31:1 on the mint ground, 8.04:1 on card — AA with margin. */
   --accent-foreground: oklch(0.4223 0.0763 175.9);
 
   --secondary: #E4F0ED;

@@ -115,6 +115,28 @@ def tripoli_date(dt: datetime) -> date:
     return (_naive_utc(dt) + TRIPOLI_UTC_OFFSET).date()
 
 
+def day_expr(col, session):
+    """Portable DATE truncation for aggregation columns (v9-A1 pattern).
+
+    P10-3: the shared seam for the whole ``cast(col, Date)`` family (was
+    duplicated in pdf_reports_engine / dashboard_stats — analytics_engine,
+    routers/analytics and widgets_routes still called ``cast`` directly).
+    ``cast(col, Date)`` is correct on PostgreSQL, but SQLite has no DATE
+    type: ``CAST(... AS DATE)`` falls to NUMERIC affinity and mangles the
+    stored ISO string into a bare integer (e.g. 2026) — SQLAlchemy's Date
+    result processor then raises ``TypeError: fromisoformat: argument
+    must be str`` on row fetch (the P10-VERIFY recorded local-dev 500 on
+    /dashboard/analytics; Postgres production is unaffected). ``func.date()``
+    is the correct SQLite spelling and yields 'YYYY-MM-DD'.
+    """
+    from sqlalchemy import Date, cast, func
+
+    bind = getattr(session, "bind", None)
+    if bind is not None and bind.dialect.name == "sqlite":
+        return func.date(col)
+    return cast(col, Date)
+
+
 # r137 (ليبي أولاً): التوأم البايثوني لـ frontend/src/lib/phone.ts (منقول
 # r133 A12 S10 عن Smart-Order lib/phone.ts) — الخادم يطبّق نفس العقد الذي
 # يطبّقه العميل قبل الإرسال، فلا يمرّ رقم غير ليبي إلى سجلات الدفع.

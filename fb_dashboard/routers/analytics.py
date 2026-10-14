@@ -6,12 +6,12 @@ import logging
 from datetime import timedelta
 
 from _responses import ok
-from _utils import iso_z, tripoli_day_start, utcnow
+from _utils import day_expr, iso_z, tripoli_day_start, utcnow
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 from models import AISuggestion, Message, Reply, Rule, ScheduledPost, User
-from sqlalchemy import Date, cast, desc, func, select, text
+from sqlalchemy import desc, func, select, text
 
 from routers.auth import get_current_user, require_platform_admin, require_role
 
@@ -38,20 +38,23 @@ async def analytics_overview(days: int = Query(30, ge=1, le=365), db=Depends(get
     ) or 0
 
     # Daily breakdown
+    # P10-3: day_expr — SQLite func.date() / PostgreSQL CAST (cast(col, Date)
+    # crashed local-dev SQLite: "fromisoformat: argument must be str").
+    day = day_expr(Reply.created_at, db)
     daily_rows = await db.execute(
-        select(cast(Reply.created_at, Date).label("d"), func.count(Reply.id).label("cnt"))
+        select(day.label("d"), func.count(Reply.id).label("cnt"))
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(cast(Reply.created_at, Date)).order_by(cast(Reply.created_at, Date))
+        .group_by(day).order_by(day)
     )
     daily = {str(row[0]): row[1] for row in daily_rows if row[0]}
 
     # Hourly heatmap data
     hourly_rows = await db.execute(
         select(func.extract("hour", Reply.created_at).label("h"),
-               cast(Reply.created_at, Date).label("d"),
+               day.label("d"),
                func.count(Reply.id).label("cnt"))
         .where(Reply.tenant_id == _tid, Reply.created_at >= cutoff)
-        .group_by(text("h"), cast(Reply.created_at, Date))
+        .group_by(text("h"), text("d"))
     )
     heatmap = {}
     for row in hourly_rows:

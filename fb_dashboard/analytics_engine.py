@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
-from _utils import iso_z, tripoli_day_start, utcnow
+from _utils import day_expr, iso_z, tripoli_day_start, utcnow
 from models import AISuggestion, Conversation, Customer, Message, Reply, Rule, Subscriber
-from sqlalchemy import Date, and_, cast, desc, extract, func, select, text
+from sqlalchemy import and_, desc, extract, func, select, text
 
 log = logging.getLogger("fb-analytics")
 
@@ -118,24 +118,29 @@ class AnalyticsEngine:
     async def get_daily_trend(self, days: int, session, tenant_id: int = 0) -> list[dict]:
         """Daily reply count for the last ``days``, ordered ascending."""
         cutoff = self._cutoff(days)
+        # P10-3: day_expr — SQLite func.date() / PostgreSQL CAST (same seam
+        # as dashboard_stats._day_expr; cast(col, Date) raised
+        # "fromisoformat: argument must be str" on SQLite row fetch).
+        day = day_expr(Reply.created_at, session)
         rows = await session.execute(
             select(
-                cast(Reply.created_at, Date).label("d"),
+                day.label("d"),
                 func.count(Reply.id).label("cnt"),
             )
             .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
-            .group_by(cast(Reply.created_at, Date))
-            .order_by(cast(Reply.created_at, Date))
+            .group_by(day)
+            .order_by(day)
         )
         return [{"date": str(row.d), "replies": row.cnt} for row in rows]
 
     async def get_hourly_heatmap(self, days: int, session, tenant_id: int = 0) -> list[dict]:
         """Hour-of-day × day-of-week heatmap cells."""
         cutoff = self._cutoff(days)
+        day = day_expr(Reply.created_at, session)
         rows = await session.execute(
             select(
                 extract("hour", Reply.created_at).label("h"),
-                cast(Reply.created_at, Date).label("d"),
+                day.label("d"),
                 func.count(Reply.id).label("cnt"),
             )
             .where(Reply.tenant_id == tenant_id, Reply.created_at >= cutoff)
@@ -180,17 +185,18 @@ class AnalyticsEngine:
     ) -> list[dict]:
         """Sentiment distribution over time from ``AISuggestion`` rows."""
         cutoff = self._cutoff(days)
+        day = day_expr(AISuggestion.created_at, session)
         rows = await session.execute(
             select(
-                cast(AISuggestion.created_at, Date).label("d"),
+                day.label("d"),
                 AISuggestion.sentiment,
                 func.count(AISuggestion.id).label("cnt"),
             )
             .where(AISuggestion.tenant_id == tenant_id, AISuggestion.created_at >= cutoff)
             .group_by(
-                cast(AISuggestion.created_at, Date), AISuggestion.sentiment
+                day, AISuggestion.sentiment
             )
-            .order_by(cast(AISuggestion.created_at, Date))
+            .order_by(day)
         )
         trend: dict[str, dict] = {}
         for row in rows:

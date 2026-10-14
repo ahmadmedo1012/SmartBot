@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from _responses import ok
 from _services import get_ai, log
-from _utils import iso_z, utcnow
+from _utils import day_expr, iso_z, utcnow
 from database import get_db
 from fastapi import APIRouter, Depends, Query
 from models import AISuggestion, BotLog, Reply, ReplyTemplate, Rule, User
@@ -84,16 +84,16 @@ async def widget_sentiment_trend(days: int = Query(7, ge=1, le=90), db=Depends(g
     """Sentiment distribution over time.
 
     v24-R3 (M3): days bounded 1..90 (was unbounded — same class as
-    response-time above)."""
+    response-time above).
+    P10-3: day_expr — SQLite func.date() / PostgreSQL CAST."""
     _tid = current_user._tenant_id
-    from sqlalchemy import Date
-    from sqlalchemy import cast as sql_cast
     cutoff = utcnow() - timedelta(days=days)
+    day = day_expr(AISuggestion.created_at, db)
     rows = await db.execute(
-        select(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date).label("d"), func.count(AISuggestion.id))
+        select(AISuggestion.sentiment, day.label("d"), func.count(AISuggestion.id))
         .where(AISuggestion.tenant_id == _tid, AISuggestion.created_at >= cutoff)
-        .group_by(AISuggestion.sentiment, sql_cast(AISuggestion.created_at, Date))
-        .order_by(sql_cast(AISuggestion.created_at, Date))
+        .group_by(AISuggestion.sentiment, day)
+        .order_by(day)
     )
     trend = {}
     for row in rows:

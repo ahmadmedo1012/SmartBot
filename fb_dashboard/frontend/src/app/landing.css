@@ -2827,9 +2827,11 @@ html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 
 /* the chamfered card — the landing's card law: 45° cut on the leading
    corner, thin border, flat dark wash, no radius. Applied to the mind
    threads (the landing's card family) — internal app routes keep their
-   own system. */
+   own system. The radius rung is overridden (not deleted) so the pinned
+   r-2xl rule above stays the historical record. */
 .landing .ln-mind-thread {
   border: 1px solid var(--ln-line-soft);
+  border-radius: 0;
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
 
@@ -2837,6 +2839,7 @@ html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 
    hero transcript + platform cards are landing cards too) */
 .landing .ln-botchat,
 .landing .ln-product-window {
+  border-radius: 0;
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
 

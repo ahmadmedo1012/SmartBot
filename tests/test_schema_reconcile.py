@@ -148,6 +148,12 @@ async def test_canonical_seed_upsert_repairs_legacy_rows():
     assert float(by_name["Basic"].price) == 19.0
     assert by_name["Premium"].has_broadcast is True
     assert by_name["Enterprise"].features and "دعم 24/7" in by_name["Enterprise"].features
+    # P13-2c honest re-pin: ONE Facebook page per tenant is the enforced
+    # architecture (uq_botstate_tenant_key) and max_pages is enforced
+    # nowhere — the old Premium claim «صفحتين فيسبوك» was fiction. The
+    # canonical seed must carry the single-page claim on every tier.
+    for row in rows:
+        assert "صفحة فيسبوك واحدة" in (row.features or []), row.name
     # second run = pure update, no duplicates
     async with AsyncSessionLocal() as db:
         await _seed_subscription_plans(db)

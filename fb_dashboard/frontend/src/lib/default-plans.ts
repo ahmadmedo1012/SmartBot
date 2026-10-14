@@ -63,7 +63,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     max_rules: 50,
     features: [
       "10,000 رد/شهر",
-      "صفحتين فيسبوك",
+      "صفحة فيسبوك واحدة",
       "50 قاعدة رد",
       "رد خاص + ذكاء اصطناعي",
       "بث جماعي للرسائل",
@@ -85,7 +85,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     max_rules: 100,
     features: [
       "50,000 رد/شهر",
-      "5 صفحات فيسبوك",
+      "صفحة فيسبوك واحدة",
       "100 قاعدة رد",
       "جميع الميزات المتقدمة",
       "حملات تسلسلية",
@@ -104,7 +104,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     max_rules: 999,
     features: [
       "ردود غير محدودة",
-      "صفحات غير محدودة",
+      "صفحة فيسبوك واحدة",
       "قواعد غير محدودة",
       "جميع الميزات بدون استثناء",
       "فريق غير محدود",

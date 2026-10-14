@@ -101,6 +101,14 @@ async def _seed_subscription_plans(db):
     canonical values (name_ar, price, has_* flags, features, ...), otherwise
     /api/plans would serve half-empty plan cards. Upsert by name keeps ids
     stable (FKs from tenants.plan_id stay valid) and matches fresh installs.
+
+    P13-2c (honesty wave): every tier's feature list now says
+    «صفحة فيسبوك واحدة» — the architecture is strictly ONE page per
+    tenant (models.py uq_botstate_tenant_key: one 'fb_page_id' key row
+    per tenant; uq_botstate_key_value: one tenant per page) and
+    max_pages is enforced nowhere, so the old 2/5/unlimited page
+    claims were fiction. This upsert rewrites the features on every
+    boot, so a deploy carries the honest copy into production rows.
     """
     canonical = [
         dict(
@@ -129,7 +137,7 @@ async def _seed_subscription_plans(db):
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=False, has_analytics_advanced=True,
             sort_order=3, is_active=True,
-            features=["10,000 رد/شهر", "صفحتين فيسبوك", "50 قاعدة رد", "رد خاص + ذكاء اصطناعي",
+            features=["10,000 رد/شهر", "صفحة فيسبوك واحدة", "50 قاعدة رد", "رد خاص + ذكاء اصطناعي",
                       "بث جماعي للرسائل", "جدولة المنشورات", "تقارير PDF",
                       "محرك العروض الترويجية", "تحليلات متقدمة", "فريق حتى 2"],
         ),
@@ -140,7 +148,7 @@ async def _seed_subscription_plans(db):
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=True, has_analytics_advanced=True,
             sort_order=4, is_active=True,
-            features=["50,000 رد/شهر", "5 صفحات فيسبوك", "100 قاعدة رد", "جميع الميزات المتقدمة",
+            features=["50,000 رد/شهر", "صفحة فيسبوك واحدة", "100 قاعدة رد", "جميع الميزات المتقدمة",
                       "حملات تسلسلية", "فريق حتى 5 أعضاء", "دعم فني ممتاز"],
         ),
         dict(
@@ -150,7 +158,7 @@ async def _seed_subscription_plans(db):
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=True, has_analytics_advanced=True,
             sort_order=5, is_active=True,
-            features=["ردود غير محدودة", "صفحات غير محدودة", "قواعد غير محدودة",
+            features=["ردود غير محدودة", "صفحة فيسبوك واحدة", "قواعد غير محدودة",
                       "جميع الميزات بدون استثناء", "فريق غير محدود", "دعم 24/7"],
         ),
     ]

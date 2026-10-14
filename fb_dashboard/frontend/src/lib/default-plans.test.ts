@@ -38,6 +38,18 @@ describe("DEFAULT_PLANS — مرآة بذرة الخادم", () => {
   it("عدد الميزات مطابق للبذرة (4/7/10/7/6)", () => {
     expect(DEFAULT_PLANS.map((p) => (p.features ?? []).length)).toEqual([4, 7, 10, 7, 6])
   })
+
+  it("كل باقة تعلن «صفحة فيسبوك واحدة» (P13-2c: عمارة صفحة واحدة لكل مستأجر)", () => {
+    // P13-2c honest re-pin: the backend binds ONE Facebook page per tenant
+    // (models.py uq_botstate_tenant_key — one 'fb_page_id' key row per
+    // tenant; webhook resolves tenant by that single page) and max_pages
+    // is enforced nowhere. The old Premium/Pro/Enterprise claims
+    // («صفحتين»/«5 صفحات»/«صفحات غير محدودة») were fiction — every tier
+    // now states the architectural truth.
+    for (const p of DEFAULT_PLANS) {
+      expect(p.features).toContain("صفحة فيسبوك واحدة")
+    }
+  })
 })
 
 describe("plansEqual — عقد التبديل الصامت", () => {

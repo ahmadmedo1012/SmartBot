@@ -33,7 +33,10 @@ const TOUR_STEPS: TourStep[] = [
   {
     target: "#sidebar-pages",
     disableBeacon: true,
-    content: "ربط صفحات فيسبوك متعددة وإدارة كل منها من لوحة واحدة.",
+    // P13-2c (honesty): the old step promised «ربط صفحات فيسبوك متعددة» —
+    // the architecture binds ONE Facebook page per tenant (models.py
+    // uq_botstate_tenant_key), so the tour now states the truth.
+    content: "ربط صفحة فيسبوك الخاصة بك وإدارة ردودها من هذه اللوحة.",
     placement: "right",
   },
   {

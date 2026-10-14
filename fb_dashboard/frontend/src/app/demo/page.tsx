@@ -611,7 +611,7 @@ function SettingsTab() {
           <CardDescription>رمز الوصول للصفحة يُخزَّن مشفّراً</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          اربط صفحة فيسبوك واحدة أو أكثر وابدأ الرد التلقائي فوراً.
+          اربط صفحة فيسبوك واحدة وابدأ الرد التلقائي فوراً.
         </CardContent>
       </Card>
     </div>

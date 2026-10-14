@@ -334,10 +334,13 @@ function getDescription(planId: number): string {
   // r144 (QA): the three paid plans above Basic all shared the one
   // copy-paste line «للشركات والوكالات الكبيرة» — three differentiated,
   // seed-accurate subtitles now (startup.py:Premium 10k رد/بث/فريق حتى 2 ·
-  // Pro 50k/5 صفحات/تسلسلات/فريق حتى 5 · Enterprise غير محدود/24-7).
+  // Pro 50k/تسلسلات/فريق حتى 5 · Enterprise غير محدود/24-7).
+  // P13-2c (honesty): Pro's «النشاطات متعددة الصفحات» subtitle retired —
+  // the architecture binds ONE Facebook page per tenant (models.py
+  // uq_botstate_tenant_key), so no tier is a multi-page pitch.
   if (planId === 1) return "للتجربة والصفحات الصغيرة"
   if (planId === 2) return "للنشاطات التجارية المتوسطة"
   if (planId === 3) return "للشركات النامية والفرق الصغيرة"
-  if (planId === 4) return "للوكالات والنشاطات متعددة الصفحات"
+  if (planId === 4) return "للوكالات والنشاطات التجارية الواسعة"
   return "للمؤسسات الكبيرة ذات التشغيل الواسع"
 }

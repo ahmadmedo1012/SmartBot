@@ -583,7 +583,13 @@ pinDecl('landing-header', '.landing .landing-header.scrolled', 'background', 'rg
 const lnLeak = Object.keys(dark).filter((k) => k.startsWith('--ln-'));
 if (lnLeak.length === 0) pass += 1;
 else fails.push(`scope isolation: --ln-* tokens leaked into globals.css :root: ${lnLeak.join(', ')}`);
-const unscoped = landingBlocks.filter((x) => !x.prelude.startsWith('.') && !x.prelude.startsWith('@'));
+/* phase9 (P9-3-c): the gate is EXTENDED, not weakened — `html.light
+     .landing` is the sanctioned LIGHT-STAGE scope (landing.css §16): it
+     is still .landing-scoped (gated on the html class next-themes
+     writes, attribute="class"), never a bare selector that could style
+     product surfaces. Every other non-.landing prelude stays banned. */
+const unscoped = landingBlocks.filter((x) =>
+  !x.prelude.startsWith('.') && !x.prelude.startsWith('@') && !x.prelude.startsWith('html.light .landing'));
 if (unscoped.length === 0) pass += 1;
 else fails.push(`scope isolation: unscoped top-level selectors in landing.css: ${unscoped.map((x) => x.prelude).join(' | ')}`);
 
@@ -602,6 +608,125 @@ if (poisonedLanding === landingCss) {
   const probe = norm(resolve({ ...dark, ...pScope }, pScope['--ln-ink'] ?? ''));
   if (probe === '#000000') pass += 1;
   else fails.push(`negative self-test: poisoned --ln-ink read as ${probe || '<missing>'}, expected #000000`);
+}
+
+// ── phase9 (P9-3-c E3) — the landing LIGHT STAGE + theme toggle ─────────────
+// Mission E3: every product's landing header gets the family ThemeToggle
+// and the landing stops being theme-blind. SmartBot's stage flips to the
+// canon's documented light mode («light mode = petrol mist + deep teal»,
+// MASTER.md §header): ONE html.light .landing token block re-defines the
+// §1 mirror at the PRODUCT light grades (globals.css .light — one coherent
+// system, zero invented colors), and every raw literal that paints the
+// night world carries a §16 light twin. The canvas engine (OrbitScene)
+// re-samples the same tokens via MutationObserver (P9-3-a family
+// pattern); the depth stars flip through CSS (presentation attributes
+// lose to CSS rules).
+const lightStageBlocks = landingBlocks.filter((b) => b.prelude === 'html.light .landing');
+if (lightStageBlocks.length === 1) pass += 1;
+else fails.push(`phase9 light stage: expected exactly ONE html.light .landing token block (§16a — found ${lightStageBlocks.length})`);
+const lightLandingScope = {};
+for (const b of lightStageBlocks) Object.assign(lightLandingScope, parseDecls(b.body));
+const landingLightCascade = { ...light, ...landingScope, ...lightLandingScope };
+
+// (a-light) the §1 mirror at the product light grades — every pair
+//     pre-measured (mist #EDF6F3 ground): ink 14.62:1 · ink-dim 7.44:1 ·
+//     signal-as-text 5.10:1 · AI lime 4.51:1 · CTA mist-on-teal 5.10:1.
+pinAll(landingLightCascade, 'landing-light', {
+  '--ln-ink': '#EDF6F3',
+  '--ln-ink-2': '#DAEAE6',
+  '--ln-cream': '#0A242E',
+  '--ln-cream-dim': '#3A5450',
+  '--ln-lime': '#0C7563',
+  '--ln-lime-deep': '#0A6656',
+  '--ln-violet': '#5A7A16',
+  '--ln-violet-deep': '#37490C',
+  '--ln-line': 'rgba(10, 36, 46, 0.20)',
+  '--ln-line-soft': 'rgba(10, 36, 46, 0.10)',
+  '--ln-grain-op': '0.06',
+});
+// (b-light) the §2-b bot + §17 stage registers flip with the world
+pinAll(landingLightCascade, 'landing-light-bot', {
+  '--ln-bot-glow': 'rgb(90 122 22 / 0.16)',
+  '--ln-bot-glow-deep': 'rgb(90 122 22 / 0.26)',
+  '--ln-bot-amber': '#5A7A16',
+  '--ln-bot-amber-soft': 'rgb(90 122 22 / 0.12)',
+  '--ln-bot-bubble-in': 'rgb(255 255 255 / 0.94)',
+  '--ln-bot-bubble-in-line': 'rgb(10 36 46 / 0.14)',
+  '--ln-bot-frame': 'rgb(10 36 46 / 0.04)',
+  '--sb-spot': 'rgb(12 117 99 / 0.10)',
+  '--sb-spot-deep': 'rgb(12 117 99 / 0.20)',
+  '--sb-wash': 'rgb(12 117 99 / 0.04)',
+  '--sb-led-dim': 'rgb(90 122 22 / 0.35)',
+  '--sb-hud-bg': 'rgb(255 255 255 / 0.86)',
+});
+
+// (c-light) raw-literal light twins — the night literals that CANNOT ride
+//     tokens get explicit §16 twins (scrolled rail, ghost pill, station
+//     bars, floor rings, depth stars). Each twin keeps the same non-text
+//     register (≥3:1 where it bounds a control).
+pinDecl('landing-light-scrolled', 'html.light .landing .landing-header.scrolled', 'background', 'rgb(237 246 243 / 0.92)');
+pinDecl('landing-light-ghost', 'html.light .landing .ln-btn-ghost', 'border-color', 'rgb(10 36 46 / 0.45)');
+// (station bars: one grouped §16d rule serves both .ln-botchat-head and
+//  .ln-product-bar — pin the compound prelude verbatim)
+pinDecl('landing-light-stationbar', 'html.light .landing .ln-botchat-head,\nhtml.light .landing .ln-product-bar', 'background', 'rgb(255 255 255 / 0.72)');
+pinDecl('landing-light-floorring', 'html.light .landing .ln-companion-floor-ring i', 'border-color', 'rgb(12 117 99 / 0.45)');
+pinDecl('landing-light-stars', 'html.light .landing .ln-hero-depth circle', 'fill', 'rgba(10, 36, 46, 0.55)');
+pinDecl('landing-light-selection', 'html.light .landing ::selection', 'background', 'var(--ln-violet)');
+// P9-3-c2 (gate review): the footer mist-rise seam twin — the one night
+// literal the first wave missed (foam 3% fades to invisible on mist).
+pinDecl('landing-light-footerseam', 'html.light .landing .landing-footer::before', 'background', 'linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%)');
+
+// (d-light) NEGATIVE — the DEFAULT .landing scope stays the NIGHT stage:
+//     the mist values may live ONLY under the html.light compound.
+const nightInk = norm(resolve(landingCascade, landingScope['--ln-ink'] ?? '')).toLowerCase();
+const nightCream = norm(resolve(landingCascade, landingScope['--ln-cream'] ?? '')).toLowerCase();
+if (nightInk === '#071a21' && nightCream === '#e9f5f0') pass += 1;
+else fails.push(`phase9 night-negative: the default .landing scope must stay the petrol night stage (got ink ${nightInk} / cream ${nightCream})`);
+const lightLeak = Object.keys(landingScope).filter((k) => norm(String(landingScope[k])).toLowerCase() === '#edf6f3');
+if (lightLeak.length === 0) pass += 1;
+else fails.push(`phase9 night-negative: mist values leaked into the default .landing scope: ${lightLeak.join(', ')}`);
+
+// (e-light) the toggle contract — the family twin in the landing header:
+//     the SHARED component (no fork), the tools slot OUTSIDE the
+//     ≤1080px-folded CTA cluster (end-of-rail at every breakpoint).
+{
+  const rawLandingHeader = readFileSync(new URL('../src/components/landing/LandingHeader.tsx', import.meta.url), 'utf8');
+  const toggleOk = rawLandingHeader.includes('from "@/components/shared/ThemeToggle"')
+    && rawLandingHeader.includes('<ThemeToggle />')
+    && /<div className="landing-header-tools">\s*<ThemeToggle \/>/.test(rawLandingHeader.replace(/\r/g, ''));
+  if (toggleOk) pass += 1;
+  else fails.push('phase9 toggle: LandingHeader must import the shared ThemeToggle and mount it in .landing-header-tools');
+  const toolsOutsideCta = /landing-header-cta[\s\S]*?<\/div>\s*<button[\s\S]*?<\/button>\s*\{\/\* phase9[\s\S]*landing-header-tools/.test(rawLandingHeader.replace(/\r/g, ''));
+  if (toolsOutsideCta) pass += 1;
+  else fails.push('phase9 toggle: .landing-header-tools must sit AFTER the burger (end-of-rail, outside the ≤1080px-folded .landing-header-cta)');
+  // tools slot styled in the sheet
+  const toolsRule = landingBlocks.find((x) => x.prelude === '.landing .landing-header-tools');
+  if (toolsRule && /display\s*:\s*flex/.test(toolsRule.body)) pass += 1;
+  else fails.push('phase9 toggle: .landing .landing-header-tools { display: flex } rule missing from landing.css');
+}
+
+// (f-light) the canvas engine repaints from the SAME tokens — the
+//     MutationObserver family pattern (Smart-Link P9-3-a precedent):
+//     OrbitScene re-samples --ln-cream/--ln-lime/--ln-violet on every
+//     html class flip and at boot (stored-light first frame).
+{
+  const rawOrbit = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
+  const orbitOk = rawOrbit.includes('MutationObserver')
+    && rawOrbit.includes("attributeFilter: ['class']")
+    && rawOrbit.includes("--ln-cream") && rawOrbit.includes("--ln-lime") && rawOrbit.includes("--ln-violet");
+  if (orbitOk) pass += 1;
+  else fails.push('phase9 orbit repaint: OrbitScene must observe the html class and re-sample --ln-cream/--ln-lime/--ln-violet');
+  const heroDepthCss = lightStageBlocks.length > 0; // stars twin lives in §16c (pinned above)
+  if (heroDepthCss) pass += 0; // covered by the (c-light) fill pin — no-op guard for readability
+}
+
+// (g-light) the sheet's own head comment tells the NEW truth (the raw
+//     file, not the comment-stripped copy): the landing no longer paints
+//     one world in BOTH themes.
+{
+  const rawLandingCss = readFileSync(new URL('../src/app/landing.css', import.meta.url), 'utf8');
+  if (!rawLandingCss.includes('world in BOTH themes')) pass += 1;
+  else fails.push('phase9 comment truth: landing.css head still claims the landing paints BOTH themes (stale)');
 }
 
 // ── r129-F3 — the --accent-solid family (audit §4, the r128 open item) ──────

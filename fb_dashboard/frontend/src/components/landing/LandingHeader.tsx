@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, LayoutDashboard, BarChart3 } from "lucide-react";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 /* v16-r142 «رفيق» — the landing header, now navigating the companion's
  * narrative (mind → day → platform) instead of the old chapter ladder.
@@ -18,6 +19,16 @@ import { Menu, X, ChevronDown, ArrowLeft, Route, Bot, LayoutDashboard, BarChart3
  * · megamenu with tone-coded icon wells (Escape + onBlur close, focus
  *   return to the trigger);
  * · burger + mobile drawer ≤1080px (canonical breakpoint).
+ * phase9 (P9-3-c E3): the shared family ThemeToggle mounts in a new
+ *   .landing-header-tools slot AFTER the burger (the LAST rail item) —
+ *   end-of-rail at every breakpoint: at ≤1080px the fold hides
+ *   .landing-header-cta and the burger's margin-inline-start:auto pushes
+ *   the rail tail (burger + toggle) to the inline-end, so the toggle must
+ *   NOT live inside the CTA cluster (the Smart-Menu P9-3-b family
+ *   recipe). The component carries its own 44px floor + focus ring +
+ *   mounted-guard; the theme flip is consumed by landing.css §16
+ *   (html.light petrol-mist stage) + OrbitScene's MutationObserver
+ *   repaint.
  * The product Header keeps serving every non-landing surface. */
 
 const SPY_SECTIONS = "#mind, #day, #platform, #trust";
@@ -203,6 +214,15 @@ export function LandingHeader() {
           >
             {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
+
+          {/* phase9 (P9-3-c E3): the theme toggle — the family twin
+              (components/shared/ThemeToggle), last rail item so it stays
+              end-of-rail at EVERY breakpoint (the burger's auto margin
+              carries it at ≤1080px; the CTA cluster it must not live in
+              folds there). */}
+          <div className="landing-header-tools">
+            <ThemeToggle />
+          </div>
         </div>
 
         {menuOpen && (

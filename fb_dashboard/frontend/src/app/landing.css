@@ -1,11 +1,19 @@
 /*
  * landing.css — phase5 r152 (Circuit Petrol re-anchor).
  * The SmartBot landing layer: everything scoped under the `.landing` wrapper
- * on the page root (PORT-KIT §0 R4 — the landing paints the CIRCUIT PETROL
- * world in BOTH themes: petrol stage #071A21 / #0D2830, foam ink #E9F5F0,
+ * on the page root (PORT-KIT §0 R4). The DEFAULT scope paints the CIRCUIT
+ * PETROL night stage — petrol stage #071A21 / #0D2830, foam ink #E9F5F0,
  * signal-teal accent (--ln-lime), AI lime (--ln-violet) SPARSELY, robot
  * visor teal + lime LED; the product token pins in globals.css stay
- * untouched). Structure/grammar is the r128-F3a port — VALUES re-anchored.
+ * untouched. phase9 (P9-3-c E3): the landing is no longer theme-BLIND —
+ * §16 below adds the petrol-mist LIGHT stage (html.light .landing), the
+ * canon's documented light mode ("light mode = petrol mist + deep teal",
+ * MASTER.md §header): same grammar, mist ground + deep-petrol ink +
+ * deep-teal signal + the light lime tier — every raw literal that paints
+ * the night world gets a §16 light twin; the robot (RobotMark) already
+ * themes through the product tokens; OrbitScene repaints from the same
+ * tokens via MutationObserver (phase9 P9-3-a family pattern).
+ * The product token pins in globals.css stay untouched.
  *
  * Port map (madarek @ cf7ffca, canonical per PORT-KIT r128):
  *   bridge tokens      — values the smart-bot product sheet does not define
@@ -380,6 +388,12 @@
 .landing .landing-megamenu-item-desc { display: block; color: var(--ln-cream-dim); font-size: 12px; margin-block-start: 2px; }
 
 .landing .landing-header-cta { display: flex; align-items: center; gap: var(--sp-2); }
+/* phase9 (P9-3-c E3) — the theme toggle's rail slot: LAST item, so it is
+ * end-of-rail at every breakpoint (≥1081 the CTA cluster precedes it;
+ * ≤1080 the burger's margin-inline-start:auto carries the rail tail).
+ * The toggle itself (components/shared/ThemeToggle) owns its 44px floor,
+ * focus ring and mounted-guard — this rule only places it. */
+.landing .landing-header-tools { display: flex; align-items: center; gap: var(--sp-2); }
 
 /* buttons — landing.css:371-481 verbatim; one pill system (r129: the
    dead .ln-btn-text tertiary is deleted — zero consumers, audit P2-10) */
@@ -2372,3 +2386,203 @@
   .landing .ln-trust-live i { animation: none; }
   .landing .ln-day-path-light { transform: scaleY(1); }
 }
+
+/* ═══ 16 — THE PETROL-MIST LIGHT STAGE (phase9 P9-3-c E3) ═════════════════
+   The canon's documented light mode ("light mode = petrol mist + deep
+   teal", design-system/smartbot/MASTER.md §header) finally renders: the
+   LandingHeader now carries the family ThemeToggle, html.light is the
+   REAL next-themes convention (attribute="class", layout.tsx pre-paint
+   boot adds .light/.dark to <html> before first paint), and this block
+   mirrors the §1 token contract at the product's light grades.
+
+   Source of every value: the PRODUCT light scope (globals.css `.light`)
+   — ONE coherent system, zero invented colors:
+     ground  --ln-ink        #EDF6F3  (product --background mist)
+     stage-2 --ln-ink-2      #DAEAE6  (product --muted surface-2)
+     ink     --ln-cream      #0A242E  (product --foreground deep petrol)
+     ink-dim --ln-cream-dim  #3A5450  (product --muted-foreground)
+     signal  --ln-lime       #0C7563  (product --primary / --accent-solid)
+     hover   --ln-lime-deep  #0A6656  (product --accent-hover — darkens on
+                                       light ground, mirroring the dark
+                                       stage's brighten)
+     AI lime --ln-violet     #5A7A16  (product --c-lime-ink light tier)
+     deep    --ln-violet-deep #37490C (lime family light deep)
+   Measured text pairs (WCAG 2.1, mist #EDF6F3 ground unless noted):
+     ink 14.62:1 · ink-dim 7.44:1 · ink on stage-2 12.95:1 ·
+     signal-as-text 5.10:1 · signal on stage-2 4.56:1 ·
+     AI lime 4.51:1 · AI lime on white 4.96:1 ·
+     CTA fill: mist-on-deep-teal 5.10:1 (hover #0A6656 6.26:1) — the
+     product light primary pair.
+   Discipline unchanged: teal is the voice of the machine; lime stays
+   SPARSE (AI moments only); grounds stay flat — the light grain tile
+   flips to ink-noise at a gentler 0.06 (white noise on mist is
+   invisible); no glow except the sanctioned LED/lime halos, re-graded
+   to the dark-lime tier so they still register on mist.
+
+   Scope law: everything below lives under `html.light .landing` (the
+   R4 .landing isolation holds — the gate in tests/parity.mjs was
+   EXTENDED to sanction this exact compound, never weakened). The
+   DEFAULT .landing scope above stays the NIGHT stage byte-for-byte. */
+
+/* ── 16a · the light token block — ONE block, the §1 mirror ─────────── */
+html.light .landing {
+  --ln-ink:        #EDF6F3;   /* petrol mist ground (product light) */
+  --ln-ink-2:      #DAEAE6;   /* soft stage separation (surface-2) */
+  --ln-cream:      #0A242E;   /* deep petrol ink — 14.62:1 on mist */
+  --ln-cream-dim:  #3A5450;   /* secondary — 7.44:1 on mist */
+  --ln-lime:       #0C7563;   /* deep teal — the machine's voice, 5.10:1 */
+  --ln-lime-deep:  #0A6656;   /* hover/active — darkens (light convention) */
+  --ln-violet:     #5A7A16;   /* AI lime light tier — 4.51:1 */
+  --ln-violet-deep:#37490C;   /* decorative depth fills only — 9.00:1 */
+  --ln-line:       rgba(10, 36, 46, 0.20);
+  --ln-line-soft:  rgba(10, 36, 46, 0.10);
+  --ln-grain-op:   0.06;      /* ink-noise grain, gentler on mist */
+  /* §2-b bot register — light twins */
+  --ln-bot-glow: rgb(90 122 22 / 0.16);        /* AI halo, dark-lime tier */
+  --ln-bot-glow-deep: rgb(90 122 22 / 0.26);
+  --ln-bot-amber: #5A7A16;                     /* eye light — 4.51:1 on mist */
+  --ln-bot-amber-soft: rgb(90 122 22 / 0.12);
+  --ln-bot-bubble-in: rgb(255 255 255 / 0.94); /* incoming bubble = white card */
+  --ln-bot-bubble-in-line: rgb(10 36 46 / 0.14);
+  --ln-bot-frame: rgb(10 36 46 / 0.04);        /* portrait plate wash */
+  /* §17 stage register — light twins (teal stays the spotlight) */
+  --sb-spot: rgb(12 117 99 / 0.10);
+  --sb-spot-deep: rgb(12 117 99 / 0.20);
+  --sb-wash: rgb(12 117 99 / 0.04);
+  --sb-led-dim: rgb(90 122 22 / 0.35);
+  --sb-hud-bg: rgb(255 255 255 / 0.86);
+  background: var(--ln-ink); color: var(--ln-cream);
+}
+
+/* selection — the AI lime depth pair keeps its tier symmetry: dark =
+   #5A7A16 ground + foam; light = #5A7A16 ground + mist (4.51:1). */
+html.light .landing ::selection { background: var(--ln-violet); color: var(--ln-ink); }
+
+/* grain — the noise TILE flips to ink (the matrix offsets 1→0); the
+   veil keeps its fixed/inert contract, only softer on mist. */
+html.light .landing .ln-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+
+/* ── 16b · chrome — header rail, nav, megamenu, buttons, ribbon ─────── */
+/* scrolled rail: mist @ 92% (the ink-2 @ 92% twin) */
+html.light .landing .landing-header.scrolled {
+  background: rgb(237 246 243 / 0.92);
+  border-block-end-color: var(--ln-line);
+}
+/* progress ribbon — deep-ink track @ 10% */
+html.light .landing .landing-progress { background: rgb(10 36 46 / 0.10); }
+/* hover washes — the foam 4-5% washes become ink washes (5-6%) */
+html.light .landing .landing-nav-link:hover,
+html.light .landing .landing-nav-group.open .landing-nav-link {
+  background: rgb(10 36 46 / 0.05);
+}
+/* scroll-spy active pills (the R2 form — parity pins the selector) */
+html.light .landing header[data-active-section="mind"] .landing-nav-link[href="#mind"],
+html.light .landing header[data-active-section="day"] .landing-nav-link[href="#day"],
+html.light .landing header[data-active-section="platform"] .landing-nav-link[href="#platform"],
+html.light .landing header[data-active-section="trust"] .landing-nav-link[href="#trust"] {
+  background: rgb(10 36 46 / 0.08);
+}
+html.light .landing .landing-megamenu-item:focus-visible { background: rgb(10 36 46 / 0.06); }
+html.light .landing .ln-menu-ico.gold,
+html.light .landing .ln-menu-ico.mist { background: rgb(10 36 46 / 0.07); }
+html.light .landing .ln-menu-ico.azure { background: rgb(90 122 22 / 0.14); }
+html.light .landing .landing-burger:hover { background: rgb(10 36 46 / 0.05); }
+/* ghost pill — ink hairlines (0.34/0.52 → 0.45/0.65, the same effective
+   2.9:1-3:1 non-text register the night stage pins) */
+html.light .landing .ln-btn-ghost { border-color: rgb(10 36 46 / 0.45); }
+html.light .landing .ln-btn-ghost:hover {
+  background: rgb(10 36 46 / 0.06);
+  border-color: rgb(10 36 46 / 0.65);
+}
+/* the gold CTA's edge ring — foam ring → ink hairline ring */
+html.light .landing .ln-btn-gold {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.10),
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(10, 36, 46, 0.08);
+}
+html.light .landing .ln-btn-gold:hover {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.16),
+    0 0 0 1px rgba(10, 36, 46, 0.10);
+}
+
+/* ── 16c · hero + sky — the night radials become mist washes ────────── */
+html.light .landing .ln-hero-sky {
+  background: radial-gradient(46% 54% at 30% 44%, rgb(12 117 99 / 0.10) 0%, transparent 70%);
+}
+html.light .landing .ln-hero-sky::after {
+  background: radial-gradient(ellipse at 70% 60%, rgb(10 36 46 / 0.03) 0%, transparent 60%);
+}
+/* depth-plane stars: CSS overrides the SVG presentation attribute —
+   foam rgba(233,245,240,.6) → deep petrol ink dots */
+html.light .landing .ln-hero-depth circle { fill: rgba(10, 36, 46, 0.55); }
+/* the h1 scrim softens (deep ink on mist needs no black halo) */
+html.light .landing .ln-hero-title {
+  text-shadow: 0 1px 2px rgba(10, 36, 46, 0.14);
+}
+/* the ONE teal word keeps its halo at the deep-teal grade */
+html.light .landing .ln-hero-title .ln-hero-gold {
+  text-shadow: 0 0 20px rgba(12, 117, 99, 0.22), 0 0 40px rgba(12, 117, 99, 0.08);
+}
+
+/* ── 16d · chapter + trust + FAQ + product surfaces ─────────────────── */
+html.light .landing .ln-chapter::before {
+  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.05) 50%, transparent 100%);
+}
+html.light .landing .ln-trust::before {
+  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%);
+}
+/* P9-3-c2 (gate review): the footer's mist-rise seam — the ONE night
+   literal the first §16 wave missed (foam 3% is invisible on mist);
+   the trust-seam twin grammar, same ink-4% family. */
+html.light .landing .landing-footer::before {
+  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%);
+}
+html.light .landing .ln-trust-live i { box-shadow: 0 0 10px rgb(12 117 99 / 0.50); }
+html.light .landing .ln-faq-item { background: rgb(10 36 46 / 0.03); }
+html.light .landing .ln-mind-chip:hover {
+  background: rgb(10 36 46 / 0.06);
+  border-color: rgb(10 36 46 / 0.30);
+}
+/* the card family — foam 3% washes → ink 3% washes */
+html.light .landing .ln-mind-thread,
+html.light .landing .ln-botchat,
+html.light .landing .ln-product-window,
+html.light .landing .ln-pp-row { background: rgb(10 36 46 / 0.03); }
+/* the station bars — ink-2 glass → white glass + ink hairline sheen */
+html.light .landing .ln-botchat-head,
+html.light .landing .ln-product-bar {
+  background: rgb(255 255 255 / 0.72);
+  box-shadow: inset 0 1px 0 rgb(10 36 46 / 0.05);
+}
+html.light .landing .ln-product-bar i { background: rgb(10 36 46 / 0.22); }
+/* transcript scrollbar — foam → ink thumbs */
+html.light .landing .ln-botchat-log { scrollbar-color: rgb(10 36 46 / 0.28) transparent; }
+html.light .landing .ln-botchat-log::-webkit-scrollbar-thumb { background: rgb(10 36 46 / 0.22); }
+/* sim tabs + badges */
+html.light .landing .ln-botchat-tab:hover { background: rgb(10 36 46 / 0.06); }
+html.light .landing .ln-botchat-badge.auto {
+  background: rgb(12 117 99 / 0.14);
+  color: var(--ln-cream);
+}
+html.light .landing .ln-botchat-badge.human {
+  background: rgb(90 122 22 / 0.16);
+  color: var(--ln-violet-deep);
+}
+/* storyboard rail nodes — foam rings → ink rings */
+html.light .landing .ln-day-node::before { box-shadow: 0 0 0 4px rgb(10 36 46 / 0.18); }
+html.light .landing .ln-day-panel:last-child .ln-day-node::before {
+  box-shadow: 0 0 0 5px rgb(10 36 46 / 0.22);
+}
+
+/* ── 16e · the companion stage — teal spotlight on mist ─────────────── */
+html.light .landing .ln-companion-stage:hover { border-color: rgb(10 36 46 / 0.30); }
+html.light .landing .ln-companion-vignette {
+  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(237 246 243 / 0.60) 100%);
+}
+html.light .landing .ln-companion-floor-ring i { border-color: rgb(12 117 99 / 0.45); }
+html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 0.28); }

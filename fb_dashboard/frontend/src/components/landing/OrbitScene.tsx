@@ -74,19 +74,30 @@ export type OrbitSceneProps = {
 };
 
 /** Circuit Petrol palette (phase5 r152) — canvas-side of the --ln-* landing
- *  tokens (the browser canvas cannot read CSS custom properties, so the
- *  triplets + string constants mirror the petrol values and MUST move in
- *  lockstep with landing.css §1): foam #E9F5F0 stars/hairlines, signal-teal
- *  #17C3A4 the knowledge light, AI-lime #C6F24E the sparse depth accent. */
+ *  tokens. phase9 (P9-3-c E3): the triplets + strings below are now the
+ *  DARK BOOT DEFAULTS only — the engine SAMPLES the real tokens at boot
+ *  (getComputedStyle on the .landing scope) and re-samples on every
+ *  theme flip (MutationObserver on the html class — the Smart-Link
+ *  P9-3-a family pattern), so the “lockstep with landing.css §1” is
+ *  enforced live instead of by hand: foam #E9F5F0 stars/hairlines,
+ *  signal-teal #17C3A4 the knowledge light, AI-lime #C6F24E the sparse
+ *  depth accent; the light stage re-samples mist ink / deep teal /
+ *  the dark-lime tier. A failed re-read keeps the last good palette —
+ *  the engine never paints guesswork. */
 const CREAM = [233, 245, 240] as const; // #E9F5F0 foam — stars / hairlines
 const LIME = [23, 195, 164] as const; // #17C3A4 signal teal — the knowledge light
 const VIOLET = [198, 242, 78] as const; // #C6F24E AI lime — depth accent
 
 type NodeColor = 'lime' | 'violet' | 'cream';
 
+type Triplet = readonly [number, number, number];
+
 /** Per-frame color strings — built once, referenced every frame. (phase5
  *  r152: re-anchored in lockstep with the triplets above — the stars,
- *  nodes, rings, links and trails all paint the petrol world now.) */
+ *  nodes, rings, links and trails all paint the petrol world now.
+ *  phase9 (P9-3-c): these are the DARK defaults; the live values live in
+ *  the effect closure (see repaintFromTokens) so a theme flip rewrites
+ *  them without touching the frozen geometry code.) */
 const STAR_COLORS = {
   cream: 'rgb(233,245,240)',
   lime: 'rgb(23,195,164)',
@@ -101,6 +112,35 @@ const RING_STROKE = 'rgb(233,245,240)';
 const LINK_STROKE = 'rgb(23,195,164)';
 const TRAIL_STROKE = 'rgb(23,195,164)';
 const HEAD_FILL = 'rgb(233,245,240)';
+
+/* phase9 (P9-3-c E3) — token reader (the Smart-Link P9-3-a primitive):
+ * resolves a --ln-* custom property on the .landing scope into an RGB
+ * triplet. Accepts the #hex and rgb()/rgba() forms the landing sheet
+ * emits; anything else (empty/failed) returns null. */
+function readTokenTriplet(root: Element, token: string): Triplet | null {
+  const raw = getComputedStyle(root).getPropertyValue(token).trim();
+  const hex = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const h = hex[1]!;
+    const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+    return [
+      parseInt(full.slice(0, 2), 16),
+      parseInt(full.slice(2, 4), 16),
+      parseInt(full.slice(4, 6), 16),
+    ];
+  }
+  const fn = raw.match(/^rgba?\(([^)]+)\)$/i);
+  if (fn) {
+    const parts = fn[1]!.split(/[,/\s]+/).filter(Boolean).slice(0, 3);
+    if (parts.length === 3) {
+      const t = parts.map((p) => parseFloat(p));
+      if (t.every((n) => Number.isFinite(n))) return t as unknown as Triplet;
+    }
+  }
+  return null;
+}
+const rgbOf = (t: Triplet) => `rgb(${t[0]},${t[1]},${t[2]})`;
+const rgbaOf = (t: Triplet, a: number) => `rgba(${t[0]},${t[1]},${t[2]},${a})`;
 
 type Star = {
   x: number;
@@ -201,6 +241,21 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
     let glowViolet: HTMLCanvasElement;
     let glowCream: HTMLCanvasElement;
 
+    /* phase9 (P9-3-c E3) — the LIVE palette: starts at the dark boot
+     * defaults (module consts), flips when the theme flips (below). The
+     * frozen geometry/formulas never change — only what they paint with. */
+    let P: { cream: Triplet; lime: Triplet; violet: Triplet } = {
+      cream: CREAM,
+      lime: LIME,
+      violet: VIOLET,
+    };
+    let starColors: Record<NodeColor, string> = { ...STAR_COLORS };
+    let nodeFill: Record<NodeColor, string> = { ...NODE_FILL };
+    let ringStroke = RING_STROKE;
+    let linkStroke = LINK_STROKE;
+    let trailStroke = TRAIL_STROKE;
+    let headFill = HEAD_FILL;
+
     const mouse = { x: 0.5, y: 0.5, active: false, sx: 0.5, sy: 0.5 };
     let scrollP = 0; // 0 … 1 as the hero scrolls away (drives the fade only)
     let introT = 0; // 0 … 1 scene bloom on mount
@@ -226,7 +281,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
           base: (0.42 + Math.random() * 0.42) * (depth === 1 ? 1 : 0.82),
           depth,
           color:
-            tint < 0.8 ? STAR_COLORS.cream : tint < 0.94 ? STAR_COLORS.lime : STAR_COLORS.violet,
+            tint < 0.8 ? starColors.cream : tint < 0.94 ? starColors.lime : starColors.violet,
         };
       });
 
@@ -258,12 +313,12 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
       if (ng) {
         const rr = orbitR * 1.6;
         const grad = ng.createRadialGradient(systemCx, systemCy, 0, systemCx, systemCy, rr);
-        grad.addColorStop(0, `rgba(${VIOLET[0]},${VIOLET[1]},${VIOLET[2]},0.25)`);
+        grad.addColorStop(0, rgbaOf(P.violet, 0.25));
         grad.addColorStop(1, 'rgba(0,0,0,0)');
         ng.fillStyle = grad;
         ng.fillRect(0, 0, w, h);
         const hz = ng.createRadialGradient(w * 0.5, h * 1.18, 0, w * 0.5, h * 1.18, h * 0.75);
-        hz.addColorStop(0, `rgba(${CREAM[0]},${CREAM[1]},${CREAM[2]},0.14)`);
+        hz.addColorStop(0, rgbaOf(P.cream, 0.14));
         hz.addColorStop(1, 'rgba(0,0,0,0)');
         ng.fillStyle = hz;
         ng.fillRect(0, 0, w, h);
@@ -414,7 +469,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
       const cx = systemCx + orbitParX;
       const cy = systemCy + orbitParY;
       ctx.lineWidth = 1;
-      ctx.strokeStyle = RING_STROKE;
+      ctx.strokeStyle = ringStroke;
       for (let i = 0; i < ORBITS.length; i++) {
         const o = ORBITS[i]!;
         ctx.globalAlpha = o.mist * fade;
@@ -448,7 +503,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
 
       // constellation links between near nodes (P1-5: 0.17 → 0.22)
       ctx.lineWidth = 1;
-      ctx.strokeStyle = LINK_STROKE;
+      ctx.strokeStyle = linkStroke;
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i]!;
         for (let k = i + 1; k < nodes.length; k++) {
@@ -472,7 +527,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
         const gs = n.r * 12.5;
         ctx.globalAlpha = fade;
         ctx.drawImage(sprite, n.x + orbitParX - gs / 2, n.y + orbitParY - gs / 2, gs, gs);
-        ctx.fillStyle = NODE_FILL[n.color];
+        ctx.fillStyle = nodeFill[n.color];
         ctx.beginPath();
         ctx.arc(n.x + orbitParX, n.y + orbitParY, n.r, 0, Math.PI * 2);
         ctx.fill();
@@ -481,7 +536,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
       // traveller + trail — front layer, same system parallax (P1-5:
       // trail α 0.32 → 0.42, head glow 52 → 60px — the learner reads)
       if (!reducedMotion) updateTraveller(dt);
-      ctx.strokeStyle = TRAIL_STROKE;
+      ctx.strokeStyle = trailStroke;
       for (let i = 1; i < trailLen; i++) {
         const i0 = trailIndex(i - 1);
         const i1 = trailIndex(i);
@@ -499,7 +554,7 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
         const hy = trailY[head]! + orbitParY;
         ctx.globalAlpha = fade;
         ctx.drawImage(glowLime, hx - 33, hy - 33, 66, 66);
-        ctx.fillStyle = HEAD_FILL;
+        ctx.fillStyle = headFill;
         ctx.beginPath();
         ctx.arc(hx, hy, 2.4, 0, Math.PI * 2);
         ctx.fill();
@@ -609,10 +664,56 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
     };
 
     // ── boot / teardown ───────────────────────────────────────────────
+    /* phase9 (P9-3-c E3) — theme repaint (the Smart-Link P9-3-a pattern):
+     * the landing toggle flips html.dark/html.light and the light stage
+     * (landing.css §16) REDEFINES the very tokens sampled here. One
+     * MutationObserver on the html class re-reads the same --ln-* tokens
+     * (getComputedStyle resolves them through the new cascade — ink
+     * stars/rings on mist, deep-teal nodes, dark-lime depth), rebuilds
+     * the derived strings + glow sprites + star field + nebula, and the
+     * running loop paints the new world on its next frame (the
+     * reduced-motion path redraws its single composed frame). A failed
+     * re-read keeps the last good palette — the engine never paints
+     * guesswork (the boot law holds for every repaint). */
+    function repaintFromTokens() {
+      const root = canvas.closest('.landing') ?? canvas;
+      const cream = readTokenTriplet(root, '--ln-cream');
+      const lime = readTokenTriplet(root, '--ln-lime');
+      const violet = readTokenTriplet(root, '--ln-violet');
+      if (!cream || !lime || !violet) return;
+      const same =
+        cream[0] === P.cream[0] && cream[1] === P.cream[1] && cream[2] === P.cream[2] &&
+        lime[0] === P.lime[0] && lime[1] === P.lime[1] && lime[2] === P.lime[2] &&
+        violet[0] === P.violet[0] && violet[1] === P.violet[1] && violet[2] === P.violet[2];
+      if (same) return; // dark default or a no-op flip — nothing to rebuild
+      P = { cream, lime, violet };
+      starColors = { cream: rgbOf(P.cream), lime: rgbOf(P.lime), violet: rgbOf(P.violet) };
+      nodeFill = {
+        lime: rgbaOf(P.lime, 0.95),
+        violet: rgbaOf(P.violet, 0.95),
+        cream: rgbaOf(P.cream, 0.9),
+      };
+      ringStroke = starColors.cream;
+      linkStroke = starColors.lime;
+      trailStroke = starColors.lime;
+      headFill = starColors.cream;
+      glowLime = makeGlowSprite(64, P.lime, 0.38);
+      glowViolet = makeGlowSprite(64, P.violet, 0.32);
+      glowCream = makeGlowSprite(64, P.cream, 0.27);
+      buildScene(); // stars + nebula re-painted with the new palette
+      if (reducedMotion) drawStatic();
+    }
+    const themeObserver = new MutationObserver(repaintFromTokens);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
     const teardown = () => {
       running = false;
       io.disconnect();
       ro.disconnect();
+      themeObserver.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('mousemove', onMouse);
@@ -626,10 +727,16 @@ export function OrbitScene({ className, density, biasX = 0, speed = 1 }: OrbitSc
       // P1-5 visibility lift: glow cores ×1.3 (0.31/0.26/0.22, was
       // 0.24/0.20/0.17) — lit bodies, still flat craft. The horizon
       // nebula does the heavy lifting.
-      glowLime = makeGlowSprite(64, LIME, 0.38);
-      glowViolet = makeGlowSprite(64, VIOLET, 0.32);
-      glowCream = makeGlowSprite(64, CREAM, 0.27);
+      glowLime = makeGlowSprite(64, P.lime, 0.38);
+      glowViolet = makeGlowSprite(64, P.violet, 0.32);
+      glowCream = makeGlowSprite(64, P.cream, 0.27);
       resize();
+      // phase9 (P9-3-c): a stored-light visitor lands here with html.light
+      // already set (layout.tsx pre-paint boot) — one token re-read paints
+      // the mist world from the first frame. Dark visitors sample the same
+      // values the defaults already carry → the `same` guard skips the
+      // rebuild (zero extra work, star field untouched).
+      repaintFromTokens();
     } catch {
       setFailed(true);
       teardown();

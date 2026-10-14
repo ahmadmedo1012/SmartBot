@@ -218,7 +218,7 @@ async def _dispose_engine_per_test():
             await _aio_dispose.wait_for(
                 _aio_dispose.shield(_dispose_task), timeout=5
             )
-        except _aio_dispose.TimeoutError:
+        except TimeoutError:
             # متعمّد: تُرك الـdispose يعمل في الخلفية — لا إلغاء يُحقن في
             # جسر greenlet مهما حدث (الشرح في كتلة r140 أعلاه).
             pass

@@ -32,8 +32,9 @@ Pure Pillow, geometry-only (no system font) — bit-reproducible anywhere.
 
 Usage: python3 scripts/generate-icons.py
 """
-from PIL import Image, ImageDraw
 import os
+
+from PIL import Image, ImageDraw
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "assets", "images")
 os.makedirs(OUT, exist_ok=True)

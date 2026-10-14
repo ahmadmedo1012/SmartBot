@@ -2255,6 +2255,23 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   pin(light, 'p10a-chart-surface', '--muted', '#DAEAE6');
 }
 
+// ── §p10a-bridge — phase10 (coordinator, family fix): the shadow namespace
+// bridge — Tailwind v4 shadow-* utilities resolve the --shadow-* THEME
+// namespace at build time, never the :root var, so every plain shadow-sm
+// (32 SB sites) rode the engine default (10% black, both stages —
+// rendered-proven on a login card in dark). The 4 tier keys must stay
+// registered in @theme inline so utilities inline var(--elev-N) and the
+// :root(night)/.light(mist) flip governs. ─────────────────────────────────
+{
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const g = readRaw('../src/app/globals.css');
+  const bridgeOk = ['--shadow-sm: var(--elev-1);', '--shadow-md: var(--elev-2);',
+    '--shadow-lg: var(--elev-3);', '--shadow-xl: var(--elev-4);']
+    .every(k => g.includes(k)) && /@theme inline[\s\S]{0,12000}--shadow-sm: var\(--elev-1\)/.test(g);
+  if (bridgeOk) pass += 1;
+  else fails.push('p10a shadow bridge: the --shadow-* THEME namespace is registered in @theme inline (sm/md/lg/xl → var(--elev-N)) — removing it silently reverts every plain shadow-* utility to the engine default in BOTH stages');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

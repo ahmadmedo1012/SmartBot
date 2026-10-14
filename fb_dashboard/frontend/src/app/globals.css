@@ -173,6 +173,22 @@
   --color-lime: var(--c-lime-ink);
   --color-lime-ink: var(--c-lime-deep);
   --color-lime-soft: var(--c-lime-bg);
+
+  /* ── Elevation bridge (P10 coordinator, family fix — SO 0b0e010 twin):
+     the 4-tier ladder lived only as :root/.light custom properties while
+     Tailwind v4 shadow-* utilities resolve the --shadow-* THEME NAMESPACE
+     at build time — so every plain `shadow-sm` (32 sites in SB) rode the
+     engine default (10% black, identical in BOTH stages: the documented
+     night fill-led 30%+inset and mist light two-layer recipes never
+     applied; rendered-proven on a login card in dark). Registering the
+     namespace here inlines var(--elev-N) into the utilities; the runtime
+     :root(night)/.light(mist) flip then governs. The named composites
+     (--shadow-card/-h/-pop/-modal) stay :root/.light-only — consumed via
+     the shadow-(--…) arbitrary syntax that reads the runtime var. ── */
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-xl: var(--elev-4);
 }
 
 /* Radius scale — Madarek "Notion-soft" ladder (tokens.css §1.2):

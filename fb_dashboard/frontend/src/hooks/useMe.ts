@@ -20,11 +20,14 @@
  * refetchIntervalInBackground stays false (global default) — no polling in
  * hidden tabs.
  *
- * Note (queryFn): apiFetch("/api/me") is deliberately called with a single
- * argument — no signal/skipAuthRedirect — so the /api/me GET keeps planting
- * the csrf cookie (v15-E5 D4-H1) and 401s flow through apiFetch's global
- * session-expiry journey; the guard's own redirect effect (see AuthGuard)
- * still wins the race to /login?redirect=<path>.
+ * Note (queryFn, P13-2c): apiFetch("/api/me") now receives react-query's
+ * cancellation `signal` — a hung /api/me used to spin the AuthGuard /
+ * login / connect loaders forever (P13-1c F1); the signal plus apiFetch's
+ * 20s default clock bounds the wait (retry: 1 → error state, never an
+ * infinite loader). Passing the signal changes NOTHING else: the GET still
+ * plants the csrf cookie (v15-E5 D4-H1) and 401s still flow through
+ * apiFetch's global session-expiry journey; the guard's own redirect
+ * effect (see AuthGuard) still wins the race to /login?redirect=<path>.
  */
 import { useQuery } from "@tanstack/react-query"
 import { apiFetch } from "@/lib/csrf-client"
@@ -48,8 +51,9 @@ export interface MePayload {
 }
 
 /** The one queryFn for the ["me"] entry (same contract as v19's). */
-const meQueryFn = async (): Promise<MePayload> => {
-  const res = await apiFetch("/api/me")
+const meQueryFn = async ({ signal }: { signal?: AbortSignal }): Promise<MePayload> => {
+  // P13-2c: thread react-query's cancellation signal — see the module note.
+  const res = await apiFetch("/api/me", { signal })
   if (!res.ok) throw new Error(`تعذّر تحميل الحساب (${res.status})`)
   return unwrapApi<MePayload>(res)
 }

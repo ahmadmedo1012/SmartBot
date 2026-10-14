@@ -223,6 +223,10 @@ export function PaymentDialog({
       const r = await apiFetch("/api/upload", {
         method: "POST",
         body: fd,
+        // P13-2c: the receipt upload is the one legitimately-long operation
+        // (a compressed JPEG over Libyan mobile networks) — it gets its own
+        // 120s clock instead of apiFetch's 20s default.
+        signal: AbortSignal.timeout(120_000),
       })
       const d = await r.json()
       if (d.data?.url) setReceiptImageUrl(d.data.url)

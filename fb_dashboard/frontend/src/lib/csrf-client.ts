@@ -108,6 +108,26 @@ export interface ApiFetchOptions extends RequestInit {
   skipAuthRedirect?: boolean
 }
 
+/** P13-2c: the default request clock. A hung backend request (cold Vercel
+ * function wedged, /api/me never answering) used to leave the login,
+ * /connect and AuthGuard loaders spinning FOREVER — no timeout existed
+ * anywhere in the fetch layer. 20s is comfortably above every healthy API
+ * round-trip (the slowest documented path — cold-server /api/plans — was
+ * ~12.5s) yet finite. Callers override the clock by passing their own
+ * `signal` (react-query cancellation or a deliberately longer upload
+ * window); see apiFetch. */
+const API_FETCH_TIMEOUT_MS = 20_000
+
+/* P13-2c: AbortSignal.timeout is Node 17.3+/all modern browsers (2022+),
+ * but not every test environment (jsdom versions) — degrade to NO timeout
+ * (the exact pre-P13-2c behavior) instead of crashing on a missing API. */
+function defaultTimeoutSignal(): AbortSignal | undefined {
+  if (typeof AbortSignal === "undefined" || typeof AbortSignal.timeout !== "function") {
+    return undefined
+  }
+  return AbortSignal.timeout(API_FETCH_TIMEOUT_MS)
+}
+
 export async function apiFetch(url: string, options: ApiFetchOptions = {}): Promise<Response> {
   const { skipAuthRedirect, ...requestInit } = options
   const headers = new Headers(requestInit.headers)
@@ -144,10 +164,30 @@ export async function apiFetch(url: string, options: ApiFetchOptions = {}): Prom
    * fallbacks never ran because the English text is truthy. The wrap
    * converts the rejection into the same Arabic ApiError contract the
    * HTTP-error path already serves, so every caller renders Arabic. */
+  /* P13-2c (P13-1c F1 — the infinite-loader kill): every request now rides
+   * a clock. A caller-provided signal WINS outright — react-query passes its
+   * own cancellation signal, and long operations (the receipt upload) pass a
+   * wider AbortSignal.timeout. With neither, the 20s default fires: fetch
+   * rejects with a TimeoutError which the wrap below turns into the Arabic
+   * ApiError contract (never an English browser string, never a hang). */
+  const signal = requestInit.signal ?? defaultTimeoutSignal()
   let res: Response
   try {
-    res = await fetch(url, { ...requestInit, headers, credentials: "include" })
-  } catch {
+    res = await fetch(url, { ...requestInit, headers, credentials: "include", signal })
+  } catch (e) {
+    /* P13-2c: split the rejection families before the Arabic wrap —
+     * - AbortError: the CALLER aborted (react-query query cancellation,
+     *       unmount). Propagate untouched — converting it into an ApiError
+     *       would poison cancellation with a fake error state.
+     * - TimeoutError: our own clock (or a caller's AbortSignal.timeout) fired
+     *       — the server hung. Serve the honest Arabic timeout detail.
+     * - everything else: the v17-S2 network-rejection wrap, unchanged. */
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e
+    }
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      throw new ApiError(0, { detail: "انتهت مهلة الطلب — لم يستجب الخادم في الوقت المتوقع، حاول مرة أخرى" })
+    }
     throw new ApiError(0, { detail: "تعذّر الوصول إلى الخادم — تحقق من اتصالك بالإنترنت" })
   }
   // v15-E5 (D4-H3) — see the block comment above for the full contract.

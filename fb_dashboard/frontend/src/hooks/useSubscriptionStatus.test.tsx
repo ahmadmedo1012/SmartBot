@@ -115,7 +115,13 @@ describe("useSubscriptionStatus", () => {
     expect(read("planEnd")).toBe("")
     expect(read("loading")).toBe("false")
     // the ONE /api/me read the shell's CTA gate depends on
-    expect(mocks.apiFetch).toHaveBeenCalledWith("/api/me")
+    // (P13-2c honest re-pin: useMe now threads react-query's cancellation
+    // signal into apiFetch — the call carries an options object with the
+    // signal; the endpoint is unchanged, still the single /api/me GET)
+    expect(mocks.apiFetch).toHaveBeenCalledWith(
+      "/api/me",
+      expect.objectContaining({ signal: expect.anything() }),
+    )
   })
 
   it('active tenant → state "active", flags true, planEnd surfaces', async () => {

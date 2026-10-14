@@ -193,3 +193,95 @@ describe("apiFetch network rejection (v17-S2 — Arabic, never «Failed to fetch
     expect((caught as ApiError).message).not.toContain("Failed")
   })
 })
+
+describe("apiFetch request clock (P13-2c — no request hangs forever)", () => {
+  it("threads a caller-provided signal through to fetch (react-query cancellation wins)", async () => {
+    // useMe now passes react-query's signal; apiFetch must hand fetch the
+    // SAME instance — the 20s default must never override the caller's clock.
+    const fetchMock = stubFetch()
+    const controller = new AbortController()
+
+    await apiFetch("/api/x", { method: "POST", signal: controller.signal })
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(init.signal).toBe(controller.signal)
+  })
+
+  it("rides the default clock when no signal is passed (AbortSignal.timeout runtimes)", async () => {
+    const fetchMock = stubFetch()
+
+    await apiFetch("/api/x", { method: "GET" })
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    if (typeof AbortSignal.timeout === "function") {
+      // every request now carries a pending AbortSignal — a hung /api/me
+      // can no longer spin the login/connect/AuthGuard loaders forever
+      expect(init.signal).toBeInstanceOf(AbortSignal)
+      expect((init.signal as AbortSignal).aborted).toBe(false)
+    } else {
+      // documented degrade: runtimes without AbortSignal.timeout keep the
+      // pre-P13-2c behavior (no clock) instead of crashing
+      expect(init.signal).toBeUndefined()
+    }
+  })
+
+  it("serves a TimeoutError rejection as the Arabic timeout ApiError (never English, never a hang)", async () => {
+    // AbortSignal.timeout aborts fetch with a DOMException named
+    // "TimeoutError" — the wrap must translate it into the same Arabic
+    // ApiError contract the network-error path serves
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new DOMException("The operation timed out", "TimeoutError")
+      }),
+    )
+
+    let caught: unknown
+    try {
+      await apiFetch("/api/x", { method: "GET" })
+    } catch (e) {
+      caught = e
+    }
+
+    expect(caught).toBeInstanceOf(ApiError)
+    expect((caught as ApiError).status).toBe(0)
+    expect((caught as ApiError).message).toBe(
+      "انتهت مهلة الطلب — لم يستجب الخادم في الوقت المتوقع، حاول مرة أخرى",
+    )
+    // the English browser text must never reach a toast
+    expect((caught as ApiError).message).not.toContain("timed out")
+  })
+
+  it("propagates an AbortError untouched — caller cancellation is not a network failure", async () => {
+    // react-query aborts its queryFn signal on cancellation/unmount; that
+    // rejection must NOT be wrapped into an ApiError (it would poison the
+    // cancellation with a fake error state). Abort fires AFTER the request
+    // starts — the realistic mid-flight cancellation shape.
+    const controller = new AbortController()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            controller.signal.addEventListener("abort", () => {
+              reject(new DOMException("The operation was aborted", "AbortError"))
+            })
+          }),
+      ),
+    )
+
+    const inFlight = apiFetch("/api/x", { method: "GET", signal: controller.signal })
+    controller.abort()
+
+    let caught: unknown
+    try {
+      await inFlight
+    } catch (e) {
+      caught = e
+    }
+
+    expect(caught).toBeInstanceOf(DOMException)
+    expect((caught as DOMException).name).toBe("AbortError")
+    expect(caught).not.toBeInstanceOf(ApiError)
+  })
+})

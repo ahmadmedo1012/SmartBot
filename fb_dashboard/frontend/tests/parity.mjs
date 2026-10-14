@@ -971,9 +971,14 @@ for (const triplet of ['233, 245, 240', '23, 195, 164', '198, 242, 78']) {
 // omega stays RADIANS PER MILLISECOND (do not "convert" without rescaling dt).
 if (rawOrbitScene.includes('omega: 0.00016')) pass += 1;
 else fails.push('OrbitScene: the inner-ring omega 0.00016 (rad/ms) constant not found');
-// the hero mounts the engine with the canonical RTL-opposite bias.
-if (rawPage.includes('biasX={-0.35}')) pass += 1;
-else fails.push('OrbitScene mount: biasX={-0.35} not found in page.tsx');
+// P12-2c (honest pin update — same mechanism, new value): OrbitScene is
+// RETIRED from the hero per spec-smartbot.md S1; the hero's canvas mount
+// is now the three.js RobotScene, dynamically imported with ssr:false
+// (the WebGL scene is browser-only). The OrbitScene file itself stays in
+// the tree (canvas module unused by the hero); the pin asserts the NEW
+// hero mount contract instead of the retired bias.
+if (rawPage.includes('ssr: false') && rawPage.includes('RobotScene')) pass += 1;
+else fails.push('RobotScene mount: dynamic import with { ssr: false } not found in page.tsx (P12-2c hero)');
 // the intro-seen calm is product-scoped (never share keys across products).
 if (rawLandingStage.includes("'smartbot.intro.seen'") || rawLandingStage.includes('"smartbot.intro.seen"')) pass += 1;
 else fails.push("OrbitScene calm: the product-scoped sessionStorage key 'smartbot.intro.seen' not found in LandingStage");

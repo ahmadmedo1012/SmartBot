@@ -2586,3 +2586,312 @@ html.light .landing .ln-companion-vignette {
 }
 html.light .landing .ln-companion-floor-ring i { border-color: rgb(12 117 99 / 0.45); }
 html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 0.28); }
+
+/* ═══ 18 — P12-2c · THE ROBOT HERO (spec-smartbot.md S1/S2) ═════════════
+   The reference-defining hero: the ORIGINAL three.js SmartBot robot
+   (RobotScene.tsx, dynamic ssr:false) stands centered-right (inline-end
+   in RTL) at ~40–50% viewport height presence on its pedestal
+   atmosphere (fog + faint grid + sparse particles + CSS vignette),
+   with 4 floating capability chips (real site copy, S2) connected to
+   the robot by thin lines. The copy column keeps its instant server
+   paint; the canvas is decorative (aria-hidden). New names only — the
+   pinned --ln-* canon above stays untouched. */
+.landing {
+  --sb-robot-h: clamp(320px, 44svh, 480px); /* the ~40–50vh presence band */
+  --sb-chamfer: 12px;                        /* the 45° cut size */
+}
+
+.landing .ln-hero-robot {
+  /* the hero's own depth ground: petrol wash + the fog radial at the
+     robot's base (P1-5 atmosphere) — replaces the retired sky div */
+  background:
+    radial-gradient(48% 58% at 68% 62%, rgb(23 195 164 / 0.07) 0%, transparent 70%),
+    radial-gradient(90% 50% at 70% 92%, rgb(13 40 48 / 0.85) 0%, transparent 72%);
+}
+
+/* the robot stage — the inline-end half of the hero grid; absolute on
+   desktop so the copy column owns the fold, sized by the presence band */
+.landing .ln-robot-stage {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(52vw, 620px);
+  z-index: 0;
+  pointer-events: none; /* tracking listens on window; chips opt back in */
+  overflow: hidden;
+}
+.landing .ln-robot {
+  position: absolute;
+  inset: 0;
+}
+.landing .ln-robot canvas { display: block; }
+
+/* the vignette — edge darkening over the WebGL scene (CSS half of the
+   atmosphere; renderer alpha lets the stage ground read through) */
+.landing .ln-robot-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(115% 90% at 55% 38%, transparent 52%, rgb(7 26 33 / 0.55) 100%);
+  pointer-events: none;
+}
+/* the fog bed — the scene's Fog object handles depth; this is the
+   ground-level mist line under the pedestal */
+.landing .ln-robot-fog {
+  position: absolute;
+  inset-inline: -10%;
+  block-size: 26%;
+  inset-block-end: 0;
+  background: linear-gradient(180deg, transparent 0%, rgb(7 26 33 / 0.65) 90%);
+  pointer-events: none;
+}
+
+/* ── 18a · S2 — the floating capability chips ──────────────────────────
+   Real site feature copy (the capabilities the product ships), chamfered
+   dark cards with mono micro-labels + teal/lime status dots, each joined
+   to the robot by a thin connector line. Decorative: aria-hidden at the
+   list level (the capabilities are real text but non-interactive here;
+   the marquee + mind chapter carry them as accessible anchors). */
+.landing .ln-robot-chips {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.landing .ln-robot-chip { position: absolute; }
+.landing .ln-robot-chip[data-area='a'] { top: 12%; inset-inline-start: 4%; }
+.landing .ln-robot-chip[data-area='b'] { top: 34%; inset-inline-end: 0%; }
+.landing .ln-robot-chip[data-area='c'] { bottom: 26%; inset-inline-start: 0%; }
+.landing .ln-robot-chip[data-area='d'] { bottom: 9%; inset-inline-end: 8%; }
+
+.landing .ln-robot-chip-card {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgb(13 40 48 / 0.92);
+  border: 1px solid var(--ln-line);
+  /* S3 chamfer — one 45° cut corner, no radius (the landing card law) */
+  clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
+  box-shadow: 0 6px 18px rgb(7 26 33 / 0.45);
+}
+.landing .ln-robot-chip-dot {
+  grid-row: 1 / 3;
+  inline-size: 7px;
+  block-size: 7px;
+  background: var(--ln-lime);
+  box-shadow: 0 0 8px rgb(23 195 164 / 0.8);
+}
+.landing .ln-robot-chip-dot[data-dot='lime'] {
+  background: var(--ln-violet);
+  box-shadow: 0 0 8px rgb(198 242 78 / 0.7);
+}
+.landing .ln-robot-chip-label {
+  color: var(--ln-cream);
+  font-size: 12.5px;
+  font-weight: var(--fw-medium);
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.landing .ln-robot-chip-mono {
+  grid-column: 2;
+  color: var(--ln-cream-dim);
+  font-size: 9.5px;
+  letter-spacing: 0.08em; /* pure Latin mono runs — tracked (S4) */
+  direction: ltr;
+  unicode-bidi: plaintext;
+}
+
+/* the thin connector line — a 45° hairline pointing at the robot's
+   center mass; length varies per area so the fan reads organic */
+.landing .ln-robot-chip-line {
+  position: absolute;
+  block-size: 1px;
+  inline-size: 44px;
+  background: linear-gradient(90deg, rgb(23 195 164 / 0.55), rgb(233 245 240 / 0.18));
+  inset-block-start: 50%;
+  /* chips sit on the stage's left/right edges; lines point inward */
+  inset-inline-start: -44px;
+  transform: rotate(4deg);
+}
+.landing .ln-robot-chip[data-area='b'] .ln-robot-chip-line,
+.landing .ln-robot-chip[data-area='d'] .ln-robot-chip-line {
+  inset-inline-start: auto;
+  inset-inline-end: -44px;
+  background: linear-gradient(270deg, rgb(23 195 164 / 0.55), rgb(233 245 240 / 0.18));
+}
+
+/* the idle float — one shared verb, RM-killed below */
+@keyframes ln-robot-chip-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .landing .ln-robot-chip { animation: ln-robot-chip-float 7s var(--ln-ease-soft) infinite; }
+  .landing .ln-robot-chip[data-area='a'] { animation-delay: -1.8s; }
+  .landing .ln-robot-chip[data-area='c'] { animation-delay: -3.4s; }
+  .landing .ln-robot-chip[data-area='d'] { animation-delay: -5.1s; }
+}
+
+/* the content column must clear the absolute robot stage on desktop:
+   the grid keeps one column; the copy keeps its 46vw cap */
+@media (max-width: 1024px) {
+  /* the robot becomes the backdrop behind the copy (rubric 390px: the
+     scene scales to backdrop, chips stack, no overflow) */
+  .landing .ln-robot-stage {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    opacity: 0.5;
+  }
+  .landing .ln-robot-chip { display: none; }
+}
+@media (min-width: 1025px) {
+  .landing .ln-hero-robot .ln-hero-content {
+    max-inline-size: min(44vw, 640px);
+  }
+}
+
+/* the hero grid stays single-column (the robot is absolute); the
+   transcript island docks under the copy at the hero's flow end */
+.landing .ln-hero-robot .ln-companion {
+  margin-block-start: var(--sp-6);
+  justify-items: start;
+}
+
+/* ── 18b · S4 — the display scale ──────────────────────────────────────
+   The ChainGPT wide-grotesk sentence-case scale, in the product's own
+   faces: Space Grotesk (Latin, --font-display) ahead of IBM Plex Sans
+   Arabic 700 (the Arabic display weight). H1 = clamp(40px, 5.2vw, 76px)
+   — a NEW name (--ln-h1 keeps its pinned value byte-untouched). */
+.landing .ln-hero-robot .ln-hero-title {
+  font-size: clamp(40px, 5.2vw, 76px);
+  line-height: 1.14;
+  font-family: var(--font-display), 'IBM Plex Sans Arabic', var(--font-sans);
+  font-weight: var(--fw-bold); /* 700 — the Arabic display weight (S4) */
+  max-inline-size: 16ch;
+}
+/* the eyebrow — the mono micro-label register: tracked Latin, 11–12px */
+.landing .ln-hero-robot .ln-hero-eyebrow .ln-mono {
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  color: var(--ln-lime);
+}
+.landing .ln-hero-robot .ln-hero-eyebrow .ln-mono::before {
+  content: '';
+  display: inline-block;
+  inline-size: 22px;
+  block-size: 1px;
+  background: var(--ln-lime);
+  vertical-align: middle;
+  margin-inline-end: 10px;
+  opacity: 0.7;
+}
+
+/* ═══ 19 — P12-2c · S3/S5 — BRACKET + CHAMFER FRAMING ══════════════════
+   The ChainGPT interface framing: section headings framed with bracket
+   rules (top+bottom hairlines with chamfered 45° ends), cards with
+   chamfered corners + thin borders (the rounded-radius card language is
+   retired ON THE LANDING ONLY), mono micro-labels. Neon discipline: teal
+   + lime only — no new accent colors anywhere in this section. */
+
+/* the bracket-framed chapter heading — the hairline pair + the label */
+.landing .ln-chapter-head {
+  position: relative;
+  padding-block: clamp(18px, 2.6vh, 26px);
+}
+.landing .ln-chapter-head::before,
+.landing .ln-chapter-head::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--ln-line);
+}
+.landing .ln-chapter-head::before { inset-block-start: 0; }
+.landing .ln-chapter-head::after { inset-block-end: 0; }
+/* the chamfered ends — small 45° cuts at both ends of BOTH hairlines
+   (the bracket's signature); implemented as ::before's clip-path shape
+   via two extra pseudo-elements is not possible, so each hairline gets
+   its chamfer through a shared background mask: the lines run edge to
+   edge but the ENDS are cut 45° by masking the parent. Simpler and
+   honest: pseudo elements per line, each with clip-path. */
+.landing .ln-chapter-head::before,
+.landing .ln-chapter-head::after {
+  clip-path: polygon(var(--sb-chamfer) 0, calc(100% - var(--sb-chamfer)) 0, 100% 100%, 0 100%);
+}
+
+/* the chamfered card — the landing's card law: 45° cut on the leading
+   corner, thin border, flat dark wash, no radius. Applied to the mind
+   threads (the landing's card family) — internal app routes keep their
+   own system. */
+.landing .ln-mind-thread {
+  border: 1px solid var(--ln-line-soft);
+  clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
+}
+
+/* the botchat window + product windows join the chamfer family (the
+   hero transcript + platform cards are landing cards too) */
+.landing .ln-botchat,
+.landing .ln-product-window {
+  clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
+}
+
+/* mono micro-labels — the tracked register for pure-Latin runs in the
+   landing (the existing .ln-label keeps its pinned body; this is the
+   eyebrow-scale twin for the chip cards) */
+.landing .ln-robot-chip-mono { font-family: var(--ln-mono); }
+
+/* ── 19a · light-stage twins (S1 theme-aware + the framing on mist) ──── */
+html.light .landing .ln-hero-robot {
+  background:
+    radial-gradient(48% 58% at 68% 62%, rgb(12 117 99 / 0.10) 0%, transparent 70%),
+    radial-gradient(90% 50% at 70% 92%, rgb(237 246 243 / 0.9) 0%, transparent 72%);
+}
+html.light .landing .ln-robot-vignette {
+  background: radial-gradient(115% 90% at 55% 38%, transparent 56%, rgb(237 246 243 / 0.65) 100%);
+}
+html.light .landing .ln-robot-fog {
+  background: linear-gradient(180deg, transparent 0%, rgb(237 246 243 / 0.7) 90%);
+}
+html.light .landing .ln-robot-chip-card {
+  background: rgb(255 255 255 / 0.92);
+  border-color: rgb(10 36 46 / 0.30);
+  box-shadow: 0 6px 18px rgb(10 36 46 / 0.14);
+}
+html.light .landing .ln-robot-chip-dot {
+  background: var(--ln-lime-deep);
+  box-shadow: 0 0 8px rgb(12 117 99 / 0.6);
+}
+html.light .landing .ln-robot-chip-dot[data-dot='lime'] {
+  background: var(--ln-violet);
+  box-shadow: 0 0 8px rgb(90 122 22 / 0.5);
+}
+html.light .landing .ln-robot-chip-label { color: var(--ln-ink-2); }
+html.light .landing .ln-robot-chip-mono { color: rgb(10 36 46 / 0.62); }
+html.light .landing .ln-robot-chip-line {
+  background: linear-gradient(90deg, rgb(12 117 99 / 0.6), rgb(10 36 46 / 0.2));
+}
+html.light .landing .ln-robot-chip[data-area='b'] .ln-robot-chip-line,
+html.light .landing .ln-robot-chip[data-area='d'] .ln-robot-chip-line {
+  background: linear-gradient(270deg, rgb(12 117 99 / 0.6), rgb(10 36 46 / 0.2));
+}
+html.light .landing .ln-chapter-head::before,
+html.light .landing .ln-chapter-head::after {
+  background: rgb(10 36 46 / 0.28);
+}
+
+/* ── 19b · reduced motion — the float verb off (the scene's own static
+   frame is handled in RobotScene.tsx) ────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-robot-chip { animation: none; }
+}
+
+/* ── 19c · small-view stacking (390px law: no overflow) ──────────────── */
+@media (max-width: 640px) {
+  .landing .ln-robot-stage { opacity: 0.42; }
+  .landing { --sb-robot-h: 300px; }
+}

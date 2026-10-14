@@ -1,41 +1,10 @@
-/* v16-r142 — «رفيق» the radical redesign: the page IS the companion's
-   story. The robot is not a hero image — it is the protagonist with a
-   live state (HeroCompanion: the lit stage + the 4-pose state machine
-   hero→wave→think→chat, driven by the visitor's first scroll, the stage
-   press, and the SAME playback that streams the integrated chat
-   simulator).
-
-   The narrative (RTL reading order), stitched together by the circuit-trace
-   chapter separators (TraceSep — the Circuit Petrol signature divider,
-   live lime node on the two live-product beats):
-   ٠ الهيرو «تعرّف على رفيقك» — stage + live simulator (one state machine)
-   ٠ شريط القدرات (marquee) — the real capability names
-   ٠ لغة العقل (#mind) — capabilities as chat threads + intent chips
-   ٠ يوم في الحياة (#day) — the 4-state storyboard, --sp-lit rail
-   ٠ المنصة الحقيقية (#platform) — live mini-boards in the product's own
-     tokens (inbox + analytics), honestly captioned «بيانات وهمية»
-   ٠ الأرقام (#trust) — the mono cockpit band (public stats, CountUp)
-   ٠ الختام «وظّف رفيقك الرقمي» — finale CTA + compact FAQ
-
-   The page stays a SERVER component — the h1 and hero sub render inline
-   (instant-paint LCP doctrine, v6 §D) and the stage's default pose is
-   server-rendered. Client islands are exactly: LandingHeader (chrome/
-   spy/menus), HeroDepthLayer (starfield parallax), OrbitScene (the r129
-   canvas sky — the ambient particle field around the stage), LandingStage
-   (intro-seen calm), MagneticGoldLink (CTA pull), HeroCompanion (the
-   stage state machine + simulator), TrustBand (public stats + CountUp),
-   BotDayStoryboard (--sp scrub) and the RevealCssClass observers.
-   Retired with the old ladder: FeaturesSection (constellation),
-   BotDemoSection, BotHeroPortrait, BotStatesStrip, JourneySection,
-   JourneyLightPath, ProgressSection, PlateSection, RolesSection. */
 import "./landing.css";
 import Link from "next/link";
 import { Check, MessageCircle, Languages } from "lucide-react";
+import dynamic from "next/dynamic";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
-import { HeroDepthLayer } from "@/components/landing/HeroDepthLayer";
-import { OrbitScene } from "@/components/landing/OrbitScene";
 import { HeroCompanion } from "@/components/landing/HeroCompanion";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
@@ -46,6 +15,32 @@ import { TrustBand } from "@/components/landing/TrustBand";
 import { FinaleCta } from "@/components/landing/FinaleCta";
 import { LandingFaq } from "@/components/landing/LandingFaq";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+
+/* P12-2c — the reference-defining hero (spec-smartbot.md):
+ * the ORIGINAL three.js SmartBot robot takes the hero's right side
+ * (RTL: inline-end) at ~40-50vh presence, pointer-tracked, on its
+ * pedestal atmosphere (fog + grid + particles), wrapped by the real
+ * Arabic value prop in the ChainGPT display scale (sentence case,
+ * clamp(40px,5.2vw,76px)) with mono micro-eyebrows and 4 floating
+ * feature chips (real capability copy) connected to the robot with
+ * thin lines. OrbitScene + HeroDepthLayer are RETIRED from the hero
+ * (the robot scene IS the hero's dimension now); the page stays a
+ * server component — the canvas mounts via dynamic import ssr:false,
+ * the h1/sub paint inline (LCP doctrine untouched).
+ * All real copy/links below the hero are untouched. */
+
+/* The robot scene is browser-only (WebGL) — dynamic import, no SSR. */
+const RobotScene = dynamic(() => import("@/components/landing/RobotScene"), { ssr: false });
+
+/* S2 — the REAL capability chips (the site's own feature copy), each
+ * connected to the robot by a thin line. Status dots: teal = live
+ * machine register, lime = AI/automation register (the S5 pair). */
+const HERO_CHIPS = [
+  { id: "chip-reply", label: "ردّ آلي على الرسائل", mono: "AUTO-REPLY", dot: "teal", area: "a" },
+  { id: "chip-pages", label: "إدارة صفحات فيسبوك", mono: "PAGES", dot: "teal", area: "b" },
+  { id: "chip-analytics", label: "تحليلات المحادثات", mono: "ANALYTICS", dot: "lime", area: "c" },
+  { id: "chip-publish", label: "أتمتة النشر", mono: "PUBLISH", dot: "lime", area: "d" },
+] as const;
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly";
 
@@ -178,28 +173,42 @@ export default function HomePage() {
           focus behavior, zero visual change. */}
       <div id="page-content" tabIndex={-1}>
 
-        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: the companion takes the stage
-            — literally. The OrbitScene sky stays (parity pin + ambient
-            particle field), the copy column keeps its instant paint, and
-            the stage + live simulator form ONE client island sharing a
-            single state machine. ═══ */}
-        <section className="ln-hero" aria-label="SmartBot — رفيق صفحات فيسبوك">
-          {/* living sky: starfield depth plane + the REAL canvas orbit
-              engine (fails safe to the CSS sky below; biasX −0.35 keeps
-              the orbital mass opposite the RTL text column) */}
-          <div className="ln-hero-sky" aria-hidden="true">
-            <HeroDepthLayer />
-            <OrbitScene className="ln-hero-canvas" biasX={-0.35} />
+        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P12-2c — the robot is the
+            hero. The copy column (inline-start, RTL right) keeps its
+            instant server paint; the three.js robot + pedestal + chips
+            occupy the inline-end half at ~40–50vh presence. ═══ */}
+        <section className="ln-hero ln-hero-robot" aria-label="SmartBot — رفيق صفحات فيسبوك">
+          {/* the robot atmosphere: WebGL scene + CSS fog/vignette bed.
+              Decorative by role — the copy above/beside it is the
+              accessible surface. */}
+          <div className="ln-robot-stage" aria-hidden="true">
+            <RobotScene className="ln-robot-canvas" />
+            <span className="ln-robot-vignette" />
+            <span className="ln-robot-fog" />
+            {/* S2 — the floating capability chips + their connector lines */}
+            <ul className="ln-robot-chips">
+              {HERO_CHIPS.map((c) => (
+                <li key={c.id} className="ln-robot-chip" data-area={c.area}>
+                  <i className="ln-robot-chip-line" />
+                  <span className="ln-robot-chip-card">
+                    <b className="ln-robot-chip-dot" data-dot={c.dot} />
+                    <span className="ln-robot-chip-label">{c.label}</span>
+                    <span className="ln-mono ln-robot-chip-mono">{c.mono}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="ln-hero-grid">
           <div className="ln-hero-content">
             <RevealCssClass as="p" className="ln-hero-eyebrow">
-              <span className="ln-mono">SmartBot · رفيق صفحات فيسبوك · ليبيا</span>
+              <span className="ln-mono">[ SmartBot · 001 ] رفيق صفحات فيسبوك · ليبيا</span>
             </RevealCssClass>
 
             {/* h1 + sub paint INSTANTLY — server-rendered inline, no reveal,
-                no client gate (LCP doctrine). One lime word: رفيقك. */}
+                no client gate (LCP doctrine). S4: the ChainGPT display
+                scale — sentence case, clamp(40px,5.2vw,76px), Arabic 700. */}
             <h1 className="ln-hero-title">
               <span className="ln-hero-line">تعرّف على <em className="ln-hero-gold">رفيقك</em> الرقمي</span>
               <span className="ln-hero-line">يرد، يفهم، ويشتغل <em>دائماً</em></span>
@@ -228,11 +237,12 @@ export default function HomePage() {
               <li><Languages size={13} aria-hidden="true" /> واجهة عربية بالكامل</li>
             </RevealCssClass>
           </div>
-
-          {/* the companion: lit stage + live state machine + the integrated
-              simulator (hero island §17) */}
-          <HeroCompanion />
           </div>
+
+          {/* the live transcript stays in the hero column (client island,
+              BotChatSimulator) — the companion state machine now reports
+              only to the simulator below the fold */}
+          <HeroCompanion />
 
           {/* scroll invitation */}
           <a href="#mind" className="ln-hero-scroll" aria-label="تابع رحلة رفيقك">

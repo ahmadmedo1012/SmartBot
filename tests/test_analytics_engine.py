@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 """Tests for AnalyticsEngine — daily trend, peak hour, overview, helpers."""
+import os
 from collections import namedtuple
 from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock
@@ -381,6 +382,111 @@ class TestDialectBranchPin:
             assert mod.day_expr is _utils.day_expr, (
                 f"{mod.__name__} must go through the shared dialect-aware seam, "
                 "not a raw cast(col, Date)")
+
+
+_LIVE_PG_URL = os.environ.get("SMARTBOT_PG_URL", "")
+
+
+@pytest.mark.skipif(
+    not _LIVE_PG_URL,
+    reason="live PostgreSQL not provided — set SMARTBOT_PG_URL "
+           "(postgresql+asyncpg://…) to run the production-dialect execution proof",
+)
+class TestLivePostgresExecution:
+    """P11 — P10-3's honest gap closed: the PostgreSQL branch EXECUTED.
+
+    TestDialectBranchPin pins the Postgres spelling at SQL-compile level
+    only ("no live Postgres in this sandbox" — the recorded P10-3 gap).
+    This class runs the SAME seeded-rows proof as TestSqliteRealDb against
+    a real PostgreSQL the moment one exists: set SMARTBOT_PG_URL to a
+    DEDICATED test database (rows in replies/ai_suggestions are deleted per
+    test) and the production path executes end-to-end —
+    CAST(created_at AS DATE) → asyncpg ``date`` objects → SQLAlchemy's
+    Date result processor → 'YYYY-MM-DD' buckets with correct counts,
+    window scoping and tenant scoping. Skipped otherwise: the suite stays
+    hermetic by default (the env-contract skip-guard pattern of the
+    webhook-security specs).
+
+    Loop discipline (r133/r140 hazard family): the engine is created,
+    seeded, queried and disposed INSIDE one function-scoped fixture on the
+    test's own pytest-asyncio loop — nothing crosses a loop boundary, so
+    the per-test dispose machinery of the root conftest has no stake here.
+    """
+
+    @pytest.fixture
+    async def pg_seeded(self):
+        from types import SimpleNamespace
+
+        from models import AISuggestion, Reply
+        from sqlalchemy import text
+        from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+        eng = create_async_engine(_LIVE_PG_URL)
+        try:
+            async with eng.begin() as conn:
+                def _ensure(sync_conn):
+                    Reply.__table__.create(sync_conn, checkfirst=True)
+                    AISuggestion.__table__.create(sync_conn, checkfirst=True)
+                await conn.run_sync(_ensure)
+                # dedicated-DB contract: clean slate so re-runs stay green
+                await conn.execute(text("DELETE FROM replies"))
+                await conn.execute(text("DELETE FROM ai_suggestions"))
+            sf = async_sessionmaker(eng, expire_on_commit=False)
+            now = utcnow()
+            async with sf() as db:
+                db.add_all([
+                    # tenant 1, in the 7-day window: 2 today + 1 three days ago
+                    Reply(tenant_id=1, fb_comment_id="pg-a", fb_post_id="p1", created_at=now),
+                    Reply(tenant_id=1, fb_comment_id="pg-b", fb_post_id="p1", created_at=now),
+                    Reply(tenant_id=1, fb_comment_id="pg-c", fb_post_id="p1",
+                          created_at=now - timedelta(days=3)),
+                    # outside the window — must not appear
+                    Reply(tenant_id=1, fb_comment_id="pg-old", fb_post_id="p1",
+                          created_at=now - timedelta(days=30)),
+                    # another tenant — must not leak into tenant 1's analytics
+                    Reply(tenant_id=999, fb_comment_id="pg-x", fb_post_id="p1", created_at=now),
+                    # sentiment rows: positive today + negative today + positive day-3
+                    AISuggestion(tenant_id=1, sentiment="positive", created_at=now),
+                    AISuggestion(tenant_id=1, sentiment="negative", created_at=now),
+                    AISuggestion(tenant_id=1, sentiment="positive",
+                                 created_at=now - timedelta(days=3)),
+                ])
+                await db.commit()
+            yield SimpleNamespace(sf=sf, now=now,
+                                  today=now.date().isoformat(),
+                                  past=(now - timedelta(days=3)).date().isoformat())
+        finally:
+            await eng.dispose()
+
+    async def test_daily_trend_on_real_postgres(self, pg_seeded):
+        """Production dialect: CAST(... AS DATE) buckets come back as proper
+        ISO 'YYYY-MM-DD' strings, ascending, with window + tenant scoping
+        (the asyncpg Date result processor must feed str(row.d) cleanly)."""
+        async with pg_seeded.sf() as s:
+            rows = await AnalyticsEngine().get_daily_trend(7, s, tenant_id=1)
+        dates = [r["date"] for r in rows]
+        assert dates == [pg_seeded.past, pg_seeded.today]  # ascending, 2 buckets
+        assert all(len(d) == 10 and d[4] == "-" for d in dates)
+        assert {r["date"]: r["replies"] for r in rows} == {
+            pg_seeded.past: 1, pg_seeded.today: 2}
+
+    async def test_hourly_heatmap_on_real_postgres(self, pg_seeded):
+        async with pg_seeded.sf() as s:
+            cells = await AnalyticsEngine().get_hourly_heatmap(7, s, tenant_id=1)
+        by_day = {c["day"]: c for c in cells}
+        assert set(by_day) == {pg_seeded.past, pg_seeded.today}
+        assert by_day[pg_seeded.today]["hour"] == pg_seeded.now.hour
+        assert by_day[pg_seeded.today]["count"] == 2
+        assert isinstance(by_day[pg_seeded.today]["hour"], int)
+
+    async def test_sentiment_trend_on_real_postgres(self, pg_seeded):
+        async with pg_seeded.sf() as s:
+            rows = await AnalyticsEngine().get_sentiment_trend(7, s, tenant_id=1)
+        by_date = {r["date"]: r for r in rows}
+        assert set(by_date) == {pg_seeded.past, pg_seeded.today}
+        assert by_date[pg_seeded.today]["positive"] == 1
+        assert by_date[pg_seeded.today]["negative"] == 1
+        assert by_date[pg_seeded.past]["positive"] == 1
 
 
 if __name__ == "__main__":

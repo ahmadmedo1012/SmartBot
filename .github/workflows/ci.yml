@@ -36,6 +36,33 @@ jobs:
     # the 25-minute wall five runs in a row (last one killed 25m15s into
     # "Gate 2 — pytest"); the Python suite is 1118+ tests and needs headroom.
     timeout-minutes: 40
+    # P11 (live dialect proof): a real PostgreSQL service so
+    # TestLivePostgresExecution RUNS in CI — P10-3 pinned the Postgres
+    # spelling (CAST(... AS DATE)) at compile level only (recorded honest
+    # gap: "no live Postgres in this sandbox"); local embedded-PG 18 proved
+    # execution (3/3), and this service makes the proof permanent: asyncpg
+    # date objects → the Date result processor → 'YYYY-MM-DD' buckets on
+    # every push. The class skips cleanly when SMARTBOT_PG_URL is absent,
+    # so the suite stays hermetic wherever the service is not defined
+    # (local runs without the var, forks, act, …). Dedicated DB per the
+    # class docstring contract (rows in replies/ai_suggestions are deleted
+    # per test — never point it at a real database).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: smartbot
+          POSTGRES_PASSWORD: smartbot
+          POSTGRES_DB: smartbot_live_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smartbot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SMARTBOT_PG_URL: postgresql+asyncpg://smartbot:smartbot@localhost:5432/smartbot_live_test
     defaults:
       run:
         shell: bash

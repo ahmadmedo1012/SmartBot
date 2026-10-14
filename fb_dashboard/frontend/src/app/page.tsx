@@ -1,11 +1,11 @@
 import "./landing.css";
 import Link from "next/link";
 import { Check, MessageCircle, Languages } from "lucide-react";
-import dynamic from "next/dynamic";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { HeroCompanion } from "@/components/landing/HeroCompanion";
+import { RobotSceneMount } from "@/components/landing/RobotSceneMount";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
 import { MindSection } from "@/components/landing/MindSection";
@@ -29,8 +29,9 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
  * the h1/sub paint inline (LCP doctrine untouched).
  * All real copy/links below the hero are untouched. */
 
-/* The robot scene is browser-only (WebGL) — dynamic import, no SSR. */
-const RobotScene = dynamic(() => import("@/components/landing/RobotScene"), { ssr: false });
+/* The robot scene is browser-only (WebGL): the ssr:false dynamic import
+ * lives in the RobotSceneMount client wrapper (Server Components may not
+ * pass ssr:false) — the h1/sub still paint inline (LCP doctrine). */
 
 /* S2 — the REAL capability chips (the site's own feature copy), each
  * connected to the robot by a thin line. Status dots: teal = live
@@ -182,7 +183,7 @@ export default function HomePage() {
               Decorative by role — the copy above/beside it is the
               accessible surface. */}
           <div className="ln-robot-stage" aria-hidden="true">
-            <RobotScene className="ln-robot-canvas" />
+            <RobotSceneMount className="ln-robot-canvas" />
             <span className="ln-robot-vignette" />
             <span className="ln-robot-fog" />
             {/* S2 — the floating capability chips + their connector lines */}

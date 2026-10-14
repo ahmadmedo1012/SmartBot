@@ -911,6 +911,7 @@ pinDecl('scroll-hover', '.landing .ln-hero-scroll:hover .ln-hero-scroll-line', '
 const rawPage = readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
 const rawLandingStage = readFileSync(new URL('../src/components/landing/LandingStage.tsx', import.meta.url), 'utf8');
 const rawOrbitScene = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
+const rawRobotMount = readFileSync(new URL('../src/components/landing/RobotSceneMount.tsx', import.meta.url), 'utf8');
 
 // P0: exactly ONE id="main-content" in the rendered page — the layout owns
 // it; the landing wrapper must not re-render it (duplicate id + nested
@@ -973,12 +974,11 @@ if (rawOrbitScene.includes('omega: 0.00016')) pass += 1;
 else fails.push('OrbitScene: the inner-ring omega 0.00016 (rad/ms) constant not found');
 // P12-2c (honest pin update — same mechanism, new value): OrbitScene is
 // RETIRED from the hero per spec-smartbot.md S1; the hero's canvas mount
-// is now the three.js RobotScene, dynamically imported with ssr:false
-// (the WebGL scene is browser-only). The OrbitScene file itself stays in
-// the tree (canvas module unused by the hero); the pin asserts the NEW
-// hero mount contract instead of the retired bias.
-if (rawPage.includes('ssr: false') && rawPage.includes('RobotScene')) pass += 1;
-else fails.push('RobotScene mount: dynamic import with { ssr: false } not found in page.tsx (P12-2c hero)');
+// is now the three.js RobotScene. Server Components may not pass
+// ssr:false directly, so the dynamic import lives in the client wrapper
+// RobotSceneMount — the pin asserts BOTH halves of the contract.
+if (rawPage.includes('RobotSceneMount') && rawRobotMount.includes('ssr: false')) pass += 1;
+else fails.push('RobotScene mount: page must mount RobotSceneMount; the wrapper must dynamic-import RobotScene with { ssr: false } (P12-2c hero)');
 // the intro-seen calm is product-scoped (never share keys across products).
 if (rawLandingStage.includes("'smartbot.intro.seen'") || rawLandingStage.includes('"smartbot.intro.seen"')) pass += 1;
 else fails.push("OrbitScene calm: the product-scoped sessionStorage key 'smartbot.intro.seen' not found in LandingStage");

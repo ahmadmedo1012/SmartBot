@@ -4,7 +4,7 @@
  * v17-E-F10 (D6-8) — TrendLineChart: خطي الاتجاه اليومي للتحليلات المتقدمة.
  *
  * عقد المكون مرآة ActivityBarChart (charts/index.tsx): نفس رموز الألوان
- * (var(--primary)/var(--muted)/var(--border) — لا hex خام)، نفس hook
+ * (var(--primary)/var(--muted-foreground)/var(--border) — لا hex خام)، نفس hook
  * prefers-reduced-motion المحلي (v8-C2 — recharts يرسم tween 600ms افتراضيًا)،
  * نفس sr-only summary (v8-B14) ونفس بطاقة tooltip العربية.
  *
@@ -27,7 +27,13 @@ import { countPhrase } from "@/lib/format"
 // Brand solid — NOT --accent (that token is the 15% whisper tint; using it
 // here made chart lines nearly invisible — same note as charts/index.tsx).
 const ACCENT = "var(--primary)"
-const MUTED = "var(--muted)"
+/* p10 (P10-1a): was var(--muted) — the SURFACE-2 fill token. Recharts paints
+ * the tick text with this fill as an SVG presentation attribute (var()
+ * DOES resolve there — chromium-verified), so the X-axis date labels were
+ * ink-on-ink in BOTH stages: #123039 on card #0D2830 = 1.11:1 (dark) /
+ * #DAEAE6 on #FFFFFF = 1.24:1 (light) — invisible. The secondary-TEXT token
+ * --muted-foreground measures 8.07:1 (dark) / 8.19:1 (light) on card. */
+const MUTED = "var(--muted-foreground)"
 const GRID = "var(--border)"
 
 /* v8-C2 twin (نسخة محلية من charts/index.tsx — الملف المشترك خارج ملكية

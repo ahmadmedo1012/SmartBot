@@ -19,7 +19,12 @@ import { useEffect, useState } from "react"
 // Brand solid — NOT --accent (that token is the 15% whisper tint; using it
 // here made chart bars nearly invisible on the dashboard).
 const ACCENT = "var(--primary)"
-const MUTED = "var(--muted)"
+/* p10 (P10-1a): was var(--muted) — the SURFACE-2 fill token, so tick TEXT
+ * (showAxis) and the hover cursor painted ink-on-ink in both stages
+ * (1.11:1 dark / 1.24:1 light on card). The secondary-TEXT token
+ * --muted-foreground measures 8.07:1 (dark) / 8.19:1 (light) — same root
+ * fix as TrendLineChart.tsx. */
+const MUTED = "var(--muted-foreground)"
 const GRID = "var(--border)"
 
 /* v8-C2: charts must respect prefers-reduced-motion too — recharts draws
@@ -75,7 +80,7 @@ export function ActivityBarChart({
         {!showAxis && <XAxis dataKey="label" hide />}
         <YAxis hide />
         <Tooltip
-          cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+          cursor={{ fill: MUTED, opacity: 0.4 }}
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null
             const p = payload[0].payload as BarDatum

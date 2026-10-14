@@ -659,3 +659,37 @@ describe("r134 parity — تعذّر policy · lg rung 48px canon · og alt fami
     expect(rawDialog).toContain("ease-smooth @ 240ms")
   })
 })
+
+describe("p10a parity — chart ink contract: recharts text/cursor = the TEXT token, not the surface token", () => {
+  const nc = (t: string) => t.replace(/\/\*[\s\S]*?\*\//g, " ")
+  const read = (p: string) => nc(readFileSync(p, "utf8"))
+
+  // P10-1a (route audit): tick fill/cursor bound to var(--muted) — the
+  // SURFACE-2 fill (#123039 dark / #DAEAE6 light) — painted 1.11:1 / 1.24:1
+  // on card in both stages: the analytics daily-trend axis labels were
+  // invisible. The secondary-TEXT token --muted-foreground measures
+  // 8.07:1 (dark) / 8.19:1 (light) on card.
+  it("TrendLineChart + ActivityBarChart bind tick text and tooltip cursors to var(--muted-foreground)", () => {
+    for (const f of ["src/components/charts/TrendLineChart.tsx", "src/components/charts/index.tsx"]) {
+      const raw = read(f)
+      expect(raw, f).toContain('const MUTED = "var(--muted-foreground)"')
+      expect(raw, f).toContain("tick={{ fontSize: 10, fill: MUTED }}")
+      expect(raw, f).not.toContain('"var(--muted)"')
+    }
+    expect(read("src/components/charts/TrendLineChart.tsx")).toContain(
+      'cursor={{ stroke: MUTED, strokeDasharray: "3 3" }}',
+    )
+    expect(read("src/components/charts/index.tsx")).toContain("cursor={{ fill: MUTED, opacity: 0.4 }}")
+  })
+
+  it("ActivityHeatmap zero-cell KEEPS var(--muted) as backgroundColor (surface semantics — the ink fix must not leak)", () => {
+    const raw = read("src/components/charts/ActivityHeatmap.tsx")
+    expect(raw).toContain('backgroundColor: count === 0 ? "var(--muted)" : cellMix(count, max)')
+    expect(raw).not.toContain('fill: "var(--muted)"')
+  })
+
+  it("the ink tier resolves AA on card in both stages (dark #9FC3BC / light #3A5450 on their card grounds)", () => {
+    expect(resolve(dark, dark["--muted-foreground"]!)).toBe("#9FC3BC")
+    expect(resolve(light, light["--muted-foreground"]!)).toBe("#3A5450")
+  })
+})

@@ -2209,6 +2209,52 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('p6d4 docs truth: MASTER.md + docs/design-system.md declare the Circuit Petrol SSOT (Madarek-wins ruling retired)');
 }
 
+// ── §p10a — phase10 (P10-1a): the chart INK contract — text is a text token ──
+{
+  /* Self-contained block (own raw readers): pins the P10-1a route-audit fix —
+     recharts tick TEXT and hover cursors must ride the secondary-TEXT token
+     (--muted-foreground, 8.07:1 dark / 8.19:1 light on card), never the
+     SURFACE-2 fill token (--muted: #123039 dark / #DAEAE6 light = 1.11:1 /
+     1.24:1 on card — the analytics daily-trend axis labels were invisible in
+     BOTH stages since v17-E-F10). Root fixed once in the two chart sources;
+     the ActivityHeatmap zero-cell PIN keeps var(--muted) — a surface fill is
+     the correct semantics there (guards the over-correction). */
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawTrend = nc(readRaw('../src/components/charts/TrendLineChart.tsx'));
+  const rawCharts = nc(readRaw('../src/components/charts/index.tsx'));
+  const rawHeat = nc(readRaw('../src/components/charts/ActivityHeatmap.tsx'));
+
+  // (1) both recharts sources bind the tick/cursor ink to the TEXT token —
+  //     the const, the tick fill and the tooltip cursor all speak
+  //     --muted-foreground; a var(--muted) binding on text/cursor is banned.
+  const chartInkOk = rawTrend.includes('const MUTED = "var(--muted-foreground)"')
+    && rawTrend.includes('tick={{ fontSize: 10, fill: MUTED }}')
+    && rawTrend.includes('cursor={{ stroke: MUTED, strokeDasharray: "3 3" }}')
+    && rawCharts.includes('const MUTED = "var(--muted-foreground)"')
+    && rawCharts.includes('tick={{ fontSize: 10, fill: MUTED }}')
+    && rawCharts.includes('cursor={{ fill: MUTED, opacity: 0.4 }}')
+    && !rawTrend.includes('"var(--muted)"')
+    && !rawCharts.includes('"var(--muted)"');
+  if (chartInkOk) pass += 1;
+  else fails.push('p10a chart ink: TrendLineChart + ActivityBarChart tick text/cursor ride var(--muted-foreground) (the text tier) — the surface token var(--muted) is banned as chart ink');
+
+  // (2) the heatmap zero-cell keeps the SURFACE semantics: var(--muted) as
+  //     backgroundColor is the honest "empty cell" ground (flips with the
+  //     theme); only TEXT/cursor bindings moved to the ink tier.
+  const heatSurfaceOk = rawHeat.includes('backgroundColor: count === 0 ? "var(--muted)" : cellMix(count, max)')
+    && !rawHeat.includes('fill: "var(--muted)"');
+  if (heatSurfaceOk) pass += 1;
+  else fails.push('p10a heatmap surface: the zero-count cell keeps var(--muted) as backgroundColor (surface semantics — the ink fix must not leak here)');
+
+  // (3) the tokens themselves carry the AA text contract in both stages —
+  //     the ink tier resolves on card in both scopes (values from globals).
+  pin(dark, 'p10a-chart-ink', '--muted-foreground', '#9FC3BC');
+  pin(light, 'p10a-chart-ink', '--muted-foreground', '#3A5450');
+  pin(dark, 'p10a-chart-surface', '--muted', '#123039');
+  pin(light, 'p10a-chart-surface', '--muted', '#DAEAE6');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`

@@ -2898,3 +2898,11 @@ html.light .landing .ln-chapter-head::after {
   .landing .ln-robot-stage { opacity: 0.42; }
   .landing { --sb-robot-h: 300px; }
 }
+
+/* ── 19d · P12-2c — the remaining landing card family joins the chamfer
+   law (faq items + finale + day panels); the rounded-radius language is
+   retired on the LANDING surface only. Radius overridden, not deleted. */
+.landing .ln-faq-item {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
+}

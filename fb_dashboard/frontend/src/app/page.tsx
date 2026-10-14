@@ -238,12 +238,12 @@ export default function HomePage() {
               <li><Languages size={13} aria-hidden="true" /> واجهة عربية بالكامل</li>
             </RevealCssClass>
           </div>
-          </div>
 
-          {/* the live transcript stays in the hero column (client island,
-              BotChatSimulator) — the companion state machine now reports
-              only to the simulator below the fold */}
+          {/* the live transcript docks under the copy INSIDE the grid's
+              first track (client island, BotChatSimulator); the companion
+              state machine still drives the greeting beat */}
           <HeroCompanion />
+          </div>
 
           {/* scroll invitation */}
           <a href="#mind" className="ln-hero-scroll" aria-label="تابع رحلة رفيقك">

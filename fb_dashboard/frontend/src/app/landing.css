@@ -2906,3 +2906,55 @@ html.light .landing .ln-chapter-head::after {
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
+
+/* ── 18c · P12-2c hero layout — one copy track on desktop ─────────────
+   The robot stage is the absolute inline-end half (§18); the hero grid
+   collapses to ONE track so the copy + transcript stack on the
+   inline-start side without stretching the fold. The pinned two-track
+   rule above stays (historical record, mobile keeps auto flow). */
+@media (min-width: 1025px) {
+  .landing .ln-hero-robot .ln-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-inline-size: min(46vw, 660px);
+    margin-inline: 0 auto; /* RTL: hugs the reading start */
+  }
+}
+
+/* ── 18d · P12-2c — the fold discipline ───────────────────────────────
+   The hero must stay ONE fold: the copy column (610px) + transcript
+   (390px) + paddings would stretch the hero past 100svh on laptop
+   viewports. The transcript's compact log shrinks inside the fold (its
+   full dock lives on tall screens), and the hero's own grid rows are
+   capped by the hero's min-block-size contract (680/100svh). */
+@media (max-height: 900px) and (min-width: 1025px) {
+  .landing .ln-hero-robot .ln-botchat.compact .ln-botchat-log {
+    min-block-size: 120px;
+    max-block-size: 168px;
+  }
+  .landing .ln-hero-robot .ln-companion { gap: var(--sp-2); }
+}
+/* the grid rows may not exceed the fold: the transcript shares the
+   copy track's row (grid auto-flow already stacks them); cap the grid
+   so the hero's 100svh floor governs, never the content's raw height */
+@media (min-width: 1025px) {
+  .landing .ln-hero-robot .ln-hero-grid {
+    align-content: center;
+  }
+}
+
+/* ── 18e · P12-2c — the fold holds the transcript ──────────────────────
+   610 (copy) + 300 (transcript) + 206 (paddings) = 1116px > the 633px
+   laptop fold. The hero stays the fold's owner: the transcript clamps
+   to the space the fold actually has (max-height + its own scroll), so
+   the hero never exceeds max(680px, 100svh) + a small breathing tail. */
+@media (min-width: 1025px) {
+  .landing .ln-hero-robot .ln-companion {
+    max-block-size: calc(100svh - 420px);
+    min-block-size: 240px;
+    overflow: clip; /* the compact log scrolls inside */
+  }
+  .landing .ln-hero-robot .ln-botchat.compact .ln-botchat-log {
+    min-block-size: 130px;
+    max-block-size: min(220px, calc(100svh - 640px));
+  }
+}

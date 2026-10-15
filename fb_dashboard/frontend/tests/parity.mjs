@@ -675,7 +675,7 @@ pinAll(landingLightCascade, 'landing-light-bot', {
 pinDecl('landing-light-scrolled', 'html.light .landing .landing-header.scrolled', 'background', 'rgb(237 246 243 / 0.92)');
 pinDecl('landing-light-ghost', 'html.light .landing .ln-btn-ghost', 'border-color', 'rgb(10 36 46 / 0.45)');
 pinDecl('landing-light-stationbar', 'html.light .landing .ln-product-bar', 'background', 'rgb(255 255 255 / 0.72)');
-pinDecl('landing-light-ticker', 'html.light .landing .ln-ticker', 'background', 'rgb(255 255 255 / 0.72)');
+pinDecl('landing-light-ticker', 'html.light .landing .ln-ticker', 'background', 'rgb(255 255 255 / 0.62)');
 pinDecl('landing-light-tickercorner', 'html.light .landing .ln-ticker-corner', 'border-color', 'rgb(10 36 46 / 0.55)');
 pinDecl('landing-light-selection', 'html.light .landing ::selection', 'background', 'var(--ln-violet)');
 // P9-3-c2 (gate review): the footer mist-rise seam twin — the one night
@@ -1524,21 +1524,25 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (productOk) pass += 1;
   else fails.push('r152b product windows: CircuitTrace live accents under both window bars, zero <Image>');
 
-  // (7) P15 re-anchor — the simulator retired with HeroCompanion; the
-  //     hero's interactive beat is the TICKER island (HeroTicker): the
-  //     honest 3-beat state machine (real capabilities, no metrics), one
-  //     aria-live polite region, and the same IO/hidden-tab pause family
-  //     the simulator carried. The transcript grammar lives on in
-  //     MindSection (pinned by the r142-era mind pins).
+  // (7) P15 re-anchor (2-e: the B scenario engine ported into A's
+  //     ticker) — the hero's interactive beat is the TICKER island
+  //     (HeroTicker) running CONCEPT B's honest demo cycle: the inbound
+  //     customer message, the intent classification, the word-by-word
+  //     auto-reply, the human handoff — all labeled «عرض توضيحي» with
+  //     the sr-only honesty line, one aria-live polite region, and the
+  //     same IO/hidden-tab pause family the simulator carried. The
+  //     transcript grammar lives on in MindSection (pinned by the
+  //     r142-era mind pins).
   const simOk = rawHome.includes('<HeroTicker />')
     && rawTicker.includes('aria-live="polite"')
     && rawTicker.includes('IntersectionObserver')
     && rawTicker.includes('document.hidden')
-    && rawTicker.includes('ردّ تلقائي على تعليقات صفحتك')
-    && rawTicker.includes('تصنيف نية العميل تلقائياً')
-    && rawTicker.includes('تسليم فوري للموظف البشري');
+    && rawTicker.includes('عرض توضيحي')
+    && rawTicker.includes('كم سعر الاشتراك عندكم؟')
+    && rawTicker.includes('النية:')
+    && rawTicker.includes('تم تحويل المحادثة إلى الفريق البشري');
   if (simOk) pass += 1;
-  else fails.push('P15 ticker: the hero beat is the HeroTicker island — honest real-capability beats, aria-live polite, IO + hidden-tab pause (the retired simulator contract)');
+  else fails.push('P15 ticker: the hero beat is the HeroTicker island — the honest demo cycle (inbound → intent → typed reply → human handoff) with the «عرض توضيحي» badge, aria-live polite, IO + hidden-tab pause');
 
   // (8) RETIRED RASTER ROBOTS: zero live references to the deleted webp
   //     assets anywhere under src (comment mentions are fine — the code
@@ -2396,10 +2400,11 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   pinDecl('P15-eyebrow', '.landing .ln-eyebrow-ar', 'letter-spacing', '0');
 
   // (5) the ticker box — the ChainGPT framing grammar: 1px hairline +
-  //     bracket corners OUTSIDE (negative offsets), mono head + index,
-  //     the rotation never shifts the box height, the caret blinks.
+  //     bracket corners OUTSIDE (negative offsets), mono head + the
+  //     DEMO badge + scenario index, the beat body height-stable (the
+  //     word-by-word typing never reflows the island).
   pinDecl('P15-ticker', '.landing .ln-ticker', 'border', '1px solid var(--ln-line)');
-  pinDecl('P15-ticker', '.landing .ln-ticker-prompt', 'min-block-size', '2.2em');
+  pinDecl('P15-ticker', '.landing .ln-ticker-beat', 'min-block-size', '5.4em');
   pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-block-start', '-5px');
   pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-inline-start', '-5px');
   // the status panel: hairline spine + the synced active row in cream,
@@ -2408,26 +2413,37 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(233 245 240 / 0.55)');
   pinDecl('P15-status', '.landing .ln-status li[data-active=\'true\']', 'color', 'var(--ln-cream)');
 
-  // (6) the ticker island (source contract) — honest beats ONLY (real
-  //     capabilities, no digits anywhere in the beat copy), ONE shared
-  //     index driving prompt + status rows + mobile line + sr narration,
-  //     aria-live polite, RM never arms, IO + hidden-tab pause.
+  // (6) the ticker island (source contract, 2-e: B's scenario engine) —
+  //     the honest DEMO cycle: three scenarios (price/booking/complaint)
+  //     whose ONLY digits are the product's own published plan terms
+  //     (100 رد/شهر on the free rung, 19 د.ل the first paid rung — the
+  //     DB seed + pricing page carry the same figures); never invented
+  //     metrics or fabricated customers. ONE scenario stage machine
+  //     (memoized script, STAGE_MS/RESET_MS beats) drives the beat body
+  //     + the status rows + the mobile line; the reply types word by
+  //     word; aria-live polite; RM composes ONE static frame (reply
+  //     beat, fully typed); IO + hidden-tab pause.
   {
-    const beats = rawHeroTicker.slice(
-      rawHeroTicker.indexOf('const BEATS'),
-      rawHeroTicker.indexOf('const BEAT_MS'),
+    const scenarios = rawHeroTicker.slice(
+      rawHeroTicker.indexOf('const SCENARIOS'),
+      rawHeroTicker.indexOf('/* ── the stage script'),
     );
-    if (!/\d/.test(beats)) pass += 1;
-    else fails.push('P15 ticker honesty: the beat copy must carry NO digits (real capability statements, never fabricated metrics)');
-    const synced = rawHeroTicker.includes('data-active={i === idx')
+    const honestDigits = /100 رد/.test(scenarios) && /19 د\.ل/.test(scenarios)
+      && !/\d+\s*(%|k|ألف|مليون)/.test(scenarios);
+    if (honestDigits) pass += 1;
+    else fails.push('P15 ticker honesty: the scenario digits must be the product\'s own published plan terms (100 رد/شهر، 19 د.ل) — never fabricated metrics');
+    const synced = rawHeroTicker.includes('STAGE_MS')
+      && rawHeroTicker.includes('RESET_MS')
+      && rawHeroTicker.includes('REPLY_WORD_MS')
+      && rawHeroTicker.includes('useMemo')
       && rawHeroTicker.includes('aria-live="polite"')
-      && rawHeroTicker.includes("window.matchMedia('(prefers-reduced-motion: reduce)')")
-      && rawHeroTicker.includes('BEAT_MS = 4200');
+      && rawHeroTicker.includes("window.matchMedia('(prefers-reduced-motion: reduce)')");
     if (synced) pass += 1;
-    else fails.push('P15 ticker sync: ONE index drives the panel rows (data-active), aria-live polite, RM static, 4200ms beat');
-    const sr = rawHeroTicker.includes('className="sr-only"');
+    else fails.push('P15 ticker sync: ONE scenario stage machine (STAGE_MS/RESET_MS, memoized script) drives the beat + status rows + mobile line, aria-live polite, RM static');
+    const sr = rawHeroTicker.includes('className="sr-only"')
+      && rawHeroTicker.includes('ليست بيانات عملاء حقيقيين');
     if (sr) pass += 1;
-    else fails.push('P15 ticker sr: the SR_POSE_COPY narration line (sr-only) must narrate the beat for screen readers');
+    else fails.push('P15 ticker sr: the sr-only announcer narrates each beat once + the honesty line (ليست بيانات عملاء حقيقيين)');
   }
 
   // (7) the sink-and-fade exit (source contract) — compositor verbs only,

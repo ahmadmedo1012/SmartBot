@@ -88,14 +88,19 @@ export default function PricingPage() {
       <span id="page-content" className="sr-only" tabIndex={-1} />
 
 
-      <SectionContainer className="py-20 text-center relative">
+      <SectionContainer className="pt-20 pb-8 text-center relative md:py-20">
+        {/* 2-e (P1 pricing-fold fix): the vertical rhythm above the plan
+            grid is mobile-tight — the hero band was py-20 top+bottom on a
+            390×844 fold where the first card's price+CTA sat below it.
+            pt-20 keeps the fixed-header clearance (60px) exactly as the
+            r128-F7 comment pins; pb drops to 2 rungs at mobile. */}
         {/* r130 (W1-E D-5, de-glow): the legacy orange/8 blurred radial
             pool is REMOVED (its component is deleted — zero consumers
             left) — Madarek ground is flat; no colored outer glows. The
             pricing hero speaks the flat ln-card language now. */}
 
         <div
-          className="animate-fade-in-150 inline-flex items-center gap-2 text-2xs font-medium uppercase text-accent-foreground/90 mb-6"
+          className="animate-fade-in-150 inline-flex items-center gap-2 text-2xs font-medium uppercase text-accent-foreground/90 mb-4 md:mb-6"
         >
           <Sparkles className="size-3 text-accent-foreground" />
           خطط الأسعار
@@ -110,7 +115,7 @@ export default function PricingPage() {
           /* r151 (LIVE-AUDIT-SB1 P2): display leading 1.12 — the landing
              Arabic display identity (the text-5xl baked line-height:1 was
              measured live at ratio 1.00, exposing the جيم/ح descenders). */
-          className="text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.12] font-bold mb-5 text-balance"
+          className="text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.12] font-bold mb-4 text-balance md:mb-5"
         >
           <KineticText mode="words" duration={720} delay={100}>خطط تناسب كل الأحجام</KineticText>
         </h1>
@@ -123,7 +128,7 @@ export default function PricingPage() {
 
         {/* Trust row */}
         <div
-          className="animate-fade-in-400 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-8 text-xs text-muted-foreground"
+          className="animate-fade-in-400 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-5 text-xs text-muted-foreground md:mt-8"
         >
           {[
             { icon: Shield, text: "بدون بطاقة ائتمان" },
@@ -150,7 +155,7 @@ export default function PricingPage() {
           and the plan grid (the machine-room signature). */}
       <hr className="sb-trace" aria-hidden="true" />
 
-      <SectionContainer className="pb-24">
+      <SectionContainer className="pb-24 pt-6 md:pt-16">
         {/* v18-1-c: بطاقات تُرسم فوراً من الافتراضية؛ فشل الـAPI النهائي
             يُبقيها مع لافتة + زر إعادة المحاولة (بدل استبدال الشبكة بحالة
             خطأ فارغة) */}
@@ -228,12 +233,12 @@ export default function PricingPage() {
                       ln-card language); the gold border + badge already
                       carry the popular state. */}
 
-                  <CardHeader className="text-center relative pt-8">
+                  <CardHeader className="text-center relative pt-8 max-sm:pt-5">
                     <div className={cn(
-                      "mx-auto size-12 rounded-xl flex items-center justify-center mb-3",
+                      "mx-auto size-12 rounded-xl flex items-center justify-center mb-3 max-sm:size-10 max-sm:mb-2",
                       isPopular ? "bg-accent-foreground/20" : "bg-accent-foreground/10"
                     )}>
-                      <Icon className="size-6 text-accent-foreground" />
+                      <Icon className="size-6 text-accent-foreground max-sm:size-5" />
                     </div>
                     <CardTitle className="text-lg">{plan.name_ar || plan.name}</CardTitle>
                     <CardDescription className="text-sm text-muted-foreground">{getDescription(plan.id)}</CardDescription>
@@ -267,8 +272,12 @@ export default function PricingPage() {
                       </div>
                     </div>
 
-                    {/* Features */}
-                    <ul className="space-y-2.5 mb-6 flex-1 text-start">
+                    {/* Features — 2-e (P1 pricing-fold fix): at ≤640px the CTA
+                        rides DIRECTLY under the price (order-2) and the feature
+                        list follows (order-3): the first card's price + CTA land
+                        inside the 390×844 fold (the desktop order is untouched —
+                        features-then-CTA keeps the richer cards' scan rhythm). */}
+                    <ul className="space-y-2.5 md:mb-6 flex-1 text-start max-sm:order-3 max-sm:mt-5 max-sm:mb-0">
                       {plan.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm">
                           <div className="size-5 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -293,7 +302,7 @@ export default function PricingPage() {
                          r148 (19-AUDIT-SB SB-D6b): the h-10 override is gone
                          — size="lg" rides its canonical h-12 (48px money-CTA
                          canon, r134); measured 318×40 before. */
-                      className="w-full"
+                      className="w-full max-sm:order-2"
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}
                     >
                       {plan.price === 0 ? "ابدأ مجاناً" : "اشترك الآن"}

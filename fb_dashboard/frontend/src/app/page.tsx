@@ -207,7 +207,7 @@ export default function HomePage() {
                     <linearGradient id="ln-circuit-grad" x1="0" y1="0" x2="1" y2="0">
                       <stop offset="0" stopColor="#17C3A4" stopOpacity="0.1" />
                       <stop offset="0.22" stopColor="#17C3A4" stopOpacity="0.85" />
-                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.95" />
+                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.7" />
                       <stop offset="0.78" stopColor="#17C3A4" stopOpacity="0.85" />
                       <stop offset="1" stopColor="#17C3A4" stopOpacity="0.1" />
                     </linearGradient>
@@ -217,11 +217,40 @@ export default function HomePage() {
                   {/* node dots in the VISIBLE zones flanking the machine —
                       the circuit reads as infrastructure, not a lone line */}
                   <circle cx="100" cy="1" r="2" fill="#17C3A4" opacity="0.7" />
-                  <circle cx="500" cy="1" r="2" fill="#C6F24E" opacity="0.7" />
+                  <circle cx="500" cy="1" r="2" fill="#C6F24E" opacity="0.6" />
                   <circle cx="4" cy="1" r="3" fill="#17C3A4" />
-                  <circle cx="596" cy="1" r="3" fill="#C6F24E" />
+                  <circle cx="596" cy="1" r="3" fill="#C6F24E" opacity="0.8" />
+                </svg>
+                {/* 2-e · directive 4 — the FLOOR trace: the same circuit
+                    family routed at the floor band, passing fully BEHIND the
+                    pedestal (the widest silhouette in the scene — the trace
+                    disappears for ~1/3 of the stage and re-emerges on the far
+                    side, with 45° chamfered PCB elbows dipping it under the
+                    machine). Decorative. */}
+                <svg className="ln-circuit ln-circuit-floor" viewBox="0 0 600 34" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                  <defs>
+                    <linearGradient id="ln-circuit-floor-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="#17C3A4" stopOpacity="0.12" />
+                      <stop offset="0.25" stopColor="#17C3A4" stopOpacity="0.62" />
+                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.5" />
+                      <stop offset="0.75" stopColor="#17C3A4" stopOpacity="0.62" />
+                      <stop offset="1" stopColor="#17C3A4" stopOpacity="0.12" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M 4 30 L 84 30 L 104 12 L 496 12 L 516 30 L 596 30" fill="none" stroke="url(#ln-circuit-floor-grad)" strokeWidth="1" vectorEffect="non-scaling-stroke" className="ln-circuit-base" />
+                  <path d="M 4 30 L 84 30 L 104 12 L 496 12 L 516 30 L 596 30" fill="none" stroke="url(#ln-circuit-floor-grad)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" className="ln-circuit-run" />
+                  {/* the far-side nodes — the trace's re-emergence points */}
+                  <circle cx="84" cy="30" r="2" fill="#17C3A4" opacity="0.75" />
+                  <circle cx="516" cy="30" r="2" fill="#17C3A4" opacity="0.75" />
+                  <circle cx="4" cy="30" r="3" fill="#17C3A4" />
+                  <circle cx="596" cy="30" r="3" fill="#17C3A4" opacity="0.85" />
                 </svg>
                 <RobotSceneMount className="ln-robot-canvas" />
+                {/* 2-e · directive 3 — the pedestal scrim: ABOVE the canvas,
+                    BELOW the copy (z3) — the machine's lower body sinks into
+                    the petrol gradient through the display block's zone so no
+                    glyph intersects a lit silhouette edge (see §18). */}
+                <span className="ln-robot-scrim" />
               </div>
             </HeroExit>
           </div>

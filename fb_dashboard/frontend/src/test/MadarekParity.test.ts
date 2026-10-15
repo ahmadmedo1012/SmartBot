@@ -744,9 +744,9 @@ describe("P15 concept A parity — the character-led hero composition", () => {
     expect(title).not.toMatch(/grotesk/i) // Space Grotesk carries no Arabic glyphs — the silent body-grade fallback was the P1 defect
   })
 
-  it("the ticker box grammar: hairline + outside bracket corners + height-stable prompt", () => {
+  it("the ticker box grammar: hairline + outside bracket corners + height-stable beat body", () => {
     expect(rawLanding).toMatch(/\.ln-ticker\s*\{[^}]*border:\s*1px solid var\(--ln-line\)/)
-    expect(rawLanding).toMatch(/\.ln-ticker-prompt\s*\{[^}]*min-block-size:\s*2\.2em/)
+    expect(rawLanding).toMatch(/\.ln-ticker-beat\s*\{[^}]*min-block-size:\s*5\.4em/)
     expect(rawLanding).toMatch(/\.ln-ticker-corner\.c-a\s*\{[^}]*inset-block-start:\s*-5px;[^}]*inset-inline-start:\s*-5px/)
   })
 
@@ -756,17 +756,27 @@ describe("P15 concept A parity — the character-led hero composition", () => {
     expect(rawLanding).toMatch(/\.ln-status li\[data-active='true'\]\s*\{[^}]*color:\s*var\(--ln-cream\)/)
   })
 
-  it("the ticker island (HeroTicker): honest beats, aria-live polite, one synced index, IO + hidden-tab pause", () => {
+  it("the ticker island (HeroTicker, 2-e: B's scenario engine): honest demo cycle, aria-live polite, one stage machine, IO + hidden-tab pause", () => {
     const rawTicker = read("src/components/landing/HeroTicker.tsx")
-    const beats = rawTicker.slice(rawTicker.indexOf("const BEATS"), rawTicker.indexOf("const BEAT_MS"))
-    expect(beats).not.toMatch(/\d/) // real capability statements — never digits
+    const scenarios = rawTicker.slice(rawTicker.indexOf("const SCENARIOS"), rawTicker.indexOf("/* ── the stage script"))
+    // honesty: the only digits are the product's own published plan terms — never fabricated metrics
+    expect(scenarios).toContain("100 رد")
+    expect(scenarios).toContain("19 د.ل")
+    expect(scenarios).not.toMatch(/\d+\s*(%|k|ألف|مليون)/)
+    expect(rawTicker).toContain("عرض توضيحي") // the DEMO badge (the honesty law, visible)
+    expect(rawTicker).toContain("STAGE_MS")
+    expect(rawTicker).toContain("RESET_MS")
+    expect(rawTicker).toContain("REPLY_WORD_MS")
+    expect(rawTicker).toContain("useMemo") // the memoized stage script (never re-arms mid-beat)
     expect(rawTicker).toContain('aria-live="polite"')
-    expect(rawTicker).toContain("data-active={i === idx")
+    expect(rawTicker).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')")
     expect(rawTicker).toContain("IntersectionObserver")
     expect(rawTicker).toContain("document.hidden")
-    expect(rawTicker).toContain("ردّ تلقائي على تعليقات صفحتك")
-    expect(rawTicker).toContain("تسليم فوري للموظف البشري")
-    expect(rawTicker).toContain('className="sr-only"') // SR_POSE_COPY narration
+    expect(rawTicker).toContain("كم سعر الاشتراك عندكم؟")
+    expect(rawTicker).toContain("النية:")
+    expect(rawTicker).toContain("تم تحويل المحادثة إلى الفريق البشري")
+    expect(rawTicker).toContain("ليست بيانات عملاء حقيقيين") // the sr-only honesty line
+    expect(rawTicker).toContain('className="sr-only"') // the one-per-beat announcer
   })
 
   it("the sink-and-fade exit (HeroExit): compositor verbs, rAF-gated passive scroll, RM never arms", () => {

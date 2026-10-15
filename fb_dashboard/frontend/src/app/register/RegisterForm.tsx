@@ -155,8 +155,8 @@ function RegisterForm() {
         {/* Visually-hidden page heading — CardTitle is a div, so heading
             navigation had no target on this route (v8-B5) */}
         <h1 className="sr-only">إنشاء حساب جديد</h1>
-        <CardHeader className="pb-2 pt-8 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center">
+        <CardHeader className="pb-2 pt-6 text-center sm:pt-8">
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center sm:mb-4 sm:size-16">
             {/* v6 §D — next/image: 160×160 intrinsic dims, no CLS */}
             {/* v17-SB (17-PERF #1): sizes = the real slot (size-16 = 64px). */}
             <Image src="/brand-icon.png" alt="الربط الذكي" width={160} height={160} sizes="64px" className="size-full object-contain drop-shadow-lg" priority />
@@ -174,8 +174,16 @@ function RegisterForm() {
         <hr className="sb-trace mx-6" aria-hidden="true" />
 
         <CardContent className="px-6 pb-8 pt-4 sm:px-8">
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <div className="space-y-2">
+          {/* 2-e (P1 register-rhythm fix): the 4-field wall is GROUPED —
+              account data (username/email), a hairline + mono chapter
+              label, then the security pair (password/confirm). The crammed
+              equal-rhythm stack now reads as three beats; the groups keep
+              their own 4/5 rhythm rungs (space-y-4 within, 5 between on
+              ≥sm). Pure structure — every label, id, and aria wire is
+              untouched (the RegisterForm contract). */}
+          <form onSubmit={handleSubmit} noValidate className="space-y-4 sm:space-y-5">
+            <div className="space-y-4 sm:space-y-5">
+              <div className="space-y-2">
               <Label htmlFor="username" className="text-sm font-medium">اسم المستخدم</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="username" type="text" autoComplete="username" placeholder="مثال: ahmed_ali" dir="auto"
@@ -208,9 +216,18 @@ function RegisterForm() {
                 )}
               </div>
             </div>
+            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
+            {/* the group divider — بيانات الحساب ↔ كلمة المرور */}
+            <div className="flex items-center gap-3 py-0.5" aria-hidden="true">
+              <span className="h-px flex-1 bg-border/60" />
+              <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">كلمة المرور</span>
+              <span className="h-px flex-1 bg-border/60" />
+            </div>
+
+            <div className="space-y-4 sm:space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
               <div className="relative rounded-lg border border-input/60 bg-background/50 transition-[border-color,box-shadow] duration-(--t-base) focus-within:border-accent-foreground/50 focus-within:ring-2 focus-within:ring-accent-foreground/20">
                 <Input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" dir="auto"
                   placeholder="8 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} required
@@ -275,6 +292,7 @@ function RegisterForm() {
                   </span>
                 </button>
               </div>
+            </div>
             </div>
 
             {formError && (

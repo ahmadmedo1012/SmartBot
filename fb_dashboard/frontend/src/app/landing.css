@@ -212,12 +212,22 @@
   border-block-end: 1px solid var(--ln-line-soft);
 }
 
-/* ── 3 · marquee — landing.css:115-160 (PORT-KIT §3 verbatim) ───────── */
+/* ── 3 · marquee — landing.css:115-160 (PORT-KIT §3 verbatim) ─────────
+   2-e · directive 5 (the below-hero seam): the strip now carries the
+   hero's floor-glow BLEED — the top hairline is retired (the hard seam
+   line died with it) and the ground continues the machine's teal floor
+   wash through the strip's ~63px band, so the fold crosses glow, not
+   void. The items fade in at the strip's own edges (the glow reads as
+   the hero floor running under them). */
 .landing .ln-marquee {
   overflow: hidden;
   border-block: 1px solid var(--ln-line);
+  border-block-start: none; /* 2-e/d5 — the seam is glow, not a rule */
   padding-block: 18px;
-  background: var(--ln-ink);
+  background:
+    radial-gradient(120% 130% at 50% 0%, rgb(23 195 164 / 0.1) 0%, transparent 58%),
+    linear-gradient(180deg, rgb(10 32 40 / 0.72) 0%, var(--ln-ink) 72%),
+    var(--ln-ink);
   user-select: none;
 }
 .landing .ln-marquee-track {
@@ -270,6 +280,21 @@
 .landing .ln-marquee:hover .ln-marquee-track,
 .landing .ln-marquee:focus-within .ln-marquee-track {
   animation-play-state: paused;
+}
+/* 2-e/d5 light twin — the mist floor bleeding under the strip */
+html.light .landing .ln-marquee {
+  background:
+    radial-gradient(120% 130% at 50% 0%, rgb(12 117 99 / 0.09) 0%, transparent 58%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, var(--ln-ink) 72%),
+    var(--ln-ink);
+}
+
+/* 2-e · directive 5 (the seam's far side): the first chapter enters
+   sooner — the #mind eyebrow now lands ~100px past the marquee (the
+   shared 96-140px chapter rung stays for every OTHER section; the
+   seam edge gets its own tighter rung). */
+.landing #mind {
+  padding-block-start: clamp(64px, 8.5vh, 96px);
 }
 
 /* ── 4 · chrome — header rail, nav, megamenu, buttons, ribbon ───────── */
@@ -2168,24 +2193,24 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
 }
 .landing .ln-robot canvas { display: block; }
 
-/* the floor glow + shadow anchor — the CSS half of the machine's light
-   spill: a teal pool + a two-stop contact shadow (dark core, wide
-   feather) + a faint 1px horizon hairline, all UNDER the pedestal at
-   the exact viewport fraction the scene's framing solver places it
-   (--sb-floor). Under the canvas (before it in DOM) so the robot's
-   body occludes it — the spill reads as coming FROM the machine. The
-   horizon hairline is the reference's "standing on the hero hairline"
-   grammar: the void gains a ground plane cue without gaining
-   furniture. */
+/* the floor glow + shadow anchor (2-e · directive 4 — GROUNDED): the
+   CSS half of the machine's ground light, now a proper ELLIPTICAL
+   CONTACT POOL — a bright inner ellipse (the spill the pedestal's
+   own ring casts) inside a wide soft pool, plus the dark contact core
+   under the feet, a 1px horizon contact hairline where the feet meet
+   the glow, and a THIRD wide wash that reads as light pooling AROUND
+   the machine (grid lines dip into it). All at --sb-floor, UNDER the
+   canvas so the body occludes its own spill. */
 .landing .ln-robot-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.17) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-    radial-gradient(26% 10% at 50% calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.3) 0%, transparent 72%),
-    radial-gradient(7% 2.6% at 50% calc(var(--sb-floor) * 100% + 0.8%), rgb(3 10 13 / 0.82) 0%, rgb(3 10 13 / 0.55) 42%, transparent 78%),
-    radial-gradient(15% 4.6% at 50% calc(var(--sb-floor) * 100% + 1.4%), rgb(3 10 13 / 0.6) 0%, transparent 80%);
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.26) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(30% 7% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(23 195 164 / 0.42) 0%, rgb(23 195 164 / 0.14) 46%, transparent 74%),
+    radial-gradient(9% 2.4% at 50% calc(var(--sb-floor) * 100% + 0.7%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.6) 44%, transparent 80%),
+    radial-gradient(15% 4.6% at 50% calc(var(--sb-floor) * 100% + 1.2%), rgb(3 10 13 / 0.62) 0%, transparent 82%),
+    radial-gradient(56% 16% at 50% calc(var(--sb-floor) * 100% + 2%), rgb(23 195 164 / 0.08) 0%, transparent 76%);
 }
 /* the vignette — edge darkening that seats the machine in the void
    (top/bottom edge fades + a weak side shade; the interface boxes at
@@ -2204,13 +2229,49 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
     radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(7 26 33 / 0.36) 100%);
 }
 
+/* THE PEDESTAL SCRIM (2-e · directive 3 — the h1∩silhouette fix): a
+   gradient rising FROM the pedestal THROUGH the display block's zone,
+   painted ABOVE the canvas (DOM: after the mount) and BELOW the copy
+   (z3) — the machine's lower torso/hips/pedestal sink into the scrim
+   exactly where the display lockup lives, so no glyph visibly
+   intersects the figure silhouette: the body fades into the ground
+   before the text plane. The ramp peaks at the h1's first line (the
+   torso-crossing band) and eases to TRANSPARENT by the contact-pool
+   zone (floor +3%) so directive 4's grounding glow reads at full
+   strength — the lockup's descenders cross only the dimmed body and
+   the machine's own dark pedestal, never a lit silhouette edge. */
+.landing .ln-robot-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    transparent 0%,
+    transparent calc(var(--sb-floor) * 100% + 3%),
+    rgb(7 26 33 / 0.18) calc(var(--sb-floor) * 100% - 4%),
+    rgb(7 26 33 / 0.45) calc(var(--sb-floor) * 100% - 8%),
+    rgb(7 26 33 / 0.7) calc(var(--sb-floor) * 100% - 12%),
+    rgb(7 26 33 / 0.76) calc(var(--sb-floor) * 100% - 18%),
+    rgb(7 26 33 / 0.72) calc(var(--sb-floor) * 100% - 21%),
+    rgb(7 26 33 / 0.55) calc(var(--sb-floor) * 100% - 26%),
+    transparent calc(var(--sb-floor) * 100% - 30%)
+  );
+}
+
 /* the circuit line — the thin animated teal→lime trace crossing the
    machine's zone (traveling right→left, the RTL flow direction),
    tying the text world to the machine. It rides UNDER the canvas, so
    the machine's body OCCLUDES its middle — the line reads on both
    sides of the robot and the character visibly stands IN the circuit
    (one more depth interlock, the reference's text→machine trace).
-   Decorative (aria-hidden). */
+   2-e · directive 4: a SECOND trace (.ln-circuit-floor) rides at the
+   FLOOR band — routed so it passes fully BEHIND the pedestal (the
+   widest silhouette in the scene): the trace visibly disappears for
+   ~half the machine's width and re-emerges on the far side, the
+   mid-span occlusion extended into a full behind-the-body route.
+   Decorative (aria-hidden). 2-e · directive 8: the lime stop calmed
+   0.95 → 0.7 — the circuit joins the teal→lime gradient family
+   without out-shining the eye band. */
 .landing .ln-circuit {
   position: absolute;
   inset-inline: 6%;
@@ -2218,6 +2279,11 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   block-size: 6px;
   overflow: visible;
   pointer-events: none;
+}
+.landing .ln-circuit-floor {
+  inset-block-start: auto;
+  inset-block-end: calc((1 - var(--sb-floor)) * 100% - 3px);
+  block-size: 8px;
 }
 .landing .ln-circuit .ln-circuit-base { opacity: 0.75; }
 .landing .ln-circuit .ln-circuit-run {
@@ -2393,7 +2459,11 @@ html.light .landing .ln-chapter-head::after {
      (the reference's "holographic UI anchored to the machine").
      i5: leads lengthened 30→44px + end alpha 0.55→0.8 — the boxes
      still read as pasted HTML at the verify pass; the longer, firmer
-     leads + the bloom edge make the anchoring register. */
+     leads + the bloom edge make the anchoring register.
+     2-e (round 2, VLM r1): the ticker gains a vertical DATA DROP — a
+     1px line from its floor edge down into the circuit's band (the
+     circuit the machine's body occludes) — the readout is now wired
+     to the machine's world on TWO axes. */
   .landing .ln-ticker::after,
   .landing .ln-status::after {
     content: '';
@@ -2407,6 +2477,16 @@ html.light .landing .ln-chapter-head::after {
     inset-inline-start: 100%; /* extends from the box's far (left) edge toward the machine */
     inset-block-start: 24px;
   }
+  .landing .ln-ticker::before {
+    content: '';
+    position: absolute;
+    inset-inline-end: 26px;
+    inset-block-start: 100%;
+    block-size: 64px;
+    inline-size: 1px;
+    background: linear-gradient(180deg, rgb(23 195 164 / 0.75), transparent);
+    pointer-events: none;
+  }
   .landing .ln-status::after {
     inset-inline-end: 100%; /* extends from the panel's spine (right) toward the machine */
     inset-block-start: 18px;
@@ -2415,18 +2495,26 @@ html.light .landing .ln-chapter-head::after {
 }
 
 /* ── 20a · the prompt ticker ────────────────────────────────────────────
-   The ChainGPT ticker grammar, ours: 1px hairline box + bracket corners
-   just OUTSIDE, mono head with the index, the rotating prompt, the
-   blinking caret. Real capability copy only — no numbers, no customers. */
+   The ChainGPT ticker grammar, ours — now carrying B's honest demo
+   cycle (directive 2): 1px hairline box + bracket corners outside,
+   mono head with the DEMO badge + scenario index, the stage body
+   (typing beads → the exchange, word-by-word reply), the compact
+   status line. Honest copy only — the plan figures mirror the DB seed.
+   Directive 1: the plate rests at ≤0.5 opacity — the ticker is
+   furniture, NOT a competing anchor (the face + h1 own the light). */
 .landing .ln-ticker {
   position: relative;
   padding: 13px 18px 15px;
-  /* i3 (VLM iter-2/3 balance): translucent enough to read as a
-     holographic plate, present enough to hold the bracket grammar; the
-     faint teal outer bloom ties it to the machine's rim-light world */
-  background: linear-gradient(180deg, rgb(13 42 52 / 0.6), rgb(10 34 42 / 0.56));
+  /* i3 → 2-e/d1: 0.6/0.56 → 0.42/0.38 — the plate was the third
+     competing anchor; at rest it reads as a dim holographic plate */
+  background: linear-gradient(180deg, rgb(13 42 52 / 0.42), rgb(10 34 42 / 0.38));
   border: 1px solid var(--ln-line);
-  box-shadow: 0 0 24px rgb(23 195 164 / 0.08), 0 10px 30px rgb(3 10 13 / 0.5);
+  box-shadow: 0 0 18px rgb(23 195 164 / 0.05), 0 10px 30px rgb(3 10 13 / 0.5);
+}
+/* the live beat lifts the plate ONE step (data-beat rides the body;
+   the island stays furniture — the glow never approaches the face's) */
+.landing .ln-ticker:has(.ln-ticker-beat:not([data-beat='reset'])) {
+  background: linear-gradient(180deg, rgb(13 42 52 / 0.5), rgb(10 34 42 / 0.46));
 }
 /* the bracket corners — 1px L-strokes OUTSIDE the box corners */
 .landing .ln-ticker-corner {
@@ -2444,7 +2532,7 @@ html.light .landing .ln-chapter-head::after {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 0 0 9px;
+  margin: 0 0 10px;
   color: var(--ln-cream-dim);
   font-size: 11px;
 }
@@ -2458,6 +2546,27 @@ html.light .landing .ln-chapter-head::after {
   block-size: 10px;
   background: var(--ln-line);
 }
+/* the honest DEMO badge — the HONESTY LAW made visible (B's pattern:
+   a breathing dot + the stamp; sr-only line carries the full contract) */
+.landing .ln-ticker-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ln-cream-dim);
+}
+.landing .ln-ticker-demo .ln-mono {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--ln-cream-dim);
+}
+.landing .ln-ticker-demo-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--ln-lime);
+  box-shadow: 0 0 7px rgb(23 195 164 / 0.65);
+  animation: ln-status-pulse 2.4s var(--ln-ease-soft) infinite;
+}
 .landing .ln-ticker-idx {
   margin-inline-start: auto;
   font-size: 10px;
@@ -2466,35 +2575,87 @@ html.light .landing .ln-chapter-head::after {
   font-variant-numeric: tabular-nums;
 }
 
-.landing .ln-ticker-prompt {
+/* the stage body — one beat of the scenario at a time: the stage
+   stamp + the exchange. Height-stable via the min-block floor (the
+   word-by-word typing must never shift the island's geometry). */
+.landing .ln-ticker-beat {
+  min-block-size: 5.4em; /* beads/intent/reply all fit without reflow */
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.landing .ln-ticker-beat-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  color: var(--ln-cream-dim);
+  font-size: 11px;
+}
+.landing .ln-ticker-beat-scenario {
+  margin-inline-start: auto;
+  color: var(--ln-cream-dim);
+  opacity: 0.72;
+  font-size: 10.5px;
+}
+.landing .ln-ticker-msg {
   margin: 0;
   color: var(--ln-cream);
-  font-size: clamp(15.5px, 1.35vw, 18px);
+  font-size: clamp(15px, 1.3vw, 17px);
   font-weight: var(--fw-semibold);
-  line-height: 1.55;
-  min-block-size: 2.2em; /* rotation never shifts the box height */
+  line-height: 1.6;
 }
-.landing .ln-ticker-swap {
-  display: inline;
+.landing .ln-ticker-msg.intent { color: var(--ln-lime); }
+.landing .ln-ticker-msg.reset { color: var(--ln-cream-dim); font-weight: var(--fw-medium); }
+.landing .ln-ticker-msg-meta {
+  display: block;
+  margin-block-start: 5px;
+  color: var(--ln-cream-dim);
+  opacity: 0.8;
+  font-size: 10.5px;
+  font-weight: 400;
+}
+/* the reply badge — auto (machine) vs human (the team), tiny chips */
+.landing .ln-ticker-badge {
+  display: inline-block;
+  margin-inline-start: 8px;
+  padding: 1px 7px 2px;
+  vertical-align: 0.12em;
+  font-size: 9.5px;
+  font-weight: 600;
+  border: 1px solid var(--ln-line);
+  color: var(--ln-cream-dim);
+}
+.landing .ln-ticker-badge.auto { color: var(--ln-lime); border-color: rgb(23 195 164 / 0.5); }
+.landing .ln-ticker-badge.human { color: var(--ln-cream); border-color: var(--ln-line); }
+/* the messenger typing beads (B's engine, ported) */
+.landing .ln-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  block-size: 1.6em;
+}
+.landing .ln-typing i {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--ln-cream-dim);
+  opacity: 0.5;
+  animation: ln-typing-bead 1.2s var(--ln-ease-soft) infinite;
+}
+.landing .ln-typing i:nth-child(2) { animation-delay: 0.18s; }
+.landing .ln-typing i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes ln-typing-bead {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+/* the beat transition — the new beat's content eases in once (RM: off) */
+.landing .ln-ticker-beat > *:not(.ln-ticker-beat-label) {
   animation: ln-ticker-in var(--ln-t-base) var(--ln-ease-out) both;
 }
 @keyframes ln-ticker-in {
   from { opacity: 0; transform: translateY(7px); }
   to { opacity: 1; transform: none; }
-}
-/* the prompt caret — a machine cursor at the reading end of the line */
-.landing .ln-ticker-caret {
-  display: inline-block;
-  inline-size: 1px;
-  block-size: 1.05em;
-  margin-inline-start: 7px;
-  vertical-align: -0.18em;
-  background: var(--ln-lime);
-  animation: ln-caret 1.1s steps(1) infinite;
-}
-@keyframes ln-caret {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
 }
 /* the compact status line (mobile twin of the side panel) */
 .landing .ln-ticker-status {
@@ -2631,25 +2792,33 @@ html.light .landing .ln-chapter-head::after {
 .landing .ln-hero-robot .ln-hero-actions {
   margin: 0; /* the foot's grid owns the rhythm now */
 }
-/* the display block's accent word glows in ITS OWN register (teal light
-   through petrol, not white) — on the oversized display the white bloom
-   washed the accent into a "fading" read (VLM iter-1); a same-hue bloom
-   reads as emission instead */
+/* the display block's accent word (2-e · directive 1): CALMED — the
+   teal bloom + color read as a second glowing anchor competing with
+   the face. The accent word now carries the display's own cream and a
+   quiet teal UNDERLINE rule (ink, not emission) — the h1 block and
+   the illuminated face become the anchor pair. */
 .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
-  text-shadow:
-    0 0 24px rgb(23 195 164 / 0.35),
-    0 0 56px rgb(23 195 164 / 0.07); /* i5: 0.12 → 0.07 — the far bloom read as a gradient fill; a tight same-hue emission reads cleaner */
+  color: var(--ln-cream);
+  text-shadow: none;
+  border-bottom: 0.045em solid rgb(23 195 164 / 0.55);
+  padding-bottom: 0.02em;
 }
 
 /* ── 20d · light twins (the composition on mist) ───────────────────────── */
 html.light .landing .ln-ticker {
-  background: rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.62);
   border-color: rgb(10 36 46 / 0.30);
+}
+html.light .landing .ln-ticker:has(.ln-ticker-beat:not([data-beat='reset'])) {
+  background: rgb(255 255 255 / 0.7);
 }
 html.light .landing .ln-ticker-corner { border-color: rgb(10 36 46 / 0.55); }
 html.light .landing .ln-ticker-head .ln-mono { color: var(--ln-lime-deep); }
-html.light .landing .ln-ticker-prompt { color: var(--ln-cream); }
-html.light .landing .ln-ticker-caret { background: var(--ln-lime-deep); }
+html.light .landing .ln-ticker-msg { color: var(--ln-ink-2); }
+html.light .landing .ln-ticker-msg.intent { color: var(--ln-lime-deep); }
+html.light .landing .ln-ticker-msg-meta { color: rgb(10 36 46 / 0.6); }
+html.light .landing .ln-typing i { background: rgb(10 36 46 / 0.7); }
+html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(12 117 99 / 0.45); }
 html.light .landing .ln-status { border-inline-start-color: rgb(10 36 46 / 0.28); }
 html.light .landing .ln-status li { color: rgb(10 36 46 / 0.5); }
 html.light .landing .ln-status li[data-active='true'] { color: var(--ln-cream); }
@@ -2670,17 +2839,22 @@ html.light .landing .ln-status::after {
 html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
   background: linear-gradient(180deg, transparent, rgb(12 117 99 / 0.65));
 }
+html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
+  border-bottom-color: rgb(12 117 99 / 0.6);
+}
 
 /* ── 20e · reduced motion — the composed static frame ────────────────────
    No rAF in the scene (its own contract), no sink listener (HeroExit),
-   no ticker rotation (its own contract) — and every compositor verb in
-   THIS layer stops: the circuit rests, the caret stays lit, the status
-   dot holds, the entrance snaps in. */
+   no ticker rotation (its own contract — the beat composes statically,
+   everything typed whole) — and every compositor verb in THIS layer
+   stops: the circuit rests, the beat content holds, the status dot
+   holds, the entrance snaps in. */
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-robot-frame { animation-duration: 1ms; animation-delay: 0s; }
   .landing .ln-circuit-run { animation: none; }
-  .landing .ln-ticker-swap { animation: none; }
-  .landing .ln-ticker-caret { animation: none; }
+  .landing .ln-ticker-beat > * { animation: none; }
+  .landing .ln-typing i { animation: none; }
+  .landing .ln-ticker-demo-dot { animation: none; }
   .landing .ln-status li[data-active='true'] i { animation: none; }
 }
 
@@ -2690,15 +2864,19 @@ html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
    (~44svh — never a cropped head; the framing solver tightens its own
    composition tokens), the ticker (with its compact status line) below,
    the CTA foot last. The status side panel and the circuit line are
-   desktop furniture — hidden, their truth carried by the ticker line. */
+   desktop furniture — hidden, their truth carried by the ticker line.
+   2-e · directive 6: the gaps around the figure stage are capped at
+   sp-6 (≤12svh at every phone height) — the ~140px undecorated void
+   band the evaluator measured is gone; the stage's own in-box air is
+   tightened by the 0.84 figure share. */
 @media (max-width: 1024px) {
   .landing .ln-hero-robot {
     display: flex;
     flex-direction: column;
     block-size: auto;
     min-block-size: 0;
-    padding: 16px 20px var(--sp-7);
-    gap: var(--sp-6);
+    padding: 16px 20px var(--sp-6);
+    gap: var(--sp-5);
   }
   .landing .ln-hero-copy { order: 1; }
   .landing .ln-robot-stage {
@@ -2727,14 +2905,14 @@ html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
     inline-size: 1px;
     background: linear-gradient(180deg, transparent, rgb(23 195 164 / 0.9));
   }
-  /* i5: the mobile contact shadow — the 44svh box shrinks the floor
-     radials until the anchor reads as nothing; a tighter, darker core
-     re-grounds the machine on the small stage */
+  /* 2-e · directive 4: the compact-stage twin of the contact pool — a
+     tight bright ellipse + the hard dark core (the 44svh box shrinks
+     the wide radials until the anchor reads as nothing) */
   .landing .ln-robot-glow {
     background:
-      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.26) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-      radial-gradient(40% 14% at 50% calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.34) 0%, transparent 74%),
-      radial-gradient(11% 3.4% at 50% calc(var(--sb-floor) * 100% + 0.7%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
+      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.3) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.08) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.3%), rgb(23 195 164 / 0.36) 0%, rgb(23 195 164 / 0.14) 44%, transparent 74%),
+      radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.6%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
   }
   .landing .ln-ticker-island {
     order: 3;
@@ -2765,8 +2943,81 @@ html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
   .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }
 }
 @media (max-width: 640px) {
-  .landing .ln-hero-robot { padding: 10px 16px var(--sp-6); gap: var(--sp-5); }
+  .landing .ln-hero-robot { padding: 10px 16px var(--sp-5); gap: var(--sp-4); }
   .landing .ln-hero-meta { display: none; } /* the sub carries the honest terms */
   .landing .ln-hero-robot .ln-hero-title { font-size: clamp(1.85rem, 7.8vw, 2.5rem); }
-  .landing .ln-robot-stage { min-block-size: 270px; }
+  .landing .ln-robot-stage { min-block-size: 270px; --sb-fig: 0.88; }
+  /* r3-i2 (round 3, VLM mobile pass): one extra breath between the
+     figure's contact pool and the readout — the 17px junction read as
+     "cramped" while the ≤640 ladder lands everywhere else; the tether's
+     own 26px lead already spans this gap visually, so the air reads as
+     composed, not empty (still ≪ the 12svh directive-6 cap). */
+  .landing .ln-ticker { margin-block-start: 10px; }
+}
+
+/* ── 20g · tablet (641–1024px) — THE TWO-BEAT COMPOSITION (2-e · directive 7)
+   Tablet was mobile-with-padding; it now gets its own composition:
+   beat 1 = the copy block (eyebrow + display + sub) owning the top;
+   beat 2 = the PAIRED BAND — the full-figure stage growing to 50svh on
+   the reading end with the demo ticker docked beside it at reading
+   start, bottom-aligned to the machine's floor band (a data-lead
+   tether ties the readout to the stage); the CTA foot closes. The
+   floor fraction drops to 0.78 — the floor camera is clamped so the
+   landing rings never crop at the band's bottom edge.
+   Round 3 (r3-i1): 54svh → 50svh + the end paddings trimmed — the
+   hero now lands INSIDE the 1024 fold (A's exact 100svh−header
+   discipline, carried to tablet: the CTA foot + the directive-5
+   seam sit at the fold edge, not 50px under it). The figure still
+   grows with the viewport: 512px on a 1024-tall tablet vs 371px on
+   a phone. */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .landing .ln-hero-robot {
+    display: grid;
+    grid-template-columns: minmax(250px, 4fr) 6fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      'copy copy'
+      'ticker figure'
+      'foot foot';
+    padding: 16px 28px var(--sp-5);
+    gap: var(--sp-5) var(--sp-6);
+    align-content: start;
+  }
+  .landing .ln-hero-copy { grid-area: copy; }
+  .landing .ln-robot-stage {
+    grid-area: figure;
+    position: relative;
+    block-size: 50svh;
+    min-block-size: 380px;
+    --sb-fig: 0.84;
+    --sb-floor: 0.78; /* the floor camera clamp — more floor below the line */
+    --sb-ringfit: 0.76; /* the landing rings' fit clamp: the outer ring
+                           scales to r≈1.79 world so its near edge NEVER
+                           crops at the band's bottom edge (the solver
+                           reads this token and scales the pad) */
+  }
+  .landing .ln-robot-exit,
+  .landing .ln-robot-frame { position: absolute; inset: 0; }
+  .landing .ln-ticker-island {
+    grid-area: ticker;
+    position: relative;
+    display: block;
+    align-self: end; /* docked to the machine's floor band */
+    padding-block-end: 2svh;
+  }
+  .landing .ln-ticker { position: relative; inline-size: 100%; }
+  .landing .ln-status { display: none; }
+  .landing .ln-circuit { display: none; }
+  .landing .ln-hero-foot { grid-area: foot; }
+  .landing .ln-hero-scroll { display: none; }
+  .landing .ln-hero-robot .ln-hero-title {
+    font-size: clamp(2.3rem, 6.2vw, 3.4rem);
+    max-inline-size: none;
+  }
+  .landing .ln-hero-robot .ln-hero-sub {
+    margin-block-start: var(--sp-3);
+    max-inline-size: 56ch;
+  }
+  .landing .ln-ticker-status { display: flex; }
+  .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }
 }

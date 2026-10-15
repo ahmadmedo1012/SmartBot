@@ -1,113 +1,237 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-/* P15 (concept A — CHARACTER-LED) — THE PROMPT TICKER + STATUS PANEL.
- * The hero's first-viewport interaction beat (it replaces the retired
- * below-fold BotChatSimulator dock): a bracket-cornered hairline box
- * on the reading-start side (RTL: right) cycling REAL capability
- * statements, while a mono status panel on the far side (left) mirrors
- * the SAME beat — one state machine, one truth: the ticker prompt and
- * the status label can never disagree (the r142 simulator↔stage
- * contract, translated to the ChainGPT ticker↔panel grammar).
+/* STAGE 3 INTEGRATION (2-e · directive 2) — CONCEPT B'S HONEST SCENARIO
+ * ENGINE, PORTED INTO A'S TICKER.
  *
- * Honesty: every beat is a shipped capability (auto replies on
- * comments/messages, intent classification, human handoff through the
- * unified inbox) — no fabricated metrics, no fake customers, no
- * numbers at all. The rotating loop is a DEMO of real states, labeled
- * as such in the box head (قدرات فعلية).
+ * A's ticker was decoration: abstract capability prompts rotating every
+ * 4.2s. The reference bar demands a SAMPLE INTERACTION in the first
+ * viewport — and Concept B shipped exactly that (its mission-control
+ * pipeline, scored 9/10 on product identity). This is the load-bearing
+ * port from the loser: the real demo cycle from worktree SmartBot-wt-b
+ * (HeroPipeline.tsx's scenario state machine + typing engine, scenario
+ * data adapted from BotChatSimulator's honest registry) now runs INSIDE
+ * A's bracket-cornered ticker geometry, keeping A's lockstep status
+ * sync (one state machine drives the ticker body AND the status rows
+ * AND the mobile status line) and the sr-only narration.
  *
- * A11y: the prompt swaps inside ONE persistent aria-live="polite"
- * region; the sr-only pose line narrates the beat for screen readers
- * (the SR_POSE_COPY pattern — the canvas is aria-hidden decorative).
- * Reduced motion: beat 0 paints statically, no timers. The rotation
- * pauses offscreen (IO) and on hidden tabs.
+ * The cycle (honest, labeled «عرض توضيحي — DEMO»): a customer message
+ * arrives (typing beads → the message) → the intent engine classifies
+ * («النية: …») → the auto-reply types out WORD BY WORD → when the
+ * scenario needs a human, the handoff lights with the teammate's reply
+ * → reset → next scenario. Three scenarios (price / booking /
+ * complaint) mirror the published plan figures (0/19/29… — the DB seed
+ * and the product schema) and the real escalation path (unified inbox
+ * → team). Nothing invented, no fake customers — the numbers are the
+ * product's own published terms.
  *
- * One shared index drives: the prompt, the mobile status line, the
- * desktop status rows, the index counter and the sr narration. */
+ * A11y: the visible ticker is NOT a live region (word-by-word typing
+ * would chatter) — ONE sr-only aria-live="polite" announcer narrates
+ * each stage exactly once (B's announcer contract), plus the honesty
+ * line. Reduced motion: ONE fully composed static frame (scenario 1 at
+ * the reply beat, inbound + full reply painted, no timers, no beads).
+ * The cycle pauses offscreen (IO) and on hidden tabs (B's running
+ * gate, ported). */
 
-type Beat = {
-  /** the capability statement (Arabic, honest) */
-  prompt: string;
-  /** what the machine is doing on that beat (Arabic status) */
-  status: string;
-  /** the mono ALL-CAPS register (Latin only — tracked) */
-  mono: string;
-  /** dot register: teal = live machine, lime = AI/automation (S5 pair) */
-  tone: 'teal' | 'lime';
-  /** the sr-only pose narration (SR_POSE_COPY pattern) */
-  sr: string;
+type Stage = 'inbound' | 'classify' | 'reply' | 'handoff';
+type Beat = Stage | 'reset';
+
+/* ── the honest scenario registry (B's BotChatSimulator SCENARIOS,
+ *    adapted to the ticker's single-box shape) ───────────────────────── */
+type Scenario = {
+  id: string;
+  label: string;
+  intent: string;
+  /** the customer's incoming message */
+  inbound: string;
+  /** the bot's auto-reply — typed out word by word */
+  reply: string;
+  /** only the complaint escalates (the real unified-inbox path) */
+  handoff?: { sys: string; human: string };
 };
 
-const BEATS: Beat[] = [
+const SCENARIOS: Scenario[] = [
   {
-    prompt: 'ردّ تلقائي على تعليقات صفحتك',
-    status: 'جارٍ الرد…',
-    mono: 'AUTO-REPLY',
-    tone: 'teal',
-    sr: 'ON STAGE · جاهز يرد على عملائك',
+    id: 'price',
+    label: 'استفسار سعر',
+    intent: 'النية: استفسار عن السعر',
+    inbound: 'كم سعر الاشتراك عندكم؟',
+    reply:
+      'الخطة المجانية تمنحك 100 رد شهرياً على صفحة واحدة — والخطط المدفوعة تبدأ من 19 د.ل شهرياً. أرشدك للاشتراك؟',
   },
   {
-    prompt: 'تصنيف نية العميل تلقائياً',
-    status: 'جارٍ التصنيف…',
-    mono: 'INTENT-AI',
-    tone: 'lime',
-    sr: 'THINKING · يفهم نية العميل',
+    id: 'booking',
+    label: 'طلب حجز',
+    intent: 'النية: طلب / حجز',
+    inbound: 'أريد حجز طاولة لأربعة أشخاص الليلة',
+    reply: 'تم تسجيل طلبك! طاولة لأربعة الليلة — أكّد لك الموعد خلال دقائق.',
   },
   {
-    prompt: 'تسليم فوري للموظف البشري',
-    status: 'تسليم لموظف الدعم',
-    mono: 'HUMAN-HANDOFF',
-    tone: 'teal',
-    sr: 'HANDOFF · سلّم المحادثة للفريق البشري',
+    id: 'complaint',
+    label: 'شكوى',
+    intent: 'النية: شكوى — أولوية عالية',
+    inbound: 'الطلب وصل متأخر ساعتين! هذا مو مقبول',
+    reply: 'أشكرك على التنبيه وأسف على التأخير — وحّلت شكواك للأولوية العالية وحوّلتها فوراً للفريق.',
+    handoff: {
+      sys: 'تم تحويل المحادثة إلى الفريق البشري — صندوق الوارد الموحد',
+      human: 'معك أحمد من فريق الدعم. راجعت الطلب — وصّلناه اليوم مع خصم على طلبتك القادمة.',
+    },
   },
 ];
 
-const BEAT_MS = 4200;
+/* ── the stage script (B's pacing, verbatim) ─────────────────────────── */
+const STAGE_MS: Record<Stage, number> = {
+  inbound: 3200,
+  classify: 2700,
+  reply: 4200,
+  handoff: 3600,
+};
+const RESET_MS = 1700;
+const INBOUND_TYPE_MS = 1200;
+const REPLY_DOTS_MS = 900;
+const REPLY_WORD_MS = 190;
+
+/* the status registry — one row per machine state, synced to the SAME
+ * beat that drives the ticker body (A's lockstep contract, kept). The
+ * tone pair is A's S5 law: teal = live machine, lime = AI/automation. */
+const STATUS_ROWS: { key: Beat; ar: string; mono: string; tone: 'teal' | 'lime' }[] = [
+  { key: 'inbound', ar: 'رسالة واردة', mono: 'INBOUND', tone: 'teal' },
+  { key: 'classify', ar: 'جارٍ التصنيف…', mono: 'INTENT-AI', tone: 'lime' },
+  { key: 'reply', ar: 'كتابة الردّ الآلي', mono: 'AUTO-REPLY', tone: 'teal' },
+  { key: 'handoff', ar: 'تسليم لفريق الدعم', mono: 'HUMAN', tone: 'teal' },
+];
+
+/* the ticker body's micro-label per beat (the stage stamp) */
+const STAGE_LABEL: Record<Beat, string> = {
+  inbound: 'رسالة واردة',
+  classify: 'تصنيف النية',
+  reply: 'ردّ آلي',
+  handoff: 'تسليم لموظف الدعم',
+  reset: 'السيناريو التالي…',
+};
+
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export function HeroTicker() {
-  const [idx, setIdx] = useState(0);
+  const [scenarioIdx, setScenarioIdx] = useState(0);
+  const [stageIdx, setStageIdx] = useState(0);
   const [reduced, setReduced] = useState(false);
+  const [running, setRunning] = useState(false);
+  /* inbound typing beads (first 1.2s of the inbound beat) */
+  const [inTyping, setInTyping] = useState(true);
+  /* reply typing: dots, then word-by-word */
+  const [replyDots, setReplyDots] = useState(false);
+  const [replyWords, setReplyWords] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const scenario = SCENARIOS[scenarioIdx] ?? SCENARIOS[0]!;
+  /* the stage script is MEMOIZED (B's discipline): a fresh array every
+     render would re-arm the machine on every typing tick and freeze the
+     cycle mid-beat. The script ends with the explicit 'reset' beat. */
+  const script = useMemo(() => {
+    const stages: Beat[] = ['inbound', 'classify', 'reply'];
+    if (scenario.handoff) stages.push('handoff');
+    stages.push('reset');
+    return stages;
+  }, [scenario]);
+  /* the RM static frame composes on the reply beat (B's contract):
+     scenario 1, the full typed reply, zero timers */
+  const beat: Beat = reduced ? 'reply' : (script[stageIdx] ?? 'reset');
+  const nextScenario = SCENARIOS[(scenarioIdx + 1) % SCENARIOS.length]!;
+
   /* reduced-motion contract: read once on mount (the repo's useReveal
-     convention — SSR renders the calm first beat, the effect
-     reconciles). Reduced ⇒ the loop never arms. */
+     convention). Reduced ⇒ the loop never arms — the derived render
+     below paints the composed static frame (scenario 1, reply beat,
+     everything typed whole). */
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReduced(mq.matches);
   }, []);
 
-  /* the rotation — one interval, advanced only while the island is
-     onscreen (IO) and the tab is visible. Drift-free, cheap. */
+  /* the running gate — B's pause family: offscreen (IO) + hidden tab */
   useEffect(() => {
-    if (reduced) return;
     const el = rootRef.current;
     if (!el) return;
-    let onscreen = true;
     const io = new IntersectionObserver(
       (entries) => {
-        onscreen = entries[entries.length - 1]?.isIntersecting ?? true;
+        setRunning(entries[entries.length - 1]?.isIntersecting ?? false);
       },
       { rootMargin: '60px 0px' },
     );
     io.observe(el);
-    const t = window.setInterval(() => {
-      if (onscreen && !document.hidden) setIdx((i) => (i + 1) % BEATS.length);
-    }, BEAT_MS);
+    const onVis = () => setRunning((r) => r && !document.hidden);
+    document.addEventListener('visibilitychange', onVis);
     return () => {
-      window.clearInterval(t);
       io.disconnect();
+      document.removeEventListener('visibilitychange', onVis);
     };
-  }, [reduced]);
+  }, []);
 
-  const beat = BEATS[idx] ?? BEATS[0]!;
-  const pad = (n: number) => String(n).padStart(2, '0');
+  /* the stage machine — advances only while running (B's engine; the
+     script's trailing 'reset' beat swaps to the next scenario) */
+  useEffect(() => {
+    if (reduced || !running) return;
+    const ev = script[stageIdx] ?? 'reset';
+    const ms = ev === 'reset' ? RESET_MS : STAGE_MS[ev];
+    const t = window.setTimeout(() => {
+      if (ev === 'reset') {
+        setScenarioIdx((i) => (i + 1) % SCENARIOS.length);
+        setStageIdx(0);
+      } else {
+        setStageIdx((i) => i + 1);
+      }
+    }, ms);
+    return () => window.clearTimeout(t);
+  }, [stageIdx, scenarioIdx, running, reduced, script]);
+
+  /* inbound typing beads (B's engine) */
+  useEffect(() => {
+    if (beat !== 'inbound' || reduced) return;
+    setInTyping(true);
+    const t = window.setTimeout(() => setInTyping(false), INBOUND_TYPE_MS);
+    return () => window.clearTimeout(t);
+  }, [beat, scenarioIdx, reduced]);
+
+  /* the reply types out — dots, then word by word (B's engine) */
+  useEffect(() => {
+    if (beat !== 'reply' || reduced) return;
+    setReplyDots(true);
+    setReplyWords(0);
+    const t0 = window.setTimeout(() => setReplyDots(false), REPLY_DOTS_MS);
+    const words = scenario.reply.split(' ').length;
+    const iv = window.setInterval(() => {
+      setReplyWords((w) => Math.min(w + 1, words));
+    }, REPLY_WORD_MS);
+    return () => {
+      window.clearTimeout(t0);
+      window.clearInterval(iv);
+    };
+  }, [beat, scenarioIdx, scenario, reduced]);
+
+  /* ── derived body content (the static frame composes the same way) ── */
+  const staticFull = reduced; /* the RM frame: scenario 1, reply beat, whole */
+  const replyText = beat === 'handoff' && scenario.handoff ? scenario.handoff.human : scenario.reply;
+  const replyIsHuman = beat === 'handoff';
+  const typedWords = staticFull ? replyText.split(' ').length : replyWords;
+
+  const activeRow = beat === 'reset' ? null : beat;
+  const announce = reduced
+    ? 'عرض توضيحي ثابت: استفسار سعر يصل، يصنّفه البوت، والردّ الآلي يكتمل. محاكاة لقدرات فعلية.'
+    : beat === 'inbound'
+      ? `عرض توضيحي — رسالة واردة: ${scenario.inbound}`
+      : beat === 'classify'
+        ? `عرض توضيحي — تصنيف النية: ${scenario.intent}`
+        : beat === 'reply'
+          ? `عرض توضيحي — ردّ آلي: ${scenario.reply}`
+          : beat === 'handoff'
+            ? 'عرض توضيحي — تم تسليم المحادثة لموظف الدعم، ووصل ردّ الفريق البشري.'
+            : `عرض توضيحي — السيناريو التالي: ${nextScenario.label}`;
 
   return (
     <div className="ln-ticker-island" ref={rootRef}>
       {/* ── the prompt ticker (reading start — RTL right) ── */}
-      <div className="ln-ticker" role="group" aria-label="قدرات SmartBot الفعلية — تتناوب">
+      <div className="ln-ticker" role="group" aria-label="عرض توضيحي لقدرات SmartBot — رسائل حقيقية الحالات">
         {/* bracket corners — just OUTSIDE the hairline box (the
             reference framing signature, 1px L-strokes) */}
         <i className="ln-ticker-corner c-a" aria-hidden="true" />
@@ -118,28 +242,77 @@ export function HeroTicker() {
         <p className="ln-ticker-head">
           <span className="ln-mono">SMARTBOT</span>
           <span className="ln-ticker-sep" aria-hidden="true" />
-          <span>قدرات فعلية</span>
+          {/* the honest DEMO badge — the HONESTY LAW, visible + readable
+              (B's ln-pipe-demo pattern: a breathing dot + the stamp) */}
+          <span className="ln-ticker-demo">
+            <i className="ln-ticker-demo-dot" aria-hidden="true" />
+            عرض توضيحي — <b className="ln-mono" dir="ltr">DEMO</b>
+          </span>
           <span className="ln-ticker-idx ln-mono" dir="ltr">
-            {pad(idx + 1)} / {pad(BEATS.length)}
+            {pad(scenarioIdx + 1)} / {pad(SCENARIOS.length)}
           </span>
         </p>
 
-        {/* ONE persistent live region; the key'd prompt re-mounts inside
-            it so each rotation is announced politely exactly once */}
-        <p className="ln-ticker-prompt" aria-live="polite">
-          <span key={idx} className="ln-ticker-swap">
-            {beat.prompt}
-          </span>
-          <i className="ln-ticker-caret" aria-hidden="true" />
-        </p>
+        {/* the ticker body — ONE beat of the scenario at a time (the
+            stage stamp + the exchange). Not a live region: the sr-only
+            announcer below narrates each beat exactly once. */}
+        <div className="ln-ticker-beat" data-beat={beat}>
+          <p className="ln-ticker-beat-label">
+            <span>{STAGE_LABEL[beat]}</span>
+            <span className="ln-ticker-beat-scenario">{scenario.label}</span>
+          </p>
+
+          {beat === 'inbound' && !staticFull && inTyping ? (
+            <span className="ln-typing" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          ) : beat === 'inbound' ? (
+            <p className="ln-ticker-msg user">
+              {scenario.inbound}
+              <span className="ln-ticker-msg-meta">عميل الصفحة · عبر ماسنجر</span>
+            </p>
+          ) : beat === 'classify' ? (
+            <p className="ln-ticker-msg intent">
+              {scenario.intent}
+              <span className="ln-ticker-msg-meta">محرّك النوايا · فوري</span>
+            </p>
+          ) : beat === 'reply' || beat === 'handoff' || staticFull ? (
+            replyDots && !staticFull ? (
+              <span className="ln-typing" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+            ) : (
+              <p className="ln-ticker-msg bot">
+                {replyText.split(' ').slice(0, typedWords).join(' ')}
+                {replyIsHuman ? (
+                  <span className="ln-ticker-badge human">فريق بشري</span>
+                ) : (
+                  <span className="ln-ticker-badge auto">رد آلي</span>
+                )}
+                <span className="ln-ticker-msg-meta">
+                  {replyIsHuman ? 'موظف الدعم · صندوق الوارد الموحد' : 'SmartBot · رد فوري'}
+                </span>
+              </p>
+            )
+          ) : (
+            <p className="ln-ticker-msg reset">
+              {nextScenario.label}
+              <span className="ln-ticker-msg-meta">السيناريو التالي</span>
+            </p>
+          )}
+        </div>
 
         {/* the compact status line — the side panel's mobile twin
             (display: none on desktop, so it never double-reads) */}
         <p className="ln-ticker-status">
-          <b data-tone={beat.tone} aria-hidden="true" />
-          <span>{beat.status}</span>
+          <b data-tone={activeRow ? STATUS_ROWS.find((r) => r.key === activeRow)?.tone : 'teal'} aria-hidden="true" />
+          <span>{beat === 'reset' ? 'جاهز للسيناريو التالي…' : STAGE_LABEL[beat]}</span>
           <span className="ln-mono" dir="ltr">
-            {beat.mono}
+            {beat === 'reset' ? 'NEXT' : STATUS_ROWS.find((r) => r.key === beat)?.mono}
           </span>
         </p>
       </div>
@@ -151,20 +324,26 @@ export function HeroTicker() {
           <span>حالة النظام</span>
         </p>
         <ul>
-          {BEATS.map((b, i) => (
-            <li key={b.mono} data-active={i === idx ? 'true' : undefined}>
-              <i data-tone={b.tone} aria-hidden="true" />
-              <span className="ln-status-label">{b.status}</span>
+          {STATUS_ROWS.map((row) => (
+            <li key={row.mono} data-active={activeRow === row.key ? 'true' : undefined}>
+              <i data-tone={row.tone} aria-hidden="true" />
+              <span className="ln-status-label">{row.ar}</span>
               <span className="ln-status-mono ln-mono" dir="ltr">
-                {b.mono}
+                {row.mono}
               </span>
             </li>
           ))}
         </ul>
       </aside>
 
-      {/* the pose narration (sr-only, SR_POSE_COPY pattern) */}
-      <p className="sr-only">{beat.sr}</p>
+      {/* the single sr-only announcer (B's contract: one polite
+          announcement per stage beat) + the honesty line */}
+      <p className="sr-only" aria-live="polite">
+        {announce}
+      </p>
+      <p className="sr-only">
+        محاكاة لقدرات الردّ الفعلية — تصنيف النوايا وردود تلقائية وتسليم للفريق البشري. ليست بيانات عملاء حقيقيين.
+      </p>
     </div>
   );
 }

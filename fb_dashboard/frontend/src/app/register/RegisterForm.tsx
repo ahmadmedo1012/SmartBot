@@ -10,9 +10,14 @@ import { apiFetch, ApiError } from "@/lib/csrf-client"
 import type { ApiErrorBody } from "@/lib/types"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
+import { RobotMark } from "@/components/shared/RobotMark"
 import Link from "next/link"
 import { UserPlus, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
+/* Stage 4 (2-e2): the auth machine shell — the login twin's layered petrol
+ * surfaces (sunk plane + contact pool + lit edge + corner brackets),
+ * imported from the one shared auth.css. Zero motion, token-driven. */
+import "../auth.css"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -31,15 +36,6 @@ function parseLockoutSeconds(message: string): number {
 function describedBy(...ids: (string | false | undefined)[]) {
   const list = ids.filter(Boolean).join(" ")
   return list || undefined
-}
-
-function FloatingShapes() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full border border-border/30" />
-      <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full border border-border/20" />
-    </div>
-  )
 }
 
 function validate(fields: { username: string; email: string; password: string; confirm: string }) {
@@ -127,7 +123,7 @@ function RegisterForm() {
           the faint circuit-board trace grid (.sb-trace-field — the
           machine-room texture, masked + reduced under RM-free paint). */}
       <div className="sb-trace-field fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
-      <FloatingShapes />
+      <div className="sb-auth-frame" aria-hidden="true" />
 
       {/* r127-F5b: corner chrome chip = the --z-dropdown rung (100) — the
           Smart-Order login/register corner-link recipe. */}
@@ -150,12 +146,29 @@ function RegisterForm() {
 
       {/* r131-F7b (A4 P2-4 de-glow tail): glassy gold-tinted auth card → the
           canonical quiet card (SOLID bg-card + hairline + neutral shadow-xl
-          elev-4 — login twin). */}
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card shadow-xl sm:max-w-md">
+          elev-4 — login twin). Stage 4 (2-e2): the login twin's mount — sunk
+          panel plane + contact pool (.sb-auth-mount), lit top edge
+          (.sb-auth-lit), warm-on-focus panel border. */}
+      <div className="sb-auth-mount relative z-10 w-full max-w-sm sm:max-w-md">
+      <Card className="sb-auth-lit animate-scale-in w-full border border-border/60 bg-card shadow-xl focus-within:border-accent-foreground/25">
+        {/* Stage 4 (2-e2): the machine badge row — mono station stamp + the
+            RobotMark in its GREETING state (the welcoming register, per the
+            RobotMark state contract). hidden <sm: at 390 the register card
+            fills the viewport and the fixed corner chip (back link +
+            theme toggle) sits exactly where this row would land — the
+            machine badge is a ≥640px feature, mobile stays the compact
+            working card. Decorative (aria-hidden): the
+            accessible page name stays the sr-only h1 + the CardTitle. */}
+        <div className="hidden sm:flex items-center gap-2 px-6 pt-1 sm:px-8" aria-hidden="true">
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+          <span dir="ltr" className="select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">SB·AUTH / REGISTER</span>
+          <span className="h-px min-w-4 flex-1 bg-border/70" />
+          <RobotMark state="greeting" className="size-6 shrink-0" />
+        </div>
         {/* Visually-hidden page heading — CardTitle is a div, so heading
             navigation had no target on this route (v8-B5) */}
         <h1 className="sr-only">إنشاء حساب جديد</h1>
-        <CardHeader className="pb-2 pt-6 text-center sm:pt-8">
+        <CardHeader className="pb-2 pt-4 text-center sm:pt-5">
           <div className="mx-auto mb-3 flex size-14 items-center justify-center sm:mb-4 sm:size-16">
             {/* v6 §D — next/image: 160×160 intrinsic dims, no CLS */}
             {/* v17-SB (17-PERF #1): sizes = the real slot (size-16 = 64px). */}
@@ -337,6 +350,7 @@ function RegisterForm() {
           <p className="mt-4 text-center text-xs text-muted-foreground">SmartBot — منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

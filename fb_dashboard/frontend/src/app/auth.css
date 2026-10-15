@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════════════════════════
+ * STAGE 4 (Task 2-e2) — THE AUTH SHELL · Circuit Petrol machine grammar
+ *
+ * The /login + /register surfaces carry the audit finding "serviceable
+ * flat card, no depth/texture craft". This sheet gives them the
+ * machine-grammar depth WITHOUT importing a single landing-hero element
+ * (no WebGL, no ticker, no scene): petrol depth via LAYERED SURFACES —
+ *   1. THE MOUNT   — the card stands on a sunk panel plane (offset
+ *                    outline, layer 2) over a soft teal contact pool
+ *                    (the ground glow — depth, not a shadow crutch);
+ *   2. THE LIT EDGE— the card's top edge catches the room light (a
+ *                    1px foam sheen fading down 18% — the raised-panel
+ *                    tell on the SOLID quiet card of r131-F7b);
+ *   3. THE ROOM    — corner brackets framing the viewport (the machine
+ *                    panel frame; the generic floating circles retire).
+ * Paint-only, token-driven, ZERO motion (auth must stay fast and calm —
+ * the only animated thing on these routes stays RobotMark's slow LED
+ * breathe, RM-guarded in the globals §4 signature layer).
+ * Consumed ONLY by src/app/login/page.tsx + register/RegisterForm.tsx
+ * (both import "../auth.css" — same pattern as page.tsx → landing.css).
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. THE MOUNT — a panel standing on a plane ─────────────────────────
+ * The host wraps the Card (w-full max-w-*): ::before is the sunk
+ * outline 16px below (reads as a second panel plane in the petrol
+ * depth), ::after is the contact pool under the card floor. Both are
+ * pointer-events:none furniture; the card keeps its own quiet solid
+ * surface + neutral shadow-xl (elev-4). */
+.sb-auth-mount {
+  position: relative;
+}
+.sb-auth-mount::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateY(16px);
+  border-radius: var(--r-xl);
+  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  pointer-events: none;
+}
+.sb-auth-mount::after {
+  content: '';
+  position: absolute;
+  inset-inline: 12%;
+  inset-block-end: -30px;
+  block-size: 52px;
+  border-radius: var(--r-full);
+  background: radial-gradient(
+    50% 100% at 50% 50%,
+    color-mix(in srgb, var(--primary) 16%, transparent),
+    transparent 72%
+  );
+  filter: blur(10px);
+  pointer-events: none;
+}
+/* increased OS contrast: the sunk plane + pool read as noise — retire. */
+@media (prefers-contrast: more) {
+  .sb-auth-mount::before,
+  .sb-auth-mount::after { content: none; }
+}
+
+/* the compact grade (<640px): the register card fills a 390×844 viewport
+ * almost exactly (measured 832px pre-Stage-4) — the below-card depth
+ * layers compress so the page never scrolls for decoration, and the
+ * card's top edge keeps clear of the fixed corner chrome chip. */
+@media (max-width: 639px) {
+  .sb-auth-mount::before { transform: translateY(8px); }
+  .sb-auth-mount::after {
+    inset-block-end: -10px;
+    block-size: 36px;
+    filter: blur(8px);
+  }
+}
+
+/* ── 2. THE LIT EDGE — the raised-panel tell ────────────────────────────
+ * A top-edge sheen (foreground @ 7% fading to transparent by 18% of the
+ * card height — the header zone only, never the fields). The Card is
+ * overflow-hidden + rounded-xl, so the sheen clips itself to the panel. */
+.sb-auth-lit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--foreground) 7%, transparent) 0%,
+    transparent 18%
+  );
+}
+/* light grade: ink-on-cream sheen stays subtle at 5% (the 7% dark-mode
+   value reads heavier on the mist ground). */
+html.light .sb-auth-lit::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--foreground) 5%, transparent) 0%,
+    transparent 16%
+  );
+}
+@media (prefers-contrast: more) {
+  .sb-auth-lit::after { content: none; }
+}
+
+/* ── 3. THE ROOM — viewport corner brackets ─────────────────────────────
+ * Two hairline L-brackets (top-end + bottom-start — the corners free of
+ * the fixed chrome chip) frame the room as a machine panel. Logical
+ * insets only, so the frame is correct in either direction. */
+.sb-auth-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sb-auth-frame::before,
+.sb-auth-frame::after {
+  content: '';
+  position: absolute;
+  inline-size: 24px;
+  block-size: 24px;
+  /* the trace register (primary @ ~30%) — the border hairline measured
+     near-invisible on the petrol ground in the live VLM pass; brackets
+     speak the same signal strength as the .sb-trace dividers. */
+  border: 0 solid color-mix(in srgb, var(--primary) 30%, transparent);
+}
+/* top-end bracket (opposite the corner chrome chip) */
+.sb-auth-frame::before {
+  inset-inline-end: 20px;
+  inset-block-start: 20px;
+  border-block-start-width: 1px;
+  border-inline-end-width: 1px;
+}
+/* bottom-start bracket (the pool corner) */
+.sb-auth-frame::after {
+  inset-inline-start: 20px;
+  inset-block-end: 20px;
+  border-block-end-width: 1px;
+  border-inline-start-width: 1px;
+}
+@media (prefers-contrast: more) {
+  .sb-auth-frame::before,
+  .sb-auth-frame::after { border-color: var(--primary); }
+}

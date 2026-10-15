@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { KpiCard } from "@/components/shared/KpiCard"
+import { CircuitTrace } from "@/components/shared/CircuitTrace"
 
 import { cn } from "@/lib/utils"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
@@ -130,20 +131,33 @@ function DemoHeader({ tab }: { tab: TabKey }) {
   const meta = TAB_META[tab]
   return (
     <header className="sticky top-0 z-(--z-dropdown) border-b border-border bg-background/80 backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 md:px-6 h-14">
-        <div className="flex items-center gap-3">
+      {/* Stage 4 (2-e2): h1 rides the canonical page-title rung
+          (--fs-page-title = clamp(20px, 3.4vw, 28px) @700 — the exact
+          PageHeader display grammar every real dashboard page speaks;
+          the old text-sm 14px h1 read as admin-template). Row grows to
+          min-h-16 for the taller title, min-w-0/truncate keep 390 safe. */}
+      <div className="flex items-center justify-between gap-3 px-4 md:px-6 min-h-16 py-2">
+        <div className="flex items-center gap-3 min-w-0">
           {/* r151 (LIVE-AUDIT-SB1 P2): primary back nav on a public touch
               surface rides the default 44px rung (sm=32 is licensed only for
               dense in-app rows — subscribe twin). */}
-          <Button variant="ghost" onClick={() => router.push("/")}>
+          <Button variant="ghost" onClick={() => router.push("/")} className="shrink-0">
             <DirectionalIcon semanticDirection="back" className="size-4" /> العودة
           </Button>
-          <div>
-            <h1 className="font-bold text-sm">{meta.title}</h1>
-            <p className="text-xs text-muted-foreground">{meta.subtitle}</p>
+          <div className="min-w-0">
+            <h1 className="font-bold text-(length:--fs-page-title) leading-(--type-page-title-line-height) truncate">{meta.title}</h1>
+            <p className="text-xs text-muted-foreground truncate">{meta.subtitle}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Stage 4 (2-e2): the station stamp — the same mono machine
+              register as the KPI/chart stamps (latin code, tabular, dir
+              ltr); decorative chrome, hidden under md where the header
+              runs tight. */}
+          <span className="hidden md:inline-flex items-center gap-1.5 select-none" dir="ltr" aria-hidden="true">
+            <span className="size-1.5 rounded-full bg-primary" />
+            <span className="font-mono text-2xs font-medium tabular-nums text-muted-foreground">SB·DEMO</span>
+          </span>
           <Badge variant="warning">تجربة - بيانات وهمية</Badge>
           <span className="hidden sm:flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-success" />
@@ -198,18 +212,42 @@ function StatsTab() {
   return (
     <div className="space-y-6">
       {/* r131-F8 (A4 P2-2): the hand-rolled 24px-value/32px-well strip → the
-          canonical KpiCard (30px tnum value, 44px pastel-family well + rim). */}
+          canonical KpiCard (30px tnum value, 44px pastel-family well + rim).
+          Stage 4 (2-e2): each card carries its mono INDEX STAMP (zero-padded
+          01…04 bottom-start, the rules-table machine register) — the uniform
+          strip now reads as a numbered instrument bank; KpiCard itself (the
+          shared dashboard primitive) is untouched, the stamp rides the
+          wrapper. NOTE the z-10 on the stamps: KpiCard's root is itself
+          `relative` and FOLLOWS the stamp in the DOM — without a rung the
+          opaque card paints over its own stamp (caught live: the DOM boxes
+          measured present while the pixels stayed hidden). */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-        <KpiCard icon={MessageCircle} label="ردود اليوم" value={mockStats.replies_today} tone="copper" index={0} />
-        <KpiCard icon={Activity} label="آخر 7 أيام" value={mockStats.replies_week} tone="sky" index={1} />
-        <KpiCard icon={Users} label="متابعو الصفحة" value={formatNumber(mockStats.followers)} tone="mint" index={2} />
-        <KpiCard icon={Bot} label="قواعد نشطة" value={mockStats.rules} tone="yellow" index={3} />
+        <div className="relative">
+          <span aria-hidden="true" dir="ltr" className="absolute bottom-2.5 start-6 z-10 select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">01</span>
+          <KpiCard icon={MessageCircle} label="ردود اليوم" value={mockStats.replies_today} tone="copper" index={0} />
+        </div>
+        <div className="relative">
+          <span aria-hidden="true" dir="ltr" className="absolute bottom-2.5 start-6 z-10 select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">02</span>
+          <KpiCard icon={Activity} label="آخر 7 أيام" value={mockStats.replies_week} tone="sky" index={1} />
+        </div>
+        <div className="relative">
+          <span aria-hidden="true" dir="ltr" className="absolute bottom-2.5 start-6 z-10 select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">03</span>
+          <KpiCard icon={Users} label="متابعو الصفحة" value={formatNumber(mockStats.followers)} tone="mint" index={2} />
+        </div>
+        <div className="relative">
+          <span aria-hidden="true" dir="ltr" className="absolute bottom-2.5 start-6 z-10 select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">04</span>
+          <KpiCard icon={Bot} label="قواعد نشطة" value={mockStats.rules} tone="yellow" index={3} />
+        </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <TrendingUp className="size-4 text-accent-foreground" /> النشاط اليومي (24 ساعة)
+            {/* Stage 4 (2-e2): the mock-data stamp — per-card honesty in the
+                mono machine register (the page's «بيانات وهمية» badge made
+                local to the data surface). */}
+            <span dir="ltr" aria-hidden="true" className="ms-auto select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">DEMO·24H</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -220,8 +258,14 @@ function StatsTab() {
             summary="مخطط أعمدة لنشاط الردود على مدار 24 ساعة ببيانات تجريبية"
             data={mockStats.active_hours.map((v, i) => ({ label: `${i}:00`, value: v, hint: `الساعة ${i}:00` }))}
           />
-          <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-            <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
+          {/* Stage 4 (2-e2): the LIVE trace under the series + the lime
+              newest-edge node + the mono hour range — the exact
+              dashboard-home chart grammar (r154b), so the demo chart speaks
+              the same machine voice as the real product surface. */}
+          <CircuitTrace variant="live" className="mt-1.5 block h-1.5 w-full" />
+          <div className="flex justify-between mt-2 text-xs text-muted-foreground font-mono tabular-nums">
+            <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span>
+            <span className="inline-flex items-center gap-1"><span className="size-1.5 rounded-full bg-lime" aria-hidden="true" />23:00</span>
           </div>
         </CardContent>
       </Card>
@@ -662,6 +706,11 @@ export default function DemoPage() {
           link actually move focus here. */}
       <div id="page-content" tabIndex={-1} className="flex-1 md:ps-64 flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <DemoHeader tab={tab} />
+        {/* Stage 4 (2-e2): the machine-room topbar signature — the
+            PageHeader `trace` option's twin (static teal trace, NO live
+            node: this stream is mock). Scrolling sibling under the sticky
+            header, same geometry as the dashboard core pages. */}
+        <hr className="sb-trace" aria-hidden="true" />
         <SectionContainer className="py-6 flex-1">
           {/* v6+ — framer-free tab entrance: keyed remount restarts the CSS
            * fade-in staggers (identical feel to the old variants pattern) */}

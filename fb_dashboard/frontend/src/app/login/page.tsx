@@ -10,20 +10,16 @@ import { apiFetch, ApiError } from "@/lib/csrf-client"
 import { clearQueryPersistedCache } from "@/lib/query-persist"
 import { brandedToast } from "@/lib/premium-toast"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
+import { RobotMark } from "@/components/shared/RobotMark"
 import Link from "next/link"
 import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react"
 import { DirectionalIcon } from "@/components/ui/directional-icon"
 import { unwrapApi } from "@/lib/api"
 import type { ApiErrorBody } from "@/lib/types"
-
-function FloatingShapes() {
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full border border-border/30" />
-      <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full border border-border/20" />
-    </div>
-  )
-}
+/* Stage 4 (2-e2): the auth machine shell — layered petrol surfaces
+ * (sunk plane + contact pool + lit edge + corner brackets), scoped to
+ * the login/register routes only. Zero motion, token-driven. */
+import "../auth.css"
 
 /* v14-E4 (D1 security review): the old guard rejected "//" but browsers
  * normalize WHATWG backslashes to slashes — "/\evil.com" IS "//evil.com"
@@ -191,7 +187,7 @@ function LoginForm() {
           the faint circuit-board trace grid (.sb-trace-field — the
           machine-room texture, masked + reduced under RM-free paint). */}
       <div className="sb-trace-field fixed inset-0 -z-10 bg-gradient-to-br from-background via-accent/20 to-background" />
-      <FloatingShapes />
+      <div className="sb-auth-frame" aria-hidden="true" />
 
       {/* r127-F5b: corner chrome chip = the --z-dropdown rung (100) — the
           Smart-Order login/register corner-link recipe. */}
@@ -218,12 +214,30 @@ function LoginForm() {
 
       {/* r131-F7b (A4 P2-4 de-glow tail): glassy gold-tinted auth card → the
           canonical quiet card (SOLID bg-card + hairline + the neutral
-          shadow-xl elev-4 — was bg-card/85 + blur-2xl + the /5 gold tint). */}
-      <Card className="animate-scale-in relative z-10 w-full max-w-sm border border-border/60 bg-card shadow-xl sm:max-w-md">
+          shadow-xl elev-4 — was bg-card/85 + blur-2xl + the /5 gold tint).
+          Stage 4 (2-e2): the card stands on a SUNK PANEL PLANE + contact
+          pool (.sb-auth-mount) and catches the room light on its top edge
+          (.sb-auth-lit) — petrol depth via layered surfaces, not shadow
+          crutches; the panel edge warms a hairline while a field is
+          focused (the machine responding to input, paint-only). */}
+      <div className="sb-auth-mount relative z-10 w-full max-w-sm sm:max-w-md">
+      <Card className="sb-auth-lit animate-scale-in w-full border border-border/60 bg-card shadow-xl focus-within:border-accent-foreground/25">
+        {/* Stage 4 (2-e2): the machine badge row — the mono station stamp
+            (the landing status-rows' register: latin mono codes, dir ltr,
+            tabular) + the RobotMark on duty. hidden <sm: the register
+            twin's compact-grade rationale (fixed corner chip collision at
+            390) keeps both auth cards consistent. Decorative (aria-hidden): the
+            accessible page name stays the sr-only h1 + the CardTitle. */}
+        <div className="hidden sm:flex items-center gap-2 px-6 pt-1 sm:px-8" aria-hidden="true">
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+          <span dir="ltr" className="select-none font-mono text-2xs font-medium tabular-nums text-muted-foreground">SB·AUTH / LOGIN</span>
+          <span className="h-px min-w-4 flex-1 bg-border/70" />
+          <RobotMark state="idle" className="size-6 shrink-0" />
+        </div>
         {/* Visually-hidden page heading — CardTitle is a div, so heading
             navigation had no target on this route (v8-B5) */}
         <h1 className="sr-only">تسجيل الدخول</h1>
-        <CardHeader className="pb-2 pt-8 text-center">
+        <CardHeader className="pb-2 pt-6 text-center">
           <div className="mx-auto mb-4 flex size-16 items-center justify-center">
             {/* v6 §D — next/image (was raw <img>): intrinsic 160×160 reserving
                 layout space, no CLS on the auth screens' hero icon */}
@@ -332,6 +346,7 @@ function LoginForm() {
           <p className="mt-4 text-center text-xs text-muted-foreground">SmartBot - منصة إدارة التفاعل الذكية</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

@@ -154,6 +154,11 @@ async def test_canonical_seed_upsert_repairs_legacy_rows():
     # canonical seed must carry the single-page claim on every tier.
     for row in rows:
         assert "صفحة فيسبوك واحدة" in (row.features or []), row.name
+        # P14-P0A regression: max_pages must agree with the enforced
+        # one-page architecture AND the feature string — the pre-P14 seed
+        # served Premium=2 / Pro=5 / Enterprise=999 on /api/plans while the
+        # features said «صفحة فيسبوك واحدة» (live-verified contradiction).
+        assert row.max_pages == 1, row.name
     # second run = pure update, no duplicates
     async with AsyncSessionLocal() as db:
         await _seed_subscription_plans(db)

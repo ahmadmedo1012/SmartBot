@@ -50,6 +50,16 @@ describe("DEFAULT_PLANS — مرآة بذرة الخادم", () => {
       expect(p.features).toContain("صفحة فيسبوك واحدة")
     }
   })
+
+  it("max_pages = 1 في كل باقة (P14-P0A: مطابقة العقد المسلَّك للعمارة المفروضة)", () => {
+    // P14-P0A regression: the wire contract must agree with the enforced
+    // architecture and the rendered feature string. Before P14 the mirror
+    // carried Premium=2 / Pro=5 / Enterprise=999 — contradicting the same
+    // cards' «صفحة فيسبوك واحدة» feature text.
+    for (const p of DEFAULT_PLANS) {
+      expect(p.max_pages).toBe(1)
+    }
+  })
 })
 
 describe("plansEqual — عقد التبديل الصامت", () => {

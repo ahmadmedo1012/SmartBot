@@ -109,6 +109,14 @@ async def _seed_subscription_plans(db):
     max_pages is enforced nowhere, so the old 2/5/unlimited page
     claims were fiction. This upsert rewrites the features on every
     boot, so a deploy carries the honest copy into production rows.
+
+    P14-P0A (truth reconciliation): the feature lists above were fixed
+    in P13-2c, but max_pages itself kept carrying 2/5/999 — and because
+    this upsert rewrites every column on every boot, /api/plans was
+    still serving the contradictory entitlement numbers alongside the
+    honest feature strings (verified live: Premium max_pages=2, Pro=5,
+    Enterprise=999). max_pages is now 1 on every tier, matching both
+    the enforced architecture and the feature list the UI renders.
     """
     canonical = [
         dict(
@@ -132,7 +140,7 @@ async def _seed_subscription_plans(db):
         ),
         dict(
             name="Premium", name_ar="مميز", price=29, period_days=30,
-            max_replies=10000, max_pages=2, max_rules=50, max_team=2,
+            max_replies=10000, max_pages=1, max_rules=50, max_team=2,
             has_dm=True, has_ai=True, has_broadcast=True,
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=False, has_analytics_advanced=True,
@@ -143,7 +151,7 @@ async def _seed_subscription_plans(db):
         ),
         dict(
             name="Pro", name_ar="احترافي", price=129, period_days=30,
-            max_replies=50000, max_pages=5, max_rules=100, max_team=5,
+            max_replies=50000, max_pages=1, max_rules=100, max_team=5,
             has_dm=True, has_ai=True, has_broadcast=True,
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=True, has_analytics_advanced=True,
@@ -153,7 +161,7 @@ async def _seed_subscription_plans(db):
         ),
         dict(
             name="Enterprise", name_ar="مؤسسي", price=299, period_days=30,
-            max_replies=999999, max_pages=999, max_rules=999, max_team=999,
+            max_replies=999999, max_pages=1, max_rules=999, max_team=999,
             has_dm=True, has_ai=True, has_broadcast=True,
             has_scheduling=True, has_reports=True, has_flows=True,
             has_offers=True, has_sequences=True, has_analytics_advanced=True,

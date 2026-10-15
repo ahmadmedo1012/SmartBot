@@ -14,6 +14,12 @@
  * عند تعديل أسعار/ميزات الباقات في الخادم عدّل هنا أيضاً (يحمي ذلك
  * اختبار default-plans.test.ts).
  *
+ * P14-P0A: max_pages = 1 في كل باقة (مرآة بذرة startup.py بعد
+ * المصالحة) — العمارة تفرض صفحة واحدة لكل مستأجر (models.py
+ * uq_botstate_tenant_key) وmax_pages لا يُفرض في أي مكان، فقيم
+ * 2/5/999 السابقة كانت تعارضاً مباشراً مع نص الميزات «صفحة
+ * فيسبوك واحدة» الذي ترسمه البطاقات. عيّنتها الـAPI الحية قبل
+ * الإصلاح: Premium=2, Pro=5, Enterprise=999.
  * التبديل الصامت: الصفحات التي hydrate من الـAPI تستدعي plansEqual لتجنّب
  * إعادة الرسم (والوميض المرئي) حين تطابق بيانات الـAPI الافتراضية —
  * setPlans(prev => plansEqual(prev, next) ? prev : next) يجعل React
@@ -59,7 +65,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     name_ar: "مميز",
     price: 29,
     max_replies: 10000,
-    max_pages: 2,
+    max_pages: 1,
     max_rules: 50,
     features: [
       "10,000 رد/شهر",
@@ -81,7 +87,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     name_ar: "احترافي",
     price: 129,
     max_replies: 50000,
-    max_pages: 5,
+    max_pages: 1,
     max_rules: 100,
     features: [
       "50,000 رد/شهر",
@@ -100,7 +106,7 @@ export const DEFAULT_PLANS: ComparisonPlanInput[] = [
     name_ar: "مؤسسي",
     price: 299,
     max_replies: 999999,
-    max_pages: 999,
+    max_pages: 1,
     max_rules: 999,
     features: [
       "ردود غير محدودة",

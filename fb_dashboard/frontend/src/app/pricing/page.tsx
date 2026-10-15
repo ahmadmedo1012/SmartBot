@@ -88,7 +88,13 @@ export default function PricingPage() {
       <span id="page-content" className="sr-only" tabIndex={-1} />
 
 
-      <SectionContainer className="pt-20 pb-8 text-center relative md:py-20">
+      {/* 2-g (P2 — acceptance gap 3, fold discipline): the lg-tier band
+          keeps the fixed-header clearance contract (lg:pt-20 = 80px, the
+          same 60px-header + air rung as mobile) while the shared lg:py-28
+          bottom rung halves (lg:pb-6) — the fold win comes from the card
+          rhythm below (CTA directly under the price), not from squeezing
+          the header band under the fixed chrome. */}
+      <SectionContainer className="pt-20 pb-8 text-center relative md:py-20 lg:pt-20 lg:pb-6">
         {/* 2-e (P1 pricing-fold fix): the vertical rhythm above the plan
             grid is mobile-tight — the hero band was py-20 top+bottom on a
             390×844 fold where the first card's price+CTA sat below it.
@@ -155,13 +161,23 @@ export default function PricingPage() {
           and the plan grid (the machine-room signature). */}
       <hr className="sb-trace" aria-hidden="true" />
 
-      <SectionContainer className="pb-24 pt-6 md:pt-16">
+      {/* 2-g (P2 — fold): the plan-grid band's lg top rung tightens
+          (112 → 32) so the first plan row's price + subscribe CTA land
+          inside the 900px fold at 1440. Mobile/tablet rhythm untouched. */}
+      <SectionContainer className="pb-24 pt-6 md:pt-16 lg:pt-8">
         {/* v18-1-c: بطاقات تُرسم فوراً من الافتراضية؛ فشل الـAPI النهائي
             يُبقيها مع لافتة + زر إعادة المحاولة (بدل استبدال الشبكة بحالة
             خطأ فارغة) */}
         {plansFailed && (
-          <div className="max-w-md mx-auto text-center mb-10" role="status">
-            <p className="text-sm text-muted-foreground mb-3">تُعرض الباقات الافتراضية — أعد المحاولة</p>
+          // 2-g (P2 — fold + banner contrast): the dev-mode fallback notice
+          // tightens (mb-10 stacked block → mb-6) and the copy climbs from
+          // text-muted-foreground to the full foreground ink — the banner is
+          // a real status message, and 14px text wants the ink tier on both
+          // grounds (measured: dark #E9F5F0 = 15.94:1 on #071A21 · light
+          // #0A242E = 14.62:1 on #EDF6F3; the muted grays measured 9.34:1 /
+          // 7.44:1 but read as decoration at 14px).
+          <div className="max-w-2xl mx-auto text-center mb-6" role="status">
+            <p className="text-sm text-foreground mb-2">تُعرض الباقات الافتراضية — أعد المحاولة</p>
             <Button variant="outline" onClick={loadPlans}>إعادة المحاولة</Button>
           </div>
         )}
@@ -233,9 +249,13 @@ export default function PricingPage() {
                       ln-card language); the gold border + badge already
                       carry the popular state. */}
 
-                  <CardHeader className="text-center relative pt-8 max-sm:pt-5">
+                  {/* 2-g (P2 — fold): the lg card-top rung compresses
+                      (pt-8 → lg:pt-4; the icon plate's mb-3 → lg:mb-2) —
+                      enough to land the row-1 CTA at the fold without
+                      touching the mobile/tablet rhythm (max-sm: stays). */}
+                  <CardHeader className="text-center relative pt-8 max-sm:pt-5 lg:pt-4">
                     <div className={cn(
-                      "mx-auto size-12 rounded-xl flex items-center justify-center mb-3 max-sm:size-10 max-sm:mb-2",
+                      "mx-auto size-12 rounded-xl flex items-center justify-center mb-3 max-sm:size-10 max-sm:mb-2 lg:mb-2",
                       isPopular ? "bg-accent-foreground/20" : "bg-accent-foreground/10"
                     )}>
                       <Icon className="size-6 text-accent-foreground max-sm:size-5" />
@@ -254,7 +274,7 @@ export default function PricingPage() {
                      * bottom-aligned track — «مجاني» (36px) and «19» (48px)
                      * now share one bottom edge across cards (they sat 8-16px
                      * apart on the old free-height baseline row). */}
-                    <div className="text-center mb-6 py-4 border-y border-border/40">
+                    <div className="text-center mb-6 py-4 border-y border-border/40 lg:mb-3 lg:py-2">
                       <div className="flex min-h-16 items-end justify-center gap-1.5">
                         {plan.price === 0 ? (
                           <span className="text-4xl font-bold">مجاني</span>
@@ -272,12 +292,17 @@ export default function PricingPage() {
                       </div>
                     </div>
 
-                    {/* Features — 2-e (P1 pricing-fold fix): at ≤640px the CTA
-                        rides DIRECTLY under the price (order-2) and the feature
-                        list follows (order-3): the first card's price + CTA land
-                        inside the 390×844 fold (the desktop order is untouched —
-                        features-then-CTA keeps the richer cards' scan rhythm). */}
-                    <ul className="space-y-2.5 md:mb-6 flex-1 text-start max-sm:order-3 max-sm:mt-5 max-sm:mb-0">
+                    {/* Features — 2-e (P1 pricing-fold fix) promoted by
+                        2-g (P2 — acceptance fold discipline): the CTA rides
+                        DIRECTLY under the price at EVERY breakpoint
+                        (order-2) and the feature list follows (order-3,
+                        flex-1 keeps the equal-height card stretch). The
+                        ≤640px tier landed this order first (the 390×844
+                        fold); the 1440×900 fold demanded the same honesty —
+                        price + subscribe CTA above the fold on the money
+                        page, features below (the mobile pattern, now the
+                        one universal rhythm: no breakpoint forks). */}
+                    <ul className="space-y-2.5 flex-1 text-start order-3 mt-4 mb-0">
                       {plan.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm">
                           <div className="size-5 rounded-full bg-accent-foreground/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -302,7 +327,7 @@ export default function PricingPage() {
                          r148 (19-AUDIT-SB SB-D6b): the h-10 override is gone
                          — size="lg" rides its canonical h-12 (48px money-CTA
                          canon, r134); measured 318×40 before. */
-                      className="w-full max-sm:order-2"
+                      className="w-full order-2"
                       onClick={() => router.push(plan.price === 0 ? "/subscribe" : `/subscribe?plan=${plan.id}`)}
                     >
                       {plan.price === 0 ? "ابدأ مجاناً" : "اشترك الآن"}

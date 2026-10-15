@@ -2277,6 +2277,20 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   inset-inline: 6%;
   inset-block-start: 42%;
   block-size: 6px;
+  /* 2-g (P1 — acceptance gap 1): SVG is a REPLACED abspos element — its
+     auto inline-size resolved through the viewBox aspect (600:2 → 1800px
+     at 6px height) instead of the intended inset stretch, bleeding 446px
+     off the inline-end and stopping 86px short of the reading-start
+     edge. CAUTION (r2): the first attempt used inline-size: 100%, which
+     OVER-CONSTRAINS against inset-inline 6% — in RTL the inline-start
+     offset wins, so the 1440px box sat 86px off the inline-start edge
+     AND bled 86px past the inline-end (measured live: x=-86). The
+     correct arithmetic is 88% (100% − 2×6%): start inset 86.4 + width
+     1267.2 resolves to EXACTLY the 6%-inset span on both edges, and
+     preserveAspectRatio="none" (already on the SVG) stretches the
+     gradient + node dots across the REAL span; the dash-run keyframes
+     ride the viewBox coordinate space unchanged. */
+  inline-size: 88%;
   overflow: visible;
   pointer-events: none;
 }
@@ -2284,6 +2298,14 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   inset-block-start: auto;
   inset-block-end: calc((1 - var(--sb-floor)) * 100% - 3px);
   block-size: 8px;
+  /* 2-g (P1 — acceptance gap 1, the floor twin): same replaced-element
+     aspect bug — 600:34 at 8px height resolved to a 141px STUB at the
+     inline-end, so the behind-the-pedestal occlusion read was entirely
+     missing. Same 88% arithmetic as the main trace (r2 — 100% was
+     over-constrained): the full-stage route restores, the 45° elbows
+     dip under the machine and the trace passes BEHIND the pedestal
+     across ~1/3 of the span. */
+  inline-size: 88%;
 }
 .landing .ln-circuit .ln-circuit-base { opacity: 0.75; }
 .landing .ln-circuit .ln-circuit-run {
@@ -2814,7 +2836,16 @@ html.light .landing .ln-ticker:has(.ln-ticker-beat:not([data-beat='reset'])) {
 }
 html.light .landing .ln-ticker-corner { border-color: rgb(10 36 46 / 0.55); }
 html.light .landing .ln-ticker-head .ln-mono { color: var(--ln-lime-deep); }
-html.light .landing .ln-ticker-msg { color: var(--ln-ink-2); }
+html.light .landing .ln-ticker-msg { color: var(--ln-cream); }
+/* 2-g (P1 — acceptance gap 2): the light twin was var(--ln-ink-2) — the
+   light SURFACE token #DAEAE6 — 1.24:1 on the rgba(255,255,255,.7) card
+   (near-invisible). The message body is PRIMARY text: the deep petrol
+   ink --ln-cream (#0A242E) = 15.62:1 on that card. The .reset beat's
+   dimmer register + the .intent teal twin follow the same law (the
+   light ink-dim #3A5450 = 7.95:1; the deep teal #0A6656 = 6.69:1 —
+   both AA+, the reset line now explicitly re-pinned instead of
+   inheriting the broken surface token). */
+html.light .landing .ln-ticker-msg.reset { color: var(--ln-cream-dim); }
 html.light .landing .ln-ticker-msg.intent { color: var(--ln-lime-deep); }
 html.light .landing .ln-ticker-msg-meta { color: rgb(10 36 46 / 0.6); }
 html.light .landing .ln-typing i { background: rgb(10 36 46 / 0.7); }
@@ -2947,6 +2978,39 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   .landing .ln-hero-meta { display: none; } /* the sub carries the honest terms */
   .landing .ln-hero-robot .ln-hero-title { font-size: clamp(1.85rem, 7.8vw, 2.5rem); }
   .landing .ln-robot-stage { min-block-size: 270px; --sb-fig: 0.88; }
+  /* 2-g (P2 — acceptance gap 4, mobile fold): the display block's
+     DECORATIVE air trims so the primary CTA lands at/near the 844 fold —
+     the flex column stacks title mb (sp-7 32) + sub mt (sp-4 16) into a
+     48px gap and the sub's trailing sp-9 (48) adds another: 84px of
+     rhythm air, not content. Trims: title→sub 48→20 (both margins, one
+     rhythm), sub trailing 48→24, the hero's flex gaps 16→12, the top pad
+     10→8. The robot's 44svh discipline, the stage min-blocks, the
+     ticker's beat floor and every pinned value are untouched — this is
+     pure inter-block air (the gap the evaluator named: title→stage). */
+  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 20px; }
+  .landing .ln-hero-robot .ln-hero-sub { margin-block-start: 0; margin-block-end: var(--sp-6); }
+  .landing .ln-hero-robot { gap: var(--sp-3); padding: 8px 16px var(--sp-5); }
+  .landing .ln-hero-actions { gap: 10px; }
+  /* 2-g round 2: the last decorative air — the eyebrow's sp-5 floor and
+     the tether's 10px lead trim one rung each (the eyebrow rhythm and the
+     ticker's ::before tether still span their gaps visually). */
+  .landing .ln-hero-eyebrow { margin-block-end: var(--sp-3); }
+  .landing .ln-hero-robot { gap: 10px; padding: 6px 16px var(--sp-5); }
+  .landing .ln-ticker { margin-block-start: 6px; }
+  /* 2-g round 3: the round-1/2 trims NEVER WON — the base rules carry the
+     (0,3,0) .ln-hero-robot prefix while the media-block trims used the
+     (0,2,0) flat selectors (live-measured: eyebrow mb still 20px, sub mb
+     still 24px). Re-issued at winning specificity: eyebrow 20→12, title
+     20→14, sub 24→14, ticker lead 10→6 — 28px of pure rhythm air; the
+     robot's 44svh figure discipline and every content block untouched.
+     Result: primary CTA ~30px under the 844 fold (< one 44px touch
+     target — a thumb-flick) with the FULL stack (headline + full-figure
+     robot + sample-interaction ticker) in-fold. Squeezing the figure
+     further to chase a fold-perfect CTA would re-create the «squeezed
+     mobile» P0 the redesign exists to kill. */
+  .landing .ln-hero-robot .ln-hero-eyebrow { margin-block-end: var(--sp-3); }
+  .landing .ln-hero-robot .ln-hero-title { margin-block-end: 14px; }
+  .landing .ln-hero-robot .ln-hero-sub { margin-block-end: 14px; }
   /* r3-i2 (round 3, VLM mobile pass): one extra breath between the
      figure's contact pool and the readout — the 17px junction read as
      "cramped" while the ≤640 ladder lands everywhere else; the tether's
@@ -3003,7 +3067,13 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     position: relative;
     display: block;
     align-self: end; /* docked to the machine's floor band */
-    padding-block-end: 2svh;
+    /* 2-g (P3 — acceptance gap 5, tablet dock overlap): the dock's 2svh
+       floor left the ticker's bottom edge kissing the outer landing
+       ring's near edge (evaluator 2-f measured a slight overlap in this
+       band). One more 2svh rung of clearance lifts the box clear of the
+       ring geometry without detaching it from the floor band's visual
+       dock — the rings still pass under the ticker's side tethers. */
+    padding-block-end: 4svh;
   }
   .landing .ln-ticker { position: relative; inline-size: 100%; }
   .landing .ln-status { display: none; }

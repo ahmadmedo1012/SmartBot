@@ -23,6 +23,14 @@
  * system + product-surface cascade — RobotMark states, the rb-* layer,
  * the circuit-trace separators, the retired-raster gate, the /demo live
  * thread, the lime AI registers, and the Grotesk KPI numerals.
+ * P15 (concept A — character-led hero): the hero pins re-anchored to the
+ * new composition (§P15 block at the tail): the machine layer (RobotScene
+ * framing solver + --sb-fig/--sb-floor), the ticker/status island
+ * (HeroTicker), the sink-and-fade exit (HeroExit), the Arabic display
+ * headline font law. Retired with the same commit: BotChatSimulator +
+ * HeroCompanion (the below-fold dock) and the dead canvas twins
+ * OrbitScene + HeroDepthLayer — every pin that read those sources now
+ * reads the living hero files or asserts the retirement itself.
  *
  * History: r127 Madarek parity rewrite (82→180+ pins), r131/r133/r134
  * wave pins — superseded value-wise by r152, kept structurally.
@@ -644,33 +652,31 @@ pinAll(landingLightCascade, 'landing-light', {
   '--ln-line-soft': 'rgba(10, 36, 46, 0.10)',
   '--ln-grain-op': '0.06',
 });
-// (b-light) the §2-b bot + §17 stage registers flip with the world
+// (b-light) the §2-b bot register flips with the world (the §17 stage
+//     register --sb-spot/-wash/-led/-hud twins were retired with the
+//     HeroCompanion stage — P15; the living --sb-* names are §18's
+//     composition tokens, pinned in the §P15 block)
 pinAll(landingLightCascade, 'landing-light-bot', {
   '--ln-bot-glow': 'rgb(90 122 22 / 0.16)',
-  '--ln-bot-glow-deep': 'rgb(90 122 22 / 0.26)',
   '--ln-bot-amber': '#5A7A16',
-  '--ln-bot-amber-soft': 'rgb(90 122 22 / 0.12)',
   '--ln-bot-bubble-in': 'rgb(255 255 255 / 0.94)',
   '--ln-bot-bubble-in-line': 'rgb(10 36 46 / 0.14)',
   '--ln-bot-frame': 'rgb(10 36 46 / 0.04)',
-  '--sb-spot': 'rgb(12 117 99 / 0.10)',
-  '--sb-spot-deep': 'rgb(12 117 99 / 0.20)',
-  '--sb-wash': 'rgb(12 117 99 / 0.04)',
-  '--sb-led-dim': 'rgb(90 122 22 / 0.35)',
-  '--sb-hud-bg': 'rgb(255 255 255 / 0.86)',
 });
 
 // (c-light) raw-literal light twins — the night literals that CANNOT ride
 //     tokens get explicit §16 twins (scrolled rail, ghost pill, station
-//     bars, floor rings, depth stars). Each twin keeps the same non-text
-//     register (≥3:1 where it bounds a control).
+//     bar). P15 re-anchor: the station-bar twin now serves the ONE living
+//     consumer (.ln-product-bar — the BotChatSimulator window twin retired
+//     with its component); the companion floor-ring + starfield twins were
+//     deleted with HeroCompanion/HeroDepthLayer — their successors are the
+//     composition's OWN §20d twins (ticker plate + bracket corners),
+//     pinned here.
 pinDecl('landing-light-scrolled', 'html.light .landing .landing-header.scrolled', 'background', 'rgb(237 246 243 / 0.92)');
 pinDecl('landing-light-ghost', 'html.light .landing .ln-btn-ghost', 'border-color', 'rgb(10 36 46 / 0.45)');
-// (station bars: one grouped §16d rule serves both .ln-botchat-head and
-//  .ln-product-bar — pin the compound prelude verbatim)
-pinDecl('landing-light-stationbar', 'html.light .landing .ln-botchat-head,\nhtml.light .landing .ln-product-bar', 'background', 'rgb(255 255 255 / 0.72)');
-pinDecl('landing-light-floorring', 'html.light .landing .ln-companion-floor-ring i', 'border-color', 'rgb(12 117 99 / 0.45)');
-pinDecl('landing-light-stars', 'html.light .landing .ln-hero-depth circle', 'fill', 'rgba(10, 36, 46, 0.55)');
+pinDecl('landing-light-stationbar', 'html.light .landing .ln-product-bar', 'background', 'rgb(255 255 255 / 0.72)');
+pinDecl('landing-light-ticker', 'html.light .landing .ln-ticker', 'background', 'rgb(255 255 255 / 0.72)');
+pinDecl('landing-light-tickercorner', 'html.light .landing .ln-ticker-corner', 'border-color', 'rgb(10 36 46 / 0.55)');
 pinDecl('landing-light-selection', 'html.light .landing ::selection', 'background', 'var(--ln-violet)');
 // P9-3-c2 (gate review): the footer mist-rise seam twin — the one night
 // literal the first wave missed (foam 3% fades to invisible on mist).
@@ -706,18 +712,17 @@ else fails.push(`phase9 night-negative: mist values leaked into the default .lan
 }
 
 // (f-light) the canvas engine repaints from the SAME tokens — the
-//     MutationObserver family pattern (Smart-Link P9-3-a precedent):
-//     OrbitScene re-samples --ln-cream/--ln-lime/--ln-violet on every
-//     html class flip and at boot (stored-light first frame).
+//     MutationObserver family pattern (Smart-Link P9-3-a precedent),
+//     carried from the retired OrbitScene to the three.js RobotScene:
+//     the scene re-samples its palette on every html class flip and at
+//     boot (stored-light first frame).
 {
-  const rawOrbit = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
-  const orbitOk = rawOrbit.includes('MutationObserver')
-    && rawOrbit.includes("attributeFilter: ['class']")
-    && rawOrbit.includes("--ln-cream") && rawOrbit.includes("--ln-lime") && rawOrbit.includes("--ln-violet");
-  if (orbitOk) pass += 1;
-  else fails.push('phase9 orbit repaint: OrbitScene must observe the html class and re-sample --ln-cream/--ln-lime/--ln-violet');
-  const heroDepthCss = lightStageBlocks.length > 0; // stars twin lives in §16c (pinned above)
-  if (heroDepthCss) pass += 0; // covered by the (c-light) fill pin — no-op guard for readability
+  const rawRobot = readFileSync(new URL('../src/components/landing/RobotScene.tsx', import.meta.url), 'utf8');
+  const robotOk = rawRobot.includes('MutationObserver')
+    && rawRobot.includes("attributeFilter: ['class']")
+    && rawRobot.includes('--ln-ink-2') && rawRobot.includes('--ln-lime') && rawRobot.includes('--ln-violet');
+  if (robotOk) pass += 1;
+  else fails.push('phase9 robot repaint: RobotScene must observe the html class and re-sample the landing tokens (--ln-ink-2/--ln-lime/--ln-violet)');
 }
 
 // (g-light) the sheet's own head comment tells the NEW truth (the raw
@@ -847,8 +852,7 @@ function pinDeclLast(label, prelude, prop, expected) {
 
 // P4-10 type measures — the RESOLVED measure for the hero title/sub,
 // chapter lede and CTA lede (the tail overrides the bases).
-pinDeclLast('measure', '.landing .ln-hero-title', 'max-inline-size', '20ch');
-pinDeclLast('measure', '.landing .ln-hero-sub', 'max-inline-size', '72ch');
+pinDeclLast('measure', '.landing .ln-hero-robot .ln-hero-sub', 'max-inline-size', '52ch');
 pinDeclLast('measure', '.landing .ln-chapter-lede', 'max-inline-size', '72ch');
 pinDeclLast('measure', '.landing .ln-cta-lede', 'max-inline-size', '72ch');
 
@@ -910,7 +914,7 @@ pinDecl('scroll-hover', '.landing .ln-hero-scroll:hover .ln-hero-scroll-line', '
 // ── r129-F3 — structural negatives (audit §5/§8) ────────────────────────────
 const rawPage = readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8');
 const rawLandingStage = readFileSync(new URL('../src/components/landing/LandingStage.tsx', import.meta.url), 'utf8');
-const rawOrbitScene = readFileSync(new URL('../src/components/landing/OrbitScene.tsx', import.meta.url), 'utf8');
+const rawRobotScene = readFileSync(new URL('../src/components/landing/RobotScene.tsx', import.meta.url), 'utf8');
 const rawRobotMount = readFileSync(new URL('../src/components/landing/RobotSceneMount.tsx', import.meta.url), 'utf8');
 
 // P0: exactly ONE id="main-content" in the rendered page — the layout owns
@@ -963,28 +967,34 @@ const rawRobotMount = readFileSync(new URL('../src/components/landing/RobotScene
 if (rawPage.includes('id="page-content"')) pass += 1;
 else fails.push('skip link: #page-content target not found inside the landing page');
 
-// ── r129-F3 — OrbitScene port pins (the palette triplets are the canvas-side
-// of the --ln-* tokens; a future token change must mirror them in lockstep). ──
-for (const triplet of ['233, 245, 240', '23, 195, 164', '198, 242, 78']) {
-  if (rawOrbitScene.includes(triplet)) pass += 1;
-  else fails.push(`OrbitScene: palette triplet ${triplet} (cream/lime/violet ink) not found — canvas-side of the --ln-* tokens`);
+// ── r129-F3 → P15 — canvas engine pins (re-anchored from OrbitScene to the
+// three.js RobotScene, same contracts — the hero canvas is one engine, the
+// robot; OrbitScene itself is deleted with this commit). ──────────────────
+// the canvas-side palette lockstep: the engine cannot read CSS vars for
+// the WebGL clear/material literals, so the petrol contract is spelled in
+// code — signal teal + AI lime + the petrol ground (fog), and the retired
+// Orbit-Ink triplets stay absent.
+for (const petrol of ['0x17c3a4', '0xc6f24e', '0x071a21']) {
+  if (rawRobotScene.includes(petrol)) pass += 1;
+  else fails.push(`RobotScene: petrol literal ${petrol} (teal/lime/ground) not found — canvas-side of the --ln-* tokens`);
 }
-// omega stays RADIANS PER MILLISECOND (do not "convert" without rescaling dt).
-if (rawOrbitScene.includes('omega: 0.00016')) pass += 1;
-else fails.push('OrbitScene: the inner-ring omega 0.00016 (rad/ms) constant not found');
-// P12-2c (honest pin update — same mechanism, new value): OrbitScene is
-// RETIRED from the hero per spec-smartbot.md S1; the hero's canvas mount
-// is now the three.js RobotScene. Server Components may not pass
+for (const retired of ['245,243,231', '223,237,178', '122,107,242', '0xfdf3e7']) {
+  if (!rawRobotScene.includes(retired)) pass += 1;
+  else fails.push(`RobotScene: retired Orbit-Ink literal ${retired} present — the canvas must stay Circuit Petrol`);
+}
+// P12-2c (honest pin update — same mechanism, new engine): the hero's
+// canvas mount is the three.js RobotScene. Server Components may not pass
 // ssr:false directly, so the dynamic import lives in the client wrapper
 // RobotSceneMount — the pin asserts BOTH halves of the contract.
 if (rawPage.includes('RobotSceneMount') && rawRobotMount.includes('ssr: false')) pass += 1;
 else fails.push('RobotScene mount: page must mount RobotSceneMount; the wrapper must dynamic-import RobotScene with { ssr: false } (P12-2c hero)');
 // the intro-seen calm is product-scoped (never share keys across products).
 if (rawLandingStage.includes("'smartbot.intro.seen'") || rawLandingStage.includes('"smartbot.intro.seen"')) pass += 1;
-else fails.push("OrbitScene calm: the product-scoped sessionStorage key 'smartbot.intro.seen' not found in LandingStage");
-// the DPR hard cap 1.5 (retina paints ≤2.25× CSS pixels, never 4×).
-if (rawOrbitScene.includes('Math.min(window.devicePixelRatio || 1, 1.5)')) pass += 1;
-else fails.push('OrbitScene: the DPR 1.5 hard-cap guard not found');
+else fails.push("scene calm: the product-scoped sessionStorage key 'smartbot.intro.seen' not found in LandingStage");
+// the DPR hard cap 2 (the P15 concept contract — retina paints ≤4× CSS
+// pixels at most; OrbitScene's 1.5 was the retired engine's budget).
+if (/Math\.min\(window\.devicePixelRatio \|\| 1, 2\)/.test(rawRobotScene)) pass += 1;
+else fails.push('RobotScene: the DPR 2 hard-cap guard not found');
 
 // ── r130 — W2-5 typography/motion/de-glow pins (the round-130 fix wave) ────
 
@@ -1464,7 +1474,7 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   const rawGlobals2 = readRaw('../src/app/globals.css');
   const rawLanding2 = readRaw('../src/app/landing.css');
   const rawHome = read('../src/app/page.tsx');
-  const rawSim = read('../src/components/landing/BotChatSimulator.tsx');
+  const rawTicker = read('../src/components/landing/HeroTicker.tsx');
   const rawProduct = read('../src/components/landing/ProductSection.tsx');
 
   // (1) the ONE robot: five states + the title/aria contract.
@@ -1514,13 +1524,21 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (productOk) pass += 1;
   else fails.push('r152b product windows: CircuitTrace live accents under both window bars, zero <Image>');
 
-  // (7) the simulator avatar robot rides the playback state machine.
-  const simOk = rawSim.includes('let robotState: RobotState = "idle"')
-    && rawSim.includes('if (typing === "bot") robotState = "thinking"')
-    && rawSim.includes('lastMsg?.from === "bot") robotState = "responding"')
-    && rawSim.includes('<RobotMark state={robotState} className="ln-botchat-avatar-robot" />');
+  // (7) P15 re-anchor — the simulator retired with HeroCompanion; the
+  //     hero's interactive beat is the TICKER island (HeroTicker): the
+  //     honest 3-beat state machine (real capabilities, no metrics), one
+  //     aria-live polite region, and the same IO/hidden-tab pause family
+  //     the simulator carried. The transcript grammar lives on in
+  //     MindSection (pinned by the r142-era mind pins).
+  const simOk = rawHome.includes('<HeroTicker />')
+    && rawTicker.includes('aria-live="polite"')
+    && rawTicker.includes('IntersectionObserver')
+    && rawTicker.includes('document.hidden')
+    && rawTicker.includes('ردّ تلقائي على تعليقات صفحتك')
+    && rawTicker.includes('تصنيف نية العميل تلقائياً')
+    && rawTicker.includes('تسليم فوري للموظف البشري');
   if (simOk) pass += 1;
-  else fails.push('r152b simulator: the header avatar RobotMark follows the transcript (thinking/responding/idle)');
+  else fails.push('P15 ticker: the hero beat is the HeroTicker island — honest real-capability beats, aria-live polite, IO + hidden-tab pause (the retired simulator contract)');
 
   // (8) RETIRED RASTER ROBOTS: zero live references to the deleted webp
   //     assets anywhere under src (comment mentions are fine — the code
@@ -1620,18 +1638,18 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   if (bareOk) pass += 1;
   else fails.push('r152c globals: .sb-typing--bare (the chrome-free dots variant) is defined');
 
-  // (8) the canvas twins paint the petrol world (phase5 lockstep — the
-  //     browser canvas cannot read CSS vars, so the literals MUST be
-  //     pinned: foam/teal/lime present, the retired Orbit-Ink sand/
-  //     pistachio/violet triplets absent, from the hero sky + starfield).
-  const rawOrbit = readRaw('../src/components/landing/OrbitScene.tsx');
-  const rawDepth = readRaw('../src/components/landing/HeroDepthLayer.tsx');
-  const canvasOk = rawOrbit.includes("'rgb(233,245,240)'") && rawOrbit.includes("'rgb(23,195,164)'")
-    && rawOrbit.includes("'rgb(198,242,78)'") && rawDepth.includes('rgba(233,245,240,0.6)')
-    && !rawOrbit.includes('245,243,231') && !rawOrbit.includes('223,237,178') && !rawOrbit.includes('122,107,242')
-    && !rawDepth.includes('245,243,231');
+  // (8) the hero canvas paints the petrol world (phase5 lockstep, P15
+  //     re-anchor): the three.js engine cannot read CSS vars, so the
+  //     literals MUST be pinned — foam/teal/lime present, the retired
+  //     Orbit-Ink sand/pistachio/violet triplets absent. The retired
+  //     OrbitScene/HeroDepthLayer canvases are DELETED (P15); the
+  //     retirement itself is pinned in §P15.
+  const rawRobotScene2 = readRaw('../src/components/landing/RobotScene.tsx');
+  const canvasOk = rawRobotScene2.includes('0x9fc3bc') && rawRobotScene2.includes('0x17c3a4')
+    && rawRobotScene2.includes('0xc6f24e')
+    && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
-  else fails.push('r152c canvas lockstep: OrbitScene/HeroDepthLayer literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
+  else fails.push('P15 canvas lockstep: RobotScene literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
 
   // (9) DASHBOARD CORE cascade (r152d): the thread itself speaks the chat
   //     grammar — mono HH:MM stamps (timeStamp + title fallback), the ONE
@@ -2277,8 +2295,231 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   else fails.push('p10a shadow bridge: the --shadow-* THEME namespace is registered in @theme inline (sm/md/lg/xl → var(--elev-N)) — removing it silently reverts every plain shadow-* utility to the engine default in BOTH stages');
 }
 
+// ── §P15 — CONCEPT A: the CHARACTER-LED hero composition ────────────────────
+// The owner rejected the P12-2c hero (cropped side-column bust, world below
+// the fold, IO-gated chat below the fold, three pasted layers). Concept A
+// re-composes the hero around ONE protagonist: the full-figure machine on
+// a visible stage inside the first viewport, the ticker/status island
+// under the transparent canvas, the Arabic display headline bottom-
+// anchored, the sink-and-fade scroll exit. This block pins that contract.
+{
+  const readRaw = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const nc = (t) => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const rawHeroTicker = readRaw('../src/components/landing/HeroTicker.tsx');
+  const rawHeroExit = readRaw('../src/components/landing/HeroExit.tsx');
+  const rawLanding = readRaw('../src/app/landing.css');
+  const rawPage = readRaw('../src/app/page.tsx');
+
+  // (1) the retirement is REAL — the four retired hero files are gone and
+  //     nothing under src imports them (dead-but-pinned era is over).
+  const retired = [
+    '../src/components/landing/BotChatSimulator.tsx',
+    '../src/components/landing/HeroCompanion.tsx',
+    '../src/components/landing/OrbitScene.tsx',
+    '../src/components/landing/HeroDepthLayer.tsx',
+  ];
+  const retiredOk = retired.every((f) => {
+    try { readFileSync(new URL(f, import.meta.url), 'utf8'); return false; }
+    catch { return true; }
+  });
+  if (retiredOk) pass += 1;
+  else fails.push('P15 retirement: BotChatSimulator/HeroCompanion/OrbitScene/HeroDepthLayer must be DELETED (they were retired with the concept-A rebuild)');
+
+  // (2) the composition tokens — the layout owns the framing, the scene's
+  //     solver obeys: --sb-fig (figure share) 0.66 + --sb-floor (floor
+  //     line fraction) 0.72 on the desktop hero; the deliberate mobile
+  //     stack re-poses (0.84/0.86 — full figure in a 44svh box).
+  {
+    const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
+    if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.66') pass += 1;
+    else fails.push(`P15-tokens --sb-fig: expected 0.66 (the figure's host share), got ${heroRobot['--sb-fig'] ?? '<missing>'}`);
+    if (norm(resolve(landingCascade, heroRobot['--sb-floor'] ?? '')) === '0.72') pass += 1;
+    else fails.push(`P15-tokens --sb-floor: expected 0.72 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
+  }
+  {
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 0\.84;[^@]*?--sb-floor: 0\.86;/s;
+    if (mobileRe.test(rawLanding)) pass += 1;
+    else fails.push('P15 mobile pose: the ≤1024px stack must re-pose the figure (--sb-fig 0.84 / --sb-floor 0.86)');
+  }
+
+  // (3) ONE composed viewport: desktop hero = 100svh minus the sticky
+  //     chrome (73px header + hairline) — the full figure + pedestal +
+  //     CTA foot fit the first paint; the machine layer sits ABOVE the
+  //     interface island (z1 over z0 — the body physically anchors the
+  //     boxes), the copy above both (z3).
+  {
+    const desk = landingBlocks.find((x) => x.prelude === '@media (min-width: 1025px)');
+    const heroRule = desk ? nestedBlock(desk.body, '.landing .ln-hero-robot') : null;
+    const bs = heroRule ? declOf(heroRule, 'block-size') : undefined;
+    if (bs !== undefined && norm(bs) === 'calc(100svh - 74px)') pass += 1;
+    else fails.push(`P15 hero height: ≥1025px .ln-hero-robot block-size must be calc(100svh - 74px) (got ${bs ?? '<missing>'})`);
+    const mbs = heroRule ? declOf(heroRule, 'min-block-size') : undefined;
+    if (mbs === '620px') pass += 1;
+    else fails.push(`P15 hero floor: ≥1025px min-block-size 620px (got ${mbs ?? '<missing>'})`);
+  }
+  pinDecl('P15-layers', '.landing .ln-robot-stage', 'z-index', '1');
+  pinDecl('P15-layers', '.landing .ln-robot-stage', 'pointer-events', 'none');
+  {
+    const desk = landingBlocks.find((x) => x.prelude === '@media (min-width: 1025px)');
+    const island = desk ? nestedBlock(desk.body, '.landing .ln-ticker-island') : null;
+    const z = island ? declOf(island, 'z-index') : undefined;
+    if (z === '0') pass += 1;
+    else fails.push(`P15 island: the ticker/status island must be the z0 layer UNDER the machine (got z=${z ?? '<missing>'})`);
+    const copy = desk ? nestedBlock(desk.body, '.landing .ln-hero-copy') : null;
+    const zc = copy ? declOf(copy, 'z-index') : undefined;
+    if (zc === '3') pass += 1;
+    else fails.push(`P15 copy: the display block must sit above the machine (z3, got ${zc ?? '<missing>'})`);
+    const cm = copy ? declOf(copy, 'max-inline-size') : undefined;
+    if (cm === '70vw') pass += 1;
+    else fails.push(`P15 copy measure: the display block must ride the vw-coupled 70vw measure (2-line lockup, got ${cm ?? '<missing>'})`);
+  }
+
+  // (4) the Arabic display headline — the P1 font-failure fix: IBM Plex
+  //     Sans Arabic (var(--font-arabic)) FIRST at 700 on the concept's
+  //     display scale (clamp 3.2-5.5rem), tight display leading, TWO
+  //     oversized lines exactly (the copy block's 70vw measure is
+  //     vw-coupled to the 7vw display scale — the 9.7em lockup lines can
+  //     never wrap into the ticker's band). Space Grotesk never renders
+  //     the headline (it has no Arabic glyphs) — Latin stays in the
+  //     mono eyebrow.
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-family', 'var(--font-arabic)');
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-size', 'clamp(3.2rem, 7vw, 5.5rem)');
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'line-height', '1.14');
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-weight', 'var(--fw-bold)');
+  {
+    const titleRule = landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot .ln-hero-title');
+    if (titleRule && !/grotesk/i.test(titleRule.body)) pass += 1;
+    else fails.push('P15 display face: the h1 stack must not reach for Space Grotesk (no Arabic glyphs — the silent body-grade fallback was the P1 defect)');
+  }
+  // the eyebrow: tracked Latin caps + untracked Arabic (the tracking law)
+  pinDecl('P15-eyebrow', '.landing .ln-eyebrow-latin', 'letter-spacing', '0.16em');
+  pinDecl('P15-eyebrow', '.landing .ln-eyebrow-ar', 'letter-spacing', '0');
+
+  // (5) the ticker box — the ChainGPT framing grammar: 1px hairline +
+  //     bracket corners OUTSIDE (negative offsets), mono head + index,
+  //     the rotation never shifts the box height, the caret blinks.
+  pinDecl('P15-ticker', '.landing .ln-ticker', 'border', '1px solid var(--ln-line)');
+  pinDecl('P15-ticker', '.landing .ln-ticker-prompt', 'min-block-size', '2.2em');
+  pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-block-start', '-5px');
+  pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-inline-start', '-5px');
+  // the status panel: hairline spine + the synced active row in cream,
+  // dim rows at the 0.55 alpha that holds ≥4.5:1 on petrol
+  pinDecl('P15-status', '.landing .ln-status', 'border-inline-start', '1px solid var(--ln-line)');
+  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(233 245 240 / 0.55)');
+  pinDecl('P15-status', '.landing .ln-status li[data-active=\'true\']', 'color', 'var(--ln-cream)');
+
+  // (6) the ticker island (source contract) — honest beats ONLY (real
+  //     capabilities, no digits anywhere in the beat copy), ONE shared
+  //     index driving prompt + status rows + mobile line + sr narration,
+  //     aria-live polite, RM never arms, IO + hidden-tab pause.
+  {
+    const beats = rawHeroTicker.slice(
+      rawHeroTicker.indexOf('const BEATS'),
+      rawHeroTicker.indexOf('const BEAT_MS'),
+    );
+    if (!/\d/.test(beats)) pass += 1;
+    else fails.push('P15 ticker honesty: the beat copy must carry NO digits (real capability statements, never fabricated metrics)');
+    const synced = rawHeroTicker.includes('data-active={i === idx')
+      && rawHeroTicker.includes('aria-live="polite"')
+      && rawHeroTicker.includes("window.matchMedia('(prefers-reduced-motion: reduce)')")
+      && rawHeroTicker.includes('BEAT_MS = 4200');
+    if (synced) pass += 1;
+    else fails.push('P15 ticker sync: ONE index drives the panel rows (data-active), aria-live polite, RM static, 4200ms beat');
+    const sr = rawHeroTicker.includes('className="sr-only"');
+    if (sr) pass += 1;
+    else fails.push('P15 ticker sr: the SR_POSE_COPY narration line (sr-only) must narrate the beat for screen readers');
+  }
+
+  // (7) the sink-and-fade exit (source contract) — compositor verbs only,
+  //     rAF-gated passive scroll, listener removed on unmount, RM never arms.
+  {
+    const exitOk = rawHeroExit.includes('EXIT_SPAN_VH = 0.72')
+      && rawHeroExit.includes('EXIT_SINK_PX = 96')
+      && rawHeroExit.includes('passive: true')
+      && rawHeroExit.includes('cancelAnimationFrame')
+      && rawHeroExit.includes('window.removeEventListener')
+      && rawHeroExit.includes("matchMedia('(prefers-reduced-motion: reduce)').matches");
+    if (exitOk) pass += 1;
+    else fails.push('P15 exit: HeroExit = translateY+opacity only, rAF-gated passive scroll, RM never arms, cleanup intact');
+  }
+
+  // (8) the machine scene (source contract) — the framing solver reads the
+  //     layout tokens with clamps, the pause family (IO + visibility), the
+  //     disposal sweep, the RM static pose, the pointer-tracking gate.
+  {
+    const rawRobot = readRaw('../src/components/landing/RobotScene.tsx');
+    const solverOk = rawRobot.includes('getPropertyValue(\'--sb-fig\'')
+      && rawRobot.includes('getPropertyValue(\'--sb-floor\'')
+      && rawRobot.includes(', 0.3), 0.95') && rawRobot.includes(', 0.5), 0.95');
+    if (solverOk) pass += 1;
+    else fails.push('P15 solver: the scene camera must read --sb-fig/--sb-floor off the host (clamped 0.3-0.95 / 0.5-0.95) — the layout owns the composition');
+    const pauseOk = rawRobot.includes('IntersectionObserver')
+      && rawRobot.includes('visibilitychange')
+      && rawRobot.includes('renderer.dispose()')
+      && rawRobot.includes("for (const g of geometries) g.dispose()")
+      && rawRobot.includes("for (const m of materials) m.dispose()");
+    if (pauseOk) pass += 1;
+    else fails.push('P15 scene lifecycle: IO pause + visibilitychange pause + full geometry/material/renderer disposal');
+    const rmOk = rawRobot.includes('one static posed frame')
+      && rawRobot.includes('} else {\n      raf = requestAnimationFrame(frameLoop);');
+    if (rmOk) pass += 1;
+    else fails.push('P15 scene RM: reduced-motion = one static posed frame, no rAF');
+    const trackOk = rawRobot.includes("matchMedia('(pointer: fine)')")
+      && rawRobot.includes('degToRad(25)') && rawRobot.includes('degToRad(12)');
+    if (trackOk) pass += 1;
+    else fails.push('P15 tracking: pointer-follow gated on (pointer: fine), head ±25°/±12°');
+  }
+
+  // (9) the page composes the scene (source pins) — the server component
+  //     paints h1/sub inline (LCP doctrine), mounts the exit-wrapped
+  //     canvas island + ticker, the glow/vignette CSS halves, the circuit
+  //     trace, and the honest CTA pair.
+  {
+    const pageOk = rawPage.includes('<HeroTicker />')
+      && rawPage.includes('<HeroExit>')
+      && rawPage.includes('className="ln-robot-glow"')
+      && rawPage.includes('className="ln-robot-vignette"')
+      && rawPage.includes('className="ln-circuit"')
+      && rawPage.includes('<MagneticGoldLink href="/subscribe" xl withArrow')
+      && rawPage.includes('<Link href="/demo" className="ln-btn-ghost">')
+      && rawPage.includes('تعرّف على');
+    if (pageOk) pass += 1;
+    else fails.push('P15 page: hero = exit-wrapped machine layer + glow/vignette + circuit + ticker + honest CTA pair (h1 inline)');
+  }
+
+  // (10) the mobile stack (≤1024px) — composed, not scaled: copy →
+  //      full-figure stage (44svh, never a cropped head) → ticker (its
+  //      compact status line carries the side panel's truth) → CTA foot.
+  {
+    const mobs = landingBlocks.filter((x) => x.prelude === '@media (max-width: 1024px)');
+    const mob = mobs.find((m) => m.body.includes('.ln-robot-stage')) ?? mobs[mobs.length - 1];
+    const stage = mob ? nestedBlock(mob.body, '.landing .ln-robot-stage') : null;
+    const bs = stage ? declOf(stage, 'block-size') : undefined;
+    if (bs === '44svh') pass += 1;
+    else fails.push(`P15 mobile stage: the ≤1024px machine box must be 44svh (full figure, got ${bs ?? '<missing>'})`);
+    const statusLine = mob ? nestedBlock(mob.body, '.landing .ln-ticker-status') : null;
+    if (statusLine && /display\s*:\s*flex/.test(statusLine)) pass += 1;
+    else fails.push('P15 mobile status: the ticker\'s compact status line must switch ON at ≤1024px (the side panel\'s mobile twin)');
+    const island = mob ? nestedBlock(mob.body, '.landing .ln-ticker-island') : null;
+    if (island && /display\s*:\s*contents/.test(island)) pass += 1;
+    else fails.push('P15 mobile island: display:contents — the ticker becomes a flow item of the stack');
+  }
+
+  // (11) the machine layer's light twins exist (the mist stage composes
+  //      the same scene: ticker plate, corners, glow, vignette, hero bg).
+  {
+    const twinsOk = rawLanding.includes('html.light .landing .ln-ticker {')
+      && rawLanding.includes('html.light .landing .ln-ticker-corner')
+      && rawLanding.includes('html.light .landing .ln-robot-glow')
+      && rawLanding.includes('html.light .landing .ln-robot-vignette')
+      && rawLanding.includes('html.light .landing .ln-hero-robot');
+    if (twinsOk) pass += 1;
+    else fails.push('P15 light twins: the machine layer + composition need their §19a/§20d mist twins (theme toggle repaints the scene)');
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
-  ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract)`
+  ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract + the P15 character-led hero composition)`
   : `✗ Circuit Petrol parity DRIFT: ${fails.length} failure(s) of ${pass + fails.length}:\n  - ` + fails.join('\n  - '));
 process.exit(fails.length === 0 ? 0 : 1);

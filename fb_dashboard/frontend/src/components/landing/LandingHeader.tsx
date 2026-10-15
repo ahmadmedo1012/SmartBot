@@ -27,8 +27,8 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
  *   NOT live inside the CTA cluster (the Smart-Menu P9-3-b family
  *   recipe). The component carries its own 44px floor + focus ring +
  *   mounted-guard; the theme flip is consumed by landing.css §16
- *   (html.light petrol-mist stage) + OrbitScene's MutationObserver
- *   repaint.
+ *   (html.light petrol-mist stage) + the three.js RobotScene's
+ *   MutationObserver repaint.
  * The product Header keeps serving every non-landing surface. */
 
 const SPY_SECTIONS = "#mind, #day, #platform, #trust";

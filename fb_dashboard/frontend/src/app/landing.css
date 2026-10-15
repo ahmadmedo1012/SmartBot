@@ -11,8 +11,10 @@
  * MASTER.md §header): same grammar, mist ground + deep-petrol ink +
  * deep-teal signal + the light lime tier — every raw literal that paints
  * the night world gets a §16 light twin; the robot (RobotMark) already
- * themes through the product tokens; OrbitScene repaints from the same
- * tokens via MutationObserver (phase9 P9-3-a family pattern).
+ * themes through the product tokens; the hero's three.js RobotScene
+ * re-samples the landing tokens via its MutationObserver (phase9 P9-3-a
+ * family pattern — the retired OrbitScene canvas carried the same
+ * contract).
  * The product token pins in globals.css stay untouched.
  *
  * Port map (madarek @ cf7ffca, canonical per PORT-KIT r128):
@@ -483,8 +485,11 @@
   background: transparent;
   color: var(--ln-cream);
   /* GAP-3: the old 0.14 hairline read as a disabled field — the pill
-     SHAPE must be visible before the text inside it can feel clickable. */
-  border: 1px solid rgb(233 245 240 / 0.34);
+     SHAPE must be visible before the text inside it can feel clickable.
+     i5 (VLM r3): 0.34 → 0.42 — the ghost pill's edge sat at ~3:1 on the
+     petrol hero (the "insufficient border contrast" read); 0.42 clears
+     the 3:1 UI-component bar with margin. */
+  border: 1px solid rgb(233 245 240 / 0.42);
   border-radius: var(--ln-radius-pill);
   /* Subtle depth on ghost buttons for premium feel */
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
@@ -741,67 +746,15 @@
   padding: clamp(110px, 15vh, 170px) max(7vw, 16px) clamp(96px, 13vh, 140px);
   isolation: isolate;
 }
-/* the sky: flat ink + the single sanctioned depth radial (α 0.10 ≤ 0.12) */
-.landing .ln-hero-sky {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  background: radial-gradient(46% 54% at 30% 44%, rgb(198 242 78 / 0.10) 0%, transparent 70%);
-}
-.landing .ln-hero-sky::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 70% 60%, rgba(233,245,240,0.02) 0%, transparent 60%);
-  pointer-events: none;
-}
-
-.landing .ln-hero-canvas {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  --ln-canvas-op: 1; /* decorative ceiling — 0.35 on mobile */
-  opacity: 0;
-  animation: ln-scene-in var(--ln-t-slow) var(--ln-ease-out) var(--ln-t-fast) forwards;
-}
-/* literal end-states (no var() inside keyframes — maximum compatibility) */
+/* P15 (concept A): the retired hero-sky / hero-canvas / hero-depth /
+   hero-content layer (the OrbitScene-era stage) was deleted with the
+   character-led rebuild — the machine layer owns §18, the composition
+   §20. The ONE survivor of the old entrance system is the calm keyframe
+   the machine layer reuses (r129, canonical landing.css:720): returning
+   visitors get the fast 160ms fade via [data-intro-seen] on
+   .ln-robot-frame (§18). */
+/* literal end-state (no var() inside keyframes — maximum compatibility) */
 @keyframes ln-scene-in { to { opacity: 1; } }
-@keyframes ln-scene-in-dim { to { opacity: 0.35; } }
-
-/* r129 (canonical landing.css:720) — returning visitors get the CALM
-   entrance: LandingStage flips [data-intro-seen] after reading the
-   product-scoped sessionStorage key ('smartbot.intro.seen'), and the
-   canvas fades in fast (160ms, zero delay) instead of the full bloom. */
-.landing[data-intro-seen='true'] .ln-hero-canvas { animation-duration: var(--ln-t-fast); animation-delay: 0s; }
-
-/* starfield depth plane — ~0.2× scroll rate (scroll-craft baseline);
-   behind canvas (z=0) and content (z=1) */
-.landing .ln-hero-depth {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
-/* text always wins the sky: content z1 over decor z0 */
-.landing .ln-hero-content {
-  position: relative;
-  z-index: 1;
-  inline-size: 100%;
-  max-inline-size: 1280px;
-  margin-inline: auto;
-}
-@media (min-width: 1025px) {
-  /* asymmetric composition — the copy column hugs the reading start
-     (inline-start = right edge in RTL); the sky keeps the far side. */
-  .landing .ln-hero-content {
-    max-inline-size: min(46vw, 720px);
-    margin-inline: 0 auto;
-  }
-}
 
 .landing .ln-hero-eyebrow { margin-block-end: var(--sp-6); }
 .landing .ln-hero-eyebrow .ln-mono { font-size: 12.5px; }
@@ -1240,9 +1193,9 @@
   .landing .ln-trust { padding-block: var(--sp-5); }
   .landing .ln-cta { padding-block: clamp(72px, 11vh, 104px); }
 
-  /* decorative canvas recedes; text stays on top */
-  .landing .ln-hero-canvas { --ln-canvas-op: 0.35; animation-name: ln-scene-in-dim; }
-  /* Arabic leading: ≥1.15 on mobile */
+  /* Arabic leading: ≥1.15 on mobile (the robot hero's own §20f block
+     composes the display lockup for the stack — this rule keeps serving
+     any .ln-hero consumer that is not the machine stage) */
   .landing .ln-hero-title { line-height: 1.18; max-inline-size: none; }
 
   /* footer: single column + 1px dividers */
@@ -1259,8 +1212,6 @@
   .landing .ln-btn-gold,
   .landing .ln-btn-ghost,
   .landing .landing-nav-link,
-  .landing .ln-botchat-tab,
-  .landing .ln-botchat-replay,
   .landing .landing-footer-link {
     min-block-size: 48px;
     /* r149 (C2): the old padding-block override pushed the gold/ghost
@@ -1318,7 +1269,6 @@
 
 /* ── 14 · reduced motion — canonical landing.css:1800-1831 ─────────── */
 @media (prefers-reduced-motion: reduce) {
-  .landing .ln-hero-canvas { animation: none; opacity: var(--ln-canvas-op, 1); }
   .landing .ln-hero-scroll-line::after { animation: none; }
   /* r129 (P3-32, canonical landing.css:1826): the scroll progress bar
      stays visible under reduced motion. */
@@ -1330,11 +1280,7 @@
   .landing .ln-btn-ghost,
   .landing .landing-header,
   .landing .ln-mind-thread,
-  .landing .ln-product-window,
-  .landing .ln-companion-stage { transition: none; }
-  /* P4-20: the starfield position is static; only the parallax drift
-     is killed */
-  .landing .ln-hero-depth { opacity: 0.4; }
+  .landing .ln-product-window { transition: none; }
 }
 
 /* ── 15 · P4 tail — card hover elevation (canonical P4-18) ──────────
@@ -1392,149 +1338,26 @@
 /* ── bot token block — NEW names only (canonical set untouched) ─────── */
 .landing {
   --ln-bot-glow: rgb(198 242 78 / 0.14);   /* lime halo — automated-reply presence */
-  --ln-bot-glow-deep: rgb(198 242 78 / 0.26);
   --ln-bot-amber: #C6F24E;                   /* warm eye light — LARGE text/accents on ink only */
-  --ln-bot-amber-soft: rgb(198 242 78 / 0.13);
   --ln-bot-bubble-in: rgb(18 48 57 / 0.94);  /* messenger incoming bubble on ink */
   --ln-bot-bubble-in-line: rgb(233 245 240 / 0.18);
   --ln-bot-frame: rgb(233 245 240 / 0.06);   /* portrait plate wash */
-  --ln-bot-dur-orbit: 64s;                   /* one lap of the hero orbit ring */
-  --ln-bot-dur-float: 7s;                    /* bubble drift period */
-  --ln-bot-dur-pulse: 3.8s;                  /* eye-glow breathing */
 }
 
-/* ── 16a · hero portrait composition («بطل المشهد») ────────────────────
-   The hero grid pairs the RTL copy column (inline-start) with the robot
-   stage (inline-end). The h1/sub keep their instant server paint — this
-   wrapper adds no reveal, no gate (LCP doctrine unchanged). */
-.landing .ln-hero-grid {
-  display: grid;
-  align-items: center;
-  gap: clamp(32px, 4.5vw, 56px);
-}
-@media (min-width: 1025px) {
-  .landing .ln-hero-grid { grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr); }
-  /* the copy column fills its track (the standalone 46vw cap was for the
-     solo-column hero; the track now does the constraining) */
-  .landing .ln-hero-grid > .ln-hero-content { max-inline-size: 100%; }
-}
+/* P15 (concept A): the §16a hero-grid pairing (copy column ↔ robot stage)
+   and the companion-era --ln-bot-dur-* / -glow-deep / -amber-soft tokens
+   were retired with HeroCompanion — the machine layer (§18) owns the hero
+   pairing now; the day-storyboard media consumes the survivors above. */
 
-/* ── 16b · the live chat simulator stage ───────────────────────────────
-   v16-r142: the simulator mounts INSIDE the hero (docked under the
-   companion stage — §17b); the old standalone demo chapter is retired.
-   The window grammar below is shared by the hero dock, and §17c reuses
-   the msg/badge classes for the mind threads. */
-/* the device window — station-card grammar: flat wash, hairline, r-2xl */
-.landing .ln-botchat {
-  min-inline-size: 0;
-  border-radius: var(--r-2xl);
-  background: rgb(233 245 240 / 0.03);
-  border: 1px solid var(--ln-line-soft);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.landing .ln-botchat-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgb(13 40 48 / 0.66);
-  border-block-end: 1px solid var(--ln-line-soft);
-}
-.landing .ln-botchat-avatar {
-  inline-size: 38px;
-  block-size: 38px;
-  border-radius: var(--ln-radius-pill);
-  overflow: hidden;
-  border: 1px solid var(--ln-line);
-  flex-shrink: 0;
-  position: relative;
-  /* phase5 r152: the plate hosts the RobotMark SVG on a petrol wash —
-     the tiny robot head is the bot's live presence (state follows the
-     conversation: thinking while it types, responding when it lands). */
-  background: color-mix(in srgb, var(--ln-ink-2) 88%, transparent);
-}
-.landing .ln-botchat-avatar-robot { display: block; inline-size: 100%; block-size: 100%; }
-.landing .ln-botchat-name { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); line-height: 1.3; }
-.landing .ln-botchat-status { display: inline-flex; align-items: center; gap: 6px; color: var(--ln-cream-dim); font-size: 11.5px; }
-.landing .ln-botchat-status::before {
-  content: '';
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-lime);
-}
-/* intent chip — what the engine classified, in the bot's mono voice */
-.landing .ln-botchat-intent {
-  margin-inline-start: auto;
-  padding: 5px 11px;
-  border-radius: var(--ln-radius-pill);
-  border: 1px solid var(--ln-bot-bubble-in-line);
-  color: var(--ln-bot-amber);
-  font-family: var(--ln-mono);
-  font-size: 10.5px;
-  /* r151 (LIVE-AUDIT-SB1 P1-2): the intent chip is Arabic («النية: …») —
-     tracking law wins; 0.04em broke the joined glyphs at 10.5px. */
-  letter-spacing: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-inline-size: 44%;
-}
-
-/* scenario tabs — the three honest product scenarios */
-.landing .ln-botchat-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  padding: 12px 16px;
-  border-block-end: 1px solid var(--ln-line-soft);
-}
-.landing .ln-botchat-tab {
-  padding: 7px 15px;
-  /* r144 a11y (QA 390px: 37px): WCAG 2.5.8 target floor — 44px like the
-     mind chips and footer links; the wrap row absorbs the extra height. */
-  min-block-size: 44px;
-  border-radius: var(--ln-radius-pill);
-  border: 1px solid var(--ln-line);
-  background: transparent;
-  color: var(--ln-cream-dim);
-  font-size: 13px;
-  font-weight: var(--fw-medium);
-  font-family: inherit;
-  cursor: pointer;
-  transition:
-    color var(--ln-t-fast) var(--ln-ease-soft),
-    background var(--ln-t-fast) var(--ln-ease-soft),
-    border-color var(--ln-t-fast) var(--ln-ease-soft);
-}
-.landing .ln-botchat-tab:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); }
-.landing .ln-botchat-tab[aria-pressed='true'] {
-  color: var(--ln-ink);
-  background: var(--ln-lime);
-  border-color: var(--ln-lime);
-}
-
-/* the transcript — scroll-capped per the long-list rule */
-.landing .ln-botchat-log {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px 16px;
-  min-block-size: 300px;
-  max-block-size: 400px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(233 245 240 / 0.22) transparent;
-}
-.landing .ln-botchat-log::-webkit-scrollbar { inline-size: 6px; }
-.landing .ln-botchat-log::-webkit-scrollbar-thumb {
-  background: rgb(233 245 240 / 0.18);
-  border-radius: var(--ln-radius-pill);
-}
+/* ── 16b · the chat transcript grammar ────────────────────────────────
+   P15 (concept A): the BotChatSimulator window (hero dock + tabs +
+   replay) is RETIRED with HeroCompanion — the ticker is the hero's
+   first-viewport beat now. What stays is the MESSAGE grammar the
+   mind threads consume: .ln-botchat-msg / .ln-botchat-badge (the
+   r142 conversation vocabulary — user ink bubble, SmartBot lime
+   bubble, sys line, رد آلي / فريق بشري badges). The window chrome
+   (root/head/avatar/tabs/log/typing/foot/replay) was deleted in the
+   same commit; the light twins below keep only living selectors. */
 .landing .ln-botchat-msg {
   max-inline-size: min(82%, 360px);
   padding: 9px 13px 10px;
@@ -1598,68 +1421,7 @@
   color: var(--ln-bot-amber);
 }
 
-/* typing indicator — three staggered beads (killed under RM by both the
-   belt and the §16d off-switch; the JS gate never mounts it there) */
-.landing .ln-botchat-typing {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 11px 14px;
-  border-radius: var(--r-xl);
-  border-end-end-radius: var(--r-sm);
-  background: var(--ln-bot-bubble-in);
-  border: 1px solid var(--ln-bot-bubble-in-line);
-  align-self: flex-end;
-}
-.landing .ln-botchat-dot {
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--ln-cream-dim);
-  animation: ln-bot-dot 1.1s var(--ln-ease-soft) infinite;
-}
-.landing .ln-botchat-dot:nth-child(2) { animation-delay: 0.15s; }
-.landing .ln-botchat-dot:nth-child(3) { animation-delay: 0.3s; }
-@keyframes ln-bot-dot {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  40% { transform: translateY(-4px); opacity: 1; }
-}
-.landing .ln-botchat-typing--user { align-self: flex-start; border-end-start-radius: var(--r-sm); border-end-end-radius: var(--r-xl); }
-
-.landing .ln-botchat-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2) var(--sp-4);
-  padding: 11px 16px;
-  border-block-start: 1px solid var(--ln-line-soft);
-  color: var(--ln-cream-dim);
-  font-size: 11.5px;
-  line-height: 1.6;
-}
-.landing .ln-botchat-replay {
-  margin-inline-start: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 13px;
-  /* r144 a11y (QA 390px: 34px): 44px target floor (WCAG 2.5.8). */
-  min-block-size: 44px;
-  border-radius: var(--ln-radius-pill);
-  border: 1px solid var(--ln-line);
-  background: transparent;
-  color: var(--ln-cream-dim);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  transition:
-    color var(--ln-t-fast) var(--ln-ease-soft),
-    background var(--ln-t-fast) var(--ln-ease-soft);
-}
-.landing .ln-botchat-replay:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); }
-
-/* ── 16d · finale presence — the companion waves you in ─────────────── */
+/* ── 16d · finale presence — the companion waves you in ─────────────────── */
 .landing .ln-cta-bot {
   position: relative;
   display: inline-flex;
@@ -1703,13 +1465,7 @@
 
 /* ── 16e · mobile demotion — 320px+ compromise, no overflow ─────────── */
 @media (max-width: 640px) {
-  .landing .ln-botchat-intent { display: none; }
   .landing .ln-botchat-msg { max-inline-size: 88%; }
-  .landing .ln-botchat-tab { flex: 1 1 auto; text-align: center; }
-}
-/* landscape phones: the stage leaves the fold to the value story */
-@media (max-height: 560px) and (orientation: landscape) {
-  .landing .ln-companion { display: none; }
 }
 
 /* ── 16f · reduced-motion off-switches — the §16 verbs, explicitly ─────
@@ -1717,233 +1473,18 @@
    treatment: removed entirely — and the JS simulator renders the full
    transcript instantly under the same query). */
 @media (prefers-reduced-motion: reduce) {
-  .landing .ln-botchat-dot,
   .landing .ln-botchat-msg,
   .landing .ln-cta-bot-img { animation: none; }
 }
 
-/* ═══ 17 — THE COMPANION STAGE SYSTEM («رفيق» v16-r142) ══════════════════
-   New token namespace --sb-* (SmartBot) inside the .landing scope — the
-   pinned --ln-* canon above is byte-untouched and the scope-isolation
-   contract (no --ln-* in globals, no unscoped selectors here) holds.
-
-/* ── 17 · companion tokens — NEW names only ─────────────────────────── */
-.landing {
-  --sb-spot: rgb(23 195 164 / 0.10);        /* the stage spotlight wash */
-  --sb-spot-deep: rgb(23 195 164 / 0.22);   /* the floor disc lit pool */
-  --sb-wash: rgb(23 195 164 / 0.05);        /* the stage base wash */
-  --sb-led: var(--c-lime-ink);                  /* the LED halo */
-  --sb-led-dim: rgb(198 242 78 / 0.30);
-  --sb-hud-bg: rgb(13 40 48 / 0.78);         /* the HUD chip ground */
-  --sb-dur-crossfade: 460ms;                 /* pose crossfade */
-  --sb-dur-breathe: 4.2s;                    /* LED breathing period */
-  --sb-dur-spin: 26s;                        /* one floor-ring lap */
-}
-
-/* ── 17a · the companion stage (hero) ──────────────────────────────────
-   The character stands on a lit platform: spotlight wash, 3D turntable
-   floor (two counter-rotating dashed rings on a rotateX plane), LED
-   dots, HUD state chip, and the four poses crossfading behind the same
-   frame. The stage button carries the pose click (wave + greeting). */
-.landing .ln-companion {
-  position: relative;
-  min-inline-size: 0;
-  display: grid;
-  gap: var(--sp-5);
-  justify-items: center;
-}
-.landing .ln-companion-scene {
-  position: relative;
-  inline-size: min(100%, 460px);
-  perspective: 1000px;
-}
-/* the tilt plane — --rx/--ry are written imperatively (rAF, zero
-   setState) by HeroCompanion on fine pointers; the transition eases
-   pointer leaves back to level */
-.landing .ln-companion-tilt {
-  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transform-style: preserve-3d;
-  transition: transform 260ms var(--ln-ease-out);
-  will-change: transform;
-}
-.landing .ln-companion-stage {
-  position: relative;
-  display: block;
-  inline-size: 100%;
-  aspect-ratio: 1;
-  padding: 0;
-  border: 1px solid var(--ln-line);
-  border-radius: var(--r-2xl);
-  background:
-    radial-gradient(58% 44% at 50% 6%, var(--sb-spot) 0%, transparent 70%),
-    radial-gradient(84% 60% at 50% 104%, var(--sb-wash) 0%, transparent 74%),
-    var(--ln-bot-frame);
-  cursor: pointer;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12), 0 18px 44px rgba(0,0,0,0.24);
-  transition: border-color var(--ln-t-base) var(--ln-ease);
-}
-.landing .ln-companion-stage:hover { border-color: rgb(233 245 240 / 0.26); }
-
-/* the four poses — crossfade lanes on ONE plane (data-pose on the root
-   decides the lit layer; the SSR default is hero = instant paint) */
-.landing .ln-companion-figures { position: absolute; inset: 0; display: block; }
-.landing .ln-companion-fig {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  display: block;
-  /* phase5 r152: RobotMark SVG replaces the webp poses — the square
-     viewBox centers itself (default preserveAspectRatio meet); the old
-     object-fit crop was a raster concern. */
-  opacity: 0;
-  transition: opacity var(--sb-dur-crossfade) var(--ln-ease-out);
-}
-.landing [data-pose='hero'] .ln-companion-fig.f-hero { opacity: 1; }
-.landing [data-pose='wave'] .ln-companion-fig.f-wave { opacity: 1; }
-.landing [data-pose='think'] .ln-companion-fig.f-think { opacity: 1; }
-.landing [data-pose='chat'] .ln-companion-fig.f-chat { opacity: 1; }
-
-/* vignette — keeps the figure seated in the flat ink world */
-.landing .ln-companion-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(13 40 48 / 0.5) 100%);
-}
-
-/* the turntable floor — perspective-tilted disc + two counter-rotating
-   dashed rings (compositor-only verbs) */
-.landing .ln-companion-floor {
-  position: absolute;
-  inset-inline: 8%;
-  inset-block-end: 4%;
-  block-size: 16%;
-  pointer-events: none;
-  transform: perspective(620px) rotateX(64deg);
-  transform-origin: 50% 100%;
-}
-.landing .ln-companion-floor::before {
-  content: '';
-  position: absolute;
-  inset: -34% -12%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--sb-spot-deep) 0%, transparent 74%);
-}
-.landing .ln-companion-floor-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid var(--sb-led-dim);
-}
-.landing .ln-companion-floor-ring i {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px dashed rgb(23 195 164 / 0.38);
-  animation: ln-stage-spin var(--sb-dur-spin) var(--ln-ease-linear) infinite;
-}
-.landing .ln-companion-floor-ring.r2 { inset: -20% -10%; border-color: rgb(23 195 164 / 0.16); }
-.landing .ln-companion-floor-ring.r2 i {
-  animation-duration: calc(var(--sb-dur-spin) * 1.6);
-  animation-direction: reverse;
-}
-@keyframes ln-stage-spin { to { transform: rotate(1turn); } }
-
-/* the LED halo — three breathing dots at the stage apron */
-.landing .ln-companion-leds {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: 1.8%;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  pointer-events: none;
-}
-.landing .ln-companion-leds i {
-  inline-size: 5px;
-  block-size: 5px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--sb-led);
-  box-shadow: 0 0 8px var(--sb-led-dim);
-  animation: ln-stage-led var(--sb-dur-breathe) var(--ln-ease-soft) infinite;
-}
-.landing .ln-companion-leds i:nth-child(2) { animation-delay: -1.4s; }
-.landing .ln-companion-leds i:nth-child(3) { animation-delay: -2.8s; }
-@keyframes ln-stage-led {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 1; }
-}
-
-/* the greeting bubble — pops on wave (data-show), pointer-inert */
-.landing .ln-companion-greet {
-  position: absolute;
-  top: 7%;
-  inset-inline-start: 50%;
-  translate: -50% 0;
-  z-index: 3;
-  max-inline-size: min(88%, 310px);
-  padding: 10px 16px 11px;
-  border-radius: var(--r-xl);
-  border-end-start-radius: var(--r-sm);
-  background: var(--ln-bot-bubble-in);
-  border: 1px solid var(--ln-bot-bubble-in-line);
-  color: var(--ln-cream);
-  font-size: 13px;
-  line-height: 1.6;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2), 0 10px 26px rgba(0,0,0,0.18);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(8px);
-  transition:
-    opacity var(--ln-t-base) var(--ln-ease-out),
-    transform var(--ln-t-base) var(--ln-ease-out),
-    visibility 0s var(--ln-ease-linear) var(--ln-t-base);
-  pointer-events: none;
-}
-.landing .ln-companion-greet[data-show] {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  transition-delay: 0s;
-}
-.landing .ln-companion-greet b { color: var(--ln-lime); font-weight: var(--fw-semibold); }
-
-/* the HUD state chip — the machine's voice, mono */
-.landing .ln-companion-hud {
-  position: absolute;
-  top: 12px;
-  inset-inline-start: 12px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--sb-hud-bg);
-  border: 1px solid var(--ln-bot-bubble-in-line);
-  pointer-events: none;
-}
-.landing .ln-companion-hud-dot {
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: var(--ln-radius-pill);
-  background: var(--sb-led);
-  animation: ln-stage-led var(--sb-dur-breathe) var(--ln-ease-soft) infinite;
-}
-.landing .ln-companion-hud .ln-mono { font-size: 10px; letter-spacing: 0; } /* r151: POSE_COPY is Arabic — desktop twin of the r150 mobile zeroing (was 0.12em) */
-
-/* ── 17b · hero dock — the simulator under the stage ─────────────────── */
-.landing .ln-botchat.compact {
-  inline-size: 100%;
-  max-inline-size: 460px;
-}
-.landing .ln-botchat.compact .ln-botchat-log {
-  min-block-size: 210px;
-  max-block-size: 280px;
-}
-
+/* ═══ 17 — RETIRED: the v16-r142 companion stage system ═══════════════════
+   P15 (concept A): the 2D companion stage (spotlight platform, turntable
+   rings, pose crossfade, greeting bubble, HUD chip) and the hero's
+   BotChatSimulator dock were retired with HeroCompanion.tsx — the
+   three.js RobotScene IS the character now and the HeroTicker is the
+   first-viewport interaction beat. The --sb-* token block + §17a/§17b
+   rules were deleted in the same commit (§17c-e mind/day/product
+   survive below). --sb-chamfer + --sb-fig/--sb-floor live in §18/§20. */
 /* ── 17c · «لغة العقل» — the capabilities as chat threads ────────────── */
 .landing .ln-mind .ln-chapter-head { gap: var(--sp-6); margin-block-end: clamp(36px, 5vh, 56px); }
 .landing .ln-mind-strip {
@@ -2355,13 +1896,7 @@
 .landing hr.sb-trace { margin: 0; }
 
 /* ── 17f · mobile demotion — 320px+ compromise, no overflow ─────────── */
-@media (max-width: 1024px) {
-  .landing .ln-companion-scene { inline-size: min(86vw, 420px); }
-}
 @media (max-width: 640px) {
-  .landing .ln-companion-scene { inline-size: min(100%, 340px); }
-  .landing .ln-companion-greet { font-size: 12px; max-inline-size: 92%; }
-  .landing .ln-botchat.compact { max-inline-size: 100%; }
   .landing .ln-day-panel { grid-template-columns: 34px minmax(0, 1fr); }
   .landing .ln-day-path { inset-inline-start: 16px; }
   .landing .ln-mind-thread { padding: var(--sp-4); }
@@ -2371,18 +1906,12 @@
   .landing .ln-mind-chip { padding: 8px 12px; font-size: 12px; }
   .landing .ln-trust-value { font-size: 17px; }
   .landing .ln-product-window.w2 { margin-block-start: 0; }
-  .landing .ln-companion-hud .ln-mono { font-size: 9px; letter-spacing: 0; } /* r150: POSE_COPY is Arabic — tracking law */
 }
 
 /* ── 17g · reduced-motion off-switches — the §17 verbs, explicitly ─────
    (the globals belt zeroes durations and transitions; raw-duration loops
    get the marquee treatment: removed entirely). */
 @media (prefers-reduced-motion: reduce) {
-  .landing .ln-companion-tilt { transition: none; }
-  .landing .ln-companion-fig { transition: none; }
-  .landing .ln-companion-floor-ring i,
-  .landing .ln-companion-leds i,
-  .landing .ln-companion-hud-dot,
   .landing .ln-trust-live i { animation: none; }
   .landing .ln-day-path-light { transform: scaleY(1); }
 }
@@ -2439,18 +1968,14 @@ html.light .landing {
   --ln-grain-op:   0.06;      /* ink-noise grain, gentler on mist */
   /* §2-b bot register — light twins */
   --ln-bot-glow: rgb(90 122 22 / 0.16);        /* AI halo, dark-lime tier */
-  --ln-bot-glow-deep: rgb(90 122 22 / 0.26);
   --ln-bot-amber: #5A7A16;                     /* eye light — 4.51:1 on mist */
-  --ln-bot-amber-soft: rgb(90 122 22 / 0.12);
   --ln-bot-bubble-in: rgb(255 255 255 / 0.94); /* incoming bubble = white card */
   --ln-bot-bubble-in-line: rgb(10 36 46 / 0.14);
   --ln-bot-frame: rgb(10 36 46 / 0.04);        /* portrait plate wash */
-  /* §17 stage register — light twins (teal stays the spotlight) */
-  --sb-spot: rgb(12 117 99 / 0.10);
-  --sb-spot-deep: rgb(12 117 99 / 0.20);
-  --sb-wash: rgb(12 117 99 / 0.04);
-  --sb-led-dim: rgb(90 122 22 / 0.35);
-  --sb-hud-bg: rgb(255 255 255 / 0.86);
+  /* P15 (concept A): the retired §17 stage register (--sb-spot/-wash/-led/-hud)
+  and the companion-era -glow-deep/-amber-soft twins were deleted with
+  HeroCompanion — §18's --sb-fig/--sb-floor/--sb-chamfer are the living
+  --sb-* names (declared in the dark scope, inherited here). */
   background: var(--ln-ink); color: var(--ln-cream);
 }
 
@@ -2511,15 +2036,8 @@ html.light .landing .ln-btn-gold:hover {
 }
 
 /* ── 16c · hero + sky — the night radials become mist washes ────────── */
-html.light .landing .ln-hero-sky {
-  background: radial-gradient(46% 54% at 30% 44%, rgb(12 117 99 / 0.10) 0%, transparent 70%);
-}
-html.light .landing .ln-hero-sky::after {
-  background: radial-gradient(ellipse at 70% 60%, rgb(10 36 46 / 0.03) 0%, transparent 60%);
-}
-/* depth-plane stars: CSS overrides the SVG presentation attribute —
-   foam rgba(233,245,240,.6) → deep petrol ink dots */
-html.light .landing .ln-hero-depth circle { fill: rgba(10, 36, 46, 0.55); }
+/* P15 (concept A): the hero-sky/depth-plane twins were retired with the
+   OrbitScene-era stage (§18/§19a own the machine layer's mist twins). */
 /* the h1 scrim softens (deep ink on mist needs no black halo) */
 html.light .landing .ln-hero-title {
   text-shadow: 0 1px 2px rgba(10, 36, 46, 0.14);
@@ -2550,21 +2068,16 @@ html.light .landing .ln-mind-chip:hover {
 }
 /* the card family — foam 3% washes → ink 3% washes */
 html.light .landing .ln-mind-thread,
-html.light .landing .ln-botchat,
 html.light .landing .ln-product-window,
 html.light .landing .ln-pp-row { background: rgb(10 36 46 / 0.03); }
-/* the station bars — ink-2 glass → white glass + ink hairline sheen */
-html.light .landing .ln-botchat-head,
+/* the station bar — ink-2 glass → white glass + ink hairline sheen
+   (the BotChatSimulator window twin was retired with its component) */
 html.light .landing .ln-product-bar {
   background: rgb(255 255 255 / 0.72);
   box-shadow: inset 0 1px 0 rgb(10 36 46 / 0.05);
 }
 html.light .landing .ln-product-bar i { background: rgb(10 36 46 / 0.22); }
-/* transcript scrollbar — foam → ink thumbs */
-html.light .landing .ln-botchat-log { scrollbar-color: rgb(10 36 46 / 0.28) transparent; }
-html.light .landing .ln-botchat-log::-webkit-scrollbar-thumb { background: rgb(10 36 46 / 0.22); }
-/* sim tabs + badges */
-html.light .landing .ln-botchat-tab:hover { background: rgb(10 36 46 / 0.06); }
+/* badges */
 html.light .landing .ln-botchat-badge.auto {
   background: rgb(12 117 99 / 0.14);
   color: var(--ln-cream);
@@ -2579,46 +2092,75 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   box-shadow: 0 0 0 5px rgb(10 36 46 / 0.22);
 }
 
-/* ── 16e · the companion stage — teal spotlight on mist ─────────────── */
-html.light .landing .ln-companion-stage:hover { border-color: rgb(10 36 46 / 0.30); }
-html.light .landing .ln-companion-vignette {
-  background: radial-gradient(120% 92% at 50% 30%, transparent 56%, rgb(237 246 243 / 0.60) 100%);
-}
-html.light .landing .ln-companion-floor-ring i { border-color: rgb(12 117 99 / 0.45); }
-html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 0.28); }
+/* ── 16e · the companion stage — RETIRED with HeroCompanion (P15):
+   the spotlight platform / turntable-ring / vignette mist twins were
+   deleted in the same commit. */
 
-/* ═══ 18 — P12-2c · THE ROBOT HERO (spec-smartbot.md S1/S2) ═════════════
-   The reference-defining hero: the ORIGINAL three.js SmartBot robot
-   (RobotScene.tsx, dynamic ssr:false) stands centered-right (inline-end
-   in RTL) at ~40–50% viewport height presence on its pedestal
-   atmosphere (fog + faint grid + sparse particles + CSS vignette),
-   with 4 floating capability chips (real site copy, S2) connected to
-   the robot by thin lines. The copy column keeps its instant server
-   paint; the canvas is decorative (aria-hidden). New names only — the
-   pinned --ln-* canon above stays untouched. */
+/* ═══ 18 — P15 CONCEPT A · THE MACHINE LAYER ═══════════════════════════
+   The robot IS the protagonist: the canvas fills the whole hero and the
+   camera is framed from the composition tokens below, so the FULL
+   figure (halo → pedestal) + its grid-floor stage always compose inside
+   the first viewport. The stage sits at z1 ABOVE the ticker/status
+   island (z0) — the alpha canvas lets the robot's body physically
+   anchor the interface boxes (real depth interlock); the circuit line
+   rides INSIDE the machine layer, over the canvas, under the copy.
+   The old P12-2c layer (side-column stage, fog bed, floating chips,
+   hero grid/dock rules) was retired in this commit. */
 .landing {
-  --sb-robot-h: clamp(320px, 44svh, 480px); /* the ~40–50vh presence band */
-  --sb-chamfer: 12px;                        /* the 45° cut size */
+  --sb-chamfer: 12px; /* the 45° cut size — the landing card law */
 }
 
+/* the hero shell — ONE composed viewport: 100svh minus the sticky
+   chrome (the 73px landing header + hairline, measured live), a
+   petrol void with a faint teal horizon breath at the floor line. */
 .landing .ln-hero-robot {
-  /* the hero's own depth ground: petrol wash + the fog radial at the
-     robot's base (P1-5 atmosphere) — replaces the retired sky div */
+  /* the framing contract: the figure fills 66% of the host height and
+   * the floor line lands at 72% — solved so the head's chin clears the
+   * display block's eyebrow by ~30px at 1440 (the face NEVER collides
+   * with the headline; the title's left end overlaps only the torso/
+   * pedestal zone, the reference's h1-over-legs grammar) */
+  --sb-fig: 0.66;   /* the figure's share of the host height */
+  --sb-floor: 0.72; /* where the grid floor line lands (from top) */
+  display: block;
+  padding: 0;
+  overflow: clip;
   background:
-    radial-gradient(48% 58% at 68% 62%, rgb(23 195 164 / 0.07) 0%, transparent 70%),
-    radial-gradient(90% 50% at 70% 92%, rgb(13 40 48 / 0.85) 0%, transparent 72%);
+    radial-gradient(110% 62% at 50% 116%, rgb(23 195 164 / 0.09) 0%, transparent 62%),
+    radial-gradient(42% 30% at 50% 24%, rgb(23 195 164 / 0.05) 0%, transparent 70%),
+    radial-gradient(64% 44% at 50% 34%, rgb(10 32 40 / 0.85) 0%, transparent 78%),
+    var(--ln-ink);
 }
 
-/* the robot stage — the inline-end half of the hero grid; absolute on
-   desktop so the copy column owns the fold, sized by the presence band */
+/* the machine stage — full-viewport, above the interface island.
+   pointer-events none (tracking listens on window); the sink-and-fade
+   exit (HeroExit) and the entrance calm live on the layers below. */
 .landing .ln-robot-stage {
   position: absolute;
-  inset-block: 0;
-  inset-inline-end: 0;
-  inline-size: min(52vw, 620px);
-  z-index: 0;
-  pointer-events: none; /* tracking listens on window; chips opt back in */
-  overflow: hidden;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: clip;
+}
+/* the scroll-exit wrapper — transform/opacity only (compositor verbs);
+   the listener lives in HeroExit.tsx, RM never arms it */
+.landing .ln-robot-exit {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity;
+}
+/* the entrance: first visit fades the machine in slow (380ms + 160ms
+   delay); returning visitors (LandingStage [data-intro-seen]) get the
+   product-scoped calm — the OrbitScene-era contract, translated to the
+   robot's own layer (reuses the pinned ln-scene-in keyframes). */
+.landing .ln-robot-frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: ln-scene-in var(--ln-t-slow) var(--ln-ease-out) var(--ln-t-fast) forwards;
+}
+.landing[data-intro-seen='true'] .ln-robot-frame {
+  animation-duration: var(--ln-t-fast);
+  animation-delay: 0s;
 }
 .landing .ln-robot {
   position: absolute;
@@ -2626,172 +2168,68 @@ html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 
 }
 .landing .ln-robot canvas { display: block; }
 
-/* the vignette — edge darkening over the WebGL scene (CSS half of the
-   atmosphere; renderer alpha lets the stage ground read through) */
+/* the floor glow + shadow anchor — the CSS half of the machine's light
+   spill: a teal pool + a two-stop contact shadow (dark core, wide
+   feather) + a faint 1px horizon hairline, all UNDER the pedestal at
+   the exact viewport fraction the scene's framing solver places it
+   (--sb-floor). Under the canvas (before it in DOM) so the robot's
+   body occludes it — the spill reads as coming FROM the machine. The
+   horizon hairline is the reference's "standing on the hero hairline"
+   grammar: the void gains a ground plane cue without gaining
+   furniture. */
+.landing .ln-robot-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.17) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(26% 10% at 50% calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.3) 0%, transparent 72%),
+    radial-gradient(7% 2.6% at 50% calc(var(--sb-floor) * 100% + 0.8%), rgb(3 10 13 / 0.82) 0%, rgb(3 10 13 / 0.55) 42%, transparent 78%),
+    radial-gradient(15% 4.6% at 50% calc(var(--sb-floor) * 100% + 1.4%), rgb(3 10 13 / 0.6) 0%, transparent 80%);
+}
+/* the vignette — edge darkening that seats the machine in the void
+   (top/bottom edge fades + a weak side shade; the interface boxes at
+   z0 sit under the canvas but read crisp — the shade never peaks).
+   i5 (VLM verify): the bottom wash deepened 0.6→0.78 / 16%→26% — the
+   h1's tail runs over the hips/pedestal zone by design (the reference's
+   h1-over-legs grammar) and needs a petrol scrim to keep the lockup
+   legible without moving it off the machine. */
 .landing .ln-robot-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(115% 90% at 55% 38%, transparent 52%, rgb(7 26 33 / 0.55) 100%);
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgb(7 26 33 / 0.55) 0%, transparent 13%),
+    linear-gradient(0deg, rgb(7 26 33 / 0.78) 0%, transparent 30%),
+    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(7 26 33 / 0.36) 100%);
+}
+
+/* the circuit line — the thin animated teal→lime trace crossing the
+   machine's zone (traveling right→left, the RTL flow direction),
+   tying the text world to the machine. It rides UNDER the canvas, so
+   the machine's body OCCLUDES its middle — the line reads on both
+   sides of the robot and the character visibly stands IN the circuit
+   (one more depth interlock, the reference's text→machine trace).
+   Decorative (aria-hidden). */
+.landing .ln-circuit {
+  position: absolute;
+  inset-inline: 6%;
+  inset-block-start: 42%;
+  block-size: 6px;
+  overflow: visible;
   pointer-events: none;
 }
-/* the fog bed — the scene's Fog object handles depth; this is the
-   ground-level mist line under the pedestal */
-.landing .ln-robot-fog {
-  position: absolute;
-  inset-inline: -10%;
-  block-size: 26%;
-  inset-block-end: 0;
-  background: linear-gradient(180deg, transparent 0%, rgb(7 26 33 / 0.65) 90%);
-  pointer-events: none;
+.landing .ln-circuit .ln-circuit-base { opacity: 0.75; }
+.landing .ln-circuit .ln-circuit-run {
+  stroke-dasharray: 88 512;
+  animation: ln-circuit-run 3.6s var(--ln-ease-linear) infinite;
+}
+@keyframes ln-circuit-run {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 600; }
 }
 
-/* ── 18a · S2 — the floating capability chips ──────────────────────────
-   Real site feature copy (the capabilities the product ships), chamfered
-   dark cards with mono micro-labels + teal/lime status dots, each joined
-   to the robot by a thin connector line. Decorative: aria-hidden at the
-   list level (the capabilities are real text but non-interactive here;
-   the marquee + mind chapter carry them as accessible anchors). */
-.landing .ln-robot-chips {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  pointer-events: none;
-}
-.landing .ln-robot-chip { position: absolute; }
-.landing .ln-robot-chip[data-area='a'] { top: 12%; inset-inline-start: 4%; }
-.landing .ln-robot-chip[data-area='b'] { top: 34%; inset-inline-end: 0%; }
-.landing .ln-robot-chip[data-area='c'] { bottom: 26%; inset-inline-start: 0%; }
-.landing .ln-robot-chip[data-area='d'] { bottom: 9%; inset-inline-end: 8%; }
-
-.landing .ln-robot-chip-card {
-  display: grid;
-  grid-template-columns: auto auto;
-  grid-template-rows: auto auto;
-  column-gap: 8px;
-  align-items: center;
-  padding: 8px 14px;
-  background: rgb(13 40 48 / 0.92);
-  border: 1px solid var(--ln-line);
-  /* S3 chamfer — one 45° cut corner, no radius (the landing card law) */
-  clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
-  box-shadow: 0 6px 18px rgb(7 26 33 / 0.45);
-}
-.landing .ln-robot-chip-dot {
-  grid-row: 1 / 3;
-  inline-size: 7px;
-  block-size: 7px;
-  background: var(--ln-lime);
-  box-shadow: 0 0 8px rgb(23 195 164 / 0.8);
-}
-.landing .ln-robot-chip-dot[data-dot='lime'] {
-  background: var(--ln-violet);
-  box-shadow: 0 0 8px rgb(198 242 78 / 0.7);
-}
-.landing .ln-robot-chip-label {
-  color: var(--ln-cream);
-  font-size: 12.5px;
-  font-weight: var(--fw-medium);
-  line-height: 1.35;
-  white-space: nowrap;
-}
-.landing .ln-robot-chip-mono {
-  grid-column: 2;
-  color: var(--ln-cream-dim);
-  font-size: 9.5px;
-  letter-spacing: 0.08em; /* pure Latin mono runs — tracked (S4) */
-  direction: ltr;
-  unicode-bidi: plaintext;
-}
-
-/* the thin connector line — a 45° hairline pointing at the robot's
-   center mass; length varies per area so the fan reads organic */
-.landing .ln-robot-chip-line {
-  position: absolute;
-  block-size: 1px;
-  inline-size: 44px;
-  background: linear-gradient(90deg, rgb(23 195 164 / 0.55), rgb(233 245 240 / 0.18));
-  inset-block-start: 50%;
-  /* chips sit on the stage's left/right edges; lines point inward */
-  inset-inline-start: -44px;
-  transform: rotate(4deg);
-}
-.landing .ln-robot-chip[data-area='b'] .ln-robot-chip-line,
-.landing .ln-robot-chip[data-area='d'] .ln-robot-chip-line {
-  inset-inline-start: auto;
-  inset-inline-end: -44px;
-  background: linear-gradient(270deg, rgb(23 195 164 / 0.55), rgb(233 245 240 / 0.18));
-}
-
-/* the idle float — one shared verb, RM-killed below */
-@keyframes ln-robot-chip-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .landing .ln-robot-chip { animation: ln-robot-chip-float 7s var(--ln-ease-soft) infinite; }
-  .landing .ln-robot-chip[data-area='a'] { animation-delay: -1.8s; }
-  .landing .ln-robot-chip[data-area='c'] { animation-delay: -3.4s; }
-  .landing .ln-robot-chip[data-area='d'] { animation-delay: -5.1s; }
-}
-
-/* the content column must clear the absolute robot stage on desktop:
-   the grid keeps one column; the copy keeps its 46vw cap */
-@media (max-width: 1024px) {
-  /* the robot becomes the backdrop behind the copy (rubric 390px: the
-     scene scales to backdrop, chips stack, no overflow) */
-  .landing .ln-robot-stage {
-    position: absolute;
-    inset: 0;
-    inline-size: 100%;
-    opacity: 0.5;
-  }
-  .landing .ln-robot-chip { display: none; }
-}
-@media (min-width: 1025px) {
-  .landing .ln-hero-robot .ln-hero-content {
-    max-inline-size: min(44vw, 640px);
-  }
-}
-
-/* the hero grid stays single-column (the robot is absolute); the
-   transcript island docks under the copy at the hero's flow end */
-.landing .ln-hero-robot .ln-companion {
-  margin-block-start: var(--sp-6);
-  justify-items: start;
-}
-
-/* ── 18b · S4 — the display scale ──────────────────────────────────────
-   The ChainGPT wide-grotesk sentence-case scale, in the product's own
-   faces: Space Grotesk (Latin, --font-display) ahead of IBM Plex Sans
-   Arabic 700 (the Arabic display weight). H1 = clamp(40px, 5.2vw, 76px)
-   — a NEW name (--ln-h1 keeps its pinned value byte-untouched). */
-.landing .ln-hero-robot .ln-hero-title {
-  font-size: clamp(40px, 5.2vw, 76px);
-  line-height: 1.14;
-  font-family: var(--font-display), 'IBM Plex Sans Arabic', var(--font-sans);
-  font-weight: var(--fw-bold); /* 700 — the Arabic display weight (S4) */
-  max-inline-size: 16ch;
-}
-/* the eyebrow — the mono micro-label register: tracked Latin, 11–12px */
-.landing .ln-hero-robot .ln-hero-eyebrow .ln-mono {
-  font-size: 11.5px;
-  letter-spacing: 0.08em;
-  color: var(--ln-lime);
-}
-.landing .ln-hero-robot .ln-hero-eyebrow .ln-mono::before {
-  content: '';
-  display: inline-block;
-  inline-size: 22px;
-  block-size: 1px;
-  background: var(--ln-lime);
-  vertical-align: middle;
-  margin-inline-end: 10px;
-  opacity: 0.7;
-}
-
-/* ═══ 19 — P12-2c · S3/S5 — BRACKET + CHAMFER FRAMING ══════════════════
+/* ═══ 19 — BRACKET + CHAMFER FRAMING (P12-2c §19, kept) ══════════════════
    The ChainGPT interface framing: section headings framed with bracket
    rules (top+bottom hairlines with chamfered 45° ends), cards with
    chamfered corners + thin borders (the rounded-radius card language is
@@ -2814,11 +2252,7 @@ html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 
 .landing .ln-chapter-head::before { inset-block-start: 0; }
 .landing .ln-chapter-head::after { inset-block-end: 0; }
 /* the chamfered ends — small 45° cuts at both ends of BOTH hairlines
-   (the bracket's signature); implemented as ::before's clip-path shape
-   via two extra pseudo-elements is not possible, so each hairline gets
-   its chamfer through a shared background mask: the lines run edge to
-   edge but the ENDS are cut 45° by masking the parent. Simpler and
-   honest: pseudo elements per line, each with clip-path. */
+   (the bracket's signature). */
 .landing .ln-chapter-head::before,
 .landing .ln-chapter-head::after {
   clip-path: polygon(var(--sb-chamfer) 0, calc(100% - var(--sb-chamfer)) 0, 100% 100%, 0 100%);
@@ -2835,126 +2269,504 @@ html.light .landing .ln-companion-floor-ring.r2 { border-color: rgb(12 117 99 / 
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
 
-/* the botchat window + product windows join the chamfer family (the
-   hero transcript + platform cards are landing cards too) */
-.landing .ln-botchat,
+/* the product windows join the chamfer family (platform cards are
+   landing cards too) */
 .landing .ln-product-window {
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
 
-/* mono micro-labels — the tracked register for pure-Latin runs in the
-   landing (the existing .ln-label keeps its pinned body; this is the
-   eyebrow-scale twin for the chip cards) */
-.landing .ln-robot-chip-mono { font-family: var(--ln-mono); }
-
-/* ── 19a · light-stage twins (S1 theme-aware + the framing on mist) ──── */
-html.light .landing .ln-hero-robot {
-  background:
-    radial-gradient(48% 58% at 68% 62%, rgb(12 117 99 / 0.10) 0%, transparent 70%),
-    radial-gradient(90% 50% at 70% 92%, rgb(237 246 243 / 0.9) 0%, transparent 72%);
-}
-html.light .landing .ln-robot-vignette {
-  background: radial-gradient(115% 90% at 55% 38%, transparent 56%, rgb(237 246 243 / 0.65) 100%);
-}
-html.light .landing .ln-robot-fog {
-  background: linear-gradient(180deg, transparent 0%, rgb(237 246 243 / 0.7) 90%);
-}
-html.light .landing .ln-robot-chip-card {
-  background: rgb(255 255 255 / 0.92);
-  border-color: rgb(10 36 46 / 0.30);
-  box-shadow: 0 6px 18px rgb(10 36 46 / 0.14);
-}
-html.light .landing .ln-robot-chip-dot {
-  background: var(--ln-lime-deep);
-  box-shadow: 0 0 8px rgb(12 117 99 / 0.6);
-}
-html.light .landing .ln-robot-chip-dot[data-dot='lime'] {
-  background: var(--ln-violet);
-  box-shadow: 0 0 8px rgb(90 122 22 / 0.5);
-}
-html.light .landing .ln-robot-chip-label { color: var(--ln-ink-2); }
-html.light .landing .ln-robot-chip-mono { color: rgb(10 36 46 / 0.62); }
-html.light .landing .ln-robot-chip-line {
-  background: linear-gradient(90deg, rgb(12 117 99 / 0.6), rgb(10 36 46 / 0.2));
-}
-html.light .landing .ln-robot-chip[data-area='b'] .ln-robot-chip-line,
-html.light .landing .ln-robot-chip[data-area='d'] .ln-robot-chip-line {
-  background: linear-gradient(270deg, rgb(12 117 99 / 0.6), rgb(10 36 46 / 0.2));
-}
-html.light .landing .ln-chapter-head::before,
-html.light .landing .ln-chapter-head::after {
-  background: rgb(10 36 46 / 0.28);
-}
-
-/* ── 19b · reduced motion — the float verb off (the scene's own static
-   frame is handled in RobotScene.tsx) ────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .landing .ln-robot-chip { animation: none; }
-}
-
-/* ── 19c · small-view stacking (390px law: no overflow) ──────────────── */
-@media (max-width: 640px) {
-  .landing .ln-robot-stage { opacity: 0.42; }
-  .landing { --sb-robot-h: 300px; }
-}
-
-/* ── 19d · P12-2c — the remaining landing card family joins the chamfer
-   law (faq items + finale + day panels); the rounded-radius language is
+/* the faq items join the chamfer law; the rounded-radius language is
    retired on the LANDING surface only. Radius overridden, not deleted. */
 .landing .ln-faq-item {
   border-radius: 0;
   clip-path: polygon(0 0, calc(100% - var(--sb-chamfer)) 0, 100% var(--sb-chamfer), 100% 100%, 0 100%);
 }
 
-/* ── 18c · P12-2c hero layout — one copy track on desktop ─────────────
-   The robot stage is the absolute inline-end half (§18); the hero grid
-   collapses to ONE track so the copy + transcript stack on the
-   inline-start side without stretching the fold. The pinned two-track
-   rule above stays (historical record, mobile keeps auto flow). */
+/* ── 19a · light-stage twins (the machine + framing on mist) ──────────── */
+html.light .landing .ln-hero-robot {
+  background:
+    radial-gradient(110% 62% at 50% 116%, rgb(12 117 99 / 0.10) 0%, transparent 62%),
+    radial-gradient(64% 44% at 50% 34%, rgb(255 255 255 / 0.6) 0%, transparent 78%),
+    var(--ln-ink);
+}
+html.light .landing .ln-robot-glow {
+  background:
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(12 117 99 / 0.16) calc(var(--sb-floor) * 100%), rgb(12 117 99 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(26% 10% at 50% calc(var(--sb-floor) * 100%), rgb(12 117 99 / 0.2) 0%, transparent 72%),
+    radial-gradient(15% 4.5% at 50% calc(var(--sb-floor) * 100% + 1.5%), rgb(10 36 46 / 0.24) 0%, transparent 78%);
+}
+html.light .landing .ln-robot-vignette {
+  background:
+    linear-gradient(180deg, rgb(237 246 243 / 0.6) 0%, transparent 13%),
+    linear-gradient(0deg, rgb(237 246 243 / 0.65) 0%, transparent 16%),
+    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(237 246 243 / 0.4) 100%);
+}
+html.light .landing .ln-chapter-head::before,
+html.light .landing .ln-chapter-head::after {
+  background: rgb(10 36 46 / 0.28);
+}
+
+/* ═══ 20 — P15 CONCEPT A · THE HERO COMPOSITION ═════════════════════════
+   The interface composed AROUND the machine (desktop ≥1025px):
+   · the ticker island (z0, UNDER the alpha canvas) — a bracket-cornered
+     prompt box at the reading start (RTL: right, ~17% down) + a mono
+     status micro-panel on the far side (left, ~26% down), one synced
+     state machine;
+   · the display block (z3) — mono-caps eyebrow + the oversized Arabic
+     display headline (IBM Plex Sans Arabic 700 — Space Grotesk never
+     renders Arabic, so the h1 finally gets a REAL display face) +
+     sub, anchored bottom-start; the CTA foot closes it at the floor;
+   · the scroll invitation at the reading end.
+   Massive negative space is the composition's air: nothing fills the
+   void around the machine except hairlines. Mobile (≤1024px): the
+   deliberate vertical stack — copy → full-figure stage → ticker → CTA. */
+
+/* the composition boxes on desktop (≥1025px) */
 @media (min-width: 1025px) {
-  .landing .ln-hero-robot .ln-hero-grid {
-    grid-template-columns: minmax(0, 1fr);
-    max-inline-size: min(46vw, 660px);
-    margin-inline: 0 auto; /* RTL: hugs the reading start */
+  .landing .ln-hero-robot {
+    block-size: calc(100svh - 74px); /* 73px sticky header + hairline, measured */
+    min-block-size: 620px;
+  }
+  /* the interface island — the shared z0 layer under the machine */
+  .landing .ln-ticker-island {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  /* the prompt ticker — reading start (RTL right), upper band: the
+     display block below it clears it by a full display line (the 68vw
+     measure is measured for the 2-line lockup — never a 4-line wrap) */
+  .landing .ln-ticker {
+    position: absolute;
+    inset-inline-start: 8vw;
+    inset-block-start: 15%;
+    inline-size: min(30vw, 400px);
+  }
+  /* the status micro-panel — far side (RTL left), stepped below the
+     ticker's band (the reference's asymmetric rail heights) */
+  .landing .ln-status {
+    position: absolute;
+    inset-inline-end: 7vw;
+    inset-block-start: 24%;
+    inline-size: min(24vw, 300px);
+  }
+  /* the display block — the reference's bottom-anchored display: the
+     eyebrow + 2-line lockup + sub sit LOW (the first display line clears
+     the machine's chin by >200px; only the hips/pedestal zone runs
+     behind the text's tail — the h1-over-legs grammar). The measure is
+     COUPLED to the display scale (9.7em lines at 7vw → 68vw; 70vw is
+     the wrap margin) — the h1 renders exactly 2 oversized lines. */
+  .landing .ln-hero-copy {
+    position: absolute;
+    inset-inline-start: 5vw;
+    inset-block-end: 96px;
+    z-index: 3;
+    max-inline-size: 70vw;
+  }
+  .landing .ln-hero-foot {
+    position: absolute;
+    inset-inline-start: 5vw;
+    inset-block-end: 30px;
+    z-index: 3;
+    display: grid;
+    gap: var(--sp-4);
+    justify-items: start;
+  }
+  /* the honest meta row (خطة مجانية/دعم/عربية) is tablet+mobile
+     furniture: on the desktop viewport the display block owns the
+     bottom band — the meta hooks live in the sub, the finale and the
+     pricing route (composition over checklist; honesty preserved). */
+  .landing .ln-hero-meta { display: none; }
+  /* the scroll invitation moves to the reading end (RTL left) */
+  .landing .ln-hero-scroll {
+    left: auto;
+    translate: none;
+    inset-inline-end: 4.5vw;
+    inset-block-end: 34px;
+    bottom: 34px;
+  }
+  /* the tether stubs — 1px hairline leads from each interface box's
+     machine-facing edge into the void toward the circuit line's band:
+     the boxes stop floating and become part of the circuit's world
+     (the reference's "holographic UI anchored to the machine").
+     i5: leads lengthened 30→44px + end alpha 0.55→0.8 — the boxes
+     still read as pasted HTML at the verify pass; the longer, firmer
+     leads + the bloom edge make the anchoring register. */
+  .landing .ln-ticker::after,
+  .landing .ln-status::after {
+    content: '';
+    position: absolute;
+    block-size: 1px;
+    inline-size: 44px;
+    background: linear-gradient(90deg, transparent, rgb(23 195 164 / 0.8));
+    pointer-events: none;
+  }
+  .landing .ln-ticker::after {
+    inset-inline-start: 100%; /* extends from the box's far (left) edge toward the machine */
+    inset-block-start: 24px;
+  }
+  .landing .ln-status::after {
+    inset-inline-end: 100%; /* extends from the panel's spine (right) toward the machine */
+    inset-block-start: 18px;
+    background: linear-gradient(270deg, transparent, rgb(23 195 164 / 0.8));
   }
 }
 
-/* ── 18d · P12-2c — the fold discipline ───────────────────────────────
-   The hero must stay ONE fold: the copy column (610px) + transcript
-   (390px) + paddings would stretch the hero past 100svh on laptop
-   viewports. The transcript's compact log shrinks inside the fold (its
-   full dock lives on tall screens), and the hero's own grid rows are
-   capped by the hero's min-block-size contract (680/100svh). */
-@media (max-height: 900px) and (min-width: 1025px) {
-  .landing .ln-hero-robot .ln-botchat.compact .ln-botchat-log {
-    min-block-size: 120px;
-    max-block-size: 168px;
-  }
-  .landing .ln-hero-robot .ln-companion { gap: var(--sp-2); }
+/* ── 20a · the prompt ticker ────────────────────────────────────────────
+   The ChainGPT ticker grammar, ours: 1px hairline box + bracket corners
+   just OUTSIDE, mono head with the index, the rotating prompt, the
+   blinking caret. Real capability copy only — no numbers, no customers. */
+.landing .ln-ticker {
+  position: relative;
+  padding: 13px 18px 15px;
+  /* i3 (VLM iter-2/3 balance): translucent enough to read as a
+     holographic plate, present enough to hold the bracket grammar; the
+     faint teal outer bloom ties it to the machine's rim-light world */
+  background: linear-gradient(180deg, rgb(13 42 52 / 0.6), rgb(10 34 42 / 0.56));
+  border: 1px solid var(--ln-line);
+  box-shadow: 0 0 24px rgb(23 195 164 / 0.08), 0 10px 30px rgb(3 10 13 / 0.5);
 }
-/* the grid rows may not exceed the fold: the transcript shares the
-   copy track's row (grid auto-flow already stacks them); cap the grid
-   so the hero's 100svh floor governs, never the content's raw height */
-@media (min-width: 1025px) {
-  .landing .ln-hero-robot .ln-hero-grid {
-    align-content: center;
-  }
+/* the bracket corners — 1px L-strokes OUTSIDE the box corners */
+.landing .ln-ticker-corner {
+  position: absolute;
+  inline-size: 9px;
+  block-size: 9px;
+  border: 0 solid var(--ln-cream-dim);
+}
+.landing .ln-ticker-corner.c-a { inset-block-start: -5px; inset-inline-start: -5px; border-block-start-width: 1px; border-inline-start-width: 1px; }
+.landing .ln-ticker-corner.c-b { inset-block-start: -5px; inset-inline-end: -5px; border-block-start-width: 1px; border-inline-end-width: 1px; }
+.landing .ln-ticker-corner.c-c { inset-block-end: -5px; inset-inline-start: -5px; border-block-end-width: 1px; border-inline-start-width: 1px; }
+.landing .ln-ticker-corner.c-d { inset-block-end: -5px; inset-inline-end: -5px; border-block-end-width: 1px; border-inline-end-width: 1px; }
+
+.landing .ln-ticker-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 9px;
+  color: var(--ln-cream-dim);
+  font-size: 11px;
+}
+.landing .ln-ticker-head .ln-mono {
+  font-size: 10px;
+  letter-spacing: 0.14em; /* pure Latin run — tracked */
+  color: var(--ln-lime);
+}
+.landing .ln-ticker-sep {
+  inline-size: 1px;
+  block-size: 10px;
+  background: var(--ln-line);
+}
+.landing .ln-ticker-idx {
+  margin-inline-start: auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ln-cream-dim);
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── 18e · P12-2c — the fold holds the transcript ──────────────────────
-   610 (copy) + 300 (transcript) + 206 (paddings) = 1116px > the 633px
-   laptop fold. The hero stays the fold's owner: the transcript clamps
-   to the space the fold actually has (max-height + its own scroll), so
-   the hero never exceeds max(680px, 100svh) + a small breathing tail. */
-@media (min-width: 1025px) {
-  .landing .ln-hero-robot .ln-companion {
-    max-block-size: calc(100svh - 420px);
-    min-block-size: 240px;
-    overflow: clip; /* the compact log scrolls inside */
+.landing .ln-ticker-prompt {
+  margin: 0;
+  color: var(--ln-cream);
+  font-size: clamp(15.5px, 1.35vw, 18px);
+  font-weight: var(--fw-semibold);
+  line-height: 1.55;
+  min-block-size: 2.2em; /* rotation never shifts the box height */
+}
+.landing .ln-ticker-swap {
+  display: inline;
+  animation: ln-ticker-in var(--ln-t-base) var(--ln-ease-out) both;
+}
+@keyframes ln-ticker-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+/* the prompt caret — a machine cursor at the reading end of the line */
+.landing .ln-ticker-caret {
+  display: inline-block;
+  inline-size: 1px;
+  block-size: 1.05em;
+  margin-inline-start: 7px;
+  vertical-align: -0.18em;
+  background: var(--ln-lime);
+  animation: ln-caret 1.1s steps(1) infinite;
+}
+@keyframes ln-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+/* the compact status line (mobile twin of the side panel) */
+.landing .ln-ticker-status {
+  display: none;
+  margin: 10px 0 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--ln-cream-dim);
+  font-size: 12.5px;
+}
+.landing .ln-ticker-status .ln-mono {
+  margin-inline-start: auto;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--ln-cream-dim);
+}
+
+/* ── 20b · the status micro-panel ────────────────────────────────────────
+   Mono ALL-CAPS machine register synced to the ticker beat: the active
+   row lit (dot pulsing in its register — teal = live machine, lime =
+   AI/automation, the S5 pair), the others dim. Real states only. */
+.landing .ln-status {
+  border-inline-start: 1px solid var(--ln-line);
+  padding-inline-start: 16px;
+}
+.landing .ln-status-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+  color: var(--ln-cream-dim);
+  font-size: 11px;
+}
+.landing .ln-status-head .ln-mono {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--ln-lime);
+}
+.landing .ln-status ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 11px;
+}
+.landing .ln-status li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgb(233 245 240 / 0.55); /* dim resting rows — still ≥4.5:1 on petrol (0.38 measured 3.3:1) */
+  font-size: 12.5px;
+  transition: color var(--ln-t-base) var(--ln-ease-soft);
+}
+.landing .ln-status li[data-active='true'] {
+  color: var(--ln-cream); /* the synced beat lights up */
+  font-weight: var(--fw-medium);
+}
+.landing .ln-status li i,
+.landing .ln-ticker-status b {
+  inline-size: 7px;
+  block-size: 7px;
+  flex-shrink: 0;
+  background: var(--ln-lime); /* teal default — the machine register */
+  box-shadow: 0 0 8px rgb(23 195 164 / 0.6);
+}
+.landing .ln-status li i[data-tone='lime'],
+.landing .ln-ticker-status b[data-tone='lime'] {
+  background: var(--ln-violet); /* lime — the AI/automation register */
+  box-shadow: 0 0 8px rgb(198 242 78 / 0.55);
+}
+/* only the ACTIVE dot breathes (the state is live, the rest are idle) */
+.landing .ln-status li[data-active='true'] i {
+  animation: ln-status-pulse 2.4s var(--ln-ease-soft) infinite;
+}
+@keyframes ln-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.landing .ln-status-mono {
+  margin-inline-start: auto;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ln-cream-dim);
+}
+
+/* ── 20c · the display block — eyebrow + Arabic display headline ────────
+   The h1 finally renders Arabic in a REAL display treatment: IBM Plex
+   Sans Arabic (var(--font-arabic)) at weight 700 — Space Grotesk has NO
+   Arabic glyphs, so the old stack silently fell back to the body face
+   and the "display" never rendered. Latin lives only in the mono
+   eyebrow (tracked caps) — the concept's font law. */
+.landing .ln-hero-robot .ln-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-block-end: var(--sp-5);
+}
+.landing .ln-eyebrow-latin {
+  font-size: 11px;
+  letter-spacing: 0.16em; /* pure Latin — the tracked mono-caps register */
+  color: var(--ln-lime);
+}
+.landing .ln-eyebrow-sep {
+  inline-size: 26px;
+  block-size: 1px;
+  background: var(--ln-lime);
+  opacity: 0.65;
+}
+.landing .ln-eyebrow-ar {
+  color: var(--ln-cream-dim);
+  font-size: 12.5px; /* i5: 12 → 12.5 — the Arabic eyebrow read as lost at the verify pass */
+  letter-spacing: 0; /* Arabic — never tracked */
+}
+.landing .ln-hero-robot .ln-hero-title {
+  font-family: var(--font-arabic); /* IBM Plex Sans Arabic FIRST — the Arabic display face */
+  font-size: clamp(3.2rem, 7vw, 5.5rem); /* the concept's display scale */
+  line-height: 1.14; /* the display rung — 2 lines exactly; 1.14 (the brief's 1.05–1.15 band, upper half) keeps the diacritics/ascenders of تعرّف/رفيقك clear of the line above (VLM iter-4 legibility nit) */
+  font-weight: var(--fw-bold);
+  letter-spacing: 0;
+  /* the measure rides the copy block's 70vw (vw-coupled so each
+     .ln-hero-line renders as exactly ONE oversized line — the 11ch cap
+     of the first draft wrapped the lockup to 4 lines and pushed the
+     eyebrow into the ticker's band) */
+  text-wrap: balance;
+}
+.landing .ln-hero-robot .ln-hero-sub {
+  margin-block-start: var(--sp-6);
+  max-inline-size: 52ch;
+  font-size: clamp(15px, 1.2vw, 17px);
+  line-height: 1.7;
+  font-weight: var(--fw-medium); /* i5 (VLM r2): 400 read as too light on the deep scrim — 500 keeps the dim register legible on low-contrast panels */
+  color: var(--ln-cream-dim);
+}
+.landing .ln-hero-robot .ln-hero-actions {
+  margin: 0; /* the foot's grid owns the rhythm now */
+}
+/* the display block's accent word glows in ITS OWN register (teal light
+   through petrol, not white) — on the oversized display the white bloom
+   washed the accent into a "fading" read (VLM iter-1); a same-hue bloom
+   reads as emission instead */
+.landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
+  text-shadow:
+    0 0 24px rgb(23 195 164 / 0.35),
+    0 0 56px rgb(23 195 164 / 0.07); /* i5: 0.12 → 0.07 — the far bloom read as a gradient fill; a tight same-hue emission reads cleaner */
+}
+
+/* ── 20d · light twins (the composition on mist) ───────────────────────── */
+html.light .landing .ln-ticker {
+  background: rgb(255 255 255 / 0.72);
+  border-color: rgb(10 36 46 / 0.30);
+}
+html.light .landing .ln-ticker-corner { border-color: rgb(10 36 46 / 0.55); }
+html.light .landing .ln-ticker-head .ln-mono { color: var(--ln-lime-deep); }
+html.light .landing .ln-ticker-prompt { color: var(--ln-cream); }
+html.light .landing .ln-ticker-caret { background: var(--ln-lime-deep); }
+html.light .landing .ln-status { border-inline-start-color: rgb(10 36 46 / 0.28); }
+html.light .landing .ln-status li { color: rgb(10 36 46 / 0.5); }
+html.light .landing .ln-status li[data-active='true'] { color: var(--ln-cream); }
+html.light .landing .ln-status li i {
+  background: var(--ln-lime-deep);
+  box-shadow: 0 0 8px rgb(12 117 99 / 0.5);
+}
+html.light .landing .ln-status li i[data-tone='lime'] {
+  background: var(--ln-violet-deep);
+  box-shadow: 0 0 8px rgb(90 122 22 / 0.45);
+}
+html.light .landing .ln-eyebrow-latin { color: var(--ln-lime-deep); }
+html.light .landing .ln-eyebrow-sep { background: var(--ln-lime-deep); }
+html.light .landing .ln-ticker::after,
+html.light .landing .ln-status::after {
+  background: linear-gradient(90deg, transparent, rgb(12 117 99 / 0.6));
+}
+html.light .landing .ln-ticker::before { /* the mobile data lead's mist twin */
+  background: linear-gradient(180deg, transparent, rgb(12 117 99 / 0.65));
+}
+
+/* ── 20e · reduced motion — the composed static frame ────────────────────
+   No rAF in the scene (its own contract), no sink listener (HeroExit),
+   no ticker rotation (its own contract) — and every compositor verb in
+   THIS layer stops: the circuit rests, the caret stays lit, the status
+   dot holds, the entrance snaps in. */
+@media (prefers-reduced-motion: reduce) {
+  .landing .ln-robot-frame { animation-duration: 1ms; animation-delay: 0s; }
+  .landing .ln-circuit-run { animation: none; }
+  .landing .ln-ticker-swap { animation: none; }
+  .landing .ln-ticker-caret { animation: none; }
+  .landing .ln-status li[data-active='true'] i { animation: none; }
+}
+
+/* ── 20f · mobile (≤1024px) — the deliberate vertical stack ──────────────
+   Composed for the small screen, not scaled down: eyebrow + headline
+   first (the instant server paint), the FULL-FIGURE robot center
+   (~44svh — never a cropped head; the framing solver tightens its own
+   composition tokens), the ticker (with its compact status line) below,
+   the CTA foot last. The status side panel and the circuit line are
+   desktop furniture — hidden, their truth carried by the ticker line. */
+@media (max-width: 1024px) {
+  .landing .ln-hero-robot {
+    display: flex;
+    flex-direction: column;
+    block-size: auto;
+    min-block-size: 0;
+    padding: 16px 20px var(--sp-7);
+    gap: var(--sp-6);
   }
-  .landing .ln-hero-robot .ln-botchat.compact .ln-botchat-log {
-    min-block-size: 130px;
-    max-block-size: min(220px, calc(100svh - 640px));
+  .landing .ln-hero-copy { order: 1; }
+  .landing .ln-robot-stage {
+    order: 2;
+    position: relative;
+    inline-size: 100%;
+    block-size: 44svh;
+    min-block-size: 296px;
+    --sb-fig: 0.84;
+    --sb-floor: 0.86;
   }
+  .landing .ln-robot-exit,
+  .landing .ln-robot-frame { position: absolute; inset: 0; }
+  /* i5 (VLM verify, tablet+mobile): the ticker read as "a footer
+     element that got lost" — no-man's-land between the machine's
+     pedestal and the bottom edge. The data lead: a 1px vertical
+     hairline + node dot dropping from the readout's head up into the
+     stage's floor band — the box becomes a readout TETHERED to the
+     machine's world (the desktop tethers' mobile twin). */
+  .landing .ln-ticker::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 26px;
+    inset-block-start: -26px;
+    block-size: 26px;
+    inline-size: 1px;
+    background: linear-gradient(180deg, transparent, rgb(23 195 164 / 0.9));
+  }
+  /* i5: the mobile contact shadow — the 44svh box shrinks the floor
+     radials until the anchor reads as nothing; a tighter, darker core
+     re-grounds the machine on the small stage */
+  .landing .ln-robot-glow {
+    background:
+      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.26) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+      radial-gradient(40% 14% at 50% calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.34) 0%, transparent 74%),
+      radial-gradient(11% 3.4% at 50% calc(var(--sb-floor) * 100% + 0.7%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
+  }
+  .landing .ln-ticker-island {
+    order: 3;
+    display: contents; /* the island's box vanishes — its children become
+                           flow items, so THEY need the island's rung */
+  }
+  .landing .ln-ticker { order: 3; position: relative; inline-size: 100%; }
+  .landing .ln-status { order: 5; display: none; }
+  .landing .ln-circuit { display: none; }
+  .landing .ln-hero-foot { order: 4; }
+  .landing .ln-hero-scroll { display: none; }
+  .landing .ln-hero-robot .ln-hero-title {
+    font-size: clamp(2.05rem, 8.5vw, 2.9rem);
+    /* no measure cap: the lockup lines measure 9.7em and fit the small
+       screen as single lines (the 14ch cap re-wrapped them into 4); the
+       flex column's padding does the constraining */
+    max-inline-size: none;
+  }
+  .landing .ln-hero-robot .ln-hero-sub {
+    margin-block-start: var(--sp-4);
+    font-size: 15px;
+    line-height: 1.65;
+    max-inline-size: 40ch;
+  }
+  .landing .ln-ticker-status {
+    display: flex;
+  }
+  .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }
+}
+@media (max-width: 640px) {
+  .landing .ln-hero-robot { padding: 10px 16px var(--sp-6); gap: var(--sp-5); }
+  .landing .ln-hero-meta { display: none; } /* the sub carries the honest terms */
+  .landing .ln-hero-robot .ln-hero-title { font-size: clamp(1.85rem, 7.8vw, 2.5rem); }
+  .landing .ln-robot-stage { min-block-size: 270px; }
 }

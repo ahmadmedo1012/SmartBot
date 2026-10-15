@@ -4,7 +4,8 @@ import { Check, MessageCircle, Languages } from "lucide-react";
 import { RevealCssClass } from "@/hooks/useReveal";
 import { LandingStage } from "@/components/landing/LandingStage";
 import { LandingHeader } from "@/components/landing/LandingHeader";
-import { HeroCompanion } from "@/components/landing/HeroCompanion";
+import { HeroTicker } from "@/components/landing/HeroTicker";
+import { HeroExit } from "@/components/landing/HeroExit";
 import { RobotSceneMount } from "@/components/landing/RobotSceneMount";
 import { MagneticGoldLink } from "@/components/landing/MagneticGoldLink";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
@@ -16,32 +17,31 @@ import { FinaleCta } from "@/components/landing/FinaleCta";
 import { LandingFaq } from "@/components/landing/LandingFaq";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
-/* P12-2c — the reference-defining hero (spec-smartbot.md):
- * the ORIGINAL three.js SmartBot robot takes the hero's right side
- * (RTL: inline-end) at ~40-50vh presence, pointer-tracked, on its
- * pedestal atmosphere (fog + grid + particles), wrapped by the real
- * Arabic value prop in the ChainGPT display scale (sentence case,
- * clamp(40px,5.2vw,76px)) with mono micro-eyebrows and 4 floating
- * feature chips (real capability copy) connected to the robot with
- * thin lines. OrbitScene + HeroDepthLayer are RETIRED from the hero
- * (the robot scene IS the hero's dimension now); the page stays a
- * server component — the canvas mounts via dynamic import ssr:false,
- * the h1/sub paint inline (LCP doctrine untouched).
- * All real copy/links below the hero are untouched. */
-
-/* The robot scene is browser-only (WebGL): the ssr:false dynamic import
- * lives in the RobotSceneMount client wrapper (Server Components may not
- * pass ssr:false) — the h1/sub still paint inline (LCP doctrine). */
-
-/* S2 — the REAL capability chips (the site's own feature copy), each
- * connected to the robot by a thin line. Status dots: teal = live
- * machine register, lime = AI/automation register (the S5 pair). */
-const HERO_CHIPS = [
-  { id: "chip-reply", label: "ردّ آلي على الرسائل", mono: "AUTO-REPLY", dot: "teal", area: "a" },
-  { id: "chip-pages", label: "إدارة صفحات فيسبوك", mono: "PAGES", dot: "teal", area: "b" },
-  { id: "chip-analytics", label: "تحليلات المحادثات", mono: "ANALYTICS", dot: "lime", area: "c" },
-  { id: "chip-publish", label: "أتمتة النشر", mono: "PUBLISH", dot: "lime", area: "d" },
-] as const;
+/* P15 (concept A — CHARACTER-LED HERO):
+ * the robot IS the protagonist. The three.js SmartBot renders as a
+ * full-height presence (~62svh mass) in the CENTER of a 100svh-minus-
+ * chrome hero, standing on its pedestal + grid floor IN the first
+ * viewport (the world is never below the fold). The interface is
+ * composed AROUND the machine with real depth: a bracket-cornered
+ * PROMPT TICKER at the reading start (RTL: right) cycling real
+ * capability statements, a mono status micro-panel on the far side,
+ * both UNDER the transparent canvas so the robot's body physically
+ * anchors them; a thin animated teal→lime circuit line crosses the
+ * machine's zone above the canvas; the oversized Arabic display
+ * headline (IBM Plex Sans Arabic 700 — a REAL Arabic face at last)
+ * anchors the bottom third with a mono-caps eyebrow, exactly the
+ * reference's bottom-anchored display grammar. On scroll the machine
+ * layer sinks and fades (HeroExit). Mobile (≤1024px): a deliberate
+ * vertical stack — copy top, full-figure robot (~44svh, never a
+ * cropped head), ticker, CTA.
+ * The retired P12-2c layer: floating capability chips (the ticker +
+ * status panel carry the same real copy now, anchored), the below-
+ * fold HeroCompanion/BotChatSimulator dock (the ticker is the
+ * first-viewport beat; the honest 3-scenario transcripts live on in
+ * MindSection's chat threads). The page stays a SERVER component —
+ * the canvas mounts via dynamic import ssr:false, the h1/sub paint
+ * inline (LCP doctrine untouched). All real copy/links below the
+ * hero are untouched. */
 
 const SITE_URL = process.env.NEXT_PUBLIC_DOMAIN || "https://bot.smart-link.ly";
 
@@ -174,42 +174,76 @@ export default function HomePage() {
           focus behavior, zero visual change. */}
       <div id="page-content" tabIndex={-1}>
 
-        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P12-2c — the robot is the
-            hero. The copy column (inline-start, RTL right) keeps its
-            instant server paint; the three.js robot + pedestal + chips
-            occupy the inline-end half at ~40–50vh presence. ═══ */}
+        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P15 concept A — the robot is
+            the protagonist. One 100svh scene: machine centered on its
+            visible stage, ticker/status composed around it with depth,
+            the Arabic display headline anchoring the bottom third. ═══ */}
         <section className="ln-hero ln-hero-robot" aria-label="SmartBot — رفيق صفحات فيسبوك">
-          {/* the robot atmosphere: WebGL scene + CSS fog/vignette bed.
-              Decorative by role — the copy above/beside it is the
-              accessible surface. */}
+          {/* the machine layer — the canvas is TRANSPARENT, so the ticker
+              and status boxes under it are physically anchored by the
+              robot's body. Decorative by role (aria-hidden): the ticker,
+              status panel and copy are the accessible surface. Sinks and
+              fades on the first scroll (HeroExit). */}
           <div className="ln-robot-stage" aria-hidden="true">
-            <RobotSceneMount className="ln-robot-canvas" />
-            <span className="ln-robot-vignette" />
-            <span className="ln-robot-fog" />
-            {/* S2 — the floating capability chips + their connector lines */}
-            <ul className="ln-robot-chips">
-              {HERO_CHIPS.map((c) => (
-                <li key={c.id} className="ln-robot-chip" data-area={c.area}>
-                  <i className="ln-robot-chip-line" />
-                  <span className="ln-robot-chip-card">
-                    <b className="ln-robot-chip-dot" data-dot={c.dot} />
-                    <span className="ln-robot-chip-label">{c.label}</span>
-                    <span className="ln-mono ln-robot-chip-mono">{c.mono}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <HeroExit>
+              <div className="ln-robot-frame">
+                {/* the floor glow + shadow anchor under the pedestal
+                    (the CSS half of the machine's light spill) and the
+                    edge vignette — both UNDER the canvas, at the exact
+                    viewport fractions the scene's framing solver places
+                    the pedestal (--sb-floor) */}
+                <span className="ln-robot-glow" />
+                <span className="ln-robot-vignette" />
+                {/* the circuit line — a thin animated teal→lime trace
+                    crossing the machine's zone (right→left, RTL flow),
+                    tying the text world to the machine. It rides UNDER
+                    the canvas, so the machine's body OCCLUDES its middle
+                    — the line reads on both sides of the robot and the
+                    character visibly stands IN the circuit (one more
+                    depth interlock, the reference's text→machine trace).
+                    Decorative. */}
+                <svg className="ln-circuit" viewBox="0 0 600 2" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                  <defs>
+                    <linearGradient id="ln-circuit-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stopColor="#17C3A4" stopOpacity="0.1" />
+                      <stop offset="0.22" stopColor="#17C3A4" stopOpacity="0.85" />
+                      <stop offset="0.5" stopColor="#C6F24E" stopOpacity="0.95" />
+                      <stop offset="0.78" stopColor="#17C3A4" stopOpacity="0.85" />
+                      <stop offset="1" stopColor="#17C3A4" stopOpacity="0.1" />
+                    </linearGradient>
+                  </defs>
+                  <line x1="4" y1="1" x2="596" y2="1" stroke="url(#ln-circuit-grad)" strokeWidth="1" vectorEffect="non-scaling-stroke" className="ln-circuit-base" />
+                  <line x1="4" y1="1" x2="596" y2="1" stroke="url(#ln-circuit-grad)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" className="ln-circuit-run" />
+                  {/* node dots in the VISIBLE zones flanking the machine —
+                      the circuit reads as infrastructure, not a lone line */}
+                  <circle cx="100" cy="1" r="2" fill="#17C3A4" opacity="0.7" />
+                  <circle cx="500" cy="1" r="2" fill="#C6F24E" opacity="0.7" />
+                  <circle cx="4" cy="1" r="3" fill="#17C3A4" />
+                  <circle cx="596" cy="1" r="3" fill="#C6F24E" />
+                </svg>
+                <RobotSceneMount className="ln-robot-canvas" />
+              </div>
+            </HeroExit>
           </div>
 
-          <div className="ln-hero-grid">
-          <div className="ln-hero-content">
+          {/* the interface layer under the machine: the prompt ticker
+              (reading start — RTL right) + the mono status panel (far
+              side), one synced state machine (client island) */}
+          <HeroTicker />
+
+          {/* the message layer — bottom-anchored display block. The h1
+              + sub paint INSTANTLY (server-rendered inline, no reveal,
+              no client gate — LCP doctrine). The display face is IBM
+              Plex Sans Arabic 700 (a REAL Arabic display treatment —
+              Space Grotesk carries no Arabic and never renders the
+              headline; it stays on Latin mono runs only). */}
+          <div className="ln-hero-copy">
             <RevealCssClass as="p" className="ln-hero-eyebrow">
-              <span className="ln-mono">[ SmartBot · 001 ] رفيق صفحات فيسبوك · ليبيا</span>
+              <span className="ln-mono ln-eyebrow-latin" dir="ltr">SMARTBOT</span>
+              <i className="ln-eyebrow-sep" aria-hidden="true" />
+              <span className="ln-eyebrow-ar">أتمتة صفحات فيسبوك · ليبيا</span>
             </RevealCssClass>
 
-            {/* h1 + sub paint INSTANTLY — server-rendered inline, no reveal,
-                no client gate (LCP doctrine). S4: the ChainGPT display
-                scale — sentence case, clamp(40px,5.2vw,76px), Arabic 700. */}
             <h1 className="ln-hero-title">
               <span className="ln-hero-line">تعرّف على <em className="ln-hero-gold">رفيقك</em> الرقمي</span>
               <span className="ln-hero-line">يرد، يفهم، ويشتغل <em>دائماً</em></span>
@@ -220,15 +254,19 @@ export default function HomePage() {
               يردّ فوراً بلغته، ويحوّل اللي يحتاج قراراً لفريقك —{" "}
               <strong>وتقارير النمو تصلك جاهزة.</strong>
             </p>
+          </div>
 
-            <RevealCssClass as="div" className="ln-hero-actions" delay={3}>
-              <MagneticGoldLink href="/subscribe" withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
+          {/* the actions foot — the CTA is part of the composition (the
+              bottom-right display block's closing row), not a floating
+              pill. The hero secondary CTA rides next/link like every
+              other internal anchor on the route (parity contract). */}
+          <RevealCssClass as="div" className="ln-hero-foot" delay={3}>
+            <div className="ln-hero-actions">
+              <MagneticGoldLink href="/subscribe" xl withArrow ariaLabel="ابدأ الآن مجاناً — الاشتراك في SmartBot">
                 ابدأ الآن مجاناً
               </MagneticGoldLink>
-              {/* the hero secondary CTA rides next/link like every other
-                  internal anchor on the route (parity-pinned contract). */}
               <Link href="/demo" className="ln-btn-ghost">جرب البوت الآن</Link>
-            </RevealCssClass>
+            </div>
 
             <RevealCssClass as="ul" className="ln-hero-meta" delay={4}>
               <li><Check size={13} aria-hidden="true" /> خطة مجانية — 100 رد شهرياً</li>
@@ -237,15 +275,10 @@ export default function HomePage() {
               <li aria-hidden="true" className="ln-hero-meta-dot" />
               <li><Languages size={13} aria-hidden="true" /> واجهة عربية بالكامل</li>
             </RevealCssClass>
-          </div>
+          </RevealCssClass>
 
-          {/* the live transcript docks under the copy INSIDE the grid's
-              first track (client island, BotChatSimulator); the companion
-              state machine still drives the greeting beat */}
-          <HeroCompanion />
-          </div>
-
-          {/* scroll invitation */}
+          {/* scroll invitation — reading end (RTL left), out of the
+              display block's way */}
           <a href="#mind" className="ln-hero-scroll" aria-label="تابع رحلة رفيقك">
             <span className="ln-mono">تابع رحلة رفيقك</span>
             <span className="ln-hero-scroll-line" aria-hidden="true" />

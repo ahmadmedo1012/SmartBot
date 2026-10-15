@@ -693,3 +693,127 @@ describe("p10a parity — chart ink contract: recharts text/cursor = the TEXT to
     expect(resolve(light, light["--muted-foreground"]!)).toBe("#3A5450")
   })
 })
+
+describe("P15 concept A parity — the character-led hero composition", () => {
+  /* The vitest twin of parity.mjs's §P15 block (same contracts, the
+     compact mirror): the owner rejected the P12-2c hero; concept A
+     re-composes the hero around ONE protagonist — the full-figure
+     machine on a visible stage inside the first viewport, the
+     ticker/status island under the transparent canvas, the Arabic
+     display headline bottom-anchored, the sink-and-fade scroll exit.
+     The retired files (BotChatSimulator / HeroCompanion / OrbitScene /
+     HeroDepthLayer) are deleted in the same commit. */
+  const read = (p: string) => readFileSync(p, "utf8")
+  const exists = (p: string) => {
+    try { readFileSync(p, "utf8"); return true } catch { return false }
+  }
+  const rawLanding = read("src/app/landing.css").replace(/\/\*[\s\S]*?\*\//g, " ")
+
+  it("the retired hero layer is DELETED (BotChatSimulator, HeroCompanion, OrbitScene, HeroDepthLayer)", () => {
+    for (const f of [
+      "src/components/landing/BotChatSimulator.tsx",
+      "src/components/landing/HeroCompanion.tsx",
+      "src/components/landing/OrbitScene.tsx",
+      "src/components/landing/HeroDepthLayer.tsx",
+    ]) {
+      expect(exists(f), `${f} must be deleted (P15 retirement)`).toBe(false)
+    }
+  })
+
+  it("the composition tokens: --sb-fig 0.66 / --sb-floor 0.72 + the mobile re-pose 0.84/0.86", () => {
+    expect(rawLanding).toMatch(/--sb-fig:\s*0\.66;/)
+    expect(rawLanding).toMatch(/--sb-floor:\s*0\.72;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.84;[^@]*?--sb-floor:\s*0\.86;/)
+  })
+
+  it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the 70vw display measure", () => {
+    const desk = rawLanding.match(/@media \(min-width: 1025px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? ""
+    expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*block-size:\s*calc\(100svh - 74px\)/)
+    expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*min-block-size:\s*620px/)
+    expect(desk).toMatch(/\.ln-ticker-island\s*\{[^}]*z-index:\s*0/)
+    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*z-index:\s*3/)
+    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*max-inline-size:\s*70vw/)
+  })
+
+  it("the Arabic display headline: IBM Plex Sans Arabic FIRST (var(--font-arabic)) at the concept scale — Space Grotesk never renders the h1", () => {
+    const title = rawLanding.match(/\.landing \.ln-hero-robot \.ln-hero-title\s*\{([^}]*)\}/)?.[1] ?? ""
+    expect(title).toContain("font-family: var(--font-arabic)")
+    expect(title).toMatch(/font-size:\s*clamp\(3\.2rem,\s*7vw,\s*5\.5rem\)/)
+    expect(title).toMatch(/line-height:\s*1\.14;/)
+    expect(title).toMatch(/font-weight:\s*var\(--fw-bold\)/)
+    expect(title).not.toMatch(/grotesk/i) // Space Grotesk carries no Arabic glyphs — the silent body-grade fallback was the P1 defect
+  })
+
+  it("the ticker box grammar: hairline + outside bracket corners + height-stable prompt", () => {
+    expect(rawLanding).toMatch(/\.ln-ticker\s*\{[^}]*border:\s*1px solid var\(--ln-line\)/)
+    expect(rawLanding).toMatch(/\.ln-ticker-prompt\s*\{[^}]*min-block-size:\s*2\.2em/)
+    expect(rawLanding).toMatch(/\.ln-ticker-corner\.c-a\s*\{[^}]*inset-block-start:\s*-5px;[^}]*inset-inline-start:\s*-5px/)
+  })
+
+  it("the status panel: hairline spine, synced active row, dim rows ≥4.5:1 (0.55 alpha)", () => {
+    expect(rawLanding).toMatch(/\.ln-status\s*\{[^}]*border-inline-start:\s*1px solid var\(--ln-line\)/)
+    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(233 245 240 \/ 0\.55\)/)
+    expect(rawLanding).toMatch(/\.ln-status li\[data-active='true'\]\s*\{[^}]*color:\s*var\(--ln-cream\)/)
+  })
+
+  it("the ticker island (HeroTicker): honest beats, aria-live polite, one synced index, IO + hidden-tab pause", () => {
+    const rawTicker = read("src/components/landing/HeroTicker.tsx")
+    const beats = rawTicker.slice(rawTicker.indexOf("const BEATS"), rawTicker.indexOf("const BEAT_MS"))
+    expect(beats).not.toMatch(/\d/) // real capability statements — never digits
+    expect(rawTicker).toContain('aria-live="polite"')
+    expect(rawTicker).toContain("data-active={i === idx")
+    expect(rawTicker).toContain("IntersectionObserver")
+    expect(rawTicker).toContain("document.hidden")
+    expect(rawTicker).toContain("ردّ تلقائي على تعليقات صفحتك")
+    expect(rawTicker).toContain("تسليم فوري للموظف البشري")
+    expect(rawTicker).toContain('className="sr-only"') // SR_POSE_COPY narration
+  })
+
+  it("the sink-and-fade exit (HeroExit): compositor verbs, rAF-gated passive scroll, RM never arms", () => {
+    const rawExit = read("src/components/landing/HeroExit.tsx")
+    expect(rawExit).toContain("EXIT_SPAN_VH = 0.72")
+    expect(rawExit).toContain("EXIT_SINK_PX = 96")
+    expect(rawExit).toContain("passive: true")
+    expect(rawExit).toContain("cancelAnimationFrame")
+    expect(rawExit).toContain("window.removeEventListener")
+    expect(rawExit).toContain("matchMedia('(prefers-reduced-motion: reduce)').matches")
+  })
+
+  it("the machine scene (RobotScene): solver + pauses + disposal + RM static pose + DPR 2", () => {
+    const rawRobot = read("src/components/landing/RobotScene.tsx")
+    expect(rawRobot).toContain("getPropertyValue('--sb-fig'")
+    expect(rawRobot).toContain("getPropertyValue('--sb-floor'")
+    expect(rawRobot).toMatch(/Math\.min\(window\.devicePixelRatio \|\| 1, 2\)/)
+    expect(rawRobot).toContain("IntersectionObserver")
+    expect(rawRobot).toContain("visibilitychange")
+    expect(rawRobot).toContain("renderer.dispose()")
+    expect(rawRobot).toContain("for (const g of geometries) g.dispose()")
+    expect(rawRobot).toContain("for (const m of materials) m.dispose()")
+    expect(rawRobot).toContain("one static posed frame")
+    expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
+    expect(rawRobot).toContain("degToRad(25)")
+    expect(rawRobot).toContain("degToRad(12)")
+  })
+
+  it("the page composes the scene: exit-wrapped machine layer + glow/vignette + circuit + ticker + honest CTAs", () => {
+    const rawPage = read("src/app/page.tsx")
+    expect(rawPage).toContain("<HeroTicker />")
+    expect(rawPage).toContain("<HeroExit>")
+    expect(rawPage).toContain('className="ln-robot-glow"')
+    expect(rawPage).toContain('className="ln-robot-vignette"')
+    expect(rawPage).toContain('className="ln-circuit"')
+    expect(rawPage).toContain('<MagneticGoldLink href="/subscribe" xl withArrow')
+    expect(rawPage).toContain('<Link href="/demo" className="ln-btn-ghost">')
+    expect(rawPage).toContain("تعرّف على")
+  })
+
+  it("the mobile stack (≤1024px): 44svh full-figure stage, island display:contents, compact status ON", () => {
+    const raw = read("src/app/landing.css")
+    const mob = raw.match(/@media \(max-width: 1024px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
+      ?? raw.slice(raw.lastIndexOf("@media (max-width: 1024px)"))
+    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*44svh/)
+    expect(mob).toMatch(/\.ln-ticker-island\s*\{[^}]*display:\s*contents/)
+    expect(mob).toMatch(/\.ln-ticker-status\s*\{[^}]*display:\s*flex/)
+    expect(mob).toMatch(/\.ln-status\s*\{[^}]*display:\s*none/)
+  })
+})

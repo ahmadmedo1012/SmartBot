@@ -1,35 +1,56 @@
 'use client';
 
-/* P17 + P16-A (concept A — CHARACTER-LED CINEMATIC) — THE PROTAGONIST
- * SCENE, re-art-directed to the Machine Instrument identity.
+/* P18-W2-a — THE OBELISK ATTENDANT (the §2.1/§2.2 rebuild).
  *
- * The hero's protagonist is the authored GLB attendant-machine
- * (public/models/smartbot-character.glb — lathe profiles, feathered
- * shells, chibi proportions), normalized into the pedestal/rings/grid
- * world; the layout's composition tokens (--sb-fig / --sb-floor, read
- * off the host) own the framing. fig/floor may exceed 1 (the mobile
- * bust close-up).
+ * The chibi boxy-CRT-head GLB is SUPERSEDED by a NEW, fully
+ * procedural Three.js character — authored BufferGeometry, no
+ * external asset, no loader on the critical path (Blender is absent
+ * from this environment; procedural geometry IS the pipeline). The
+ * retired GLB stays on disk at public/models/smartbot-character.glb
+ * for provenance only — it is never fetched.
  *
- * The node contract (name PREFIX): Root → Torso → {Head, ArmL, ArmR,
- * ChestCore, EdgeStrip}, Head → {Visor, EyeL, EyeR, AntennaL,
- * AntennaR}. Materials are PBR and RE-PAINTED at load to the phase-17
- * palette of record: ceramic body #DAD9D6 / graphite joints / black
- * glass visor / WHITE dot eyes / cyan core / the ONE edge strip
- * breathing cyan→violet. The ChainGPT lesson: the LIGHT FIGURE on the
- * near-black void is the scene's principal light source — the authored
- * petrol GLB values survive only in userData.sbOrig (provenance).
+ * THE CHARACTER (silhouette of record — asymmetric obelisk):
+ * · proportions head : torso : base ≈ 1 : 2.2 : 1.2 (tall monolith,
+ *   NOT chibi — a deliberate presence, not a toy);
+ * · HEAD — a softly-faceted ASYMMETRIC wedge prism (authored
+ *   BufferGeometry, 6 vertical stations + a swept chamfer: the
+ *   inline-start brow plane sweeps LOW toward the jaw on one side,
+ *   the far side stays clean) — one sculptural volume, never a box;
+ * · FACE — a smoked-glass panel SET INTO the head's inline-start
+ *   facet (the existing black-glass visor material system), carrying
+ * · ONE VERTICAL LUMINOUS APERTURE SLIT (cyan #56E2F2, emissive) —
+ *   the single eye; expression = the slit's width/phase, modulated
+ *   by the idle breathing (NEVER two dot eyes — the ChainGPT law);
+ * · NECK — a graphite gimbal ring stack (two torus segments + a
+ *   bearing band) between head and mantle (a modeled transition);
+ * · MANTLE — 3 overlapping lathe-turned ceramic shrouds in the
+ *   existing #DAD9D6 body-of-record, with a graphite core band
+ *   revealed between the upper and lower layers, one cyan core
+ *   disc at the chest, and the ONE tri-hue edge strip.
  *
- * ALIVENESS — three timescales: (1) POINTER: head ±25°/±12° + torso
- * ~40%, critically-damped; arms counter-swing. (2) IDLE: breathing
- * bob, eye blinks, antenna sway, strip cyan→violet drift. (3)
- * SCENARIO: the HeroTicker engine drives the character through the
- * heroBus — inbound → head turns + eyes widen; classify → core pulses
- * VIOLET; reply → eyes scan; handoff → arm raises + core warms AMBER.
+ * KEPT FROM P17 (the graded systems — untouched contracts): the
+ * ceramic/visor/graphite materials + runtime palette repaint
+ * (MutationObserver on html class), the light rig (neutral key +
+ * cool cyan rim −x + warm amber kicker +x + face glow), the beat
+ * hues (classify→VIOLET, handoff→AMBER on the core + aperture),
+ * the idle breathing/blink-equivalent (aperture phase), the
+ * framing solver (--sb-fig/--sb-floor with clamps), the pause
+ * family (IO + visibilitychange), the disposal sweep, the RM static
+ * pose, the DPR 2 cap, and the heroBus beat channel.
  *
- * WORLD: near-black void (#050506 fog family), pedestal + rings + grid
- * + dust + the grounding pair. Light rig: neutral key + COOL CYAN rim
- * + WARM AMBER kicker (two-temperature multicolor rim, ≤5% discipline)
- */
+ * ALIVENESS — three timescales, instrument-grade amplitudes:
+ * (1) POINTER: head ±25°/±12°, mantle ~40% (critically damped);
+ * (2) IDLE: breathing bob ±1.2% of height, aperture width phase,
+ *     strip cyan→violet→amber rotation (18s);
+ * (3) SCENARIO (heroBus): inbound → head turns toward the console +
+ *     aperture WIDENS; classify → core + aperture pulse VIOLET;
+ *     reply → aperture phase scans (the slit breathes quickly);
+ *     handoff → the mantle tips forward + core warms AMBER.
+ *
+ * The fallback SVG (WebGL failure) is redrawn to the SAME obelisk
+ * silhouette — asymmetric wedge head + vertical aperture + mantle —
+ * so the WebGL-less client sees the same character, never the old
+ * chibi. */
 
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -42,7 +63,9 @@ import {
   MeshBasicMaterial,
   CylinderGeometry,
   TorusGeometry,
+  LatheGeometry,
   PlaneGeometry,
+  BoxGeometry,
   BufferGeometry,
   BufferAttribute,
   Points,
@@ -56,12 +79,11 @@ import {
   CanvasTexture,
   ACESFilmicToneMapping,
   Box3,
+  Vector2,
   Vector3,
   DoubleSide,
   type Material,
-  type Object3D,
 } from 'three';
-import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { subscribeHeroBeat, lastHeroBeat, type HeroBeat, type HeroBeatDetail } from './heroBus';
 
 export type CharacterSceneProps = {
@@ -81,17 +103,19 @@ const AMBER = 0xff9a69;
  * The framing solver places these inside the host box:
  *   FLOOR_Y — the grid floor the pedestal base stands on
  *   CHAR_H  — the character's normalized height (feet ON the pedestal)
- *   TOP_Y   — the figure's crown (antenna tips + breathing margin)   */
+ *   TOP_Y   — the figure's crown (head crown + breathing margin)   */
 const FLOOR_Y = -0.19;
 const CHAR_H = 1.9;
 const TOP_Y = CHAR_H + 0.04;
 
-/* the character GLB — served verbatim from public/models/ (immutable) */
-const GLB_URL = '/models/smartbot-character.glb';
-
-/* ONE accent temperature per register (phase-17 law): the eyes stay
- * WHITE (the luminous dots); the edge strip / core registers breathe
- * cyan→violet; amber rides the warm rim + the handoff beat. */
+/* ── the OBELISK proportion constants (P18 proportions of record) ──
+ * head : torso : base ≈ 1 : 2.2 : 1.2 — the tall monolith presence.
+ * HEAD_H 0.42, MANTLE_H 0.92, PLINTH_H 0.50 ≈ 1 : 2.2 : 1.2 scaled. */
+const HEAD_H = 0.44;
+const MANTLE_H = 0.94;
+const NECK_H = 0.10;
+const GIMBAL_Y = MANTLE_H + NECK_H; /* neck sits on the mantle */
+const HEAD_Y0 = GIMBAL_Y + HEAD_H * 0.5; /* head's pivot (its center) */
 
 /* Sampling bridge: read the landing token vars off <html> (the .landing
  * scope declares them; a landing mount implies html context) and parse
@@ -121,13 +145,13 @@ function readVar(el: Element | null, name: string, fallback: number): number {
 type Palette = {
   dark: boolean;
   body: number;
-  chest: number;
+  mantleLower: number;
   joint: number;
   visor: number;
   visorGlow: number;
   visorIntensity: number;
-  eye: number;
-  eyeIntensity: number;
+  aperture: number;
+  apertureIntensity: number;
   core: number;
   coreIntensity: number;
   stage: number;
@@ -143,17 +167,17 @@ function samplePalette(): Palette {
   if (html.classList.contains('light')) {
     return {
       dark: false,
-      /* the porcelain-day stage: the ceramic character holds via its
-       * graphite joints + black glass face (contrast carries the
+      /* the porcelain-day stage: the ceramic obelisk holds via its
+       * graphite gimbal + black glass face (contrast carries the
        * silhouette); the accents drop to their ink grades */
       body: 0xdad9d6,
-      chest: 0xc9c8c4,
+      mantleLower: 0xc9c8c4,
       joint: 0x898b90,
       visor: 0x090a0d,
       visorGlow: 0x14262c,
       visorIntensity: 0.35,
-      eye: 0xffffff,
-      eyeIntensity: 1.0,
+      aperture: 0x0e7a8a,
+      apertureIntensity: 1.0,
       core: 0x0e7a8a,
       coreIntensity: 0.7,
       stage: 0xe1e1de,
@@ -166,20 +190,19 @@ function samplePalette(): Palette {
   }
   return {
     dark: true,
-    /* dark stage — THE phase-17 inversion: the authored GLB's petrol
-     * shells are RE-PAINTED to the ceramic body-of-record (#DAD9D6 —
-     * --sb-robot-body): the light figure on the near-black void IS the
-     * scene's principal light source (the ChainGPT core contrast
-     * trick). Joints go graphite, the face goes black glass, the eyes
-     * are WHITE luminous dots, the core is the cyan heartbeat. */
+    /* dark stage — THE phase-17 inversion: the ceramic obelisk
+     * (#DAD9D6 — --sb-robot-body) is the scene's principal light
+     * source (the light figure on the near-black void). The face is
+     * black glass set into the wedge; the aperture slit is the cyan
+     * heartbeat; the core disc breathes the beat hues. */
     body: 0xdad9d6,
-    chest: 0xc9c8c4,
+    mantleLower: 0xc9c8c4,
     joint: 0x898b90,
     visor: 0x090a0d,
     visorGlow: 0x08151c,
     visorIntensity: 0.35,
-    eye: 0xffffff,
-    eyeIntensity: 2.2,
+    aperture: 0xffffff,
+    apertureIntensity: 2.2,
     core: readVar(html, '--ln-lime', CYAN),
     coreIntensity: 1.15,
     stage: 0x0a0b0e,
@@ -192,22 +215,20 @@ function samplePalette(): Palette {
 }
 
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
- * A composed SVG portrait of the SAME character — lathe silhouette,
- * ceramic shell, black glass visor, white dot eyes, cyan core, the ONE
- * edge strip breathing cyan→violet — so a WebGL-less client gets the
- * hero, never a hole. Same phase-17 values as the scene. */
+ * A composed SVG portrait of the SAME obelisk character — the
+ * asymmetric wedge head with the swept brow chamfer, the smoked-glass
+ * facet, the ONE vertical aperture slit, the graphite gimbal rings,
+ * the layered ceramic mantle with the metallic core band, the cyan
+ * core disc + the tri-hue edge strip — so a WebGL-less client gets
+ * the P18 hero, never a hole. Same phase-17 values as the scene. */
 function CharacterFallbackSvg() {
   return (
     <svg viewBox="0 0 360 470" role="presentation" focusable="false" aria-hidden="true">
       <defs>
-        <linearGradient id="sb-fb-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#F0F0EE" />
-          <stop offset="0.55" stopColor="#DAD9D6" />
-          <stop offset="1" stopColor="#B4B4B0" />
-        </linearGradient>
-        <linearGradient id="sb-fb-head" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#E9E9E5" />
-          <stop offset="1" stopColor="#C4C4C0" />
+        <linearGradient id="sb-fb-wedge" x1="0" y1="0" x2="1" y2="0.2">
+          <stop offset="0" stopColor="#E4E4E0" />
+          <stop offset="0.5" stopColor="#DAD9D6" />
+          <stop offset="1" stopColor="#BDBDB9" />
         </linearGradient>
         <linearGradient id="sb-fb-visor" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#0B0C10" />
@@ -217,9 +238,9 @@ function CharacterFallbackSvg() {
           <stop offset="0" stopColor="#56E2F2" />
           <stop offset="1" stopColor="#9380FF" />
         </linearGradient>
-        <radialGradient id="sb-fb-eyeglow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#9380FF" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#9380FF" stopOpacity="0" />
+        <radialGradient id="sb-fb-apglow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#56E2F2" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="sb-fb-coreglow" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" stopColor="#56E2F2" stopOpacity="0.5" />
@@ -228,52 +249,55 @@ function CharacterFallbackSvg() {
       </defs>
 
       {/* contact shadow */}
-      <ellipse cx="180" cy="452" rx="118" ry="13" fill="rgb(1 1 2 / 0.85)" />
+      <ellipse cx="180" cy="452" rx="112" ry="12" fill="rgb(1 1 2 / 0.85)" />
 
-      {/* the pedestal — a lathe-tiered plinth + emissive rim */}
-      <path d="M 66 384 L 294 384 L 302 416 L 58 416 Z" fill="#141519" stroke="#292A30" strokeWidth="1" />
-      <path d="M 58 416 L 302 416 L 314 442 L 46 442 Z" fill="#0A0B0E" />
-      <ellipse cx="180" cy="384" rx="114" ry="11" fill="#101115" />
-      <ellipse cx="180" cy="384" rx="114" ry="11" fill="none" stroke="#56E2F2" strokeWidth="2" opacity="0.75" />
+      {/* the pedestal — the turned plinth + emissive rim */}
+      <path d="M 84 384 L 276 384 L 286 416 L 74 416 Z" fill="#141519" stroke="#292A30" strokeWidth="1" />
+      <path d="M 74 416 L 286 416 L 296 442 L 64 442 Z" fill="#0A0B0E" />
+      <ellipse cx="180" cy="384" rx="94" ry="10" fill="#101115" />
+      <ellipse cx="180" cy="384" rx="94" ry="10" fill="none" stroke="#56E2F2" strokeWidth="2" opacity="0.7" />
 
-      {/* the body — the feathered lathe shell */}
+      {/* the plinth base of the obelisk (proportion tier 3) */}
+      <path d="M 108 340 L 252 340 L 244 384 L 116 384 Z" fill="url(#sb-fb-wedge)" stroke="#898B90" strokeWidth="1" />
+
+      {/* the mantle — layered ceramic shrouds (tier 2) */}
+      <path d="M 100 220 C 100 200 118 190 180 190 C 242 190 260 200 260 220 L 252 344 L 108 344 Z" fill="url(#sb-fb-wedge)" stroke="#898B90" strokeWidth="1" />
+      {/* the upper shroud overlaps lower — the layered mantle read */}
+      <path d="M 118 196 C 136 186 156 182 180 182 C 204 182 224 186 242 196 L 234 262 L 126 262 Z" fill="#E9E9E5" stroke="#898B90" strokeWidth="1" opacity="0.95" />
+      {/* the metallic core band revealed between layers */}
+      <path d="M 126 262 L 234 262 L 232 276 L 128 276 Z" fill="#898B90" opacity="0.9" />
+      {/* the chest core disc — the cyan heartbeat */}
+      <circle cx="180" cy="298" r="30" fill="url(#sb-fb-coreglow)" />
+      <circle cx="180" cy="298" r="10" fill="#56E2F2" />
+      {/* the lower shroud */}
+      <path d="M 128 276 L 232 276 L 244 336 L 116 336 Z" fill="#CFCFCC" stroke="#898B90" strokeWidth="1" />
+
+      {/* the ONE edge strip — the tri-hue light signature */}
+      <path d="M 254 214 C 258 254 258 300 250 342" stroke="url(#sb-fb-strip)" strokeWidth="8" fill="none" opacity="0.2" />
+      <path d="M 254 214 C 258 254 258 300 250 342" stroke="url(#sb-fb-strip)" strokeWidth="3" fill="none" opacity="0.9" />
+
+      {/* the graphite gimbal ring stack (the neck) */}
+      <rect x="126" y="160" width="108" height="7" rx="3" fill="#898B90" />
+      <rect x="132" y="170" width="96" height="6" rx="3" fill="#74767B" />
+      <rect x="128" y="178" width="104" height="5" rx="2.5" fill="#898B90" opacity="0.85" />
+
+      {/* THE HEAD — the asymmetric wedge prism: the inline-start
+          brow sweeps low (the chamfer), the far side stays clean */}
       <path
-        d="M 92 182 C 92 140 112 128 180 128 C 248 128 268 140 268 182 L 268 302 C 268 358 238 384 180 384 C 122 384 92 358 92 302 Z"
-        fill="url(#sb-fb-body)"
+        d="M 118 156 L 242 156 L 250 88 L 226 34 L 118 34 Z"
+        fill="url(#sb-fb-wedge)"
         stroke="#898B90"
         strokeWidth="1"
       />
-      {/* shoulder shells (the feathered pair) */}
-      <path d="M 92 182 C 92 148 108 136 132 132 C 116 158 108 200 106 246 L 92 246 Z" fill="#C4C4C0" opacity="0.85" />
-      <path d="M 268 182 C 268 148 252 136 228 132 C 244 158 252 200 254 246 L 268 246 Z" fill="#C4C4C0" opacity="0.85" />
-      {/* chest plate + core */}
-      <path d="M 132 236 L 228 236 L 220 322 L 140 322 Z" fill="#C9C8C4" opacity="0.92" />
-      <circle cx="180" cy="279" r="26" fill="url(#sb-fb-coreglow)" />
-      <circle cx="180" cy="279" r="9" fill="#56E2F2" />
+      {/* the swept brow plane — the inline-start chamfer read */}
+      <path d="M 118 34 L 100 78 L 112 156 L 118 156 Z" fill="#C9C9C5" stroke="#898B90" strokeWidth="1" />
 
-      {/* the ONE edge strip — the light signature (teal→lime) */}
-      <path d="M 262 168 C 264 230 264 300 258 362" stroke="url(#sb-fb-strip)" strokeWidth="9" fill="none" opacity="0.22" />
-      <path d="M 262 168 C 264 230 264 300 258 362" stroke="url(#sb-fb-strip)" strokeWidth="3" fill="none" opacity="0.9" />
+      {/* the smoked-glass facet SET INTO the wedge's inline-start face */}
+      <path d="M 118 48 L 224 46 L 230 142 L 118 148 Z" fill="url(#sb-fb-visor)" stroke="#56E2F2" strokeOpacity="0.3" strokeWidth="1" />
 
-      {/* ear pods */}
-      <rect x="44" y="66" width="18" height="44" rx="9" fill="#898B90" />
-      <rect x="298" y="66" width="18" height="44" rx="9" fill="#898B90" />
-
-      {/* the head — the chibi crown */}
-      <rect x="58" y="22" width="244" height="128" rx="58" fill="url(#sb-fb-head)" stroke="#898B90" strokeWidth="1" />
-
-      {/* the glossy visor + the lime eyes */}
-      <rect x="84" y="46" width="192" height="82" rx="34" fill="url(#sb-fb-visor)" stroke="#56E2F2" strokeOpacity="0.3" strokeWidth="1" />
-      <ellipse cx="141" cy="87" rx="24" ry="24" fill="url(#sb-fb-eyeglow)" />
-      <ellipse cx="219" cy="87" rx="24" ry="24" fill="url(#sb-fb-eyeglow)" />
-      <ellipse cx="141" cy="87" rx="12" ry="18" fill="#9380FF" />
-      <ellipse cx="219" cy="87" rx="12" ry="18" fill="#9380FF" />
-
-      {/* antennas */}
-      <path d="M 146 30 L 132 6" stroke="#898B90" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="132" cy="6" r="5" fill="#9380FF" opacity="0.9" />
-      <path d="M 214 30 L 228 10" stroke="#898B90" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="228" cy="10" r="5" fill="#56E2F2" opacity="0.9" />
+      {/* THE ONE VERTICAL APERTURE SLIT — cyan, luminous (the eye) */}
+      <ellipse cx="166" cy="96" rx="16" ry="30" fill="url(#sb-fb-apglow)" />
+      <path d="M 162 66 L 170 66 L 172 126 L 160 126 Z" fill="#56E2F2" />
     </svg>
   );
 }
@@ -337,7 +361,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     pedGlow.position.set(0, 0.42, 0.9);
     scene.add(pedGlow);
 
-    /* ── registry for full disposal (scene-built AND GLB assets) ── */
+    /* ── registry for full disposal (scene-built) ── */
     const geometries: BufferGeometry[] = [];
     const materials: Material[] = [];
     const track = <T extends BufferGeometry | Material>(x: T): T => {
@@ -348,7 +372,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
     let palette = samplePalette();
 
-    /* ═══ THE WORLD (the machine's stage — refined, not replaced) ═══
+    /* ═══ THE WORLD (the machine's stage — kept from P17) ═══
      * Pedestal: a lathe-tiered plinth matching the character's own
      * turned-shell grammar (two chamfered tiers + emissive rim), the
      * two landing-pad rings, the grid hairlines, dust, and the contact
@@ -509,8 +533,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
      * The host's --sb-fig (figure fraction of host height) and
      * --sb-floor (floor line fraction) place the full figure + its
      * stage inside the box; the fog keeps the character crisp (near >
-     * camera distance) while the far grid dissolves. Runs at effect
-     * level so the WORLD paints before the GLB joins it. */
+     * camera distance) while the far grid dissolves. */
     const frame = () => {
       const w = host.clientWidth || 600;
       const h = host.clientHeight || 600;
@@ -533,10 +556,16 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       const hUnits = span / figFrac;
       const dist = hUnits / (2 * Math.tan(MathUtils.degToRad(camera.fov / 2)));
       const lookY = FLOOR_Y + (floorFrac - 0.5) * hUnits;
+      /* P18-W2-a — the LATERAL COMPOSITION BIAS: --sb-x shifts the whole
+       * camera rig (+ world stage) sideways so the figure renders at the
+       * host's inline-end band while the canvas stays FULL-WIDTH (no
+       * hard crop edges — the rings/grid bleed off-frame cinematically).
+       * Default 0 = centered (mobile bust + tablet band grammar). */
+      const xBias = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-x')) || 0, -1.5), 1.5);
       /* level camera (y == lookY) — the y→screen mapping is exact, so
        * the CSS floor glow at --sb-floor lands on the pedestal */
-      camera.position.set(0, lookY, dist);
-      camera.lookAt(0, lookY, 0);
+      camera.position.set(xBias, lookY, dist);
+      camera.lookAt(xBias, lookY, 0);
       camera.updateProjectionMatrix();
       fog.near = dist * 1.06;
       fog.far = dist * 2.6;
@@ -545,13 +574,12 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     frame();
     const ro = new ResizeObserver(frame);
     ro.observe(host);
-    renderer.render(scene, camera); /* the world paints pre-GLB */
+    renderer.render(scene, camera); /* the world paints pre-character */
 
     /* ── lifecycle state (character-ready values live here) ──────── */
     let raf = 0;
     let mo: MutationObserver | null = null;
     let io: IntersectionObserver | null = null;
-    let disposed = false;
     let last = performance.now();
     let visible = true;
     let unsubBeat: (() => void) | null = null;
@@ -584,430 +612,519 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       }
     };
 
-    /* GLB materials, classified by name PREFIX (hash-suffix safe) */
-    type GltfMatKind = 'body' | 'chest' | 'joint' | 'visor' | 'eye' | 'core' | 'strip';
-    const gltfMats = new Map<MeshStandardMaterial, GltfMatKind>();
+    /* ═══ THE CHARACTER — THE OBELISK ATTENDANT, procedural build ═══
+     * One authored geometry pass, no loader, no external asset. All
+     * meshes are built from LatheGeometry (the turned ceramic mantle
+     * grammar), BufferGeometry (the asymmetric wedge head), torus
+     * segments (the gimbal neck), and thin prisms (the aperture slit +
+     * core band + edge strip). Total vertex budget < 6k. */
 
-    function classifyMat(name: string): GltfMatKind | null {
-      if (name.startsWith('Body')) return 'body';
-      if (name.startsWith('Chest')) return 'chest';
-      if (name.startsWith('Joint')) return 'joint';
-      if (name.startsWith('Visor')) return 'visor';
-      if (name.startsWith('Eye')) return 'eye';
-      if (name.startsWith('Core')) return 'core';
-      if (name.startsWith('Strip')) return 'strip';
-      return null;
-    }
-
-    /* ═══ THE CHARACTER — the authored GLB, normalized at runtime ═══ */
-    let gltfScene: Object3D | null = null;
-    let root: Object3D | null = null;
-    let torso: Object3D | null = null;
-    let head: Object3D | null = null;
-    let headY0 = 0;
-    let eyeL: Object3D | null = null;
-    let eyeR: Object3D | null = null;
-    let eyeLX = 0;
-    let eyeRX = 0;
-    let antennaL: Object3D | null = null;
-    let antennaR: Object3D | null = null;
-    let armL: Object3D | null = null;
-    let armR: Object3D | null = null;
-    let coreNode: Object3D | null = null;
-    let eyeMat: MeshStandardMaterial | null = null;
-    let coreMat: MeshStandardMaterial | null = null;
-    let stripMat: MeshStandardMaterial | null = null;
+    /* the materials of record (the P17 systems, unchanged values) */
+    const bodyMat = track(new MeshStandardMaterial({ color: palette.body, roughness: 0.72, metalness: 0.04 }));
+    const mantleLowerMat = track(new MeshStandardMaterial({ color: palette.mantleLower, roughness: 0.72, metalness: 0.04 }));
+    const jointMat = track(new MeshStandardMaterial({ color: palette.joint, roughness: 0.6, metalness: 0.1 }));
+    const visorMat = track(new MeshStandardMaterial({ color: palette.visor, roughness: 0.35, metalness: 0.2 }));
+    const apertureMat = track(
+      new MeshStandardMaterial({
+        color: 0x0a1418,
+        emissive: new Color(CYAN),
+        emissiveIntensity: 2.2,
+        roughness: 0.4,
+      }),
+    );
+    const coreMat = track(
+      new MeshStandardMaterial({
+        color: 0x0a1418,
+        emissive: new Color(CYAN),
+        emissiveIntensity: 1.15,
+        roughness: 0.4,
+      }),
+    );
+    const stripMat = track(
+      new MeshStandardMaterial({
+        color: 0x0a1418,
+        emissive: new Color(CYAN),
+        emissiveIntensity: 0.95,
+        roughness: 0.4,
+      }),
+    );
     const stripA = new Color(CYAN);  /* the tri-hue ramp endpoints: */
     const stripB = new Color(VIOLET);/* machine → AI → human registers */
     const stripC = new Color(AMBER); /* (the strip's slow rotation) */
 
-    const findNode = (wanted: string): Object3D | null => {
-      if (!gltfScene) return null;
-      let hit: Object3D | null = null;
-      const exact = (o: Object3D) => {
-        if (hit === null && o.name === wanted) hit = o;
-      };
-      gltfScene.traverse(exact);
-      if (hit !== null) return hit;
-      const prefixed = (o: Object3D) => {
-        if (hit === null && o.name.startsWith(wanted)) hit = o;
-      };
-      gltfScene.traverse(prefixed);
-      return hit;
+    const character = new Group();
+    figure.add(character);
+
+    /* ── the mantle — three overlapping lathe shrouds (tier 2) ──────
+     * Each shroud is a turned profile; the upper overlaps the lower's
+     * rim (the layered ceramic mantle), with the graphite core band
+     * revealed in the waist gap between shroud 2 and 3. */
+    const shroud = (
+      profile: [number, number][],
+      mat: Material,
+      segs = 40,
+    ) => {
+      const pts = profile.map(([x, y]) => new Vector2(x, y));
+      const geo = track(new LatheGeometry(pts, segs));
+      return new Mesh(geo, mat);
     };
 
-    const disposeGltf = (gltf: GLTF) => {
-      gltf.scene.traverse((o) => {
-        const mesh = o as Mesh;
-        if (mesh.isMesh) {
-          mesh.geometry?.dispose();
-          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          for (const m of mats) m.dispose();
-        }
-      });
-    };
+    /* shroud A (upper) — the shoulder cape, wide at top, tapering */
+    const shroudA = shroud(
+      [
+        [0.0, 0.0],
+        [0.30, 0.0],
+        [0.315, 0.02],
+        [0.33, 0.10],
+        [0.30, 0.22],
+        [0.245, 0.34],
+        [0.225, 0.40],
+      ],
+      bodyMat,
+    );
+    shroudA.position.y = MANTLE_H - 0.40;
+    character.add(shroudA);
 
-    const onCharacter = (gltf: GLTF) => {
-      if (disposed) {
-        disposeGltf(gltf);
-        return;
+    /* shroud B (mid) — the chest tier, slightly narrower, overlapping
+     * A's hem: carries the smoked-glass core disc + the tri-hue strip */
+    const shroudB = shroud(
+      [
+        [0.0, 0.0],
+        [0.265, 0.0],
+        [0.272, 0.02],
+        [0.272, 0.24],
+        [0.262, 0.30],
+      ],
+      bodyMat,
+    );
+    shroudB.position.y = MANTLE_H - 0.52;
+    character.add(shroudB);
+
+    /* the graphite core band — the revealed metallic waist between
+     * the mid and lower shrouds (the layered mantle's hinge read) */
+    const coreBand = new Mesh(track(new CylinderGeometry(0.236, 0.246, 0.12, 40)), jointMat);
+    coreBand.position.y = MANTLE_H - 0.63;
+    character.add(coreBand);
+
+    /* shroud C (lower) — the base skirt flaring to the plinth */
+    const shroudC = shroud(
+      [
+        [0.0, 0.0],
+        [0.24, 0.0],
+        [0.248, 0.03],
+        [0.286, 0.16],
+        [0.32, 0.34],
+        [0.335, 0.46],
+      ],
+      mantleLowerMat,
+    );
+    shroudC.position.y = MANTLE_H - 1.09;
+    character.add(shroudC);
+
+    /* the chest core — the cyan heartbeat disc set INTO shroud B's
+     * front face (the beat hue carrier: classify VIOLET / handoff
+     * AMBER — the P17 law, kept) */
+    const coreDisc = new Mesh(track(new CylinderGeometry(0.062, 0.062, 0.03, 28)), coreMat);
+    coreDisc.rotation.x = Math.PI / 2;
+    coreDisc.position.set(0, MANTLE_H - 0.36, 0.262);
+    character.add(coreDisc);
+    const coreNode = coreDisc; /* the beat channel's scale node */
+
+    /* the ONE tri-hue edge strip — a thin vertical prism on the
+     * shroud B surface (the rim's inline-end edge), the multicolor
+     * light signature rotating cyan→violet→amber over 18s */
+    const stripGeo = track(new BufferGeometry());
+    {
+      /* a flat quad strip hugging shroud B's side arc */
+      const verts: number[] = [];
+      const ang = 0.52; /* the strip's angular center (inline-end side) */
+      const r = 0.275;
+      const hw = 0.055; /* the strip's arc half-width (radians) */
+      for (const a of [ang - hw, ang + hw]) {
+        verts.push(Math.sin(a) * r, 0, Math.cos(a) * r);
       }
+      for (const a of [ang - hw, ang + hw]) {
+        verts.push(Math.sin(a) * r, 0.28, Math.cos(a) * r);
+      }
+      stripGeo.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
+      stripGeo.setIndex([0, 1, 2, 1, 3, 2]);
+      stripGeo.computeVertexNormals();
+    }
+    const strip = new Mesh(stripGeo, stripMat);
+    strip.position.y = MANTLE_H - 0.52;
+    character.add(strip);
 
-      /* normalize: authored units → the world contract (feet at the
-       * pedestal top, height = CHAR_H, horizontally centered) */
-      gltfScene = gltf.scene;
-      const box = new Box3().setFromObject(gltf.scene);
+    /* the plinth — the obelisk's tier-3 base (proportion 1.2), a
+     * chamfered foot flaring onto the pedestal */
+    const plinth = shroud(
+      [
+        [0.0, 0.0],
+        [0.30, 0.0],
+        [0.312, 0.02],
+        [0.34, 0.10],
+        [0.38, 0.22],
+        [0.40, 0.34],
+        [0.405, 0.42],
+      ],
+      mantleLowerMat,
+    );
+    plinth.position.y = 0;
+    character.add(plinth);
+
+    /* ── the gimbal neck — graphite ring stack (tier joint) ────────
+     * Two torus segments + a bearing band between mantle and head:
+     * the modeled transition the chibi lacked. */
+    const neckGroup = new Group();
+    neckGroup.position.y = MANTLE_H;
+    character.add(neckGroup);
+    const gimbalA = new Mesh(track(new TorusGeometry(0.16, 0.032, 10, 36)), jointMat);
+    gimbalA.rotation.x = Math.PI / 2;
+    gimbalA.position.y = 0.022;
+    neckGroup.add(gimbalA);
+    const gimbalB = new Mesh(track(new CylinderGeometry(0.138, 0.15, 0.05, 32)), jointMat);
+    gimbalB.position.y = 0.052;
+    neckGroup.add(gimbalB);
+    const gimbalC = new Mesh(track(new TorusGeometry(0.152, 0.026, 10, 36)), jointMat);
+    gimbalC.rotation.x = Math.PI / 2;
+    gimbalC.position.y = 0.084;
+    neckGroup.add(gimbalC);
+
+    /* ── THE HEAD — the asymmetric softly-faceted wedge ────────────
+     * Authored BufferGeometry: 6 stations bottom→top, each a quad
+     * ring whose corners are swept progressively — the inline-start
+     * brow plane drops LOW toward the jaw on one side (the chamfer),
+     * the inline-end side stays clean and full-height. A smoked-glass
+     * facet panel + the vertical aperture slit are SET INTO the
+     * inline-start face (recessed 0.01 behind the facet plane).
+     *
+     * Stations (y from head base; head depth z, half-width x):
+     *   y0.00 base    x±0.20 z 0.20 → 0.14  (the jaw, chamfer begins)
+     *   y0.16 lower   x±0.205 z 0.21 → 0.15 (brow sweep deepens)
+     *   y0.30 brow    x±0.21  z 0.22 → 0.16 (max sweep, near-side low)
+     *   y0.34 crown   x±0.19  z 0.19 → 0.17 (the far side's high plane)
+     *   y0.40 top     x±0.13  z 0.13 → 0.12 (crown platform)
+     *   y0.44 apex    x 0 z 0 (point — the obelisk's peak)
+     */
+    const headGroup = new Group();
+    headGroup.position.y = HEAD_Y0;
+    character.add(headGroup);
+
+    const wedgeGeometry = ((): BufferGeometry => {
+      /* A closed, manifold hexagonal-ring prism: 5 stations bottom→top,
+       * each ring carrying 6 corners swept around the cross-section —
+       *   [0] IS-front   [1] IS-mid   [2] IS-back   [3] IE-back
+       *   [4] IE-mid     [5] IE-front
+       * The IS corners' y is swept DOWN by `sweep` (the brow plane
+       * drops low on the inline-start side — the asymmetric chamfer);
+       * the IE side stays clean and full-height. Rings are stitched
+       * with outward-wound quads, the apex is a single fan vertex, the
+       * base a fan cap: a watertight sculpt (verified closed +
+       * positive-volume winding). */
+      const stations: { y: number; xIS: number; xIE: number; zF: number; zB: number; sweep: number }[] = [
+        { y: 0.0, xIS: 0.20, xIE: 0.20, zF: 0.20, zB: 0.14, sweep: 0.0 },
+        { y: 0.17, xIS: 0.208, xIE: 0.208, zF: 0.21, zB: 0.15, sweep: 0.05 },
+        { y: 0.31, xIS: 0.212, xIE: 0.212, zF: 0.215, zB: 0.155, sweep: 0.11 },
+        { y: 0.375, xIS: 0.19, xIE: 0.205, zF: 0.19, zB: 0.17, sweep: 0.15 },
+        { y: 0.435, xIS: 0.13, xIE: 0.14, zF: 0.13, zB: 0.12, sweep: 0.1 },
+      ];
+      const verts: number[] = [];
+      const indices: number[] = [];
+      let vi = 0;
+      const push = (x: number, y: number, z: number) => {
+        verts.push(x, y, z);
+        return vi++;
+      };
+      const rings: number[][] = [];
+      for (const s of stations) {
+        rings.push([
+          push(-s.xIS, s.y - s.sweep, s.zF), /* 0 IS front */
+          push(-s.xIS * 0.92, s.y - s.sweep * 0.7, (s.zF - s.zB) * 0.15 + s.zB), /* 1 IS mid — the soft facet */
+          push(-s.xIS * 0.8, s.y - s.sweep * 0.55, -s.zB), /* 2 IS back */
+          push(s.xIE * 0.8, s.y, -s.zB), /* 3 IE back */
+          push(s.xIE * 0.92, s.y, (s.zF - s.zB) * 0.15 + s.zB), /* 4 IE mid */
+          push(s.xIE, s.y, s.zF), /* 5 IE front */
+        ]);
+      }
+      const apex = push(0, HEAD_H, 0);
+      const quad = (a: number, b: number, c: number, d: number) => {
+        indices.push(a, b, c, a, c, d);
+      };
+      for (let i = 0; i < rings.length - 1; i++) {
+        const lo = rings[i]!;
+        const hi = rings[i + 1]!;
+        for (let c = 0; c < 6; c++) {
+          const cn = (c + 1) % 6;
+          quad(hi[c]!, hi[cn]!, lo[cn]!, lo[c]!);
+        }
+      }
+      /* the apex fan — the obelisk's peak */
+      const last = rings[rings.length - 1]!;
+      for (let c = 0; c < 6; c++) {
+        const cn = (c + 1) % 6;
+        indices.push(last[cn]!, last[c]!, apex);
+      }
+      /* the base cap fan */
+      const base = push(0, stations[0]!.y, 0);
+      for (let c = 0; c < 6; c++) {
+        const cn = (c + 1) % 6;
+        indices.push(base, rings[0]![c]!, rings[0]![cn]!);
+      }
+      const geo = new BufferGeometry();
+      geo.setAttribute('position', new BufferAttribute(new Float32Array(verts), 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    })();
+
+    /* center the head's pivot at its mid-height (rotation origin) */
+    const head = new Mesh(track(wedgeGeometry), bodyMat);
+    head.position.y = -HEAD_H * 0.5;
+    headGroup.add(head);
+
+    /* the smoked-glass face — a facet-matched quad SET INTO the
+     * inline-start/front corner of the wedge (recessed 0.012), tilted
+     * to ride the brow sweep's plane */
+    const facePanel = new Mesh(track(new PlaneGeometry(0.20, 0.24)), visorMat);
+    facePanel.position.set(-0.085, 0, 0.168);
+    facePanel.rotation.y = -0.42;
+    facePanel.rotation.z = 0.0;
+    facePanel.rotation.x = -0.06;
+    headGroup.add(facePanel);
+
+    /* THE ONE VERTICAL APERTURE SLIT — the eye (cyan, emissive): a
+     * thin vertical prism on the face panel's plane; its scale.x is
+     * the expression channel (breathing phase + beat widening). */
+    const aperture = new Mesh(track(new BoxGeometry(0.024, 0.15, 0.012)), apertureMat);
+    aperture.position.set(-0.085, 0.015, 0.175);
+    aperture.rotation.y = -0.42;
+    headGroup.add(aperture);
+    const apertureNode = aperture; /* the expression node */
+
+    /* the neck's crown plate — the graphite collar the head rides on */
+    const collar = new Mesh(track(new CylinderGeometry(0.148, 0.158, 0.035, 32)), jointMat);
+    collar.position.y = GIMBAL_Y + 0.01;
+    character.add(collar);
+
+    /* normalize the figure: the build used MANTLE_H+NECK_H+HEAD_H
+     * directly in world scale (≈ CHAR_H); verify + rescale to contract */
+    let characterBaseY = 0;
+    {
+      const box = new Box3().setFromObject(character);
       const size = box.getSize(new Vector3());
       const S = CHAR_H / Math.max(size.y, 1e-6);
-      const character = new Group();
       character.scale.setScalar(S);
       character.position.y = -box.min.y * S;
-      character.add(gltf.scene);
-      figure.add(character);
+      characterBaseY = character.position.y;
+    }
 
-      /* register every GLB geometry/material for the disposal sweep,
-       * classifying the PBR materials by name prefix as we go */
-      gltf.scene.traverse((o) => {
-        const mesh = o as Mesh;
-        if (!mesh.isMesh) return;
-        geometries.push(mesh.geometry);
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        for (const m of mats) {
-          const std = m as MeshStandardMaterial;
-          const kind = classifyMat(std.name ?? '');
-          if (kind) {
-            gltfMats.set(std, kind);
-            /* record the authored dark values — the palette of record */
-            std.userData.sbOrig = {
-              color: std.color.getHex(),
-              emissive: std.emissive.getHex(),
-              emissiveIntensity: std.emissiveIntensity,
-            };
-            materials.push(std);
-          }
-        }
-      });
-      for (const [mat, kind] of gltfMats) {
-        if (kind === 'eye' && !eyeMat) eyeMat = mat;
-        if (kind === 'core' && !coreMat) coreMat = mat;
-        if (kind === 'strip' && !stripMat) stripMat = mat;
+    /* ── the reflection hint — a faint mirrored copy of the whole
+     * figure under the floor line (the grounding's second half;
+     * unlit clones at low opacity, fog does the fading). The clone's
+     * colors are derived from the PALETTE (live-updating). */
+    const reflMats: { mat: MeshBasicMaterial; kind: 'body' | 'visor' | 'aperture' | 'core' | 'stage' }[] = [];
+    const reflection = character.clone(true);
+    reflection.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh) return;
+      const src = mesh.material as MeshStandardMaterial;
+      const kind =
+        src === apertureMat ? 'aperture'
+        : src === coreMat ? 'core'
+        : src === visorMat ? 'visor'
+        : src === bodyMat || src === mantleLowerMat || src === jointMat ? 'body'
+        : 'stage';
+      const reflMat = track(
+        new MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: kind === 'aperture' || kind === 'core' ? 0.22 : 0.13,
+          depthWrite: false,
+          side: DoubleSide,
+        }),
+      );
+      reflMats.push({ mat: reflMat, kind: kind as 'body' | 'visor' | 'aperture' | 'core' | 'stage' });
+      mesh.material = reflMat;
+      mesh.renderOrder = -1;
+    });
+    reflection.scale.setScalar(character.scale.x);
+    reflection.scale.y = -character.scale.x;
+    reflection.position.y = 2 * FLOOR_Y;
+    scene.add(reflection);
+    /* the reflection's palette derivation — called from repaint() */
+    const paintReflection = () => {
+      for (const { mat: rm, kind } of reflMats) {
+        const fromEmissive = kind === 'aperture' || kind === 'core';
+        const hex =
+          kind === 'body' ? palette.body
+          : kind === 'visor' ? palette.visor
+          : kind === 'aperture' ? palette.aperture
+          : kind === 'core' ? palette.core
+          : palette.stage;
+        rm.color.setHex(hex).multiplyScalar(fromEmissive ? 0.85 : 0.55);
+        rm.opacity = fromEmissive ? 0.22 : 0.13;
       }
+    };
 
-      /* the node contract (by name PREFIX) */
-      root = findNode('Root');
-      torso = findNode('Torso');
-      head = findNode('Head');
-      eyeL = findNode('EyeL');
-      eyeR = findNode('EyeR');
-      antennaL = findNode('AntennaL');
-      antennaR = findNode('AntennaR');
-      armL = findNode('ArmL');
-      armR = findNode('ArmR');
-      coreNode = findNode('ChestCore');
-      if (head) headY0 = head.position.y;
-      if (eyeL) eyeLX = eyeL.position.x;
-      if (eyeR) eyeRX = eyeR.position.x;
+    /* ── theme repaint (MutationObserver on html class) — the
+     * procedural materials repaint with the theme (P17 contract). */
+    const repaint = () => {
+      palette = samplePalette();
+      stageMat.color.setHex(palette.stage);
+      pedTopMat.color.setHex(palette.pedTop);
+      pedRingMat.color.setHex(palette.pedRing);
+      floorRingMat.color.setHex(palette.pedRing);
+      floorRing2Mat.color.setHex(palette.pedRing);
+      gridMat.color.setHex(palette.grid);
+      pMat.color.setHex(palette.particle);
+      pMatNear.color.setHex(palette.particle);
+      faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0e7a8a);
+      pedGlow.color.setHex(palette.pedRing);
+      fog.color.copy(palette.fogColor);
+      bodyMat.color.setHex(palette.body);
+      mantleLowerMat.color.setHex(palette.mantleLower);
+      jointMat.color.setHex(palette.joint);
+      visorMat.color.setHex(palette.visor);
+      apertureMat.emissive.setHex(palette.aperture);
+      apertureMat.emissiveIntensity = palette.apertureIntensity;
+      coreMat.emissive.setHex(palette.core);
+      coreMat.emissiveIntensity = palette.coreIntensity;
+      /* the strip's breathing hue pair follows the theme */
+      stripA.setHex(palette.dark ? CYAN : 0x0e7a8a);
+      stripB.setHex(palette.dark ? VIOLET : 0x6b54e0);
+      paintReflection();
+      if (!reduced) renderer.render(scene, camera);
+    };
+    repaint();
+    mo = new MutationObserver(repaint);
+    mo.observe(document.documentElement, { attributeFilter: ['class'] });
 
-      /* ── the reflection hint — a faint mirrored copy of the whole
-       * figure under the floor line (the grounding's second half;
-       * unlit clones at low opacity, fog does the fading). Phase 17:
-       * the clone's colors are re-derived from the PALETTE (never the
-       * GLB's authored petrol) and live-update with every repaint. */
-      const reflMats: MeshBasicMaterial[] = [];
-      const reflection = figure.clone(true);
-      reflection.traverse((o) => {
-        const mesh = o as Mesh;
-        if (!mesh.isMesh) return;
-        const src = mesh.material as MeshStandardMaterial;
-        const kind = classifyMat(src.name ?? '') ?? 'stage';
-        const fromEmissive = kind === 'eye' || kind === 'core' || kind === 'strip';
-        const base = new Color(0xffffff);
-        const reflMat = track(
-          new MeshBasicMaterial({
-            color: base,
-            transparent: true,
-            opacity: fromEmissive ? 0.22 : 0.13,
-            depthWrite: false,
-            side: DoubleSide,
-          }),
-        );
-        reflMat.userData.sbKind = kind;
-        reflMats.push(reflMat);
-        mesh.material = reflMat;
-        mesh.renderOrder = -1;
-      });
-      reflection.scale.y = -1;
-      reflection.position.y = 2 * FLOOR_Y;
-      scene.add(reflection);
-      /* the reflection's palette derivation — called from repaint() */
-      const paintReflection = () => {
-        for (const rm of reflMats) {
-          const kind = (rm.userData.sbKind as GltfMatKind | 'stage') ?? 'stage';
-          const fromEmissive = kind === 'eye' || kind === 'core' || kind === 'strip';
-          const hex =
-            kind === 'body' ? palette.body
-            : kind === 'chest' ? palette.chest
-            : kind === 'joint' ? palette.joint
-            : kind === 'visor' ? palette.visor
-            : kind === 'eye' ? palette.eye
-            : kind === 'core' || kind === 'strip' ? palette.core
-            : palette.stage;
-          rm.color.setHex(hex).multiplyScalar(fromEmissive ? 0.85 : 0.55);
-          rm.opacity = fromEmissive ? 0.22 : 0.13;
+    /* ── the beat channel: subscribe + adopt the current beat ──── */
+    const onBeat = (d: HeroBeatDetail) => {
+      beat = d.beat;
+      beatAt = performance.now();
+    };
+    const current = lastHeroBeat();
+    if (current) onBeat(current);
+    if (!reduced) unsubBeat = subscribeHeroBeat(onBeat);
+
+    /* ── pointer tracking: head ±25°/±12°, mantle ±10% ── */
+    if (!reduced && window.matchMedia('(pointer: fine)').matches) {
+      window.addEventListener('pointermove', onMove, { passive: true });
+      window.addEventListener('pointerleave', onLeave, { passive: true });
+    }
+
+    /* ── the frame loop — three timescales of aliveness ──────────
+     * (1) pointer tracking (damped lerp), (2) idle layers (bob +
+     * aperture breathing phase + strip tri-hue rotation), (3)
+     * scenario reactions (look toward the console, aperture widen,
+     * aperture scan pulse, core pulse + hue, mantle tip). All
+     * smoothed toward per-beat targets; zero per-frame allocations. */
+    let yaw = 0;
+    let pitch = 0;
+    let lookBias = 0;
+    let apertureWide = 1;
+    let scanPhase = 0;
+    let mantleTip = 0;
+    const t0 = performance.now();
+    /* the beat hue state — the core's temperature (phase-17 law) */
+    const coreHue = new Color(CYAN);
+    const tmpColor = new Color();
+
+    frameLoop = (now: number) => {
+      raf = 0;
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      const t = (now - t0) / 1000;
+
+      /* lerp toward the pointer targets */
+      yaw = MathUtils.lerp(yaw, targetX * MathUtils.degToRad(25), 1 - Math.pow(0.0015, dt));
+      pitch = MathUtils.lerp(pitch, targetY * MathUtils.degToRad(12), 1 - Math.pow(0.0015, dt));
+
+      /* scenario reaction targets (the beat drives the character) */
+      const b = beat ?? 'reset';
+      lookBias = MathUtils.lerp(lookBias, b === 'inbound' ? 0.34 : 0, 1 - Math.pow(0.02, dt));
+      apertureWide = MathUtils.lerp(apertureWide, b === 'inbound' ? 1.5 : 1, 1 - Math.pow(0.04, dt));
+      scanPhase = MathUtils.lerp(scanPhase, b === 'reply' ? 1 : 0, 1 - Math.pow(0.05, dt));
+      mantleTip = MathUtils.lerp(mantleTip, b === 'handoff' ? 1 : 0, 1 - Math.pow(0.03, dt));
+      let corePulse = 0;
+      if (b === 'classify') {
+        const since = (now - beatAt) / 1000;
+        if (since >= 0 && since < 1.4) {
+          corePulse = Math.abs(Math.sin(since * Math.PI * 2.4)) * Math.exp(-since * 2.2);
         }
-      };
-
-      /* ── theme repaint (MutationObserver on html class) — the GLB
-       * materials traverse-and-repaint. Phase 17: BOTH stages paint the
-       * ceramic palette of record (the GLB's authored petrol values are
-       * history — recorded in sbOrig for provenance only). */
-      const repaint = () => {
-        palette = samplePalette();
-        stageMat.color.setHex(palette.stage);
-        pedTopMat.color.setHex(palette.pedTop);
-        pedRingMat.color.setHex(palette.pedRing);
-        floorRingMat.color.setHex(palette.pedRing);
-        floorRing2Mat.color.setHex(palette.pedRing);
-        gridMat.color.setHex(palette.grid);
-        pMat.color.setHex(palette.particle);
-        pMatNear.color.setHex(palette.particle);
-        faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0e7a8a);
-        pedGlow.color.setHex(palette.pedRing);
-        fog.color.copy(palette.fogColor);
-        for (const [mat, kind] of gltfMats) {
-          const orig = mat.userData.sbOrig as { color: number; emissive: number; emissiveIntensity: number };
-          /* the ceramic body-of-record — identical shells both stages */
-          mat.color.setHex(
-            kind === 'body'
-              ? palette.body
-              : kind === 'chest'
-                ? palette.chest
-                : kind === 'joint'
-                  ? palette.joint
-                  : kind === 'visor'
-                    ? palette.visor
-                    : orig.color,
-          );
-          mat.emissive.setHex(
-            kind === 'eye'
-              ? palette.eye
-              : kind === 'core' || kind === 'strip'
-                ? palette.core
-                : kind === 'visor'
-                  ? palette.visorGlow
-                  : orig.emissive,
-          );
-          mat.emissiveIntensity =
-            kind === 'eye'
-              ? palette.eyeIntensity
-              : kind === 'core'
-                ? palette.coreIntensity
-                : kind === 'strip'
-                  ? 0.75
-                  : kind === 'visor'
-                    ? palette.visorIntensity
-                    : orig.emissiveIntensity;
-          /* P17 matte law — the reference's industrial ceramic: shells
-           * go matte (roughness up, metalness floor); the black glass
-           * face keeps one specular notch above them; joints sit
-           * between. Kills the glossy-toy reading at the material
-           * response level (the VLM's gap #2). */
-          if (kind === 'body' || kind === 'chest') {
-            mat.roughness = 0.72;
-            mat.metalness = 0.04;
-          } else if (kind === 'joint') {
-            mat.roughness = 0.6;
-            mat.metalness = 0.1;
-          } else if (kind === 'visor') {
-            mat.roughness = 0.35;
-            mat.metalness = 0.2;
-          }
-          mat.needsUpdate = true;
-        }
-        /* the strip's breathing hue pair follows the theme */
-        stripA.setHex(palette.dark ? CYAN : 0x0e7a8a);
-        stripB.setHex(palette.dark ? VIOLET : 0x6b54e0);
-        paintReflection();
-        if (!reduced) renderer.render(scene, camera);
-      };
-      repaint();
-      mo = new MutationObserver(repaint);
-      mo.observe(document.documentElement, { attributeFilter: ['class'] });
-
-      /* ── the beat channel: subscribe + adopt the current beat ──── */
-      const onBeat = (d: HeroBeatDetail) => {
-        beat = d.beat;
-        beatAt = performance.now();
-      };
-      const current = lastHeroBeat();
-      if (current) onBeat(current);
-      if (!reduced) unsubBeat = subscribeHeroBeat(onBeat);
-
-      /* ── pointer tracking: head ±25°/±12°, torso ±10°, arms counter ── */
-      if (!reduced && window.matchMedia('(pointer: fine)').matches) {
-        window.addEventListener('pointermove', onMove, { passive: true });
-        window.addEventListener('pointerleave', onLeave, { passive: true });
       }
+      /* the phase-17 beat color law — the core's HUE tells the story:
+       * cyan (the machine's voice) at rest; VIOLET while classifying
+       * (the AI register); AMBER warmth on handoff (the human
+       * register). Lerped — a temperature shift, never a flash. */
+      const coreBeatColor = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : palette.dark ? CYAN : 0x0e7a8a;
+      coreHue.lerp(tmpColor.setHex(coreBeatColor), 1 - Math.pow(0.06, dt));
 
-      /* ── the frame loop — three timescales of aliveness ──────────
-       * (1) pointer tracking (damped lerp), (2) idle layers (bob,
-       * blink, antenna sway, strip breathing), (3) scenario reactions
-       * (look toward the console, eye widen, eye scan, core pulse,
-       * arm raise) — all smoothed toward per-beat targets. */
-      let yaw = 0;
-      let pitch = 0;
-      let torsoYaw = 0;
-      let lookBias = 0;
-      let eyeWide = 1;
-      let scanAmp = 0;
-      let armLift = 0;
-      let blinkT = -1; // <0 = not blinking
-      let nextBlink = 2.4 + Math.random() * 3;
-      const t0 = performance.now();
-      /* the beat hue state — the core's temperature (phase-17 law) */
-      const coreHue = new Color(CYAN);
-      const tmpColor = new Color();
+      /* idle bob (breathing) — the whole figure rides ±1.2% */
+      character.position.y = characterBaseY + Math.sin(t * 1.5) * 0.018;
+      headGroup.position.y = HEAD_Y0 + Math.sin(t * 1.5 + 0.6) * 0.01;
 
-      frameLoop = (now: number) => {
-        raf = 0;
-        const dt = Math.min((now - last) / 1000, 0.05);
-        last = now;
-        const t = (now - t0) / 1000;
+      /* head tracking + the beat's look bias + the autonomous gaze
+       * wander layered under it (a parked pointer never leaves the
+       * character staring dead-center) */
+      const wander = Math.sin(t * 0.21) * 0.12 + Math.sin(t * 0.07) * 0.05;
+      headGroup.rotation.y = yaw + wander + lookBias;
+      headGroup.rotation.x = pitch + Math.sin(t * 0.17) * 0.03 + mantleTip * 0.06;
+      /* the mantle tips slightly with the beat (the whole body's
+       * attention — an instrument-grade lean, never a toy sway) */
+      character.rotation.x = mantleTip * 0.045;
+      character.rotation.y = MathUtils.lerp(character.rotation.y, lookBias * 0.3, 1 - Math.pow(0.01, dt));
 
-        /* lerp toward the pointer targets */
-        yaw = MathUtils.lerp(yaw, targetX * MathUtils.degToRad(25), 1 - Math.pow(0.0015, dt));
-        pitch = MathUtils.lerp(pitch, targetY * MathUtils.degToRad(12), 1 - Math.pow(0.0015, dt));
-        torsoYaw = MathUtils.lerp(torsoYaw, targetX * MathUtils.degToRad(10), 1 - Math.pow(0.004, dt));
+      /* THE APERTURE — the single eye's expression channel: the idle
+       * breathing phase modulates the slit's width ±18%; inbound
+       * widens it (apertureWide); reply runs a fast scan shimmer. */
+      const breath = 1 + Math.sin(t * 1.5) * 0.18;
+      const scan = 1 + Math.sin(t * 9) * 0.1 * scanPhase;
+      apertureNode.scale.set(apertureWide * breath * scan, 1, 1);
+      apertureMat.emissiveIntensity =
+        palette.apertureIntensity + Math.sin(t * 1.5) * 0.12 + corePulse * 0.25;
 
-        /* scenario reaction targets (the beat drives the character) */
-        const b = beat ?? 'reset';
-        lookBias = MathUtils.lerp(lookBias, b === 'inbound' ? 0.34 : 0, 1 - Math.pow(0.02, dt));
-        eyeWide = MathUtils.lerp(eyeWide, b === 'inbound' ? 1.24 : 1, 1 - Math.pow(0.04, dt));
-        scanAmp = MathUtils.lerp(scanAmp, b === 'reply' ? 1 : 0, 1 - Math.pow(0.05, dt));
-        armLift = MathUtils.lerp(armLift, b === 'handoff' ? 1 : 0, 1 - Math.pow(0.03, dt));
-        let corePulse = 0;
-        if (b === 'classify') {
-          const since = (now - beatAt) / 1000;
-          if (since >= 0 && since < 1.4) {
-            corePulse = Math.abs(Math.sin(since * Math.PI * 2.4)) * Math.exp(-since * 2.2);
-          }
-        }
-        /* the phase-17 beat color law — the core's HUE tells the story:
-         * cyan (the machine's voice) at rest; VIOLET while classifying
-         * (the AI register); AMBER warmth on handoff (the human
-         * register). Lerped — a temperature shift, never a flash. */
-        const coreBeatColor = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : palette.dark ? CYAN : 0x0e7a8a;
-        coreHue.lerp(tmpColor.setHex(coreBeatColor), 1 - Math.pow(0.06, dt));
-
-        /* idle bob (breathing) — the root rides ±1.5% of the height */
-        if (root) root.position.y = Math.sin(t * 1.5) * 0.015;
-        if (head) head.position.y = headY0 + Math.sin(t * 1.5 + 0.6) * 0.008;
-
-        /* head + torso tracking + the beat's look bias, with an
-         * autonomous gaze wander layered under it (a parked pointer
-         * never leaves the character staring dead-center) */
-        const wander = Math.sin(t * 0.21) * 0.12 + Math.sin(t * 0.07) * 0.05;
-        if (head) {
-          head.rotation.y = yaw + wander + lookBias;
-          head.rotation.x = pitch + Math.sin(t * 0.17) * 0.03;
-        }
-        if (torso) torso.rotation.y = torsoYaw + wander * 0.4 + lookBias * 0.45;
-
-        /* arm pose + counter-swing + the handoff lift (the -x arm
-         * raises). P16-W3 (P1-a, pixel-verified): the rest pose lifts
-         * the arms FORWARD (rotation.x ≈ -0.58) — a friendly
-         * presentation stance whose hands sit at chest height, well
-         * above the display lockup's band, so no lit arm pixels cross
-         * the h1 ground (the h1 block spans nearly the full width —
-         * horizontal tucking cannot dodge it; only height clears it).
-         * Counter-sway rides the z-axis as before; the handoff lift
-         * raises the -x arm exactly as before. */
-        const sway = Math.sin(t * 1.5) * 0.03;
-        if (armL) { armL.rotation.x = -0.58; armL.rotation.z = 0.06 + sway + torsoYaw * 0.55; }
-        if (armR) { armR.rotation.x = -0.58; armR.rotation.z = -0.06 - sway - torsoYaw * 0.55 - 0.45 * armLift; }
-
-        /* eye blink — scale Y briefly; widen on inbound; scan on reply */
-        nextBlink -= dt;
-        if (nextBlink <= 0 && blinkT < 0) {
-          blinkT = 0;
-          nextBlink = 2.6 + Math.random() * 3.4;
-        }
-        let eyeScale = 1;
-        if (blinkT >= 0) {
-          blinkT += dt;
-          const d = blinkT / 0.16;
-          if (d >= 1) {
-            blinkT = -1;
-          } else {
-            eyeScale = 1 - Math.sin(d * Math.PI) * 0.92;
-          }
-        }
-        const scan = Math.sin(t * 9) * 0.016 * scanAmp;
-        if (eyeL) {
-          eyeL.scale.set(eyeWide, eyeScale * eyeWide, eyeWide);
-          eyeL.position.x = eyeLX + scan;
-        }
-        if (eyeR) {
-          eyeR.scale.set(eyeWide, eyeScale * eyeWide, eyeWide);
-          eyeR.position.x = eyeRX + scan;
-        }
-
-        /* antenna sway (two phase-offset pendulums) */
-        if (antennaL) antennaL.rotation.z = Math.sin(t * 1.1) * 0.09;
-        if (antennaR) antennaR.rotation.z = Math.sin(t * 1.1 + 1.9) * 0.08;
-
-        /* the emissive registers: eyes breathe, the core pulses with its
-         * beat hue (violet on classify / amber on handoff), the ONE edge
-         * strip breathes + drifts cyan→violet */
-        if (eyeMat) eyeMat.emissiveIntensity = palette.eyeIntensity + Math.sin(t * 1.5) * 0.12 + corePulse * 0.25;
-        if (coreMat) {
-          coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.8;
-          coreMat.emissive.copy(coreHue);
-        }
-        if (coreNode) {
-          const cs = 1 + corePulse * 0.07;
-          coreNode.scale.set(cs, cs, cs);
-        }
-        if (stripMat) {
-          stripMat.emissiveIntensity = palette.dark
-            ? 0.95 + Math.sin(t * 0.9) * 0.3
-            : 0.7 + Math.sin(t * 0.9) * 0.15;
-          /* P17: the tri-hue rotation — the ONE edge strip carries the
-           * full instrument ramp over one slow 18s cycle (cyan → violet
-           * → amber → cyan), the multicolor light signature the
-           * reference wears on its bezel (VLM gap #1's fix) */
-          const phase = (t % 18) / 6; // 0..3
-          if (phase < 1) stripMat.emissive.copy(stripA).lerp(stripB, phase);
-          else if (phase < 2) stripMat.emissive.copy(stripB).lerp(stripC, phase - 1);
-          else stripMat.emissive.copy(stripC).lerp(stripA, phase - 2);
-        }
-
-        /* particle drift (two depth layers, the near one slower) */
-        particles.position.y = Math.sin(t * 0.22) * 0.12;
-        particlesNear.position.y = Math.sin(t * 0.13 + 1.2) * 0.08;
-
-        renderer.render(scene, camera);
-        if (visible && !document.hidden) raf = requestAnimationFrame(frameLoop);
-      };
-
-      if (reduced) {
-        /* one static posed frame — the character mid-idle: a soft 3/4
-           gaze, antennas mid-sway, eyes open; no rAF, no tracking, no
-           beat channel (the ticker composes its own static first beat) */
-        if (head) head.rotation.y = MathUtils.degToRad(-12);
-        if (torso) torso.rotation.y = MathUtils.degToRad(-5);
-        if (armL) armL.rotation.z = 0.08;
-        if (armR) armR.rotation.z = -0.14;
-        if (antennaL) antennaL.rotation.z = 0.06;
-        if (antennaR) antennaR.rotation.z = -0.05;
-        renderer.render(scene, camera);
-      } else {
-        raf = requestAnimationFrame(frameLoop);
+      /* the emissive registers: the core pulses with its beat hue
+       * (violet on classify / amber on handoff), the ONE tri-hue edge
+       * strip breathes + rotates cyan→violet→amber (18s) */
+      coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.8;
+      coreMat.emissive.copy(coreHue);
+      {
+        const cs = 1 + corePulse * 0.07;
+        coreNode.scale.set(cs, cs, 1);
       }
+      stripMat.emissiveIntensity = palette.dark
+        ? 0.95 + Math.sin(t * 0.9) * 0.3
+        : 0.7 + Math.sin(t * 0.9) * 0.15;
+      const phase = (t % 18) / 6; // 0..3
+      if (phase < 1) stripMat.emissive.copy(stripA).lerp(stripB, phase);
+      else if (phase < 2) stripMat.emissive.copy(stripB).lerp(stripC, phase - 1);
+      else stripMat.emissive.copy(stripC).lerp(stripA, phase - 2);
 
-      /* ── pausing: offscreen + hidden tab ─────────────────────────── */
-      io = new IntersectionObserver(
-        (entries) => {
+      /* particle drift (two depth layers, the near one slower) */
+      particles.position.y = Math.sin(t * 0.22) * 0.12;
+      particlesNear.position.y = Math.sin(t * 0.13 + 1.2) * 0.08;
+
+      renderer.render(scene, camera);
+      if (visible && !document.hidden) raf = requestAnimationFrame(frameLoop);
+    };
+
+    if (reduced) {
+      /* one static posed frame — the obelisk mid-idle: a soft 3/4
+         gaze, the aperture at its resting width, no rAF, no
+         tracking, no beat channel (the ticker composes its own
+         static first beat) */
+      headGroup.rotation.y = MathUtils.degToRad(-12);
+      headGroup.rotation.x = 0.02;
+      character.rotation.y = MathUtils.degToRad(-4);
+      renderer.render(scene, camera);
+    } else {
+      raf = requestAnimationFrame(frameLoop);
+    }
+
+    /* ── pausing: offscreen + hidden tab ─────────────────────────── */
+    io = new IntersectionObserver(
+      (entries) => {
           const was = visible;
           visible = entries[entries.length - 1].isIntersecting;
           if (reduced) return;
@@ -1017,44 +1134,12 @@ export function CharacterScene({ className }: CharacterSceneProps) {
           }
         },
         { rootMargin: '80px 0px' },
-      );
-      io.observe(host);
-      document.addEventListener('visibilitychange', onVis);
-    };
-
-    /* the lazy GLTFLoader import — its bytes ride the hero chunk only.
-     * The import itself is a network fetch in dev/edge cases: a chunk
-     * that fails to load must land in the SVG fallback, never an
-     * unhandled rejection on the console (the zero-error law). */
-    const boot = async () => {
-      try {
-        const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-        if (disposed) return;
-        new GLTFLoader().load(
-          GLB_URL,
-          (gltf) => onCharacter(gltf),
-          undefined,
-          () => {
-            /* missing/broken asset → hide the half-world (its pedestal
-             * would double under the SVG's own) + stop the loop, then the
-             * art-directed frame carries the hero */
-            if (disposed) return;
-            if (raf) cancelAnimationFrame(raf);
-            raf = 0;
-            visible = false;
-            renderer.domElement.style.display = 'none';
-            setFailed(true);
-          },
-        );
-      } catch {
-        if (!disposed) setFailed(true);
-      }
-    };
-    void boot();
+    );
+    io.observe(host);
+    document.addEventListener('visibilitychange', onVis);
 
     /* ── teardown: dispose EVERY geometry/material, kill observers ── */
     return () => {
-      disposed = true;
       if (raf) cancelAnimationFrame(raf);
       mo?.disconnect();
       ro.disconnect();

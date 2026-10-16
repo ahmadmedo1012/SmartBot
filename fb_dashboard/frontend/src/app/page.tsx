@@ -172,34 +172,36 @@ export default function HomePage() {
           focus behavior, zero visual change. */}
       <div id="page-content" tabIndex={-1}>
 
-        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P16-A concept A — the
-            authored GLB character is the protagonist. One 100svh scene:
-            the character centered on its visible stage between the
-            prompt console (inline-start) and the status readout
-            (inline-end), the Arabic display headline anchoring the
-            bottom third. ═══ */}
+        {/* ═══ ٠ الهيرو — «تعرّف على رفيقك»: P18-W2-a — THE ASYMMETRIC
+            SCENE. The obelisk attendant (the procedural character) is
+            the protagonist at the INLINE-END band (--sb-x camera bias:
+            RTL screen-left) on its visible stage; the display lockup
+            (eyebrow + h1 + sub + CTAs) owns inline-start, the demo
+            console rides the reading-start upper band, the SYSTEM
+            telemetry panel the inline-end rail — no text ever crosses
+            the figure, no scrims (§2.5). ═══ */}
         <section className="ln-hero ln-hero-robot" aria-label="SmartBot — رفيق صفحات فيسبوك">
-          {/* the machine layer — the canvas is TRANSPARENT, so the
-              console and status boxes under it are physically anchored
-              by the character's body. Decorative by role (aria-hidden):
-              the ticker, status panel and copy are the accessible
-              surface. Sinks and fades on the first scroll (HeroExit). */}
+          {/* the machine layer — the canvas is TRANSPARENT and the
+              composition is ASYMMETRIC (P18-W2-a, §2.5): the obelisk
+              attendant stands at the INLINE-END band (--sb-x camera
+              bias), the display lockup owns inline-start — no glyph
+              ever crosses the figure, so the P16 scrim stack is
+              RETIRED (legibility from composition, not gradients).
+              Decorative by role (aria-hidden): the ticker, status
+              panel and copy are the accessible surface. Sinks and
+              fades on the first scroll (HeroExit). */}
           <div className="ln-robot-stage" aria-hidden="true">
             <HeroExit>
               <div className="ln-robot-frame">
                 {/* the floor glow + contact-pool anchor under the
                     pedestal (the CSS half of the machine's light spill,
                     at the exact viewport fraction the scene's framing
-                    solver places the floor — --sb-floor) and the edge
-                    vignette — both UNDER the canvas */}
+                    solver places the floor — --sb-floor, pooled at
+                    --sb-glow-x) and the edge vignette — both UNDER the
+                    canvas */}
                 <span className="ln-robot-glow" />
                 <span className="ln-robot-vignette" />
                 <RobotSceneMount className="ln-robot-canvas" />
-                {/* the pedestal scrim: ABOVE the canvas, BELOW the copy
-                    (z3) — the character's lower body sinks into the
-                    petrol gradient through the display block's zone so
-                    no glyph intersects a lit silhouette edge. */}
-                <span className="ln-robot-scrim" />
               </div>
             </HeroExit>
           </div>

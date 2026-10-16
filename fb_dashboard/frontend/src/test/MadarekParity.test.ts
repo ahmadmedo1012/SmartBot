@@ -730,19 +730,23 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.3;[^@]*?--sb-floor:\s*1\.35;/)
   })
 
-  it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the 70vw display measure", () => {
+  it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P18-W2-a 44vw display column measure", () => {
     const desk = rawLanding.match(/@media \(min-width: 1025px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? ""
     expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*block-size:\s*calc\(100svh - 74px\)/)
     expect(desk).toMatch(/\.ln-hero-robot\s*\{[^}]*min-block-size:\s*620px/)
     expect(desk).toMatch(/\.ln-ticker-island\s*\{[^}]*z-index:\s*0/)
     expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*z-index:\s*3/)
-    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*max-inline-size:\s*70vw/)
+    /* P18-W2-a re-anchor: 70vw → 44vw — the asymmetric scene's inline-start
+     * column (the figure owns the inline-end band; no glyph crosses it) */
+    expect(desk).toMatch(/\.ln-hero-copy\s*\{[^}]*max-inline-size:\s*44vw/)
   })
 
-  it("the Arabic display headline: IBM Plex Sans Arabic FIRST (var(--font-arabic)) at the concept scale — Space Grotesk never renders the h1", () => {
+  it("the Arabic display headline: IBM Plex Sans Arabic FIRST (var(--font-arabic)) at the P18-W2-a column scale — Space Grotesk never renders the h1", () => {
     const title = rawLanding.match(/\.landing \.ln-hero-robot \.ln-hero-title\s*\{([^}]*)\}/)?.[1] ?? ""
     expect(title).toContain("font-family: var(--font-arabic)")
-    expect(title).toMatch(/font-size:\s*clamp\(3\.2rem,\s*7vw,\s*5\.5rem\)/)
+    /* P18-W2-a re-anchor: the poster scale is column-proportioned, not
+     * viewport-wide (9.7em lockup lines × 4.4vw = 2 lines in the 44vw column) */
+    expect(title).toMatch(/font-size:\s*clamp\(2\.6rem,\s*4\.4vw,\s*4\.3rem\)/)
     expect(title).toMatch(/line-height:\s*1\.14;/)
     expect(title).toMatch(/font-weight:\s*var\(--fw-bold\)/)
     expect(title).not.toMatch(/grotesk/i) // Space Grotesk carries no Arabic glyphs — the silent body-grade fallback was the P1 defect
@@ -754,9 +758,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawLanding).toMatch(/\.ln-ticker-corner\.c-a\s*\{[^}]*inset-block-start:\s*-5px;[^}]*inset-inline-start:\s*-5px/)
   })
 
-  it("the status panel: hairline spine, synced active row, dim rows ≥4.5:1 (0.55 alpha)", () => {
-    expect(rawLanding).toMatch(/\.ln-status\s*\{[^}]*border-inline-start:\s*1px solid var\(--ln-line\)/)
-    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(244 244 246 \/ 0\.55\)/)
+  it("the status panel (P18-W2-a): the wireframe instrument box, synced active row, resting rows at real presence (0.75 alpha)", () => {
+    /* P18-W2-a re-anchor: the bare spine list (border-inline-start only,
+     * 0.55 rows) measured near-invisible on the desktop void (the W1-a
+     * defect) — the panel now carries the ticker's own wireframe box
+     * grammar (full hairline border + ink wash) and 0.75 resting rows */
+    expect(rawLanding).toMatch(/\.ln-status\s*\{[^}]*border:\s*1px solid var\(--ln-line\)/)
+    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(244 244 246 \/ 0\.75\)/)
     expect(rawLanding).toMatch(/\.ln-status li\[data-active='true'\]\s*\{[^}]*color:\s*var\(--ln-cream\)/)
   })
 
@@ -793,7 +801,7 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawExit).toContain("matchMedia('(prefers-reduced-motion: reduce)').matches")
   })
 
-  it("the character scene (P16-A CharacterScene): solver + pauses + disposal + RM static pose + DPR 2 + the GLB/fallback contract", () => {
+  it("the character scene (P18-W2-a CharacterScene): solver + pauses + disposal + RM static pose + DPR 2 + the procedural/fallback contract", () => {
     const rawRobot = read("src/components/landing/CharacterScene.tsx")
     expect(rawRobot).toContain("getPropertyValue('--sb-fig'")
     expect(rawRobot).toContain("getPropertyValue('--sb-floor'")
@@ -807,9 +815,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawRobot).toContain("matchMedia('(pointer: fine)')")
     expect(rawRobot).toContain("degToRad(25)")
     expect(rawRobot).toContain("degToRad(12)")
-    // the P16-A additions: the GLB contract + the art-directed fallback
-    expect(rawRobot).toContain("'/models/smartbot-character.glb'")
-    expect(rawRobot).toContain("import('three/examples/jsm/loaders/GLTFLoader.js')")
+    // the P18-W2-a re-anchor: the GLB protagonist is superseded by the
+    // fully PROCEDURAL character (authored BufferGeometry — no loader on
+    // the critical path; the retired GLB stays on disk for provenance,
+    // never fetched) + the art-directed fallback contract is unchanged
+    expect(rawRobot).not.toContain("import('three/examples/jsm/loaders/GLTFLoader.js')") // the loader is retired with the GLB
+    expect(rawRobot).toContain("new BufferGeometry()") // the authored procedural build
+    expect(rawRobot).toContain("getContext('webgl2')") // the WebGL probe gates the renderer
     expect(rawRobot).toContain("setFailed(true)")
   })
 
@@ -821,6 +833,7 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawTicker).toContain("import { dispatchHeroBeat } from './heroBus'")
     expect(rawTicker).toContain("dispatchHeroBeat({ beat, scenarioId: scenario.id })")
     expect(rawChar).toContain("import { subscribeHeroBeat, lastHeroBeat, type HeroBeat, type HeroBeatDetail } from './heroBus'")
+    // P18-W2-a: the retired GLB stays on disk as provenance-only (never fetched)
     expect(exists("public/models/smartbot-character.glb")).toBe(true)
   })
 

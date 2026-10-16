@@ -6,9 +6,10 @@ import dynamic from 'next/dynamic';
  * allowed in Server Components (Next.js 16/Turbopack), so the dynamic
  * import lives in this thin client wrapper; the landing page (server
  * component) mounts it and keeps its instant inline h1/sub paint.
- * P16-A: the mounted engine is now the CHARACTER scene (the authored
- * GLB attendant + its lazy GLTFLoader ride this chunk — the retired
- * primitives RobotScene is deleted). */
+ * P18-W2-a: the mounted engine is the PROCEDURAL character scene (the
+ * authored BufferGeometry obelisk attendant rides this chunk — no
+ * loader, no asset fetch; the retired GLB stays on disk for provenance
+ * only). */
 
 const CharacterScene = dynamic(() => import('@/components/landing/CharacterScene'), {
   ssr: false,

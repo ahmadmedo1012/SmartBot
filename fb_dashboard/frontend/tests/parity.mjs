@@ -31,6 +31,14 @@
  * HeroCompanion (the below-fold dock) and the dead canvas twins
  * OrbitScene + HeroDepthLayer — every pin that read those sources now
  * reads the living hero files or asserts the retirement itself.
+ * P18-W2-a (the Obelisk Attendant — recovered/finished): 5 hero pins
+ * re-anchored with the character rebuild + the asymmetric re-composition
+ * — the 44vw inline-start column measure, the 4.4vw column display
+ * scale, the status panel's wireframe-instrument-box grammar (0.75
+ * resting alpha — the W1-a near-invisible reading retired), and the
+ * character contract flipped to the PROCEDURAL build (BufferGeometry,
+ * GLTFLoader absent; the retired GLB is provenance-only on disk). Pin
+ * COUNT unchanged; no pin deleted.
  *
  * History: r127 Madarek parity rewrite (82→180+ pins), r131/r133/r134
  * wave pins — superseded value-wise by r152, kept structurally.
@@ -2393,20 +2401,28 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     if (zc === '3') pass += 1;
     else fails.push(`P15 copy: the display block must sit above the machine (z3, got ${zc ?? '<missing>'})`);
     const cm = copy ? declOf(copy, 'max-inline-size') : undefined;
-    if (cm === '70vw') pass += 1;
-    else fails.push(`P15 copy measure: the display block must ride the vw-coupled 70vw measure (2-line lockup, got ${cm ?? '<missing>'})`);
+    /* P18-W2-a re-anchor (the asymmetric scene): 70vw → 44vw — the
+     * display lockup owns the INLINE-START column (the figure owns
+     * inline-end); the measure stays vw-coupled to the 4.4vw display
+     * scale (9.7em lockup lines × 4.4vw = 2 lines in 44vw — same
+     * wrap-margin law, the column-proportioned rung) */
+    if (cm === '44vw') pass += 1;
+    else fails.push(`P15 copy measure: the display block must ride the vw-coupled 44vw inline-start column measure (2-line lockup, got ${cm ?? '<missing>'})`);
   }
 
   // (4) the Arabic display headline — the P1 font-failure fix: IBM Plex
-  //     Sans Arabic (var(--font-arabic)) FIRST at 700 on the concept's
-  //     display scale (clamp 3.2-5.5rem), tight display leading, TWO
-  //     oversized lines exactly (the copy block's 70vw measure is
-  //     vw-coupled to the 7vw display scale — the 9.7em lockup lines can
-  //     never wrap into the ticker's band). Space Grotesk never renders
-  //     the headline (it has no Arabic glyphs) — Latin stays in the
-  //     mono eyebrow.
+  //     Sans Arabic (var(--font-arabic)) FIRST at 700 on the display
+  //     scale, tight display leading, TWO oversized lines exactly (P18-W2-a
+  //     re-anchor: the copy block's 44vw inline-start column measure is
+  //     vw-coupled to the 4.4vw display scale — the 9.7em lockup lines
+  //     can never wrap into the ticker's band, and never cross the
+  //     inline-end figure band). Space Grotesk never renders the headline
+  //     (it has no Arabic glyphs) — Latin stays in the mono eyebrow.
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-family', 'var(--font-arabic)');
-  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-size', 'clamp(3.2rem, 7vw, 5.5rem)');
+  /* P18-W2-a re-anchor: the poster scale is column-proportioned, not
+   * viewport-wide (clamp 3.2-5.5rem @7vw → 2.6-4.3rem @4.4vw — the
+   * asymmetric column's display rung) */
+  pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-size', 'clamp(2.6rem, 4.4vw, 4.3rem)');
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'line-height', '1.14');
   pinDecl('P15-display', '.landing .ln-hero-robot .ln-hero-title', 'font-weight', 'var(--fw-bold)');
   {
@@ -2426,10 +2442,14 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   pinDecl('P15-ticker', '.landing .ln-ticker-beat', 'min-block-size', '5.4em');
   pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-block-start', '-5px');
   pinDecl('P15-ticker-corner', '.landing .ln-ticker-corner.c-a', 'inset-inline-start', '-5px');
-  // the status panel: hairline spine + the synced active row in cream,
-  // dim rows at the 0.55 alpha that holds ≥4.5:1 on petrol
-  pinDecl('P15-status', '.landing .ln-status', 'border-inline-start', '1px solid var(--ln-line)');
-  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(244 244 246 / 0.55)');
+  // the status panel (P18-W2-a re-anchor — the W1-a defect fix: the
+  //     bare spine list measured pixel-avg 11,11,12 on the desktop void
+  //     = near-invisible): the panel is now the WIREFRAME INSTRUMENT BOX
+  //     — the ticker's own grammar (full hairline box + ink wash) and
+  //     resting rows lifted 0.55 → 0.75 so they hold real presence on
+  //     the void; the synced active row stays cream
+  pinDecl('P15-status', '.landing .ln-status', 'border', '1px solid var(--ln-line)');
+  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(244 244 246 / 0.75)');
   pinDecl('P15-status', '.landing .ln-status li[data-active=\'true\']', 'color', 'var(--ln-cream)');
 
   // (6) the ticker island (source contract, 2-e: B's scenario engine) —
@@ -2479,12 +2499,14 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   }
 
   // (8) the character scene (P16-A source contract, re-anchored from the
-  //     primitives RobotScene) — the framing solver reads the layout
+  //     primitives RobotScene; P18-W2-a re-anchored again onto the
+  //     procedural OBELISK build) — the framing solver reads the layout
   //     tokens with clamps, the pause family (IO + visibility), the
   //     disposal sweep, the RM static pose, the pointer-tracking gate,
-  //     AND the P16-A additions: the GLB contract (public/models asset +
-  //     LAZY GLTFLoader import so its bytes ride the hero chunk only) +
-  //     the art-directed SVG fallback (WebGL/GLB failure ≠ broken canvas).
+  //     AND the P18-W2-a character contract: the fully procedural
+  //     BufferGeometry build (no loader on the critical path — the
+  //     retired GLB stays on disk for provenance, never fetched) + the
+  //     art-directed SVG fallback (WebGL failure ≠ broken canvas).
   {
     const rawRobot = readRaw('../src/components/landing/CharacterScene.tsx');
     const solverOk = rawRobot.includes('getPropertyValue(\'--sb-fig\'')
@@ -2507,11 +2529,19 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
       && rawRobot.includes('degToRad(25)') && rawRobot.includes('degToRad(12)');
     if (trackOk) pass += 1;
     else fails.push('P16-A tracking: pointer-follow gated on (pointer: fine), head ±25°/±12°');
-    const glbOk = rawRobot.includes("'/models/smartbot-character.glb'")
-      && rawRobot.includes("import('three/examples/jsm/loaders/GLTFLoader.js')")
+    /* P18-W2-a re-anchor (the §2.1/§2.2 rebuild): the GLB protagonist is
+     * SUPERSEDED by the fully procedural character — authored
+     * BufferGeometry, zero loader bytes on the critical path (the
+     * GLTFLoader import itself must be ABSENT; the retired GLB file
+     * stays on disk for provenance — see 8c). The fallback contract is
+     * unchanged: the WebGL probe gates the renderer, setFailed(true)
+     * renders the art-directed SVG frame — never a broken canvas. */
+    const glbOk = !rawRobot.includes("import('three/examples/jsm/loaders/GLTFLoader.js')")
+      && rawRobot.includes('new BufferGeometry()')
+      && rawRobot.includes("getContext('webgl2')")
       && rawRobot.includes('setFailed(true)');
     if (glbOk) pass += 1;
-    else fails.push('P16-A GLB: the scene loads /models/smartbot-character.glb via the LAZY GLTFLoader import + fails over to the art-directed SVG frame (never a broken canvas)');
+    else fails.push('P18-W2-a procedural character: authored BufferGeometry build, NO GLTFLoader on the critical path (GLB retired, provenance-only), WebGL probe → setFailed(true) → art-directed SVG frame (never a broken canvas)');
   }
 
   // (8b) the heroBus beat channel (P16-A) — the honest scenario engine
@@ -2540,6 +2570,8 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //      immutable rule must carry the 1y cache (the page default is
   //      no-store — without these the protagonist re-downloads every
   //      navigation; middleware wins precedence, so both halves matter).
+  //      P18-W2-a: the GLB is provenance-only now (never fetched by the
+  //      scene) but stays served + cached — the contract stands.
   {
     let glbExists = false;
     try { readFileSync(new URL('../public/models/smartbot-character.glb', import.meta.url)); glbExists = true; }

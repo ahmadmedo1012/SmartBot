@@ -724,10 +724,13 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     }
   })
 
-  it("the composition tokens (P17): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.3/1.35", () => {
+  /* P18-W5 re-anchor: the final-audit mobile grounding — fig 1.24 /
+     floor 1.18 (the pedestal ring peeks into the bust frame; same pose
+     law, re-pinned values). */
+  it("the composition tokens (P17/P18): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.24/1.18", () => {
     expect(rawLanding).toMatch(/--sb-fig:\s*0\.76;/)
     expect(rawLanding).toMatch(/--sb-floor:\s*0\.84;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.3;[^@]*?--sb-floor:\s*1\.35;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.24;[^@]*?--sb-floor:\s*1\.18;/)
   })
 
   it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the P18-W2-a 44vw display column measure", () => {

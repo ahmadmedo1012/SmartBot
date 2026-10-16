@@ -2379,7 +2379,8 @@ html.light .landing .ln-chapter-head::after {
     pointer-events: none;
   }
   .landing .ln-ticker-island .ln-scenario-tabs,
-  .landing .ln-ticker-island .ln-scenario-tab {
+  .landing .ln-ticker-island .ln-scenario-tab,
+  .landing .ln-ticker-island .ln-ticker-pause {
     pointer-events: auto;
   }
   /* the prompt console — INLINE-START (RTL right), the upper
@@ -2463,9 +2464,11 @@ html.light .landing .ln-chapter-head::after {
 
 /* ── 20a · the prompt ticker ────────────────────────────────────────────
    The ChainGPT ticker grammar, ours — now carrying B's honest demo
-   cycle (directive 2): 1px hairline box + bracket corners outside,
-   mono head with the DEMO badge + scenario index, the stage body
-   (typing beads → the exchange, word-by-word reply), the compact
+   cycle (directive 2) DEEPENED into a real conversation (P18-W4-a
+   §2.7): 1px hairline box + bracket corners outside, mono head with
+   the DEMO badge + scenario index, the stage stamp over THE
+   TRANSCRIPT FEED (§20a-2 — every beat appends its line), the
+   scenario selector + the pause control in the foot, the compact
    status line. Honest copy only — the plan figures mirror the DB seed.
    Directive 1: the plate rests at ≤0.5 opacity — the ticker is
    furniture, NOT a competing anchor (the face + h1 own the light). */
@@ -2586,8 +2589,8 @@ html.light .landing .ln-chapter-head::after {
   font-weight: var(--fw-semibold);
   line-height: 1.6;
 }
-.landing .ln-ticker-msg.intent { color: var(--ln-lime); }
-.landing .ln-ticker-msg.reset { color: var(--ln-cream-dim); font-weight: var(--fw-medium); }
+/* W4-a: the intent (violet chip) / reset (dim) voices now ride the
+   transcript's data-kind rules (§20a-2) — the old class hooks retired */
 .landing .ln-ticker-msg-meta {
   display: block;
   margin-block-start: 5px;
@@ -2608,7 +2611,12 @@ html.light .landing .ln-chapter-head::after {
   color: var(--ln-cream-dim);
 }
 .landing .ln-ticker-badge.auto { color: var(--ln-lime); border-color: rgb(86 226 242 / 0.5); }
-.landing .ln-ticker-badge.human { color: var(--ln-cream); border-color: var(--ln-line); }
+/* W4-a: the human badge joins the HANDOFF amber register (was neutral
+   cream) — the teammate's reply reads warm against the bot's cyan */
+.landing .ln-ticker-badge.human {
+  color: var(--ln-bot-amber);
+  border-color: color-mix(in srgb, var(--ln-bot-amber) 50%, transparent);
+}
 /* the messenger typing beads (B's engine, ported) */
 .landing .ln-typing {
   display: inline-flex;
@@ -2630,12 +2638,11 @@ html.light .landing .ln-chapter-head::after {
   0%, 100% { opacity: 0.35; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-3px); }
 }
-/* the beat transition — the new beat's content eases in once (RM: off) */
-.landing .ln-ticker-beat > *:not(.ln-ticker-beat-label) {
-  animation: ln-ticker-in var(--ln-t-base) var(--ln-ease-out) both;
-}
-@keyframes ln-ticker-in {
-  from { opacity: 0; transform: translateY(7px); }
+/* the line entrance — each APPENDED transcript line eases in once
+   (from above, the feed direction; RM: off, §20e) — the rule itself
+   lives in §20a-2 with the feed grammar */
+@keyframes ln-tr-in {
+  from { opacity: 0; transform: translateY(-7px); }
   to { opacity: 1; transform: none; }
 }
 /* the compact status line (mobile twin of the side panel) */
@@ -2652,6 +2659,97 @@ html.light .landing .ln-chapter-head::after {
   font-size: 9.5px;
   letter-spacing: 0.12em;
   color: var(--ln-cream-dim);
+}
+
+/* ── 20a-2 · the transcript feed (P18-W4-a — the demo becomes real) ──
+   The console's conversation log: every beat APPENDS its line — the
+   customer message (neutral hairline voice), the VIOLET intent chip
+   (the AI register — the classify moment, the .ln-pp-ai grammar), the
+   bot's cyan-ruled auto-reply («رد آلي»), the amber handoff pair (the
+   «تحويل لموظف الدعم» notice + the teammate's «رد بشري»). Tail-anchored
+   (justify-content: flex-end + overflow hidden): the newest line is
+   ALWAYS in view and the older lines clip under the top mask fade on
+   short stages — a terminal tail, never a reflow of the island. The
+   log rung is 13px (between the 10.5 meta and the beat voice) so the
+   full conversation fits the console without crossing the display
+   lockup below; the svh cap keeps short laptops honest. */
+.landing .ln-transcript {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  /* the feed fills the beat's 5.4em floor early in the conversation
+     (the newest line docks just above the selector — the messenger
+     grammar) and is tail-anchored once the window caps */
+  flex: 1 1 auto;
+  min-block-size: 0;
+  gap: 7px;
+  overflow: hidden;
+  font-size: 13px;
+  max-block-size: min(14.5em, 22svh);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24px);
+  mask-image: linear-gradient(180deg, transparent 0, #000 24px);
+}
+/* short stages (the 768px-class laptops and lower): the window
+   tightens so the console never crowds the display lockup — the tail
+   holds the newest lines, the fade absorbs the rest */
+@media (min-width: 1025px) and (max-height: 800px) {
+  .landing .ln-transcript { max-block-size: 9em; }
+}
+@media (min-width: 1025px) and (max-height: 700px) {
+  .landing .ln-transcript { max-block-size: 5em; }
+}
+.landing .ln-transcript .ln-ticker-msg {
+  /* flex: none — the lines never SHRINK to fit the window: a flex item
+     with overflow != visible loses its content-based auto minimum, so
+     the mobile ellipsis rule would squash the one-line console's line
+     to a sliver; at natural height the tail law clips instead (the
+     newest line whole, the older ones above the window's edge) */
+  flex: none;
+  font-size: 13px;
+  line-height: 1.55;
+  /* the voice rules — one 2px inline-start stroke per speaker */
+  padding-inline-start: 9px;
+  border-inline-start: 2px solid var(--ln-line); /* customer: neutral */
+  animation: ln-tr-in var(--ln-t-base) var(--ln-ease-out) both;
+}
+.landing .ln-transcript .ln-ticker-msg[data-kind='bot'] {
+  border-inline-start-color: var(--ln-lime); /* the machine's cyan voice */
+}
+.landing .ln-transcript .ln-ticker-msg[data-kind='handoff-sys'],
+.landing .ln-transcript .ln-ticker-msg[data-kind='handoff-human'] {
+  border-inline-start-color: var(--ln-bot-amber); /* the human register */
+}
+.landing .ln-transcript .ln-ticker-msg[data-kind='handoff-sys'] {
+  color: var(--ln-bot-amber);
+}
+.landing .ln-transcript .ln-ticker-msg[data-kind='reset'] {
+  color: var(--ln-cream-dim);
+  font-weight: var(--fw-medium);
+}
+/* the meta rides the line's tail (inline) — the feed stays compact;
+   the mobile band hides it entirely (the one-line console law) */
+.landing .ln-transcript .ln-ticker-msg-meta {
+  display: inline;
+  margin: 0 0 0 8px;
+}
+.landing .ln-tr-visual {
+  display: block;
+  min-inline-size: 0;
+}
+/* the intent chip — the classify moment's VIOLET register (the AI
+   accent #9380FF, reserved for AI moments: wash + hairline + text in
+   the token trio, the .ln-pp-ai grammar verbatim) */
+.landing .ln-intent-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px 2px;
+  border-radius: var(--ln-radius-pill);
+  background: color-mix(in srgb, var(--ln-violet) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ln-violet) 34%, transparent);
+  color: var(--ln-violet);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0; /* Arabic — never tracked */
 }
 
 /* ── P16-W3 · the scenario selector (P1-c — B's agency port) ────────────
@@ -2696,6 +2794,31 @@ html.light .landing .ln-chapter-head::after {
   color: var(--ln-lime, #56E2F2);
   opacity: 1;
 }
+
+/* ── P18-W4-a · the pause control — hold the demonstration ──────────
+   One 44px instrument button in the console foot beside the selector:
+   pressed = the stage machine holds its beat (typing completes; the
+   conversation freezes in place — honest: it is a HOLD, not a stop).
+   Icon-only by design — aria-label + aria-pressed carry the state;
+   native focus ring, the tabs' own grammar (hairline separator, cream
+   → hover, lime while held). RM hides it (§20e): the static frame has
+   nothing to hold. */
+.landing .ln-ticker-pause {
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  min-block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-inline-start: 1px solid var(--ln-line);
+  background: none;
+  color: var(--ln-cream-dim);
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+.landing .ln-ticker-pause:hover { color: var(--ln-cream); }
+.landing .ln-ticker-pause[aria-pressed='true'] { color: var(--ln-lime); }
 
 /* ── 20b · the status micro-panel ────────────────────────────────────────
    Mono ALL-CAPS machine register synced to the ticker beat: the active
@@ -2868,13 +2991,11 @@ html.light .landing .ln-ticker-msg { color: var(--ln-cream); }
 /* 2-g (P1 — acceptance gap 2): the light twin was var(--ln-ink-2) — the
    light SURFACE token — 1.2:1 on the rgba(255,255,255,.7) card
    (near-invisible). The message body is PRIMARY text: the deep petrol
-   ink --ln-cream (#101115) = 16.5:1 on that card. The .reset beat's
-   dimmer register + the .intent teal twin follow the same law (the
-   light ink-dim #3A5450 = 7.95:1; the deep teal #0A6656 = 6.69:1 —
-   both AA+, the reset line now explicitly re-pinned instead of
-   inheriting the broken surface token). */
-html.light .landing .ln-ticker-msg.reset { color: var(--ln-cream-dim); }
-html.light .landing .ln-ticker-msg.intent { color: var(--ln-lime-deep); }
+   ink --ln-cream (#101115) = 16.5:1 on that card. The transcript's
+   voices (W4-a) ride the §2-b token pair — the light stage re-twins
+   them for free: cyan rule --ln-lime #0E7A8A (4.58:1), violet chip
+   #6B54E0 (6.0:1), amber handoff --ln-bot-amber #C25E33 (4.9:1), the
+   dim reset line --ln-cream-dim #41434B (8.5:1). */
 html.light .landing .ln-ticker-msg-meta { color: rgb(16 17 21 / 0.6); }
 html.light .landing .ln-typing i { background: rgb(16 17 21 / 0.7); }
 html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(14 122 138 / 0.45); }
@@ -2901,15 +3022,19 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
 /* ── 20e · reduced motion — the composed static frame ────────────────────
    No rAF in the scene (its own contract), no sink listener (HeroExit),
    no ticker rotation (its own contract — the beat composes statically,
-   everything typed whole) — and every compositor verb in THIS layer
-   stops: the circuit rests, the beat content holds, the status dot
-   holds, the entrance snaps in. */
+   the complete conversation painted whole) — and every compositor verb
+   in THIS layer stops: the circuit rests, the transcript lines appear
+   with NO entrance animation (each line whole, instantly), the status
+   dot holds, the pause control retires (a static frame has nothing to
+   hold). */
 @media (prefers-reduced-motion: reduce) {
   .landing .ln-robot-frame { animation-duration: 1ms; animation-delay: 0s; }
   .landing .ln-ticker-beat > * { animation: none; }
+  .landing .ln-transcript .ln-ticker-msg { animation: none; } /* W4-a: lines appear whole, no entrance */
   .landing .ln-typing i { animation: none; }
   .landing .ln-ticker-demo-dot { animation: none; }
   .landing .ln-status li[data-active='true'] i { animation: none; }
+  .landing .ln-ticker-pause { display: none; } /* W4-a: the static frame has nothing to hold */
 }
 
 /* ── 20f · mobile (≤1024px) — THE CHARACTER-FIRST STACK (P16-A) ────────
@@ -2968,8 +3093,10 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
                           flow items, so THEY need the island's rung */
   }
   /* the ONE-LINE console: the honest head row (DEMO badge + index) +
-     one line of the current beat (ellipsis carries the rest; the
-     sr-only announcer narrates it whole) + the compact status line */
+     the NEWEST transcript line (W4-a: the tail window holds exactly one
+     line — the older lines clip above it; the log region + the sr-only
+     voices carry the whole conversation for assistive tech) + the
+     compact status line */
   .landing .ln-ticker {
     order: 2;
     position: relative;
@@ -2995,6 +3122,25 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   }
   .landing .ln-ticker-msg-meta,
   .landing .ln-ticker-badge { display: none; }
+  /* W4-a: the transcript collapses to the ONE-LINE console — a fixed
+     1.6em tail window (≈ the old single beat line, +1px) so the
+     390×844 fold law is untouched: the newest line always shows,
+     justify-end clips the older ones above the window's edge, no
+     mask (the single line must never fade) */
+  .landing .ln-transcript {
+    block-size: 1.6em;
+    max-block-size: 1.6em;
+    gap: 0;
+    font-size: 14.5px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .landing .ln-transcript .ln-ticker-msg { font-size: 14.5px; line-height: 1.55; }
+  .landing .ln-tr-visual {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   /* the compact status line switches ON (the side panel's mobile twin) —
      the ONE-LINE console's closing register */
   .landing .ln-ticker-status {
@@ -3118,6 +3264,24 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   }
   .landing .ln-ticker-msg-meta,
   .landing .ln-ticker-badge { display: inline-block; }
+  /* W4-a: the transcript breathes with the console at tablet — the
+     mobile one-line window gives way to the full tail window + the
+     mask fade (the console owns the docked box's height, docked
+     bottom-aligned to the figure's floor band) */
+  .landing .ln-transcript {
+    block-size: auto;
+    max-block-size: min(14.5em, 22svh);
+    gap: 7px;
+    font-size: 13px;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24px);
+    mask-image: linear-gradient(180deg, transparent 0, #000 24px);
+  }
+  .landing .ln-transcript .ln-ticker-msg { font-size: 13px; line-height: 1.55; }
+  .landing .ln-tr-visual {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
   .landing .ln-status { display: none; }
   .landing .ln-hero-foot { grid-area: foot; }
   .landing .ln-hero-scroll { display: none; }

@@ -18,8 +18,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import type { ReactNode } from "react"
 
 import SettingsPage from "@/app/dashboard/settings/page"
+
+/* P18-W4-b: the settings page now links to /connect + /dashboard/pages via
+ * next/link (the webhook card) — the anchor mock keeps the module graph free
+ * of app-router context requirements in jsdom (house recipe, billing twin). */
+vi.mock("next/link", () => ({
+  default: function MockLink({ href, children }: { href: string; children: ReactNode }) {
+    return <a href={href}>{children}</a>
+  },
+}))
 
 const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),

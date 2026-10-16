@@ -284,9 +284,96 @@ interface AdAccount {
 
 /** v19 Step 2 — /api/ads/accounts DB-first envelope ({items, source, synced}).
  *  synced=false + empty items = the live Graph refresh FAILED (the UI must
- *  say «فشل الاتصال» instead of rendering a lying empty state). */
+ *  say «فشل الاتصال» instead of rendering a lying empty state).
+ *  P18-W4-b (API truth, facebook_routes.py:1213-1231): the envelope also
+ *  carries the v21 sync-attempt triage (sync_attempted/sync_error — a bare
+ *  synced=false can be the 30s throttle skip, not a failure) and the v22-D2
+ *  structural page-token verdict (ads_unavailable + its Arabic reason).
+ *  All optional: the original 3-field envelope remains valid on the wire. */
 export interface AdsAccountsResponse {
   items: AdAccount[]
+  source: "db"
+  synced: boolean
+  /** v21: true when a live Graph refresh actually RAN (and failed). */
+  sync_attempted?: boolean
+  /** v21: short English diagnostic ("" on success) — tooltip material only. */
+  sync_error?: string
+  /** v22-D2: a page token structurally cannot query me/adaccounts. */
+  ads_unavailable?: boolean
+  /** v22-D2: the honest Arabic reason ("" when available). */
+  ads_unavailable_reason?: string
+}
+
+/* P18-W4-b — the campaigns/ads read contracts. GET /api/ads/campaigns/{id}
+ * and /api/ads/ads/{id} (facebook_routes.py:1234-1275) re-serve the EXACT
+ * live Graph dicts from AdCampaign/AdItem.payload_json (fields pinned by
+ * fb_client.get_campaigns_raw/get_ads_raw), so every field below is the
+ * Graph wire shape — string status/enums, string numeric metrics, nested
+ * edge objects ({data: [...]}). NOTHING is fabricated: there are NO write
+ * endpoints for ads in the backend (no create/pause/resume). */
+
+/** AdSet nested in a campaign row (Graph nested-edge field). P18-W4-b:
+ *  exported — the ads page's adsetList() normalizer consumes it. */
+export interface AdSet {
+  id?: string
+  name?: string
+  status?: string
+  /** Graph sends budgets as numeric STRINGS in minor units (cents). */
+  daily_budget?: string | number
+  lifetime_budget?: string | number
+  start_time?: string
+  end_time?: string
+}
+
+/** Row of GET /api/ads/campaigns/{account_id} → data.items (the raw Graph
+ *  campaign dict: id, name, status, objective, created_time + the nested
+ *  adsets edge, which Graph wraps as {data: [...]}; a bare array is
+ *  tolerated defensively). */
+export interface AdCampaign {
+  id: string
+  name?: string
+  /** Graph enum: ACTIVE | PAUSED | DELETED | PENDING_REVIEW | DISAPPROVED | PREAPPROVED | WITH_ISSUES … */
+  status?: string
+  /** Graph objective enum (OUTCOMES_* / legacy names). */
+  objective?: string
+  created_time?: string
+  /** Graph nested-edge wrapper (a bare array is tolerated defensively). */
+  adsets?: { data?: AdSet[] } | AdSet[]
+}
+
+/** The insights values Graph returns for an ad (numeric STRINGS). */
+export interface AdInsights {
+  impressions?: string
+  clicks?: string
+  spend?: string
+  ctr?: string
+  cpc?: string
+}
+
+/** Row of GET /api/ads/ads/{account_id} → data.items (the raw Graph ad dict
+ *  with the creative field-object and the insights nested edge
+ *  {data: [{impressions, clicks, spend, ctr, cpc}]}). */
+export interface AdItem {
+  id: string
+  name?: string
+  status?: string
+  adset_id?: string
+  campaign_id?: string
+  creative?: {
+    id?: string
+    title?: string
+    body?: string
+    image_url?: string
+  }
+  insights?: { data?: AdInsights[] }
+}
+
+/** GET /api/ads/campaigns|ads/{account_id} DB-first envelope (facebook_routes.py:1249-1253/1271-1275).
+ *  Note: unlike /api/ads/accounts, these carry NO sync_attempted/sync_error —
+ *  a bare synced=false is indistinguishable from the 30s throttle skip, so
+ *  the UI renders the stored rows without a staleness banner. */
+export interface AdsListResponse {
+  items: AdCampaign[] | AdItem[]
   source: "db"
   synced: boolean
 }

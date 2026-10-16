@@ -2646,6 +2646,63 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   }
 }
 
+// ── §P18-W4-b — the two THIN surfaces go deep (API-contract-verified) ────────
+{
+  /* Self-contained block (own raw readers): pins the W1-a priorities #7-8
+     build-out. The ads page leaves "accounts list only" behind — the account
+     rows expand into the REAL campaign/ad read endpoints
+     (facebook_routes.py:1234-1275, DB re-serve of the exact Graph dicts:
+     status/objective/created_time + nested adsets; creative + insights
+     metrics). The settings page leaves "profile+password only" behind with
+     the surfaces that ARE real: notification preferences (GET/PUT
+     /api/notifications/settings — the shared ["notification-settings"] cache
+     key with the notifications page) and the webhook health display
+     (GET /api/webhook/check). Honesty pins ride along: the ads surface is
+     READ-ONLY because the backend has ZERO ads write endpoints (no create/
+     pause/resume routes — the ads_management/app-review gap is stated in the
+     page, not faked with dead controls), and settings renders no session/
+     token management (auth.py has no such routes — documented gap). */
+  const readSrc = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+  const rawAds = readSrc('../src/app/dashboard/ads/page.tsx');
+  const rawSettings = readSrc('../src/app/dashboard/settings/page.tsx');
+
+  // (1) the ads page consumes the REAL read endpoints — each account row
+  //     expands into GET /api/ads/campaigns/{id} + GET /api/ads/ads/{id}
+  //     under their own react-query keys.
+  const adsReadsOk = rawAds.includes('`/api/ads/campaigns/${')
+    && rawAds.includes('`/api/ads/ads/${')
+    && rawAds.includes('queryKey: ["ads-campaigns", accountId]')
+    && rawAds.includes('queryKey: ["ads-items", accountId]');
+  if (adsReadsOk) pass += 1;
+  else fails.push('P18-W4-b ads reads: the account expansion consumes GET /api/ads/campaigns|ads/{id} (react-query keys ads-campaigns/ads-items)');
+
+  // (2) the ads surface is READ-ONLY by backend truth: zero write calls in
+  //     the page source AND the honest ads_management/app-review gap notice
+  //     (never fake controls against endpoints that do not exist).
+  const adsReadOnlyOk = !/method:\s*["'](POST|PUT|PATCH|DELETE)["']/.test(rawAds)
+    && rawAds.includes('عرض الحملات فعّال — التحكم بها قريباً');
+  if (adsReadOnlyOk) pass += 1;
+  else fails.push('P18-W4-b ads honesty: read-only surface (no write methods in source) + the ads_management gap notice');
+
+  // (3) the settings sections ride REAL contracts: the notification
+  //     preferences (GET/PUT + the SHARED cache key — one entry serves both
+  //     the notifications page and settings) + the webhook health display
+  //     + the Arabic/RTL display card.
+  const settingsRealOk = rawSettings.includes('/api/notifications/settings')
+    && rawSettings.includes('queryKey: ["notification-settings"]')
+    && rawSettings.includes('/api/webhook/check')
+    && rawSettings.includes('من اليمين إلى اليسار (RTL)');
+  if (settingsRealOk) pass += 1;
+  else fails.push('P18-W4-b settings sections: prefs (GET/PUT /api/notifications/settings, shared query key) + webhook check display + RTL card');
+
+  // (4) no fake surfaces: settings stays free of session/token-management
+  //     calls (no endpoints exist — a documented gap, never a dead UI).
+  const settingsNoFakeOk = !rawSettings.includes('/api/sessions')
+    && !rawSettings.includes('/api/tokens');
+  if (settingsNoFakeOk) pass += 1;
+  else fails.push('P18-W4-b settings honesty: no session/token management calls (no backend endpoints — documented gap only)');
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
   ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`

@@ -151,4 +151,22 @@ function countPhrase(
   }
 }
 
-export { toArabicNumber, formatNumber, formatCount, formatDate, formatDateOnly, formatMonth, timeAgo, countPhrase };
+/**
+ * P18-W4-b — money/decimal values from the FB Marketing API (spend "3.59",
+ * cpc "0.09", ctr "0.74", budgets in minor units "5000"): ar-LY grouping
+ * with up to 2 fraction digits ("3,59"), integers stay clean ("50").
+ * `cents=true` divides by 100 first (Graph sends budgets in minor units).
+ * Empty/invalid input → "" (callers pass API fields directly).
+ */
+function formatMoney(n: number | string | null | undefined, cents = false): string {
+  if (n === null || n === undefined || n === "") return "";
+  const raw = typeof n === "string" ? Number(n) : n;
+  if (!Number.isFinite(raw)) return "";
+  const num = cents ? raw / 100 : raw;
+  return num.toLocaleString("ar-LY", {
+    minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export { toArabicNumber, formatNumber, formatCount, formatMoney, formatDate, formatDateOnly, formatMonth, timeAgo, countPhrase };

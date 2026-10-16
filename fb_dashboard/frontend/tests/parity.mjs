@@ -2368,9 +2368,12 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     else fails.push(`P16-A-tokens --sb-floor: expected 0.84 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
   {
-    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.3;[^@]*?--sb-floor: 1\.35;/s;
+    /* P18-W5 re-anchor: the final VLM audit grounded the mobile bust —
+       fig 1.3→1.24, floor 1.35→1.18 (the pedestal ring peeks in). Same
+       pose law (bust close-up, >1 crop), re-pinned values. */
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.24;[^@]*?--sb-floor: 1\.18;/s;
     if (mobileRe.test(rawLanding)) pass += 1;
-    else fails.push('P17 mobile pose: the ≤1024px character-first stack must re-pose the figure (--sb-fig 1.3 / --sb-floor 1.35 — bust close-up)');
+    else fails.push('P17/P18 mobile pose: the ≤1024px character-first stack must re-pose the figure (--sb-fig 1.24 / --sb-floor 1.18 — grounded bust close-up)');
   }
 
   // (3) ONE composed viewport: desktop hero = 100svh minus the sticky

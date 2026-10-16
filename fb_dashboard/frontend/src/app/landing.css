@@ -822,7 +822,10 @@ html.light .landing .ln-marquee {
 }
 
 .landing .ln-hero-sub {
-  margin: 0 0 var(--sp-9);
+  /* P18-W5 (final VLM audit): 48 → 36 — the audit read the CTA pair as
+   * "slightly floating due to the large gap above them"; the tighter
+   * bridge keeps the promise→action rhythm continuous. */
+  margin: 0 0 var(--sp-7);
   max-inline-size: 52ch;
   font-size: clamp(16px, 1.5vw, 17.5px);
   line-height: 1.6;
@@ -2706,7 +2709,10 @@ html.light .landing .ln-chapter-head::after {
      newest line whole, the older ones above the window's edge) */
   flex: none;
   font-size: 13px;
-  line-height: 1.55;
+  /* P18-W5 (final VLM audit): 1.55 → 1.72 — Arabic descenders/diacritics
+     need the taller measure; the audit called the chat line-height
+     "quite tight" on small screens. */
+  line-height: 1.72;
   /* the voice rules — one 2px inline-start stroke per speaker */
   padding-inline-start: 9px;
   border-inline-start: 2px solid var(--ln-line); /* customer: neutral */
@@ -3072,8 +3078,15 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
      * camera answer is the reference's own mobile grammar: CLOSER. */
     block-size: 41svh;
     min-block-size: 264px;
-    --sb-fig: 1.3;    /* >1 = the deliberate bust crop (figure overflows) */
-    --sb-floor: 1.35; /* >1 = floor line BELOW the box — head whole, hips cropped */
+    --sb-fig: 1.24;   /* >1 = the deliberate bust crop (figure overflows) —
+                         P18-W5: 1.3 → 1.24, the final audit's mobile note
+                         ("pedestal/ring cut off, lacks grounding") — a
+                         touch more of the mantle + the ring's top arc
+                         enters the frame */
+    --sb-floor: 1.18; /* >1 = floor line below the box's top edge but its
+                         cyan hairline + ring glow now PEEK into the
+                         frame's bottom — grounding without abandoning
+                         the bust grammar (was 1.35: fully cropped) */
     --sb-ringfit: 0.72; /* the landing rings clamp for the narrow box */
   }
   .landing .ln-robot-exit,

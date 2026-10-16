@@ -2384,12 +2384,22 @@ html.light .landing .ln-chapter-head::after {
     block-size: calc(100svh - 74px); /* 73px sticky header + hairline, measured */
     min-block-size: 620px;
   }
-  /* the interface island — the shared z0 layer under the machine */
+  /* the interface island — the shared z0 layer under the machine.
+     P16-W6 (evaluator P0): the island keeps pointer-events:none (the
+     canvas world above must stay draggable/hover-transparent), but the
+     scenario selector's tabs are REAL controls — they re-enable
+     pointer events so physical mouse clicks land (synthetic .click()
+     bypasses pointer-events, which is why the builder's verification
+     passed falsely; the evaluator's REAL CDP clicks caught it). */
   .landing .ln-ticker-island {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
+  }
+  .landing .ln-ticker-island .ln-scenario-tabs,
+  .landing .ln-ticker-island .ln-scenario-tab {
+    pointer-events: auto;
   }
   /* the prompt console — INLINE-START (RTL right), upper band: the
      typed scenario console flanks the character's head (the display

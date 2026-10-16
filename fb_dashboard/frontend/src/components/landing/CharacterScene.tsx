@@ -177,7 +177,7 @@ function samplePalette(): Palette {
       visorGlow: 0x14262c,
       visorIntensity: 0.35,
       aperture: 0x0e7a8a,
-      apertureIntensity: 1.0,
+      apertureIntensity: 1.6, /* P18-W3: legible slit on the light stage too */
       core: 0x0e7a8a,
       coreIntensity: 0.7,
       stage: 0xe1e1de,
@@ -201,8 +201,11 @@ function samplePalette(): Palette {
     visor: 0x090a0d,
     visorGlow: 0x08151c,
     visorIntensity: 0.35,
-    aperture: 0xffffff,
-    apertureIntensity: 2.2,
+    aperture: 0x56e2f2, /* P18-W3: the machine-voice register — cyan #56E2F2
+     * (was 0xffffff, the retired P17 white-dot-eyes value; the aperture
+     * IS the cyan heartbeat per the art direction contract) */
+    apertureIntensity: 1.55, /* P18-W3b: 3.4 clamped cyan→white; 1.55
+     * keeps the hue legible after tone mapping */
     core: readVar(html, '--ln-lime', CYAN),
     coreIntensity: 1.15,
     stage: 0x0a0b0e,
@@ -622,13 +625,22 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     /* the materials of record (the P17 systems, unchanged values) */
     const bodyMat = track(new MeshStandardMaterial({ color: palette.body, roughness: 0.72, metalness: 0.04 }));
     const mantleLowerMat = track(new MeshStandardMaterial({ color: palette.mantleLower, roughness: 0.72, metalness: 0.04 }));
-    const jointMat = track(new MeshStandardMaterial({ color: palette.joint, roughness: 0.6, metalness: 0.1 }));
+    /* P18-W3 (VLM audit): joint/mantle differentiation — the audit read
+     * the graphite neck as "blending into the mantle". Graphite goes
+     * decisively metallic: metalness 0.1→0.34, roughness 0.6→0.44 — a
+     * visibly different material response (cool specular) against the
+     * matte ceramic. Values stay within the P17 matte-adjacent law. */
+    const jointMat = track(new MeshStandardMaterial({ color: palette.joint, roughness: 0.44, metalness: 0.34 }));
     const visorMat = track(new MeshStandardMaterial({ color: palette.visor, roughness: 0.35, metalness: 0.2 }));
     const apertureMat = track(
       new MeshStandardMaterial({
         color: 0x0a1418,
         emissive: new Color(CYAN),
-        emissiveIntensity: 2.2,
+        /* P18-W3 (VLM audit + pixel proof): the slit measured ~1.5px at
+         * hero scale (0 cyan pixels in the head zone at 1440) — the eye
+         * of the character was invisible. Intensity tuned in the palette
+         * (clamping law: >2 whitens cyan). */
+        emissiveIntensity: 1.55,
         roughness: 0.4,
       }),
     );
@@ -881,22 +893,34 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     head.position.y = -HEAD_H * 0.5;
     headGroup.add(head);
 
-    /* the smoked-glass face — a facet-matched quad SET INTO the
-     * inline-start/front corner of the wedge (recessed 0.012), tilted
-     * to ride the brow sweep's plane */
-    const facePanel = new Mesh(track(new PlaneGeometry(0.20, 0.24)), visorMat);
-    facePanel.position.set(-0.085, 0, 0.168);
-    facePanel.rotation.y = -0.42;
+    /* the smoked-glass face — P18-W3 FIX: the original placement
+     * (z 0.168, rotY -0.42) was INSIDE the wedge's front surface
+     * (front plane z ≈ 0.21 at every station) — the panel AND the
+     * aperture were buried in the mesh, pixel-proof (0 cyan px, face
+     * invisible). The face now rides the FRONT facet plane, IS-offset
+     * (x -0.05), slightly tilted to echo the brow sweep; z 0.218
+     * clears the 0.215 max zF so it reads as glass SET ONTO the head
+     * (a 0.003 float — the shadowless light rig keeps the seam soft). */
+    const facePanel = new Mesh(track(new PlaneGeometry(0.17, 0.21)), visorMat);
+    facePanel.position.set(-0.05, -0.01, 0.218);
+    facePanel.rotation.y = -0.15;
     facePanel.rotation.z = 0.0;
-    facePanel.rotation.x = -0.06;
+    facePanel.rotation.x = -0.04;
     headGroup.add(facePanel);
 
     /* THE ONE VERTICAL APERTURE SLIT — the eye (cyan, emissive): a
-     * thin vertical prism on the face panel's plane; its scale.x is
-     * the expression channel (breathing phase + beat widening). */
-    const aperture = new Mesh(track(new BoxGeometry(0.024, 0.15, 0.012)), apertureMat);
-    aperture.position.set(-0.085, 0.015, 0.175);
-    aperture.rotation.y = -0.42;
+     * thin vertical prism ON the face panel's plane (z 0.223, matching
+     * tilt); its scale.x is the expression channel (breathing phase +
+     * beat widening). */
+    /* P18-W3 (VLM audit + pixel proof): the slit was 0.024 world-units
+     * wide ≈ 1.5px on the 1440 hero AND buried inside the head — the
+     * character's eye did not read. Resized to a legible vertical bar:
+     * 0.055×0.19 (≈30% of the face panel width — still unambiguously
+     * ONE slit, not two eyes; the ChainGPT two-dot law stays retired).
+     * Expression scale.x rides on this base via the animation phase. */
+    const aperture = new Mesh(track(new BoxGeometry(0.055, 0.19, 0.014)), apertureMat);
+    aperture.position.set(-0.05, 0.005, 0.224);
+    aperture.rotation.y = -0.15;
     headGroup.add(aperture);
     const apertureNode = aperture; /* the expression node */
 

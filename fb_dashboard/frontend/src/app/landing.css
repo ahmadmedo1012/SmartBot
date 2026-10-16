@@ -1,41 +1,18 @@
 /*
- * landing.css — phase5 r152 (Circuit Petrol re-anchor).
- * The SmartBot landing layer: everything scoped under the `.landing` wrapper
- * on the page root (PORT-KIT §0 R4). The DEFAULT scope paints the CIRCUIT
- * PETROL night stage — petrol stage #071A21 / #0D2830, foam ink #E9F5F0,
- * signal-teal accent (--ln-lime), AI lime (--ln-violet) SPARSELY, robot
- * visor teal + lime LED; the product token pins in globals.css stay
- * untouched. phase9 (P9-3-c E3): the landing is no longer theme-BLIND —
- * §16 below adds the petrol-mist LIGHT stage (html.light .landing), the
- * canon's documented light mode ("light mode = petrol mist + deep teal",
- * MASTER.md §header): same grammar, mist ground + deep-petrol ink +
- * deep-teal signal + the light lime tier — every raw literal that paints
- * the night world gets a §16 light twin; the robot (RobotMark) already
- * themes through the product tokens; the hero's three.js RobotScene
- * re-samples the landing tokens via its MutationObserver (phase9 P9-3-a
- * family pattern — the retired OrbitScene canvas carried the same
- * contract).
- * The product token pins in globals.css stay untouched.
- *
- * Port map (madarek @ cf7ffca, canonical per PORT-KIT r128):
- *   bridge tokens      — values the smart-bot product sheet does not define
- *                        (Madarek tokens.css / landing.css:54 canonicals)
- *   §1 token block     — PORT-KIT §1 verbatim (tokens.css:377-427)
- *   base utilities     — landing.css:68-114 (.ln-grain/.ln-mono/.ln-label/
- *                        .marketing-container) + .ln-chapter (767-775)
- *   §3 marquee         — landing.css:115-160 (PORT-KIT §3 verbatim)
- *   chrome §4          — .landing-header/.scrolled (183-199), nav link
- *                        family (233-275) + scroll-spy active rules (R2
- *                        form, 259-274), megamenu (277-330), buttons
- *                        (371-481), progress ribbon (1552-1566)
- *   reveal family      — polish.css:470-488 (.reveal-up), the CSS half of
- *                        the useReveal/RevealCssClass port (kit §2)
- *
- * Discipline (PORT-KIT §7): flat petrol grounds, hairlines, teal/lime
- * accents only — no gradients on grounds, no glow, no glass, no tilt.
- * Lime discipline (phase5): AI/automation moments only — the label halo,
- * thinking dots, automated-reply glow, the robot LED. Teal is the voice
- * of the machine (buttons, bot bubbles, tabs, dots).
+ * landing.css — PHASE 17 (the ChainGPT-inspired reset · see
+ * design-system/smartbot-phase17/ART-DIRECTION.md, the contract of record).
+ * The DEFAULT scope paints THE MACHINE INSTRUMENT night stage — near-black
+ * void #050506 / #0A0B0E, cream ink #F4F4F6, CYAN machine-voice accent
+ * (--ln-lime), VIOLET AI register (--ln-violet) SPARSELY, robot ceramic
+ * body + white dot eyes (§18/CharacterScene). The petrol/teal/lime
+ * identity of phases 5–16 is RETIRED. §16 mirrors the contract at the
+ * PORCELAIN DAY light grades (ground #F2F2F0, ink #101115, cyan ink
+ * #0E7A8A, violet #6B54E0); the CharacterScene re-samples via its
+ * MutationObserver. Accent discipline: cyan = the machine's voice;
+ * violet = AI moments ONLY (the transferred lime reservation); amber
+ * #FF9A69 = the human/handoff register; --sb-ramp on 2px hairlines only.
+ * Grounds stay flat near-black; hairlines carry structure; the robot is
+ * the light source.
  */
 
 /* ── 0 · bridge — canonical Madarek values the product sheet lacks ────
@@ -97,16 +74,16 @@
 
 /* ── 1 · token block — PORT-KIT §1 verbatim ─────────────────────────── */
 .landing {
-  --ln-ink:        #071A21;   /* primary flat ground */
-  --ln-ink-2:      #0D2830;   /* darker step — scene separation */
-  --ln-cream:      #E9F5F0;   /* primary text on ink — 12.75:1 AAA */
-  --ln-cream-dim:  #9FC3BC;   /* secondary text — 8.26:1 AAA */
-  --ln-lime:       #17C3A4;   /* accent 1 (pistachio) */
-  --ln-lime-deep:  #1FD6B4;   /* hover/active lime — 8.82:1 */
-  --ln-violet:     #C6F24E;   /* accent 2 — large-text/accent only */
-  --ln-violet-deep:#5A7A16;   /* decorative depth fills only */
-  --ln-line:       rgba(233,245,240,0.14);
-  --ln-line-soft:  rgba(233,245,240,0.07);
+  --ln-ink:        #050506;   /* primary flat ground — the near-black void */
+  --ln-ink-2:      #0A0B0E;   /* elevated step — scene separation */
+  --ln-cream:      #F4F4F6;   /* primary text on ink — 18.1:1 AAA */
+  --ln-cream-dim:  #A7A8B0;   /* secondary text — 8.4:1 AAA */
+  --ln-lime:       #56E2F2;   /* accent 1 — CYAN, the machine's voice */
+  --ln-lime-deep:  #7CEFF9;   /* hover/active cyan — brighter (dark convention) */
+  --ln-violet:     #9380FF;   /* accent 2 — VIOLET, the AI register (reserved) */
+  --ln-violet-deep:#3D3399;   /* decorative depth fills only */
+  --ln-line:       rgba(244,244,246,0.14);
+  --ln-line-soft:  rgba(244,244,246,0.07);
   /* r129 (P3-22, canonical landing.css:58): grain lifted 0.05 → 0.075 —
      the one permanent texture must be perceivable, not theoretical
      (Madarek tokens.css keeps 0.05 for any non-landing consumer). */
@@ -130,7 +107,38 @@
   --ln-ease-spring: var(--ease-spring);
   --ln-ease-linear: var(--ease-linear);
   --ln-dur-marquee: 42s;
+  /* ── phase 17 accent extensions (ART-DIRECTION.md §1) ─────────────── */
+  --sb-accent-amber: #FF9A69;
+  --sb-surface:      #101115;
+  --sb-surface-raised: #17181D;
+  --sb-border:       #292A30;
+  --sb-border-strong: #41434B;
+  --sb-text-muted:   #777983;
+  --sb-ramp: linear-gradient(to right, #56E2F2, #9380FF, #FF9A69);
   background: var(--ln-ink); color: var(--ln-cream);
+}
+
+/* ── 1b · the instrument grid (phase 17 · ChainGPT's signature detail) —
+ * three 1px vertical hairlines at 17% / 50% / 17% across the hero,
+ * behind content and canvas, above the ground. Mobile: outer lines only. */
+.landing .ln-hero-robot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent calc(17% - 0.5px), var(--ln-line) calc(17% - 0.5px), var(--ln-line) calc(17% + 0.5px), transparent calc(17% + 0.5px)),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), var(--ln-line-soft) calc(50% - 0.5px), var(--ln-line-soft) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(90deg, transparent calc(83% - 0.5px), var(--ln-line) calc(83% - 0.5px), var(--ln-line) calc(83% + 0.5px), transparent calc(83% + 0.5px));
+  opacity: 0.75;
+}
+@media (max-width: 1024px) {
+  .landing .ln-hero-robot::before {
+    background:
+      linear-gradient(90deg, transparent calc(12% - 0.5px), var(--ln-line-soft) calc(12% - 0.5px), var(--ln-line-soft) calc(12% + 0.5px), transparent calc(12% + 0.5px)),
+      linear-gradient(90deg, transparent calc(88% - 0.5px), var(--ln-line-soft) calc(88% - 0.5px), var(--ln-line-soft) calc(88% + 0.5px), transparent calc(88% + 0.5px));
+  }
 }
 
 /* ── 2 · base utilities — landing.css:68-114 ────────────────────────── */
@@ -225,8 +233,8 @@
   border-block-start: none; /* 2-e/d5 — the seam is glow, not a rule */
   padding-block: 18px;
   background:
-    radial-gradient(120% 130% at 50% 0%, rgb(23 195 164 / 0.1) 0%, transparent 58%),
-    linear-gradient(180deg, rgb(10 32 40 / 0.72) 0%, var(--ln-ink) 72%),
+    radial-gradient(120% 130% at 50% 0%, rgb(86 226 242 / 0.1) 0%, transparent 58%),
+    linear-gradient(180deg, rgb(10 11 14 / 0.72) 0%, var(--ln-ink) 72%),
     var(--ln-ink);
   user-select: none;
 }
@@ -284,7 +292,7 @@
 /* 2-e/d5 light twin — the mist floor bleeding under the strip */
 html.light .landing .ln-marquee {
   background:
-    radial-gradient(120% 130% at 50% 0%, rgb(12 117 99 / 0.09) 0%, transparent 58%),
+    radial-gradient(120% 130% at 50% 0%, rgb(14 122 138 / 0.09) 0%, transparent 58%),
     linear-gradient(180deg, rgb(255 255 255 / 0.5) 0%, var(--ln-ink) 72%),
     var(--ln-ink);
 }
@@ -312,7 +320,7 @@ html.light .landing .ln-marquee {
 }
 /* solid ink-2 @ 92% + hairline — no glass blur anywhere */
 .landing .landing-header.scrolled {
-  background: rgb(13 40 48 / 0.92);
+  background: rgb(10 11 14 / 0.92);
   border-block-end-color: var(--ln-line);
 }
 
@@ -345,7 +353,7 @@ html.light .landing .ln-marquee {
     color var(--ln-t-fast) var(--ln-ease-soft),
     background var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .landing-nav-link:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.04); }
+.landing .landing-nav-link:hover { color: var(--ln-cream); background: rgb(244 244 246 / 0.04); }
 .landing .landing-nav-link:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; border-radius: var(--ln-radius-pill); }
 
 /* Scroll-spy active state (R2) — the observer writes
@@ -357,14 +365,14 @@ html.light .landing .ln-marquee {
 .landing header[data-active-section="platform"] .landing-nav-link[href="#platform"],
 .landing header[data-active-section="trust"] .landing-nav-link[href="#trust"] {
   color: var(--ln-cream);
-  background: rgb(233 245 240 / 0.08);
+  background: rgb(244 244 246 / 0.08);
 }
 .landing .landing-nav-link svg { transition: transform var(--ln-t-fast) var(--ln-ease-out); }
 
 /* megamenu — landing.css:277-330 verbatim; opaque panel, hairline edge,
    no blur, no ghost shadow */
 .landing .landing-nav-group { position: relative; }
-.landing .landing-nav-group.open .landing-nav-link { color: var(--ln-cream); background: rgb(233 245 240 / 0.04); }
+.landing .landing-nav-group.open .landing-nav-link { color: var(--ln-cream); background: rgb(244 244 246 / 0.04); }
 .landing .landing-nav-group.open .landing-nav-link svg { transform: rotate(180deg); }
 .landing .landing-megamenu {
   position: absolute;
@@ -399,7 +407,7 @@ html.light .landing .ln-marquee {
   transition: background var(--ln-t-fast) var(--ln-ease-soft);
 }
 .landing .landing-megamenu-item:hover,
-.landing .landing-megamenu-item:focus-visible { background: rgb(233 245 240 / 0.05); }
+.landing .landing-megamenu-item:focus-visible { background: rgb(244 244 246 / 0.05); }
 .landing .ln-menu-ico {
   inline-size: 38px;
   block-size: 38px;
@@ -408,9 +416,9 @@ html.light .landing .ln-marquee {
   border-radius: var(--r-lg);
   flex-shrink: 0;
 }
-.landing .ln-menu-ico.gold { background: rgb(233 245 240 / 0.08); color: var(--ln-cream-dim); }
-.landing .ln-menu-ico.azure { background: rgb(198 242 78 / 0.16); color: var(--ln-violet); }
-.landing .ln-menu-ico.mist { background: rgb(233 245 240 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-menu-ico.gold { background: rgb(244 244 246 / 0.08); color: var(--ln-cream-dim); }
+.landing .ln-menu-ico.azure { background: rgb(147 128 255 / 0.16); color: var(--ln-violet); }
+.landing .ln-menu-ico.mist { background: rgb(244 244 246 / 0.08); color: var(--ln-cream-dim); }
 .landing .landing-megamenu-item-title { display: block; color: var(--ln-cream); font-size: 14px; font-weight: var(--fw-semibold); }
 .landing .landing-megamenu-item-desc { display: block; color: var(--ln-cream-dim); font-size: 12px; margin-block-start: 2px; }
 
@@ -454,7 +462,7 @@ html.light .landing .ln-marquee {
   padding: 10px 26px;
   font-size: 15px;
   min-block-size: 48px;
-  background: var(--ln-lime);
+  background: var(--ln-cream);
   color: var(--ln-ink);
   border-radius: var(--ln-radius-pill);
   transform: translate(var(--mag-x, 0), var(--mag-y, 0));
@@ -463,15 +471,15 @@ html.light .landing .ln-marquee {
   box-shadow:
     0 1px 2px rgba(0,0,0,0.12),
     0 4px 12px rgba(0,0,0,0.16),
-    0 0 0 1px rgba(233,245,240,0.08);
+    0 0 0 1px rgba(244,244,246,0.08);
 }
 .landing .ln-btn-gold:hover {
-  background: var(--ln-lime-deep);
+  background: color-mix(in srgb, var(--ln-cream) 88%, var(--ln-ink) 12%);
   /* Elevated hover state */
   box-shadow:
     0 2px 4px rgba(0,0,0,0.16),
     0 8px 20px rgba(0,0,0,0.20),
-    0 0 0 1px rgba(233,245,240,0.10);
+    0 0 0 1px rgba(244,244,246,0.10);
   transform: translate(var(--mag-x, 0), calc(var(--mag-y, 0) - 1px));
 }
 /* r129 (P4-01, canonical landing.css:1849): the press register — the
@@ -514,15 +522,15 @@ html.light .landing .ln-marquee {
      i5 (VLM r3): 0.34 → 0.42 — the ghost pill's edge sat at ~3:1 on the
      petrol hero (the "insufficient border contrast" read); 0.42 clears
      the 3:1 UI-component bar with margin. */
-  border: 1px solid rgb(233 245 240 / 0.42);
+  border: 1px solid rgb(244 244 246 / 0.42);
   border-radius: var(--ln-radius-pill);
   /* Subtle depth on ghost buttons for premium feel */
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 .landing .ln-btn-ghost:hover {
-  background: rgb(233 245 240 / 0.07);
+  background: rgb(244 244 246 / 0.07);
   color: var(--ln-cream);
-  border-color: rgb(233 245 240 / 0.52);
+  border-color: rgb(244 244 246 / 0.52);
   /* Elevated ghost on hover */
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
@@ -543,7 +551,7 @@ html.light .landing .ln-marquee {
   top: 0;
   block-size: 2px;
   z-index: 90;
-  background: rgb(233 245 240 / 0.08);
+  background: rgb(244 244 246 / 0.08);
   pointer-events: none;
 }
 .landing .landing-progress-bar {
@@ -657,7 +665,7 @@ html.light .landing .ln-marquee {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(7,26,33,0.06) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(5,5,6,0.06) 50%, transparent 100%);
   pointer-events: none;
   opacity: calc(var(--sp, 0) * 0.5); /* fades in as section enters viewport */
 }
@@ -732,7 +740,7 @@ html.light .landing .ln-marquee {
     color var(--ln-t-base) var(--ln-ease),
     border-color var(--ln-t-base) var(--ln-ease);
 }
-.landing .landing-burger:hover { background: rgb(233 245 240 / 0.04); color: var(--ln-cream); }
+.landing .landing-burger:hover { background: rgb(244 244 246 / 0.04); color: var(--ln-cream); }
 .landing .landing-burger:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
 
 .landing .landing-mobile-menu {
@@ -810,7 +818,7 @@ html.light .landing .ln-marquee {
 .landing .ln-hero-title .ln-hero-gold {
   color: var(--ln-lime);
   /* P3-34 (canonical): subtle depth on the accent word */
-  text-shadow: 0 0 20px rgba(233,245,240,0.25), 0 0 40px rgba(233,245,240,0.08);
+  text-shadow: 0 0 20px rgba(244,244,246,0.25), 0 0 40px rgba(244,244,246,0.08);
 }
 
 .landing .ln-hero-sub {
@@ -908,7 +916,7 @@ html.light .landing .ln-marquee {
   inset-block-end: 100%;
   inline-size: 100%;
   block-size: 40px;
-  background: linear-gradient(180deg, transparent 0%, rgba(233,245,240,0.03) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(244,244,246,0.03) 100%);
   pointer-events: none;
 }
 .landing .ln-trust-inner {
@@ -937,7 +945,7 @@ html.light .landing .ln-marquee {
   block-size: 7px;
   border-radius: var(--ln-radius-pill);
   background: var(--ln-lime);
-  box-shadow: 0 0 10px rgb(23 195 164 / 0.4);
+  box-shadow: 0 0 10px rgb(86 226 242 / 0.4);
   animation: ln-trust-live 3.2s var(--ln-ease-soft) infinite;
 }
 @keyframes ln-trust-live {
@@ -1074,7 +1082,7 @@ html.light .landing .ln-marquee {
 .landing .ln-faq-item {
   border: 1px solid var(--ln-line-soft);
   border-radius: var(--r-md);
-  background: rgb(233 245 240 / 0.02);
+  background: rgb(244 244 246 / 0.02);
   transition: border-color var(--ln-t-base) var(--ln-ease);
 }
 .landing .ln-faq-item:hover,
@@ -1113,7 +1121,7 @@ html.light .landing .ln-marquee {
   inset-block-end: 100%;
   inline-size: 100%;
   block-size: 60px;
-  background: linear-gradient(180deg, transparent 0%, rgba(233,245,240,0.03) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(244,244,246,0.03) 100%);
   pointer-events: none;
 }
 .landing .landing-footer-grid {
@@ -1362,11 +1370,11 @@ html.light .landing .ln-marquee {
 
 /* ── bot token block — NEW names only (canonical set untouched) ─────── */
 .landing {
-  --ln-bot-glow: rgb(198 242 78 / 0.14);   /* lime halo — automated-reply presence */
-  --ln-bot-amber: #C6F24E;                   /* warm eye light — LARGE text/accents on ink only */
-  --ln-bot-bubble-in: rgb(18 48 57 / 0.94);  /* messenger incoming bubble on ink */
-  --ln-bot-bubble-in-line: rgb(233 245 240 / 0.18);
-  --ln-bot-frame: rgb(233 245 240 / 0.06);   /* portrait plate wash */
+  --ln-bot-glow: rgb(147 128 255 / 0.16);   /* violet halo — the AI/automated-reply presence */
+  --ln-bot-amber: #FF9A69;                   /* the HUMAN/handoff warm register — LARGE text/accents on ink only */
+  --ln-bot-bubble-in: rgb(16 17 21 / 0.94);  /* messenger incoming bubble on ink */
+  --ln-bot-bubble-in-line: rgb(244 244 246 / 0.18);
+  --ln-bot-frame: rgb(244 244 246 / 0.06);   /* portrait plate wash */
 }
 
 /* P15 (concept A): the §16a hero-grid pairing (copy column ↔ robot stage)
@@ -1437,12 +1445,12 @@ html.light .landing .ln-marquee {
   letter-spacing: 0;
 }
 .landing .ln-botchat-badge.auto {
-  background: rgb(13 40 48 / 0.14);
+  background: rgb(10 11 14 / 0.14);
   color: var(--ln-ink);
 }
 .landing .ln-botchat-msg.bot .ln-botchat-badge { margin-inline-start: 8px; margin-block-start: 0; }
 .landing .ln-botchat-badge.human {
-  background: rgb(198 242 78 / 0.14);
+  background: rgb(147 128 255 / 0.14);
   color: var(--ln-bot-amber);
 }
 
@@ -1539,7 +1547,7 @@ html.light .landing .ln-marquee {
     background var(--ln-t-fast) var(--ln-ease-soft),
     border-color var(--ln-t-fast) var(--ln-ease-soft);
 }
-.landing .ln-mind-chip:hover { color: var(--ln-cream); background: rgb(233 245 240 / 0.05); border-color: rgb(233 245 240 / 0.26); }
+.landing .ln-mind-chip:hover { color: var(--ln-cream); background: rgb(244 244 246 / 0.05); border-color: rgb(244 244 246 / 0.26); }
 .landing .ln-mind-chip:focus-visible { outline: 2px solid var(--ln-cream); outline-offset: 3px; }
 .landing .ln-mind-chip-dot {
   inline-size: 8px;
@@ -1562,7 +1570,7 @@ html.light .landing .ln-marquee {
   gap: var(--sp-4) clamp(28px, 4vw, 56px);
   padding: clamp(20px, 3vw, 32px);
   border-radius: var(--r-2xl);
-  background: rgb(233 245 240 / 0.03);
+  background: rgb(244 244 246 / 0.03);
   border: 1px solid var(--ln-line-soft);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   transition: border-color var(--ln-t-base) var(--ln-ease);
@@ -1671,12 +1679,12 @@ html.light .landing .ln-marquee {
   block-size: 11px;
   border-radius: var(--ln-radius-pill);
   background: var(--ln-cream);
-  box-shadow: 0 0 0 4px rgb(233 245 240 / 0.14);
+  box-shadow: 0 0 0 4px rgb(244 244 246 / 0.14);
 }
 .landing .ln-day-panel:last-child .ln-day-node::before {
   inline-size: 15px;
   block-size: 15px;
-  box-shadow: 0 0 0 5px rgb(233 245 240 / 0.18);
+  box-shadow: 0 0 0 5px rgb(244 244 246 / 0.18);
 }
 .landing .ln-day-clock { font-size: 10.5px; color: var(--ln-cream-dim); }
 .landing .ln-day-card {
@@ -1747,7 +1755,7 @@ html.light .landing .ln-marquee {
   min-inline-size: 0;
   border-radius: var(--r-2xl);
   border: 1px solid var(--ln-line-soft);
-  background: rgb(233 245 240 / 0.03);
+  background: rgb(244 244 246 / 0.03);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   overflow: hidden;
   transition: border-color var(--ln-t-base) var(--ln-ease);
@@ -1758,15 +1766,15 @@ html.light .landing .ln-marquee {
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  background: rgb(13 40 48 / 0.66);
+  background: rgb(10 11 14 / 0.66);
   border-block-end: 1px solid var(--ln-line-soft);
-  box-shadow: inset 0 1px 0 rgba(233,245,240,0.04);
+  box-shadow: inset 0 1px 0 rgba(244,244,246,0.04);
 }
 .landing .ln-product-bar i {
   inline-size: 8px;
   block-size: 8px;
   border-radius: var(--ln-radius-pill);
-  background: rgb(233 245 240 / 0.18);
+  background: rgb(244 244 246 / 0.18);
 }
 .landing .ln-product-bar .ln-mono { font-size: 10.5px; margin-inline-start: 6px; letter-spacing: 0.06em; }
 .landing .ln-product-shot { display: block; inline-size: 100%; block-size: auto; }
@@ -1807,7 +1815,7 @@ html.light .landing .ln-marquee {
   gap: 9px;
   padding: 8px 10px;
   border-radius: var(--r-md);
-  background: rgb(233 245 240 / 0.03);
+  background: rgb(244 244 246 / 0.03);
   border: 1px solid var(--ln-line-soft);
 }
 .landing .ln-pp-avatar {
@@ -1951,17 +1959,17 @@ html.light .landing .ln-marquee {
 
    Source of every value: the PRODUCT light scope (globals.css `.light`)
    — ONE coherent system, zero invented colors:
-     ground  --ln-ink        #EDF6F3  (product --background mist)
-     stage-2 --ln-ink-2      #DAEAE6  (product --muted surface-2)
-     ink     --ln-cream      #0A242E  (product --foreground deep petrol)
+     ground  --ln-ink        #F2F2F0  (porcelain day)
+     stage-2 --ln-ink-2      #E6E6E3  (soft separation)
+     ink     --ln-cream      #101115  (charcoal ink)
      ink-dim --ln-cream-dim  #3A5450  (product --muted-foreground)
-     signal  --ln-lime       #0C7563  (product --primary / --accent-solid)
+     signal  --ln-lime       #0E7A8A  (cyan ink grade — 4.58:1)
      hover   --ln-lime-deep  #0A6656  (product --accent-hover — darkens on
                                        light ground, mirroring the dark
                                        stage's brighten)
-     AI lime --ln-violet     #5A7A16  (product --c-lime-ink light tier)
+     AI      --ln-violet     #6B54E0  (violet light tier — 6.0:1)
      deep    --ln-violet-deep #37490C (lime family light deep)
-   Measured text pairs (WCAG 2.1, mist #EDF6F3 ground unless noted):
+   Measured text pairs (WCAG 2.1, porcelain #F2F2F0 ground unless noted):
      ink 14.62:1 · ink-dim 7.44:1 · ink on stage-2 12.95:1 ·
      signal-as-text 5.10:1 · signal on stage-2 4.56:1 ·
      AI lime 4.51:1 · AI lime on white 4.96:1 ·
@@ -1980,23 +1988,23 @@ html.light .landing .ln-marquee {
 
 /* ── 16a · the light token block — ONE block, the §1 mirror ─────────── */
 html.light .landing {
-  --ln-ink:        #EDF6F3;   /* petrol mist ground (product light) */
-  --ln-ink-2:      #DAEAE6;   /* soft stage separation (surface-2) */
-  --ln-cream:      #0A242E;   /* deep petrol ink — 14.62:1 on mist */
-  --ln-cream-dim:  #3A5450;   /* secondary — 7.44:1 on mist */
-  --ln-lime:       #0C7563;   /* deep teal — the machine's voice, 5.10:1 */
-  --ln-lime-deep:  #0A6656;   /* hover/active — darkens (light convention) */
-  --ln-violet:     #5A7A16;   /* AI lime light tier — 4.51:1 */
-  --ln-violet-deep:#37490C;   /* decorative depth fills only — 9.00:1 */
-  --ln-line:       rgba(10, 36, 46, 0.20);
-  --ln-line-soft:  rgba(10, 36, 46, 0.10);
+  --ln-ink:        #F2F2F0;   /* porcelain day ground (product light) */
+  --ln-ink-2:      #E6E6E3;   /* soft stage separation (surface-2) */
+  --ln-cream:      #101115;   /* charcoal ink — 16.8:1 on porcelain */
+  --ln-cream-dim:  #41434B;   /* secondary — 8.5:1 on porcelain */
+  --ln-lime:       #0E7A8A;   /* cyan ink grade — the machine's voice, 4.58:1 */
+  --ln-lime-deep:  #0B6573;   /* hover/active — darkens (light convention) */
+  --ln-violet:     #6B54E0;   /* violet light tier — 6.0:1 */
+  --ln-violet-deep:#2A2470;   /* decorative depth fills only — 10.8:1 */
+  --ln-line:       rgba(16, 17, 21, 0.20);
+  --ln-line-soft:  rgba(16, 17, 21, 0.10);
   --ln-grain-op:   0.06;      /* ink-noise grain, gentler on mist */
   /* §2-b bot register — light twins */
-  --ln-bot-glow: rgb(90 122 22 / 0.16);        /* AI halo, dark-lime tier */
-  --ln-bot-amber: #5A7A16;                     /* eye light — 4.51:1 on mist */
+  --ln-bot-glow: rgb(107 84 224 / 0.16);       /* AI halo, violet tier */
+  --ln-bot-amber: #C25E33;                     /* the human/handoff warm register — 4.9:1 on porcelain */
   --ln-bot-bubble-in: rgb(255 255 255 / 0.94); /* incoming bubble = white card */
-  --ln-bot-bubble-in-line: rgb(10 36 46 / 0.14);
-  --ln-bot-frame: rgb(10 36 46 / 0.04);        /* portrait plate wash */
+  --ln-bot-bubble-in-line: rgb(16 17 21 / 0.14);
+  --ln-bot-frame: rgb(16 17 21 / 0.04);        /* portrait plate wash */
   /* P15 (concept A): the retired §17 stage register (--sb-spot/-wash/-led/-hud)
   and the companion-era -glow-deep/-amber-soft twins were deleted with
   HeroCompanion — §18's --sb-fig/--sb-floor/--sb-chamfer are the living
@@ -2005,7 +2013,7 @@ html.light .landing {
 }
 
 /* selection — the AI lime depth pair keeps its tier symmetry: dark =
-   #5A7A16 ground + foam; light = #5A7A16 ground + mist (4.51:1). */
+   #9380FF ground + cream; light = #6B54E0 ground + porcelain (6.0:1). */
 html.light .landing ::selection { background: var(--ln-violet); color: var(--ln-ink); }
 
 /* grain — the noise TILE flips to ink (the matrix offsets 1→0); the
@@ -2017,47 +2025,47 @@ html.light .landing .ln-grain {
 /* ── 16b · chrome — header rail, nav, megamenu, buttons, ribbon ─────── */
 /* scrolled rail: mist @ 92% (the ink-2 @ 92% twin) */
 html.light .landing .landing-header.scrolled {
-  background: rgb(237 246 243 / 0.92);
+  background: rgb(242 242 240 / 0.92);
   border-block-end-color: var(--ln-line);
 }
 /* progress ribbon — deep-ink track @ 10% */
-html.light .landing .landing-progress { background: rgb(10 36 46 / 0.10); }
+html.light .landing .landing-progress { background: rgb(16 17 21 / 0.10); }
 /* hover washes — the foam 4-5% washes become ink washes (5-6%) */
 html.light .landing .landing-nav-link:hover,
 html.light .landing .landing-nav-group.open .landing-nav-link {
-  background: rgb(10 36 46 / 0.05);
+  background: rgb(16 17 21 / 0.05);
 }
 /* scroll-spy active pills (the R2 form — parity pins the selector) */
 html.light .landing header[data-active-section="mind"] .landing-nav-link[href="#mind"],
 html.light .landing header[data-active-section="day"] .landing-nav-link[href="#day"],
 html.light .landing header[data-active-section="platform"] .landing-nav-link[href="#platform"],
 html.light .landing header[data-active-section="trust"] .landing-nav-link[href="#trust"] {
-  background: rgb(10 36 46 / 0.08);
+  background: rgb(16 17 21 / 0.08);
 }
-html.light .landing .landing-megamenu-item:focus-visible { background: rgb(10 36 46 / 0.06); }
+html.light .landing .landing-megamenu-item:focus-visible { background: rgb(16 17 21 / 0.06); }
 html.light .landing .ln-menu-ico.gold,
-html.light .landing .ln-menu-ico.mist { background: rgb(10 36 46 / 0.07); }
-html.light .landing .ln-menu-ico.azure { background: rgb(90 122 22 / 0.14); }
-html.light .landing .landing-burger:hover { background: rgb(10 36 46 / 0.05); }
+html.light .landing .ln-menu-ico.mist { background: rgb(16 17 21 / 0.07); }
+html.light .landing .ln-menu-ico.azure { background: rgb(107 84 224 / 0.14); }
+html.light .landing .landing-burger:hover { background: rgb(16 17 21 / 0.05); }
 /* ghost pill — ink hairlines (0.34/0.52 → 0.45/0.65, the same effective
    2.9:1-3:1 non-text register the night stage pins) */
-html.light .landing .ln-btn-ghost { border-color: rgb(10 36 46 / 0.45); }
+html.light .landing .ln-btn-ghost { border-color: rgb(16 17 21 / 0.45); }
 html.light .landing .ln-btn-ghost:hover {
-  background: rgb(10 36 46 / 0.06);
-  border-color: rgb(10 36 46 / 0.65);
+  background: rgb(16 17 21 / 0.06);
+  border-color: rgb(16 17 21 / 0.65);
 }
 /* the gold CTA's edge ring — foam ring → ink hairline ring */
 html.light .landing .ln-btn-gold {
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.10),
     0 4px 12px rgba(0, 0, 0, 0.12),
-    0 0 0 1px rgba(10, 36, 46, 0.08);
+    0 0 0 1px rgba(16, 17, 21, 0.08);
 }
 html.light .landing .ln-btn-gold:hover {
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.12),
     0 8px 20px rgba(0, 0, 0, 0.16),
-    0 0 0 1px rgba(10, 36, 46, 0.10);
+    0 0 0 1px rgba(16, 17, 21, 0.10);
 }
 
 /* ── 16c · hero + sky — the night radials become mist washes ────────── */
@@ -2065,56 +2073,56 @@ html.light .landing .ln-btn-gold:hover {
    OrbitScene-era stage (§18/§19a own the machine layer's mist twins). */
 /* the h1 scrim softens (deep ink on mist needs no black halo) */
 html.light .landing .ln-hero-title {
-  text-shadow: 0 1px 2px rgba(10, 36, 46, 0.14);
+  text-shadow: 0 1px 2px rgba(16, 17, 21, 0.14);
 }
 /* the ONE teal word keeps its halo at the deep-teal grade */
 html.light .landing .ln-hero-title .ln-hero-gold {
-  text-shadow: 0 0 20px rgba(12, 117, 99, 0.22), 0 0 40px rgba(12, 117, 99, 0.08);
+  text-shadow: 0 0 20px rgba(14, 122, 138, 0.22), 0 0 40px rgba(14, 122, 138, 0.08);
 }
 
 /* ── 16d · chapter + trust + FAQ + product surfaces ─────────────────── */
 html.light .landing .ln-chapter::before {
-  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.05) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgb(16 17 21 / 0.05) 50%, transparent 100%);
 }
 html.light .landing .ln-trust::before {
-  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgb(16 17 21 / 0.04) 100%);
 }
 /* P9-3-c2 (gate review): the footer's mist-rise seam — the ONE night
    literal the first §16 wave missed (foam 3% is invisible on mist);
    the trust-seam twin grammar, same ink-4% family. */
 html.light .landing .landing-footer::before {
-  background: linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgb(16 17 21 / 0.04) 100%);
 }
-html.light .landing .ln-trust-live i { box-shadow: 0 0 10px rgb(12 117 99 / 0.50); }
-html.light .landing .ln-faq-item { background: rgb(10 36 46 / 0.03); }
+html.light .landing .ln-trust-live i { box-shadow: 0 0 10px rgb(14 122 138 / 0.50); }
+html.light .landing .ln-faq-item { background: rgb(16 17 21 / 0.03); }
 html.light .landing .ln-mind-chip:hover {
-  background: rgb(10 36 46 / 0.06);
-  border-color: rgb(10 36 46 / 0.30);
+  background: rgb(16 17 21 / 0.06);
+  border-color: rgb(16 17 21 / 0.30);
 }
 /* the card family — foam 3% washes → ink 3% washes */
 html.light .landing .ln-mind-thread,
 html.light .landing .ln-product-window,
-html.light .landing .ln-pp-row { background: rgb(10 36 46 / 0.03); }
+html.light .landing .ln-pp-row { background: rgb(16 17 21 / 0.03); }
 /* the station bar — ink-2 glass → white glass + ink hairline sheen
    (the BotChatSimulator window twin was retired with its component) */
 html.light .landing .ln-product-bar {
   background: rgb(255 255 255 / 0.72);
-  box-shadow: inset 0 1px 0 rgb(10 36 46 / 0.05);
+  box-shadow: inset 0 1px 0 rgb(16 17 21 / 0.05);
 }
-html.light .landing .ln-product-bar i { background: rgb(10 36 46 / 0.22); }
+html.light .landing .ln-product-bar i { background: rgb(16 17 21 / 0.22); }
 /* badges */
 html.light .landing .ln-botchat-badge.auto {
-  background: rgb(12 117 99 / 0.14);
+  background: rgb(14 122 138 / 0.14);
   color: var(--ln-cream);
 }
 html.light .landing .ln-botchat-badge.human {
-  background: rgb(90 122 22 / 0.16);
+  background: rgb(107 84 224 / 0.16);
   color: var(--ln-violet-deep);
 }
 /* storyboard rail nodes — foam rings → ink rings */
-html.light .landing .ln-day-node::before { box-shadow: 0 0 0 4px rgb(10 36 46 / 0.18); }
+html.light .landing .ln-day-node::before { box-shadow: 0 0 0 4px rgb(16 17 21 / 0.18); }
 html.light .landing .ln-day-panel:last-child .ln-day-node::before {
-  box-shadow: 0 0 0 5px rgb(10 36 46 / 0.22);
+  box-shadow: 0 0 0 5px rgb(16 17 21 / 0.22);
 }
 
 /* ── 16e · the companion stage — RETIRED with HeroCompanion (P15):
@@ -2152,9 +2160,9 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   padding: 0;
   overflow: clip;
   background:
-    radial-gradient(110% 62% at 50% 116%, rgb(23 195 164 / 0.09) 0%, transparent 62%),
-    radial-gradient(42% 30% at 50% 24%, rgb(23 195 164 / 0.05) 0%, transparent 70%),
-    radial-gradient(64% 44% at 50% 34%, rgb(10 32 40 / 0.85) 0%, transparent 78%),
+    radial-gradient(110% 62% at 50% 116%, rgb(86 226 242 / 0.09) 0%, transparent 62%),
+    radial-gradient(42% 30% at 50% 24%, rgb(86 226 242 / 0.05) 0%, transparent 70%),
+    radial-gradient(64% 44% at 50% 34%, rgb(10 11 14 / 0.85) 0%, transparent 78%),
     var(--ln-ink);
 }
 
@@ -2208,11 +2216,11 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.26) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-    radial-gradient(30% 7% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(23 195 164 / 0.42) 0%, rgb(23 195 164 / 0.14) 46%, transparent 74%),
-    radial-gradient(9% 2.4% at 50% calc(var(--sb-floor) * 100% + 0.7%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.6) 44%, transparent 80%),
-    radial-gradient(15% 4.6% at 50% calc(var(--sb-floor) * 100% + 1.2%), rgb(3 10 13 / 0.62) 0%, transparent 82%),
-    radial-gradient(56% 16% at 50% calc(var(--sb-floor) * 100% + 2%), rgb(23 195 164 / 0.08) 0%, transparent 76%);
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.26) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.07) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(30% 7% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(86 226 242 / 0.42) 0%, rgb(86 226 242 / 0.14) 46%, transparent 74%),
+    radial-gradient(9% 2.4% at 50% calc(var(--sb-floor) * 100% + 0.7%), rgb(1 1 2 / 0.92) 0%, rgb(1 1 2 / 0.6) 44%, transparent 80%),
+    radial-gradient(15% 4.6% at 50% calc(var(--sb-floor) * 100% + 1.2%), rgb(1 1 2 / 0.62) 0%, transparent 82%),
+    radial-gradient(56% 16% at 50% calc(var(--sb-floor) * 100% + 2%), rgb(86 226 242 / 0.08) 0%, transparent 76%);
 }
 /* the vignette — edge darkening that seats the machine in the void
    (top/bottom edge fades + a weak side shade; the interface boxes at
@@ -2226,9 +2234,9 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgb(7 26 33 / 0.55) 0%, transparent 13%),
-    linear-gradient(0deg, rgb(7 26 33 / 0.78) 0%, transparent 30%),
-    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(7 26 33 / 0.36) 100%);
+    linear-gradient(180deg, rgb(5 5 6 / 0.55) 0%, transparent 13%),
+    linear-gradient(0deg, rgb(5 5 6 / 0.78) 0%, transparent 30%),
+    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(5 5 6 / 0.36) 100%);
 }
 
 /* THE PEDESTAL SCRIM (2-e · directive 3 — the h1∩silhouette fix): a
@@ -2254,12 +2262,12 @@ html.light .landing .ln-day-panel:last-child .ln-day-node::before {
     0deg,
     transparent 0%,
     transparent calc(var(--sb-floor) * 100% + 3%),
-    rgb(7 26 33 / 0.18) calc(var(--sb-floor) * 100% - 4%),
-    rgb(7 26 33 / 0.55) calc(var(--sb-floor) * 100% - 8%),
-    rgb(7 26 33 / 0.88) calc(var(--sb-floor) * 100% - 12%),
-    rgb(7 26 33 / 0.94) calc(var(--sb-floor) * 100% - 20%),
-    rgb(7 26 33 / 0.9) calc(var(--sb-floor) * 100% - 26%),
-    rgb(7 26 33 / 0.62) calc(var(--sb-floor) * 100% - 31%),
+    rgb(5 5 6 / 0.18) calc(var(--sb-floor) * 100% - 4%),
+    rgb(5 5 6 / 0.55) calc(var(--sb-floor) * 100% - 8%),
+    rgb(5 5 6 / 0.88) calc(var(--sb-floor) * 100% - 12%),
+    rgb(5 5 6 / 0.94) calc(var(--sb-floor) * 100% - 20%),
+    rgb(5 5 6 / 0.9) calc(var(--sb-floor) * 100% - 26%),
+    rgb(5 5 6 / 0.62) calc(var(--sb-floor) * 100% - 31%),
     transparent calc(var(--sb-floor) * 100% - 36%)
   );
 }
@@ -2272,12 +2280,12 @@ html.light .landing .ln-robot-scrim {
     0deg,
     transparent 0%,
     transparent calc(var(--sb-floor) * 100% + 3%),
-    rgb(237 246 243 / 0.22) calc(var(--sb-floor) * 100% - 4%),
-    rgb(237 246 243 / 0.5) calc(var(--sb-floor) * 100% - 8%),
-    rgb(237 246 243 / 0.8) calc(var(--sb-floor) * 100% - 12%),
-    rgb(237 246 243 / 0.9) calc(var(--sb-floor) * 100% - 18%),
-    rgb(237 246 243 / 0.86) calc(var(--sb-floor) * 100% - 21%),
-    rgb(237 246 243 / 0.6) calc(var(--sb-floor) * 100% - 26%),
+    rgb(242 242 240 / 0.22) calc(var(--sb-floor) * 100% - 4%),
+    rgb(242 242 240 / 0.5) calc(var(--sb-floor) * 100% - 8%),
+    rgb(242 242 240 / 0.8) calc(var(--sb-floor) * 100% - 12%),
+    rgb(242 242 240 / 0.9) calc(var(--sb-floor) * 100% - 18%),
+    rgb(242 242 240 / 0.86) calc(var(--sb-floor) * 100% - 21%),
+    rgb(242 242 240 / 0.6) calc(var(--sb-floor) * 100% - 26%),
     transparent calc(var(--sb-floor) * 100% - 30%)
   );
 }
@@ -2340,25 +2348,25 @@ html.light .landing .ln-robot-scrim {
 /* ── 19a · light-stage twins (the machine + framing on mist) ──────────── */
 html.light .landing .ln-hero-robot {
   background:
-    radial-gradient(110% 62% at 50% 116%, rgb(12 117 99 / 0.10) 0%, transparent 62%),
+    radial-gradient(110% 62% at 50% 116%, rgb(14 122 138 / 0.10) 0%, transparent 62%),
     radial-gradient(64% 44% at 50% 34%, rgb(255 255 255 / 0.6) 0%, transparent 78%),
     var(--ln-ink);
 }
 html.light .landing .ln-robot-glow {
   background:
-    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(12 117 99 / 0.16) calc(var(--sb-floor) * 100%), rgb(12 117 99 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-    radial-gradient(26% 10% at 50% calc(var(--sb-floor) * 100%), rgb(12 117 99 / 0.2) 0%, transparent 72%),
-    radial-gradient(15% 4.5% at 50% calc(var(--sb-floor) * 100% + 1.5%), rgb(10 36 46 / 0.24) 0%, transparent 78%);
+    linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(14 122 138 / 0.16) calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.05) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+    radial-gradient(26% 10% at 50% calc(var(--sb-floor) * 100%), rgb(14 122 138 / 0.2) 0%, transparent 72%),
+    radial-gradient(15% 4.5% at 50% calc(var(--sb-floor) * 100% + 1.5%), rgb(16 17 21 / 0.24) 0%, transparent 78%);
 }
 html.light .landing .ln-robot-vignette {
   background:
-    linear-gradient(180deg, rgb(237 246 243 / 0.6) 0%, transparent 13%),
-    linear-gradient(0deg, rgb(237 246 243 / 0.65) 0%, transparent 16%),
-    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(237 246 243 / 0.4) 100%);
+    linear-gradient(180deg, rgb(242 242 240 / 0.6) 0%, transparent 13%),
+    linear-gradient(0deg, rgb(242 242 240 / 0.65) 0%, transparent 16%),
+    radial-gradient(125% 105% at 50% 42%, transparent 62%, rgb(242 242 240 / 0.4) 100%);
 }
 html.light .landing .ln-chapter-head::before,
 html.light .landing .ln-chapter-head::after {
-  background: rgb(10 36 46 / 0.28);
+  background: rgb(16 17 21 / 0.28);
 }
 
 /* ═══ 20 — P16-A CONCEPT A · THE HERO COMPOSITION ═════════════════════
@@ -2474,7 +2482,7 @@ html.light .landing .ln-chapter-head::after {
      competing anchor; at rest it reads as a dim holographic plate */
   background: linear-gradient(180deg, rgb(13 42 52 / 0.42), rgb(10 34 42 / 0.38));
   border: 1px solid var(--ln-line);
-  box-shadow: 0 0 18px rgb(23 195 164 / 0.05), 0 10px 30px rgb(3 10 13 / 0.5);
+  box-shadow: 0 0 18px rgb(86 226 242 / 0.05), 0 10px 30px rgb(1 1 2 / 0.5);
 }
 /* the live beat lifts the plate ONE step (data-beat rides the body;
    the island stays furniture — the glow never approaches the face's) */
@@ -2529,7 +2537,7 @@ html.light .landing .ln-chapter-head::after {
   block-size: 6px;
   border-radius: 50%;
   background: var(--ln-lime);
-  box-shadow: 0 0 7px rgb(23 195 164 / 0.65);
+  box-shadow: 0 0 7px rgb(86 226 242 / 0.65);
   animation: ln-status-pulse 2.4s var(--ln-ease-soft) infinite;
 }
 .landing .ln-ticker-idx {
@@ -2591,7 +2599,7 @@ html.light .landing .ln-chapter-head::after {
   border: 1px solid var(--ln-line);
   color: var(--ln-cream-dim);
 }
-.landing .ln-ticker-badge.auto { color: var(--ln-lime); border-color: rgb(23 195 164 / 0.5); }
+.landing .ln-ticker-badge.auto { color: var(--ln-lime); border-color: rgb(86 226 242 / 0.5); }
 .landing .ln-ticker-badge.human { color: var(--ln-cream); border-color: var(--ln-line); }
 /* the messenger typing beads (B's engine, ported) */
 .landing .ln-typing {
@@ -2674,10 +2682,10 @@ html.light .landing .ln-chapter-head::after {
 .landing .ln-scenario-tab:hover { color: var(--ln-cream); }
 .landing .ln-scenario-tab[aria-pressed='true'] {
   color: var(--ln-cream);
-  border-bottom-color: var(--ln-lime, #c6f24e);
+  border-bottom-color: var(--ln-lime, #56E2F2);
 }
 .landing .ln-scenario-tab[aria-pressed='true'] .ln-mono {
-  color: var(--ln-lime, #c6f24e);
+  color: var(--ln-lime, #56E2F2);
   opacity: 1;
 }
 
@@ -2713,7 +2721,7 @@ html.light .landing .ln-chapter-head::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: rgb(233 245 240 / 0.55); /* dim resting rows — still ≥4.5:1 on petrol (0.38 measured 3.3:1) */
+  color: rgb(244 244 246 / 0.55); /* dim resting rows — still ≥4.5:1 on petrol (0.38 measured 3.3:1) */
   font-size: 12.5px;
   transition: color var(--ln-t-base) var(--ln-ease-soft);
 }
@@ -2727,12 +2735,12 @@ html.light .landing .ln-chapter-head::after {
   block-size: 7px;
   flex-shrink: 0;
   background: var(--ln-lime); /* teal default — the machine register */
-  box-shadow: 0 0 8px rgb(23 195 164 / 0.6);
+  box-shadow: 0 0 8px rgb(86 226 242 / 0.6);
 }
 .landing .ln-status li i[data-tone='lime'],
 .landing .ln-ticker-status b[data-tone='lime'] {
   background: var(--ln-violet); /* lime — the AI/automation register */
-  box-shadow: 0 0 8px rgb(198 242 78 / 0.55);
+  box-shadow: 0 0 8px rgb(147 128 255 / 0.55);
 }
 /* only the ACTIVE dot breathes (the state is live, the rest are idle) */
 .landing .ln-status li[data-active='true'] i {
@@ -2808,49 +2816,49 @@ html.light .landing .ln-chapter-head::after {
 .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
   color: var(--ln-cream);
   text-shadow: none;
-  border-bottom: 0.045em solid rgb(23 195 164 / 0.55);
+  border-bottom: 0.045em solid rgb(86 226 242 / 0.55);
   padding-bottom: 0.02em;
 }
 
 /* ── 20d · light twins (the composition on mist) ───────────────────────── */
 html.light .landing .ln-ticker {
   background: rgb(255 255 255 / 0.62);
-  border-color: rgb(10 36 46 / 0.30);
+  border-color: rgb(16 17 21 / 0.30);
 }
 html.light .landing .ln-ticker:has(.ln-ticker-beat:not([data-beat='reset'])) {
   background: rgb(255 255 255 / 0.7);
 }
-html.light .landing .ln-ticker-corner { border-color: rgb(10 36 46 / 0.55); }
+html.light .landing .ln-ticker-corner { border-color: rgb(16 17 21 / 0.55); }
 html.light .landing .ln-ticker-head .ln-mono { color: var(--ln-lime-deep); }
 html.light .landing .ln-ticker-msg { color: var(--ln-cream); }
 /* 2-g (P1 — acceptance gap 2): the light twin was var(--ln-ink-2) — the
-   light SURFACE token #DAEAE6 — 1.24:1 on the rgba(255,255,255,.7) card
+   light SURFACE token — 1.2:1 on the rgba(255,255,255,.7) card
    (near-invisible). The message body is PRIMARY text: the deep petrol
-   ink --ln-cream (#0A242E) = 15.62:1 on that card. The .reset beat's
+   ink --ln-cream (#101115) = 16.5:1 on that card. The .reset beat's
    dimmer register + the .intent teal twin follow the same law (the
    light ink-dim #3A5450 = 7.95:1; the deep teal #0A6656 = 6.69:1 —
    both AA+, the reset line now explicitly re-pinned instead of
    inheriting the broken surface token). */
 html.light .landing .ln-ticker-msg.reset { color: var(--ln-cream-dim); }
 html.light .landing .ln-ticker-msg.intent { color: var(--ln-lime-deep); }
-html.light .landing .ln-ticker-msg-meta { color: rgb(10 36 46 / 0.6); }
-html.light .landing .ln-typing i { background: rgb(10 36 46 / 0.7); }
-html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(12 117 99 / 0.45); }
-html.light .landing .ln-status { border-inline-start-color: rgb(10 36 46 / 0.28); }
-html.light .landing .ln-status li { color: rgb(10 36 46 / 0.5); }
+html.light .landing .ln-ticker-msg-meta { color: rgb(16 17 21 / 0.6); }
+html.light .landing .ln-typing i { background: rgb(16 17 21 / 0.7); }
+html.light .landing .ln-ticker-badge.auto { color: var(--ln-lime-deep); border-color: rgb(14 122 138 / 0.45); }
+html.light .landing .ln-status { border-inline-start-color: rgb(16 17 21 / 0.28); }
+html.light .landing .ln-status li { color: rgb(16 17 21 / 0.5); }
 html.light .landing .ln-status li[data-active='true'] { color: var(--ln-cream); }
 html.light .landing .ln-status li i {
   background: var(--ln-lime-deep);
-  box-shadow: 0 0 8px rgb(12 117 99 / 0.5);
+  box-shadow: 0 0 8px rgb(14 122 138 / 0.5);
 }
 html.light .landing .ln-status li i[data-tone='lime'] {
   background: var(--ln-violet-deep);
-  box-shadow: 0 0 8px rgb(90 122 22 / 0.45);
+  box-shadow: 0 0 8px rgb(107 84 224 / 0.45);
 }
 html.light .landing .ln-eyebrow-latin { color: var(--ln-lime-deep); }
 html.light .landing .ln-eyebrow-sep { background: var(--ln-lime-deep); }
 html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
-  border-bottom-color: rgb(12 117 99 / 0.6);
+  border-bottom-color: rgb(14 122 138 / 0.6);
 }
 
 /* ── 20e · reduced motion — the composed static frame ────────────────────
@@ -2897,10 +2905,13 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     order: 1;
     position: relative;
     inline-size: 100%;
-    block-size: 56svh;
-    min-block-size: 320px;
-    --sb-fig: 0.92;
-    --sb-floor: 0.94;
+    /* P17: 56svh → 41svh + fig 1.3 — the bust close-up; the CTA returns
+     * IN the fold (the brief's rejection of the P16 trade-off) — the
+     * camera answer is the reference's own mobile grammar: CLOSER. */
+    block-size: 41svh;
+    min-block-size: 264px;
+    --sb-fig: 1.3;    /* >1 = the deliberate bust crop (figure overflows) */
+    --sb-floor: 1.35; /* >1 = floor line BELOW the box — head whole, hips cropped */
     --sb-ringfit: 0.72; /* the landing rings clamp for the narrow box */
   }
   .landing .ln-robot-exit,
@@ -2910,9 +2921,9 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
      wide radials until the anchor reads as nothing) */
   .landing .ln-robot-glow {
     background:
-      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(23 195 164 / 0.3) calc(var(--sb-floor) * 100%), rgb(23 195 164 / 0.08) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
-      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.2%), rgb(23 195 164 / 0.36) 0%, rgb(23 195 164 / 0.14) 44%, transparent 74%),
-      radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(3 10 13 / 0.92) 0%, rgb(3 10 13 / 0.64) 46%, transparent 82%);
+      linear-gradient(180deg, transparent calc(var(--sb-floor) * 100% - 0.5px), rgb(86 226 242 / 0.3) calc(var(--sb-floor) * 100%), rgb(86 226 242 / 0.08) calc(var(--sb-floor) * 100% + 1px), transparent calc(var(--sb-floor) * 100% + 2px)),
+      radial-gradient(38% 9% at 50% calc(var(--sb-floor) * 100% + 0.2%), rgb(86 226 242 / 0.36) 0%, rgb(86 226 242 / 0.14) 44%, transparent 74%),
+      radial-gradient(11% 3% at 50% calc(var(--sb-floor) * 100% + 0.4%), rgb(1 1 2 / 0.92) 0%, rgb(1 1 2 / 0.64) 46%, transparent 82%);
   }
   .landing .ln-ticker-island {
     order: 2;
@@ -2926,11 +2937,11 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     order: 2;
     position: relative;
     inline-size: 100%;
-    padding: 8px 14px 9px; /* the one-line console is compact by law —
+    padding: 7px 14px 8px; /* the one-line console is compact by law —
                               its rhythm air is the cheapest honest trim
                               on the mobile fold ladder */
   }
-  .landing .ln-ticker-head { margin: 0 0 5px; }
+  .landing .ln-ticker-head { margin: 0 0 4px; }
   .landing .ln-ticker-beat {
     min-block-size: 0; /* the desktop 5.4em floor is a two-line body —
                           the mobile console is ONE line by design */
@@ -2974,9 +2985,9 @@ html.light .landing .ln-hero-robot .ln-hero-title .ln-hero-gold {
     max-inline-size: none;
   }
   .landing .ln-hero-robot .ln-hero-sub {
-    margin-block-start: var(--sp-4);
-    font-size: 15px;
-    line-height: 1.65;
+    margin-block-start: var(--sp-3);
+    font-size: 14.5px;
+    line-height: 1.6;
     max-inline-size: 40ch;
   }
   .landing .ln-hero-eyebrow { gap: 8px; margin-block-end: var(--sp-3); }

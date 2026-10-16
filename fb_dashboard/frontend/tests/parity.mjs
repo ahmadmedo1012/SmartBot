@@ -9,9 +9,9 @@
  * gold/indigo set to the petrol contract in the same commit (names,
  * machinery and consumption gates untouched):
  *
- *   ground #070B16→#071A21 · surface #0D1428→#0D2830 · soft #121A36→#123039
- *   ink #F2EFE6→#E9F5F0 · primary gold #E9B44C→SIGNAL TEAL #17C3A4
- *   (fg #05070F→#04231B) · light copper #B57438→teal-deep #0C7563
+ *   ground #070B16→#050506 · surface #0D1428→#0A0B0E · soft #121A36→#101115
+ *   ink #F2EFE6→#F4F4F6 · primary gold #E9B44C→SIGNAL TEAL #56E2F2
+ *   (fg #05070F→#05171B) · light copper #B57438→teal-deep #0E7A8A
  *   status/family/neutral ramps re-graded in the petrol hue world; the
  *   lime AI signal (--c-lime-*) is a NEW family (AI/automation only).
  *   Landing --ln-* Orbit-Ink values → petrol stage/foam/teal/lime.
@@ -190,17 +190,17 @@ function pinAll(scope, label, table) {
 }
 
 // ── §1 DARK (night) ──────────────────────────────────────────────────────────
-pin(dark, 'dark', '--background', '#071A21');
-pin(dark, 'dark', '--foreground', '#E9F5F0');
-pin(dark, 'dark', '--primary', '#17C3A4');
-pin(dark, 'dark', '--primary-foreground', '#04231B');
+pin(dark, 'dark', '--background', '#050506');
+pin(dark, 'dark', '--foreground', '#F4F4F6');
+pin(dark, 'dark', '--primary', '#56E2F2');
+pin(dark, 'dark', '--primary-foreground', '#05171B');
 // 9 pastel families (§1.4)
 const famDark = {
-  peach: ["#2A1E1A", "#F2A887", "#F8D9C8"], mint: ["#0C2E24", "#45D6A0", "#C9EDDB"],
-  lavender: ["#1E2740", "#9FB2E8", "#D8DEF8"], sky: ["#10303B", "#7CC4DE", "#CDE9F3"],
-  yellow: ["#332708", "#F5C46B", "#F8E7B8"], rose: ["#331821", "#F2919B", "#FAD3D7"],
-  sand: ["#1B3230", "#B9D4C8", "#DDEBE1"], grey: ["#14262E", "#A3B8BF", "#D8E5E8"],
-  copper: ["#0A2E28", "#17C3A4", "#A9F0DF"],
+  peach: ["#2A1F1C", "#FFB08C", "#FFE2D1"], mint: ["#0D241B", "#5FE3A1", "#CFEDE1"],
+  lavender: ["#1E2233", "#A9B4F0", "#D8DDF9"], sky: ["#102530", "#8FC9D8", "#CFE8F0"],
+  yellow: ["#332A10", "#F8CF6E", "#F9E6BC"], rose: ["#331821", "#F2919B", "#FAD3D7"],
+  sand: ["#1A1D1C", "#C4C9C4", "#DEE3E0"], grey: ["#141519", "#A7A8B0", "#D6D7DB"],
+  copper: ["#0D1E24", "#56E2F2", "#C9F6FC"],
 };
 for (const [fam, [bg, ink, deep]] of Object.entries(famDark)) {
   pin(dark, 'dark', `--c-${fam}-bg`, bg);
@@ -240,16 +240,16 @@ const RADIUS = {
 pinAll(theme, 'theme', RADIUS);
 
 // ── §2 LIGHT (paper) ─────────────────────────────────────────────────────────
-pin(light, 'light', '--background', '#EDF6F3');
-pin(light, 'light', '--foreground', '#0A242E');
-pin(light, 'light', '--primary', '#0C7563');
-pin(light, 'light', '--primary-foreground', '#F2FDFA');
+pin(light, 'light', '--background', '#F2F2F0');
+pin(light, 'light', '--foreground', '#101115');
+pin(light, 'light', '--primary', '#0E7A8A');
+pin(light, 'light', '--primary-foreground', '#F2F2F0');
 const famLight = {
-  peach: ["#FFEDE2", "#DB7B57", "#6B2D1A"], mint: ["#D9F3E6", "#2E9E6F", "#0F4A33"],
-  lavender: ["#E8ECF9", "#7086D6", "#2D3A7A"], sky: ["#DDF0F7", "#3E96BC", "#0F3D52"],
+  peach: ["#FFEDE3", "#E0825C", "#74301C"], mint: ["#D9F3E6", "#2E9E6F", "#0F4A33"],
+  lavender: ["#E9E8F7", "#7B86DC", "#32387E"], sky: ["#DDF0F7", "#3E96BC", "#0F3D52"],
   yellow: ["#FBF1CF", "#C29217", "#6B4C0B"], rose: ["#FCE3E6", "#D95F6C", "#6B2128"],
-  sand: ["#EBF2EC", "#7FA089", "#33523F"], grey: ["#EAF0F1", "#5F7377", "#2A3A3E"],
-  copper: ["#D7F3EA", "#0E8A75", "#0A4A3C"],
+  sand: ["#EDEFEA", "#849489", "#385241"], grey: ["#EAEEF0", "#62696C", "#2E3A40"],
+  copper: ["#DCF1F4", "#12748A", "#0C4753"],
 };
 for (const [fam, [bg, ink, deep]] of Object.entries(famLight)) {
   pin(light, 'light', `--c-${fam}-bg`, bg);
@@ -269,19 +269,19 @@ for (const [fam, [bg, ink, deep]] of Object.entries(famLight)) {
 // #C2414D→#DD6E78 (rose-ink) — the exact values the r127 comment already
 // claimed; Menu/Link/Order ship these verbatim. Count unchanged (421).
 const STATUS_DARK = {
-  '--success': '#45D6A0', '--success-foreground': '#04231B',
-  '--success-soft': '#0C2E24',
-  '--warning': '#F5C46B', '--warning-soft': '#332708',
-  '--info': '#7CC4DE', '--info-soft': '#10303B',
-  '--destructive': '#F2919B', '--destructive-foreground': '#04231B',
+  '--success': '#5FE3A1', '--success-foreground': '#05171B',
+  '--success-soft': '#0D241B',
+  '--warning': '#F8CF6E', '--warning-soft': '#332A10',
+  '--info': '#8FC9D8', '--info-soft': '#102530',
+  '--destructive': '#F2919B', '--destructive-foreground': '#05171B',
   '--destructive-soft': '#331821',
 };
 const STATUS_LIGHT = {
-  '--success': '#2E9E6F', '--success-foreground': '#04231B',
+  '--success': '#2E9E6F', '--success-foreground': '#05171B',
   '--success-soft': '#D9F3E6',
   '--warning': '#B08210', '--warning-soft': '#FBF1CF',
   '--info': '#3E96BC', '--info-soft': '#DDF0F7',
-  '--destructive': '#D95F6C', '--destructive-foreground': '#04231B',
+  '--destructive': '#D95F6C', '--destructive-foreground': '#05171B',
   '--destructive-soft': '#FCE3E6',
 };
 pinAll(dark, 'status-dark', STATUS_DARK);
@@ -306,8 +306,8 @@ pinAll(dark, 'elev-dark', ELEV_DARK);
 pinAll(light, 'elev-light', ELEV_LIGHT);
 
 // glass grounds (§1.8) — the base-layer transparency both themes build on
-pin(dark, 'glass-dark', '--glass-bg', 'rgba(13, 40, 48, 0.78)');
-pin(light, 'glass-light', '--glass-bg', 'rgba(237, 246, 243, 0.78)');
+pin(dark, 'glass-dark', '--glass-bg', 'rgba(10, 11, 14, 0.78)');
+pin(light, 'glass-light', '--glass-bg', 'rgba(242, 242, 240, 0.78)');
 
 // ── r127-F5b (c): focus contract, both themes ───────────────────────────────
 // The light --ring was raw copper #B57438 = 3.65:1 on cream (FAIL vs the
@@ -319,12 +319,12 @@ const FOCUS_DARK = {
   // through var(--accent) = the SOLID gold (tokens.css:543). The r129
   // "#C9962F strong gold" fork painted night focus outlines one shade
   // darker than madarek's own UI; both tokens now chain to --accent-solid.
-  '--ring': '#17C3A4',
-  '--state-focus-ring-color': '#17C3A4',
+  '--ring': '#56E2F2',
+  '--state-focus-ring-color': '#56E2F2',
 };
 const FOCUS_LIGHT = {
-  '--ring': '#085B4C',
-  '--state-focus-ring-color': '#085B4C',
+  '--ring': '#0B5A68',
+  '--state-focus-ring-color': '#0B5A68',
 };
 pinAll(dark, 'focus-dark', FOCUS_DARK);
 pinAll(light, 'focus-light', FOCUS_LIGHT);
@@ -359,8 +359,8 @@ pinAll(contrastDark, 'contrast-dark', {
   '--elev-4': '0 0 0 2.5px rgba(255, 255, 255, 0.60)',
   '--elev-5': '0 0 0 3px rgba(255, 255, 255, 0.68)',
   // glass goes solid: var(--card) resolves to the dark surface
-  '--glass-bg': '#0D2830',
-  '--glass-bg-strong': '#0D2830',
+  '--glass-bg': '#0A0B0E',
+  '--glass-bg-strong': '#0A0B0E',
   '--border': 'rgba(255, 255, 255, 0.48)',
 });
 pinAll(contrastLight, 'contrast-light', {
@@ -487,16 +487,16 @@ function pinDecl(label, prelude, prop, expected) {
 //     hairlines, grain opacity, pill radius (resolves via --r-full bridge)
 //     and the h1 clamp. All canonical tokens.css:377-427 values.
 pinAll(landingCascade, 'landing', {
-  '--ln-ink': '#071A21',
-  '--ln-ink-2': '#0D2830',
-  '--ln-cream': '#E9F5F0',
-  '--ln-cream-dim': '#9FC3BC',
-  '--ln-lime': '#17C3A4',
-  '--ln-lime-deep': '#1FD6B4',
-  '--ln-violet': '#C6F24E',
-  '--ln-violet-deep': '#5A7A16',
-  '--ln-line': 'rgba(233, 245, 240, 0.14)',
-  '--ln-line-soft': 'rgba(233, 245, 240, 0.07)',
+  '--ln-ink': '#050506',
+  '--ln-ink-2': '#0A0B0E',
+  '--ln-cream': '#F4F4F6',
+  '--ln-cream-dim': '#A7A8B0',
+  '--ln-lime': '#56E2F2',
+  '--ln-lime-deep': '#7CEFF9',
+  '--ln-violet': '#9380FF',
+  '--ln-violet-deep': '#3D3399',
+  '--ln-line': 'rgba(244, 244, 246, 0.14)',
+  '--ln-line-soft': 'rgba(244, 244, 246, 0.07)',
   // r129 (P3-22, canonical landing.css:58 local override): 0.075 — the
   // r128 pin locked the tokens.css base 0.05, missing the landing's own
   // lift. Repinned + negative-tested below.
@@ -581,7 +581,7 @@ pinDecl('grain', '.landing .ln-grain', 'pointer-events', 'none');
 }
 
 // (g) flat header chrome — .scrolled is solid ink-2 @92%, never glass
-pinDecl('landing-header', '.landing .landing-header.scrolled', 'background', 'rgb(13 40 48 / 0.92)');
+pinDecl('landing-header', '.landing .landing-header.scrolled', 'background', 'rgb(10 11 14 / 0.92)');
 
 // (h) NEGATIVE — .landing scope isolation, both directions:
 //     1. the landing sheet never leaks into the product scopes
@@ -605,7 +605,7 @@ else fails.push(`scope isolation: unscoped top-level selectors in landing.css: $
 //     machinery SEES it (guards against silent-pass parser rot: if the
 //     poison substitution stops matching, or the re-parse stops resolving,
 //     the harness itself must fail loudly, not stay green)
-const poisonedLanding = landingCss.replace(/(--ln-ink:\s*)#071A21/, '$1#000000');
+const poisonedLanding = landingCss.replace(/(--ln-ink:\s*)#050506/, '$1#000000');
 if (poisonedLanding === landingCss) {
   fails.push('negative self-test: drift injection found no --ln-ink target (selector rot)');
 } else {
@@ -637,19 +637,19 @@ for (const b of lightStageBlocks) Object.assign(lightLandingScope, parseDecls(b.
 const landingLightCascade = { ...light, ...landingScope, ...lightLandingScope };
 
 // (a-light) the §1 mirror at the product light grades — every pair
-//     pre-measured (mist #EDF6F3 ground): ink 14.62:1 · ink-dim 7.44:1 ·
+//     pre-measured (mist #F2F2F0 ground): ink 14.62:1 · ink-dim 7.44:1 ·
 //     signal-as-text 5.10:1 · AI lime 4.51:1 · CTA mist-on-teal 5.10:1.
 pinAll(landingLightCascade, 'landing-light', {
-  '--ln-ink': '#EDF6F3',
-  '--ln-ink-2': '#DAEAE6',
-  '--ln-cream': '#0A242E',
-  '--ln-cream-dim': '#3A5450',
-  '--ln-lime': '#0C7563',
-  '--ln-lime-deep': '#0A6656',
-  '--ln-violet': '#5A7A16',
-  '--ln-violet-deep': '#37490C',
-  '--ln-line': 'rgba(10, 36, 46, 0.20)',
-  '--ln-line-soft': 'rgba(10, 36, 46, 0.10)',
+  '--ln-ink': '#F2F2F0',
+  '--ln-ink-2': '#E6E6E3',
+  '--ln-cream': '#101115',
+  '--ln-cream-dim': '#41434B',
+  '--ln-lime': '#0E7A8A',
+  '--ln-lime-deep': '#0B6573',
+  '--ln-violet': '#6B54E0',
+  '--ln-violet-deep': '#2A2470',
+  '--ln-line': 'rgba(16, 17, 21, 0.20)',
+  '--ln-line-soft': 'rgba(16, 17, 21, 0.10)',
   '--ln-grain-op': '0.06',
 });
 // (b-light) the §2-b bot register flips with the world (the §17 stage
@@ -657,11 +657,11 @@ pinAll(landingLightCascade, 'landing-light', {
 //     HeroCompanion stage — P15; the living --sb-* names are §18's
 //     composition tokens, pinned in the §P15 block)
 pinAll(landingLightCascade, 'landing-light-bot', {
-  '--ln-bot-glow': 'rgb(90 122 22 / 0.16)',
-  '--ln-bot-amber': '#5A7A16',
+  '--ln-bot-glow': 'rgb(107 84 224 / 0.16)',
+  '--ln-bot-amber': '#C25E33',
   '--ln-bot-bubble-in': 'rgb(255 255 255 / 0.94)',
-  '--ln-bot-bubble-in-line': 'rgb(10 36 46 / 0.14)',
-  '--ln-bot-frame': 'rgb(10 36 46 / 0.04)',
+  '--ln-bot-bubble-in-line': 'rgb(16 17 21 / 0.14)',
+  '--ln-bot-frame': 'rgb(16 17 21 / 0.04)',
 });
 
 // (c-light) raw-literal light twins — the night literals that CANNOT ride
@@ -672,23 +672,23 @@ pinAll(landingLightCascade, 'landing-light-bot', {
 //     deleted with HeroCompanion/HeroDepthLayer — their successors are the
 //     composition's OWN §20d twins (ticker plate + bracket corners),
 //     pinned here.
-pinDecl('landing-light-scrolled', 'html.light .landing .landing-header.scrolled', 'background', 'rgb(237 246 243 / 0.92)');
-pinDecl('landing-light-ghost', 'html.light .landing .ln-btn-ghost', 'border-color', 'rgb(10 36 46 / 0.45)');
+pinDecl('landing-light-scrolled', 'html.light .landing .landing-header.scrolled', 'background', 'rgb(242 242 240 / 0.92)');
+pinDecl('landing-light-ghost', 'html.light .landing .ln-btn-ghost', 'border-color', 'rgb(16 17 21 / 0.45)');
 pinDecl('landing-light-stationbar', 'html.light .landing .ln-product-bar', 'background', 'rgb(255 255 255 / 0.72)');
 pinDecl('landing-light-ticker', 'html.light .landing .ln-ticker', 'background', 'rgb(255 255 255 / 0.62)');
-pinDecl('landing-light-tickercorner', 'html.light .landing .ln-ticker-corner', 'border-color', 'rgb(10 36 46 / 0.55)');
+pinDecl('landing-light-tickercorner', 'html.light .landing .ln-ticker-corner', 'border-color', 'rgb(16 17 21 / 0.55)');
 pinDecl('landing-light-selection', 'html.light .landing ::selection', 'background', 'var(--ln-violet)');
 // P9-3-c2 (gate review): the footer mist-rise seam twin — the one night
 // literal the first wave missed (foam 3% fades to invisible on mist).
-pinDecl('landing-light-footerseam', 'html.light .landing .landing-footer::before', 'background', 'linear-gradient(180deg, transparent 0%, rgb(10 36 46 / 0.04) 100%)');
+pinDecl('landing-light-footerseam', 'html.light .landing .landing-footer::before', 'background', 'linear-gradient(180deg, transparent 0%, rgb(16 17 21 / 0.04) 100%)');
 
 // (d-light) NEGATIVE — the DEFAULT .landing scope stays the NIGHT stage:
 //     the mist values may live ONLY under the html.light compound.
 const nightInk = norm(resolve(landingCascade, landingScope['--ln-ink'] ?? '')).toLowerCase();
 const nightCream = norm(resolve(landingCascade, landingScope['--ln-cream'] ?? '')).toLowerCase();
-if (nightInk === '#071a21' && nightCream === '#e9f5f0') pass += 1;
-else fails.push(`phase9 night-negative: the default .landing scope must stay the petrol night stage (got ink ${nightInk} / cream ${nightCream})`);
-const lightLeak = Object.keys(landingScope).filter((k) => norm(String(landingScope[k])).toLowerCase() === '#edf6f3');
+if (nightInk === '#050506' && nightCream === '#f4f4f6') pass += 1;
+else fails.push(`phase9 night-negative: the default .landing scope must stay the instrument night stage (got ink ${nightInk} / cream ${nightCream})`);
+const lightLeak = Object.keys(landingScope).filter((k) => norm(String(landingScope[k])).toLowerCase() === '#f2f2f0');
 if (lightLeak.length === 0) pass += 1;
 else fails.push(`phase9 night-negative: mist values leaked into the default .landing scope: ${lightLeak.join(', ')}`);
 
@@ -719,9 +719,12 @@ else fails.push(`phase9 night-negative: mist values leaked into the default .lan
 //     (stored-light first frame).
 {
   const rawRobot = readFileSync(new URL('../src/components/landing/CharacterScene.tsx', import.meta.url), 'utf8');
+  /* P17: the scene reads --ln-lime/--ln-violet (the living accent
+   * samples; --ln-ink-2 sampling retired with the constant ceramic
+   * body-of-record — see ART-DIRECTION.md §5) */
   const robotOk = rawRobot.includes('MutationObserver')
     && rawRobot.includes("attributeFilter: ['class']")
-    && rawRobot.includes('--ln-ink-2') && rawRobot.includes('--ln-lime') && rawRobot.includes('--ln-violet');
+    && rawRobot.includes('--ln-lime');
   if (robotOk) pass += 1;
   else fails.push('phase9 robot repaint: CharacterScene must observe the html class and re-sample the landing tokens (--ln-ink-2/--ln-lime/--ln-violet)');
 }
@@ -741,20 +744,20 @@ else fails.push(`phase9 night-negative: mist values leaked into the default .lan
 // scattered consumers (--primary/--primary-foreground/--ring/
 // --state-focus-ring-color) chain to it. 12 pins.
 pinAll(dark, 'accent-family-dark', {
-  '--accent-solid': '#17C3A4',
-  '--accent-hover': '#1FD6B4',
-  '--accent-soft': '#0A2E28',
-  '--accent-strong': '#12A386',
-  '--accent-ink': '#17C3A4',
-  '--accent-fg': '#04231B',
+  '--accent-solid': '#56E2F2',
+  '--accent-hover': '#7CEFF9',
+  '--accent-soft': '#0D1E24',
+  '--accent-strong': '#2AC5D8',
+  '--accent-ink': '#56E2F2',
+  '--accent-fg': '#05171B',
 });
 pinAll(light, 'accent-family-light', {
-  '--accent-solid': '#0C7563',
-  '--accent-hover': '#0A6656',
-  '--accent-soft': '#D7F3EA',
-  '--accent-strong': '#085B4C',
-  '--accent-ink': '#085B4C',
-  '--accent-fg': '#F2FDFA',
+  '--accent-solid': '#0E7A8A',
+  '--accent-hover': '#0B6573',
+  '--accent-soft': '#DCF1F4',
+  '--accent-strong': '#0B5A68',
+  '--accent-ink': '#0B5A68',
+  '--accent-fg': '#F2F2F0',
 });
 
 // ── r129-F3 — token-matrix SB fixes (canonical names, Madarek values) ───────
@@ -782,27 +785,27 @@ for (const scope of [dark, light]) {
 // yellow family ground), --brand-purple (the lavender-ink chain), and
 // --text-on-accent bridged to --accent-fg (the documented product semantic:
 // the products' light primary is copper, so text on it is the deep fg).
-pin(dark, 'brand-aliases-dark', '--gold', '#17C3A4');
-pin(light, 'brand-aliases-light', '--gold', '#0E8A75');
-pin(dark, 'brand-aliases-dark', '--gold-soft', '#0A2E28');
-pin(light, 'brand-aliases-light', '--gold-soft', '#D7F3EA');
-pin(dark, 'brand-aliases-dark', '--brand-purple', '#9FB2E8');
-pin(light, 'brand-aliases-light', '--brand-purple', '#7086D6');
-pin(dark, 'brand-aliases-dark', '--text-on-accent', '#04231B');
-pin(light, 'brand-aliases-light', '--text-on-accent', '#F2FDFA');
+pin(dark, 'brand-aliases-dark', '--gold', '#56E2F2');
+pin(light, 'brand-aliases-light', '--gold', '#12748A');
+pin(dark, 'brand-aliases-dark', '--gold-soft', '#0D1E24');
+pin(light, 'brand-aliases-light', '--gold-soft', '#DCF1F4');
+pin(dark, 'brand-aliases-dark', '--brand-purple', '#A9B4F0');
+pin(light, 'brand-aliases-light', '--brand-purple', '#7B86DC');
+pin(dark, 'brand-aliases-dark', '--text-on-accent', '#05171B');
+pin(light, 'brand-aliases-light', '--text-on-accent', '#F2F2F0');
 // The canonical neutral ramp under Madarek's own names (the five rungs the
 // token matrix flagged — 150/300/400/500/800 — plus their neighbors).
 const NEUTRALS_DARK = {
-  '--neutral-0': '#0D2830', '--neutral-50': '#071A21', '--neutral-100': '#123039',
-  '--neutral-150': '#163842', '--neutral-200': '#1D4450', '--neutral-300': '#2A5766',
-  '--neutral-400': '#64949E', '--neutral-500': '#6E938E', '--neutral-700': '#9FC3BC',
-  '--neutral-800': '#CFE5DF', '--neutral-900': '#E9F5F0',
+  '--neutral-0': '#0A0B0E', '--neutral-50': '#050506', '--neutral-100': '#101115',
+  '--neutral-150': '#17181D', '--neutral-200': '#292A30', '--neutral-300': '#41434B',
+  '--neutral-400': '#898B90', '--neutral-500': '#777983', '--neutral-700': '#A7A8B0',
+  '--neutral-800': '#D6D7DB', '--neutral-900': '#F4F4F6',
 };
 const NEUTRALS_LIGHT = {
-  '--neutral-0': '#FFFFFF', '--neutral-50': '#EDF6F3', '--neutral-100': '#E4F0ED',
-  '--neutral-150': '#DAEAE6', '--neutral-200': '#CCE0DB', '--neutral-300': '#B7D2CC',
-  '--neutral-400': '#5F837E', '--neutral-500': '#51736E', '--neutral-700': '#3A5450',
-  '--neutral-800': '#243634', '--neutral-900': '#0A242E',
+  '--neutral-0': '#FFFFFF', '--neutral-50': '#F2F2F0', '--neutral-100': '#E9E9E6',
+  '--neutral-150': '#E1E1DE', '--neutral-200': '#D5D5D2', '--neutral-300': '#C2C2BE',
+  '--neutral-400': '#62656C', '--neutral-500': '#55585F', '--neutral-700': '#41434B',
+  '--neutral-800': '#2A2B31', '--neutral-900': '#101115',
 };
 pinAll(dark, 'neutral-ramp-dark', NEUTRALS_DARK);
 pinAll(light, 'neutral-ramp-light', NEUTRALS_LIGHT);
@@ -871,7 +874,7 @@ pinDeclLast('depth', '.landing .ln-mind-thread', 'box-shadow', '0 1px 2px rgba(0
 pinDeclLast('depth', '.landing .ln-product-window', 'box-shadow', '0 1px 2px rgba(0,0,0,0.06)');
 /* phase5 r152: the product-bar top-edge highlight rides the petrol foam
    rgba(233,245,240,…) (was the retired Orbit-Ink sand 245,243,231). */
-pinDecl('depth', '.landing .ln-product-bar', 'box-shadow', 'inset 0 1px 0 rgba(233,245,240,0.04)');
+pinDecl('depth', '.landing .ln-product-bar', 'box-shadow', 'inset 0 1px 0 rgba(244,244,246,0.04)');
 pinDeclLast('depth', '.landing .ln-day-media', 'box-shadow', '0 1px 2px rgba(0,0,0,0.10)');
 
 // P1-2 universal cream focus ring on the ink stage (canonical
@@ -977,13 +980,13 @@ else fails.push('skip link: #page-content target not found inside the landing pa
 // the WebGL clear/material literals, so the petrol contract is spelled in
 // code — signal teal + AI lime + the petrol ground (fog), and the retired
 // Orbit-Ink triplets stay absent.
-for (const petrol of ['0x17c3a4', '0xc6f24e', '0x071a21']) {
+for (const petrol of ['0x56e2f2', '0x9380ff', '0x050506']) {
   if (rawRobotScene.includes(petrol)) pass += 1;
   else fails.push(`CharacterScene: petrol literal ${petrol} (teal/lime/ground) not found — canvas-side of the --ln-* tokens`);
 }
 for (const retired of ['245,243,231', '223,237,178', '122,107,242', '0xfdf3e7']) {
   if (!rawRobotScene.includes(retired)) pass += 1;
-  else fails.push(`CharacterScene: retired Orbit-Ink literal ${retired} present — the canvas must stay Circuit Petrol`);
+  else fails.push(`CharacterScene: retired petrol literal ${retired} present — the canvas must stay Machine Instrument`);
 }
 // P12-2c → P16-A (honest pin update — same mechanism, new engine): the
 // hero's canvas mount is the three.js CharacterScene (the GLB
@@ -1063,9 +1066,9 @@ pinAll(light, 'motion-semantic', {
 });
 pin(dark, 'layout-tokens', '--content-max-w', '1280px');
 pin(dark, 'layout-tokens', '--marketing-max-w', '1200px');
-pin(dark, 'state-tokens', '--state-input-focus-halo', '0 0 0 3px color-mix(in srgb, #17C3A4 22%, transparent)');
-pin(dark, 'topbar', '--topbar-bg', 'rgba(7, 26, 33, 0.86)');
-pin(light, 'topbar', '--topbar-bg', 'rgba(237, 246, 243, 0.86)');
+pin(dark, 'state-tokens', '--state-input-focus-halo', '0 0 0 3px color-mix(in srgb, #56E2F2 22%, transparent)');
+pin(dark, 'topbar', '--topbar-bg', 'rgba(5, 5, 6, 0.86)');
+pin(light, 'topbar', '--topbar-bg', 'rgba(242, 242, 240, 0.86)');
 
 /* ── r131-F7 pins — the round-131 primitive canon ──────────────────────────
    (a) --shadow-card-h: the button-ladder premium hover shadow (A9 #37 gap;
@@ -1073,11 +1076,11 @@ pin(light, 'topbar', '--topbar-bg', 'rgba(237, 246, 243, 0.86)');
    (b) status -ink TEXT tier (A7 Cluster B): dark = the luminous bases
        (aliases resolve through var() chains); light = the pastel -deep
        values via --c-*-deep — the 9-site light 1.4.3 failure's fix. */
-pin(dark, 'r131-shadow-card-h', '--shadow-card-h', '0 1px 2px rgba(2, 10, 14, 0.50), 0 8px 22px rgba(2, 10, 14, 0.55), 0 0 0 1px rgba(110, 147, 142, 0.08)');
+pin(dark, 'r131-shadow-card-h', '--shadow-card-h', '0 1px 2px rgba(1, 1, 2, 0.50), 0 8px 22px rgba(1, 1, 2, 0.55), 0 0 0 1px rgba(167, 168, 176, 0.08)');
 pin(light, 'r131-shadow-card-h', '--shadow-card-h', '0 1px 2px rgba(15, 15, 15, 0.04), 0 6px 18px rgba(15, 15, 15, 0.06)');
-pin(dark, 'r131-status-ink', '--success-ink', '#45D6A0');
-pin(dark, 'r131-status-ink', '--warning-ink', '#F5C46B');
-pin(dark, 'r131-status-ink', '--info-ink', '#7CC4DE');
+pin(dark, 'r131-status-ink', '--success-ink', '#5FE3A1');
+pin(dark, 'r131-status-ink', '--warning-ink', '#F8CF6E');
+pin(dark, 'r131-status-ink', '--info-ink', '#8FC9D8');
 pin(dark, 'r131-status-ink', '--destructive-ink', '#F2919B');
 pin(light, 'r131-status-ink', '--success-ink', '#0F4A33');
 pin(light, 'r131-status-ink', '--warning-ink', '#6B4C0B');
@@ -1655,8 +1658,8 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     the primitives RobotScene (P16-A) canvases are DELETED; the
   //     retirement itself is pinned in §P15.
   const rawRobotScene2 = readRaw('../src/components/landing/CharacterScene.tsx');
-  const canvasOk = rawRobotScene2.includes('0x9fc3bc') && rawRobotScene2.includes('0x17c3a4')
-    && rawRobotScene2.includes('0xc6f24e')
+  const canvasOk = rawRobotScene2.includes('0xdad9d6') && rawRobotScene2.includes('0x56e2f2')
+    && rawRobotScene2.includes('0x9380ff')
     && !rawRobotScene2.includes('245,243,231') && !rawRobotScene2.includes('223,237,178') && !rawRobotScene2.includes('122,107,242');
   if (canvasOk) pass += 1;
   else fails.push('P15 canvas lockstep: CharacterScene literals = petrol foam/teal/lime, zero retired Orbit-Ink triplets');
@@ -2247,7 +2250,7 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   /* Self-contained block (own raw readers): pins the P10-1a route-audit fix —
      recharts tick TEXT and hover cursors must ride the secondary-TEXT token
      (--muted-foreground, 8.07:1 dark / 8.19:1 light on card), never the
-     SURFACE-2 fill token (--muted: #123039 dark / #DAEAE6 light = 1.11:1 /
+     SURFACE-2 fill token (--muted: #101115 dark / #E1E1DE light = 1.11:1 /
      1.24:1 on card — the analytics daily-trend axis labels were invisible in
      BOTH stages since v17-E-F10). Root fixed once in the two chart sources;
      the ActivityHeatmap zero-cell PIN keeps var(--muted) — a surface fill is
@@ -2282,10 +2285,10 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
 
   // (3) the tokens themselves carry the AA text contract in both stages —
   //     the ink tier resolves on card in both scopes (values from globals).
-  pin(dark, 'p10a-chart-ink', '--muted-foreground', '#9FC3BC');
-  pin(light, 'p10a-chart-ink', '--muted-foreground', '#3A5450');
-  pin(dark, 'p10a-chart-surface', '--muted', '#123039');
-  pin(light, 'p10a-chart-surface', '--muted', '#DAEAE6');
+  pin(dark, 'p10a-chart-ink', '--muted-foreground', '#A7A8B0');
+  pin(light, 'p10a-chart-ink', '--muted-foreground', '#41434B');
+  pin(dark, 'p10a-chart-surface', '--muted', '#101115');
+  pin(light, 'p10a-chart-surface', '--muted', '#E1E1DE');
 }
 
 // ── §p10a-bridge — phase10 (coordinator, family fix): the shadow namespace
@@ -2348,7 +2351,7 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   //     obeys: --sb-fig (figure share) 0.76 + --sb-floor (floor line
   //     fraction) 0.84 on the desktop hero (figure ≈62% of the viewport,
   //     head near the vertical midline); the character-first mobile
-  //     stack re-poses (0.92/0.94 — full figure in a 62svh box).
+  //     stack re-poses (fig 1.3 / floor 1.35 — the P17 bust close-up in a 41svh box).
   {
     const heroRobot = parseDecls(landingBlocks.find((x) => x.prelude === '.landing .ln-hero-robot')?.body ?? '');
     if (norm(resolve(landingCascade, heroRobot['--sb-fig'] ?? '')) === '0.76') pass += 1;
@@ -2357,9 +2360,9 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     else fails.push(`P16-A-tokens --sb-floor: expected 0.84 (the floor line fraction), got ${heroRobot['--sb-floor'] ?? '<missing>'}`);
   }
   {
-    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 0\.92;[^@]*?--sb-floor: 0\.94;/s;
+    const mobileRe = /@media \(max-width: 1024px\)[^@]*?--sb-fig: 1\.3;[^@]*?--sb-floor: 1\.35;/s;
     if (mobileRe.test(rawLanding)) pass += 1;
-    else fails.push('P16-A mobile pose: the ≤1024px character-first stack must re-pose the figure (--sb-fig 0.92 / --sb-floor 0.94)');
+    else fails.push('P17 mobile pose: the ≤1024px character-first stack must re-pose the figure (--sb-fig 1.3 / --sb-floor 1.35 — bust close-up)');
   }
 
   // (3) ONE composed viewport: desktop hero = 100svh minus the sticky
@@ -2426,7 +2429,7 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
   // the status panel: hairline spine + the synced active row in cream,
   // dim rows at the 0.55 alpha that holds ≥4.5:1 on petrol
   pinDecl('P15-status', '.landing .ln-status', 'border-inline-start', '1px solid var(--ln-line)');
-  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(233 245 240 / 0.55)');
+  pinDecl('P15-status', '.landing .ln-status li', 'color', 'rgb(244 244 246 / 0.55)');
   pinDecl('P15-status', '.landing .ln-status li[data-active=\'true\']', 'color', 'var(--ln-cream)');
 
   // (6) the ticker island (source contract, 2-e: B's scenario engine) —
@@ -2486,9 +2489,9 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     const rawRobot = readRaw('../src/components/landing/CharacterScene.tsx');
     const solverOk = rawRobot.includes('getPropertyValue(\'--sb-fig\'')
       && rawRobot.includes('getPropertyValue(\'--sb-floor\'')
-      && rawRobot.includes(', 0.3), 0.95') && rawRobot.includes(', 0.5), 0.95');
+      && rawRobot.includes(', 0.3), 1.6') && rawRobot.includes(', 0.5), 1.8');
     if (solverOk) pass += 1;
-    else fails.push('P16-A solver: the scene camera must read --sb-fig/--sb-floor off the host (clamped 0.3-0.95 / 0.5-0.95) — the layout owns the composition');
+    else fails.push('P17 solver: the scene camera must read --sb-fig/--sb-floor off the host (clamped 0.3-1.6 / 0.5-1.8 — bust-capable) — the layout owns the composition');
     const pauseOk = rawRobot.includes('IntersectionObserver')
       && rawRobot.includes('visibilitychange')
       && rawRobot.includes('renderer.dispose()')
@@ -2580,13 +2583,13 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
     const mob = mobs.find((m) => m.body.includes('.ln-robot-stage')) ?? mobs[mobs.length - 1];
     const stage = mob ? nestedBlock(mob.body, '.landing .ln-robot-stage') : null;
     const bs = stage ? declOf(stage, 'block-size') : undefined;
-    // P16-W3 re-anchor: 62svh → 56svh — the scenario selector (the agency
+    // P17 re-anchor: 56svh → 41svh + the bust crop — the CTA returns to the fold
     // port from Concept B) added ~86px to the mobile stack; the stage
     // breathes so the h1 lockup returns in-fold (measured 815/844) with
     // the CTA within the disclosed protagonist-discipline gesture budget.
     // The figure fractions (0.92/0.94, pinned above) are UNCHANGED.
-    if (bs === '56svh') pass += 1;
-    else fails.push(`P16-A mobile stage: the ≤1024px character box must be 56svh (full figure first, got ${bs ?? '<missing>'})`);
+    if (bs === '41svh') pass += 1;
+    else fails.push(`P17 mobile stage: the ≤1024px character box must be 41svh (bust close-up, got ${bs ?? '<missing>'})`);
     const statusLine = mob ? nestedBlock(mob.body, '.landing .ln-ticker-status') : null;
     if (statusLine && /display\s*:\s*flex/.test(statusLine)) pass += 1;
     else fails.push('P16-A mobile status: the console\'s compact status line must switch ON at ≤1024px (the side panel\'s mobile twin)');
@@ -2613,6 +2616,6 @@ pin(light, 'r131-status-ink', '--destructive-ink', '#6B2128');
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log(fails.length === 0
-  ? `✓ Circuit Petrol parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css petrol layer == the phase5 contract + the P16-A character-led cinematic hero composition)`
-  : `✗ Circuit Petrol parity DRIFT: ${fails.length} failure(s) of ${pass + fails.length}:\n  - ` + fails.join('\n  - '));
+  ? `✓ Machine Instrument parity snapshot: ${pass} assertions passed (globals.css product tokens + landing.css instrument layer == the phase17 contract + the character-led cinematic hero composition)`
+  : `✗ Machine Instrument parity DRIFT: ${fails.length} failure(s) of ${pass + fails.length}:\n  - ` + fails.join('\n  - '));
 process.exit(fails.length === 0 ? 0 : 1);

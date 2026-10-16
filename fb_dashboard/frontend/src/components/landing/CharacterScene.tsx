@@ -1,52 +1,35 @@
 'use client';
 
-/* P16-A (concept A — CHARACTER-LED CINEMATIC) — THE PROTAGONIST SCENE.
+/* P17 + P16-A (concept A — CHARACTER-LED CINEMATIC) — THE PROTAGONIST
+ * SCENE, re-art-directed to the Machine Instrument identity.
  *
- * The primitives robot is RETIRED (the owner rejected it — an authored
- * character or nothing): the hero's protagonist is now the authored GLB
- * attendant-machine (public/models/smartbot-character.glb — lathe
- * profiles, feathered shells, chibi proportions) loaded at runtime and
- * normalized into the SAME world the pedestal / landing rings / grid
- * floor always lived in, so the layout's composition tokens
- * (--sb-fig / --sb-floor, read off the host) still own the framing: the
- * full figure — antenna crown → pedestal base — always composes inside
- * the host box, never below the fold.
+ * The hero's protagonist is the authored GLB attendant-machine
+ * (public/models/smartbot-character.glb — lathe profiles, feathered
+ * shells, chibi proportions), normalized into the pedestal/rings/grid
+ * world; the layout's composition tokens (--sb-fig / --sb-floor, read
+ * off the host) own the framing. fig/floor may exceed 1 (the mobile
+ * bust close-up).
  *
- * The node contract (matched by name PREFIX — the exporter may hash
- * suffixes): Root → Torso → {Head, ArmL, ArmR, ChestCore, EdgeStrip},
- * Head → {Visor, EyeL, EyeR, AntennaL, AntennaR}. Materials are PBR
- * (BodyMat / ChestMat / JointMat / VisorMat / emissive EyeMat lime,
- * CoreMat/StripMat teal) — the authored values ARE the dark-stage
- * palette of record; the light stage repaints them through the same
- * MutationObserver family the scene always had.
+ * The node contract (name PREFIX): Root → Torso → {Head, ArmL, ArmR,
+ * ChestCore, EdgeStrip}, Head → {Visor, EyeL, EyeR, AntennaL,
+ * AntennaR}. Materials are PBR and RE-PAINTED at load to the phase-17
+ * palette of record: ceramic body #DAD9D6 / graphite joints / black
+ * glass visor / WHITE dot eyes / cyan core / the ONE edge strip
+ * breathing cyan→violet. The ChainGPT lesson: the LIGHT FIGURE on the
+ * near-black void is the scene's principal light source — the authored
+ * petrol GLB values survive only in userData.sbOrig (provenance).
  *
- * ALIVENESS — three timescales, per the reference:
- *   (1) POINTER: head yaw/pitch ±25°/±12° + torso ~40% of that,
- *       critically-damped lerp; arms counter-swing.
- *   (2) IDLE: breathing bob, eye blinks (scaleY on EyeL/EyeR), antenna
- *       sway, edge-strip emissive breathing with a slow teal→lime hue
- *       drift (ONE accent temperature, 2 hues max).
- *   (3) SCENARIO: the honest HeroTicker engine drives the character
- *       through the heroBus — inbound → the head turns toward the
- *       message console + the eyes widen; classify → the chest core
- *       pulses; reply typing → the eyes scan; handoff → an arm raises
- *       slightly. The character reacts to the conversation it is
- *       having: the interaction that makes the product feel alive.
+ * ALIVENESS — three timescales: (1) POINTER: head ±25°/±12° + torso
+ * ~40%, critically-damped; arms counter-swing. (2) IDLE: breathing
+ * bob, eye blinks, antenna sway, strip cyan→violet drift. (3)
+ * SCENARIO: the HeroTicker engine drives the character through the
+ * heroBus — inbound → head turns + eyes widen; classify → core pulses
+ * VIOLET; reply → eyes scan; handoff → arm raises + core warms AMBER.
  *
- * WORLD: dark petrol void, pedestal + two landing rings + grid
- * hairlines + sparse dust + the grounding pair (soft contact shadow +
- * a faint mirrored reflection under the floor line). ONE emissive
- * strip on the character (EdgeStrip) is the light signature — the CSS
- * circuit traces were retired with the primitives robot.
- *
- * Resilience: a WebGL probe before the renderer — a missing/failing
- * context (or a failed GLB fetch) renders the ART-DIRECTED static SVG
- * frame of the character, never a broken canvas. DPR capped 2; rAF
- * paused offscreen (IO) + on hidden tabs; prefers-reduced-motion = one
- * static posed frame (mid-idle), no rAF, no tracking, no beat channel;
- * teardown disposes EVERY geometry/material (GLB included) and the
- * renderer. GLTFLoader is lazy-imported inside the effect so its bytes
- * ride the hero chunk only. aria-hidden: decorative by role. */
+ * WORLD: near-black void (#050506 fog family), pedestal + rings + grid
+ * + dust + the grounding pair. Light rig: neutral key + COOL CYAN rim
+ * + WARM AMBER kicker (two-temperature multicolor rim, ≤5% discipline)
+ */
 
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -85,11 +68,14 @@ export type CharacterSceneProps = {
   className?: string;
 };
 
-/* Emissive constants — the controlled-neon pair (teal + lime ONLY).
- * These are the fallbacks; the live values are sampled from the
- * .landing token scope so the character repaints with the theme. */
-const TEAL = 0x17c3a4;
-const LIME = 0xc6f24e;
+/* Emissive constants — the phase-17 accent registers (the machine
+ * instrument law): CYAN = the machine's voice; VIOLET = the AI register
+ * (classify beats); AMBER = the human/handoff warm register. These are
+ * the fallbacks; the live values are sampled from the .landing token
+ * scope so the character repaints with the theme. */
+const CYAN = 0x56e2f2;
+const VIOLET = 0x9380ff;
+const AMBER = 0xff9a69;
 
 /* ── the composition contract (world units) ────────────────────────
  * The framing solver places these inside the host box:
@@ -103,10 +89,9 @@ const TOP_Y = CHAR_H + 0.04;
 /* the character GLB — served verbatim from public/models/ (immutable) */
 const GLB_URL = '/models/smartbot-character.glb';
 
-/* ONE accent temperature (P16-A law): pure lime (#c6f24e) is the EYES
- * + the active status ticks only; the edge strip / core / rim
- * registers stay in the teal family, breathing toward lime at most. */
-const TEAL_LIME_BLEND = 0x71d99a;
+/* ONE accent temperature per register (phase-17 law): the eyes stay
+ * WHITE (the luminous dots); the edge strip / core registers breathe
+ * cyan→violet; amber rides the warm rim + the handoff beat. */
 
 /* Sampling bridge: read the landing token vars off <html> (the .landing
  * scope declares them; a landing mount implies html context) and parse
@@ -158,138 +143,137 @@ function samplePalette(): Palette {
   if (html.classList.contains('light')) {
     return {
       dark: false,
-      /* the light stage keeps the mist values the robot always used:
-       * body inks from the --ln-ink-2 family, chest + stage on paper */
-      body: readVar(html, '--ln-ink-2', 0x35525c),
-      chest: 0xc6d9d2,
-      joint: 0x2b454e,
-      visor: 0x0e2b33,
-      visorGlow: 0x0c7563,
-      visorIntensity: 0.5,
-      eye: 0x0c7563,
+      /* the porcelain-day stage: the ceramic character holds via its
+       * graphite joints + black glass face (contrast carries the
+       * silhouette); the accents drop to their ink grades */
+      body: 0xdad9d6,
+      chest: 0xc9c8c4,
+      joint: 0x898b90,
+      visor: 0x090a0d,
+      visorGlow: 0x14262c,
+      visorIntensity: 0.35,
+      eye: 0xffffff,
       eyeIntensity: 1.0,
-      core: 0x0c7563,
+      core: 0x0e7a8a,
       coreIntensity: 0.7,
-      stage: 0xcfe0da,
-      pedTop: 0xb9cec7,
-      pedRing: 0x0c7563,
-      grid: 0x0f5d4f,
-      particle: 0x3d5a63,
-      fogColor: new Color(0xdfe9e4),
+      stage: 0xe1e1de,
+      pedTop: 0xc9c9c6,
+      pedRing: 0x0e7a8a,
+      grid: 0x8a9ba3,
+      particle: 0x55585f,
+      fogColor: new Color(0xf2f2f0),
     };
   }
   return {
     dark: true,
-    /* dark stage: the GLB's OWN authored PBR values are the palette of
-     * record (recorded at load); only the live emissives are sampled
-     * so the eyes + the status register stay lockstep with the tokens */
-    body: 0x163f4b,
-    /* P16-W3 (P1-a): the sage chest plate dimmed 0xc6d9d2 → 0x6e847c —
-     * its lit pixels crossed the h1 display band between the glyphs
-     * (measured: 9.8% of the line-1 background carried >80-lum machine
-     * px, p99 = 184 ≈ glyph brightness). The plate stays readable at
-     * chest height but no longer competes with the display lockup. */
-    chest: 0x6e847c,
-    joint: 0x0e2b33,
-    visor: 0x0d3340,
-    visorGlow: 0x0e5a4b,
-    visorIntensity: 0.55,
-    eye: readVar(html, '--ln-violet', LIME),
-    eyeIntensity: 1.6,
-    core: readVar(html, '--ln-lime', TEAL),
+    /* dark stage — THE phase-17 inversion: the authored GLB's petrol
+     * shells are RE-PAINTED to the ceramic body-of-record (#DAD9D6 —
+     * --sb-robot-body): the light figure on the near-black void IS the
+     * scene's principal light source (the ChainGPT core contrast
+     * trick). Joints go graphite, the face goes black glass, the eyes
+     * are WHITE luminous dots, the core is the cyan heartbeat. */
+    body: 0xdad9d6,
+    chest: 0xc9c8c4,
+    joint: 0x898b90,
+    visor: 0x090a0d,
+    visorGlow: 0x08151c,
+    visorIntensity: 0.35,
+    eye: 0xffffff,
+    eyeIntensity: 2.2,
+    core: readVar(html, '--ln-lime', CYAN),
     coreIntensity: 1.15,
-    stage: 0x0a2029,
-    pedTop: 0x1a4550,
-    pedRing: readVar(html, '--ln-lime', TEAL),
-    grid: 0x1a5a4e,
-    particle: 0x9fc3bc,
-    fogColor: new Color(0x071a21),
+    stage: 0x0a0b0e,
+    pedTop: 0x17181d,
+    pedRing: readVar(html, '--ln-lime', CYAN),
+    grid: 0x1e3a40,
+    particle: 0x777983,
+    fogColor: new Color(0x050506),
   };
 }
 
 /* ── the art-directed static fallback frame (WebGL absent / failed) ──
  * A composed SVG portrait of the SAME character — lathe silhouette,
- * glossy visor, lime eyes, teal core, the ONE edge strip — so a
- * WebGL-less client gets the hero, never a hole. Same petrol values
- * as the scene; positioned by CSS at the framing fractions. */
+ * ceramic shell, black glass visor, white dot eyes, cyan core, the ONE
+ * edge strip breathing cyan→violet — so a WebGL-less client gets the
+ * hero, never a hole. Same phase-17 values as the scene. */
 function CharacterFallbackSvg() {
   return (
     <svg viewBox="0 0 360 470" role="presentation" focusable="false" aria-hidden="true">
       <defs>
         <linearGradient id="sb-fb-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1d505d" />
-          <stop offset="0.55" stopColor="#163f4b" />
-          <stop offset="1" stopColor="#0f3140" />
+          <stop offset="0" stopColor="#F0F0EE" />
+          <stop offset="0.55" stopColor="#DAD9D6" />
+          <stop offset="1" stopColor="#B4B4B0" />
         </linearGradient>
         <linearGradient id="sb-fb-head" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1a4a57" />
-          <stop offset="1" stopColor="#123843" />
+          <stop offset="0" stopColor="#E9E9E5" />
+          <stop offset="1" stopColor="#C4C4C0" />
         </linearGradient>
         <linearGradient id="sb-fb-visor" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0d3340" />
-          <stop offset="1" stopColor="#06181f" />
+          <stop offset="0" stopColor="#0B0C10" />
+          <stop offset="1" stopColor="#050507" />
         </linearGradient>
         <linearGradient id="sb-fb-strip" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#17C3A4" />
-          <stop offset="1" stopColor="#C6F24E" />
+          <stop offset="0" stopColor="#56E2F2" />
+          <stop offset="1" stopColor="#9380FF" />
         </linearGradient>
         <radialGradient id="sb-fb-eyeglow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#C6F24E" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#C6F24E" stopOpacity="0" />
+          <stop offset="0" stopColor="#9380FF" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#9380FF" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="sb-fb-coreglow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor="#17C3A4" stopOpacity="0.5" />
-          <stop offset="1" stopColor="#17C3A4" stopOpacity="0" />
+          <stop offset="0" stopColor="#56E2F2" stopOpacity="0.5" />
+          <stop offset="1" stopColor="#56E2F2" stopOpacity="0" />
         </radialGradient>
       </defs>
 
       {/* contact shadow */}
-      <ellipse cx="180" cy="452" rx="118" ry="13" fill="rgb(3 10 13 / 0.85)" />
+      <ellipse cx="180" cy="452" rx="118" ry="13" fill="rgb(1 1 2 / 0.85)" />
 
       {/* the pedestal — a lathe-tiered plinth + emissive rim */}
-      <path d="M 66 384 L 294 384 L 302 416 L 58 416 Z" fill="#12333e" stroke="#1a4550" strokeWidth="1" />
-      <path d="M 58 416 L 302 416 L 314 442 L 46 442 Z" fill="#0d2830" />
-      <ellipse cx="180" cy="384" rx="114" ry="11" fill="#0f2d38" />
-      <ellipse cx="180" cy="384" rx="114" ry="11" fill="none" stroke="#17C3A4" strokeWidth="2" opacity="0.75" />
+      <path d="M 66 384 L 294 384 L 302 416 L 58 416 Z" fill="#141519" stroke="#292A30" strokeWidth="1" />
+      <path d="M 58 416 L 302 416 L 314 442 L 46 442 Z" fill="#0A0B0E" />
+      <ellipse cx="180" cy="384" rx="114" ry="11" fill="#101115" />
+      <ellipse cx="180" cy="384" rx="114" ry="11" fill="none" stroke="#56E2F2" strokeWidth="2" opacity="0.75" />
 
       {/* the body — the feathered lathe shell */}
       <path
         d="M 92 182 C 92 140 112 128 180 128 C 248 128 268 140 268 182 L 268 302 C 268 358 238 384 180 384 C 122 384 92 358 92 302 Z"
         fill="url(#sb-fb-body)"
-        stroke="#0b2831"
+        stroke="#898B90"
         strokeWidth="1"
       />
       {/* shoulder shells (the feathered pair) */}
-      <path d="M 92 182 C 92 148 108 136 132 132 C 116 158 108 200 106 246 L 92 246 Z" fill="#649089" opacity="0.85" />
-      <path d="M 268 182 C 268 148 252 136 228 132 C 244 158 252 200 254 246 L 268 246 Z" fill="#649089" opacity="0.85" />
+      <path d="M 92 182 C 92 148 108 136 132 132 C 116 158 108 200 106 246 L 92 246 Z" fill="#C4C4C0" opacity="0.85" />
+      <path d="M 268 182 C 268 148 252 136 228 132 C 244 158 252 200 254 246 L 268 246 Z" fill="#C4C4C0" opacity="0.85" />
       {/* chest plate + core */}
-      <path d="M 132 236 L 228 236 L 220 322 L 140 322 Z" fill="#c6d9d2" opacity="0.92" />
+      <path d="M 132 236 L 228 236 L 220 322 L 140 322 Z" fill="#C9C8C4" opacity="0.92" />
       <circle cx="180" cy="279" r="26" fill="url(#sb-fb-coreglow)" />
-      <circle cx="180" cy="279" r="9" fill="#17C3A4" />
+      <circle cx="180" cy="279" r="9" fill="#56E2F2" />
 
       {/* the ONE edge strip — the light signature (teal→lime) */}
       <path d="M 262 168 C 264 230 264 300 258 362" stroke="url(#sb-fb-strip)" strokeWidth="9" fill="none" opacity="0.22" />
       <path d="M 262 168 C 264 230 264 300 258 362" stroke="url(#sb-fb-strip)" strokeWidth="3" fill="none" opacity="0.9" />
 
       {/* ear pods */}
-      <rect x="44" y="66" width="18" height="44" rx="9" fill="#0e2b33" />
-      <rect x="298" y="66" width="18" height="44" rx="9" fill="#0e2b33" />
+      <rect x="44" y="66" width="18" height="44" rx="9" fill="#898B90" />
+      <rect x="298" y="66" width="18" height="44" rx="9" fill="#898B90" />
 
       {/* the head — the chibi crown */}
-      <rect x="58" y="22" width="244" height="128" rx="58" fill="url(#sb-fb-head)" stroke="#0b2831" strokeWidth="1" />
+      <rect x="58" y="22" width="244" height="128" rx="58" fill="url(#sb-fb-head)" stroke="#898B90" strokeWidth="1" />
 
       {/* the glossy visor + the lime eyes */}
-      <rect x="84" y="46" width="192" height="82" rx="34" fill="url(#sb-fb-visor)" stroke="#17C3A4" strokeOpacity="0.3" strokeWidth="1" />
+      <rect x="84" y="46" width="192" height="82" rx="34" fill="url(#sb-fb-visor)" stroke="#56E2F2" strokeOpacity="0.3" strokeWidth="1" />
       <ellipse cx="141" cy="87" rx="24" ry="24" fill="url(#sb-fb-eyeglow)" />
       <ellipse cx="219" cy="87" rx="24" ry="24" fill="url(#sb-fb-eyeglow)" />
-      <ellipse cx="141" cy="87" rx="12" ry="18" fill="#C6F24E" />
-      <ellipse cx="219" cy="87" rx="12" ry="18" fill="#C6F24E" />
+      <ellipse cx="141" cy="87" rx="12" ry="18" fill="#9380FF" />
+      <ellipse cx="219" cy="87" rx="12" ry="18" fill="#9380FF" />
 
       {/* antennas */}
-      <path d="M 146 30 L 132 6" stroke="#2b4a54" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="132" cy="6" r="5" fill="#C6F24E" opacity="0.9" />
-      <path d="M 214 30 L 228 10" stroke="#2b4a54" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="228" cy="10" r="5" fill="#17C3A4" opacity="0.9" />
+      <path d="M 146 30 L 132 6" stroke="#898B90" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="132" cy="6" r="5" fill="#9380FF" opacity="0.9" />
+      <path d="M 214 30 L 228 10" stroke="#898B90" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="228" cy="10" r="5" fill="#56E2F2" opacity="0.9" />
     </svg>
   );
 }
@@ -329,30 +313,27 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     const scene = new Scene();
     const camera = new PerspectiveCamera(34, 1, 0.1, 40);
 
-    /* ── light rig: key + teal rim + fill + face glow + pedestal spill
-     *     (5, all shadow-less). The PBR shells need stronger keys than
-     *     the flat primitives did — key 2.1, rim 1.6; the glow point
-     *     light rides just in front of the visor so the lime eye band
-     *     stays the focal anchor, and the pedestal spill washes the
-     *     hips from the emissive rim below (the machine's own ground
-     *     light, not a scene lamp). */
-    const key = new DirectionalLight(0xf2fbf7, 2.2);
+    /* ── light rig (phase 17 — the multicolor rim treatment): neutral
+     *     key, COOL CYAN rim (-x, the machine's edge), WARM AMBER kicker
+     *     (+x, low — the human/handoff register at rim strength), cool
+     *     fill, white face glow, cyan pedestal spill (6 lamps, all
+     *     shadow-less). The ceramic PBR shells need strong keys — the
+     *     controlled-illumination law lives in the RIM HUES. */
+    const key = new DirectionalLight(0xf7f8fa, 2.1);
     key.position.set(2.6, 4.2, 3.2);
     scene.add(key);
-    /* P16-W3 (P1-b, evaluator: "stock/generic at hero scale",
-   "dropped onto the background"): the rim doubles down — a sharper
-   cooler edge separation carves the silhouette out of the dark stage
-   (the ChainGPT single-edge-strip lesson: light as identity), and the
-   key lifts one notch so the PBR shells model more strongly. */
-    const rim = new DirectionalLight(TEAL, 1.8);
+    const rim = new DirectionalLight(CYAN, 1.8);
     rim.position.set(-3.6, 3.3, -2.4);
     scene.add(rim);
-    const fill = new AmbientLight(0x22333a, 1.15);
+    const kicker = new DirectionalLight(AMBER, 1.05);
+    kicker.position.set(3.4, 2.1, -2.6);
+    scene.add(kicker);
+    const fill = new AmbientLight(0x16181d, 1.15);
     scene.add(fill);
-    const faceGlow = new PointLight(TEAL_LIME_BLEND, 2.4, 3.0, 2);
+    const faceGlow = new PointLight(0xffffff, 2.0, 3.0, 2);
     faceGlow.position.set(0, CHAR_H * 0.85, 1.15);
     scene.add(faceGlow);
-    const pedGlow = new PointLight(TEAL, 1.2, 2.8, 2);
+    const pedGlow = new PointLight(CYAN, 1.2, 2.8, 2);
     pedGlow.position.set(0, 0.42, 0.9);
     scene.add(pedGlow);
 
@@ -537,8 +518,11 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       renderer.setSize(w, h, false);
       camera.aspect = w / Math.max(h, 1);
       const style = getComputedStyle(host);
-      const figFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-fig')) || 0.62, 0.3), 0.95);
-      const floorFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-floor')) || 0.78, 0.5), 0.95);
+      /* P17: fig/floor may EXCEED 1 — the mobile bust close-up (fig 1.3 /
+       * floor 1.35) deliberately overflows the box: the head stays whole,
+       * the hips/pedestal crop below. Clamps widened accordingly. */
+      const figFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-fig')) || 0.62, 0.3), 1.6);
+      const floorFrac = Math.min(Math.max(parseFloat(style.getPropertyValue('--sb-floor')) || 0.78, 0.5), 1.8);
       /* the RING FIT clamp: the layout can cap the landing-pad rings
        * (--sb-ringfit, default 1) so their near edges never crop at
        * the host's bottom edge on narrow/tall boxes. */
@@ -633,8 +617,8 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     let eyeMat: MeshStandardMaterial | null = null;
     let coreMat: MeshStandardMaterial | null = null;
     let stripMat: MeshStandardMaterial | null = null;
-    const stripA = new Color(TEAL); /* the breathing hue pair (2 max) */
-    const stripB = new Color(LIME);
+    const stripA = new Color(CYAN); /* cyan→violet: the machine voice crossing into the AI register */
+    const stripB = new Color(VIOLET);
 
     const findNode = (wanted: string): Object3D | null => {
       if (!gltfScene) return null;
@@ -725,7 +709,10 @@ export function CharacterScene({ className }: CharacterSceneProps) {
 
       /* ── the reflection hint — a faint mirrored copy of the whole
        * figure under the floor line (the grounding's second half;
-       * unlit clones at low opacity, fog does the fading) ────────── */
+       * unlit clones at low opacity, fog does the fading). Phase 17:
+       * the clone's colors are re-derived from the PALETTE (never the
+       * GLB's authored petrol) and live-update with every repaint. */
+      const reflMats: MeshBasicMaterial[] = [];
       const reflection = figure.clone(true);
       reflection.traverse((o) => {
         const mesh = o as Mesh;
@@ -733,8 +720,7 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         const src = mesh.material as MeshStandardMaterial;
         const kind = classifyMat(src.name ?? '') ?? 'stage';
         const fromEmissive = kind === 'eye' || kind === 'core' || kind === 'strip';
-        const base = new Color(fromEmissive ? src.emissive.getHex() : src.color.getHex());
-        base.multiplyScalar(fromEmissive ? 0.85 : 0.55);
+        const base = new Color(0xffffff);
         const reflMat = track(
           new MeshBasicMaterial({
             color: base,
@@ -745,16 +731,35 @@ export function CharacterScene({ className }: CharacterSceneProps) {
           }),
         );
         reflMat.userData.sbKind = kind;
+        reflMats.push(reflMat);
         mesh.material = reflMat;
         mesh.renderOrder = -1;
       });
       reflection.scale.y = -1;
       reflection.position.y = 2 * FLOOR_Y;
       scene.add(reflection);
+      /* the reflection's palette derivation — called from repaint() */
+      const paintReflection = () => {
+        for (const rm of reflMats) {
+          const kind = (rm.userData.sbKind as GltfMatKind | 'stage') ?? 'stage';
+          const fromEmissive = kind === 'eye' || kind === 'core' || kind === 'strip';
+          const hex =
+            kind === 'body' ? palette.body
+            : kind === 'chest' ? palette.chest
+            : kind === 'joint' ? palette.joint
+            : kind === 'visor' ? palette.visor
+            : kind === 'eye' ? palette.eye
+            : kind === 'core' || kind === 'strip' ? palette.core
+            : palette.stage;
+          rm.color.setHex(hex).multiplyScalar(fromEmissive ? 0.85 : 0.55);
+          rm.opacity = fromEmissive ? 0.22 : 0.13;
+        }
+      };
 
       /* ── theme repaint (MutationObserver on html class) — the GLB
-       * materials traverse-and-repaint: authored values in dark, the
-       * mist family in light. */
+       * materials traverse-and-repaint. Phase 17: BOTH stages paint the
+       * ceramic palette of record (the GLB's authored petrol values are
+       * history — recorded in sbOrig for provenance only). */
       const repaint = () => {
         palette = samplePalette();
         stageMat.color.setHex(palette.stage);
@@ -765,57 +770,48 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         gridMat.color.setHex(palette.grid);
         pMat.color.setHex(palette.particle);
         pMatNear.color.setHex(palette.particle);
-        faceGlow.color.setHex(palette.dark ? TEAL_LIME_BLEND : 0x0c7563);
+        faceGlow.color.setHex(palette.dark ? 0xffffff : 0x0e7a8a);
         pedGlow.color.setHex(palette.pedRing);
         fog.color.copy(palette.fogColor);
         for (const [mat, kind] of gltfMats) {
           const orig = mat.userData.sbOrig as { color: number; emissive: number; emissiveIntensity: number };
-          if (palette.dark) {
-            mat.color.setHex(orig.color);
-            mat.emissive.setHex(kind === 'visor' ? palette.visorGlow : orig.emissive);
-            mat.emissiveIntensity =
-              kind === 'eye'
-                ? palette.eyeIntensity
-                : kind === 'core'
-                  ? palette.coreIntensity
-                  : kind === 'strip'
-                    ? 0.75 /* P16-W3 (P1-a): the strip emissive eased — it crossed the h1 band */
-                    : kind === 'visor'
-                      ? palette.visorIntensity
-                      : orig.emissiveIntensity;
-          } else {
-            mat.color.setHex(
-              kind === 'body'
-                ? palette.body
-                : kind === 'chest'
-                  ? palette.chest
-                  : kind === 'joint'
-                    ? palette.joint
-                    : kind === 'visor'
-                      ? palette.visor
-                      : orig.color,
-            );
-            mat.emissive.setHex(
-              kind === 'eye' || kind === 'core' || kind === 'strip'
+          /* the ceramic body-of-record — identical shells both stages */
+          mat.color.setHex(
+            kind === 'body'
+              ? palette.body
+              : kind === 'chest'
+                ? palette.chest
+                : kind === 'joint'
+                  ? palette.joint
+                  : kind === 'visor'
+                    ? palette.visor
+                    : orig.color,
+          );
+          mat.emissive.setHex(
+            kind === 'eye'
+              ? palette.eye
+              : kind === 'core' || kind === 'strip'
                 ? palette.core
                 : kind === 'visor'
                   ? palette.visorGlow
                   : orig.emissive,
-            );
-            mat.emissiveIntensity =
-              kind === 'eye'
-                ? palette.eyeIntensity
-                : kind === 'core' || kind === 'strip'
-                  ? palette.coreIntensity
+          );
+          mat.emissiveIntensity =
+            kind === 'eye'
+              ? palette.eyeIntensity
+              : kind === 'core'
+                ? palette.coreIntensity
+                : kind === 'strip'
+                  ? 0.75
                   : kind === 'visor'
                     ? palette.visorIntensity
                     : orig.emissiveIntensity;
-          }
           mat.needsUpdate = true;
         }
         /* the strip's breathing hue pair follows the theme */
-        stripA.setHex(palette.dark ? TEAL : 0x0c7563);
-        stripB.setHex(palette.dark ? LIME : 0x5a7a16);
+        stripA.setHex(palette.dark ? CYAN : 0x0e7a8a);
+        stripB.setHex(palette.dark ? VIOLET : 0x6b54e0);
+        paintReflection();
         if (!reduced) renderer.render(scene, camera);
       };
       repaint();
@@ -852,6 +848,9 @@ export function CharacterScene({ className }: CharacterSceneProps) {
       let blinkT = -1; // <0 = not blinking
       let nextBlink = 2.4 + Math.random() * 3;
       const t0 = performance.now();
+      /* the beat hue state — the core's temperature (phase-17 law) */
+      const coreHue = new Color(CYAN);
+      const tmpColor = new Color();
 
       frameLoop = (now: number) => {
         raf = 0;
@@ -877,6 +876,12 @@ export function CharacterScene({ className }: CharacterSceneProps) {
             corePulse = Math.abs(Math.sin(since * Math.PI * 2.4)) * Math.exp(-since * 2.2);
           }
         }
+        /* the phase-17 beat color law — the core's HUE tells the story:
+         * cyan (the machine's voice) at rest; VIOLET while classifying
+         * (the AI register); AMBER warmth on handoff (the human
+         * register). Lerped — a temperature shift, never a flash. */
+        const coreBeatColor = b === 'classify' ? VIOLET : b === 'handoff' ? AMBER : palette.dark ? CYAN : 0x0e7a8a;
+        coreHue.lerp(tmpColor.setHex(coreBeatColor), 1 - Math.pow(0.06, dt));
 
         /* idle bob (breathing) — the root rides ±1.5% of the height */
         if (root) root.position.y = Math.sin(t * 1.5) * 0.015;
@@ -935,10 +940,14 @@ export function CharacterScene({ className }: CharacterSceneProps) {
         if (antennaL) antennaL.rotation.z = Math.sin(t * 1.1) * 0.09;
         if (antennaR) antennaR.rotation.z = Math.sin(t * 1.1 + 1.9) * 0.08;
 
-        /* the emissive registers: eyes breathe, the core pulses on
-         * classify, the ONE edge strip breathes + drifts teal→lime */
+        /* the emissive registers: eyes breathe, the core pulses with its
+         * beat hue (violet on classify / amber on handoff), the ONE edge
+         * strip breathes + drifts cyan→violet */
         if (eyeMat) eyeMat.emissiveIntensity = palette.eyeIntensity + Math.sin(t * 1.5) * 0.12 + corePulse * 0.25;
-        if (coreMat) coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.8;
+        if (coreMat) {
+          coreMat.emissiveIntensity = palette.coreIntensity + corePulse * 1.8;
+          coreMat.emissive.copy(coreHue);
+        }
         if (coreNode) {
           const cs = 1 + corePulse * 0.07;
           coreNode.scale.set(cs, cs, cs);

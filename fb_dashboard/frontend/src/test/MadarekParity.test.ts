@@ -2,7 +2,7 @@
  * Vitest twin of tests/parity.mjs (same pin machinery, same scopes).
  *
  * PHASE 5 (r152 — Circuit Petrol): all pinned VALUES re-anchored to the
- * petrol contract (ground #071A21, signal teal #17C3A4 primary, re-graded
+ * petrol contract (ground #050506, signal teal #56E2F2 primary, re-graded
  * families/neutrals/status; lime --c-lime-* is the new AI-only signal).
  * Names, pin count and consumption structure unchanged. The file keeps
  * its historical name (MadarekParity) as the load-bearing import path —
@@ -118,45 +118,45 @@ function pinAll(scope: Record<string, string>, mode: string, table: Record<strin
 // ── canonical snapshot (madarek tokens.css, live-verified) ──────────────────
 
 const GROUNDS_DARK = {
-  "--background": "#071A21", // Madarek --bg (neutral-50 night)
-  "--card": "#0D2830", // Madarek --surface (neutral-0)
-  "--secondary": "#123039", // Madarek --bg-soft / --surface-2 (neutral-100)
-  "--foreground": "#E9F5F0", // Madarek --text (neutral-900 sand)
-  "--muted-foreground": "#9FC3BC", // Madarek --text-secondary
-  "--placeholder-text": "#6E938E", // Madarek --text-muted (neutral-500)
-  "--border": "#1D4450", // Madarek hairline (neutral-200)
+  "--background": "#050506", // Madarek --bg (neutral-50 night)
+  "--card": "#0A0B0E", // Madarek --surface (neutral-0)
+  "--secondary": "#101115", // Madarek --bg-soft / --surface-2 (neutral-100)
+  "--foreground": "#F4F4F6", // Madarek --text (neutral-900 sand)
+  "--muted-foreground": "#A7A8B0", // Madarek --text-secondary
+  "--placeholder-text": "#777983", // Madarek --text-muted (neutral-500)
+  "--border": "#292A30", // Madarek hairline (neutral-200)
 }
 const GROUNDS_LIGHT = {
-  "--background": "#EDF6F3",
+  "--background": "#F2F2F0",
   "--card": "#FFFFFF",
-  "--secondary": "#E4F0ED",
-  "--foreground": "#0A242E",
-  "--muted-foreground": "#3A5450",
-  "--placeholder-text": "#51736E", // Madarek --text-muted light (WCAG literal)
-  "--border": "#CCE0DB",
+  "--secondary": "#E9E9E6",
+  "--foreground": "#101115",
+  "--muted-foreground": "#41434B",
+  "--placeholder-text": "#55585F", // Madarek --text-muted light (WCAG literal)
+  "--border": "#D5D5D2",
 }
 const ACCENT_DARK = {
-  "--primary": "#17C3A4", // Madarek --accent (their --accent is the 15% wash twin)
-  "--primary-foreground": "#04231B", // Madarek --accent-fg
-  // Madarek --accent-ink #17C3A4, oklch spelling (parsed by the contrast gate)
-  "--accent-foreground": "oklch(0.7314 0.1342 175.5)",
-  "--c-copper-bg": "#0A2E28", // Madarek --accent-soft (family copper ground)
+  "--primary": "#56E2F2", // Madarek --accent (their --accent is the 15% wash twin)
+  "--primary-foreground": "#05171B", // Madarek --accent-fg
+  // Madarek --accent-ink #56E2F2, oklch spelling (parsed by the contrast gate)
+  "--accent-foreground": "oklch(0.8437 0.1205 205.8)",
+  "--c-copper-bg": "#0D1E24", // Madarek --accent-soft (family copper ground)
 }
 const ACCENT_LIGHT = {
-  "--primary": "#0C7563",
-  "--primary-foreground": "#F2FDFA",
-  // Madarek --accent-ink #085B4C (copper-deep), oklch spelling
-  "--accent-foreground": "oklch(0.4223 0.0763 175.9)",
-  "--c-copper-bg": "#D7F3EA",
+  "--primary": "#0E7A8A",
+  "--primary-foreground": "#F2F2F0",
+  // Madarek --accent-ink #0B5A68 (copper-deep), oklch spelling
+  "--accent-foreground": "oklch(0.4661 0.0782 211.8)",
+  "--c-copper-bg": "#DCF1F4",
 }
 // r127-F5b: status bases = the canonical family inks in BOTH themes (dark
 // luminous / light vivid — the fleet standard); fill foregrounds = the
 // Madarek fg values (--danger-fg pattern: #191918 light / #05070F dark).
 const STATUS_DARK = {
-  "--success": "#45D6A0", "--success-soft": "#0C2E24", "--success-foreground": "#04231B",
-  "--warning": "#F5C46B", "--warning-soft": "#332708",
-  "--info": "#7CC4DE", "--info-soft": "#10303B",
-  "--destructive": "#F2919B", "--destructive-soft": "#331821", "--destructive-foreground": "#04231B",
+  "--success": "#5FE3A1", "--success-soft": "#0D241B", "--success-foreground": "#05171B",
+  "--warning": "#F8CF6E", "--warning-soft": "#332A10",
+  "--info": "#8FC9D8", "--info-soft": "#102530",
+  "--destructive": "#F2919B", "--destructive-soft": "#331821", "--destructive-foreground": "#05171B",
 }
 const STATUS_LIGHT = {
   // r148 (19-AUDIT-CROSS R1, authorized pin edit — mirrors tests/parity.mjs
@@ -164,32 +164,32 @@ const STATUS_LIGHT = {
   // r127 comment always claimed (Menu/Link/Order ship these verbatim):
   // success #2F7D4F→#4FA66D · warning #8C6A1D→#D6A330 · info #3B6FB5→#5C8FCE
   // · destructive #C2414D→#DD6E78. Count unchanged.
-  "--success": "#2E9E6F", "--success-soft": "#D9F3E6", "--success-foreground": "#04231B", // mint-ink / mint-bg / danger-fg
+  "--success": "#2E9E6F", "--success-soft": "#D9F3E6", "--success-foreground": "#05171B", // mint-ink / mint-bg / danger-fg
   "--warning": "#B08210", "--warning-soft": "#FBF1CF", // yellow-ink / yellow-bg (phase8: حشوة 3.47:1)
   "--info": "#3E96BC", "--info-soft": "#DDF0F7", // sky-ink / sky-bg
-  "--destructive": "#D95F6C", "--destructive-soft": "#FCE3E6", "--destructive-foreground": "#04231B", // rose-ink / rose-bg / danger-fg
+  "--destructive": "#D95F6C", "--destructive-soft": "#FCE3E6", "--destructive-foreground": "#05171B", // rose-ink / rose-bg / danger-fg
 }
 const FAMILIES_DARK: Record<string, [string, string, string]> = {
-  peach: ["#2A1E1A", "#F2A887", "#F8D9C8"],
-  mint: ["#0C2E24", "#45D6A0", "#C9EDDB"],
-  lavender: ["#1E2740", "#9FB2E8", "#D8DEF8"],
-  sky: ["#10303B", "#7CC4DE", "#CDE9F3"],
-  yellow: ["#332708", "#F5C46B", "#F8E7B8"],
+  peach: ["#2A1F1C", "#FFB08C", "#FFE2D1"],
+  mint: ["#0D241B", "#5FE3A1", "#CFEDE1"],
+  lavender: ["#1E2233", "#A9B4F0", "#D8DDF9"],
+  sky: ["#102530", "#8FC9D8", "#CFE8F0"],
+  yellow: ["#332A10", "#F8CF6E", "#F9E6BC"],
   rose: ["#331821", "#F2919B", "#FAD3D7"],
-  sand: ["#1B3230", "#B9D4C8", "#DDEBE1"],
-  grey: ["#14262E", "#A3B8BF", "#D8E5E8"],
-  copper: ["#0A2E28", "#17C3A4", "#A9F0DF"],
+  sand: ["#1A1D1C", "#C4C9C4", "#DEE3E0"],
+  grey: ["#141519", "#A7A8B0", "#D6D7DB"],
+  copper: ["#0D1E24", "#56E2F2", "#C9F6FC"],
 }
 const FAMILIES_LIGHT: Record<string, [string, string, string]> = {
-  peach: ["#FFEDE2", "#DB7B57", "#6B2D1A"],
+  peach: ["#FFEDE3", "#E0825C", "#74301C"],
   mint: ["#D9F3E6", "#2E9E6F", "#0F4A33"],
-  lavender: ["#E8ECF9", "#7086D6", "#2D3A7A"],
+  lavender: ["#E9E8F7", "#7B86DC", "#32387E"],
   sky: ["#DDF0F7", "#3E96BC", "#0F3D52"],
   yellow: ["#FBF1CF", "#C29217", "#6B4C0B"],
   rose: ["#FCE3E6", "#D95F6C", "#6B2128"],
-  sand: ["#EBF2EC", "#7FA089", "#33523F"],
-  grey: ["#EAF0F1", "#5F7377", "#2A3A3E"],
-  copper: ["#D7F3EA", "#0E8A75", "#0A4A3C"],
+  sand: ["#EDEFEA", "#849489", "#385241"],
+  grey: ["#EAEEF0", "#62696C", "#2E3A40"],
+  copper: ["#DCF1F4", "#12748A", "#0C4753"],
 }
 // Tailwind @theme spellings (Madarek --r-* ladder, same values; no --r-full
 // token — rounded-full uses the Tailwind default)
@@ -242,10 +242,10 @@ describe("r125 Madarek parity — grounds, inks & neutrals", () => {
 })
 
 describe("r125 Madarek parity — accent family", () => {
-  it("dark: signal-teal #17C3A4 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the gold #E9B44C Madarek heritage)", () => {
+  it("dark: signal-teal #56E2F2 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the gold #E9B44C Madarek heritage)", () => {
     pinAll(dark, "dark", ACCENT_DARK)
   })
-  it("light: deep petrol #0C7563 set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the copper #B57438 Madarek heritage)", () => {
+  it("light: deep petrol #0E7A8A set (phase5 Circuit Petrol --accent; accent-ink in oklch spelling — was the copper #B57438 Madarek heritage)", () => {
     pinAll(light, "light", ACCENT_LIGHT)
   })
 })
@@ -310,22 +310,22 @@ describe("r125 Madarek parity — elevation ladder (§5)", () => {
 })
 
 describe("r125 Madarek parity — glass ground (§1.8)", () => {
-  it("dark rgba(11,16,32,0.78) · light rgba(251,250,249,0.78)", () => {
-    pin(dark, "glass-dark", "--glass-bg", "rgba(13, 40, 48, 0.78)")
-    pin(light, "glass-light", "--glass-bg", "rgba(237, 246, 243, 0.78)")
+  it("dark rgba(10,11,14,0.78) · light rgba(242,242,240,0.78)", () => {
+    pin(dark, "glass-dark", "--glass-bg", "rgba(10, 11, 14, 0.78)")
+    pin(light, "glass-light", "--glass-bg", "rgba(242, 242, 240, 0.78)")
   })
 })
 
 // ── r127-F5b pin groups (mirrors tests/parity.mjs 82 → 185) ─────────────────
 
 describe("r127-F5b Madarek parity — focus contract (A6 P1)", () => {
-  it("dark: --ring #17C3A4 + --state-focus-ring-color #17C3A4 (r130 FLEET-1 true parity: the canonical cascade resolves dark ring through the SOLID gold — tokens.css:543; #C9962F painted night focus one shade darker than madarek's own UI)", () => {
-    pin(dark, "focus-dark", "--ring", "#17C3A4")
-    pin(dark, "focus-dark", "--state-focus-ring-color", "#17C3A4")
+  it("dark: --ring #56E2F2 + --state-focus-ring-color #56E2F2 (r130 FLEET-1 true parity: the canonical cascade resolves dark ring through the SOLID gold — tokens.css:543; #C9962F painted night focus one shade darker than madarek's own UI)", () => {
+    pin(dark, "focus-dark", "--ring", "#56E2F2")
+    pin(dark, "focus-dark", "--state-focus-ring-color", "#56E2F2")
   })
-  it("light: --ring #085B4C + --state-focus-ring-color #085B4C (10.29:1 — NOT raw copper 3.65:1)", () => {
-    pin(light, "focus-light", "--ring", "#085B4C")
-    pin(light, "focus-light", "--state-focus-ring-color", "#085B4C")
+  it("light: --ring #0B5A68 + --state-focus-ring-color #0B5A68 (10.29:1 — NOT raw copper 3.65:1)", () => {
+    pin(light, "focus-light", "--ring", "#0B5A68")
+    pin(light, "focus-light", "--state-focus-ring-color", "#0B5A68")
   })
   it("shape-mutation ban: :focus-visible paints an outline only (never border-radius)", () => {
     const focusRule = block(":focus-visible")
@@ -364,7 +364,7 @@ describe("r127-F5b Madarek parity — prefers-contrast: more port (A6 e)", () =>
     pinAll(contrastDark, "contrast-dark", {
       "--elev-1": "0 0 0 1px rgba(255, 255, 255, 0.36)",
       "--elev-5": "0 0 0 3px rgba(255, 255, 255, 0.68)",
-      "--glass-bg": "#0D2830", // var(--card) → the dark surface
+      "--glass-bg": "#0A0B0E", // var(--card) → the dark surface
       "--border": "rgba(255, 255, 255, 0.48)",
     })
   })
@@ -407,31 +407,31 @@ describe("r127-F5b Madarek parity — reduced-motion token zeroing (A6 f)", () =
 // ── r129-F3 pin groups (mirrors tests/parity.mjs 224 → 329) ──────────────────
 
 describe("r129 Madarek parity — the --accent-solid family (fleet six-token standard)", () => {
-  it("dark: signal-teal #17C3A4 / hover #1FD6B4 / soft #0A2E28 / strong #12A386 / ink #17C3A4 / fg #04231B (phase5 petrol — was the gold-era names)", () => {
+  it("dark: signal-teal #56E2F2 / hover #7CEFF9 / soft #0D1E24 / strong #2AC5D8 / ink #56E2F2 / fg #05171B (phase5 petrol — was the gold-era names)", () => {
     pinAll(dark, "accent-family-dark", {
-      "--accent-solid": "#17C3A4",
-      "--accent-hover": "#1FD6B4",
-      "--accent-soft": "#0A2E28",
-      "--accent-strong": "#12A386",
-      "--accent-ink": "#17C3A4",
-      "--accent-fg": "#04231B",
+      "--accent-solid": "#56E2F2",
+      "--accent-hover": "#7CEFF9",
+      "--accent-soft": "#0D1E24",
+      "--accent-strong": "#2AC5D8",
+      "--accent-ink": "#56E2F2",
+      "--accent-fg": "#05171B",
     })
   })
-  it("light: deep petrol #0C7563 / hover #0A6656 / soft #D7F3EA (phase5 petrol — was the copper-era names)", () => {
+  it("light: deep petrol #0E7A8A / hover #0B6573 / soft #DCF1F4 (phase5 petrol — was the copper-era names)", () => {
     pinAll(light, "accent-family-light", {
-      "--accent-solid": "#0C7563",
-      "--accent-hover": "#0A6656",
-      "--accent-soft": "#D7F3EA",
-      "--accent-strong": "#085B4C",
-      "--accent-ink": "#085B4C",
-      "--accent-fg": "#F2FDFA",
+      "--accent-solid": "#0E7A8A",
+      "--accent-hover": "#0B6573",
+      "--accent-soft": "#DCF1F4",
+      "--accent-strong": "#0B5A68",
+      "--accent-ink": "#0B5A68",
+      "--accent-fg": "#F2F2F0",
     })
   })
   it("the repointed consumers resolve to the same values (--primary/--primary-foreground chain to the family)", () => {
-    pin(dark, "accent-consumers", "--primary", "#17C3A4")
-    pin(dark, "accent-consumers", "--primary-foreground", "#04231B")
-    pin(light, "accent-consumers", "--primary", "#0C7563")
-    pin(light, "accent-consumers", "--primary-foreground", "#F2FDFA")
+    pin(dark, "accent-consumers", "--primary", "#56E2F2")
+    pin(dark, "accent-consumers", "--primary-foreground", "#05171B")
+    pin(light, "accent-consumers", "--primary", "#0E7A8A")
+    pin(light, "accent-consumers", "--primary-foreground", "#F2F2F0")
   })
 })
 
@@ -453,27 +453,27 @@ describe("r129 Madarek parity — token-matrix SB fixes (canonical names)", () =
     }
   })
   it("brand aliases: --gold / --gold-soft / --brand-purple / --text-on-accent (canonical values)", () => {
-    pin(dark, "brand-aliases", "--gold", "#17C3A4")
-    pin(light, "brand-aliases", "--gold", "#0E8A75")
-    pin(dark, "brand-aliases", "--gold-soft", "#0A2E28")
-    pin(light, "brand-aliases", "--gold-soft", "#D7F3EA")
-    pin(dark, "brand-aliases", "--brand-purple", "#9FB2E8")
-    pin(light, "brand-aliases", "--brand-purple", "#7086D6")
-    pin(dark, "brand-aliases", "--text-on-accent", "#04231B")
-    pin(light, "brand-aliases", "--text-on-accent", "#F2FDFA")
+    pin(dark, "brand-aliases", "--gold", "#56E2F2")
+    pin(light, "brand-aliases", "--gold", "#12748A")
+    pin(dark, "brand-aliases", "--gold-soft", "#0D1E24")
+    pin(light, "brand-aliases", "--gold-soft", "#DCF1F4")
+    pin(dark, "brand-aliases", "--brand-purple", "#A9B4F0")
+    pin(light, "brand-aliases", "--brand-purple", "#7B86DC")
+    pin(dark, "brand-aliases", "--text-on-accent", "#05171B")
+    pin(light, "brand-aliases", "--text-on-accent", "#F2F2F0")
   })
   it("the canonical neutral ramp under Madarek's own names, both themes", () => {
     pinAll(dark, "neutral-ramp-dark", {
-      "--neutral-0": "#0D2830", "--neutral-50": "#071A21", "--neutral-100": "#123039",
-      "--neutral-150": "#163842", "--neutral-200": "#1D4450", "--neutral-300": "#2A5766",
-      "--neutral-400": "#64949E", "--neutral-500": "#6E938E", "--neutral-700": "#9FC3BC",
-      "--neutral-800": "#CFE5DF", "--neutral-900": "#E9F5F0",
+      "--neutral-0": "#0A0B0E", "--neutral-50": "#050506", "--neutral-100": "#101115",
+      "--neutral-150": "#17181D", "--neutral-200": "#292A30", "--neutral-300": "#41434B",
+      "--neutral-400": "#898B90", "--neutral-500": "#777983", "--neutral-700": "#A7A8B0",
+      "--neutral-800": "#D6D7DB", "--neutral-900": "#F4F4F6",
     })
     pinAll(light, "neutral-ramp-light", {
-      "--neutral-0": "#FFFFFF", "--neutral-50": "#EDF6F3", "--neutral-100": "#E4F0ED",
-      "--neutral-150": "#DAEAE6", "--neutral-200": "#CCE0DB", "--neutral-300": "#B7D2CC",
-      "--neutral-400": "#5F837E", "--neutral-500": "#51736E", "--neutral-700": "#3A5450",
-      "--neutral-800": "#243634", "--neutral-900": "#0A242E",
+      "--neutral-0": "#FFFFFF", "--neutral-50": "#F2F2F0", "--neutral-100": "#E9E9E6",
+      "--neutral-150": "#E1E1DE", "--neutral-200": "#D5D5D2", "--neutral-300": "#C2C2BE",
+      "--neutral-400": "#62656C", "--neutral-500": "#55585F", "--neutral-700": "#41434B",
+      "--neutral-800": "#2A2B31", "--neutral-900": "#101115",
     })
   })
 })
@@ -543,9 +543,9 @@ describe("r130 Madarek parity — semantic motion layer + layout/state/topbar to
   it("content/marketing columns + the input-focus halo + the 86% topbar", () => {
     pin(dark, "layout", "--content-max-w", "1280px")
     pin(dark, "layout", "--marketing-max-w", "1200px")
-    pin(dark, "state", "--state-input-focus-halo", "0 0 0 3px color-mix(in srgb, #17C3A4 22%, transparent)")
-    pin(dark, "topbar", "--topbar-bg", "rgba(7, 26, 33, 0.86)")
-    pin(light, "topbar", "--topbar-bg", "rgba(237, 246, 243, 0.86)")
+    pin(dark, "state", "--state-input-focus-halo", "0 0 0 3px color-mix(in srgb, #56E2F2 22%, transparent)")
+    pin(dark, "topbar", "--topbar-bg", "rgba(5, 5, 6, 0.86)")
+    pin(light, "topbar", "--topbar-bg", "rgba(242, 242, 240, 0.86)")
   })
   it("the RM belt resets animation/transition DELAYS (SB-P1-1: `both`-filled staggers stayed invisible up to 400ms)", () => {
     const raw = readFileSync("src/app/globals.css", "utf8").replace(/\s+/g, " ")
@@ -665,7 +665,7 @@ describe("p10a parity — chart ink contract: recharts text/cursor = the TEXT to
   const read = (p: string) => nc(readFileSync(p, "utf8"))
 
   // P10-1a (route audit): tick fill/cursor bound to var(--muted) — the
-  // SURFACE-2 fill (#123039 dark / #DAEAE6 light) — painted 1.11:1 / 1.24:1
+  // SURFACE-2 fill (#101115 dark / #E1E1DE light) — painted 1.11:1 / 1.24:1
   // on card in both stages: the analytics daily-trend axis labels were
   // invisible. The secondary-TEXT token --muted-foreground measures
   // 8.07:1 (dark) / 8.19:1 (light) on card.
@@ -688,9 +688,9 @@ describe("p10a parity — chart ink contract: recharts text/cursor = the TEXT to
     expect(raw).not.toContain('fill: "var(--muted)"')
   })
 
-  it("the ink tier resolves AA on card in both stages (dark #9FC3BC / light #3A5450 on their card grounds)", () => {
-    expect(resolve(dark, dark["--muted-foreground"]!)).toBe("#9FC3BC")
-    expect(resolve(light, light["--muted-foreground"]!)).toBe("#3A5450")
+  it("the ink tier resolves AA on card in both stages (dark #A7A8B0 / light #41434B on their card grounds)", () => {
+    expect(resolve(dark, dark["--muted-foreground"]!)).toBe("#A7A8B0")
+    expect(resolve(light, light["--muted-foreground"]!)).toBe("#41434B")
   })
 })
 
@@ -724,10 +724,10 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     }
   })
 
-  it("the composition tokens (P16-A): --sb-fig 0.76 / --sb-floor 0.84 + the character-first mobile re-pose 0.92/0.94", () => {
+  it("the composition tokens (P17): --sb-fig 0.76 / --sb-floor 0.84 desktop + the mobile bust re-pose 1.3/1.35", () => {
     expect(rawLanding).toMatch(/--sb-fig:\s*0\.76;/)
     expect(rawLanding).toMatch(/--sb-floor:\s*0\.84;/)
-    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*0\.92;[^@]*?--sb-floor:\s*0\.94;/)
+    expect(rawLanding).toMatch(/@media \(max-width: 1024px\)[^@]*?--sb-fig:\s*1\.3;[^@]*?--sb-floor:\s*1\.35;/)
   })
 
   it("ONE composed viewport: ≥1025px hero = calc(100svh - 74px) with the 620px floor + the 70vw display measure", () => {
@@ -756,7 +756,7 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
 
   it("the status panel: hairline spine, synced active row, dim rows ≥4.5:1 (0.55 alpha)", () => {
     expect(rawLanding).toMatch(/\.ln-status\s*\{[^}]*border-inline-start:\s*1px solid var\(--ln-line\)/)
-    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(233 245 240 \/ 0\.55\)/)
+    expect(rawLanding).toMatch(/\.ln-status li\s*\{[^}]*color:\s*rgb\(244 244 246 \/ 0\.55\)/)
     expect(rawLanding).toMatch(/\.ln-status li\[data-active='true'\]\s*\{[^}]*color:\s*var\(--ln-cream\)/)
   })
 
@@ -836,11 +836,11 @@ describe("P15→P16-A concept A parity — the character-led cinematic hero", ()
     expect(rawPage).toContain("تعرّف على")
   })
 
-  it("the mobile stack (P16-A: ≤1024px character-first): 56svh full-figure stage (P16-W3 re-anchor: the selector's stack cost), island display:contents, compact status ON, ONE-line console", () => {
+  it("the mobile stack (P17: ≤1024px character-first): 41svh BUST stage (the CTA returns to the fold), island display:contents, compact status ON, ONE-line console", () => {
     const raw = read("src/app/landing.css")
     const mob = raw.match(/@media \(max-width: 1024px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
       ?? raw.slice(raw.lastIndexOf("@media (max-width: 1024px)"))
-    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*56svh/) /* P16-W3: 62→56 — parity.mjs re-anchored in lockstep */
+    expect(mob).toMatch(/\.ln-robot-stage\s*\{[^}]*block-size:\s*41svh/) /* P17: 56→41 + bust crop — parity.mjs re-anchored in lockstep */
     expect(mob).toMatch(/\.ln-ticker-island\s*\{[^}]*display:\s*contents/)
     expect(mob).toMatch(/\.ln-ticker-status\s*\{[^}]*display:\s*flex/)
     expect(mob).toMatch(/\.ln-status\s*\{[^}]*display:\s*none/)

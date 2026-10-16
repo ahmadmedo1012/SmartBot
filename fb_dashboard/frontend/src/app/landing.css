@@ -2478,16 +2478,30 @@ html.light .landing .ln-chapter-head::after {
 .landing .ln-ticker {
   position: relative;
   padding: 13px 18px 15px;
-  /* i3 → 2-e/d1: 0.6/0.56 → 0.42/0.38 — the plate was the third
-     competing anchor; at rest it reads as a dim holographic plate */
-  background: linear-gradient(180deg, rgb(13 42 52 / 0.42), rgb(10 34 42 / 0.38));
+  /* P17 (the wireframe law — the reference's schematic framing): the
+     glassmorphism plate RETIRES — a near-transparent ink wash + the
+     1px hairline + the 2px instrument ramp top line carry the box; the
+     corner brackets + mono labels complete the schematic grammar */
+  background: rgb(10 11 14 / 0.35);
   border: 1px solid var(--ln-line);
-  box-shadow: 0 0 18px rgb(86 226 242 / 0.05), 0 10px 30px rgb(1 1 2 / 0.5);
+  box-shadow: 0 10px 30px rgb(1 1 2 / 0.4);
 }
-/* the live beat lifts the plate ONE step (data-beat rides the body;
+/* the 2px instrument ramp — the ONE sanctioned multicolor detail
+   (cyan→violet→amber, ChainGPT's panel-line signature) */
+.landing .ln-ticker::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: -1px;
+  block-size: 2px;
+  background: var(--sb-ramp);
+  opacity: 0.9;
+  pointer-events: none;
+}
+/* the live beat lifts the wash ONE step (data-beat rides the body;
    the island stays furniture — the glow never approaches the face's) */
 .landing .ln-ticker:has(.ln-ticker-beat:not([data-beat='reset'])) {
-  background: linear-gradient(180deg, rgb(13 42 52 / 0.5), rgb(10 34 42 / 0.46));
+  background: rgb(10 11 14 / 0.5);
 }
 /* the bracket corners — 1px L-strokes OUTSIDE the box corners */
 .landing .ln-ticker-corner {

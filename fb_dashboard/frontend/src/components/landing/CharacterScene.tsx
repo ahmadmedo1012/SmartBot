@@ -617,8 +617,9 @@ export function CharacterScene({ className }: CharacterSceneProps) {
     let eyeMat: MeshStandardMaterial | null = null;
     let coreMat: MeshStandardMaterial | null = null;
     let stripMat: MeshStandardMaterial | null = null;
-    const stripA = new Color(CYAN); /* cyan→violet: the machine voice crossing into the AI register */
-    const stripB = new Color(VIOLET);
+    const stripA = new Color(CYAN);  /* the tri-hue ramp endpoints: */
+    const stripB = new Color(VIOLET);/* machine → AI → human registers */
+    const stripC = new Color(AMBER); /* (the strip's slow rotation) */
 
     const findNode = (wanted: string): Object3D | null => {
       if (!gltfScene) return null;
@@ -806,6 +807,21 @@ export function CharacterScene({ className }: CharacterSceneProps) {
                   : kind === 'visor'
                     ? palette.visorIntensity
                     : orig.emissiveIntensity;
+          /* P17 matte law — the reference's industrial ceramic: shells
+           * go matte (roughness up, metalness floor); the black glass
+           * face keeps one specular notch above them; joints sit
+           * between. Kills the glossy-toy reading at the material
+           * response level (the VLM's gap #2). */
+          if (kind === 'body' || kind === 'chest') {
+            mat.roughness = 0.72;
+            mat.metalness = 0.04;
+          } else if (kind === 'joint') {
+            mat.roughness = 0.6;
+            mat.metalness = 0.1;
+          } else if (kind === 'visor') {
+            mat.roughness = 0.35;
+            mat.metalness = 0.2;
+          }
           mat.needsUpdate = true;
         }
         /* the strip's breathing hue pair follows the theme */
@@ -956,7 +972,14 @@ export function CharacterScene({ className }: CharacterSceneProps) {
           stripMat.emissiveIntensity = palette.dark
             ? 0.95 + Math.sin(t * 0.9) * 0.3
             : 0.7 + Math.sin(t * 0.9) * 0.15;
-          stripMat.emissive.copy(stripA).lerp(stripB, 0.5 + 0.5 * Math.sin(t * 0.6));
+          /* P17: the tri-hue rotation — the ONE edge strip carries the
+           * full instrument ramp over one slow 18s cycle (cyan → violet
+           * → amber → cyan), the multicolor light signature the
+           * reference wears on its bezel (VLM gap #1's fix) */
+          const phase = (t % 18) / 6; // 0..3
+          if (phase < 1) stripMat.emissive.copy(stripA).lerp(stripB, phase);
+          else if (phase < 2) stripMat.emissive.copy(stripB).lerp(stripC, phase - 1);
+          else stripMat.emissive.copy(stripC).lerp(stripA, phase - 2);
         }
 
         /* particle drift (two depth layers, the near one slower) */
